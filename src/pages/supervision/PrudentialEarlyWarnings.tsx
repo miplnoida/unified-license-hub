@@ -20,6 +20,7 @@ import { AlertTriangle, Loader2, TrendingDown, TrendingUp, Download, Play, Clipb
 import { toast } from 'sonner';
 import { logExport } from '@/lib/exportAudit';
 import { logAudit } from '@/hooks/useAuditLog';
+import { supervisoryPlanActionCreate } from '@/lib/prudentialGovernedOps';
 
 type Warning = {
   licensee_id: string;
@@ -80,21 +81,13 @@ export default function PrudentialEarlyWarnings() {
       const { data: plan } = await (supabase.from('supervisory_plans') as any)
         .select('id').eq('entity_id', w.licensee_id).eq('status', 'active').limit(1).maybeSingle();
       if (!plan?.id) throw new Error('No active supervisory plan for this licensee. Open the licensee first.');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: inserted, error } = await (supabase.from('supervisory_plan_actions') as any).insert({
-        plan_id: plan.id,
+      // Governed operation: authority checks and audit trail run server-side.
+      await supervisoryPlanActionCreate({
+        planId: plan.id,
         title: `Investigate ${w.ratio_key} deterioration`,
         description: `Automated early-warning: ${w.warning_level} on ${w.ratio_key} (current ${w.current_value}, delta ${w.delta_pct ?? '—'}%, ${w.recent_breach_count} recent breach(es))`,
-        status: 'pending',
-        priority: w.warning_level === 'critical' ? 'high' : 'medium',
-        due_date: new Date(Date.now() + 14 * 864e5).toISOString().slice(0, 10),
-      }).select('id').single();
-      if (error) throw error;
-      await logAudit({
-        action: 'early_warning_action_created',
-        entityType: 'supervisory_plan_action',
-        entityId: inserted.id,
-        newValue: { licensee_id: w.licensee_id, ratio_key: w.ratio_key, warning_level: w.warning_level },
+        dueDate: new Date(Date.now() + 14 * 864e5).toISOString().slice(0, 10),
+        source: 'early_warning',
       });
     },
     onSuccess: () => toast.success('Supervisory action created'),

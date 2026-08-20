@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import type { ValidationRule } from '@/lib/returnsValidation';
 import type { PrudentialRatio, PrudentialThreshold, ComputedRatio, DetectedBreach } from '@/lib/returnsRatios';
 import type { PeerSnapshot } from '@/lib/prudentialPhase2';
+import { prudentialThresholdSave, prudentialThresholdDelete, prudentialRatioSave, prudentialRatioDelete } from '@/lib/prudentialGovernedOps';
 
 // ---------------- Validation rules ----------------
 export function useValidationRules(configId?: string | null) {
@@ -67,14 +68,9 @@ export function useUpsertThreshold() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: Partial<PrudentialThreshold> & { return_config_id: string }) => {
-      const payload = { ...row, updated_at: new Date().toISOString() };
-      if (row.id) {
-        const { error } = await (supabase as any).from('prudential_thresholds').update(payload).eq('id', row.id);
-        if (error) throw error;
-      } else {
-        const { error } = await (supabase as any).from('prudential_thresholds').insert(payload);
-        if (error) throw error;
-      }
+      const { id, ...payload } = row as any;
+      // Governed operation: authority checks and audit trail run server-side.
+      await prudentialThresholdSave(payload, id ?? null, id ? 'Threshold updated' : 'Threshold created');
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_thresholds'] }); toast.success('Threshold saved'); },
     onError: (e: any) => toast.error(e.message || 'Failed to save threshold'),
@@ -85,10 +81,10 @@ export function useDeleteThreshold() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from('prudential_thresholds').delete().eq('id', id);
-      if (error) throw error;
+      await prudentialThresholdDelete(id, 'Threshold removed by supervisor');
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_thresholds'] }); toast.success('Threshold deleted'); },
+    onError: (e: any) => toast.error(e.message || 'Failed to delete threshold'),
   });
 }
 
@@ -110,14 +106,8 @@ export function useUpsertRatio() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: Partial<PrudentialRatio> & { return_config_id: string }) => {
-      const payload = { ...row, updated_at: new Date().toISOString() };
-      if (row.id) {
-        const { error } = await (supabase as any).from('prudential_ratios').update(payload).eq('id', row.id);
-        if (error) throw error;
-      } else {
-        const { error } = await (supabase as any).from('prudential_ratios').insert(payload);
-        if (error) throw error;
-      }
+      const { id, ...payload } = row as any;
+      await prudentialRatioSave(payload, id ?? null, id ? 'Ratio updated' : 'Ratio created');
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_ratios'] }); toast.success('Ratio saved'); },
     onError: (e: any) => toast.error(e.message || 'Failed to save ratio'),
@@ -128,10 +118,10 @@ export function useDeleteRatio() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from('prudential_ratios').delete().eq('id', id);
-      if (error) throw error;
+      await prudentialRatioDelete(id, 'Ratio removed by supervisor');
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_ratios'] }); toast.success('Ratio deleted'); },
+    onError: (e: any) => toast.error(e.message || 'Failed to delete ratio'),
   });
 }
 

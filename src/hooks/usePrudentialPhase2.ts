@@ -10,6 +10,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { GroupDataState } from '@/lib/prudentialPhase2';
+import { prudentialComponentRatingSave } from '@/lib/prudentialGovernedOps';
 
 const sb = supabase as any;
 
@@ -179,15 +180,20 @@ export function useUpsertComponentRating() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: Partial<ComponentRating> & { assessment_id: string; component_code: string }) => {
-      const user = (await sb.auth.getUser()).data.user;
-      const payload = { ...row, updated_by: user?.id ?? null, updated_at: new Date().toISOString() };
-      const { data, error } = await sb
-        .from('prudential_assessment_component_ratings')
-        .upsert(payload, { onConflict: 'assessment_id,component_code' })
-        .select()
-        .maybeSingle();
-      if (error) throw error;
-      return data as ComponentRating;
+      // Governed operation: assessment-state and authority checks plus the
+      // audit entry are enforced server-side.
+      const saved = await prudentialComponentRatingSave({
+        assessmentId: row.assessment_id,
+        componentCode: row.component_code,
+        rating: (row as any).rating,
+        narrative: (row as any).narrative ?? null,
+        componentId: (row as any).component_id ?? null,
+        evidence: (row as any).evidence ?? [],
+        autoSuggestedRating: (row as any).auto_suggested_rating ?? null,
+        suggestionSource: (row as any).suggestion_source ?? null,
+        overrideJustification: (row as any).override_justification ?? null,
+      });
+      return saved as ComponentRating;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['prudential_assessment_component_ratings'] });

@@ -18,6 +18,11 @@ import { AlertTriangle, Loader2, ExternalLink, ShieldCheck, Gavel } from 'lucide
 import { logAction } from '@/hooks/useAuditLog';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
+import {
+  prudentialBreachAcknowledge,
+  prudentialBreachLinkEnforcement,
+  supervisoryBreachIssueEnforcement,
+} from '@/lib/prudentialGovernedOps';
 
 type BreachRow = {
   id: string;
@@ -154,19 +159,9 @@ export default function BreachInbox() {
     mutationFn: async () => {
       if (!ackTarget) return;
       if (ackNote.trim().length < 5) throw new Error('Acknowledgement note required');
-      const { error } = await supabase.from('return_threshold_breaches').update({
-        acknowledged_at: new Date().toISOString(),
-        acknowledged_by: user?.id,
-        acknowledgement_note: ackNote.trim(),
-      }).eq('id', ackTarget.id);
-      if (error) throw error;
-      await logAction('prudential.breach_acknowledged', 'return_threshold_breaches', ackTarget.id, {
-        meta: {
-          note: ackNote.trim(),
-          return_id: ackTarget.return_id,
-          metric_key: ackTarget.metric_key,
-        },
-      });
+      // Governed operation: authority, note validation and the audit entry are
+      // enforced server-side. Direct DML on return_threshold_breaches is revoked.
+      await prudentialBreachAcknowledge(ackTarget.id, ackNote.trim());
     },
     onSuccess: () => {
       toast.success('Breach acknowledged');
@@ -182,37 +177,23 @@ export default function BreachInbox() {
       const row = enriched.find(b => b.id === escTarget.id);
       if (!row?.licenseeId) throw new Error('Missing licensee on this return — cannot escalate');
       if (escNote.trim().length < 15) throw new Error('Escalation summary required (min 15 chars)');
-      const desc = `Prudential breach: ${escTarget.metric_key} — value ${escTarget.value} ${escTarget.comparator ?? ''} threshold ${escTarget.threshold_value} (${escTarget.level}).\n\nAnalyst notes: ${escNote.trim()}`;
-      const insertPayload: any = {
-        entity_id: row.licenseeId,
-        enforcement_type: 'prudential_breach',
-        status: 'open',
-        description: desc,
-        findings: escTarget.metric_key,
-        opened_by: user?.id,
-        source_type: 'prudential_breach',
-        source_reference_id: escTarget.id,
-      };
-      if (escPenalty !== '' && Number.isFinite(Number(escPenalty))) insertPayload.penalty_amount = Number(escPenalty);
-      const { data, error } = await supabase.from('enforcement_actions').insert(insertPayload).select('id, case_number').single();
-      if (error) throw error;
-      const { error: upErr } = await supabase.from('return_threshold_breaches').update({
-        escalated_enforcement_id: data.id,
-        escalated_at: new Date().toISOString(),
-        escalated_by: user?.id,
-      }).eq('id', escTarget.id);
-      if (upErr) throw upErr;
-      await supabase.from('enforcement_case_events').insert({
-        case_id: data.id,
-        event_type: 'opened',
-        note: `Auto-opened from prudential breach ${escTarget.metric_key}`,
-        detail: { source_breach_id: escTarget.id, return_id: escTarget.return_id },
-        actor_id: user?.id ?? null,
-      } as any).then(() => undefined);
-      await logAction('prudential.breach_escalated', 'return_threshold_breaches', escTarget.id, {
-        meta: { enforcement_action_id: data.id, case_number: data.case_number, note: escNote.trim() },
+      const penalty = escPenalty !== '' && Number.isFinite(Number(escPenalty)) ? Number(escPenalty) : null;
+      const rationale = penalty !== null
+        ? `${escNote.trim()}\n\nProposed penalty: ${penalty}`
+        : escNote.trim();
+      // Governed operation: opens the enforcement case, cites the breach and
+      // writes the enforcement + audit trail in one transaction.
+      const result = await supervisoryBreachIssueEnforcement({
+        entityId: row.licenseeId,
+        breachIds: [escTarget.id],
+        enforcementType: 'prudential_breach',
+        rationale,
       });
-      return data.id as string;
+      const caseId = (result as any)?.enforcement_case_id as string | undefined;
+      if (caseId) {
+        await prudentialBreachLinkEnforcement(escTarget.id, caseId, rationale);
+      }
+      return caseId ?? null;
     },
     onSuccess: (newId) => {
       toast.success('Escalated to enforcement');

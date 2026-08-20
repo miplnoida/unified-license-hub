@@ -3,6 +3,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logComplianceAudit } from '@/lib/complianceAudit';
 import { authorizedAction } from '@/lib/rbac/authorizedAction';
+import {
+  prudentialAssessmentCreate,
+  prudentialAssessmentSaveDraft,
+  prudentialAssessmentTransition,
+  prudentialActionIssue,
+  prudentialActionUpdate,
+  prudentialEscalationRaise,
+  prudentialEscalationDecide,
+  prudentialTaxonomySave,
+  prudentialStressIndicatorSave,
+  prudentialStressIndicatorDelete,
+  prudentialStressEventAcknowledge,
+  prudentialFeedLogRecord,
+} from '@/lib/prudentialGovernedOps';
 import { worstSeverity, normalizeSeverity } from '@/lib/prudentialSeverity';
 
 
@@ -145,19 +159,10 @@ export function useUpsertTaxonomy() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: Partial<RiskTaxonomy>) => {
-      const payload = { ...row };
-      const before = row.id ? (await sb.from('prudential_risk_taxonomy').select('*').eq('id', row.id).maybeSingle()).data : null;
-      if (row.id) {
-        await authorizedAction('prudential_supervision', 'edit', { taxonomy_id: row.id });
-        const { error } = await sb.from('prudential_risk_taxonomy').update(payload).eq('id', row.id);
-        if (error) throw error;
-        await audit('UPDATE', 'prudential_taxonomy', row.id, before, payload);
-      } else {
-        await authorizedAction('prudential_supervision', 'create', { taxonomy_code: (row as any).code });
-        const { data, error } = await sb.from('prudential_risk_taxonomy').insert(payload).select().single();
-        if (error) throw error;
-        await audit('CREATE', 'prudential_taxonomy', data.id, null, data);
-      }
+      const { id, ...payload } = row;
+      // Governed operation: authority, validation and the single audit entry are
+      // all derived server-side. Never write prudential_risk_taxonomy directly.
+      await prudentialTaxonomySave(payload as Record<string, unknown>, id ?? null);
     },
 
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_risk_taxonomy'] }); toast.success('Taxonomy saved'); },
@@ -175,10 +180,7 @@ export function useDeleteTaxonomy() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      await authorizedAction('prudential_supervision', 'edit', { taxonomy_id: id, deactivate: true });
-      const { error } = await sb.from('prudential_risk_taxonomy').update({ is_active: false }).eq('id', id);
-      if (error) throw error;
-      await audit('UPDATE', 'prudential_taxonomy', id, { is_active: true }, { is_active: false }, 'Deactivated');
+      await prudentialTaxonomySave({ is_active: false }, id, 'Deactivated by supervisor');
     },
 
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_risk_taxonomy'] }); toast.success('Taxonomy deactivated'); },
@@ -370,25 +372,22 @@ export function useUpsertAssessment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: Partial<PrudentialAssessment>) => {
-      const user = (await sb.auth.getUser()).data.user;
       const payload: any = sanitizeAssessmentWritePayload(row as Record<string, any>);
-      const before = row.id ? (await sb.from('prudential_assessments').select('*').eq('id', row.id).maybeSingle()).data : null;
+      delete payload.id;
       if (row.id) {
-        await authorizedAction('prudential_supervision', 'edit', { assessment_id: row.id });
-        delete payload.id;
-        const { data, error } = await sb.from('prudential_assessments').update(payload).eq('id', row.id).select().single();
-        if (error) throw error;
-        const isOverride = payload.override_reason && before?.overall_rating !== payload.overall_rating;
-        await audit(isOverride ? 'OVERRIDE' : 'UPDATE', 'prudential_assessment', row.id, before, data, payload.override_reason);
-        return data;
-      } else {
-        await authorizedAction('prudential_supervision', 'create', { entity_id: (row as any).entity_id });
-        payload.created_by = user?.id;
-        const { data, error } = await sb.from('prudential_assessments').insert(payload).select().single();
-        if (error) throw error;
-        await audit('CREATE', 'prudential_assessment', data.id, null, data);
-        return data;
+        return await prudentialAssessmentSaveDraft(row.id, payload);
       }
+      return await prudentialAssessmentCreate({
+        entityId: (row as any).entity_id,
+        periodStart: (row as any).period_start,
+        periodEnd: (row as any).period_end,
+        returnFilingId: (row as any).return_filing_id ?? (row as any).return_id ?? null,
+        returnFilingVersionId: (row as any).return_filing_version_id ?? null,
+        ratings: payload,
+        rationale: (row as any).override_reason ?? (row as any).rationale ?? null,
+        signalSnapshot: (row as any).signal_snapshot ?? {},
+        autoSuggestedRating: (row as any).auto_suggested_rating ?? null,
+      });
     },
 
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_assessments'] }); qc.invalidateQueries({ queryKey: ['prudential_assessment'] }); toast.success('Assessment saved'); },
@@ -399,19 +398,7 @@ export function useTransitionAssessment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, to, reason }: { id: string; to: 'submitted'|'reviewed'|'returned_for_revision'|'approved'|'closed'; reason?: string }) => {
-      const user = (await sb.auth.getUser()).data.user;
-      const now = new Date().toISOString();
-      const before = (await sb.from('prudential_assessments').select('*').eq('id', id).maybeSingle()).data;
-      const patch: any = { status: to };
-      if (to === 'submitted') patch.submitted_at = now;
-      if (to === 'reviewed') { patch.reviewed_at = now; patch.reviewed_by = user?.id; if (reason) patch.review_notes = reason; }
-      if (to === 'returned_for_revision') { patch.reviewed_at = now; patch.reviewed_by = user?.id; patch.review_notes = reason ?? null; }
-      if (to === 'approved') { patch.approved_at = now; patch.approved_by = user?.id; }
-      if (to === 'closed') patch.closed_at = now;
-      const { error } = await sb.from('prudential_assessments').update(patch).eq('id', id);
-      if (error) throw error;
-      const map: Record<string, string> = { submitted: 'APPROVE', reviewed: 'APPROVE', returned_for_revision: 'REJECT', approved: 'APPROVE', closed: 'UPDATE' };
-      await audit(map[to] as any, 'prudential_assessment', id, before, { ...before, ...patch }, reason);
+      await prudentialAssessmentTransition(id, to, reason ?? null);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_assessments'] }); qc.invalidateQueries({ queryKey: ['prudential_assessment'] }); toast.success('Status updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
@@ -460,15 +447,22 @@ export function useCreateAction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: Partial<PrudentialAction>) => {
-      await authorizedAction('prudential_supervision', 'create', { entity_id: (row as any).entity_id, title: (row as any).title });
-      const user = (await sb.auth.getUser()).data.user;
-      const payload: any = { ...row, created_by: user?.id };
-      const { data, error } = await sb.from('prudential_actions').insert(payload).select().single();
-      if (error) throw error;
-      await audit('CREATE', 'prudential_action', data.id, null, data);
-
-      const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
-      return data;
+      return await prudentialActionIssue({
+        entityId: (row as any).entity_id,
+        actionType: (row as any).action_type ?? 'supervisory_letter',
+        title: (row as any).title,
+        description: (row as any).description ?? null,
+        severity: (row as any).severity ?? 'medium',
+        dueDate: (row as any).due_date ?? null,
+        assignedTo: (row as any).assigned_to ?? null,
+        sourceType: (row as any).source_type ?? 'manual',
+        sourceId: (row as any).source_id ?? null,
+        evidenceRequired: (row as any).evidence_required ?? false,
+        entityContact: (row as any).entity_contact ?? null,
+        responseDueAt: (row as any).response_due_at ?? null,
+        breachAfterDays: (row as any).breach_after_days ?? null,
+        entityOwnerUserId: (row as any).entity_owner_user_id ?? null,
+      });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success('Action created'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
@@ -478,12 +472,8 @@ export function useUpdateAction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch, waiver_reason, cancellation_reason, completion_notes }: { id: string; patch: Partial<PrudentialAction>; waiver_reason?: string; cancellation_reason?: string; completion_notes?: string }) => {
-      await authorizedAction('prudential_supervision', 'edit', { action_id: id, status: patch.status });
-      const user = (await sb.auth.getUser()).data.user;
-      const before = (await sb.from('prudential_actions').select('*, licensees(name)').eq('id', id).maybeSingle()).data;
-
-      // Enforce mandatory notes at hook layer for terminal transitions,
-      // so a direct hook caller cannot bypass the UI's 5-char guard.
+      // Client-side pre-checks mirror the server rules for a faster message;
+      // the governed operation re-enforces them regardless of this path.
       if (patch.status === 'completed' && (!completion_notes || completion_notes.trim().length < 5)) {
         throw new Error('Completion notes are required (min 5 characters) to complete an action');
       }
@@ -493,18 +483,11 @@ export function useUpdateAction() {
       if (patch.status === 'cancelled' && (!cancellation_reason || cancellation_reason.trim().length < 5)) {
         throw new Error('Cancellation reason is required (min 5 characters) to cancel an action');
       }
-      const body: any = { ...patch };
-      if (patch.status && ['completed','waived','cancelled'].includes(patch.status)) {
-        body.closed_at = new Date().toISOString();
-        body.closed_by = user?.id;
-      }
+      const body: Record<string, unknown> = { ...patch };
       if (patch.status === 'waived' && waiver_reason) body.waiver_reason = waiver_reason;
       if (patch.status === 'cancelled' && cancellation_reason) body.cancellation_reason = cancellation_reason;
       if (patch.status === 'completed' && completion_notes) body.completion_notes = completion_notes;
-      const { error } = await sb.from('prudential_actions').update(body).eq('id', id);
-      if (error) throw error;
-      await audit('UPDATE', 'prudential_action', id, before, { ...before, ...body }, waiver_reason || cancellation_reason || completion_notes);
-      // Re-notify the new assignee if assignment changed.
+      await prudentialActionUpdate(id, body, waiver_reason || cancellation_reason || completion_notes || null);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_actions'] }); toast.success('Action updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
@@ -548,15 +531,16 @@ export function useCreateEscalation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: Partial<PrudentialEscalation>) => {
-      const user = (await sb.auth.getUser()).data.user;
       if (!row.reason || row.reason.trim().length < 5) throw new Error('Reason is required for escalation');
-      await authorizedAction('prudential_supervision', 'create', { entity_id: (row as any).entity_id, reason_preview: row.reason?.slice(0, 60) });
-      const { data, error } = await sb.from('prudential_escalations').insert({ ...row, created_by: user?.id }).select().single();
-
-      if (error) throw error;
-      await audit('CREATE', 'prudential_escalation', data.id, null, data, row.reason);
-      const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
-      return data;
+      return await prudentialEscalationRaise({
+        entityId: (row as any).entity_id,
+        escalationType: (row as any).escalation_type ?? 'prudential',
+        reason: row.reason,
+        relatedType: (row as any).related_type ?? 'entity',
+        relatedId: (row as any).related_id ?? null,
+        priority: (row as any).priority ?? 'medium',
+        evidence: (row as any).evidence ?? {},
+      });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_escalations'] }); toast.success('Escalation created'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
@@ -566,20 +550,16 @@ export function useUpdateEscalation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<PrudentialEscalation> }) => {
-      await authorizedAction('prudential_supervision', 'edit', { escalation_id: id, status: patch.status });
-      const user = (await sb.auth.getUser()).data.user;
-      const before = (await sb.from('prudential_escalations').select('*, licensees(name)').eq('id', id).maybeSingle()).data;
-
-      const body: any = { ...patch };
       if (patch.status === 'resolved' || patch.status === 'withdrawn') {
         if (!patch.decision || !patch.outcome) throw new Error('Decision and outcome are required to close an escalation');
-        body.decided_at = new Date().toISOString();
-        body.decision_by = user?.id;
       }
-      const { error } = await sb.from('prudential_escalations').update(body).eq('id', id);
-      if (error) throw error;
-      await audit('UPDATE', 'prudential_escalation', id, before, { ...before, ...body });
-      
+      await prudentialEscalationDecide(
+        id,
+        (patch.status as string) ?? 'acknowledged',
+        (patch as any).decision ?? null,
+        (patch as any).outcome ?? null,
+        (patch as any).priority ?? null,
+      );
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_escalations'] }); toast.success('Escalation updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
@@ -601,19 +581,8 @@ export function useUpsertStressIndicator() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: Partial<StressIndicator>) => {
-      const payload = { ...row };
-      const before = row.id ? (await sb.from('prudential_stress_indicators').select('*').eq('id', row.id).maybeSingle()).data : null;
-      if (row.id) {
-        await authorizedAction('prudential_supervision', 'edit', { stress_indicator_id: row.id });
-        const { error } = await sb.from('prudential_stress_indicators').update(payload).eq('id', row.id);
-        if (error) throw error;
-        await audit('UPDATE', 'prudential_stress_indicator', row.id, before, payload);
-      } else {
-        await authorizedAction('prudential_supervision', 'create', { metric_key: row.metric_key });
-        const { data, error } = await sb.from('prudential_stress_indicators').insert(payload).select().single();
-        if (error) throw error;
-        await audit('CREATE', 'prudential_stress_indicator', data.id, null, data);
-      }
+      const { id, ...payload } = row;
+      await prudentialStressIndicatorSave(payload as Record<string, unknown>, id ?? null);
     },
 
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_stress_indicators'] }); toast.success('Indicator saved'); },
@@ -624,10 +593,7 @@ export function useDeleteStressIndicator() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      await authorizedAction('prudential_supervision', 'edit', { stress_indicator_id: id, deactivate: true });
-      const { error } = await sb.from('prudential_stress_indicators').update({ is_active: false }).eq('id', id);
-      if (error) throw error;
-      await audit('UPDATE', 'prudential_stress_indicator', id, { is_active: true }, { is_active: false }, 'Deactivated');
+      await prudentialStressIndicatorDelete(id, 'Deactivated by supervisor');
     },
 
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_stress_indicators'] }); toast.success('Indicator deactivated'); },
@@ -648,9 +614,9 @@ export function useEvaluateStressForReturn() {
       await logPrudentialFeed({ source: 'prudential', feed_type: 'stress_evaluation', status: 'success', related_return_id: returnId, row_count: newEvents.length + updatedEvents.length, completed_at: new Date().toISOString(), metadata: { new: newEvents.length, updated: updatedEvents.length } });
       // Fire notifications per newly triggered event
       for (const ev of newEvents) {
-        const ent = ev.entity_id ? (await sb.from('licensees').select('name').eq('id', ev.entity_id).maybeSingle()).data : null;
-        await audit('CREATE', 'prudential_stress_event', ev.event_id, null, ev, 'Auto-triggered by supervisor stress re-run');
-        try { await sb.from('prudential_stress_events').update({ notified: true }).eq('id', ev.event_id); } catch { /* ignore */ }
+        // Governed operation records the acknowledgement/notification flag and
+        // its own audit entry; no client-side audit or direct DML here.
+        try { await prudentialStressEventAcknowledge(ev.event_id); } catch { /* non-blocking */ }
       }
       return { new: newEvents.length, updated: updatedEvents.length };
     },
@@ -718,8 +684,18 @@ export function useFeedLogs() {
   });
 }
 export async function logPrudentialFeed(row: Partial<FeedLog>) {
-  const user = (await sb.auth.getUser()).data.user;
-  await sb.from('prudential_data_feed_logs').insert({ ...row, triggered_by: user?.id });
+  // Governed operation: the feed log row is written server-side with a derived
+  // actor. Direct DML on prudential_data_feed_logs is revoked.
+  await prudentialFeedLogRecord({
+    source: row.source ?? 'prudential',
+    feedType: row.feed_type ?? 'unspecified',
+    status: row.status ?? 'started',
+    rowCount: row.row_count ?? null,
+    error: row.error ?? null,
+    relatedFilingId: (row as any).related_filing_id ?? row.related_return_id ?? null,
+    completedAt: row.completed_at ?? null,
+    metadata: row.metadata ?? {},
+  });
 }
 
 // ---------- Sweep schedule info ----------
