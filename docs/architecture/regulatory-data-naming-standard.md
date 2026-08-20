@@ -135,7 +135,7 @@ canonicalised before comparison.
   incumbent in the same transaction.
 
 
-## 4. Migration discipline
+## 7. Migration discipline
 
 * Additive first: new tables and columns, no destructive renames.
 * Renames land with a compatibility view carrying the legacy name for at least
