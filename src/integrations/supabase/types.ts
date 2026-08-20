@@ -163,6 +163,154 @@ export type Database = {
         }
         Relationships: []
       }
+      aml_assessments: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          assessment_date: string
+          confidential_notes: string | null
+          control_rating: string | null
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          id: string
+          inherent_rating: string | null
+          inspection_status: string | null
+          next_review_date: string | null
+          reference: string
+          residual_rating: string | null
+          status: string
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          assessment_date: string
+          confidential_notes?: string | null
+          control_rating?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          id?: string
+          inherent_rating?: string | null
+          inspection_status?: string | null
+          next_review_date?: string | null
+          reference: string
+          residual_rating?: string | null
+          status?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          assessment_date?: string
+          confidential_notes?: string | null
+          control_rating?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          id?: string
+          inherent_rating?: string | null
+          inspection_status?: string | null
+          next_review_date?: string | null
+          reference?: string
+          residual_rating?: string | null
+          status?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aml_assessments_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aml_assessments_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
+      aml_findings: {
+        Row: {
+          aml_assessment_id: string | null
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          detail: string | null
+          entity_id: string
+          id: string
+          reference: string
+          remediation_due: string | null
+          remediation_status: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          aml_assessment_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          detail?: string | null
+          entity_id: string
+          id?: string
+          reference: string
+          remediation_due?: string | null
+          remediation_status?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          aml_assessment_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          detail?: string | null
+          entity_id?: string
+          id?: string
+          reference?: string
+          remediation_due?: string | null
+          remediation_status?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aml_findings_aml_assessment_id_fkey"
+            columns: ["aml_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "aml_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aml_findings_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aml_findings_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
       api_key_usage: {
         Row: {
           api_key_id: string | null
@@ -10310,6 +10458,75 @@ export type Database = {
           weights?: Json
         }
         Relationships: []
+      }
+      entity_supervision_assignments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          cycle_end: string | null
+          cycle_start: string | null
+          effective_from: string
+          effective_to: string | null
+          entity_id: string
+          id: string
+          notes: string | null
+          status: string
+          supervisor_id: string | null
+          supervisor_name: string | null
+          supervisory_cycle: string | null
+          team: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          cycle_end?: string | null
+          cycle_start?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          entity_id: string
+          id?: string
+          notes?: string | null
+          status?: string
+          supervisor_id?: string | null
+          supervisor_name?: string | null
+          supervisory_cycle?: string | null
+          team?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          cycle_end?: string | null
+          cycle_start?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          entity_id?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          supervisor_id?: string | null
+          supervisor_name?: string | null
+          supervisory_cycle?: string | null
+          team?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_supervision_assignments_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_supervision_assignments_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
       }
       entity_sync_conflicts: {
         Row: {
@@ -23090,6 +23307,158 @@ export type Database = {
           },
         ]
       }
+      resilience_arrangements: {
+        Row: {
+          arrangement_type: string
+          assessment_state: string | null
+          created_at: string
+          created_by: string | null
+          criticality: string | null
+          effective_from: string | null
+          effective_to: string | null
+          entity_id: string
+          id: string
+          last_assessed_at: string | null
+          provider_name: string | null
+          provider_party_id: string | null
+          service_description: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          arrangement_type: string
+          assessment_state?: string | null
+          created_at?: string
+          created_by?: string | null
+          criticality?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_id: string
+          id?: string
+          last_assessed_at?: string | null
+          provider_name?: string | null
+          provider_party_id?: string | null
+          service_description?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          arrangement_type?: string
+          assessment_state?: string | null
+          created_at?: string
+          created_by?: string | null
+          criticality?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_id?: string
+          id?: string
+          last_assessed_at?: string | null
+          provider_name?: string | null
+          provider_party_id?: string | null
+          service_description?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resilience_arrangements_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resilience_arrangements_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "resilience_arrangements_provider_party_id_fkey"
+            columns: ["provider_party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resilience_incidents: {
+        Row: {
+          arrangement_id: string | null
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          id: string
+          incident_type: string
+          occurred_at: string
+          reference: string
+          remediation_status: string | null
+          reported_at: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          arrangement_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          id?: string
+          incident_type: string
+          occurred_at: string
+          reference: string
+          remediation_status?: string | null
+          reported_at?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          arrangement_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          id?: string
+          incident_type?: string
+          occurred_at?: string
+          reference?: string
+          remediation_status?: string | null
+          reported_at?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resilience_incidents_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "resilience_arrangements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resilience_incidents_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resilience_incidents_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
       return_audit_log: {
         Row: {
           action: string
@@ -31053,6 +31422,10 @@ export type Database = {
         | { Args: never; Returns: string[] }
         | { Args: { "": string }; Returns: string[] }
       duplicate_hub_stats: { Args: never; Returns: Json }
+      e360_section_allowed: {
+        Args: { _section: string; _user: string }
+        Returns: boolean
+      }
       enforce_action: {
         Args: { _action: string; _meta?: Json; _module: string }
         Returns: undefined
@@ -31292,6 +31665,32 @@ export type Database = {
         Returns: Json
       }
       entity_structure_overview: { Args: { _entity_id: string }; Returns: Json }
+      entity360_as_of: {
+        Args: { _as_of: string; _entity_id: string }
+        Returns: Json
+      }
+      entity360_overview: { Args: { _entity_id: string }; Returns: Json }
+      entity360_section: {
+        Args: {
+          _as_of?: string
+          _entity_id: string
+          _limit?: number
+          _offset?: number
+          _section: string
+        }
+        Returns: Json
+      }
+      entity360_timeline: {
+        Args: {
+          _domains?: string[]
+          _entity_id: string
+          _from?: string
+          _limit?: number
+          _offset?: number
+          _to?: string
+        }
+        Returns: Json
+      }
       escalate_application: {
         Args: { _application_id: string; _reason?: string }
         Returns: {
