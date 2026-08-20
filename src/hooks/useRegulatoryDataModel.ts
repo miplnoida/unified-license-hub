@@ -85,21 +85,30 @@ export function useRdmMutations(table: RdmTable) {
     onSuccess: invalidate,
   });
 
+  // Retiring or deleting the active default policy requires promoting a
+  // replacement in the same transaction (Phase 1.2 governance).
   const retire = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await db().rpc('rdm_retire_metadata', { _table: table, _id: id });
+    mutationFn: async (arg: string | { id: string; promoteId?: string | null }) => {
+      const { id, promoteId } = typeof arg === 'string' ? { id: arg, promoteId: null } : arg;
+      const { error } = await db().rpc('rdm_retire_metadata', {
+        _table: table, _id: id, _promote_id: promoteId ?? null,
+      });
       if (error) throw error;
     },
     onSuccess: invalidate,
   });
 
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await db().rpc('rdm_delete_metadata', { _table: table, _id: id });
+    mutationFn: async (arg: string | { id: string; promoteId?: string | null }) => {
+      const { id, promoteId } = typeof arg === 'string' ? { id: arg, promoteId: null } : arg;
+      const { error } = await db().rpc('rdm_delete_metadata', {
+        _table: table, _id: id, _promote_id: promoteId ?? null,
+      });
       if (error) throw error;
     },
     onSuccess: invalidate,
   });
+
 
   return { create, update, retire, remove };
 }
@@ -156,6 +165,72 @@ export function useRdmDuplicateEntities() {
       const { data, error } = await db().rpc('rdm_diag_duplicate_entities');
       if (error) throw error;
       return (data ?? []) as RdmDuplicateEntity[];
+    },
+    staleTime: 30_000,
+  });
+}
+
+
+/**
+ * RDM-ENTITY-001 — Phase 2A foundation diagnostics (read-only).
+ *
+ * Reports party/entity binding coverage, multi-licence relationships,
+ * identifier scope integrity and application→entity mapping ambiguity.
+ */
+export interface RdmEntityFoundationReport {
+  generated_at: string;
+  parties_total: number;
+  organization_parties: number;
+  person_parties: number;
+  regulated_entities_total: number;
+  entities_without_party_binding: number;
+  organization_parties_without_entity: number;
+  duplicate_organization_candidates: number;
+  entities_without_lifecycle_stage: number;
+  entities_without_identity_status: number;
+  entity_licenses_rows: number;
+  entities_with_zero_licenses: number;
+  entities_with_one_license: number;
+  entities_with_multiple_licenses: number;
+  licenses_without_entity_relationship: number;
+  legacy_license_links_not_represented: number;
+  identifiers_total: number;
+  identifiers_by_type: Record<string, number>;
+  identifier_scope_conflicts: number;
+  identifiers_missing_required_scope: number;
+  licenses_without_regulator_scope_identifier: number;
+  applications_total: number;
+  applications_mapped_to_entity: number;
+  applications_ambiguous_entity_mapping: number;
+  applications_without_pinned_form_version: number;
+}
+
+export function useRdmEntityFoundationReport() {
+  return useQuery({
+    queryKey: ['rdm', 'entity-foundation-report'],
+    queryFn: async (): Promise<RdmEntityFoundationReport> => {
+      const { data, error } = await db().rpc('rdm_entity_foundation_report');
+      if (error) throw error;
+      return data as RdmEntityFoundationReport;
+    },
+    staleTime: 30_000,
+  });
+}
+
+export interface RdmDuplicateOrganization {
+  normalised_name: string;
+  org_count: number;
+  party_ids: string[];
+  legal_names: string[];
+}
+
+export function useRdmDuplicateOrganizations() {
+  return useQuery({
+    queryKey: ['rdm', 'duplicate-organizations'],
+    queryFn: async (): Promise<RdmDuplicateOrganization[]> => {
+      const { data, error } = await db().rpc('rdm_diag_duplicate_organizations');
+      if (error) throw error;
+      return (data ?? []) as RdmDuplicateOrganization[];
     },
     staleTime: 30_000,
   });

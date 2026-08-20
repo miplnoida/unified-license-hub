@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { formatDateTime } from '@/lib/datetime';
-import { useRdmDuplicateEntities, useRdmIntegrityReport } from '@/hooks/useRegulatoryDataModel';
+import { useRdmDuplicateEntities, useRdmDuplicateOrganizations, useRdmEntityFoundationReport, useRdmIntegrityReport } from '@/hooks/useRegulatoryDataModel';
 
 interface Metric {
   label: string;
@@ -25,6 +25,9 @@ interface Metric {
 export function DataIntegrityPanel() {
   const { data: report, isLoading, refetch, isRefetching } = useRdmIntegrityReport();
   const { data: duplicates = [] } = useRdmDuplicateEntities();
+  const { data: foundation, refetch: refetchFoundation } = useRdmEntityFoundationReport();
+  const { data: duplicateOrgs = [] } = useRdmDuplicateOrganizations();
+
 
   if (isLoading || !report) {
     return (
@@ -73,16 +76,67 @@ export function DataIntegrityPanel() {
     },
   ];
 
+  if (foundation) {
+    groups.push(
+      {
+        title: 'Phase 2A · Party & regulated-entity foundation',
+        description: 'Every regulated entity must bind to exactly one organisation party. The entity UUID itself is unchanged.',
+        metrics: [
+          { label: 'Parties', value: foundation.parties_total },
+          { label: 'Organisation parties', value: foundation.organization_parties },
+          { label: 'Person parties', value: foundation.person_parties, note: 'Person consolidation deferred' },
+          { label: 'Regulated entities', value: foundation.regulated_entities_total },
+          { label: 'Entities with no party binding', value: foundation.entities_without_party_binding, threshold: 0 },
+          { label: 'Organisation parties with no entity', value: foundation.organization_parties_without_entity, note: 'Non-regulated organisations are valid' },
+          { label: 'Duplicate organisation candidates', value: foundation.duplicate_organization_candidates, threshold: 0, note: 'Report only — never merged' },
+          { label: 'Entities with no lifecycle stage', value: foundation.entities_without_lifecycle_stage, note: 'Non-deterministic legacy states left unset' },
+          { label: 'Entities with no identity status', value: foundation.entities_without_identity_status, threshold: 0 },
+        ],
+      },
+      {
+        title: 'Phase 2A · Multi-licence relationships',
+        description: 'entity_licenses is the canonical entity↔licence relationship; the legacy single-licence column is compatibility only.',
+        metrics: [
+          { label: 'entity_licenses rows', value: foundation.entity_licenses_rows },
+          { label: 'Entities with no licence', value: foundation.entities_with_zero_licenses },
+          { label: 'Entities with one licence', value: foundation.entities_with_one_license },
+          { label: 'Entities with multiple licences', value: foundation.entities_with_multiple_licenses },
+          { label: 'Licences with no relationship', value: foundation.licenses_without_entity_relationship, threshold: 0 },
+          { label: 'Legacy licence links not represented', value: foundation.legacy_license_links_not_represented, threshold: 0 },
+        ],
+      },
+      {
+        title: 'Phase 2A · Identifiers & application readiness',
+        description: 'Identifier uniqueness follows the configured scope, never one global rule. Ambiguous application mappings stay unset by design.',
+        metrics: [
+          { label: 'Entity identifiers', value: foundation.identifiers_total },
+          { label: 'Scope uniqueness conflicts', value: foundation.identifier_scope_conflicts, threshold: 0 },
+          { label: 'Missing required scope', value: foundation.identifiers_missing_required_scope, threshold: 0 },
+          { label: 'Licences with no regulator', value: foundation.licenses_without_regulator_scope_identifier, note: 'Cannot carry regulator-scoped identifier' },
+          { label: 'Applications mapped to entity', value: foundation.applications_mapped_to_entity },
+          { label: 'Ambiguous application mappings', value: foundation.applications_ambiguous_entity_mapping, note: 'Left NULL deliberately' },
+        ],
+      },
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
           Baseline generated {formatDateTime(report.generated_at)} — read-only, no data was changed.
         </p>
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => refetch()} disabled={isRefetching}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={() => { refetch(); refetchFoundation(); }}
+          disabled={isRefetching}
+        >
           <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} /> Refresh
         </Button>
       </div>
+
 
       {groups.map((group) => (
         <Card key={group.title}>
@@ -153,6 +207,45 @@ export function DataIntegrityPanel() {
           )}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Possible duplicate organisations</CardTitle>
+          <CardDescription>
+            Organisation parties sharing a normalised legal name. Entity resolution is a later phase — nothing is merged here.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {duplicateOrgs.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">No duplicate organisation names detected.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Normalised legal name</TableHead>
+                    <TableHead className="w-20">Count</TableHead>
+                    <TableHead>Parties</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {duplicateOrgs.map((d) => (
+                    <TableRow key={d.normalised_name}>
+                      <TableCell className="font-medium">{d.normalised_name}</TableCell>
+                      <TableCell><Badge variant="secondary">{d.org_count}</Badge></TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {d.party_ids.join(' · ')}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
 
       <Card>
         <CardHeader>

@@ -987,6 +987,7 @@ export type Database = {
           current_step_id: string | null
           data: Json | null
           decision_rationale: string | null
+          entity_id: string | null
           form_version_id: string | null
           id: string
           last_sufficiency_evaluation_id: string | null
@@ -1021,6 +1022,7 @@ export type Database = {
           current_step_id?: string | null
           data?: Json | null
           decision_rationale?: string | null
+          entity_id?: string | null
           form_version_id?: string | null
           id?: string
           last_sufficiency_evaluation_id?: string | null
@@ -1055,6 +1057,7 @@ export type Database = {
           current_step_id?: string | null
           data?: Json | null
           decision_rationale?: string | null
+          entity_id?: string | null
           form_version_id?: string | null
           id?: string
           last_sufficiency_evaluation_id?: string | null
@@ -1074,6 +1077,20 @@ export type Database = {
           workflow_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "applications_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
           {
             foreignKeyName: "applications_form_version_id_fkey"
             columns: ["form_version_id"]
@@ -8280,13 +8297,14 @@ export type Database = {
           id: string
           is_active: boolean
           is_system: boolean
-          is_unique_global: boolean
+          is_unique_global: boolean | null
           issuer: string | null
           key: string
           label: string
           normalization_rule: string | null
-          scope_requires_issuer: boolean
-          scope_requires_jurisdiction: boolean
+          scope_requires_issuer: boolean | null
+          scope_requires_jurisdiction: boolean | null
+          scope_requires_regulator: boolean | null
           sort_order: number
           uniqueness_scope: string
           updated_at: string
@@ -8298,13 +8316,14 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_system?: boolean
-          is_unique_global?: boolean
+          is_unique_global?: boolean | null
           issuer?: string | null
           key: string
           label: string
           normalization_rule?: string | null
-          scope_requires_issuer?: boolean
-          scope_requires_jurisdiction?: boolean
+          scope_requires_issuer?: boolean | null
+          scope_requires_jurisdiction?: boolean | null
+          scope_requires_regulator?: boolean | null
           sort_order?: number
           uniqueness_scope?: string
           updated_at?: string
@@ -8316,19 +8335,116 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_system?: boolean
-          is_unique_global?: boolean
+          is_unique_global?: boolean | null
           issuer?: string | null
           key?: string
           label?: string
           normalization_rule?: string | null
-          scope_requires_issuer?: boolean
-          scope_requires_jurisdiction?: boolean
+          scope_requires_issuer?: boolean | null
+          scope_requires_jurisdiction?: boolean | null
+          scope_requires_regulator?: boolean | null
           sort_order?: number
           uniqueness_scope?: string
           updated_at?: string
           validation_regex?: string | null
         }
         Relationships: []
+      }
+      entity_identifiers: {
+        Row: {
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          entity_id: string
+          id: string
+          identifier_type_id: string
+          identifier_value: string
+          is_primary: boolean
+          issuer_key: string | null
+          jurisdiction_id: string | null
+          normalized_value: string
+          regulator_id: string | null
+          source_reference: string | null
+          source_type: string
+          uniqueness_scope: string
+          updated_at: string
+          verification_status: string
+        }
+        Insert: {
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_id: string
+          id?: string
+          identifier_type_id: string
+          identifier_value: string
+          is_primary?: boolean
+          issuer_key?: string | null
+          jurisdiction_id?: string | null
+          normalized_value: string
+          regulator_id?: string | null
+          source_reference?: string | null
+          source_type: string
+          uniqueness_scope: string
+          updated_at?: string
+          verification_status?: string
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_id?: string
+          id?: string
+          identifier_type_id?: string
+          identifier_value?: string
+          is_primary?: boolean
+          issuer_key?: string | null
+          jurisdiction_id?: string | null
+          normalized_value?: string
+          regulator_id?: string | null
+          source_reference?: string | null
+          source_type?: string
+          uniqueness_scope?: string
+          updated_at?: string
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_identifiers_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_identifiers_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_identifiers_identifier_type_id_fkey"
+            columns: ["identifier_type_id"]
+            isOneToOne: false
+            referencedRelation: "entity_identifier_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_identifiers_jurisdiction_id_fkey"
+            columns: ["jurisdiction_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_identifiers_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       entity_identity_statuses: {
         Row: {
@@ -8371,6 +8487,71 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      entity_licenses: {
+        Row: {
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          entity_id: string
+          id: string
+          is_primary: boolean
+          license_id: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_id: string
+          id?: string
+          is_primary?: boolean
+          license_id: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_id?: string
+          id?: string
+          is_primary?: boolean
+          license_id?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_licenses_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_licenses_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_licenses_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_licenses_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       entity_registry_failure_policies: {
         Row: {
@@ -14280,9 +14461,12 @@ export type Database = {
           category_id: string | null
           created_at: string
           id: string
+          identity_status_id: string | null
           lead_regulator_id: string | null
           license_id: string | null
+          lifecycle_stage_id: string | null
           name: string
+          party_id: string | null
           regulator_officer_id: string | null
           sector_id: string | null
           status: string
@@ -14297,9 +14481,12 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           id?: string
+          identity_status_id?: string | null
           lead_regulator_id?: string | null
           license_id?: string | null
+          lifecycle_stage_id?: string | null
           name: string
+          party_id?: string | null
           regulator_officer_id?: string | null
           sector_id?: string | null
           status?: string
@@ -14314,9 +14501,12 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           id?: string
+          identity_status_id?: string | null
           lead_regulator_id?: string | null
           license_id?: string | null
+          lifecycle_stage_id?: string | null
           name?: string
+          party_id?: string | null
           regulator_officer_id?: string | null
           sector_id?: string | null
           status?: string
@@ -14333,6 +14523,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "licensees_identity_status_id_fkey"
+            columns: ["identity_status_id"]
+            isOneToOne: false
+            referencedRelation: "entity_identity_statuses"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "licensees_license_id_fkey"
             columns: ["license_id"]
             isOneToOne: false
@@ -14345,6 +14542,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "report_view_licenses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensees_lifecycle_stage_id_fkey"
+            columns: ["lifecycle_stage_id"]
+            isOneToOne: false
+            referencedRelation: "lifecycle_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensees_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["party_id"]
           },
           {
             foreignKeyName: "licensees_sector_id_fkey"
@@ -15645,6 +15856,44 @@ export type Database = {
         }
         Relationships: []
       }
+      organizations: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          legal_name: string
+          legal_name_authority: string
+          legal_name_verified_at: string | null
+          party_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          legal_name: string
+          legal_name_authority?: string
+          legal_name_verified_at?: string | null
+          party_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          legal_name?: string
+          legal_name_authority?: string
+          legal_name_verified_at?: string | null
+          party_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organizations_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: true
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       otp_verifications: {
         Row: {
           attempts: number
@@ -15681,6 +15930,30 @@ export type Database = {
           purpose?: string
           user_email?: string
           verified_at?: string | null
+        }
+        Relationships: []
+      }
+      parties: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          party_kind: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          party_kind: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          party_kind?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -16441,6 +16714,41 @@ export type Database = {
             columns: ["action_id"]
             isOneToOne: false
             referencedRelation: "permission_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      persons: {
+        Row: {
+          created_at: string
+          family_name: string | null
+          full_name: string
+          given_name: string | null
+          party_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          family_name?: string | null
+          full_name: string
+          given_name?: string | null
+          party_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          family_name?: string | null
+          full_name?: string
+          given_name?: string | null
+          party_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "persons_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: true
+            referencedRelation: "parties"
             referencedColumns: ["id"]
           },
         ]
@@ -25672,6 +25980,7 @@ export type Database = {
           current_step_id: string | null
           data: Json | null
           decision_rationale: string | null
+          entity_id: string | null
           form_version_id: string | null
           id: string
           last_sufficiency_evaluation_id: string | null
@@ -26218,6 +26527,7 @@ export type Database = {
           current_step_id: string | null
           data: Json | null
           decision_rationale: string | null
+          entity_id: string | null
           form_version_id: string | null
           id: string
           last_sufficiency_evaluation_id: string | null
@@ -26621,6 +26931,7 @@ export type Database = {
           current_step_id: string | null
           data: Json | null
           decision_rationale: string | null
+          entity_id: string | null
           form_version_id: string | null
           id: string
           last_sufficiency_evaluation_id: string | null
@@ -28565,7 +28876,7 @@ export type Database = {
       rdm_can_read: { Args: never; Returns: boolean }
       rdm_can_write: { Args: never; Returns: boolean }
       rdm_delete_metadata: {
-        Args: { _id: string; _table: string }
+        Args: { _id: string; _promote_id?: string; _table: string }
         Returns: undefined
       }
       rdm_diag_duplicate_entities: {
@@ -28578,10 +28889,24 @@ export type Database = {
           statuses: string[]
         }[]
       }
+      rdm_diag_duplicate_organizations: {
+        Args: never
+        Returns: {
+          legal_names: string[]
+          normalised_name: string
+          org_count: number
+          party_ids: string[]
+        }[]
+      }
+      rdm_entity_foundation_report: { Args: never; Returns: Json }
       rdm_integrity_report: { Args: never; Returns: Json }
       rdm_metadata_tables: { Args: never; Returns: string[] }
-      rdm_retire_metadata: {
+      rdm_promote_default_policy: {
         Args: { _id: string; _table: string }
+        Returns: undefined
+      }
+      rdm_retire_metadata: {
+        Args: { _id: string; _promote_id?: string; _table: string }
         Returns: undefined
       }
       rdm_save_metadata: {
