@@ -1,0 +1,610 @@
+class,table,file,line,op,text
+P1,approval_step_actions,src/components/applications/ApplicationRfiTab.tsx,76,update,.update({ resumed_at: new Date().toISOString() })
+P1,applications,src/components/applications/ApplicationRfiTab.tsx,96,update,.update({ status: nextStatus })
+P1,payments,src/components/applications/PaymentVerificationDialog.tsx,150,update,"? supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString() } as any).eq('application_id', payment.application_id)"
+P1,payments,src/components/applications/PaymentVerificationDialog.tsx,151,update,": supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString() } as any).eq('id', payment.id);"
+P1,approval_step_actions,src/components/applications/RaiseRfiDialog.tsx,205,update,.update({
+P1,complaint_investigation_tasks,src/components/complaints/ComplaintInvestigationTab.tsx,113,insert,const { error } = await (supabase.from('complaint_investigation_tasks') as any).insert({
+P1,complaint_investigation_tasks,src/components/complaints/ComplaintInvestigationTab.tsx,145,update,"const { error } = await supabase.from('complaint_investigation_tasks').update(patch).eq('id', id);"
+P1,conduct_investigations,src/components/conduct/InvestigationCaseFilePanel.tsx,34,update,.update({
+P1,conduct_actions,src/components/conduct/IssueActionDialog.tsx,80,insert,"const { data, error } = await (supabase as any).from('conduct_actions').insert(payload).select('*').single();"
+P1,enforcement_obligations,src/components/enforcement/EnforcementObligationsPanel.tsx,40,insert,const { error } = await supabase.from('enforcement_obligations').insert({
+P1,enforcement_obligations,src/components/enforcement/EnforcementObligationsPanel.tsx,60,update,.update({
+P1,licensees,src/components/entity-detail/BackgroundInfoTab.tsx,427,update,const { error } = await supabase.from('licensees').update({
+P1,enforcement_actions,src/components/entity-detail/EnforcementTab.tsx,42,update,"const { error } = editing ? await supabase.from('enforcement_actions' as any).update(payload).eq('id', editing.id) : await supabase.from('enforcement_actions' a"
+P1,enforcement_actions,src/components/entity-detail/EnforcementTab.tsx,42,insert,"const { error } = editing ? await supabase.from('enforcement_actions' as any).update(payload).eq('id', editing.id) : await supabase.from('enforcement_actions' a"
+P1,enforcement_actions,src/components/entity-detail/EnforcementTab.tsx,50,delete,"await supabase.from('enforcement_actions' as any).delete().eq('id', id);"
+P1,supervisory_plan_actions,src/components/entity-detail/LicensingAuditTab.tsx,289,insert,const { error: actErr } = await supabase.from('supervisory_plan_actions' as any).insert(actions);
+P1,supervisory_plan_actions,src/components/entity-detail/SupervisoryPlanTab.tsx,95,update,".update({ status: 'completed', completed_at: new Date().toISOString() } as any)"
+P1,supervisory_plan_actions,src/components/entity-detail/SupervisoryPlanTab.tsx,108,insert,const { error } = await supabase.from('supervisory_plan_actions' as any).insert({
+P1,fp_assessments,src/components/fit-and-proper/AssignCommitteeCard.tsx,60,update,".update({ committee_id: committeeId, status: 'awaiting_committee' })"
+P1,fp_conditions,src/components/fit-and-proper/FpConditionsPanel.tsx,118,insert,"const { data, error } = await supabase.from('fp_conditions').insert(payload).select('id').single();"
+P1,fp_conditions,src/components/fit-and-proper/FpConditionsPanel.tsx,146,update,"const { error } = await supabase.from('fp_conditions').update(patch).eq('id', id);"
+P1,fp_conditions,src/components/fit-and-proper/FpConditionsPanel.tsx,167,update,const { error } = await supabase.from('fp_conditions').update({
+P1,fp_conditions,src/components/fit-and-proper/FpConditionsPanel.tsx,191,update,const { error } = await supabase.from('fp_conditions').update({
+P1,fp_determinations,src/components/fit-and-proper/FpDeterminationsPanel.tsx,336,update,"await (supabase.from('fp_determinations') as any).update({ is_current: false }).eq('id', prior.id);"
+P1,fp_determinations,src/components/fit-and-proper/FpDeterminationsPanel.tsx,339,insert,"const { data: inserted, error } = await (supabase.from('fp_determinations') as any).insert({"
+P1,fp_assessments,src/components/fit-and-proper/FpDeterminationsPanel.tsx,347,update,await supabase.from('fp_assessments').update({
+P1,fp_findings,src/components/fit-and-proper/FpScreeningPanel.tsx,79,update,"const { error } = await supabase.from('fp_findings').update({ evidence_urls: updated as any }).eq('id', findingId);"
+P1,fp_findings,src/components/fit-and-proper/FpScreeningPanel.tsx,156,update,const { error } = await supabase.from('fp_findings').update({
+P1,fp_findings,src/components/fit-and-proper/FpScreeningPanel.tsx,197,update,const { error } = await supabase.from('fp_findings').update({
+P1,fp_assessments,src/components/fit-and-proper/PinnedPqForm.tsx,104,update,"const { error: aErr } = await supabase.from('fp_assessments').update(patch).eq('id', assessmentId);"
+P1,fp_assessments,src/components/fit-and-proper/RequestDeclarationDialog.tsx,176,update,.update({ declaration_data: merged })
+P1,examination_exit_meetings,src/hooks/useExaminations.ts,329,update,"? await sb.from('examination_exit_meetings').update(values).eq('id', existing.id).select().single()"
+P1,examination_exit_meetings,src/hooks/useExaminations.ts,330,insert,": await sb.from('examination_exit_meetings').insert({ ...values, examination_id: examinationId }).select().single();"
+P1,license_appeals,src/hooks/useLicenseAppeals.ts,401,insert,.insert({
+P1,license_appeals,src/hooks/useLicenseAppeals.ts,425,update,.update({ status: 'withdrawn' } as never)
+P1,license_appeals,src/hooks/useLicenseAppeals.ts,437,update,.update({
+P1,conduct_investigations,src/hooks/useMarketConduct.ts,121,insert,"const { data, error } = await sb.from('conduct_investigations').insert(body).select('*').single();"
+P1,conduct_investigations,src/hooks/useMarketConduct.ts,136,update,"const { data, error } = await sb.from('conduct_investigations').update(patch).eq('id', id).select('*').single();"
+P1,conduct_alerts,src/hooks/useMarketConduct.ts,276,update,"const { data, error } = await sb.from('conduct_alerts').update({"
+P1,conduct_alerts,src/hooks/useMarketConduct.ts,295,update,"const { data, error } = await sb.from('conduct_alerts').update({"
+P1,conduct_actions,src/hooks/useMarketConduct.ts,316,update,"const { data, error } = await sb.from('conduct_actions').update({"
+P1,conduct_actions,src/hooks/useMarketConduct.ts,335,update,"const { data, error } = await sb.from('conduct_actions').update({"
+P1,conduct_actions,src/hooks/useMarketConduct.ts,353,update,"const { data, error } = await sb.from('conduct_actions').update({"
+P1,prudential_thresholds,src/hooks/usePrudentialConfig.ts,72,update,"const { error } = await (supabase as any).from('prudential_thresholds').update(payload).eq('id', row.id);"
+P1,prudential_thresholds,src/hooks/usePrudentialConfig.ts,75,insert,const { error } = await (supabase as any).from('prudential_thresholds').insert(payload);
+P1,prudential_thresholds,src/hooks/usePrudentialConfig.ts,88,delete,"const { error } = await (supabase as any).from('prudential_thresholds').delete().eq('id', id);"
+P1,prudential_ratios,src/hooks/usePrudentialConfig.ts,115,update,"const { error } = await (supabase as any).from('prudential_ratios').update(payload).eq('id', row.id);"
+P1,prudential_ratios,src/hooks/usePrudentialConfig.ts,118,insert,const { error } = await (supabase as any).from('prudential_ratios').insert(payload);
+P1,prudential_ratios,src/hooks/usePrudentialConfig.ts,131,delete,"const { error } = await (supabase as any).from('prudential_ratios').delete().eq('id', id);"
+P1,prudential_assessment_component_ratings,src/hooks/usePrudentialPhase2.ts,186,upsert,".upsert(payload, { onConflict: 'assessment_id,component_code' })"
+P1,prudential_risk_taxonomy,src/hooks/usePrudentialSupervision.ts,152,update,"const { error } = await sb.from('prudential_risk_taxonomy').update(payload).eq('id', row.id);"
+P1,prudential_risk_taxonomy,src/hooks/usePrudentialSupervision.ts,157,insert,"const { data, error } = await sb.from('prudential_risk_taxonomy').insert(payload).select().single();"
+P1,prudential_risk_taxonomy,src/hooks/usePrudentialSupervision.ts,179,update,"const { error } = await sb.from('prudential_risk_taxonomy').update({ is_active: false }).eq('id', id);"
+P1,prudential_assessments,src/hooks/usePrudentialSupervision.ts,379,update,"const { data, error } = await sb.from('prudential_assessments').update(payload).eq('id', row.id).select().single();"
+P1,prudential_assessments,src/hooks/usePrudentialSupervision.ts,387,insert,"const { data, error } = await sb.from('prudential_assessments').insert(payload).select().single();"
+P1,prudential_assessments,src/hooks/usePrudentialSupervision.ts,411,update,"const { error } = await sb.from('prudential_assessments').update(patch).eq('id', id);"
+P1,prudential_actions,src/hooks/usePrudentialSupervision.ts,466,insert,"const { data, error } = await sb.from('prudential_actions').insert(payload).select().single();"
+P1,prudential_actions,src/hooks/usePrudentialSupervision.ts,504,update,"const { error } = await sb.from('prudential_actions').update(body).eq('id', id);"
+P1,prudential_escalations,src/hooks/usePrudentialSupervision.ts,554,insert,"const { data, error } = await sb.from('prudential_escalations').insert({ ...row, created_by: user?.id }).select().single();"
+P1,prudential_escalations,src/hooks/usePrudentialSupervision.ts,579,update,"const { error } = await sb.from('prudential_escalations').update(body).eq('id', id);"
+P1,prudential_stress_indicators,src/hooks/usePrudentialSupervision.ts,608,update,"const { error } = await sb.from('prudential_stress_indicators').update(payload).eq('id', row.id);"
+P1,prudential_stress_indicators,src/hooks/usePrudentialSupervision.ts,613,insert,"const { data, error } = await sb.from('prudential_stress_indicators').insert(payload).select().single();"
+P1,prudential_stress_indicators,src/hooks/usePrudentialSupervision.ts,628,update,"const { error } = await sb.from('prudential_stress_indicators').update({ is_active: false }).eq('id', id);"
+P1,prudential_stress_events,src/hooks/usePrudentialSupervision.ts,653,update,"try { await sb.from('prudential_stress_events').update({ notified: true }).eq('id', ev.event_id); } catch { /* ignore */ }"
+P1,prudential_data_feed_logs,src/hooks/usePrudentialSupervision.ts,722,insert,"await sb.from('prudential_data_feed_logs').insert({ ...row, triggered_by: user?.id });"
+P1,returns_filed,src/hooks/useReturnsManagement.ts,255,insert,"const { data, error } = await (supabase as any).from('returns_filed').insert(payload).select().single();"
+P1,returns_filed,src/hooks/useReturnsManagement.ts,271,update,"const { error } = await (supabase as any).from('returns_filed').update(payload).eq('id', id);"
+P1,returns_filed,src/hooks/useReturnsManagement.ts,279,delete,"const { error } = await (supabase as any).from('returns_filed').delete().eq('id', id);"
+P1,approval_step_actions,src/lib/workflowTemplateSnapshot.ts,316,insert,const { error } = await supabase.from('approval_step_actions' as any).insert(actionRows as any);
+P1,applications,src/pages/ApplicationForms.tsx,273,update,"const { data: written, error: writeErr } = await supabase.from('applications').update({"
+P1,applications,src/pages/NewApplication.tsx,1025,update,.update({ data: updatedData } as any)
+P1,applications,src/pages/NewApplication.tsx,1106,update,.update({
+P1,applications,src/pages/NewApplication.tsx,1301,update,const { error: updateError } = await supabase.from('applications').update({
+P1,applications,src/pages/NewApplication.tsx,1405,update,const { error: updateError } = await supabase.from('applications').update({
+P1,applications,src/pages/NewPostLicenseApplication.tsx,118,insert,.insert({
+P1,applications,src/pages/PostLicenseApplicationForms.tsx,376,update,await supabase.from('applications').update({
+P1,applications,src/pages/PreLicenseeDashboard.tsx,69,delete,"const { error } = await supabase.from('applications').delete().eq('id', appId).eq('status', 'draft');"
+P1,applications,src/pages/applications/ApplicationDetail.tsx,285,update,"const { error } = await supabase.from('applications').update({ data: nextData } as any).eq('id', app.id);"
+P1,approval_actions,src/pages/applications/ApplicationDetail.tsx,641,insert,const { error: actionErr } = await supabase.from('approval_actions').insert({
+P1,approval_actions,src/pages/applications/ApplicationDetail.tsx,692,insert,await supabase.from('approval_actions').insert({
+P1,approval_actions,src/pages/applications/ApplicationDetail.tsx,730,insert,await supabase.from('approval_actions').insert({
+P1,approval_actions,src/pages/applications/ApplicationDetail.tsx,842,insert,await supabase.from('approval_actions').insert({
+P1,approval_actions,src/pages/applications/ApplicationDetail.tsx,862,insert,await supabase.from('approval_actions').insert({
+P1,applications,src/pages/applications/ApplicationDetail.tsx,1142,update,.update({ data: updatedAppData } as any)
+P1,approval_actions,src/pages/applications/ApplicationDetail.tsx,1465,insert,await supabase.from('approval_actions').insert({
+P1,applications,src/pages/applications/ApplicationQueue.tsx,449,update,"const { error } = await supabase.from('applications').update(patch).eq('id', id);"
+P1,applications,src/pages/applications/ApplicationQueue.tsx,480,update,"const { error } = await supabase.from('applications').update(patch).in('id', ids);"
+P1,compliance_returns,src/pages/compliance/ComplianceReturns.tsx,180,update,".update({ status: 'submitted', submitted_at: new Date().toISOString() } as any).eq('id', id);"
+P1,compliance_returns,src/pages/compliance/ReturnSubmission.tsx,266,insert,"const { data: newReturn, error } = await supabase.from('compliance_returns' as any).insert({"
+P1,compliance_returns,src/pages/compliance/ReturnSubmission.tsx,592,update,".update({ form_data: mergedData, status: 'draft' } as any).eq('id', existingReturn.id);"
+P1,compliance_returns,src/pages/compliance/ReturnSubmission.tsx,603,insert,"const { data: newReturn, error } = await supabase.from('compliance_returns' as any).insert({"
+P1,compliance_returns,src/pages/compliance/ReturnSubmission.tsx,636,update,".update({ form_data: mergedData, status: 'submitted', submitted_at: new Date().toISOString() } as any)"
+P1,compliance_returns,src/pages/compliance/ReturnSubmission.tsx,647,insert,const { error } = await supabase.from('compliance_returns' as any).insert({
+P1,conduct_actions,src/pages/conduct/ConductActions.tsx,58,update,".update({ status: 'completed', closed_at: new Date().toISOString() }).eq('id', a.id);"
+P1,conduct_alerts,src/pages/conduct/ConductAlerts.tsx,41,update,"const { error } = await supabase.from('conduct_alerts').update({ status: 'acknowledged', acknowledged_by: user?.id, acknowledged_at: new Date().toISOString() })"
+P1,conduct_alerts,src/pages/conduct/ConductAlerts.tsx,62,update,"const { error } = await supabase.from('conduct_alerts').update({ status: 'closed', closed_by: user?.id, closed_at: new Date().toISOString() }).eq('id', row.id);"
+P1,compliance_returns,src/pages/entity/returns/FillReturnPage.tsx,498,update,.update({
+P1,fp_findings,src/pages/fpa/FpaAiAnalysis.tsx,389,update,.update({
+P1,fp_conditions,src/pages/fpa/FpaConditions.tsx,378,update,.update({
+P1,fp_conditions,src/pages/fpa/FpaConditions.tsx,403,update,".update({ status: 'waived', waiver_reason: reason.trim() || null })"
+P1,fp_conditions,src/pages/fpa/FpaConditions.tsx,437,update,.update({ reminder_sent_at: new Date().toISOString() })
+P1,fp_conditions,src/pages/fpa/FpaConditions.tsx,508,insert,.insert({
+P1,fp_assessments,src/pages/fpa/FpaDeclarations.tsx,493,update,.update({ declaration_data: merged })
+P1,fp_determinations,src/pages/fpa/FpaDeterminations.tsx,769,update,"await supabase.from('fp_determinations').update({ is_current: false }).eq('id', prior.id);"
+P1,fp_determinations,src/pages/fpa/FpaDeterminations.tsx,789,insert,.insert(payload as any)
+P1,fp_assessments,src/pages/fpa/FpaDeterminations.tsx,797,update,await supabase.from('fp_assessments').update({
+P1,fp_findings,src/pages/fpa/FpaFindings.tsx,395,update,.update({
+P1,fp_assessments,src/pages/fpa/FpaIndividualProfile.tsx,794,insert,const { error } = await supabase.from('fp_assessments').insert({
+P1,fp_assessments,src/pages/fpa/FpaInitiation.tsx,338,insert,"const { data, error } = await supabase.from('fp_assessments').insert({"
+P1,fp_findings,src/pages/fpa/FpaManualTaskDetail.tsx,263,update,.update({ evidence_urls: merged } as any)
+P1,fp_findings,src/pages/fpa/FpaManualTaskDetail.tsx,299,update,.update({ evidence_urls: updated } as any)
+P1,fp_findings,src/pages/fpa/FpaManualTaskDetail.tsx,329,update,"const { error } = await supabase.from('fp_findings').update({ evidence_url: null } as any).eq('id', findingId);"
+P1,fp_findings,src/pages/fpa/FpaManualTaskDetail.tsx,368,update,.update({
+P1,fp_findings,src/pages/fpa/FpaManualTaskDetail.tsx,396,update,.update({
+P1,fp_findings,src/pages/fpa/FpaManualTaskDetail.tsx,418,update,.update({
+P1,fp_findings,src/pages/fpa/FpaManualTaskDetail.tsx,447,update,.update({
+P1,fp_findings,src/pages/fpa/FpaManualTasks.tsx,390,update,.update({
+P1,applications,src/pages/licenses/LicenseDetail.tsx,530,insert,.insert(insertPayload as any)
+P1,payments,src/pages/payments/PaymentHistory.tsx,260,update,"await supabase.from('payments' as any).update({ status: 'refunded' }).eq('id', refund.payment_id);"
+P1,registrations,src/pages/registration/PreLicenseeRegistration.tsx,888,update,.update({
+P1,registration_form_submissions,src/pages/registration/PreLicenseeRegistration.tsx,924,update,.update({
+P1,registration_form_submissions,src/pages/registration/RegistrationFormFill.tsx,281,update,".update({ form_data: merged as unknown as Json, updated_at: new Date().toISOString() })"
+P1,registration_form_submissions,src/pages/registration/RegistrationFormFill.tsx,308,update,.update({
+P1,registration_form_submissions,src/pages/registration/RegistrationPortal.tsx,192,insert,.insert({
+P1,returns_filed,src/pages/returns-mgmt/ReturnDetail.tsx,428,update,".update({ workflow_status: 'VAL', updated_by: user?.id })"
+P1,returns_filed,src/pages/returns-mgmt/ReturnDetail.tsx,544,update,".update({ workflow_status: 'TBR', updated_by: user?.id })"
+P1,enforcement_actions,src/pages/supervision/BreachInbox.tsx,197,insert,"const { data, error } = await supabase.from('enforcement_actions').insert(insertPayload).select('id, case_number').single();"
+P1,enforcement_case_events,src/pages/supervision/BreachInbox.tsx,205,insert,await supabase.from('enforcement_case_events').insert({
+P1,supervisory_plan_actions,src/pages/supervision/PrudentialEarlyWarnings.tsx,84,insert,"const { data: inserted, error } = await (supabase.from('supervisory_plan_actions') as any).insert({"
+P1,supervisory_plan_actions,src/pages/supervision/SupervisoryPlansDashboard.tsx,175,update,const { error } = await supabase.from('supervisory_plan_actions').update({
+P1,supervisory_plan_actions,src/pages/supervision/SupervisoryPlansDashboard.tsx,191,update,const { error } = await supabase.from('supervisory_plan_actions').update({
+P1,supervisory_plan_actions,src/pages/supervision/SupervisoryPlansDashboard.tsx,203,update,const { error } = await supabase.from('supervisory_plan_actions').update({
+P2_P3,audit_logs,src/components/applications/ApplicationAiAssessmentPanel.tsx,915,insert,await supabase.from('audit_logs' as any).insert({
+P2_P3,notifications,src/components/applications/ApplicationRfiTab.tsx,105,insert,await supabase.from('notifications').insert({
+P2_P3,file_uploads,src/components/applications/ApplicationRfiTab.tsx,384,insert,.insert({
+P2_P3,fee_components,src/components/applications/FeeComponentsPanel.tsx,113,update,"const { error } = await supabase.from('fee_components' as any).update(payload).eq('id', editingId);"
+P2_P3,fee_components,src/components/applications/FeeComponentsPanel.tsx,123,insert,const { error } = await supabase.from('fee_components' as any).insert(rows);
+P2_P3,fee_components,src/components/applications/FeeComponentsPanel.tsx,131,delete,"const { error } = await supabase.from('fee_components' as any).delete().eq('id', id);"
+P2_P3,payment_remarks,src/components/applications/PaymentVerificationDialog.tsx,138,insert,const { error: remarkErr } = await supabase.from('payment_remarks' as any).insert({
+P2_P3,notifications,src/components/applications/RaiseRfiDialog.tsx,245,insert,await supabase.from('notifications').insert({
+P2_P3,complaint_duplicate_rules,src/components/complaints/duplicates/DetectionRulesPanel.tsx,41,update,".update({ enabled: r.enabled, weight: r.weight }).eq('id', r.id);"
+P2_P3,form_responses,src/components/fit-and-proper/PinnedPqForm.tsx,75,update,const { error } = await supabase.from('form_responses').update({
+P2_P3,form_responses,src/components/fit-and-proper/PinnedPqForm.tsx,84,insert,"const { data: inserted, error } = await supabase.from('form_responses').insert({"
+P2_P3,fp_screening_execution_rules,src/components/fpa/AutoScreeningRulesTab.tsx,360,insert,const { error } = await supabase.from('fp_screening_execution_rules' as any).insert({
+P2_P3,fp_screening_execution_rules,src/components/fpa/AutoScreeningRulesTab.tsx,386,update,.update({
+P2_P3,form_responses,src/components/licenses/LicenseActionDialog.tsx,141,insert,.insert({
+P2_P3,form_responses,src/components/licenses/LicenseActionDialog.tsx,160,delete,"await supabase.from('form_responses').delete().eq('id', inserted.id);"
+P2_P3,payment_remarks,src/components/payments/PaymentRemarksThread.tsx,71,insert,const { error } = await supabase.from('payment_remarks' as any).insert({
+P2_P3,payment_remarks,src/components/payments/PaymentRemarksThread.tsx,101,update,.update({ remark: text } as any)
+P2_P3,payment_remarks,src/components/payments/PaymentRemarksThread.tsx,118,delete,"const { error } = await supabase.from('payment_remarks' as any).delete().eq('id', id);"
+P2_P3,roles,src/components/rbac/RoleMigrationRunnerDialog.tsx,97,update,.update({
+P2_P3,file_uploads,src/components/shared/BatchDocumentUpload.tsx,118,insert,.insert({
+P2_P3,application_legal_notes,src/hooks/useApplicationLegalNotes.ts,99,insert,.insert({
+P2_P3,site_settings,src/hooks/useApplicationSettings.ts,62,upsert,".upsert({ key: 'application_settings', value: settings }, { onConflict: 'key' }) as any);"
+P2_P3,conduct_saved_views,src/hooks/useConductSavedViews.ts,42,update,"await supabase.from('conduct_saved_views').update({ is_default: false }).eq('owner_id', uid).eq('is_default', true);"
+P2_P3,conduct_saved_views,src/hooks/useConductSavedViews.ts,47,update,".update({ name: input.name, is_shared: input.is_shared, is_default: input.is_default, config: input.config as any })"
+P2_P3,conduct_saved_views,src/hooks/useConductSavedViews.ts,53,insert,".insert({ owner_id: uid, name: input.name, is_shared: input.is_shared, is_default: input.is_default, config: input.config as any })"
+P2_P3,conduct_saved_views,src/hooks/useConductSavedViews.ts,67,delete,"const { error } = await supabase.from('conduct_saved_views').delete().eq('id', id);"
+P2_P3,correspondence_routing_rules,src/hooks/useCorrespondence.ts,643,update,"const { error } = await (supabase as any).from('correspondence_routing_rules').update(rule).eq('id', rule.id);"
+P2_P3,correspondence_routing_rules,src/hooks/useCorrespondence.ts,646,insert,const { error } = await (supabase as any).from('correspondence_routing_rules').insert(rule);
+P2_P3,correspondence_routing_rules,src/hooks/useCorrespondence.ts,658,delete,"const { error } = await (supabase as any).from('correspondence_routing_rules').delete().eq('id', id);"
+P2_P3,site_settings,src/hooks/useEmailSmsSettings.ts,97,upsert,".upsert({ key: 'email_sms_settings', value: merged }, { onConflict: 'key' }) as any);"
+P2_P3,form_responses,src/hooks/useEntityReturns.ts,242,update,const { error } = await db().from('form_responses').update({
+P2_P3,form_responses,src/hooks/useEntityReturns.ts,250,insert,"const { data: inserted, error } = await db().from('form_responses').insert({"
+P2_P3,audit_logs,src/hooks/useFinancialGroups.ts,306,insert,await sb.from('audit_logs').insert({
+P2_P3,return_configs,src/hooks/useFormTemplates.ts,318,insert,.insert({
+P2_P3,return_config_forms,src/hooks/useFormTemplates.ts,339,insert,await (supabase as any).from('return_config_forms').insert({
+P2_P3,form_fields,src/hooks/useFormTemplates.ts,366,delete,.delete()
+P2_P3,form_fields,src/hooks/useFormTemplates.ts,383,insert,const { error: fErr } = await supabase.from('form_fields').insert(dedupedFields as any);
+P2_P3,form_fields,src/hooks/useFormTemplates.ts,412,delete,"const { error: fieldErr } = await supabase.from('form_fields').delete().eq('version_id', versionId);"
+P2_P3,form_versions,src/hooks/useFormTemplates.ts,415,delete,"const { error: versionErr } = await supabase.from('form_versions').delete().eq('id', versionId);"
+P2_P3,form_templates,src/hooks/useFormTemplates.ts,725,upsert,const { error: tErr } = await supabase.from('form_templates').upsert({
+P2_P3,form_versions,src/hooks/useFormTemplates.ts,857,upsert,const { error: vErr } = await supabase.from('form_versions').upsert(versionRow);
+P2_P3,form_versions,src/hooks/useFormTemplates.ts,919,insert,const { error: vErr } = await supabase.from('form_versions').insert({
+P2_P3,form_fields,src/hooks/useFormTemplates.ts,932,insert,const { error: fErr } = await supabase.from('form_fields').insert(fields as any);
+P2_P3,form_templates,src/hooks/useFormTemplates.ts,971,delete,"const { error } = await supabase.from('form_templates').delete().eq('id', id);"
+P2_P3,form_templates,src/hooks/useFormTemplates.ts,985,update,"const { error } = await supabase.from('form_templates').update({ status } as any).eq('id', id);"
+P2_P3,form_versions,src/hooks/useFormTemplates.ts,998,update,await supabase.from('form_versions').update({
+P2_P3,form_versions,src/hooks/useFormTemplates.ts,1035,update,await supabase.from('form_versions').update({
+P2_P3,form_versions,src/hooks/useFormTemplates.ts,1055,update,await supabase.from('form_versions').update({
+P2_P3,form_versions,src/hooks/useFormTemplates.ts,1134,update,.update({ effective_until: currentMonthEnd } as any)
+P2_P3,form_versions,src/hooks/useFormTemplates.ts,1142,update,.update({ effective_until: currentMonthEnd } as any)
+P2_P3,form_versions,src/hooks/useFormTemplates.ts,1148,insert,const { error: vErr } = await supabase.from('form_versions').insert({
+P2_P3,form_responses,src/hooks/useFormTemplates.ts,1289,upsert,const { error } = await supabase.from('form_responses').upsert({
+P2_P3,form_versions,src/hooks/useFormTemplates.ts,1418,update,"const { error } = await supabase.from('form_versions').update(patch).eq('id', params.versionId);"
+P2_P3,form_versions,src/hooks/useFormTemplates.ts,1521,update,"await supabase.from('form_versions').update({ notified_for_upcoming: true } as any).eq('id', versionId);"
+P2_P3,forms,src/hooks/useForms.ts,98,upsert,const { error } = await supabase.from('forms').upsert({
+P2_P3,forms,src/hooks/useForms.ts,136,insert,const { error } = await supabase.from('forms').insert({
+P2_P3,forms,src/hooks/useForms.ts,164,delete,"const { error } = await supabase.from('forms').delete().eq('id', id);"
+P2_P3,forms,src/hooks/useForms.ts,177,update,"const { error } = await supabase.from('forms').update({ status } as any).eq('id', id);"
+P2_P3,sectors,src/hooks/useMasterConfig.ts,82,update,"const { error } = await supabase.from('sectors' as any).update({ name: row.name, status: row.status, regulator_id: row.regulator_id || null } as any).eq('id', r"
+P2_P3,sectors,src/hooks/useMasterConfig.ts,85,insert,"const { error } = await supabase.from('sectors' as any).insert({ name: row.name, status: row.status, regulator_id: row.regulator_id || null } as any);"
+P2_P3,sectors,src/hooks/useMasterConfig.ts,94,delete,"const { error } = await supabase.from('sectors' as any).delete().eq('id', id);"
+P2_P3,sub_sectors,src/hooks/useMasterConfig.ts,103,update,"const { error } = await supabase.from('sub_sectors' as any).update({ sector_id: row.sector_id, name: row.name, status: row.status } as any).eq('id', row.id);"
+P2_P3,sub_sectors,src/hooks/useMasterConfig.ts,106,insert,"const { error } = await supabase.from('sub_sectors' as any).insert({ sector_id: row.sector_id, name: row.name, status: row.status } as any);"
+P2_P3,sub_sectors,src/hooks/useMasterConfig.ts,115,delete,"const { error } = await supabase.from('sub_sectors' as any).delete().eq('id', id);"
+P2_P3,categories,src/hooks/useMasterConfig.ts,124,update,"const { error } = await supabase.from('categories' as any).update({ sector_id: row.sector_id, sub_sector_id: row.sub_sector_id, name: row.name, status: row.stat"
+P2_P3,categories,src/hooks/useMasterConfig.ts,127,insert,"const { error } = await supabase.from('categories' as any).insert({ sector_id: row.sector_id, sub_sector_id: row.sub_sector_id, name: row.name, status: row.stat"
+P2_P3,categories,src/hooks/useMasterConfig.ts,136,delete,"const { error } = await supabase.from('categories' as any).delete().eq('id', id);"
+P2_P3,master_data_types,src/hooks/useMasterData.ts,139,update,".update({ name: row.name, code: row.code || null, description: row.description || null, status: row.status || 'active', sort_order: row.sort_order || 0 } as any"
+P2_P3,master_data_types,src/hooks/useMasterData.ts,144,insert,".insert({ name: row.name, code: row.code || null, description: row.description || null, status: row.status || 'active', sort_order: row.sort_order || 0 } as any"
+P2_P3,master_data_types,src/hooks/useMasterData.ts,153,delete,"const { error } = await supabase.from('master_data_types' as any).delete().eq('id', id);"
+P2_P3,payment_oversight_config,src/hooks/usePaymentSystems.ts,182,update,".update({ ...updates, updated_by: auth?.user?.id ?? null })"
+P2_P3,permissions,src/hooks/usePermissionCatalog.ts,119,insert,const { error: pErr } = await (supabase.from('permissions' as any).insert({
+P2_P3,return_validation_rules,src/hooks/usePrudentialConfig.ts,28,update,"const { error } = await (supabase as any).from('return_validation_rules').update(payload).eq('id', row.id);"
+P2_P3,return_validation_rules,src/hooks/usePrudentialConfig.ts,31,insert,const { error } = await (supabase as any).from('return_validation_rules').insert(payload);
+P2_P3,return_validation_rules,src/hooks/usePrudentialConfig.ts,44,delete,"const { error } = await (supabase as any).from('return_validation_rules').delete().eq('id', id);"
+P2_P3,return_types,src/hooks/useReturnsManagement.ts,25,insert,const { error } = await (supabase as any).from('return_types').insert(payload);
+P2_P3,return_types,src/hooks/useReturnsManagement.ts,33,update,"const { error } = await (supabase as any).from('return_types').update(payload).eq('id', id);"
+P2_P3,return_types,src/hooks/useReturnsManagement.ts,41,delete,"const { error } = await (supabase as any).from('return_types').delete().eq('id', id);"
+P2_P3,return_configs,src/hooks/useReturnsManagement.ts,79,insert,"const { data, error } = await (supabase as any).from('return_configs').insert(payload).select().single();"
+P2_P3,return_configs,src/hooks/useReturnsManagement.ts,88,update,"const { error } = await (supabase as any).from('return_configs').update(payload).eq('id', id);"
+P2_P3,return_configs,src/hooks/useReturnsManagement.ts,96,delete,"const { error } = await (supabase as any).from('return_configs').delete().eq('id', id);"
+P2_P3,return_config_forms,src/hooks/useReturnsManagement.ts,124,delete,"await (supabase as any).from('return_config_forms').delete().eq('return_configuration_id', configId);"
+P2_P3,return_config_forms,src/hooks/useReturnsManagement.ts,126,insert,const { error } = await (supabase as any).from('return_config_forms').insert(
+P2_P3,return_comments,src/hooks/useReturnsManagement.ts,366,insert,const { error } = await (supabase as any).from('return_comments').insert(payload);
+P2_P3,return_comments,src/hooks/useReturnsManagement.ts,374,update,"const { error } = await (supabase as any).from('return_comments').update(payload).eq('id', id);"
+P2_P3,return_comments,src/hooks/useReturnsManagement.ts,382,delete,"const { error } = await (supabase as any).from('return_comments').delete().eq('id', id);"
+P2_P3,return_cutoff_config,src/hooks/useReturnsManagement.ts,522,insert,const { error } = await (supabase as any).from('return_cutoff_config').insert(payload);
+P2_P3,return_cutoff_config,src/hooks/useReturnsManagement.ts,530,update,"const { error } = await (supabase as any).from('return_cutoff_config').update(payload).eq('id', id);"
+P2_P3,return_cutoff_config,src/hooks/useReturnsManagement.ts,538,delete,"const { error } = await (supabase as any).from('return_cutoff_config').delete().eq('id', id);"
+P2_P3,notification_event_configs,src/hooks/useReturnsManagement.ts,713,update,.update(payload)
+P2_P3,site_settings,src/hooks/useReviewSettings.ts,39,upsert,".upsert({ key: 'review_settings', value: settings }, { onConflict: 'key' }) as any);"
+P2_P3,document_action_logs,src/lib/documentVersioning.ts,387,insert,await supabase.from('document_action_logs' as any).insert({
+P2_P3,document_versions,src/lib/documentVersioning.ts,401,update,.update({ is_deleted: true } as any)
+P2_P3,document_action_logs,src/lib/documentVersioning.ts,406,insert,await supabase.from('document_action_logs' as any).insert({
+P2_P3,file_uploads,src/lib/formFileUpload.ts,49,insert,.insert({
+P2_P3,file_uploads,src/lib/formFileUpload.ts,94,delete,"await supabase.from('file_uploads' as any).delete().eq('id', uploadId);"
+P2_P3,file_uploads,src/lib/secureFileUpload.ts,111,insert,.insert({
+P2_P3,file_uploads,src/lib/secureFileUpload.ts,198,delete,"await supabase.from('file_uploads' as any).delete().eq('id', fileUploadId);"
+P2_P3,file_uploads,src/lib/secureFileUpload.ts,241,update,.update({
+P2_P3,form_responses,src/pages/NewApplication.tsx,1380,update,.update({
+P2_P3,form_responses,src/pages/NewApplication.tsx,1389,insert,const { error: insertRespErr } = await supabase.from('form_responses').insert({
+P2_P3,complaint_types,src/pages/admin/ComplaintTypes.tsx,78,update,".update({ name: name.trim(), description: description.trim() || null, is_active: isActive, updated_at: new Date().toISOString() } as any)"
+P2_P3,complaint_types,src/pages/admin/ComplaintTypes.tsx,86,insert,".insert({ name: name.trim(), description: description.trim() || null, is_active: isActive } as any);"
+P2_P3,correspondence_templates,src/pages/admin/CorrespondenceTemplates.tsx,73,update,.update(payload)
+P2_P3,correspondence_templates,src/pages/admin/CorrespondenceTemplates.tsx,77,insert,const { error } = await (supabase.from('correspondence_templates') as any).insert(payload);
+P2_P3,correspondence_templates,src/pages/admin/CorrespondenceTemplates.tsx,92,delete,"const { error } = await (supabase.from('correspondence_templates') as any).delete().eq('id', id);"
+P2_P3,fee_types,src/pages/admin/FeeManagement.tsx,159,update,"const { error } = await supabase.from('fee_types' as any).update(payload).eq('id', ftEditing.id);"
+P2_P3,fee_types,src/pages/admin/FeeManagement.tsx,163,insert,const { error } = await supabase.from('fee_types' as any).insert(payload);
+P2_P3,fee_types,src/pages/admin/FeeManagement.tsx,171,delete,"const { error } = await supabase.from('fee_types' as any).delete().eq('id', id);"
+P2_P3,fee_configurations,src/pages/admin/FeeManagement.tsx,361,update,"const { error: updateErr } = await supabase.from('fee_configurations' as any).update(firstRow).eq('id', editing.id);"
+P2_P3,fee_configurations,src/pages/admin/FeeManagement.tsx,364,insert,const { error: insertErr } = await supabase.from('fee_configurations' as any).insert(rest);
+P2_P3,fee_configurations,src/pages/admin/FeeManagement.tsx,369,insert,const { error } = await supabase.from('fee_configurations' as any).insert(allRows);
+P2_P3,fee_rules,src/pages/admin/FeeManagement.tsx,389,update,"const { error } = await supabase.from('fee_rules' as any).update(payload).eq('id', editingRule.id);"
+P2_P3,fee_rules,src/pages/admin/FeeManagement.tsx,393,insert,const { error } = await supabase.from('fee_rules' as any).insert(payload);
+P2_P3,fee_configurations,src/pages/admin/FeeManagement.tsx,401,delete,"const { error } = await supabase.from('fee_configurations' as any).delete().eq('id', id);"
+P2_P3,fee_rules,src/pages/admin/FeeManagement.tsx,407,delete,"const { error } = await supabase.from('fee_rules' as any).delete().eq('id', id);"
+P2_P3,forms,src/pages/admin/FormBuilder.tsx,481,upsert,await supabase.from('forms').upsert({
+P2_P3,form_templates,src/pages/admin/FormBuilder.tsx,555,upsert,const { error: tErr } = await supabase.from('form_templates').upsert({
+P2_P3,form_versions,src/pages/admin/FormBuilder.tsx,579,upsert,const { error: vErr } = await supabase.from('form_versions').upsert({
+P2_P3,forms,src/pages/admin/FormBuilder.tsx,590,upsert,await supabase.from('forms').upsert({
+P2_P3,form_field_dependencies,src/pages/admin/FormBuilder.tsx,620,insert,await supabase.from('form_field_dependencies' as any).insert(depRows);
+P2_P3,form_templates,src/pages/admin/FormManagement.tsx,205,update,"const { error } = await supabase.from('form_templates').update({ status: 'draft' } as any).in('id', ids);"
+P2_P3,fp_screening_configs,src/pages/admin/FpScreeningConfigs.tsx,59,update,"const { error } = await supabase.from('fp_screening_configs').update(payload).eq('id', editing);"
+P2_P3,fp_screening_configs,src/pages/admin/FpScreeningConfigs.tsx,62,insert,const { error } = await supabase.from('fp_screening_configs').insert(payload);
+P2_P3,fp_screening_configs,src/pages/admin/FpScreeningConfigs.tsx,76,update,"const { error } = await supabase.from('fp_screening_configs').update({ is_active: active }).eq('id', id);"
+P2_P3,fp_screening_configs,src/pages/admin/FpScreeningConfigs.tsx,85,delete,"const { error } = await supabase.from('fp_screening_configs').delete().eq('id', id);"
+P2_P3,fp_sector_decision_rules,src/pages/admin/FpSectorDecisionRules.tsx,144,update,".update({ ...payload, version: (editing.version ?? 1) + 1 }).eq('id', editing.id);"
+P2_P3,fp_sector_decision_rules,src/pages/admin/FpSectorDecisionRules.tsx,149,insert,"const { data, error } = await (supabase.from('fp_sector_decision_rules') as any).insert(payload).select('id').single();"
+P2_P3,fp_sector_decision_rules,src/pages/admin/FpSectorDecisionRules.tsx,167,delete,"const { error } = await (supabase.from('fp_sector_decision_rules') as any).delete().eq('id', r.id);"
+P2_P3,license_action_form_configs,src/pages/admin/LicenseActionFormsPage.tsx,97,update,"const { error } = await supabase.from('license_action_form_configs').update(payload).eq('id', input.id);"
+P2_P3,license_action_form_configs,src/pages/admin/LicenseActionFormsPage.tsx,100,insert,"const { error } = await supabase.from('license_action_form_configs').insert({ ...payload, created_by: user?.id });"
+P2_P3,license_action_form_configs,src/pages/admin/LicenseActionFormsPage.tsx,114,delete,"const { error } = await supabase.from('license_action_form_configs').delete().eq('id', id);"
+P2_P3,registration_form_configs,src/pages/admin/RegistrationFormBuilder.tsx,325,update,.update(payload)
+P2_P3,registration_form_configs,src/pages/admin/RegistrationFormBuilder.tsx,332,insert,.insert(payload);
+P2_P3,registration_form_configs,src/pages/admin/RegistrationFormBuilder.tsx,344,delete,"const { error } = await supabase.from('registration_form_configs').delete().eq('id', id);"
+P2_P3,registration_form_configs,src/pages/admin/RegistrationFormBuilder.tsx,368,update,.update({ [field]: value })
+P2_P3,sectors,src/pages/admin/RegulatorManagement.tsx,143,update,"await (supabase.from('sectors' as any).update({ regulator_id: null } as any).eq('id', sid) as any);"
+P2_P3,sectors,src/pages/admin/RegulatorManagement.tsx,146,update,"await (supabase.from('sectors' as any).update({ regulator_id: regulatorId } as any).eq('id', sid) as any);"
+P2_P3,return_configurations,src/pages/admin/ReturnConfiguration.tsx,82,update,"const { error } = await supabase.from('return_configurations' as any).update(payload).eq('id', editing.id);"
+P2_P3,return_configurations,src/pages/admin/ReturnConfiguration.tsx,86,insert,const { error } = await supabase.from('return_configurations' as any).insert(payload);
+P2_P3,return_configurations,src/pages/admin/ReturnConfiguration.tsx,97,delete,"const { error } = await supabase.from('return_configurations' as any).delete().eq('id', id);"
+P2_P3,application_rfi_auto_rules,src/pages/admin/RfiAutoRules.tsx,141,update,.update(payload)
+P2_P3,application_rfi_auto_rules,src/pages/admin/RfiAutoRules.tsx,149,insert,".insert({ ...payload, created_by: authData.user?.id });"
+P2_P3,application_rfi_auto_rules,src/pages/admin/RfiAutoRules.tsx,165,delete,.delete()
+P2_P3,application_rfi_auto_rules,src/pages/admin/RfiAutoRules.tsx,175,update,.update({ active: !r.active })
+P2_P3,sla_configurations,src/pages/admin/SlaManager.tsx,236,update,const { error } = await supabase.from('sla_configurations').update({
+P2_P3,sla_configurations,src/pages/admin/SlaManager.tsx,277,insert,"const { data, error } = await supabase.from('sla_configurations').insert(draft).select().single();"
+P2_P3,sla_configurations,src/pages/admin/SlaManager.tsx,291,delete,"const { error } = await supabase.from('sla_configurations').delete().eq('id', id);"
+P2_P3,sufficiency_rules,src/pages/admin/SufficiencyRules.tsx,74,update,"const { error } = await supabase.from('sufficiency_rules' as any).update(payload).eq('id', (editing as any).id);"
+P2_P3,sufficiency_rules,src/pages/admin/SufficiencyRules.tsx,78,insert,"const { data, error } = await supabase.from('sufficiency_rules' as any).insert(payload).select().single();"
+P2_P3,sufficiency_rules,src/pages/admin/SufficiencyRules.tsx,90,delete,"const { error } = await supabase.from('sufficiency_rules' as any).delete().eq('id', r.id);"
+P2_P3,conduct_monitoring_rules,src/pages/admin/conduct/MonitoringRules.tsx,80,update,"if (edit.id) ({ error } = await supabase.from('conduct_monitoring_rules' as any).update(payload).eq('id', edit.id));"
+P2_P3,conduct_monitoring_rules,src/pages/admin/conduct/MonitoringRules.tsx,81,insert,else ({ error } = await supabase.from('conduct_monitoring_rules' as any).insert(payload));
+P2_P3,conduct_monitoring_rules,src/pages/admin/conduct/MonitoringRules.tsx,88,update,"const { error } = await supabase.from('conduct_monitoring_rules' as any).update({ active: !r.active }).eq('id', r.id);"
+P2_P3,complaint_intake_rules,src/pages/admin/conduct/TriageRules.tsx,163,update,.update({ default_severity: next })
+P2_P3,conduct_triage_rules,src/pages/admin/conduct/TriageRules.tsx,197,update,"? await supabase.from('conduct_triage_rules').update(payload).eq('id', editing.id).select('id').maybeSingle()"
+P2_P3,conduct_triage_rules,src/pages/admin/conduct/TriageRules.tsx,198,insert,: await supabase.from('conduct_triage_rules').insert(payload).select('id').maybeSingle();
+P2_P3,conduct_triage_rules,src/pages/admin/conduct/TriageRules.tsx,212,delete,"const { error } = await supabase.from('conduct_triage_rules').delete().eq('id', r.id);"
+P2_P3,conduct_triage_rules,src/pages/admin/conduct/TriageRules.tsx,220,update,"const { error } = await supabase.from('conduct_triage_rules').update({ active: next }).eq('id', r.id);"
+P2_P3,complaint_escalation_rules,src/pages/complaints/escalations/EscalationRulesAdmin.tsx,37,update,const { error } = await supabase.from('complaint_escalation_rules' as any).update({
+P2_P3,delegation_rules,src/pages/delegation/DelegationRules.tsx,79,update,"await supabase.from('delegation_rules').update({ is_active: false } as any).eq('id', rule.id);"
+P2_P3,delegation_rules,src/pages/delegation/DelegationRules.tsx,247,update,"const { error } = await supabase.from('delegation_rules').update(payload as any).eq('id', editingRuleId);"
+P2_P3,delegation_rules,src/pages/delegation/DelegationRules.tsx,278,insert,const { error } = await supabase.from('delegation_rules').insert(rows as any);
+P2_P3,delegation_rules,src/pages/delegation/DelegationRules.tsx,299,update,"const { error } = await supabase.from('delegation_rules').update({ is_active: !rule.is_active } as any).eq('id', rule.id);"
+P2_P3,delegation_rules,src/pages/delegation/DelegationRules.tsx,306,delete,"await supabase.from('delegation_rules').delete().eq('id', id);"
+P2_P3,documents,src/pages/documents/DocumentStore.tsx,156,delete,"await supabase.from('documents').delete().eq('id', file.id);"
+P2_P3,file_uploads,src/pages/documents/DocumentStore.tsx,238,update,".update({ metadata: nextMetadata, updated_at: new Date().toISOString() } as any)"
+P2_P3,fp_screening_configs,src/pages/fpa/FpaScreening.tsx,318,update,.update({ is_active: isActive })
+P2_P3,fp_screening_configs,src/pages/fpa/FpaScreening.tsx,339,insert,const { error } = await supabase.from('fp_screening_configs').insert({
+P2_P3,fp_sector_decision_rules,src/pages/fpa/FpaSectorRules.tsx,527,insert,const { error } = await supabase.from('fp_sector_decision_rules').insert({
+P2_P3,fp_sector_decision_rules,src/pages/fpa/FpaSectorRules.tsx,556,update,.update({
+P2_P3,return_comments,src/pages/returns-mgmt/ReturnDetail.tsx,438,insert,await (supabase as any).from('return_comments').insert({
+P2_P3,return_comments,src/pages/returns-mgmt/ReturnDetail.tsx,547,insert,await (supabase as any).from('return_comments').insert({
+P2_P3,site_settings,src/pages/settings/BrandingSettings.tsx,73,upsert,"const { error } = await (supabase.from('site_settings' as any).upsert({ key, value }, { onConflict: 'key' }) as any);"
+P2_P3,site_settings,src/pages/settings/CaptchaSettings.tsx,86,upsert,".upsert({ key: 'captcha_enabled', value: next }, { onConflict: 'key' });"
+P2_P3,captcha_configurations,src/pages/settings/CaptchaSettings.tsx,152,update,.update(payload)
+P2_P3,captcha_configurations,src/pages/settings/CaptchaSettings.tsx,158,insert,.insert(payload)
+P2_P3,captcha_configurations,src/pages/settings/CaptchaSettings.tsx,214,delete,"const { error } = await supabase.from('captcha_configurations').delete().eq('id', config.id);"
+P2_P3,site_settings,src/pages/settings/CertificateSignatorySettings.tsx,171,upsert,const { error } = await (supabase.from('site_settings' as any).upsert(
+P2_P3,audit_logs,src/pages/settings/CertificateSignatorySettings.tsx,177,insert,await supabase.from('audit_logs' as any).insert({
+P2_P3,site_settings,src/pages/settings/GeneralSettings.tsx,30,upsert,"const { error } = await (supabase.from('site_settings' as any).upsert({ key: 'general', value: form }, { onConflict: 'key' }) as any);"
+P2_P3,site_settings,src/pages/settings/LicenseExpirySettings.tsx,196,upsert,".upsert({ key: 'license_expiry', value: payload }, { onConflict: 'key' }) as any);"
+P2_REVIEW,application_ai_assessments,src/components/applications/ApplicationAiAssessmentPanel.tsx,905,update,.update({
+P2_REVIEW,application_ai_assessments,src/components/applications/ApplicationAiAssessmentPanel.tsx,996,update,.update({
+P2_REVIEW,application_ai_assessments,src/components/applications/ApplicationAiAssessmentPanel.tsx,1096,update,.update({
+P2_REVIEW,application_rfis,src/components/applications/ApplicationRfiTab.tsx,57,update,.update({
+P2_REVIEW,application_rfi_items,src/components/applications/ApplicationRfiTab.tsx,68,update,.update({ response_status: 'skipped' })
+P2_REVIEW,application_rfis,src/components/applications/RaiseRfiDialog.tsx,175,insert,.insert({
+P2_REVIEW,application_rfi_items,src/components/applications/RaiseRfiDialog.tsx,198,insert,const { error: itErr } = await supabase.from('application_rfi_items' as any).insert(payload);
+P2_REVIEW,sufficiency_overrides,src/components/applications/SufficiencyPanel.tsx,197,insert,const { error } = await supabase.from('sufficiency_overrides' as any).insert({
+P2_REVIEW,review_step_permissions,src/components/collab-review/CollabReviewConfigTab.tsx,138,upsert,".upsert(row, { onConflict: 'step_id,role_id' });"
+P2_REVIEW,review_role_display_settings,src/components/collab-review/CollabReviewConfigTab.tsx,181,upsert,".upsert(row, { onConflict: 'regulator_id,role_id' });"
+P2_REVIEW,complaint_correspondence,src/components/complaints/ComplaintInvestigationTab.tsx,156,insert,const { error } = await (supabase.from('complaint_correspondence') as any).insert({
+P2_REVIEW,coordination_escalations,src/components/coordination/EscalationsTab.tsx,81,insert,"const { data, error } = await supabase.from('coordination_escalations').insert({"
+P2_REVIEW,coordination_escalations,src/components/coordination/EscalationsTab.tsx,109,update,"const { error } = await supabase.from('coordination_escalations').update(patch).eq('id', id);"
+P2_REVIEW,inspections,src/components/entity-detail/InspectionsTab.tsx,39,update,"const { error } = editing ? await supabase.from('inspections' as any).update(payload).eq('id', editing.id) : await supabase.from('inspections' as any).insert(pa"
+P2_REVIEW,inspections,src/components/entity-detail/InspectionsTab.tsx,39,insert,"const { error } = editing ? await supabase.from('inspections' as any).update(payload).eq('id', editing.id) : await supabase.from('inspections' as any).insert(pa"
+P2_REVIEW,supervisory_plans,src/components/entity-detail/LicensingAuditTab.tsx,270,insert,"const { data: plan, error: planErr } = await supabase.from('supervisory_plans' as any).insert({"
+P2_REVIEW,reinsurance_contracts,src/components/entity-detail/ReinsuranceTab.tsx,39,update,"const { error } = editing ? await supabase.from('reinsurance_contracts' as any).update(payload).eq('id', editing.id) : await supabase.from('reinsurance_contract"
+P2_REVIEW,reinsurance_contracts,src/components/entity-detail/ReinsuranceTab.tsx,39,insert,"const { error } = editing ? await supabase.from('reinsurance_contracts' as any).update(payload).eq('id', editing.id) : await supabase.from('reinsurance_contract"
+P2_REVIEW,reinsurance_contracts,src/components/entity-detail/ReinsuranceTab.tsx,47,delete,"await supabase.from('reinsurance_contracts' as any).delete().eq('id', id);"
+P2_REVIEW,entity_user_access,src/components/entity-detail/WebUsersTab.tsx,157,insert,await supabase.from('entity_user_access' as any).insert({
+P2_REVIEW,fp_condition_evidence,src/components/fit-and-proper/FpConditionEvidencePanel.tsx,75,insert,const { error } = await supabase.from('fp_condition_evidence').insert({
+P2_REVIEW,fp_condition_evidence,src/components/fit-and-proper/FpConditionEvidencePanel.tsx,110,update,.update({
+P2_REVIEW,fp_committee_votes,src/components/fit-and-proper/FpDeterminationsPanel.tsx,262,insert,"const { data, error } = await supabase.from('fp_committee_votes').insert({"
+P2_REVIEW,fp_monitoring_events,src/components/fit-and-proper/FpMonitoringPanel.tsx,73,update,const { error } = await supabase.from('fp_monitoring_events').update({
+P2_REVIEW,declaration_invitations,src/components/fit-and-proper/RequestDeclarationDialog.tsx,147,insert,.insert({
+P2_REVIEW,payment_attachments,src/components/payments/PaymentAttachments.tsx,82,insert,const { error: insertErr } = await supabase.from('payment_attachments' as any).insert({
+P2_REVIEW,payment_attachments,src/components/payments/PaymentAttachments.tsx,116,delete,"const { error } = await supabase.from('payment_attachments' as any).delete().eq('id', att.id);"
+P2_REVIEW,role_migration_log,src/components/rbac/RoleMigrationRunnerDialog.tsx,110,insert,const { error: lErr } = await supabase.from('role_migration_log' as any).insert({
+P2_REVIEW,return_template_downloads,src/components/returns/ReturnUploadPanel.tsx,136,insert,await supabase.from('return_template_downloads' as any).insert({
+P2_REVIEW,return_upload_attempts,src/components/returns/ReturnUploadPanel.tsx,200,insert,.insert({
+P2_REVIEW,return_upload_imports,src/components/returns/ReturnUploadPanel.tsx,254,insert,await supabase.from('return_upload_imports' as any).insert({
+P2_REVIEW,return_upload_attempts,src/components/returns/ReturnUploadPanel.tsx,262,update,.update({ status: 'imported' } as any)
+P2_REVIEW,ai_insights,src/hooks/useAdvisoryAiAnalysis.ts,114,update,".update({ feedback: value, feedback_by: user?.id ?? null, feedback_at: new Date().toISOString() })"
+P2_REVIEW,application_legal_referrals,src/hooks/useApplicationLegalReferrals.ts,67,insert,.insert({
+P2_REVIEW,application_legal_referrals,src/hooks/useApplicationLegalReferrals.ts,93,update,.update(patch as any)
+P2_REVIEW,conduct_interviews,src/hooks/useConductInterviews.ts,160,insert,".insert({ ...payload, created_by: user.user?.id ?? null })"
+P2_REVIEW,conduct_interviews,src/hooks/useConductInterviews.ts,189,update,"const { data, error } = await sb.from('conduct_interviews').update(patch).eq('id', id).select('*').single();"
+P2_REVIEW,conduct_interview_participants,src/hooks/useConductInterviews.ts,272,insert,"const { data, error } = await sb.from('conduct_interview_participants').insert(payload).select('*').single();"
+P2_REVIEW,conduct_interview_participants,src/hooks/useConductInterviews.ts,286,delete,"const { error } = await sb.from('conduct_interview_participants').delete().eq('id', id);"
+P2_REVIEW,conduct_interview_attachments,src/hooks/useConductInterviews.ts,303,insert,".insert({ ...payload, uploaded_by: user.user?.id ?? null })"
+P2_REVIEW,conduct_evidence,src/hooks/useConductInterviews.ts,329,insert,"const { data: ev, error } = await sb.from('conduct_evidence').insert({"
+P2_REVIEW,conduct_interview_attachments,src/hooks/useConductInterviews.ts,348,update,.update({ evidence_id: ev.id })
+P2_REVIEW,conduct_signal_evidence,src/hooks/useConductSurveillance.ts,212,insert,const { error } = await sb.from('conduct_signal_evidence').insert({
+P2_REVIEW,examinations,src/hooks/useExaminations.ts,145,insert,".insert({ ...payload, created_by: auth?.user?.id ?? null })"
+P2_REVIEW,examinations,src/hooks/useExaminations.ts,163,update,"const { data, error } = await sb.from('examinations').update(updates).eq('id', id).select().single();"
+P2_REVIEW,examination_scoping,src/hooks/useExaminations.ts,254,update,"? await sb.from('examination_scoping').update(values).eq('id', existing.id).select().single()"
+P2_REVIEW,examination_scoping,src/hooks/useExaminations.ts,255,insert,": await sb.from('examination_scoping').insert({ ...values, examination_id: examinationId }).select().single();"
+P2_REVIEW,financial_groups,src/hooks/useFinancialGroups.ts,145,insert,".insert({ ...row, created_by: auth?.user?.id ?? null }).select('id').single();"
+P2_REVIEW,group_consolidation_methods,src/hooks/useFinancialGroups.ts,148,insert,await sb.from('group_consolidation_methods').insert({
+P2_REVIEW,financial_groups,src/hooks/useFinancialGroups.ts,162,update,"const { error } = await sb.from('financial_groups').update(patch).eq('id', groupId);"
+P2_REVIEW,financial_group_members,src/hooks/useFinancialGroups.ts,177,update,"const { error } = await sb.from('financial_group_members').update(rest).eq('id', id);"
+P2_REVIEW,financial_group_members,src/hooks/useFinancialGroups.ts,181,insert,const { error } = await sb.from('financial_group_members').insert(payload);
+P2_REVIEW,financial_group_members,src/hooks/useFinancialGroups.ts,195,delete,"const { error } = await sb.from('financial_group_members').delete().eq('id', memberId);"
+P2_REVIEW,intragroup_exposures,src/hooks/useFinancialGroups.ts,212,update,"const { error } = await sb.from('intragroup_exposures').update(rest).eq('id', id);"
+P2_REVIEW,intragroup_exposures,src/hooks/useFinancialGroups.ts,215,insert,const { error } = await sb.from('intragroup_exposures').insert(payload);
+P2_REVIEW,intragroup_exposures,src/hooks/useFinancialGroups.ts,231,delete,"const { error } = await sb.from('intragroup_exposures').delete().eq('id', id);"
+P2_REVIEW,group_consolidation_methods,src/hooks/useFinancialGroups.ts,248,update,"await sb.from('group_consolidation_methods').update({ is_active: false }).eq('group_id', groupId);"
+P2_REVIEW,group_consolidation_methods,src/hooks/useFinancialGroups.ts,249,insert,const { error } = await sb.from('group_consolidation_methods').insert({
+P2_REVIEW,group_ewi_alerts,src/hooks/useFinancialGroups.ts,280,update,const { error } = await sb.from('group_ewi_alerts').update({
+P2_REVIEW,field_conditions,src/hooks/useFormTemplates.ts,359,delete,.delete()
+P2_REVIEW,field_conditions,src/hooks/useFormTemplates.ts,391,insert,const { error: cErr } = await supabase.from('field_conditions').insert(validConditions as any);
+P2_REVIEW,field_conditions,src/hooks/useFormTemplates.ts,407,delete,.delete()
+P2_REVIEW,field_conditions,src/hooks/useFormTemplates.ts,936,insert,const { error: cErr } = await supabase.from('field_conditions').insert(conditions as any);
+P2_REVIEW,license_appeal_events,src/hooks/useLicenseAppeals.ts,371,insert,await supabase.from('license_appeal_events').insert({
+P2_REVIEW,license_appeal_panels,src/hooks/useLicenseAppeals.ts,561,update,.update(row as never)
+P2_REVIEW,license_appeal_panels,src/hooks/useLicenseAppeals.ts,568,insert,.insert(row as never)
+P2_REVIEW,license_appeal_panel_members,src/hooks/useLicenseAppeals.ts,603,update,.update(row as never)
+P2_REVIEW,license_appeal_panel_members,src/hooks/useLicenseAppeals.ts,609,insert,.insert(row as never);
+P2_REVIEW,license_appeal_panel_members,src/hooks/useLicenseAppeals.ts,621,update,".update({ is_active: false, is_chair: false, effective_to: new Date().toISOString().slice(0, 10) } as never)"
+P2_REVIEW,conduct_evidence,src/hooks/useMarketConduct.ts,173,insert,".insert({ ...payload, uploaded_by: user.user?.id ?? null })"
+P2_REVIEW,conduct_evidence,src/hooks/useMarketConduct.ts,189,update,"const { data, error } = await sb.from('conduct_evidence').update({ restricted }).eq('id', id).select('*').single();"
+P2_REVIEW,services,src/hooks/useMasterConfig.ts,145,update,"const { error } = await supabase.from('services' as any).update({ sector_id: row.sector_id, sub_sector_id: row.sub_sector_id, name: row.name, status: row.status"
+P2_REVIEW,services,src/hooks/useMasterConfig.ts,148,insert,"const { error } = await supabase.from('services' as any).insert({ sector_id: row.sector_id, sub_sector_id: row.sub_sector_id, name: row.name, status: row.status"
+P2_REVIEW,services,src/hooks/useMasterConfig.ts,157,delete,"const { error } = await supabase.from('services' as any).delete().eq('id', id);"
+P2_REVIEW,master_data_items,src/hooks/useMasterData.ts,171,update,"const { error } = await supabase.from('master_data_items' as any).update(payload).eq('id', row.id);"
+P2_REVIEW,master_data_items,src/hooks/useMasterData.ts,174,insert,const { error } = await supabase.from('master_data_items' as any).insert(payload);
+P2_REVIEW,master_data_items,src/hooks/useMasterData.ts,183,delete,"const { error } = await supabase.from('master_data_items' as any).delete().eq('id', id);"
+P2_REVIEW,payment_system_operators,src/hooks/usePaymentSystems.ts,242,update,".from('payment_system_operators').update(payload).eq('id', id).select().single();"
+P2_REVIEW,payment_system_operators,src/hooks/usePaymentSystems.ts,249,insert,".insert({ ...payload, created_by: auth?.user?.id ?? null })"
+P2_REVIEW,payment_retail_volumes,src/hooks/usePaymentSystems.ts,537,upsert,const { error } = await sb.from('payment_retail_volumes').upsert(
+P2_REVIEW,permission_modules,src/hooks/usePermissionCatalog.ts,72,update,const { error } = await (supabase.from('permission_modules' as any).update({
+P2_REVIEW,permission_modules,src/hooks/usePermissionCatalog.ts,78,insert,const { error } = await (supabase.from('permission_modules' as any).insert({
+P2_REVIEW,permission_modules,src/hooks/usePermissionCatalog.ts,94,delete,"const { error } = await (supabase.from('permission_modules' as any).delete().eq('id', id) as any);"
+P2_REVIEW,permission_actions,src/hooks/usePermissionCatalog.ts,107,update,const { error } = await (supabase.from('permission_actions' as any).update({
+P2_REVIEW,permission_actions,src/hooks/usePermissionCatalog.ts,113,insert,"const { data: action, error } = await (supabase.from('permission_actions' as any).insert({"
+P2_REVIEW,permission_actions,src/hooks/usePermissionCatalog.ts,135,delete,"const { error } = await (supabase.from('permission_actions' as any).delete().eq('id', id) as any);"
+P2_REVIEW,ai_insights,src/hooks/usePrudentialAiAnalysis.ts,102,update,".update({ feedback: value, feedback_by: user?.id ?? null, feedback_at: new Date().toISOString() })"
+P2_REVIEW,regulators,src/hooks/useRegulators.ts,22,update,const { error } = await (supabase.from('regulators' as any).update({
+P2_REVIEW,regulators,src/hooks/useRegulators.ts,27,insert,const { error } = await (supabase.from('regulators' as any).insert({
+P2_REVIEW,regulators,src/hooks/useRegulators.ts,38,delete,"const { error } = await (supabase.from('regulators' as any).delete().eq('id', id) as any);"
+P2_REVIEW,return_form_data,src/hooks/useReturnsManagement.ts,306,upsert,const { error } = await (supabase as any).from('return_form_data').upsert({
+P2_REVIEW,return_audit_log,src/hooks/useReturnsManagement.ts,408,insert,const { error } = await (supabase as any).from('return_audit_log').insert(payload);
+P2_REVIEW,late_fee_structures,src/hooks/useReturnsManagement.ts,564,insert,"const { data, error } = await (supabase as any).from('late_fee_structures').insert(payload).select().single();"
+P2_REVIEW,late_fee_structures,src/hooks/useReturnsManagement.ts,573,update,"const { error } = await (supabase as any).from('late_fee_structures').update(payload).eq('id', id);"
+P2_REVIEW,late_fee_structures,src/hooks/useReturnsManagement.ts,581,delete,"const { error } = await (supabase as any).from('late_fee_structures').delete().eq('id', id);"
+P2_REVIEW,late_fee_penalty_tiers,src/hooks/useReturnsManagement.ts,608,insert,const { error } = await (supabase as any).from('late_fee_penalty_tiers').insert(payload);
+P2_REVIEW,late_fee_penalty_tiers,src/hooks/useReturnsManagement.ts,616,update,"const { error } = await (supabase as any).from('late_fee_penalty_tiers').update(payload).eq('id', id);"
+P2_REVIEW,late_fee_penalty_tiers,src/hooks/useReturnsManagement.ts,624,delete,"const { error } = await (supabase as any).from('late_fee_penalty_tiers').delete().eq('id', id);"
+P2_REVIEW,return_notification_templates,src/hooks/useReturnsManagement.ts,650,insert,const { error } = await (supabase as any).from('return_notification_templates').insert(payload);
+P2_REVIEW,return_notification_templates,src/hooks/useReturnsManagement.ts,658,update,"const { error } = await (supabase as any).from('return_notification_templates').update(payload).eq('id', id);"
+P2_REVIEW,return_notification_templates,src/hooks/useReturnsManagement.ts,666,delete,"const { error } = await (supabase as any).from('return_notification_templates').delete().eq('id', id);"
+P2_REVIEW,approval_steps,src/hooks/useStepActions.ts,82,update,.update({ allowed_actions: allowed as any })
+P2_REVIEW,approval_action_notifications,src/hooks/useStepActions.ts,116,insert,.insert({
+P2_REVIEW,conduct_supervision_annotations,src/hooks/useSupervisionLoop.ts,125,insert,const { error } = await sb.from('conduct_supervision_annotations').insert({
+P2_REVIEW,conduct_supervision_annotations,src/hooks/useSupervisionLoop.ts,138,delete,"const { error } = await sb.from('conduct_supervision_annotations').delete().eq('id', id);"
+P2_REVIEW,thematic_review_letters,src/hooks/useThematicClosure.ts,226,update,.update({
+P2_REVIEW,approval_workflows,src/hooks/useWorkflowEngine.ts,343,insert,.insert({
+P2_REVIEW,approval_workflows,src/hooks/useWorkflowEngine.ts,456,update,"const { error } = await supabase.from('approval_workflows').update(updates as any).eq('id', id);"
+P2_REVIEW,approval_workflows,src/hooks/useWorkflowEngine.ts,478,delete,"const { error } = await supabase.from('approval_workflows').delete().eq('id', id);"
+P2_REVIEW,approval_steps,src/hooks/useWorkflowEngine.ts,505,insert,.insert({
+P2_REVIEW,approval_steps,src/hooks/useWorkflowEngine.ts,537,update,"const { error } = await supabase.from('approval_steps').update(updates as any).eq('id', id);"
+P2_REVIEW,approval_steps,src/hooks/useWorkflowEngine.ts,558,delete,"const { error } = await supabase.from('approval_steps').delete().eq('id', id);"
+P2_REVIEW,workflow_instances,src/hooks/useWorkflowEngine.ts,628,insert,.insert({
+P2_REVIEW,audit_export_jobs,src/lib/exportAudit.ts,60,insert,await (supabase.from('audit_export_jobs') as any).insert({
+P2_REVIEW,return_audit_log,src/lib/returnActivityLogger.ts,63,insert,const { error } = await (supabase as any).from('return_audit_log').insert(payload);
+P2_REVIEW,approval_steps,src/lib/workflowTemplateSnapshot.ts,256,insert,.insert(stepPayload as any)
+P2_REVIEW,approval_step_entry_notifications,src/lib/workflowTemplateSnapshot.ts,320,insert,const { error } = await supabase.from('approval_step_entry_notifications' as any).insert(entryRows as any);
+P2_REVIEW,approval_action_notifications,src/lib/workflowTemplateSnapshot.ts,324,insert,const { error } = await supabase.from('approval_action_notifications' as any).insert(actionNotifRows as any);
+P2_REVIEW,profiles,src/pages/ChangePassword.tsx,47,update,.update({ force_password_change: false } as any)
+P2_REVIEW,payment_receipts,src/pages/NewApplication.tsx,1587,insert,.insert({
+P2_REVIEW,avatars,src/pages/Profile.tsx,113,update,.update({ avatar_url: url })
+P2_REVIEW,decision_options,src/pages/admin/DecisionOptions.tsx,64,update,"await supabase.from('decision_options' as any).update(payload).eq('id', (opt as any).id);"
+P2_REVIEW,decision_options,src/pages/admin/DecisionOptions.tsx,67,insert,"const { data, error } = await supabase.from('decision_options' as any).insert(payload).select().single();"
+P2_REVIEW,decision_options,src/pages/admin/DecisionOptions.tsx,76,delete,"await supabase.from('decision_options' as any).delete().eq('id', o.id);"
+P2_REVIEW,decision_rationale_templates,src/pages/admin/DecisionOptions.tsx,83,update,"await supabase.from('decision_rationale_templates' as any).update(tpl).eq('id', (tpl as any).id);"
+P2_REVIEW,decision_rationale_templates,src/pages/admin/DecisionOptions.tsx,86,insert,"const { data, error } = await supabase.from('decision_rationale_templates' as any).insert(tpl).select().single();"
+P2_REVIEW,return_templates,src/pages/admin/FormBuilder.tsx,531,insert,const { error: rtErr } = await supabase.from('return_templates' as any).insert({
+P2_REVIEW,fp_committees,src/pages/admin/FpCommittees.tsx,68,insert,const { error } = await supabase.from('fp_committees').insert({
+P2_REVIEW,fp_committees,src/pages/admin/FpCommittees.tsx,84,update,"const { error } = await supabase.from('fp_committees').update({ is_active: active }).eq('id', id);"
+P2_REVIEW,fp_committee_members,src/pages/admin/FpCommittees.tsx,93,insert,const { error } = await supabase.from('fp_committee_members').insert({
+P2_REVIEW,fp_committee_members,src/pages/admin/FpCommittees.tsx,108,delete,"const { error } = await supabase.from('fp_committee_members').delete().eq('id', id);"
+P2_REVIEW,fp_committee_members,src/pages/admin/FpCommittees.tsx,116,update,"const { error } = await supabase.from('fp_committee_members').update({ vote_weight: weight }).eq('id', id);"
+P2_REVIEW,fp_committees,src/pages/admin/FpCommittees.tsx,127,update,.update({ casting_vote_member_id: memberId })
+P2_REVIEW,regulators,src/pages/admin/RegulatorManagement.tsx,127,insert,"const { data, error } = await (supabase.from('regulators' as any).insert({"
+P2_REVIEW,business_calendar_profiles,src/pages/admin/SlaManager.tsx,484,update,const { error } = await supabase.from('business_calendar_profiles').update({
+P2_REVIEW,business_calendar_profiles,src/pages/admin/SlaManager.tsx,502,insert,".insert({ name: newProfileName.trim(), created_by: user?.id ?? null }).select().single();"
+P2_REVIEW,business_calendar_holidays,src/pages/admin/SlaManager.tsx,522,insert,".insert({ profile_id: active.id, holiday_date: newHolidayDate, name: newHolidayName.trim(), created_by: user?.id ?? null });"
+P2_REVIEW,business_calendar_holidays,src/pages/admin/SlaManager.tsx,530,delete,"await supabase.from('business_calendar_holidays').delete().eq('id', id);"
+P2_REVIEW,business_calendar_holidays,src/pages/admin/SlaManager.tsx,563,upsert,"const { error } = await supabase.from('business_calendar_holidays').upsert(valid, { onConflict: 'profile_id,holiday_date' });"
+P2_REVIEW,business_calendar_process_assignments,src/pages/admin/SlaManager.tsx,593,upsert,.upsert(
+P2_REVIEW,business_calendar_process_assignments,src/pages/admin/SlaManager.tsx,601,delete,.delete()
+P2_REVIEW,sla_escalation_tiers,src/pages/admin/SlaManager.tsx,806,upsert,".upsert(inserts, { onConflict: 'process_type,tier', ignoreDuplicates: true });"
+P2_REVIEW,sla_escalation_tiers,src/pages/admin/SlaManager.tsx,844,update,const { error } = await supabase.from('sla_escalation_tiers').update({
+P2_REVIEW,sufficiency_rule_sets,src/pages/admin/SufficiencyRuleSets.tsx,66,update,"await supabase.from('sufficiency_rule_sets' as any).update(editing).eq('id', (editing as any).id);"
+P2_REVIEW,sufficiency_rule_sets,src/pages/admin/SufficiencyRuleSets.tsx,69,insert,"const { data, error } = await supabase.from('sufficiency_rule_sets' as any).insert(editing).select().single();"
+P2_REVIEW,sufficiency_rule_sets,src/pages/admin/SufficiencyRuleSets.tsx,81,delete,"await supabase.from('sufficiency_rule_sets' as any).delete().eq('id', s.id);"
+P2_REVIEW,sufficiency_rule_set_items,src/pages/admin/SufficiencyRuleSets.tsx,89,insert,"await supabase.from('sufficiency_rule_set_items' as any).insert({ rule_set_id: manageId, rule_id, ordinal: items.length + 1 });"
+P2_REVIEW,sufficiency_rule_set_items,src/pages/admin/SufficiencyRuleSets.tsx,93,delete,"await supabase.from('sufficiency_rule_set_items' as any).delete().eq('id', id);"
+P2_REVIEW,supervisory_plan_templates,src/pages/admin/SupervisoryPlanTemplates.tsx,72,update,"? await supabase.from('supervisory_plan_templates' as any).update(payload).eq('id', t.id)"
+P2_REVIEW,supervisory_plan_templates,src/pages/admin/SupervisoryPlanTemplates.tsx,73,insert,: await supabase.from('supervisory_plan_templates' as any).insert(payload);
+P2_REVIEW,supervisory_plan_templates,src/pages/admin/SupervisoryPlanTemplates.tsx,82,delete,"const { error } = await supabase.from('supervisory_plan_templates' as any).delete().eq('id', id);"
+P2_REVIEW,supervisory_plan_template_actions,src/pages/admin/SupervisoryPlanTemplates.tsx,98,update,"? await supabase.from('supervisory_plan_template_actions' as any).update(payload).eq('id', a.id)"
+P2_REVIEW,supervisory_plan_template_actions,src/pages/admin/SupervisoryPlanTemplates.tsx,99,insert,: await supabase.from('supervisory_plan_template_actions' as any).insert(payload);
+P2_REVIEW,supervisory_plan_template_actions,src/pages/admin/SupervisoryPlanTemplates.tsx,107,delete,"const { error } = await supabase.from('supervisory_plan_template_actions' as any).delete().eq('id', id);"
+P2_REVIEW,profiles,src/pages/admin/UserManagement.tsx,203,update,"const { error } = await supabase.from('profiles').update({ status: next }).eq('id', u.id);"
+P2_REVIEW,profiles,src/pages/admin/UserManagement.tsx,301,update,.update({
+P2_REVIEW,profiles,src/pages/admin/UserManagement.tsx,367,update,"await supabase.from('profiles').update({ avatar_url: url } as any).eq('id', newUserId);"
+P2_REVIEW,conduct_products,src/pages/admin/conduct/ProductsChannels.tsx,79,update,"? await supabase.from('conduct_products').update(payload).eq('id', editing.id).select('id').maybeSingle()"
+P2_REVIEW,conduct_products,src/pages/admin/conduct/ProductsChannels.tsx,80,insert,: await supabase.from('conduct_products').insert(payload).select('id').maybeSingle();
+P2_REVIEW,conduct_channels,src/pages/admin/conduct/ProductsChannels.tsx,170,update,"? await supabase.from('conduct_channels').update(payload).eq('id', editing.id).select('id').maybeSingle()"
+P2_REVIEW,conduct_channels,src/pages/admin/conduct/ProductsChannels.tsx,171,insert,: await supabase.from('conduct_channels').insert(payload).select('id').maybeSingle();
+P2_REVIEW,conduct_risk_categories,src/pages/admin/conduct/RiskTaxonomy.tsx,66,update,"? await supabase.from('conduct_risk_categories').update(payload).eq('id', editing.id).select('id').maybeSingle()"
+P2_REVIEW,conduct_risk_categories,src/pages/admin/conduct/RiskTaxonomy.tsx,67,insert,: await supabase.from('conduct_risk_categories').insert(payload).select('id').maybeSingle();
+P2_REVIEW,return_due_dates,src/pages/admin/returns/DueDatesPage.tsx,89,upsert,"const { error } = await (supabase as any).from('return_due_dates').upsert(inserts, { onConflict: 'entity_id,return_configuration_id,return_year,return_period', "
+P2_REVIEW,coordination_messages,src/pages/coordination/CoordinationDetail.tsx,168,insert,"const { data, error } = await supabase.from('coordination_messages').insert({"
+P2_REVIEW,coordination_participants,src/pages/coordination/CoordinationDetail.tsx,193,update,.update({
+P2_REVIEW,coordination_cases,src/pages/coordination/CoordinationDetail.tsx,232,update,.update({
+P2_REVIEW,coordination_participants,src/pages/coordination/CoordinationDetail.tsx,454,insert,"const { data, error } = await supabase.from('coordination_participants').insert({"
+P2_REVIEW,coordination_flags,src/pages/coordination/CoordinationDetail.tsx,582,insert,"const { data, error } = await supabase.from('coordination_flags').insert({"
+P2_REVIEW,coordination_flags,src/pages/coordination/CoordinationDetail.tsx,610,update,".update({ status: 'resolved', resolved_at: new Date().toISOString(), resolved_by: currentUserId! })"
+P2_REVIEW,coordination_cases,src/pages/coordination/CoordinationList.tsx,85,insert,.insert({
+P2_REVIEW,return_requests,src/pages/entity/returns/FillReturnPage.tsx,527,update,".update({ status: 'resolved', resolved_at: now.toISOString() })"
+P2_REVIEW,fp_committees,src/pages/fpa/FpaCommittee.tsx,495,insert,"const { data: inserted, error } = await (supabase as any).from('fp_committees').insert({"
+P2_REVIEW,fp_committees,src/pages/fpa/FpaCommittee.tsx,535,update,.update({
+P2_REVIEW,fp_committee_members,src/pages/fpa/FpaCommittee.tsx,573,insert,"const { data: inserted, error } = await supabase.from('fp_committee_members').insert({"
+P2_REVIEW,fp_committee_votes,src/pages/fpa/FpaCommittee.tsx,613,insert,"const { data: inserted, error } = await (supabase as any).from('fp_committee_votes').insert({"
+P2_REVIEW,fp_monitoring_events,src/pages/fpa/FpaConditions.tsx,425,insert,const { error: evErr } = await (supabase as any).from('fp_monitoring_events').insert({
+P2_REVIEW,declaration_invitations,src/pages/fpa/FpaDeclarations.tsx,353,insert,const { error: insertErr } = await supabase.from('declaration_invitations' as any).insert({
+P2_REVIEW,declaration_invitations,src/pages/fpa/FpaDeclarations.tsx,368,update,.update({ status: 'EXPIRED' })
+P2_REVIEW,declaration_invitations,src/pages/fpa/FpaDeclarations.tsx,462,insert,.insert({
+P2_REVIEW,fp_individuals,src/pages/fpa/FpaIndividualProfile.tsx,162,update,.update({
+P2_REVIEW,fp_individual_roles,src/pages/fpa/FpaIndividualProfile.tsx,395,update,"const { error } = await supabase.from('fp_individual_roles').update(patch).eq('id', roleId);"
+P2_REVIEW,fp_individual_roles,src/pages/fpa/FpaIndividualProfile.tsx,449,insert,"const { data, error } = await supabase.from('fp_individual_roles').insert(payload).select('id').single();"
+P2_REVIEW,fp_individuals,src/pages/fpa/FpaIndividuals.tsx,325,insert,"const { data, error } = await supabase.from('fp_individuals').insert(payload as any).select('id').single();"
+P2_REVIEW,declaration_invitations,src/pages/fpa/FpaInvitationTracker.tsx,146,insert,.insert({
+P2_REVIEW,declaration_invitations,src/pages/fpa/FpaInvitationTracker.tsx,200,insert,const { error: insertErr } = await supabase.from('declaration_invitations').insert({
+P2_REVIEW,declaration_invitations,src/pages/fpa/FpaInvitationTracker.tsx,213,update,"await supabase.from('declaration_invitations').update({ status: 'EXPIRED' }).eq('id', row.id);"
+P2_REVIEW,fp_monitoring_events,src/pages/fpa/FpaMonitoring.tsx,484,insert,.insert({
+P2_REVIEW,fp_monitoring_events,src/pages/fpa/FpaMonitoring.tsx,520,update,.update({
+P2_REVIEW,fp_screening_runs,src/pages/fpa/FpaScreening.tsx,296,update,".update({ status: 'failed', completed_at: new Date().toISOString() })"
+P2_REVIEW,fp_training_attestations,src/pages/fpa/FpaTraining.tsx,101,insert,".insert({ user_id: user.id, policy_version: CURRENT_FP_POLICY_VERSION })"
+P2_REVIEW,inspections,src/pages/inspections/InspectionDetail.tsx,125,update,"const { error } = await supabase.from('inspections').update(patch).eq('id', id!);"
+P2_REVIEW,refunds,src/pages/payments/PaymentHistory.tsx,257,update,"const { error } = await supabase.from('refunds' as any).update(update).eq('id', refund.id);"
+P2_REVIEW,report_sources,src/pages/reports/services/reportMetadataService.ts,428,upsert,"return sb.from('report_sources').upsert(row, { onConflict: 'source_key' });"
+P2_REVIEW,report_sources,src/pages/reports/services/reportMetadataService.ts,432,update,"return sb.from('report_sources').update({ is_active: active, updated_at: new Date().toISOString() }).eq('source_key', sourceKey);"
+P2_REVIEW,report_definitions,src/pages/reports/services/reportMetadataService.ts,436,update,"return sb.from('report_definitions').update({ is_active: active, updated_at: new Date().toISOString() }).eq('slug', slug);"
+P2_REVIEW,report_dashboard_widgets,src/pages/reports/services/reportMetadataService.ts,440,update,"return sb.from('report_dashboard_widgets').update({ is_active: active, updated_at: new Date().toISOString() }).eq('id', id);"
+P2_REVIEW,reports,src/pages/reports/services/reportService.ts,214,delete,"const { error } = await supabase.from('reports').delete().eq('id', id);"
+P2_REVIEW,report_logs,src/pages/reports/services/reportService.ts,265,insert,let res = await (supabase.from('report_logs') as any).insert(full);
+P2_REVIEW,report_logs,src/pages/reports/services/reportService.ts,269,insert,"res = await (supabase.from('report_logs') as any).insert({ ...base, report_id: reportId });"
+P2_REVIEW,report_logs,src/pages/reports/services/reportService.ts,273,insert,"res = await (supabase.from('report_logs') as any).insert({ ...base, report_run_id: reportId });"
+P2_REVIEW,report_schedules,src/pages/reports/services/reportService.ts,344,insert,const { error } = await supabase.from('report_schedules').insert({
+P2_REVIEW,report_schedules,src/pages/reports/services/reportService.ts,371,update,"const { error } = await supabase.from('report_schedules').update(update).eq('id', id);"
+P2_REVIEW,report_schedules,src/pages/reports/services/reportService.ts,377,delete,"const { error } = await supabase.from('report_schedules').delete().eq('id', id);"
+P2_REVIEW,report_logs,src/pages/reports/services/reportService.ts,383,insert,await supabase.from('report_logs').insert({
+P2_REVIEW,report_favorites,src/pages/reports/services/reportService.ts,434,delete,"await supabase.from('report_favorites' as any).delete().eq('id', (existing.data as any).id);"
+P2_REVIEW,report_favorites,src/pages/reports/services/reportService.ts,437,insert,"await supabase.from('report_favorites' as any).insert({ user_id: user.id, report_slug: slug });"
+P2_REVIEW,report_favorites,src/pages/reports/services/reportService.ts,441,delete,if (set.has(slug)) { set.delete(slug); saveLsFavs(set); return false; }
+P2_REVIEW,report_templates,src/pages/reports/services/reportService.ts,497,update,"const { error } = await supabase.from('report_templates' as any).update(payload).eq('id', t.id);"
+P2_REVIEW,report_templates,src/pages/reports/services/reportService.ts,500,insert,const { error } = await supabase.from('report_templates' as any).insert(payload as any);
+P2_REVIEW,report_templates,src/pages/reports/services/reportService.ts,507,delete,"const { error } = await supabase.from('report_templates' as any).delete().eq('id', id);"
+P2_REVIEW,return_requests,src/pages/returns-mgmt/ReturnDetail.tsx,535,insert,const { error: rErr } = await (supabase as any).from('return_requests').insert({
+P2_REVIEW,return_threshold_breaches,src/pages/supervision/BreachInbox.tsx,157,update,const { error } = await supabase.from('return_threshold_breaches').update({
+P2_REVIEW,return_threshold_breaches,src/pages/supervision/BreachInbox.tsx,199,update,const { error: upErr } = await supabase.from('return_threshold_breaches').update({
+P2_REVIEW,thematic_reviews,src/pages/supervision/NewThematicReview.tsx,74,insert,"const { data: tr, error } = await supabase.from('thematic_reviews' as any).insert({"
+P2_REVIEW,thematic_review_entities,src/pages/supervision/NewThematicReview.tsx,90,insert,await supabase.from('thematic_review_entities' as any).insert(
+P2_REVIEW,thematic_review_products,src/pages/supervision/NewThematicReview.tsx,99,insert,await supabase.from('thematic_review_products' as any).insert(
+P2_REVIEW,supervisory_plans,src/pages/supervision/SupervisoryPlansDashboard.tsx,224,update,const { error } = await supabase.from('supervisory_plans').update({
+P2_REVIEW,supervisory_plans,src/pages/supervision/SupervisoryPlansDashboard.tsx,243,update,const { error } = await supabase.from('supervisory_plans').update({
+P2_REVIEW,thematic_reviews,src/pages/supervision/ThematicReviewDetail.tsx,90,update,".update({ status: targetStatus, ...(targetStatus === 'closed' ? { closed_at: new Date().toISOString() } : {}) })"
+P2_REVIEW,thematic_review_status_history,src/pages/supervision/ThematicReviewDetail.tsx,97,update,".update({ reason, override_id: override_id || null })"
+P2_REVIEW,thematic_review_entities,src/pages/supervision/ThematicReviewDetail.tsx,288,insert,".insert({ review_id: reviewId, licensee_id: lic.id });"
+P2_REVIEW,thematic_review_entities,src/pages/supervision/ThematicReviewDetail.tsx,295,delete,"await supabase.from('thematic_review_entities' as any).delete().eq('id', id);"
+P2_REVIEW,thematic_review_products,src/pages/supervision/ThematicReviewDetail.tsx,302,insert,".insert({ review_id: reviewId, product_id: addingProd });"
+P2_REVIEW,thematic_review_products,src/pages/supervision/ThematicReviewDetail.tsx,308,delete,"await supabase.from('thematic_review_products' as any).delete().eq('id', id);"
+P2_REVIEW,thematic_review_evidence,src/pages/supervision/ThematicReviewDetail.tsx,368,insert,const { error } = await supabase.from('thematic_review_evidence' as any).insert({
+P2_REVIEW,thematic_review_findings,src/pages/supervision/ThematicReviewDetail.tsx,442,insert,"const { data, error } = await supabase.from('thematic_review_findings' as any).insert({"
+P2_REVIEW,thematic_review_findings,src/pages/supervision/ThematicReviewDetail.tsx,463,update,".update({ status: 'issued', issued_at: new Date().toISOString(), issued_by: user.user?.id })"
+P2_REVIEW,thematic_review_actions,src/pages/supervision/ThematicReviewDetail.tsx,537,insert,"const { data, error } = await supabase.from('thematic_review_actions' as any).insert({"
+P2_REVIEW,thematic_review_actions,src/pages/supervision/ThematicReviewDetail.tsx,559,update,".update({ status: 'completed', completed_at: new Date().toISOString(), evidence_of_completion: evidence || null })"
+P2_REVIEW,thematic_review_actions,src/pages/supervision/ThematicReviewDetail.tsx,646,update,".update({ status: 'waived', waiver_override_id: overrideId }).eq('id', waiveTarget.id);"
+P2_REVIEW,workflow_templates,src/pages/workflows/WorkflowList.tsx,756,insert,const { error } = await supabase.from('workflow_templates' as any).insert(payload as any);
+P2_REVIEW,workflow_templates,src/pages/workflows/WorkflowList.tsx,779,delete,"const { error } = await supabase.from('workflow_templates' as any).delete().eq('id', t.id);"
+UNRESOLVED_DYNAMIC,,src/components/data-grid/gridState.ts,107,delete,if (v === null || v === '') next.delete(prefix + k);
+UNRESOLVED_DYNAMIC,,src/components/entity-detail/ProductsChannelsTab.tsx,64,insert,const { error } = await supabase.from(table as any).insert(payload);
+UNRESOLVED_DYNAMIC,,src/components/entity-detail/ProductsChannelsTab.tsx,74,delete,"const { error } = await supabase.from(table as any).delete().eq('id', id);"
+UNRESOLVED_DYNAMIC,,src/components/form-builder/SectionManager.tsx,59,delete,next.has(id) ? next.delete(id) : next.add(id);
+UNRESOLVED_DYNAMIC,,src/components/rbac/RoleMigrationRunnerDialog.tsx,69,delete,if (next.has(id)) next.delete(id); else next.add(id);
+UNRESOLVED_DYNAMIC,,src/components/shared/CaptchaWidget.tsx,38,delete,scriptPromises.delete(src);
+UNRESOLVED_DYNAMIC,,src/components/workflows/ApproverConfigEditor.tsx,100,delete,if (checked) next.add(userId); else next.delete(userId);
+UNRESOLVED_DYNAMIC,,src/components/workflows/ApproverConfigEditor.tsx,114,delete,if (checked) next.add(roleId); else next.delete(roleId);
+UNRESOLVED_DYNAMIC,,src/hooks/use-toast.ts,61,delete,toastTimeouts.delete(toastId);
+UNRESOLVED_DYNAMIC,,src/hooks/useActionNotifications.ts,180,update,"? supabase.from(TABLE as any).update(payload as any).eq('id', row.id)"
+UNRESOLVED_DYNAMIC,,src/hooks/useActionNotifications.ts,181,insert,: supabase.from(TABLE as any).insert(payload as any);
+UNRESOLVED_DYNAMIC,,src/hooks/useActionNotifications.ts,197,delete,"const { error } = await supabase.from(TABLE as any).delete().eq('id', id);"
+UNRESOLVED_DYNAMIC,,src/hooks/useApiQueries.ts,105,insert,return mutate(() => (supabase.from(table as any).insert(record as any).select().single() as any));
+UNRESOLVED_DYNAMIC,,src/hooks/useApiQueries.ts,116,update,"return mutate(() => (supabase.from(table as any).update(updates as any).eq('id', id).select().single() as any));"
+UNRESOLVED_DYNAMIC,,src/hooks/useApiQueries.ts,127,delete,"return mutate(() => (supabase.from(table as any).delete().eq('id', id) as any));"
+UNRESOLVED_DYNAMIC,,src/hooks/useExaminations.ts,217,update,"? await sb.from(table).update(values).eq('id', id).select().single()"
+UNRESOLVED_DYNAMIC,,src/hooks/useExaminations.ts,218,insert,: await sb.from(table).insert(payload).select().single();
+UNRESOLVED_DYNAMIC,,src/hooks/useExaminations.ts,227,delete,"const { error } = await sb.from(table).delete().eq('id', id);"
+UNRESOLVED_DYNAMIC,,src/hooks/useFormTemplates.ts,963,delete,"const { error: cErr } = await supabase.from(table as any).delete().eq(col, id);"
+UNRESOLVED_DYNAMIC,,src/hooks/useStepActions.ts,173,update,"? supabase.from(TABLE as any).update(payload as any).eq('id', row.id)"
+UNRESOLVED_DYNAMIC,,src/hooks/useStepActions.ts,174,insert,: supabase.from(TABLE as any).insert(payload as any);
+UNRESOLVED_DYNAMIC,,src/hooks/useStepActions.ts,201,delete,"const { error } = await supabase.from(TABLE as any).delete().eq('id', id);"
+UNRESOLVED_DYNAMIC,,src/hooks/useStepEntryNotifications.ts,86,update,"? supabase.from(TABLE as any).update(payload as any).eq('id', row.id)"
+UNRESOLVED_DYNAMIC,,src/hooks/useStepEntryNotifications.ts,87,insert,: supabase.from(TABLE as any).insert(payload as any);
+UNRESOLVED_DYNAMIC,,src/hooks/useStepEntryNotifications.ts,103,delete,"const { error } = await supabase.from(TABLE as any).delete().eq('id', id);"
+UNRESOLVED_DYNAMIC,,src/lib/formDiff.ts,280,delete,origAvailable.delete(oi);
+UNRESOLVED_DYNAMIC,,src/lib/formDiff.ts,291,delete,origAvailable.delete(ci);
+UNRESOLVED_DYNAMIC,,src/lib/returnsRatios.ts,100,delete,stack.delete(r.ratio_key);
+UNRESOLVED_DYNAMIC,,src/pages/Profile.tsx,130,update,.update({
+UNRESOLVED_DYNAMIC,,src/pages/Profile.tsx,197,update,.update({ two_factor_enabled: checked } as any)
+UNRESOLVED_DYNAMIC,,src/pages/admin/FormManagement.tsx,162,delete,if (next.has(id)) next.delete(id); else next.add(id);
+UNRESOLVED_DYNAMIC,,src/pages/applications/ApplicationQueue.tsx,432,delete,next.has(id) ? next.delete(id) : next.add(id);
+UNRESOLVED_DYNAMIC,,src/pages/applications/ApplicationsList.tsx,758,delete,if (next.has(key)) next.delete(key); else next.add(key);
+UNRESOLVED_DYNAMIC,,src/pages/complaints/ComplaintsList.tsx,124,delete,if (v === null || v === '' || v === 'all') next.delete(k);
+UNRESOLVED_DYNAMIC,,src/pages/complaints/ComplaintsList.tsx,127,delete,if (opts?.resetPage) next.delete('page');
+UNRESOLVED_DYNAMIC,,src/pages/complaints/ComplaintsList.tsx,519,delete,s.has(id) ? s.delete(id) : s.add(id);
+UNRESOLVED_DYNAMIC,,src/pages/complaints/rfi-approvals/RfiApprovalQueue.tsx,65,delete,params.delete('rfi');
+UNRESOLVED_DYNAMIC,,src/pages/conduct/SupervisionLoop.tsx,70,delete,"if (id) next.set('entity', id); else next.delete('entity');"
+UNRESOLVED_DYNAMIC,,src/pages/entity/returns/FillReturnPage.tsx,293,delete,if (done) next.add(formId); else next.delete(formId);
+UNRESOLVED_DYNAMIC,,src/pages/fpa/FpaConditions.tsx,216,delete,next.delete('open');
+UNRESOLVED_DYNAMIC,,src/pages/fpa/FpaConditions.tsx,217,delete,next.delete('individual_id');
+UNRESOLVED_DYNAMIC,,src/pages/fpa/FpaConditions.tsx,218,delete,next.delete('determination_id');
+UNRESOLVED_DYNAMIC,,src/pages/fpa/FpaManualTaskDetail.tsx,306,delete,next.delete(path);
+UNRESOLVED_DYNAMIC,,src/pages/fpa/FpaManualTaskDetail.tsx,320,delete,next.delete(path);
+UNRESOLVED_DYNAMIC,,src/pages/fpa/FpaProcessList.tsx,76,delete,if (v === null || v === '' || v === 'all') next.delete(k);
+UNRESOLVED_DYNAMIC,,src/pages/fpa/FpaProcessList.tsx,79,delete,if (opts?.resetPage) next.delete('page');
+UNRESOLVED_DYNAMIC,,src/pages/fpa/FpaSectorRules.tsx,583,delete,if (next.has(id)) next.delete(id); else next.add(id);
+UNRESOLVED_DYNAMIC,,src/pages/licenses/LicenseDetail.tsx,569,delete,next.delete('action');
+UNRESOLVED_DYNAMIC,,src/pages/prudential/ExaminationWorkspace.tsx,108,delete,p.delete('from');
+UNRESOLVED_DYNAMIC,,src/pages/prudential/ExaminationWorkspace.tsx,116,delete,p.delete('from');
+UNRESOLVED_DYNAMIC,,src/pages/prudential/ExaminationWorkspace.tsx,126,delete,"if (detour) p.set('from', 'current'); else p.delete('from');"
+UNRESOLVED_DYNAMIC,,src/pages/prudential/ExaminationWorkspace.tsx,182,delete,"if (showAll) p.delete('all'); else p.set('all', '1');"
+UNRESOLVED_DYNAMIC,,src/pages/prudential/PrudentialEntitiesList.tsx,108,delete,"if (value && value !== 'all') p.set(key, value); else p.delete(key);"
+UNRESOLVED_DYNAMIC,,src/pages/prudential/PrudentialEntityProfile.tsx,484,delete,next.has(k) ? next.delete(k) : next.add(k);
+UNRESOLVED_DYNAMIC,,src/pages/reports/components/ReportLibrary.tsx,62,delete,on ? next.add(id) : next.delete(id);
+UNRESOLVED_DYNAMIC,,src/pages/reports/services/reportService.ts,426,delete,if (set.has(slug)) { set.delete(slug); saveLsFavs(set); return false; }
+UNRESOLVED_DYNAMIC,,src/pages/returns-mgmt/ViewReturns.tsx,89,delete,if (statusFilter === 'all') next.delete('status');
+UNRESOLVED_DYNAMIC,,src/pages/supervision/NewThematicReview.tsx,167,delete,if (v) s.add(p.id); else s.delete(p.id);
+UNRESOLVED_DYNAMIC,,src/pages/supervision/SupervisoryPlansDashboard.tsx,155,delete,if (on) n.add(id); else n.delete(id);
+UNRESOLVED_DYNAMIC,,src/test/notificationPreferences.test.ts,91,update,"act(() => result.current.update('evt.medium', { digest_frequency: 'daily' }));"
+UNRESOLVED_DYNAMIC,,src/test/notificationPreferences.test.ts,103,update,"act(() => result.current.update('evt.low', { muted: true }));"
+UNRESOLVED_DYNAMIC,,src/test/notificationPreferences.test.ts,123,update,"act(() => result.current.update('evt.medium', { muted: true }));"
