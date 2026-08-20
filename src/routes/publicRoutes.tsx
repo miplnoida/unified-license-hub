@@ -29,8 +29,12 @@ export const publicRoutes = (
     {/* /register is for BRAND NEW registrations only. Existing users editing or
         resubmitting a registration must use /registration/portal — never /register. */}
     <Route path="/register" element={<Register />} />
-    {/* Wave B: user identity and entity identity are separate steps. */}
+    {/* Wave C: user identity and entity identity are separate steps. */}
     <Route path="/register/entity" element={<EntityIdentification />} />
+    {/* Compatibility: the legacy all-in-one new-registration flow (entity +
+        documents + declarations in one form) remains reachable here — nothing
+        from it was removed, /register just no longer defaults to it. */}
+    <Route path="/register/legacy" element={<PreLicenseeRegistration />} />
     {/* Backward compatibility: legacy nested route redirects to canonical /register */}
     <Route path="/registration/pre-licensee" element={<Navigate to="/register" replace />} />
     <Route path="/registration/success" element={<RegistrationSuccess />} />
