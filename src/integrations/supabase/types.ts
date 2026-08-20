@@ -36570,6 +36570,24 @@ export type Database = {
         }
         Returns: Json
       }
+      sup_can_read_domain: {
+        Args: { _domain: string; _user: string }
+        Returns: boolean
+      }
+      sup_dashboard_summary: { Args: never; Returns: Json }
+      sup_entity_supervisory_state: {
+        Args: { _entity_id: string }
+        Returns: Json
+      }
+      sup_priority_work_queue: {
+        Args: { _domain?: string; _limit?: number }
+        Returns: Json
+      }
+      sup_read_guard: { Args: never; Returns: string }
+      sup_team_performance: {
+        Args: { _domain?: string; _from?: string; _to?: string }
+        Returns: Json
+      }
       supervisory_ai_report_detail: {
         Args: { _id: string }
         Returns: {
