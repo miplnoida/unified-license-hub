@@ -88,8 +88,11 @@ export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }
     }
     const payload: Record<string, unknown> = { ...contextValues };
     for (const f of schema.fields) {
-      // Immutable fields (machine keys) are never resubmitted on edit.
+      // Immutable fields (machine keys) are never resubmitted on edit, and
+      // derived fields are computed by the database.
+      if (f.derived) continue;
       if (editing && f.immutable) continue;
+
       let value = draft[f.name];
       if ((f.type === 'text' || f.type === 'textarea' || f.type === 'date') && value === '') value = null;
       if (f.type === 'number') value = Number(value) || 0;
