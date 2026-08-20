@@ -53,8 +53,24 @@ export function useNavigationSections(): { sections: NavSection[]; isLoading: bo
     if (!items.length) {
       return { sections: mainNavSections, isLoading, isDbDriven: false };
     }
-    // Search-only entries (show_in_sidebar = false) stay out of the menu.
-    const sidebarItems = items.filter((i) => i.show_in_sidebar !== false);
+    // Search-only entries (show_in_sidebar = false) stay out of the menu —
+    // together with everything beneath them, otherwise a hidden group's
+    // children would lose their parent and surface as top-level entries.
+    const byKey = new Map(items.map((i) => [i.key, i]));
+    const isSidebarVisible = (item: SecNavItem): boolean => {
+      if (item.show_in_sidebar === false) return false;
+      let parentKey = item.parent_key;
+      const guard = new Set<string>();
+      while (parentKey && !guard.has(parentKey)) {
+        guard.add(parentKey);
+        const parent = byKey.get(parentKey);
+        if (!parent) break;
+        if (parent.show_in_sidebar === false) return false;
+        parentKey = parent.parent_key;
+      }
+      return true;
+    };
+    const sidebarItems = items.filter(isSidebarVisible);
     const roots = buildNavTree(sidebarItems);
     const sections: NavSection[] = roots.map((root) => ({
       label: root.item_type === 'group' ? root.label : undefined,
