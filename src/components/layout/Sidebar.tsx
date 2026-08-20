@@ -17,7 +17,9 @@ import { prefetchRoute } from '@/lib/routePrefetch';
 
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
-const EXPANDED_KEY = 'sidebar-expanded-groups';
+/** v3 = expansion identity is the stable sec_navigation_items key, not the label. */
+const EXPANDED_KEY = 'sidebar-expanded-v3';
+
 
 function usePersistedState<T>(key: string, initial: T): [T, (val: T | ((prev: T) => T)) => void] {
   const [state, setState] = useState<T>(() => {
@@ -194,35 +196,44 @@ export function Sidebar() {
   const portalContext = useEffectivePortalContext();
   const navRef = useRef<HTMLDivElement>(null);
 
-  const toggleGroup = useCallback((label: string) => {
-    setExpandedGroups(prev => prev.includes(label) ? prev.filter(l => l !== label) : [...prev, label]);
+  const toggleGroup = useCallback((key: string) => {
+    setExpandedGroups(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
   }, [setExpandedGroups]);
 
   useEffect(() => {
-    // Expand every ancestor group of the active route, at any depth.
+    // Expand every ancestor group of the active route, at any depth, using the
+    // stable DB nav key (labels may be renamed by admins).
     const toExpand: string[] = [];
     const walk = (items: NavItem[]) => {
       items.forEach((item) => {
         if (item.children?.length) {
-          if (hasActiveDescendant(item, location.pathname)) toExpand.push(item.label);
+          if (hasActiveDescendant(item, location.pathname)) toExpand.push(navKey(item));
           walk(item.children);
         }
       });
     };
     navSections.forEach((section) => walk(section.items));
     if (toExpand.length) {
-      setExpandedGroups(prev => Array.from(new Set([...prev, ...toExpand])));
+      setExpandedGroups(prev => {
+        const missing = toExpand.filter((k) => !prev.includes(k));
+        return missing.length ? [...prev, ...missing] : prev;
+      });
     }
 
-    // Auto-scroll sidebar to active item
+    // Only scroll when the active row is genuinely out of view, and without
+    // smooth motion so it never competes with the content transition.
     requestAnimationFrame(() => {
-      const activeEl = navRef.current?.querySelector('[data-sidebar-active="true"]');
-      if (activeEl) {
-        activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      }
+      const root = navRef.current;
+      const activeEl = root?.querySelector('[data-sidebar-active="true"]') as HTMLElement | null;
+      if (!root || !activeEl) return;
+      const rootBox = root.getBoundingClientRect();
+      const box = activeEl.getBoundingClientRect();
+      const outOfView = box.top < rootBox.top || box.bottom > rootBox.bottom;
+      if (outOfView) activeEl.scrollIntoView({ block: 'nearest' });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
+  }, [location.pathname, navSections]);
+
 
   // Close mobile sidebar on route change
   useEffect(() => {
