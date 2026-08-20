@@ -76,6 +76,18 @@ export function LandingNav() {
           </div>
         </div>
       )}
+
+      {/*
+        Public breadcrumb bar. Single integration point for every unauthenticated
+        surface (registry, registration, tracking). Renders nothing on the
+        landing page, where the trail is a single crumb.
+      */}
+      <div className="border-t bg-background/60">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-2">
+          <ApplicationBreadcrumbs root={{ label: 'Home', href: '/' }} />
+        </div>
+      </div>
     </nav>
   );
 }
+
