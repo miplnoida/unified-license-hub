@@ -26,11 +26,21 @@ import {
 
 type BreachRow = {
   id: string;
-  return_id: string;
+  return_id: string | null;
+  entity_id: string | null;
+  detection_run_id: string | null;
+  return_filing_id: string | null;
+  return_filing_version_id: string | null;
+  reporting_period_id: string | null;
+  period_label: string | null;
+  period_end: string | null;
+  filing_reference: string | null;
+  filing_status: string | null;
   metric_key: string;
   level: string;
   comparator: string | null;
   threshold_value: number | null;
+  threshold_version: string | null;
   value: number | null;
   risk_level: string | null;
   detected_at: string;
@@ -39,6 +49,7 @@ type BreachRow = {
   escalated_enforcement_id: string | null;
   return_config_id: string | null;
 };
+
 
 const LEVEL_META: Record<string, { label: string; className: string }> = {
   critical: { label: 'Critical', className: 'bg-red-100 text-red-800' },
