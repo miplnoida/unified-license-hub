@@ -283,8 +283,7 @@ export default function ApplicationDetail() {
       }
 
 
-      const { error } = await supabase.from('applications').update({ data: nextData } as any).eq('id', app.id);
-      if (error) throw error;
+      await applicationDraftSave({ applicationId: app.id, data: nextData as any });
       setApp({ ...app, data: nextData } as any);
       queryClient.invalidateQueries({ queryKey: ['application', app.id] });
     } catch (e: any) {
@@ -1141,15 +1140,13 @@ export default function ApplicationDetail() {
                           form_version_ids: updatedFormVersionIds,
                           form_meta: updatedFormMeta,
                         };
-                        const { data: written, error } = await supabase
-                          .from('applications')
-                          .update({ data: updatedAppData } as any)
-                          .eq('id', app.id)
-                          .select('id');
-                        if (error) {
-                          toast.error(error.message || 'Failed to save form');
-                          throw new Error(error.message || 'Failed to save form');
+                        try {
+                          await applicationDraftSave({ applicationId: app.id, data: updatedAppData as any });
+                        } catch (error: any) {
+                          toast.error(error?.message || 'Failed to save form');
+                          throw new Error(error?.message || 'Failed to save form');
                         }
+                        const written = [{ id: app.id }];
                         if (!written || written.length === 0) {
                           const msg = 'This application is not currently open for editing — your changes were not saved.';
                           toast.error(msg);

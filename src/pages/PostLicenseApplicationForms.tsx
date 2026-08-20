@@ -10,6 +10,7 @@ import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 
 import { GitBranch } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { applicationDraftSave } from '@/lib/applicationGovernedOps';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
@@ -373,9 +374,10 @@ export default function PostLicenseApplicationForms() {
     const updatedVersionIds = versionId
       ? { ...existingVersionIds, [templateId]: versionId }
       : existingVersionIds;
-    await supabase.from('applications').update({
-      data: { ...appJson, forms_data: updatedFormsData, form_version_ids: updatedVersionIds },
-    } as any).eq('id', applicationId);
+    await applicationDraftSave({
+      applicationId,
+      data: { ...appJson, forms_data: updatedFormsData, form_version_ids: updatedVersionIds } as any,
+    });
     await markApplicationInProgressIfDraft(applicationId);
     setAppData((prev: any) => ({
       ...prev,

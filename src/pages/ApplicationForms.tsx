@@ -9,6 +9,7 @@ import { useFormTemplates, useVersionSections, useResolveAppFormVersion } from '
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { GitBranch } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { applicationDraftSave } from '@/lib/applicationGovernedOps';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
@@ -270,17 +271,14 @@ export default function ApplicationForms() {
 
     // `.select()` lets us detect a write that matched no row (permission /
     // status gate) instead of showing a false "saved" confirmation.
-    const { data: written, error: writeErr } = await supabase.from('applications').update({
+    await applicationDraftSave({
+      applicationId,
       data: {
         ...appJson,
         forms_data: updatedFormsData,
         form_version_ids: updatedVersionIds,
-      },
-    } as any).eq('id', applicationId).select('id');
-    if (writeErr) throw new Error(writeErr.message);
-    if (!written || written.length === 0) {
-      throw new Error('Your changes could not be saved. This application is not currently open for editing.');
-    }
+      } as any,
+    });
 
     await markApplicationInProgressIfDraft(applicationId);
 
