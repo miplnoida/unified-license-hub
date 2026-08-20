@@ -62,8 +62,8 @@ export function IssueActionDialog({
     mutationFn: async () => {
       if (!title.trim()) throw new Error('Title is required');
       if (!rationale.trim() || rationale.trim().length < 10) throw new Error('Rationale required (min 10 chars)');
-      const { data: user } = await supabase.auth.getUser();
-      const payload: Record<string, unknown> = {
+      // Governed: created_by, status and the compliance audit row are server-side.
+      return await conductActionIssue({
         source_module: sourceModule,
         source_id: defaultSourceId ?? null,
         entity_id: defaultEntityId ?? null,
@@ -73,22 +73,10 @@ export function IssueActionDialog({
         due_date: dueDate || null,
         assigned_to: assignedTo || null,
         assigned_team: assignedTeam.trim() || null,
-        status: 'open',
-        created_by: user.user?.id ?? null,
-        metadata: { rationale: rationale.trim() },
-      };
-      const { data, error } = await (supabase as any).from('conduct_actions').insert(payload).select('*').single();
-      if (error) throw new Error(error.message);
-
-      try {
-        await logComplianceAudit({
-          action_type: 'CREATE', object_type: 'conduct_action', object_id: data.id,
-          before_value: null, after_value: data, justification: rationale.trim(),
-        });
-      } catch { /* swallow */ }
-
-      return data;
+        rationale: rationale.trim(),
+      });
     },
+
     onSuccess: () => {
       toast.success('Supervisory action issued');
       qc.invalidateQueries({ queryKey: ['conduct-actions'] });
