@@ -28889,6 +28889,16 @@ export type Database = {
           statuses: string[]
         }[]
       }
+      rdm_diag_duplicate_organizations: {
+        Args: never
+        Returns: {
+          legal_names: string[]
+          normalised_name: string
+          org_count: number
+          party_ids: string[]
+        }[]
+      }
+      rdm_entity_foundation_report: { Args: never; Returns: Json }
       rdm_integrity_report: { Args: never; Returns: Json }
       rdm_metadata_tables: { Args: never; Returns: string[] }
       rdm_promote_default_policy: {
