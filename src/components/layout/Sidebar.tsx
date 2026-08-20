@@ -47,80 +47,136 @@ function hasActiveDescendant(item: NavItem, pathname: string): boolean {
 }
 
 
+/** Stable accordion identity — DB nav key, never the display label. */
+export function navKey(item: NavItem): string {
+  return item.key ?? `label:${item.label}`;
+}
+
 /**
- * Renders a navigation group at any depth. Groups may nest arbitrarily
- * (e.g. Licensing → Fit & Proper → Policy & Initiation → link) because the
- * taxonomy now lives in `sec_navigation_items` and admins can add levels.
+ * Level-aware row styling. Level 1 domains are real navigation rows
+ * (44px, 14.5px, semibold, title case) — not 10px uppercase captions.
+ */
+function rowClassForDepth(depth: number): string {
+  if (depth === 0) return 'min-h-[42px] px-3 py-2 text-[14.5px] font-semibold rounded-[10px]';
+  if (depth === 1) return 'min-h-[38px] px-2.5 py-2 text-[14px] font-medium rounded-lg';
+  return 'min-h-[34px] px-2.5 py-1.5 text-[13px] rounded-md';
+}
+
+/**
+ * Renders a navigation group at any depth. Groups may nest (Supervision →
+ * Market Conduct → Investigations) because the taxonomy lives in
+ * `sec_navigation_items` and admins can add levels.
  */
 function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, pathname, depth = 0 }: {
   item: NavItem; collapsed: boolean; expandedGroups: string[];
-  toggleGroup: (label: string) => void; pathname: string; depth?: number;
+  toggleGroup: (key: string) => void; pathname: string; depth?: number;
 }) {
-  const isExpanded = expandedGroups.includes(item.label);
+  const itemKey = navKey(item);
+  const isExpanded = expandedGroups.includes(itemKey);
   const hasActiveChild = hasActiveDescendant(item, pathname);
+  const panelId = `nav-panel-${itemKey.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
   return (
     <div className="min-w-0">
       <button
-        onClick={() => toggleGroup(item.label)}
+        type="button"
+        onClick={() => toggleGroup(itemKey)}
+        onMouseEnter={() => prefetchGroup(item)}
+        onFocus={() => prefetchGroup(item)}
+        aria-expanded={isExpanded}
+        aria-controls={panelId}
         className={cn(
-          'nav-item w-full min-w-0 text-left items-start', collapsed && 'justify-center',
-          depth > 0 && 'px-2.5 py-2 text-[13px] text-sidebar-foreground/65',
-          hasActiveChild && 'text-sidebar-primary font-semibold',
+          'flex w-full min-w-0 items-start gap-2.5 text-left transition-colors',
+          'text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-foreground',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+          rowClassForDepth(depth),
+          collapsed && 'justify-center',
+          // Active ancestor hint — present but restrained
+          hasActiveChild && 'text-sidebar-primary',
         )}
         title={item.label}
       >
-        <span className="shrink-0 mt-[1px]">{item.icon}</span>
+        <span className={cn('shrink-0 mt-[1px]', hasActiveChild && 'text-sidebar-primary')}>{item.icon}</span>
         {!collapsed && (
           <>
             <span className="flex-1 min-w-0 break-words leading-snug line-clamp-2">{item.label}</span>
-            <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 mt-[3px] transition-transform duration-200', isExpanded && 'rotate-180')} />
+            <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 mt-[3px] transition-transform duration-200 motion-reduce:transition-none', isExpanded && 'rotate-180')} />
           </>
         )}
       </button>
       {!collapsed && (
-        <div className={cn('overflow-hidden transition-all', isExpanded ? 'opacity-100' : 'max-h-0 opacity-0')}>
-          <div className={cn('min-w-0 border-l border-sidebar-border py-1 space-y-0.5', depth === 0 ? 'ml-3 pl-2' : 'ml-2 pl-2')}>
-            {item.children?.map((child) => {
-              if (child.children?.length) {
-                return (
-                  <CollapsibleNavItem
-                    key={child.label}
-                    item={child}
-                    collapsed={collapsed}
-                    expandedGroups={expandedGroups}
-                    toggleGroup={toggleGroup}
-                    pathname={pathname}
-                    depth={depth + 1}
-                  />
-                );
-              }
-              if (!child.href) return null;
-              const isActive = isPathActive(child.href, pathname);
-              return (
-                <Link
-                  key={child.href}
-                  to={child.href}
-                  data-sidebar-active={isActive ? 'true' : undefined}
-                  title={child.label}
-                  className={cn(
-                    'flex min-w-0 items-start gap-2 rounded-md text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors',
-                    depth === 0 ? 'px-2.5 py-2 text-[13px]' : 'px-2 py-1.5 text-[12.5px]',
-                    isActive && 'bg-sidebar-accent text-sidebar-primary font-semibold'
-                  )}
-                >
-                  <span className="shrink-0 mt-[1px]">{child.icon}</span>
-                  <span className="min-w-0 flex-1 break-words leading-snug line-clamp-2">{child.label}</span>
-                </Link>
-              );
-            })}
+        <div
+          id={panelId}
+          hidden={!isExpanded}
+          className={cn(
+            'grid overflow-hidden transition-[grid-template-rows,opacity] duration-[170ms] ease-out motion-reduce:transition-none',
+            isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+          )}
+        >
+          <div className="min-w-0 overflow-hidden">
+            <div className={cn('min-w-0 border-l border-sidebar-border py-1 space-y-0.5', depth === 0 ? 'ml-3.5 pl-2' : 'ml-2.5 pl-2')}>
+              {item.children?.map((child) => {
+                if (child.children?.length) {
+                  return (
+                    <CollapsibleNavItem
+                      key={navKey(child)}
+                      item={child}
+                      collapsed={collapsed}
+                      expandedGroups={expandedGroups}
+                      toggleGroup={toggleGroup}
+                      pathname={pathname}
+                      depth={depth + 1}
+                    />
+                  );
+                }
+                if (!child.href) return null;
+                return <NavLeaf key={navKey(child)} item={child} pathname={pathname} depth={depth + 1} />;
+              })}
+            </div>
           </div>
         </div>
       )}
     </div>
   );
-
 }
+
+/** A navigable destination row at any depth. */
+function NavLeaf({ item, pathname, depth, collapsed = false }: { item: NavItem; pathname: string; depth: number; collapsed?: boolean }) {
+  const isActive = isPathActive(item.href, pathname);
+  return (
+    <Link
+      to={item.href!}
+      data-sidebar-active={isActive ? 'true' : undefined}
+      aria-current={isActive ? 'page' : undefined}
+      title={item.label}
+      onMouseEnter={() => prefetchRoute(item.href)}
+      onFocus={() => prefetchRoute(item.href)}
+      onTouchStart={() => prefetchRoute(item.href)}
+      onClick={(e) => {
+        // Reject accidental repeat clicks on the destination we are already on
+        // so the page does not re-issue its business queries.
+        if (isActive) e.preventDefault();
+      }}
+      className={cn(
+        'relative flex min-w-0 items-start gap-2.5 transition-colors',
+        'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+        rowClassForDepth(depth),
+        collapsed && 'justify-center',
+        isActive && 'bg-sidebar-accent text-sidebar-primary font-semibold before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[2.5px] before:rounded-full before:bg-sidebar-primary',
+      )}
+    >
+      <span className={cn('shrink-0 mt-[1px]', isActive && 'text-sidebar-primary')}>{item.icon}</span>
+      {!collapsed && <span className="min-w-0 flex-1 break-words leading-snug line-clamp-2">{item.label}</span>}
+    </Link>
+  );
+}
+
+/** Warm the chunks of a group's direct destinations on hover/focus. */
+function prefetchGroup(item: NavItem) {
+  (item.children ?? []).slice(0, 6).forEach((child) => prefetchRoute(child.href));
+}
+
 
 
 export function Sidebar() {
