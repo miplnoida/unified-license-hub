@@ -16488,6 +16488,7 @@ export type Database = {
           regulator_officer_id: string | null
           sector_id: string | null
           status: string
+          structure_version: number
           sub_sector_id: string | null
           systemic_importance: string | null
           updated_at: string
@@ -16509,6 +16510,7 @@ export type Database = {
           regulator_officer_id?: string | null
           sector_id?: string | null
           status?: string
+          structure_version?: number
           sub_sector_id?: string | null
           systemic_importance?: string | null
           updated_at?: string
@@ -16530,6 +16532,7 @@ export type Database = {
           regulator_officer_id?: string | null
           sector_id?: string | null
           status?: string
+          structure_version?: number
           sub_sector_id?: string | null
           systemic_importance?: string | null
           updated_at?: string
@@ -28263,6 +28266,10 @@ export type Database = {
         Args: { _licensee_id: string }
         Returns: string[]
       }
+      application_pin_form_requirements: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
       application_rfi_submit_response: {
         Args: {
           p_file_upload_ids?: string[]
@@ -28407,6 +28414,7 @@ export type Database = {
         Args: { _license_id: string }
         Returns: string
       }
+      branch_form_version: { Args: { _version_id: string }; Returns: Json }
       build_workflow_snapshot: { Args: { _workflow_id: string }; Returns: Json }
       can_access_review_entity: {
         Args: { _entity_id: string; _entity_type: string; _user_id: string }
@@ -30136,6 +30144,15 @@ export type Database = {
       }
       findfuncs: { Args: { "": string }; Returns: string[] }
       finish: { Args: { exception_on_failure?: boolean }; Returns: string[] }
+      form_save_draft: {
+        Args: {
+          _change_notes?: string
+          _fields: Json
+          _template_id: string
+          _version_id?: string
+        }
+        Returns: Json
+      }
       fp_assessment_comparison: {
         Args: { _assessment_id: string }
         Returns: {
@@ -31766,6 +31783,10 @@ export type Database = {
           sector_name: string
         }[]
       }
+      publish_form_version: {
+        Args: { _effective_from?: string; _version_id: string }
+        Returns: Json
+      }
       publish_prudential_ratio: { Args: { _ratio_id: string }; Returns: number }
       publish_prudential_threshold: {
         Args: { _effective_from?: string; _threshold_id: string }
@@ -32030,6 +32051,7 @@ export type Database = {
         Returns: number
       }
       resolve_actor_role: { Args: { _user_id: string }; Returns: string }
+      resolve_applicable_form_package: { Args: { _ctx: Json }; Returns: Json }
       resolve_application_form_version: {
         Args: { _application_id: string; _template_id: string }
         Returns: Json
@@ -32303,6 +32325,10 @@ export type Database = {
           _comments?: string
           _registration_id: string
         }
+        Returns: Json
+      }
+      retire_form_definition: {
+        Args: { _reason?: string; _template_id: string }
         Returns: Json
       }
       retry_complaint_triage: { Args: { _id: string }; Returns: undefined }
@@ -33176,6 +33202,19 @@ export type Database = {
       wb_entity_member: { Args: { _entity_id: string }; Returns: boolean }
       wb_grant_template: {
         Args: { _perms: string[]; _template_key: string }
+        Returns: undefined
+      }
+      wb_membership_capability: {
+        Args: { _capability: string; _entity_id: string }
+        Returns: boolean
+      }
+      wb_require: {
+        Args: {
+          _action: string
+          _capability?: string
+          _entity_id?: string
+          _module: string
+        }
         Returns: undefined
       }
       worker_kick: { Args: { _function_name: string }; Returns: number }
