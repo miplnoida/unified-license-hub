@@ -38,6 +38,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logFpAction } from '@/lib/fpAudit';
+import { fpCommitteeCastVote, fpCommitteeCreate, fpCommitteeMemberAdd, fpCommitteeUpdate } from '@/lib/fpGovernedOps';
 import {
   Loader2,
   Plus,
@@ -490,21 +491,11 @@ export default function FpaCommittee() {
       if (isNaN(q) || q < 1) throw new Error('Quorum must be at least 1.');
       if (isNaN(t) || t < 0 || t > 100) throw new Error('Approval threshold must be 0–100.');
 
-      const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
-      await authorizedAction('fit_and_proper_committee', 'create', { name: name.trim() });
-      const { data: inserted, error } = await (supabase as any).from('fp_committees').insert({
-
+      await fpCommitteeCreate({
         name: name.trim(),
-        description: description.trim() || null,
         quorum: q,
-        approval_threshold_pct: t,
-        is_active: true,
-      }).select('id').single();
-      if (error) throw error;
-
-      await logFpAction('fp.committee.created', 'fp_committee', inserted.id, {
-        after: { name: name.trim(), quorum: q, approval_threshold_pct: t },
-        context: { committeeId: inserted.id },
+        approvalThresholdPct: t,
+        description: description.trim() || null,
       });
     },
     onSuccess: () => {
@@ -528,28 +519,12 @@ export default function FpaCommittee() {
       if (isNaN(q) || q < 1) throw new Error('Quorum must be at least 1.');
       if (isNaN(t) || t < 0 || t > 100) throw new Error('Approval threshold must be 0–100.');
 
-      const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
-      await authorizedAction('fit_and_proper_committee', 'edit', { committee_id: selectedCommitteeId });
-      const { error } = await (supabase as any)
-        .from('fp_committees')
-        .update({
-
-          name: name.trim(),
-          description: description.trim() || null,
-          quorum: q,
-          approval_threshold_pct: t,
-          is_active,
-        })
-        .eq('id', selectedCommitteeId);
-      if (error) throw error;
-
-      await logFpAction('fp.committee.updated', 'fp_committee', selectedCommitteeId, {
-        before: selectedCommittee ? {
-          name: selectedCommittee.name, quorum: selectedCommittee.quorum,
-          approval_threshold_pct: selectedCommittee.approval_threshold_pct, is_active: selectedCommittee.is_active,
-        } : null,
-        after: { name: name.trim(), quorum: q, approval_threshold_pct: t, is_active },
-        context: { committeeId: selectedCommitteeId },
+      await fpCommitteeUpdate(selectedCommitteeId, {
+        name: name.trim(),
+        description: description.trim() || null,
+        quorum: q,
+        approvalThresholdPct: t,
+        isActive: is_active,
       });
     },
     onSuccess: () => {
@@ -570,18 +545,11 @@ export default function FpaCommittee() {
       const weight = parseFloat(addMemberForm.vote_weight);
       if (isNaN(weight) || weight <= 0) throw new Error('Vote weight must be a positive number.');
 
-      const { data: inserted, error } = await supabase.from('fp_committee_members').insert({
-        committee_id: selectedCommitteeId,
-        user_id: addMemberForm.user_id,
-        member_role: addMemberForm.member_role,
-        vote_weight: weight,
-        is_active: true,
-      }).select('id').single();
-      if (error) throw error;
-
-      await logFpAction('fp.committee.member_added', 'fp_committee_member', inserted.id, {
-        after: { committee_id: selectedCommitteeId, user_id: addMemberForm.user_id, member_role: addMemberForm.member_role, vote_weight: weight },
-        context: { committeeId: selectedCommitteeId ?? undefined },
+      await fpCommitteeMemberAdd({
+        committeeId: selectedCommitteeId,
+        userId: addMemberForm.user_id,
+        memberRole: addMemberForm.member_role,
+        voteWeight: weight,
       });
     },
     onSuccess: () => {
@@ -610,27 +578,13 @@ export default function FpaCommittee() {
         throw new Error('Justification is required when rationale is required.');
       }
 
-      const { data: inserted, error } = await (supabase as any).from('fp_committee_votes').insert({
-        assessment_id: selectedAssessmentId,
-        committee_id: selectedCommitteeId,
-        member_id: myMembership.id,
-        vote: voteForm.vote,
-        weight,
-        justification: voteForm.justification.trim() || null,
-        voted_at: new Date().toISOString(),
-        rationale_required: voteForm.rationale_required,
-      }).select('id').single();
-      if (error) throw error;
-
-      await logFpAction('fp.committee.vote_cast', 'fp_committee_vote', inserted.id, {
-        after: { vote: voteForm.vote, weight, justification: voteForm.justification.trim() || null },
-        context: {
-          committeeId: selectedCommitteeId ?? undefined,
-          assessmentId: selectedAssessmentId || undefined,
-          extra: { member_id: myMembership.id },
-        },
-        justification: voteForm.justification.trim() || undefined,
-      });
+      // Governed operation: it resolves the caller's own active membership and
+      // vote weight, so nobody can vote as another member.
+      await fpCommitteeCastVote(
+        selectedAssessmentId,
+        voteForm.vote,
+        voteForm.justification.trim() || null,
+      );
     },
     onSuccess: () => {
       toast.success('Vote recorded.');

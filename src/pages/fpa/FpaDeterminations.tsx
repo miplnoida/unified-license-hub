@@ -40,6 +40,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCan } from '@/hooks/useCan';
 import { toast } from 'sonner';
 import { logFpAction } from '@/lib/fpAudit';
+import { fpDeterminationRecord } from '@/lib/fpGovernedOps';
 import { resolveFpSectorRule, evaluateFpCriteria, type CriteriaEvaluation } from '@/lib/fpSectorRules';
 import {
   Loader2,
@@ -753,69 +754,21 @@ export default function FpaDeterminations() {
       // only when the assessment itself has no regulator attached.
       const resolvedRegulatorId = assessmentRegulatorId ?? (form.regulator_id.trim() || null);
 
-      // Multi-regulator scoping: only supersede the current determination for
-      // the SAME regulator (or the same "unscoped" bucket) — a different
-      // regulator's current determination for this individual is untouched.
-      const priorQuery = supabase
-        .from('fp_determinations')
-        .select('id')
-        .eq('individual_id', form.individual_id)
-        .eq('is_current', true);
-      const { data: prior } = resolvedRegulatorId
-        ? await priorQuery.eq('regulator_id', resolvedRegulatorId).maybeSingle()
-        : await priorQuery.is('regulator_id', null).maybeSingle();
-
-      if (prior) {
-        await supabase.from('fp_determinations').update({ is_current: false }).eq('id', prior.id);
-      }
-
-      const payload: Record<string, any> = {
-        individual_id: form.individual_id,
-        assessment_id: form.assessment_id,
+      // Governed operation — a single transaction that checks the caller's
+      // determination-approve permission, validates the assessment state,
+      // supersedes the prior current determination for the SAME regulator,
+      // moves the assessment to Determined and writes the audit entry.
+      const isOverride = needsOverride && form.isOverride;
+      const recorded = await fpDeterminationRecord({
+        assessmentId: form.assessment_id,
+        individualId: form.individual_id,
         outcome: form.outcome,
         rationale: form.rationale.trim(),
-        is_current: true,
-        determined_by: user.id,
-        supersedes_id: prior?.id ?? null,
-        regulator_id: resolvedRegulatorId,
-        is_committee_override: needsOverride && form.isOverride,
-        override_reason: needsOverride && form.isOverride ? form.overrideReason.trim() : null,
-      };
-      if (form.effective_from) payload.effective_from = form.effective_from;
-      if (form.effective_to) payload.effective_to = form.effective_to;
-
-      const { data: inserted, error } = await supabase
-        .from('fp_determinations')
-        .insert(payload as any)
-        .select('id')
-        .single();
-      if (error) throw error;
-
-      // Keep the assessment's own lifecycle stage in sync with the determination —
-      // the committee-voting panel (FpDeterminationsPanel.tsx) already does this;
-      // this screen previously left fp_assessments.status untouched entirely.
-      await supabase.from('fp_assessments').update({
-        status: 'determined',
-        determined_at: new Date().toISOString(),
-      } as any).eq('id', form.assessment_id);
-
-      await logFpAction(`fp.determination.${form.outcome}`, 'fp_determination', inserted.id, {
-        after: {
-          outcome: form.outcome,
-          rationale: form.rationale.trim(),
-          regulator_id: resolvedRegulatorId,
-          supersedes_id: prior?.id ?? null,
-          sector_rule_passed: sectorRule ? criteriaEval.passed : null,
-          is_committee_override: payload.is_committee_override,
-          override_reason: payload.override_reason,
-        },
-        context: {
-          individualId: form.individual_id,
-          assessmentId: form.assessment_id,
-          determinationId: inserted.id,
-          regulatorId: resolvedRegulatorId ?? undefined,
-        },
-        justification: payload.is_committee_override ? payload.override_reason : form.rationale.trim(),
+        regulatorId: resolvedRegulatorId,
+        effectiveFrom: form.effective_from || null,
+        effectiveTo: form.effective_to || null,
+        isCommitteeOverride: isOverride,
+        overrideReason: isOverride ? form.overrideReason.trim() : null,
       });
 
       try {
@@ -823,7 +776,7 @@ export default function FpaDeterminations() {
           body: {
             event_key: 'fp_determination_finalized',
             entity_type: 'fp_determination',
-            entity_id: inserted.id,
+            entity_id: recorded.id,
             payload: { outcome: form.outcome, individual_id: form.individual_id },
           },
         });
@@ -832,7 +785,7 @@ export default function FpaDeterminations() {
       return {
         outcome: form.outcome,
         individualId: form.individual_id,
-        determinationId: inserted.id,
+        determinationId: recorded.id,
       };
     },
     onSuccess: (result) => {

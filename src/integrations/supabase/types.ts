@@ -32168,6 +32168,16 @@ export type Database = {
         Args: { _assessment_id: string; _justification?: string; _vote: string }
         Returns: Json
       }
+      fp_committee_create: {
+        Args: {
+          _approval_threshold_pct: number
+          _description?: string
+          _name: string
+          _quorum: number
+          _regulator_id?: string
+        }
+        Returns: Json
+      }
       fp_committee_member_add: {
         Args: {
           _committee_id: string
@@ -32181,12 +32191,29 @@ export type Database = {
         Args: { _member_id: string }
         Returns: Json
       }
+      fp_committee_member_set_active: {
+        Args: { _is_active: boolean; _member_id: string }
+        Returns: Json
+      }
       fp_committee_member_set_weight: {
         Args: { _member_id: string; _vote_weight: number }
         Returns: Json
       }
       fp_committee_set_casting_vote: {
         Args: { _committee_id: string; _member_id: string }
+        Returns: Json
+      }
+      fp_committee_update: {
+        Args: {
+          _approval_threshold_pct?: number
+          _clear_regulator?: boolean
+          _committee_id: string
+          _description?: string
+          _is_active?: boolean
+          _name?: string
+          _quorum?: number
+          _regulator_id?: string
+        }
         Returns: Json
       }
       fp_condition_create: {
@@ -32288,6 +32315,14 @@ export type Database = {
           _clear_legacy?: boolean
           _evidence_urls?: Json
           _finding_id: string
+        }
+        Returns: Json
+      }
+      fp_finding_set_false_positive: {
+        Args: {
+          _finding_id: string
+          _is_false_positive: boolean
+          _justification?: string
         }
         Returns: Json
       }

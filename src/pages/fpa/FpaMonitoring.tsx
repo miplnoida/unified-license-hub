@@ -20,6 +20,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
+import { fpMonitoringEventAcknowledge, fpMonitoringEventRaise } from '@/lib/fpGovernedOps';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { authorizedExport } from '@/lib/rbac/authorizedExport';
@@ -479,24 +480,12 @@ export default function FpaMonitoring() {
         ? { text: triggerDetail.trim() }
         : null;
 
-      const { data: inserted, error } = await (supabase as any)
-        .from('fp_monitoring_events')
-        .insert({
-          // individual_id is NOT NULL — use the value directly; canTrigger already ensures it's set
-          individual_id: triggerIndividualId,
-          event_type: triggerEventType || null,
-          severity: triggerSeverity || null,
-          summary: triggerSummary.trim(),
-          detail: detailPayload,
-          raised_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-      if (error) throw error;
-
-      await logFpAction('fp.monitoring.event_triggered', 'fp_monitoring_event', inserted.id, {
-        after: { event_type: triggerEventType || null, severity: triggerSeverity || null, summary: triggerSummary.trim() },
-        context: { individualId: triggerIndividualId },
+      await fpMonitoringEventRaise({
+        individualId: triggerIndividualId,
+        eventType: triggerEventType,
+        summary: triggerSummary.trim(),
+        severity: triggerSeverity || null,
+        detail: detailPayload,
       });
     },
     onSuccess: () => {
@@ -515,21 +504,7 @@ export default function FpaMonitoring() {
   // ── Acknowledge mutation ────────────────────────────────────────────────
   const ackMutation = useMutation({
     mutationFn: async ({ event, note }: { event: MonitoringEvent; note: string }) => {
-      const { error } = await (supabase as any)
-        .from('fp_monitoring_events')
-        .update({
-          acknowledged_at: new Date().toISOString(),
-          acknowledged_by: user?.id ?? null,
-          acknowledgement_note: note.trim() || null,
-        })
-        .eq('id', event.id);
-      if (error) throw error;
-
-      await logFpAction('fp.monitoring.event_acknowledged', 'fp_monitoring_event', event.id, {
-        after: { acknowledgement_note: note.trim() || null },
-        context: { individualId: event.individual_id },
-        justification: note.trim() || undefined,
-      });
+      await fpMonitoringEventAcknowledge(event.id, note.trim() || null);
     },
     onSuccess: () => {
       toast.success('Event acknowledged');

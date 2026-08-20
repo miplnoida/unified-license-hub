@@ -21,7 +21,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { logFpAction } from '@/lib/fpAudit';
+import { fpConditionCreate, fpConditionRecordReminder, fpConditionSetStatus } from '@/lib/fpGovernedOps';
 import { useEmployeeApprovers } from '@/hooks/useEmployeeApprovers';
 import { toast } from 'sonner';
 import {
@@ -373,19 +373,7 @@ export default function FpaConditions() {
   // ---------------------------------------------------------------------------
   const satisfyMutation = useMutation({
     mutationFn: async ({ id, note, condition }: { id: string; note: string; condition: RawCondition }) => {
-      const { error } = await (supabase as any)
-        .from('fp_conditions')
-        .update({
-          status: 'satisfied',
-          satisfied_at: new Date().toISOString(),
-          satisfaction_note: note.trim() || null,
-        })
-        .eq('id', id);
-      if (error) throw error;
-      await logFpAction('fp.condition.satisfied', 'fp_condition', id, {
-        after: { status: 'satisfied', satisfaction_note: note.trim() || null },
-        context: { individualId: condition.individual_id, determinationId: condition.determination_id, conditionId: id },
-      });
+      await fpConditionSetStatus(id, 'satisfied', note.trim() || null);
     },
     onSuccess: () => {
       toast.success('Condition marked as satisfied');
@@ -398,16 +386,7 @@ export default function FpaConditions() {
 
   const waiveMutation = useMutation({
     mutationFn: async ({ id, reason, condition }: { id: string; reason: string; condition: RawCondition }) => {
-      const { error } = await (supabase as any)
-        .from('fp_conditions')
-        .update({ status: 'waived', waiver_reason: reason.trim() || null })
-        .eq('id', id);
-      if (error) throw error;
-      await logFpAction('fp.condition.waived', 'fp_condition', id, {
-        after: { status: 'waived', waiver_reason: reason.trim() || null },
-        context: { individualId: condition.individual_id, determinationId: condition.determination_id, conditionId: id },
-        justification: reason.trim() || undefined,
-      });
+      await fpConditionSetStatus(id, 'waived', reason.trim() || null);
     },
     onSuccess: () => {
       toast.success('Condition waived');
@@ -422,21 +401,9 @@ export default function FpaConditions() {
   // half of fp-monitoring-sweep, scoped to one row, for on-demand demoing.
   const sendReminderMutation = useMutation({
     mutationFn: async (cond: RawCondition) => {
-      const { error: evErr } = await (supabase as any).from('fp_monitoring_events').insert({
-        individual_id: cond.individual_id,
-        determination_id: cond.determination_id,
-        event_type: 'condition_due',
-        severity: 'low',
-        summary: `Condition due on ${cond.due_date}: ${(cond.description || '').slice(0, 200)}`,
-        detail: { condition_id: cond.id, due_date: cond.due_date, reminder: true, manual: true },
-      });
-      if (evErr) throw evErr;
-
-      const { error: updErr } = await (supabase as any)
-        .from('fp_conditions')
-        .update({ reminder_sent_at: new Date().toISOString() })
-        .eq('id', cond.id);
-      if (updErr) throw updErr;
+      // Governed operation: raises the monitoring event, stamps
+      // reminder_sent_at and audits the reminder in one transaction.
+      await fpConditionRecordReminder(cond.id);
 
       await supabase.functions.invoke('dispatch-notification-event', {
         body: {
@@ -503,19 +470,14 @@ export default function FpaConditions() {
       if (!addDescription.trim()) throw new Error('Description is required');
       if (!addDueDate) throw new Error('Due date is required');
 
-      const { error } = await (supabase as any)
-        .from('fp_conditions')
-        .insert({
-          individual_id: addIndividualId,
-          determination_id: addDeterminationId,
-          description: addDescription.trim(),
-          category: addCategory.trim(),
-          due_date: addDueDate,
-          monitoring_owner: addMonitoringOwner.trim() || null,
-          status: 'open',
-          created_by: user?.id ?? null,
-        });
-      if (error) throw error;
+      await fpConditionCreate({
+        determinationId: addDeterminationId,
+        individualId: addIndividualId,
+        category: addCategory.trim(),
+        description: addDescription.trim(),
+        dueDate: addDueDate,
+        monitoringOwner: addMonitoringOwner.trim() || null,
+      });
     },
     onSuccess: () => {
       toast.success('Condition added');

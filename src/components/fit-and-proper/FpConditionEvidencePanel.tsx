@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { logFpAction } from '@/lib/fpAudit';
+import { fpConditionEvidenceReview, fpConditionEvidenceSubmit } from '@/lib/fpGovernedOps';
 import { Loader2, Upload, FileText, History } from 'lucide-react';
 
 interface Props {
@@ -62,31 +62,18 @@ export function FpConditionEvidencePanel({ conditionId, individualId }: Props) {
   const upload = async (file: File) => {
     setUploading(true);
     try {
-      const { data: ind } = await supabase
-        .from('fp_individuals')
-        .select('regulator_id')
-        .eq('id', individualId)
-        .maybeSingle();
-
       const path = `conditions/${conditionId}/${Date.now()}-${file.name.replace(/[^\w.\-]/g, '_')}`;
       const { error: upErr } = await supabase.storage.from('fp-evidence').upload(path, file);
       if (upErr) throw upErr;
 
-      const { error } = await supabase.from('fp_condition_evidence').insert({
-        condition_id: conditionId,
-        individual_id: individualId,
-        regulator_id: ind?.regulator_id ?? null,
-        file_path: path,
-        file_name: file.name,
-        file_size: file.size,
+      // Governed operation — derives the regulator lens, records the submitter
+      // and audits the submission.
+      await fpConditionEvidenceSubmit({
+        conditionId,
+        filePath: path,
+        fileName: file.name,
+        fileSize: file.size,
         description: description.trim() || null,
-        submitted_by: user?.id ?? null,
-      });
-      if (error) throw error;
-
-      await logFpAction('fp.condition.evidence_submitted', 'fp_condition', conditionId, {
-        after: { file_name: file.name },
-        context: { individualId, conditionId },
       });
       toast.success('Evidence submitted for review');
       setDescription('');
@@ -105,20 +92,7 @@ export function FpConditionEvidencePanel({ conditionId, individualId }: Props) {
       if (state === 'rejected' && note.length < 5) {
         throw new Error('Rejection note required (min 5 chars)');
       }
-      const { error } = await supabase
-        .from('fp_condition_evidence')
-        .update({
-          review_state: state,
-          reviewed_by: user?.id ?? null,
-          reviewed_at: new Date().toISOString(),
-          review_note: note || null,
-        })
-        .eq('id', id);
-      if (error) throw error;
-      await logFpAction('fp.condition.evidence_reviewed', 'fp_condition', conditionId, {
-        after: { evidence_id: id, review_state: state, note: note || null },
-        context: { individualId, conditionId },
-      });
+      await fpConditionEvidenceReview(id, state, note || null);
     },
     onSuccess: () => {
       toast.success('Evidence reviewed');

@@ -13,6 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  fpCommitteeCreate,
+  fpCommitteeMemberAdd,
+  fpCommitteeMemberRemove,
+  fpCommitteeMemberSetWeight,
+  fpCommitteeSetCastingVote,
+  fpCommitteeUpdate,
+} from '@/lib/fpGovernedOps';
 import { toast } from 'sonner';
 import { Loader2, Plus, Trash2, UserPlus, Users } from 'lucide-react';
 
@@ -65,11 +73,13 @@ export default function FpCommittees() {
   const saveCommittee = useMutation({
     mutationFn: async () => {
       if (!form.name.trim()) throw new Error('Name required');
-      const { error } = await supabase.from('fp_committees').insert({
-        name: form.name.trim(), description: form.description.trim() || null,
-        quorum: form.quorum, approval_threshold_pct: form.approval_threshold_pct, is_active: form.is_active,
+      const created = await fpCommitteeCreate({
+        name: form.name.trim(),
+        quorum: form.quorum,
+        approvalThresholdPct: form.approval_threshold_pct,
+        description: form.description.trim() || null,
       });
-      if (error) throw error;
+      if (!form.is_active) await fpCommitteeUpdate(created.id, { isActive: false });
     },
     onSuccess: () => {
       toast.success('Committee created');
@@ -81,8 +91,7 @@ export default function FpCommittees() {
 
   const toggleCommittee = useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.from('fp_committees').update({ is_active: active }).eq('id', id);
-      if (error) throw error;
+      await fpCommitteeUpdate(id, { isActive: active });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['fp_committees'] }),
   });
@@ -90,10 +99,11 @@ export default function FpCommittees() {
   const addMember = useMutation({
     mutationFn: async () => {
       if (!selectedCommittee || !memberUserId) throw new Error('Select user');
-      const { error } = await supabase.from('fp_committee_members').insert({
-        committee_id: selectedCommittee, user_id: memberUserId, member_role: memberRole,
+      await fpCommitteeMemberAdd({
+        committeeId: selectedCommittee,
+        userId: memberUserId,
+        memberRole,
       });
-      if (error) throw error;
     },
     onSuccess: () => {
       toast.success('Member added');
@@ -105,16 +115,14 @@ export default function FpCommittees() {
 
   const removeMember = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('fp_committee_members').delete().eq('id', id);
-      if (error) throw error;
+      await fpCommitteeMemberRemove(id);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['fp_committee_members', selectedCommittee] }),
   });
 
   const updateMemberWeight = useMutation({
     mutationFn: async ({ id, weight }: { id: string; weight: number }) => {
-      const { error } = await supabase.from('fp_committee_members').update({ vote_weight: weight }).eq('id', id);
-      if (error) throw error;
+      await fpCommitteeMemberSetWeight(id, weight);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['fp_committee_members', selectedCommittee] }),
     onError: (e: any) => toast.error(e?.message || 'Failed'),
@@ -123,10 +131,7 @@ export default function FpCommittees() {
   const setCastingVote = useMutation({
     mutationFn: async (memberId: string | null) => {
       if (!selectedCommittee) return;
-      const { error } = await supabase.from('fp_committees')
-        .update({ casting_vote_member_id: memberId })
-        .eq('id', selectedCommittee);
-      if (error) throw error;
+      await fpCommitteeSetCastingVote(selectedCommittee, memberId);
     },
     onSuccess: () => {
       toast.success('Casting vote updated');

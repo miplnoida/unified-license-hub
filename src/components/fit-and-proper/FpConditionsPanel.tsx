@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Plus, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
-import { logFpAction } from '@/lib/fpAudit';
+import { fpConditionCreate, fpConditionSetStatus } from '@/lib/fpGovernedOps';
 import { useEmployeeApprovers } from '@/hooks/useEmployeeApprovers';
 import { FpConditionEvidencePanel } from '@/components/fit-and-proper/FpConditionEvidencePanel';
 
@@ -104,22 +104,14 @@ export function FpConditionsPanel({ individualId }: Props) {
     mutationFn: async () => {
       if (!currentDet) throw new Error('No current determination to attach conditions to');
       if (!form.description.trim()) throw new Error('Description required');
-      const payload = {
-        individual_id: individualId,
-        determination_id: currentDet.id,
+      await fpConditionCreate({
+        determinationId: currentDet.id,
+        individualId,
         category: form.category,
         description: form.description.trim(),
-        due_date: form.due_date || null,
-        monitoring_owner: form.monitoring_owner.trim() || null,
-        evidence_type: form.evidence_type,
-        status: 'open' as const,
-        created_by: user?.id,
-      };
-      const { data, error } = await supabase.from('fp_conditions').insert(payload).select('id').single();
-      if (error) throw error;
-      await logFpAction('fp.condition.created', 'fp_condition', data.id, {
-        after: payload,
-        context: { individualId, conditionId: data.id, determinationId: currentDet.id },
+        dueDate: form.due_date || null,
+        monitoringOwner: form.monitoring_owner.trim() || null,
+        evidenceType: form.evidence_type,
       });
     },
     onSuccess: () => {
@@ -136,20 +128,7 @@ export function FpConditionsPanel({ individualId }: Props) {
       if (waive && (!satNote || satNote.trim().length < 5)) {
         throw new Error('Waiver reason required (min 5 chars)');
       }
-      const patch: Record<string, unknown> = {
-        status: newStatus,
-        satisfied_at: new Date().toISOString(),
-        satisfied_by: user?.id,
-        satisfaction_note: satNote || null,
-      };
-      if (waive) patch.waiver_reason = satNote.trim();
-      const { error } = await supabase.from('fp_conditions').update(patch).eq('id', id);
-      if (error) throw error;
-      await logFpAction(waive ? 'fp.condition.waived' : 'fp.condition.satisfied', 'fp_condition', id, {
-        after: { status: newStatus, note: satNote || null },
-        context: { individualId, conditionId: id },
-        justification: waive ? (satNote || 'waived') : undefined,
-      });
+      await fpConditionSetStatus(id, newStatus, satNote.trim() || null);
     },
     onSuccess: () => {
       toast.success('Condition updated');
@@ -164,15 +143,7 @@ export function FpConditionsPanel({ individualId }: Props) {
       if (!reason || reason.trim().length < 5) {
         throw new Error('Reopen reason required (min 5 chars)');
       }
-      const { error } = await supabase.from('fp_conditions').update({
-        status: 'open', satisfied_at: null, satisfied_by: null, satisfaction_note: null,
-      }).eq('id', id);
-      if (error) throw error;
-      await logFpAction('fp.condition.reopened', 'fp_condition', id, {
-        after: { status: 'open' },
-        context: { individualId, conditionId: id },
-        justification: reason.trim(),
-      });
+      await fpConditionSetStatus(id, 'open', reason.trim());
     },
     onSuccess: () => {
       toast.success('Reopened');
@@ -188,15 +159,7 @@ export function FpConditionsPanel({ individualId }: Props) {
   const breach = useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
       if (!reason || reason.trim().length < 5) throw new Error('Breach rationale required (min 5 chars)');
-      const { error } = await supabase.from('fp_conditions').update({
-        status: 'breached', satisfaction_note: reason.trim(),
-      }).eq('id', id);
-      if (error) throw error;
-      await logFpAction('fp.condition.breached', 'fp_condition', id, {
-        after: { status: 'breached' },
-        context: { individualId, conditionId: id },
-        justification: reason.trim(),
-      });
+      await fpConditionSetStatus(id, 'breached', reason.trim());
     },
     onSuccess: () => {
       toast.success('Condition marked breached');
