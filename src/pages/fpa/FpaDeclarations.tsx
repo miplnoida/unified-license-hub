@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
-import { fpDeclarationInvitationCreate } from '@/lib/fpGovernedOps';
+import { fpDeclarationInvitationCreate, fpDeclarationInvitationResend } from '@/lib/fpGovernedOps';
 import { toast } from 'sonner';
 import {
   Loader2, Plus, Bell, Send, Copy, CheckCheck, ClipboardList,
@@ -351,23 +351,12 @@ export default function FpaDeclarations() {
       const { raw: rawToken, hash: tokenHash } = await generateToken();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-      const { error: insertErr } = await supabase.from('declaration_invitations' as any).insert({
-        individual_id: individualId,
-        assessment_id: assessmentId,
-        token_hash: tokenHash,
-        verification_hash: prior.verification_hash,
-        verification_hash_alt: prior.verification_hash_alt ?? null,
-        channel: prior.channel,
-        recipient_email: recipientEmail || null,
-        recipient_phone: prior.recipient_phone ?? null,
-        status: 'SENT',
-        expires_at: expiresAt,
+      await fpDeclarationInvitationResend({
+        invitationId: prior.id,
+        tokenHash,
+        expiresAt,
+        recipientEmail: recipientEmail || null,
       });
-      if (insertErr) throw insertErr;
-
-      await supabase.from('declaration_invitations' as any)
-        .update({ status: 'EXPIRED' })
-        .eq('id', prior.id);
 
       const portalLink = `${window.location.origin}/declaration/${rawToken}`;
       let emailSent = false;

@@ -18,6 +18,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
+import { fpDeclarationInvitationCreate, fpDeclarationInvitationResend } from '@/lib/fpGovernedOps';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logFpAction } from '@/lib/fpAudit';
@@ -141,27 +142,21 @@ export default function FpaInvitationTracker() {
       const individual = individuals?.find((i) => i.id === selectedIndividualId);
 
       // e. Insert
-      const { data: inserted, error } = await supabase
-        .from('declaration_invitations')
-        .insert({
-          individual_id: selectedIndividualId,
-          assessment_id: selectedAssessmentId,
-          token_hash,
-          verification_hash,
-          channel,
-          recipient_email: individual?.email ?? null,
-          created_by: user.id,
-        })
-        .select('id')
-        .single();
-
-      if (error) throw error;
+      const created = await fpDeclarationInvitationCreate({
+        assessmentId: selectedAssessmentId,
+        individualId: selectedIndividualId,
+        tokenHash: token_hash,
+        verificationHash: verification_hash,
+        channel: channel as any,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        recipientEmail: individual?.email ?? null,
+      });
 
       // f. Build invitation URL
       const invUrl = `${window.location.origin}/declaration/${rawToken}`;
 
       // g. Audit log
-      await logFpAction('fp.invitation.created', 'declaration_invitation', inserted.id, {
+      await logFpAction('fp.invitation.created', 'declaration_invitation', created.invitation_id, {
         after: {
           individual_id: selectedIndividualId,
           assessment_id: selectedAssessmentId,
@@ -173,7 +168,7 @@ export default function FpaInvitationTracker() {
         },
       });
 
-      return { invUrl, newId: inserted.id };
+      return { invUrl, newId: created.invitation_id };
     },
     onSuccess: ({ invUrl }) => {
       setGeneratedUrl(invUrl);
@@ -197,20 +192,12 @@ export default function FpaInvitationTracker() {
       })();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-      const { error: insertErr } = await supabase.from('declaration_invitations').insert({
-        individual_id: row.individual_id,
-        assessment_id: row.assessment_id,
-        token_hash: tokenHash,
-        verification_hash: row.verification_hash,
-        verification_hash_alt: row.verification_hash_alt ?? null,
-        channel: row.channel,
-        recipient_email: recipientEmail || null,
-        status: 'SENT',
-        expires_at: expiresAt,
+      await fpDeclarationInvitationResend({
+        invitationId: row.id,
+        tokenHash,
+        expiresAt,
+        recipientEmail: recipientEmail || null,
       });
-      if (insertErr) throw insertErr;
-
-      await supabase.from('declaration_invitations').update({ status: 'EXPIRED' }).eq('id', row.id);
 
       let emailSent = false;
       if (recipientEmail) {

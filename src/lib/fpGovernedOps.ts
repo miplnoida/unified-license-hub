@@ -387,3 +387,16 @@ export const fpDeclarationInvitationCreate = (i: {
     _recipient_phone: i.recipientPhone ?? null,
     _note: i.note ?? null,
   });
+
+export const fpDeclarationInvitationResend = (i: {
+  invitationId: string;
+  tokenHash: string;
+  expiresAt: string;
+  recipientEmail?: string | null;
+}) =>
+  call<{ invitation_id: string }>('fp_declaration_invitation_resend', {
+    _invitation_id: i.invitationId,
+    _token_hash: i.tokenHash,
+    _expires_at: i.expiresAt,
+    _recipient_email: i.recipientEmail ?? null,
+  });
