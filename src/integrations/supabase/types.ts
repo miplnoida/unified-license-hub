@@ -31047,6 +31047,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      compliance_return_acknowledge: {
+        Args: { _ack_text: string; _return_id: string }
+        Returns: Json
+      }
       compliance_return_can_file: {
         Args: { _license_id: string; _on_behalf_of: string; _user_id: string }
         Returns: boolean
