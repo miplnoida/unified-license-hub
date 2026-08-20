@@ -15,6 +15,7 @@ import type { WorkflowStep, WorkflowActionType } from '@/hooks/useWorkflowEngine
 import type { StepAction, NextStepMode, EndState } from '@/hooks/useStepActions';
 import type { StepEntryNotification } from '@/hooks/useStepEntryNotifications';
 import type { ActionNotification } from '@/hooks/useActionNotifications';
+import { approvalStepConfigWrite } from '@/lib/applicationLifecycleGovernedOps';
 
 export const TEMPLATE_SNAPSHOT_VERSION = 2 as const;
 

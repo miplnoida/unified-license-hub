@@ -13,6 +13,7 @@ import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/a
 import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
 import { downloadInvoiceForPayment } from '@/lib/invoice';
 import { formatDateTime } from '@/lib/datetime';
+import { applicationPaymentVerify } from '@/lib/applicationLifecycleGovernedOps';
 
 export interface PaymentInfo {
   id?: string;
