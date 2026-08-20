@@ -224,7 +224,9 @@ export default function FilingDetail() {
             <TabsTrigger value="forms">Forms ({data.forms.length})</TabsTrigger>
             <TabsTrigger value="metrics">Metrics ({data.metrics.length})</TabsTrigger>
             <TabsTrigger value="findings">Validation ({data.findings.length})</TabsTrigger>
+            <TabsTrigger value="compare">Compare</TabsTrigger>
             <TabsTrigger value="requests">Requests ({data.requests.length})</TabsTrigger>
+
           </TabsList>
 
           <TabsContent value="versions">
