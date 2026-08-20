@@ -30121,6 +30121,84 @@ export type Database = {
         }
         Relationships: []
       }
+      v_prudential_current_breaches: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          acknowledgement_note: string | null
+          comparator: string | null
+          detected_at: string | null
+          detection_run_id: string | null
+          detection_source: string | null
+          entity_id: string | null
+          escalated_at: string | null
+          escalated_by: string | null
+          escalated_enforcement_id: string | null
+          evidence: Json | null
+          filing_reference: string | null
+          filing_status: string | null
+          id: string | null
+          level: string | null
+          metric_key: string | null
+          notified: boolean | null
+          period_end: string | null
+          period_label: string | null
+          regulatory_metric_id: string | null
+          reporting_period_id: string | null
+          return_config_id: string | null
+          return_filing_id: string | null
+          return_filing_version_id: string | null
+          return_id: string | null
+          risk_level: string | null
+          threshold_value: number | null
+          threshold_version: number | null
+          value: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_threshold_breaches_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_threshold_breaches_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "return_threshold_breaches_escalated_enforcement_id_fkey"
+            columns: ["escalated_enforcement_id"]
+            isOneToOne: false
+            referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_threshold_breaches_reporting_period_id_fkey"
+            columns: ["reporting_period_id"]
+            isOneToOne: false
+            referencedRelation: "reporting_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_threshold_breaches_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "return_filings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_threshold_breaches_return_filing_version_id_fkey"
+            columns: ["return_filing_version_id"]
+            isOneToOne: false
+            referencedRelation: "return_filing_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_prudential_early_warnings: {
         Row: {
           current_value: number | null
