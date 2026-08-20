@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { formatDateTime } from '@/lib/datetime';
-import { useRdmDuplicateEntities, useRdmDuplicateOrganizations, useRdmEntityFoundationReport, useRdmIntegrityReport } from '@/hooks/useRegulatoryDataModel';
+import { useRdmDuplicateEntities, useRdmDuplicateOrganizations, useRdmEntityFoundationReport, useRdmEntityRegistryReport, useRdmIntegrityReport } from '@/hooks/useRegulatoryDataModel';
 
 interface Metric {
   label: string;
@@ -27,6 +27,7 @@ export function DataIntegrityPanel() {
   const { data: duplicates = [] } = useRdmDuplicateEntities();
   const { data: foundation, refetch: refetchFoundation } = useRdmEntityFoundationReport();
   const { data: duplicateOrgs = [] } = useRdmDuplicateOrganizations();
+  const { data: registry, refetch: refetchRegistry } = useRdmEntityRegistryReport();
 
 
   if (isLoading || !report) {
@@ -120,6 +121,47 @@ export function DataIntegrityPanel() {
     );
   }
 
+  if (registry) {
+    groups.push(
+      {
+        title: 'Phase 2B · External registry bindings',
+        description: 'A registry binding points at an existing Integration Manager connection. Zero bindings is a valid, fully local deployment.',
+        metrics: [
+          { label: 'Bindings configured', value: registry.bindings_total },
+          { label: 'Active bindings', value: registry.bindings_active },
+          { label: 'External-authoritative', value: registry.bindings_external_authoritative },
+          { label: 'Hybrid authority', value: registry.bindings_hybrid_authority },
+          { label: 'Local authoritative', value: registry.bindings_local_authoritative },
+          { label: 'Integration connections available', value: registry.integration_connections_available, note: 'Credentials stay in Integration Manager' },
+        ],
+      },
+      {
+        title: 'Phase 2B · External entity references',
+        description: 'External identities map onto the permanent local entity UUID; they never replace it.',
+        metrics: [
+          { label: 'Entities with external reference', value: registry.entities_with_external_reference },
+          { label: 'Entities with multiple references', value: registry.entities_with_multiple_external_references, note: 'Multiple providers are legitimate' },
+          { label: 'Duplicate external ids in a binding', value: registry.duplicate_external_ids_within_binding, threshold: 0 },
+          { label: 'Unverified references', value: registry.external_references_unverified },
+          { label: 'Stale references (>30 days)', value: registry.external_references_stale },
+          { label: 'Identity snapshots', value: registry.identity_snapshots_total, note: registry.identity_snapshots_last_captured_at ? `Last ${formatDateTime(registry.identity_snapshots_last_captured_at)}` : 'Append-only, none captured yet' },
+        ],
+      },
+      {
+        title: 'Phase 2B · Authority, synchronisation & conflicts',
+        description: 'Authority is governed per data domain. Discrepancies are recorded for review — never auto-resolved, never last-write-wins.',
+        metrics: [
+          { label: 'Authority rules', value: registry.authority_rules_total },
+          { label: 'Sync states', value: registry.sync_states_total, note: registry.last_successful_sync_at ? `Last success ${formatDateTime(registry.last_successful_sync_at)}` : 'No synchronisation has run' },
+          { label: 'Sync conflicts', value: registry.sync_conflicts_total },
+          { label: 'Open conflicts', value: registry.sync_conflicts_open, threshold: 0 },
+          { label: 'Licence numbers held as entity identity', value: registry.licence_number_entity_identifiers, threshold: 0, note: 'Phase 2A.1 correction' },
+          { label: 'Retired identifier types', value: registry.retired_identifier_types, note: 'Retired, never deleted' },
+        ],
+      },
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -130,7 +172,7 @@ export function DataIntegrityPanel() {
           size="sm"
           variant="outline"
           className="gap-1.5"
-          onClick={() => { refetch(); refetchFoundation(); }}
+          onClick={() => { refetch(); refetchFoundation(); refetchRegistry(); }}
           disabled={isRefetching}
         >
           <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} /> Refresh

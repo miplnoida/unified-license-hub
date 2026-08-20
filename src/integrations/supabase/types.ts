@@ -8290,6 +8290,155 @@ export type Database = {
         }
         Relationships: []
       }
+      entity_data_authority_rules: {
+        Row: {
+          allow_local_override: boolean
+          authority_source: string
+          created_at: string
+          data_concept_key: string | null
+          data_domain_id: string
+          effective_from: string
+          effective_to: string | null
+          entity_registry_binding_id: string | null
+          id: string
+          is_active: boolean
+          regulator_id: string | null
+          requires_reconciliation: boolean
+          updated_at: string
+        }
+        Insert: {
+          allow_local_override?: boolean
+          authority_source: string
+          created_at?: string
+          data_concept_key?: string | null
+          data_domain_id: string
+          effective_from?: string
+          effective_to?: string | null
+          entity_registry_binding_id?: string | null
+          id?: string
+          is_active?: boolean
+          regulator_id?: string | null
+          requires_reconciliation?: boolean
+          updated_at?: string
+        }
+        Update: {
+          allow_local_override?: boolean
+          authority_source?: string
+          created_at?: string
+          data_concept_key?: string | null
+          data_domain_id?: string
+          effective_from?: string
+          effective_to?: string | null
+          entity_registry_binding_id?: string | null
+          id?: string
+          is_active?: boolean
+          regulator_id?: string | null
+          requires_reconciliation?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_data_authority_rules_data_domain_id_fkey"
+            columns: ["data_domain_id"]
+            isOneToOne: false
+            referencedRelation: "data_domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_data_authority_rules_entity_registry_binding_id_fkey"
+            columns: ["entity_registry_binding_id"]
+            isOneToOne: false
+            referencedRelation: "entity_registry_bindings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_data_authority_rules_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_external_references: {
+        Row: {
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          entity_id: string
+          entity_registry_binding_id: string
+          external_entity_id: string
+          external_entity_type: string | null
+          external_etag: string | null
+          external_version: string | null
+          id: string
+          is_authoritative: boolean
+          is_primary_reference: boolean
+          last_synchronized_at: string | null
+          last_verified_at: string | null
+          updated_at: string
+          verification_status: string
+        }
+        Insert: {
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          entity_id: string
+          entity_registry_binding_id: string
+          external_entity_id: string
+          external_entity_type?: string | null
+          external_etag?: string | null
+          external_version?: string | null
+          id?: string
+          is_authoritative?: boolean
+          is_primary_reference?: boolean
+          last_synchronized_at?: string | null
+          last_verified_at?: string | null
+          updated_at?: string
+          verification_status?: string
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          entity_id?: string
+          entity_registry_binding_id?: string
+          external_entity_id?: string
+          external_entity_type?: string | null
+          external_etag?: string | null
+          external_version?: string | null
+          id?: string
+          is_authoritative?: boolean
+          is_primary_reference?: boolean
+          last_synchronized_at?: string | null
+          last_verified_at?: string | null
+          updated_at?: string
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_external_references_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_external_references_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_external_references_entity_registry_binding_id_fkey"
+            columns: ["entity_registry_binding_id"]
+            isOneToOne: false
+            referencedRelation: "entity_registry_bindings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entity_identifier_types: {
         Row: {
           created_at: string
@@ -8301,7 +8450,7 @@ export type Database = {
           issuer: string | null
           key: string
           label: string
-          normalization_rule: string | null
+          normalization_strategy: string
           scope_requires_issuer: boolean | null
           scope_requires_jurisdiction: boolean | null
           scope_requires_regulator: boolean | null
@@ -8320,7 +8469,7 @@ export type Database = {
           issuer?: string | null
           key: string
           label: string
-          normalization_rule?: string | null
+          normalization_strategy?: string
           scope_requires_issuer?: boolean | null
           scope_requires_jurisdiction?: boolean | null
           scope_requires_regulator?: boolean | null
@@ -8339,7 +8488,7 @@ export type Database = {
           issuer?: string | null
           key?: string
           label?: string
-          normalization_rule?: string | null
+          normalization_strategy?: string
           scope_requires_issuer?: boolean | null
           scope_requires_jurisdiction?: boolean | null
           scope_requires_regulator?: boolean | null
@@ -8446,6 +8595,90 @@ export type Database = {
           },
         ]
       }
+      entity_identity_snapshots: {
+        Row: {
+          capture_reason: string
+          captured_at: string
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          entity_registry_binding_id: string | null
+          external_entity_id: string | null
+          id: string
+          snapshot_data: Json
+          source_application_id: string | null
+          source_submission_id: string | null
+          source_timestamp: string | null
+          source_version: string | null
+        }
+        Insert: {
+          capture_reason: string
+          captured_at?: string
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          entity_registry_binding_id?: string | null
+          external_entity_id?: string | null
+          id?: string
+          snapshot_data: Json
+          source_application_id?: string | null
+          source_submission_id?: string | null
+          source_timestamp?: string | null
+          source_version?: string | null
+        }
+        Update: {
+          capture_reason?: string
+          captured_at?: string
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          entity_registry_binding_id?: string | null
+          external_entity_id?: string | null
+          id?: string
+          snapshot_data?: Json
+          source_application_id?: string | null
+          source_submission_id?: string | null
+          source_timestamp?: string | null
+          source_version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_identity_snapshots_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_identity_snapshots_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_identity_snapshots_entity_registry_binding_id_fkey"
+            columns: ["entity_registry_binding_id"]
+            isOneToOne: false
+            referencedRelation: "entity_registry_bindings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_identity_snapshots_source_application_id_fkey"
+            columns: ["source_application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_identity_snapshots_source_application_id_fkey"
+            columns: ["source_application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entity_identity_statuses: {
         Row: {
           blocks_licensing: boolean
@@ -8491,7 +8724,7 @@ export type Database = {
       entity_licenses: {
         Row: {
           created_at: string
-          effective_from: string | null
+          effective_from: string
           effective_to: string | null
           entity_id: string
           id: string
@@ -8502,7 +8735,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          effective_from?: string | null
+          effective_from: string
           effective_to?: string | null
           entity_id: string
           id?: string
@@ -8513,7 +8746,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          effective_from?: string | null
+          effective_from?: string
           effective_to?: string | null
           entity_id?: string
           id?: string
@@ -8549,6 +8782,83 @@ export type Database = {
             columns: ["license_id"]
             isOneToOne: false
             referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_registry_bindings: {
+        Row: {
+          authority_mode: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          failure_policy_id: string | null
+          id: string
+          integration_connection_id: string
+          is_active: boolean
+          is_primary: boolean
+          notes: string | null
+          regulator_id: string | null
+          resolution_policy_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          authority_mode?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          failure_policy_id?: string | null
+          id?: string
+          integration_connection_id: string
+          is_active?: boolean
+          is_primary?: boolean
+          notes?: string | null
+          regulator_id?: string | null
+          resolution_policy_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          authority_mode?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          failure_policy_id?: string | null
+          id?: string
+          integration_connection_id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          notes?: string | null
+          regulator_id?: string | null
+          resolution_policy_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_registry_bindings_failure_policy_id_fkey"
+            columns: ["failure_policy_id"]
+            isOneToOne: false
+            referencedRelation: "entity_registry_failure_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_registry_bindings_integration_connection_id_fkey"
+            columns: ["integration_connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_registry_bindings_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_registry_bindings_resolution_policy_id_fkey"
+            columns: ["resolution_policy_id"]
+            isOneToOne: false
+            referencedRelation: "entity_resolution_policies"
             referencedColumns: ["id"]
           },
         ]
@@ -8597,6 +8907,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      entity_registry_sync_states: {
+        Row: {
+          created_at: string
+          entity_registry_binding_id: string
+          id: string
+          last_cursor: string | null
+          last_error_at: string | null
+          last_error_summary: string | null
+          last_success_at: string | null
+          last_sync_completed_at: string | null
+          last_sync_started_at: string | null
+          records_failed: number
+          records_processed: number
+          sync_status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity_registry_binding_id: string
+          id?: string
+          last_cursor?: string | null
+          last_error_at?: string | null
+          last_error_summary?: string | null
+          last_success_at?: string | null
+          last_sync_completed_at?: string | null
+          last_sync_started_at?: string | null
+          records_failed?: number
+          records_processed?: number
+          sync_status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity_registry_binding_id?: string
+          id?: string
+          last_cursor?: string | null
+          last_error_at?: string | null
+          last_error_summary?: string | null
+          last_success_at?: string | null
+          last_sync_completed_at?: string | null
+          last_sync_started_at?: string | null
+          records_failed?: number
+          records_processed?: number
+          sync_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_registry_sync_states_entity_registry_binding_id_fkey"
+            columns: ["entity_registry_binding_id"]
+            isOneToOne: true
+            referencedRelation: "entity_registry_bindings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       entity_relationships: {
         Row: {
@@ -8764,6 +9130,92 @@ export type Database = {
           weights?: Json
         }
         Relationships: []
+      }
+      entity_sync_conflicts: {
+        Row: {
+          created_at: string
+          data_concept_key: string | null
+          data_domain_id: string
+          detected_at: string
+          entity_id: string
+          entity_registry_binding_id: string
+          external_value: Json | null
+          external_version: string | null
+          id: string
+          local_value: Json | null
+          local_version: string | null
+          resolution_reason: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_value: Json | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          data_concept_key?: string | null
+          data_domain_id: string
+          detected_at?: string
+          entity_id: string
+          entity_registry_binding_id: string
+          external_value?: Json | null
+          external_version?: string | null
+          id?: string
+          local_value?: Json | null
+          local_version?: string | null
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_value?: Json | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          data_concept_key?: string | null
+          data_domain_id?: string
+          detected_at?: string
+          entity_id?: string
+          entity_registry_binding_id?: string
+          external_value?: Json | null
+          external_version?: string | null
+          id?: string
+          local_value?: Json | null
+          local_version?: string | null
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_value?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_sync_conflicts_data_domain_id_fkey"
+            columns: ["data_domain_id"]
+            isOneToOne: false
+            referencedRelation: "data_domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_sync_conflicts_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_sync_conflicts_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_sync_conflicts_entity_registry_binding_id_fkey"
+            columns: ["entity_registry_binding_id"]
+            isOneToOne: false
+            referencedRelation: "entity_registry_bindings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       entity_user_access: {
         Row: {
@@ -28247,6 +28699,10 @@ export type Database = {
       mark_prudential_actions_overdue: { Args: never; Returns: number }
       next_invoice_number: { Args: never; Returns: string }
       no_plan: { Args: never; Returns: boolean[] }
+      normalize_entity_identifier: {
+        Args: { _identifier_type_id: string; _raw_value: string }
+        Returns: string
+      }
       notif_enqueue: {
         Args: {
           _entity_id: string
@@ -28899,6 +29355,7 @@ export type Database = {
         }[]
       }
       rdm_entity_foundation_report: { Args: never; Returns: Json }
+      rdm_entity_registry_report: { Args: never; Returns: Json }
       rdm_integrity_report: { Args: never; Returns: Json }
       rdm_metadata_tables: { Args: never; Returns: string[] }
       rdm_promote_default_policy: {

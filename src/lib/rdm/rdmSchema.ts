@@ -162,7 +162,7 @@ export const RDM_SCHEMAS: Record<string, RdmTableSchema> = {
   entity_identifier_types: {
     table: 'entity_identifier_types',
     title: 'Entity Identifier Types',
-    description: 'Identifiers an entity can carry and the scope in which each value must be unique. Company and taxpayer numbers are unique per jurisdiction, never globally.',
+    description: 'Identifiers of the entity/organisation itself — company registration number, taxpayer number, LEI, regulatory entity number, foreign registry id. A licence number identifies a licence, not the entity, and stays authoritative on the licence record. Company and taxpayer numbers are unique per jurisdiction, never globally.',
     singular: 'identifier type',
     fields: [
       KEY_FIELD, LABEL_FIELD, DESC_FIELD,
@@ -171,7 +171,7 @@ export const RDM_SCHEMAS: Record<string, RdmTableSchema> = {
       { name: 'scope_requires_jurisdiction', label: 'Requires jurisdiction', type: 'boolean', inList: true, derived: true },
       { name: 'scope_requires_issuer', label: 'Requires issuer', type: 'boolean', derived: true },
       { name: 'scope_requires_regulator', label: 'Requires regulator', type: 'boolean', derived: true },
-      { name: 'normalization_rule', label: 'Normalisation rule', type: 'text', help: 'How a value is normalised before comparison or uniqueness checks.' },
+      { name: 'normalization_strategy', label: 'Normalisation strategy', type: 'select', options: ['UPPER_TRIM', 'UPPER_ALPHANUMERIC', 'DIGITS_ONLY', 'TRIM_ONLY', 'CASE_SENSITIVE_TRIM'], required: true, inList: true, help: 'Platform algorithm applied before comparison and uniqueness checks. Administrators choose a strategy — no custom SQL, regex or expression is ever executed. External registry matching uses the same service.' },
       { name: 'is_unique_global', label: 'Globally unique (legacy)', type: 'boolean', derived: true, help: 'Compatibility flag only — derived from uniqueness scope GLOBAL.' },
 
       { name: 'validation_regex', label: 'Validation pattern', type: 'text' },
