@@ -30752,6 +30752,7 @@ export type Database = {
         Args: { _user_id?: string }
         Returns: boolean
       }
+      can_issue_decision_artifact: { Args: { _user: string }; Returns: boolean }
       can_manage_conduct_intelligence: { Args: never; Returns: boolean }
       can_manage_conduct_investigation: {
         Args: { _investigation_id: string }
