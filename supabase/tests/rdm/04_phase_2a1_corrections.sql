@@ -62,12 +62,13 @@ WITH ins AS (
     (entity_id, identifier_type_id, identifier_value, source_type, jurisdiction_id)
   SELECT (SELECT id FROM public.licensees ORDER BY id OFFSET v.entity_offset LIMIT 1),
          t.id, v.raw, 'MANUAL',
-         CASE WHEN t.uniqueness_scope = 'JURISDICTION' THEN (SELECT id FROM public.countries LIMIT 1) END
+         CASE WHEN t.uniqueness_scope = 'JURISDICTION'
+              THEN (SELECT id FROM public.countries ORDER BY id OFFSET v.entity_offset LIMIT 1) END
     FROM (VALUES
       ('legal_entity_identifier', '  549300ab  cd12 ', 0),
       ('taxpayer_registration_number', 'trn-123 456', 0),
       ('company_registration_number', ' c-123/ab ', 0),
-      ('company_registration_number', 'C123AB', 1)
+      ('company_registration_number', 'C123AB', 1)  -- other jurisdiction, same normalisation
     ) AS v(type_key, raw, entity_offset)
     JOIN public.entity_identifier_types t ON t.key = v.type_key
   RETURNING identifier_type_id, identifier_value, normalized_value)
