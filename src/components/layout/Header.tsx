@@ -1,6 +1,5 @@
 import { Bell, UserCircle, LogOut, Layers, Info, CheckCircle, AlertTriangle, XCircle, CheckCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { ROLE_LABELS } from '@/types/platform';
 import { useNavigate } from 'react-router-dom';
