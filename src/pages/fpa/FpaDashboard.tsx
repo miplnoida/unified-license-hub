@@ -449,12 +449,13 @@ export default function FpaDashboard() {
               </div>
             </TabsContent>
 
-            {/* Tab C – Adverse Findings */}
+            {/* Stage 3 – Adverse Findings */}
             <TabsContent value="C">
               <div className="mb-3">
                 <p className="text-xs text-muted-foreground">
-                  Scenarios covering how adverse findings are surfaced, severity-coded, escalated, and tracked over time.
+                  Adverse findings raised by screening or review — severity, supervisor routing, escalation and historical trends.
                 </p>
+
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {STAGE_3_AREAS.map((s) => (
