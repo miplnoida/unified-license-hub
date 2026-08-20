@@ -32269,6 +32269,15 @@ export type Database = {
         }
         Returns: Json
       }
+      fp_declaration_invitation_resend: {
+        Args: {
+          _expires_at: string
+          _invitation_id: string
+          _recipient_email?: string
+          _token_hash: string
+        }
+        Returns: Json
+      }
       fp_determination_record: {
         Args: {
           _assessment_id: string
