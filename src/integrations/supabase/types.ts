@@ -8284,7 +8284,11 @@ export type Database = {
           issuer: string | null
           key: string
           label: string
+          normalization_rule: string | null
+          scope_requires_issuer: boolean
+          scope_requires_jurisdiction: boolean
           sort_order: number
+          uniqueness_scope: string
           updated_at: string
           validation_regex: string | null
         }
@@ -8298,7 +8302,11 @@ export type Database = {
           issuer?: string | null
           key: string
           label: string
+          normalization_rule?: string | null
+          scope_requires_issuer?: boolean
+          scope_requires_jurisdiction?: boolean
           sort_order?: number
+          uniqueness_scope?: string
           updated_at?: string
           validation_regex?: string | null
         }
@@ -8312,7 +8320,11 @@ export type Database = {
           issuer?: string | null
           key?: string
           label?: string
+          normalization_rule?: string | null
+          scope_requires_issuer?: boolean
+          scope_requires_jurisdiction?: boolean
           sort_order?: number
+          uniqueness_scope?: string
           updated_at?: string
           validation_regex?: string | null
         }
@@ -18379,6 +18391,7 @@ export type Database = {
           description: string | null
           id: string
           inverse_key: string | null
+          inverse_relationship_type_id: string | null
           is_active: boolean
           is_group: boolean
           is_ownership: boolean
@@ -18394,6 +18407,7 @@ export type Database = {
           description?: string | null
           id?: string
           inverse_key?: string | null
+          inverse_relationship_type_id?: string | null
           is_active?: boolean
           is_group?: boolean
           is_ownership?: boolean
@@ -18409,6 +18423,7 @@ export type Database = {
           description?: string | null
           id?: string
           inverse_key?: string | null
+          inverse_relationship_type_id?: string | null
           is_active?: boolean
           is_group?: boolean
           is_ownership?: boolean
@@ -18418,7 +18433,15 @@ export type Database = {
           sort_order?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "relationship_types_inverse_fk"
+            columns: ["inverse_relationship_type_id"]
+            isOneToOne: false
+            referencedRelation: "relationship_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       report_dashboard_layouts: {
         Row: {
@@ -28541,6 +28564,10 @@ export type Database = {
       rbac_save_role: { Args: { _payload: Json }; Returns: Json }
       rdm_can_read: { Args: never; Returns: boolean }
       rdm_can_write: { Args: never; Returns: boolean }
+      rdm_delete_metadata: {
+        Args: { _id: string; _table: string }
+        Returns: undefined
+      }
       rdm_diag_duplicate_entities: {
         Args: never
         Returns: {
@@ -28552,6 +28579,15 @@ export type Database = {
         }[]
       }
       rdm_integrity_report: { Args: never; Returns: Json }
+      rdm_metadata_tables: { Args: never; Returns: string[] }
+      rdm_retire_metadata: {
+        Args: { _id: string; _table: string }
+        Returns: undefined
+      }
+      rdm_save_metadata: {
+        Args: { _id?: string; _table: string; _values: Json }
+        Returns: string
+      }
       reap_stuck_notification_event_queue: { Args: never; Returns: number }
       reap_stuck_notification_outbox: { Args: never; Returns: number }
       recompute_return_ratios: { Args: { _return_id: string }; Returns: Json }
