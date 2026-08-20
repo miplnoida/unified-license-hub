@@ -23,6 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { StatusBadge } from './EntityReturnsDashboard';
 import { Save, Send, ArrowLeft, ArrowRight, Loader2, CheckCircle2, AlertTriangle, Clock, Eye } from 'lucide-react';
+import { complianceReturnAcknowledge } from '@/lib/complianceReturnGovernedOps';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import { format, differenceInDays } from 'date-fns';
@@ -493,14 +494,12 @@ export default function FillReturnPage() {
 
       // Persist acknowledgement metadata on compliance_returns (best-effort)
       if (id && ackText) {
-        await supabase
-          .from('compliance_returns' as any)
-          .update({
-            ack_by: user?.id,
-            ack_at: now.toISOString(),
-            ack_text: String(ackText).slice(0, 4000),
-          })
-          .eq('id', id);
+        // Governed: acknowledging officer and timestamp are recorded server-side.
+        try {
+          await complianceReturnAcknowledge(id, String(ackText));
+        } catch (e) {
+          console.error('acknowledgement could not be recorded', e);
+        }
       }
 
       const previousStatus = String(returnData?.workflow_status || '').toUpperCase();

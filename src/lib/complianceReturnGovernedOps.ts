@@ -57,3 +57,13 @@ export async function complianceReturnReviewDecision(
   });
   return unwrap(data, error) as Record<string, unknown>;
 }
+
+/** Records the filer's declaration text on a return (server-derived actor/timestamp). */
+export async function complianceReturnAcknowledge(returnId: string, ackText: string) {
+  const { data, error } = await supabase.rpc('compliance_return_acknowledge' as any, {
+    _return_id: returnId,
+    _ack_text: ackText,
+  } as any);
+  if (error) throw new Error(error.message);
+  return data as Record<string, unknown>;
+}

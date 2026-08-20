@@ -16,6 +16,7 @@ import { usePpoc } from '@/contexts/PpocContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { RETURN_STATUS_LABELS, ReturnStatus, INTERNAL_ROLES } from '@/types/platform';
 import { Search, Loader2, Send, Eye, ClipboardList, CheckCircle, Clock, AlertTriangle, DollarSign, Calendar, TrendingUp, FileText, X } from 'lucide-react';
+import { complianceReturnSubmit } from '@/lib/complianceReturnGovernedOps';
 import { toast } from 'sonner';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { describeReturnsFilter } from '@/lib/licenseeDashboardDrilldowns';
@@ -176,9 +177,10 @@ export default function ComplianceReturns() {
     try {
       await authorizedAction('compliance_management', 'edit', { return_id: id, action: 'submit' });
     } catch (e: any) { toast.error(e?.message ?? 'Not authorized'); return; }
-    const { error } = await supabase.from('compliance_returns' as any)
-      .update({ status: 'submitted', submitted_at: new Date().toISOString() } as any).eq('id', id);
-    if (error) { toast.error(error.message); return; }
+    try {
+      // Governed: status, timestamp, entitlement and audit are server-side.
+      await complianceReturnSubmit({ return_id: id });
+    } catch (e: any) { toast.error(e?.message || 'Could not submit return'); return; }
     toast.success('Return submitted'); loadAll();
   };
 
