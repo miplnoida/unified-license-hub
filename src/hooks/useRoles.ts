@@ -60,13 +60,24 @@ export function useRoles() {
   return useQuery({
     queryKey: ['dynamic-roles'],
     queryFn: async () => {
-      // Canonical role catalogue.
-      const { data, error } = await supabase
-        .from('sec_roles' as any)
-        .select('*')
-        .order('created_at');
+      // `sec_roles` is the canonical catalogue (identity, name, status,
+      // role_type, dashboard_tier, break-glass flag). The per-module scope
+      // blob and access summary still live on the legacy `roles` mirror until
+      // the normalized `sec_role_scopes` editor lands, so merge them in by id
+      // (both tables share the same primary keys).
+      const [{ data, error }, { data: legacy }] = await Promise.all([
+        supabase.from('sec_roles' as any).select('*').order('created_at'),
+        supabase.from('roles' as any).select('id, scope_config, access_summary'),
+      ]);
       if (error) throw error;
-      return (data || []) as unknown as DynamicRole[];
+      const extras = new Map<string, any>(
+        ((legacy as any[]) || []).map((r) => [r.id, r]),
+      );
+      return ((data as any[]) || []).map((r) => ({
+        ...r,
+        scope_config: extras.get(r.id)?.scope_config ?? {},
+        access_summary: extras.get(r.id)?.access_summary ?? {},
+      })) as unknown as DynamicRole[];
     },
   });
 }
