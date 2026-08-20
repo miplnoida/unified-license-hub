@@ -47,7 +47,12 @@ export const KNOWN_PERMISSION_MODULES = [
   'license_appeals',
   'escalation_management',
   'rule_engine',
+  'entity_resolution',
+  'entity_membership',
+  'regulatory_data_model',
+  'integration_management',
 ] as const;
+
 
 /**
  * Route prefix → required permission module.
