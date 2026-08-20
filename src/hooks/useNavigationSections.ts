@@ -84,12 +84,13 @@ export function useNavigationSections(): { sections: NavSection[]; isLoading: bo
     };
     const sidebarItems = items.filter(isSidebarVisible);
     const roots = buildNavTree(sidebarItems);
-    const sections: NavSection[] = roots.map((root) => ({
-      label: root.item_type === 'group' ? root.label : undefined,
-      icon: root.item_type === 'group' ? renderNavIcon(root.icon, 'h-4 w-4 shrink-0') : undefined,
-      items: (root.item_type === 'group' ? root.children : [root]).map((child) => toNavItem(child, 0)),
-    })).filter((s) => s.items.length > 0);
+    // Root domains (Licensing, Supervision, Returns, ...) render as first-class
+    // level-1 accordion rows with their own icon — NOT as tiny uppercase
+    // separator captions. A root that is a plain link (Home) renders directly.
+    const sections: NavSection[] = [{ items: roots.map((root) => toNavItem(root, 0)) }]
+      .filter((s) => s.items.length > 0);
     return { sections: sections.length ? sections : mainNavSections, isLoading, isDbDriven: sections.length > 0 };
+
   }, [context, isLoading]);
 
 }
