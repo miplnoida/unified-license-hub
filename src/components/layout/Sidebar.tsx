@@ -13,6 +13,8 @@ import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { getModuleForPath } from '@/lib/permissionModules';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { LICENSEE_ROLES, PRE_LICENSEE_ROLES, INTERNAL_ROLES } from '@/types/platform';
+import { prefetchRoute } from '@/lib/routePrefetch';
+
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
 const EXPANDED_KEY = 'sidebar-expanded-groups';
