@@ -5,7 +5,7 @@
 --   D. entity_licenses temporal integrity
 --   E. person data remains deferred
 BEGIN;
-SELECT plan(19);
+SELECT plan(20);
 
 -- ---------------------------------------------------------------- A
 SELECT is(
