@@ -17,6 +17,8 @@ export interface RdmField {
   /** Show in the list view (all fields always show in the editor). */
   inList?: boolean;
   help?: string;
+  /** Editable on create, locked afterwards (DB-enforced immutability). */
+  immutable?: boolean;
 }
 
 export interface RdmTableSchema {
@@ -33,12 +35,14 @@ const KEY_FIELD: RdmField = {
   type: 'text',
   required: true,
   inList: true,
-  help: 'Stable machine key referenced by workflows and rules. Do not change once in use.',
+  immutable: true,
+  help: 'Stable machine key referenced by workflows, rules and integrations. Immutable once created — retire the row and create a new key instead.',
 };
 const LABEL_FIELD: RdmField = { name: 'label', label: 'Label', type: 'text', required: true, inList: true };
 const DESC_FIELD: RdmField = { name: 'description', label: 'Description', type: 'textarea' };
 const ORDER_FIELD: RdmField = { name: 'sort_order', label: 'Sort order', type: 'number', inList: true };
 const ACTIVE_FIELD: RdmField = { name: 'is_active', label: 'Active', type: 'boolean', inList: true };
+
 
 export const RDM_SCHEMAS: Record<string, RdmTableSchema> = {
   classification_schemes: {
