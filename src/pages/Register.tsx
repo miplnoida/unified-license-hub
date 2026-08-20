@@ -1,10 +1,12 @@
 /**
- * Public self-registration entry point.
- * Canonical URL is `/register`. Renders the pre-licensee registration form
- * directly so the browser URL stays `/register` (no nested route).
+ * RDM-ENTITY-001 Wave C — `/register` is the USER ACCOUNT step only (§17).
+ * Chain: /register (user account) → /register/entity (entity identification)
+ * → authority/membership request → Application / Form Package.
+ * The legacy all-in-one flow remains available at `/register/legacy` and at
+ * the existing update/resubmission routes.
  */
-import PreLicenseeRegistration from '@/pages/registration/PreLicenseeRegistration';
+import UserAccountStep from '@/pages/registration/UserAccountStep';
 
 export default function Register() {
-  return <PreLicenseeRegistration />;
+  return <UserAccountStep />;
 }
