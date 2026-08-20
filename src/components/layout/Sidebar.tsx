@@ -303,20 +303,20 @@ export function Sidebar() {
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <ScrollArea className="flex-1 px-3" ref={navRef}>
-            <nav className="py-3 space-y-5">
+          <ScrollArea className="sidebar-nav-scroll flex-1 px-3" ref={navRef}>
+            <nav className="w-full min-w-0 py-3 space-y-5">
               {navSections.map((section) => {
                 const visibleItems = section.items.map(pruneItem).filter((i): i is NavItem => !!i);
                 if (visibleItems.length === 0) return null;
                 return (
-                  <div key={section.label || 'main'}>
+                  <div key={section.label || 'main'} className="min-w-0">
                     {section.label && (
-                      <p className="flex items-center gap-2 px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sidebar-foreground/40">
-                        <span className="text-sidebar-foreground/50">{section.icon}</span>
-                        {section.label}
+                      <p className="flex min-w-0 items-center gap-2 px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sidebar-foreground/40">
+                        <span className="shrink-0 text-sidebar-foreground/50">{section.icon}</span>
+                        <span className="min-w-0 truncate">{section.label}</span>
                       </p>
                     )}
-                    <div className="space-y-0.5">
+                    <div className="min-w-0 space-y-0.5">
                       {visibleItems.map((item) => {
                         if (item.children?.length) {
                           return (
@@ -327,13 +327,14 @@ export function Sidebar() {
                         if (!item.href) return null;
                         const isActive = isPathActive(item.href, location.pathname);
                         return (
-                          <Link key={item.href} to={item.href} className={cn('nav-item', isActive && 'nav-item-active')}>
-                            {item.icon}
-                            <span className="flex-1 truncate">{item.label}</span>
+                          <Link key={item.href} to={item.href} title={item.label} className={cn('nav-item items-start', isActive && 'nav-item-active')}>
+                            <span className="shrink-0 mt-[1px]">{item.icon}</span>
+                            <span className="flex-1 min-w-0 break-words leading-snug line-clamp-2">{item.label}</span>
                           </Link>
                         );
                       })}
                     </div>
+
                   </div>
                 );
               })}
