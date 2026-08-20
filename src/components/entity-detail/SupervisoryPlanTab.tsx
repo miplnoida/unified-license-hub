@@ -90,11 +90,14 @@ export default function SupervisoryPlanTab({ entityId }: { entityId: string }) {
   };
 
   const markComplete = async (a: Action) => {
-    const { error } = await supabase
-      .from('supervisory_plan_actions' as any)
-      .update({ status: 'completed', completed_at: new Date().toISOString() } as any)
-      .eq('id', a.id);
-    if (error) { toast.error(error.message); return; }
+    try {
+      // Governed operation: authority + audit enforced server-side.
+      await supervisoryPlanActionTransition({
+        actionId: a.id,
+        toStatus: 'completed',
+        reason: 'Marked complete from entity supervisory plan',
+      });
+    } catch (e: any) { toast.error(e?.message || 'Failed to complete action'); return; }
     toast.success('Action completed');
     load();
   };
@@ -105,16 +108,21 @@ export default function SupervisoryPlanTab({ entityId }: { entityId: string }) {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from('supervisory_plan_actions' as any).insert({
-      plan_id: plan.id,
-      title: newTitle.trim(),
-      description: newDescription || null,
-      owner_role: newOwner,
-      due_date: newDue,
-      source: 'manual',
-    } as any);
+    try {
+      await supervisoryPlanActionCreate({
+        planId: plan.id,
+        title: newTitle.trim(),
+        description: newDescription || null,
+        ownerRole: newOwner,
+        dueDate: newDue,
+        source: 'manual',
+      });
+    } catch (e: any) {
+      setSubmitting(false);
+      toast.error(e?.message || 'Failed to add action');
+      return;
+    }
     setSubmitting(false);
-    if (error) { toast.error(error.message); return; }
     setAddOpen(false);
     setNewTitle(''); setNewDescription(''); setNewDue(''); setNewOwner('supervisor');
     load();
