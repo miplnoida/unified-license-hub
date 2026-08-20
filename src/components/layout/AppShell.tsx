@@ -53,27 +53,31 @@ export function AppShell() {
 
   return (
     <AppShellContext.Provider value={true}>
-      <div className="h-screen overflow-hidden bg-background">
-        <Sidebar />
-        <div className="h-screen flex flex-col transition-[padding] duration-300" style={{ paddingLeft: sidebarWidth }}>
-          <Header />
-          <LicenseeSwitcher />
-          <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
-            <div className="max-w-[1440px] mx-auto space-y-4">
-              <ActingOnBehalfOfBanner />
-              <ErrorBoundary context="RouteContent">
-                <Suspense fallback={<RouteContentSkeleton />}>
-                  {/* keyed by path: restarts only the CONTENT transition */}
-                  <RouteContentTransition pathname={location.pathname}>
-                    <Outlet />
-                  </RouteContentTransition>
-                </Suspense>
-              </ErrorBoundary>
-            </div>
-          </main>
+      <BreadcrumbLabelProvider>
+        <div className="h-screen overflow-hidden bg-background">
+          <Sidebar />
+          <div className="h-screen flex flex-col transition-[padding] duration-300" style={{ paddingLeft: sidebarWidth }}>
+            <Header />
+            <LicenseeSwitcher />
+            <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
+              <div className="max-w-[1440px] mx-auto space-y-4">
+                <ApplicationBreadcrumbs />
+                <ActingOnBehalfOfBanner />
+                <ErrorBoundary context="RouteContent">
+                  <Suspense fallback={<RouteContentSkeleton />}>
+                    {/* keyed by path: restarts only the CONTENT transition */}
+                    <RouteContentTransition pathname={location.pathname}>
+                      <Outlet />
+                    </RouteContentTransition>
+                  </Suspense>
+                </ErrorBoundary>
+              </div>
+            </main>
+          </div>
         </div>
-      </div>
+      </BreadcrumbLabelProvider>
     </AppShellContext.Provider>
+
   );
 }
 
