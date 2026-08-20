@@ -33853,20 +33853,32 @@ export type Database = {
       }
       list_permission_dependent_actions: { Args: never; Returns: string[] }
       lives_ok: { Args: { "": string }; Returns: string }
-      log_compliance_audit: {
-        Args: {
-          _action_type: Database["public"]["Enums"]["compliance_audit_action"]
-          _after_value?: Json
-          _ai_model_version?: string
-          _before_value?: Json
-          _ip_address?: string
-          _justification?: string
-          _metadata?: Json
-          _object_id?: string
-          _object_type: string
-        }
-        Returns: string
-      }
+      log_compliance_audit:
+        | {
+            Args: {
+              _action_type: Database["public"]["Enums"]["compliance_audit_action"]
+              _after_value?: Json
+              _ai_model_version?: string
+              _before_value?: Json
+              _ip_address?: string
+              _justification?: string
+              _metadata?: Json
+              _object_id?: string
+              _object_type: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _action_type: string
+              _after_value: Json
+              _before_value: Json
+              _justification: string
+              _object_id: string
+              _object_type: string
+            }
+            Returns: string
+          }
       log_compliance_audit_as_actor: {
         Args: {
           _action_type: Database["public"]["Enums"]["compliance_audit_action"]
