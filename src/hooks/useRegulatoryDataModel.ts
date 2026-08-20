@@ -57,13 +57,20 @@ export function useRdmRows(table: RdmTable, opts?: { schemeId?: string | null })
   });
 }
 
+/**
+ * All writes go through the guarded, audited RPCs (`rdm_save_metadata`,
+ * `rdm_retire_metadata`, `rdm_delete_metadata`) instead of direct table
+ * writes: they re-check `settings.edit`, enforce key immutability, protect
+ * system rows, keep a single active default policy and block deletion of
+ * referenced configuration.
+ */
 export function useRdmMutations(table: RdmTable) {
   const qc = useQueryClient();
   const invalidate = () => qc.invalidateQueries({ queryKey: ['rdm', table] });
 
   const create = useMutation({
     mutationFn: async (values: Record<string, unknown>) => {
-      const { error } = await db().from(table).insert(values);
+      const { error } = await db().rpc('rdm_save_metadata', { _table: table, _values: values, _id: null });
       if (error) throw error;
     },
     onSuccess: invalidate,
@@ -71,7 +78,16 @@ export function useRdmMutations(table: RdmTable) {
 
   const update = useMutation({
     mutationFn: async ({ id, values }: { id: string; values: Record<string, unknown> }) => {
-      const { error } = await db().from(table).update(values).eq('id', id);
+      const { key: _ignoredImmutableKey, ...rest } = values as { key?: unknown };
+      const { error } = await db().rpc('rdm_save_metadata', { _table: table, _values: rest, _id: id });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
+  const retire = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await db().rpc('rdm_retire_metadata', { _table: table, _id: id });
       if (error) throw error;
     },
     onSuccess: invalidate,
@@ -79,14 +95,15 @@ export function useRdmMutations(table: RdmTable) {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db().from(table).delete().eq('id', id);
+      const { error } = await db().rpc('rdm_delete_metadata', { _table: table, _id: id });
       if (error) throw error;
     },
     onSuccess: invalidate,
   });
 
-  return { create, update, remove };
+  return { create, update, retire, remove };
 }
+
 
 export interface RdmIntegrityReport {
   generated_at: string;

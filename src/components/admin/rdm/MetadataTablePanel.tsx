@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { Edit, Lock, Plus, Search, Trash2 } from 'lucide-react';
+import { Archive, Edit, Lock, Plus, Search, Trash2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useToast } from '@/hooks/use-toast';
 import { useRdmMutations, useRdmRows, type RdmRow } from '@/hooks/useRegulatoryDataModel';
@@ -47,7 +47,8 @@ function emptyDraft(schema: RdmTableSchema): Record<string, unknown> {
 export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }: Props) {
   const { toast } = useToast();
   const { data: rows = [], isLoading } = useRdmRows(schema.table, { schemeId });
-  const { create, update, remove } = useRdmMutations(schema.table);
+  const { create, update, retire, remove } = useRdmMutations(schema.table);
+
 
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -87,6 +88,8 @@ export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }
     }
     const payload: Record<string, unknown> = { ...contextValues };
     for (const f of schema.fields) {
+      // Immutable fields (machine keys) are never resubmitted on edit.
+      if (editing && f.immutable) continue;
       let value = draft[f.name];
       if ((f.type === 'text' || f.type === 'textarea' || f.type === 'date') && value === '') value = null;
       if (f.type === 'number') value = Number(value) || 0;
@@ -106,10 +109,31 @@ export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }
     }
   };
 
+  const confirmRetire = async (row: RdmRow) => {
+    const res = await Swal.fire({
+      title: `Retire ${schema.singular}?`,
+      text: `"${row.label}" stays in the database for historical records but will no longer be offered for new use.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Retire',
+    });
+    if (!res.isConfirmed) return;
+    try {
+      await retire.mutateAsync(row.id);
+      toast({ title: 'Retired', description: `${row.label} is no longer active.` });
+    } catch (err) {
+      toast({
+        title: 'Could not retire',
+        description: err instanceof Error ? err.message : 'Unexpected error',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const confirmDelete = async (row: RdmRow) => {
     const res = await Swal.fire({
       title: `Delete ${schema.singular}?`,
-      text: `"${row.label}" will be removed. Configuration referenced by existing records should be deactivated instead.`,
+      text: `"${row.label}" will be removed permanently. Configuration that is referenced anywhere must be retired instead — the database will refuse the deletion.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete',
@@ -127,6 +151,7 @@ export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }
       });
     }
   };
+
 
   const renderCell = (row: RdmRow, name: string) => {
     const value = row[name];
@@ -188,8 +213,13 @@ export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }
                             <Button size="icon" variant="ghost" onClick={() => openEdit(row)} aria-label="Edit">
                               <Edit className="h-4 w-4" />
                             </Button>
+                            {row.is_active !== false && (
+                              <Button size="icon" variant="ghost" onClick={() => confirmRetire(row)} aria-label="Retire">
+                                <Archive className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            )}
                             {row.is_system ? (
-                              <span title="Seeded system record — deactivate instead of deleting">
+                              <span title="Seeded system record — retire it instead of deleting">
                                 <Lock className="h-4 w-4 text-muted-foreground" />
                               </span>
                             ) : (
@@ -201,6 +231,7 @@ export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }
                         ) : (
                           <span className="text-xs text-muted-foreground">Read only</span>
                         )}
+
                       </div>
                     </TableCell>
                   </TableRow>
@@ -255,8 +286,11 @@ export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }
                         id={`rdm-${f.name}`}
                         type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
                         value={String(draft[f.name] ?? '')}
+                        readOnly={Boolean(editing && f.immutable)}
+                        disabled={Boolean(editing && f.immutable)}
                         onChange={(e) => setDraft((d) => ({ ...d, [f.name]: e.target.value }))}
                       />
+
                     )}
                   </>
                 )}

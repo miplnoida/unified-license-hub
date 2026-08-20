@@ -24,21 +24,43 @@ invariants it claims.
 * Admin surface: **Administration → Configuration → Regulatory Data Model**.
 * Zero changes to existing business tables, workflows or policies.
 
+## Phase 1.1 — Architecture alignment & metadata hardening (delivered)
+
+* Party/organisation model restored in the naming standard; "licensed" is a
+  state, not a type; non-regulated organisations are representable.
+* Lifecycle vocabularies separated per domain (entity / licence / application).
+* Identity authority default changed to `DEPLOYMENT_CONFIGURED`.
+* Identifier uniqueness expressed as a scope, not a global boolean.
+* Key immutability, system-record protection, no-cascade taxonomy FKs,
+  single active default policies, policy consistency constraints.
+* Relational relationship inverses; ownership explicitly out of scope for
+  relationship types.
+* Governed write RPCs and canonical `regulatory_data.metadata.*` audit keys.
+* No business table, workflow, route or RLS policy for existing modules changed.
+
 ## Phase 2 — Party / entity / multi-licence foundation (not started)
 
 1. `entities` compatibility layer over `licensees` (view first, rename later).
 2. `entity_licenses` join table; migrate `licensees.license_id` into it and
    keep the column as a generated/compat field for one release.
-3. `entity_identifiers` keyed by `entity_identifier_types`; unique indexes for
-   globally unique types.
-4. `entity_id` + `identity_status_id` + `lifecycle_stage_id` on entities.
+3. `entity_identifiers` keyed by `entity_identifier_types`; uniqueness indexes
+   built from `uniqueness_scope` (never a blanket global unique index).
+4. `entity_id` + `identity_status_id` + `lifecycle_stage_id` on entities,
+   restricted to `domain = 'entity'` stages.
 5. Entity resolution service honouring `entity_resolution_policies` and
    `entity_registry_failure_policies`; duplicate candidates become resolution
    cases — never auto-merged.
-6. Backfill `applications.form_version_id`, then enforce NOT NULL.
+6. `applications.form_version_id`: pin **prospectively** on submission only.
+   Historical rows are NOT back-filled with a current version — that would
+   fabricate submission provenance. Legacy rows stay NULL and are reported as
+   "version unknown"; the column therefore stays nullable, with a NOT NULL
+   constraint considered only for rows created after the cutover date.
 
 Exit criteria: an entity can hold two licences in different sectors; every
-application pins a form version; no duplicate entity is silently merged.
+**new** application pins its form version at submission; legacy submissions are
+labelled version-unknown rather than rewritten; no duplicate entity is silently
+merged.
+
 
 ## Phase 3 — Vocabulary adoption
 

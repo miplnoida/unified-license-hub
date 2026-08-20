@@ -17,6 +17,8 @@ export interface RdmField {
   /** Show in the list view (all fields always show in the editor). */
   inList?: boolean;
   help?: string;
+  /** Editable on create, locked afterwards (DB-enforced immutability). */
+  immutable?: boolean;
 }
 
 export interface RdmTableSchema {
@@ -33,12 +35,14 @@ const KEY_FIELD: RdmField = {
   type: 'text',
   required: true,
   inList: true,
-  help: 'Stable machine key referenced by workflows and rules. Do not change once in use.',
+  immutable: true,
+  help: 'Stable machine key referenced by workflows, rules and integrations. Immutable once created — retire the row and create a new key instead.',
 };
 const LABEL_FIELD: RdmField = { name: 'label', label: 'Label', type: 'text', required: true, inList: true };
 const DESC_FIELD: RdmField = { name: 'description', label: 'Description', type: 'textarea' };
 const ORDER_FIELD: RdmField = { name: 'sort_order', label: 'Sort order', type: 'number', inList: true };
 const ACTIVE_FIELD: RdmField = { name: 'is_active', label: 'Active', type: 'boolean', inList: true };
+
 
 export const RDM_SCHEMAS: Record<string, RdmTableSchema> = {
   classification_schemes: {
@@ -71,15 +75,16 @@ export const RDM_SCHEMAS: Record<string, RdmTableSchema> = {
   lifecycle_stages: {
     table: 'lifecycle_stages',
     title: 'Lifecycle Stages',
-    description: 'Regulatory lifecycle an entity moves through, independent of any single licence.',
+    description: 'Separate vocabularies per domain: entity lifecycle, licence status and application status are never mixed. An entity holding several licences keeps one entity stage while each licence carries its own status.',
     singular: 'stage',
     fields: [
       KEY_FIELD, LABEL_FIELD, DESC_FIELD,
-      { name: 'domain', label: 'Domain', type: 'select', options: ['entity', 'license', 'application', 'individual'], required: true, inList: true },
-      { name: 'is_terminal', label: 'Terminal stage', type: 'boolean', inList: true },
+      { name: 'domain', label: 'Domain', type: 'select', options: ['entity', 'license', 'application', 'individual'], required: true, inList: true, help: 'Entity = organisation lifecycle. License = per-licence status. Application = case status. Individual = person status.' },
+      { name: 'is_terminal', label: 'Terminal stage', type: 'boolean', inList: true, help: 'Terminal within its own domain only. An application or licence ending never terminates the entity.' },
       ORDER_FIELD, ACTIVE_FIELD,
     ],
   },
+
   entity_identity_statuses: {
     table: 'entity_identity_statuses',
     title: 'Identity Statuses',
@@ -95,16 +100,17 @@ export const RDM_SCHEMAS: Record<string, RdmTableSchema> = {
   relationship_types: {
     table: 'relationship_types',
     title: 'Relationship Types',
-    description: 'Configurable entity-to-entity and entity-to-person relationships used by group and ownership views.',
+    description: 'Typed entity-to-entity and entity-to-person relationships. Ownership relationships are graph semantics only — shareholding percentages, voting rights and beneficial-ownership history belong to the future ownership model, not here.',
     singular: 'relationship type',
     fields: [
       KEY_FIELD, LABEL_FIELD, DESC_FIELD,
       { name: 'category', label: 'Category', type: 'select', options: ['group', 'ownership', 'control', 'structure', 'commercial'], required: true, inList: true },
       { name: 'is_ownership', label: 'Ownership', type: 'boolean', inList: true },
       { name: 'is_group', label: 'Group structure', type: 'boolean', inList: true },
-      { name: 'inverse_key', label: 'Inverse key', type: 'text', help: 'Key of the mirrored relationship, if any.' },
+      { name: 'inverse_key', label: 'Inverse relationship', type: 'text', inList: true, help: 'Key of the mirrored relationship. Must resolve to an existing relationship type — the database stores the resolved reference and rejects unknown keys.' },
       ORDER_FIELD, ACTIVE_FIELD,
     ],
+
   },
   role_types: {
     table: 'role_types',
@@ -141,27 +147,33 @@ export const RDM_SCHEMAS: Record<string, RdmTableSchema> = {
   data_domains: {
     table: 'data_domains',
     title: 'Data Domains & Ownership',
-    description: 'Which system is authoritative for each class of regulatory data.',
+    description: 'Which system is authoritative for each class of regulatory data. Legal identity is deployment-configured (no external registry is assumed); regulatory status is always owned by this platform.',
     singular: 'data domain',
     fields: [
       KEY_FIELD, LABEL_FIELD, DESC_FIELD,
-      { name: 'default_authority', label: 'Authoritative source', type: 'select', options: ['SUPTECH', 'EXTERNAL_REGISTRY', 'DEPLOYMENT_CONFIGURED'], required: true, inList: true },
+      { name: 'default_authority', label: 'Authoritative source', type: 'select', options: ['SUPTECH', 'EXTERNAL_REGISTRY', 'DEPLOYMENT_CONFIGURED'], required: true, inList: true, help: 'DEPLOYMENT_CONFIGURED means the deployment chooses via an entity resolution policy.' },
       ORDER_FIELD, ACTIVE_FIELD,
     ],
   },
+
   entity_identifier_types: {
     table: 'entity_identifier_types',
     title: 'Entity Identifier Types',
-    description: 'Identifiers an entity can carry, and which of them must be globally unique.',
+    description: 'Identifiers an entity can carry and the scope in which each value must be unique. Company and taxpayer numbers are unique per jurisdiction, never globally.',
     singular: 'identifier type',
     fields: [
       KEY_FIELD, LABEL_FIELD, DESC_FIELD,
       { name: 'issuer', label: 'Issuer', type: 'text', inList: true },
-      { name: 'is_unique_global', label: 'Globally unique', type: 'boolean', inList: true },
+      { name: 'uniqueness_scope', label: 'Uniqueness scope', type: 'select', options: ['NONE', 'GLOBAL', 'JURISDICTION', 'ISSUER', 'REGULATOR'], required: true, inList: true, help: 'GLOBAL = unique worldwide (e.g. LEI). JURISDICTION = unique per issuing country/registry. ISSUER = unique per issuing body. REGULATOR = unique within this deployment. NONE = no uniqueness enforced.' },
+      { name: 'scope_requires_jurisdiction', label: 'Requires jurisdiction', type: 'boolean', inList: true },
+      { name: 'scope_requires_issuer', label: 'Requires issuer', type: 'boolean' },
+      { name: 'normalization_rule', label: 'Normalisation rule', type: 'text', help: 'How a value is normalised before comparison or uniqueness checks.' },
+      { name: 'is_unique_global', label: 'Globally unique (legacy)', type: 'boolean', help: 'Compatibility flag only — derived from uniqueness scope GLOBAL.' },
       { name: 'validation_regex', label: 'Validation pattern', type: 'text' },
       ORDER_FIELD, ACTIVE_FIELD,
     ],
   },
+
   entity_resolution_policies: {
     table: 'entity_resolution_policies',
     title: 'Entity Resolution Policies',
