@@ -7,7 +7,7 @@ import { Loader2, FileText } from 'lucide-react';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { migrateSectionsToRows } from '@/lib/formRows';
 import type { FormSection } from '@/types/formBuilder';
-import { logAudit } from '@/hooks/useAuditLog';
+import { fpAssessmentSavePq } from '@/lib/fpGovernedOps';
 
 // Renders a Fit & Proper declaration against the EXACT form schema it was
 // captured against (form_versions.schema_snapshot for form_version_id), not
@@ -94,23 +94,14 @@ export function PinnedPqForm({
         if (error) throw error;
         responseId = inserted!.id;
       }
-      const patch: any = { declaration_data: data };
-      if (responseId && !existingResponseId) patch.form_response_id = responseId;
-      if (status === 'submitted') {
-        patch.status = 'submitted';
-        patch.submitted_at = new Date().toISOString();
-        patch.submitted_by = userId;
-      }
-      const { error: aErr } = await supabase.from('fp_assessments').update(patch).eq('id', assessmentId);
-      if (aErr) throw aErr;
-
-      await logAudit({
-        action: status === 'submitted' ? 'fp_assessment.pq.submitted' : 'fp_assessment.pq.draft_saved',
-        entityType: 'fp_assessment',
-        entityId: assessmentId,
-        newValue: { form_version_id: versionId, response_id: responseId, status },
-        metadata: { individual_id: individualId, template_id: templateId },
-      });
+      // Canonical assessment state (declaration + submission) is governed:
+      // the operation validates the draft/submit transition and audits it.
+      await fpAssessmentSavePq(
+        assessmentId,
+        data,
+        status === 'submitted',
+        responseId && !existingResponseId ? responseId : null,
+      );
       if (status === 'submitted') {
         try {
           await supabase.functions.invoke('dispatch-notification-event', {

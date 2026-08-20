@@ -19,6 +19,12 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  fpFindingAssign,
+  fpFindingDisposition,
+  fpFindingSaveNote,
+  fpFindingSetEvidence,
+} from '@/lib/fpGovernedOps';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
@@ -142,6 +148,7 @@ export default function FpaManualTaskDetail() {
 
   // Confirm-clear dialog
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const [clearReason, setClearReason] = useState('');
 
   // Confirm-adverse dialog
   const [adverseDialogOpen, setAdverseDialogOpen] = useState(false);
@@ -258,10 +265,12 @@ export default function FpaManualTaskDetail() {
         : [];
       const merged = [...currentPaths, ...uploadedPaths];
 
-      const { error: dbError } = await supabase
-        .from('fp_findings')
-        .update({ evidence_urls: merged } as any)
-        .eq('id', findingId);
+      let dbError: { message: string } | null = null;
+      try {
+        await fpFindingSetEvidence(findingId, merged);
+      } catch (e: any) {
+        dbError = { message: e?.message ?? 'Failed to save evidence' };
+      }
 
       if (dbError) {
         toast.error(`Uploaded files but failed to save: ${dbError.message}`);
@@ -294,10 +303,12 @@ export default function FpaManualTaskDetail() {
       return p !== path;
     });
 
-    const { error: dbError } = await supabase
-      .from('fp_findings')
-      .update({ evidence_urls: updated } as any)
-      .eq('id', findingId);
+    let dbError: { message: string } | null = null;
+    try {
+      await fpFindingSetEvidence(findingId, updated);
+    } catch (e: any) {
+      dbError = { message: e?.message ?? 'Failed to remove evidence' };
+    }
 
     if (dbError) {
       toast.error(`Failed to remove file: ${dbError.message}`);
@@ -326,9 +337,11 @@ export default function FpaManualTaskDetail() {
     if (!findingId) return;
     if (!confirm('Remove this evidence file? This cannot be undone.')) return;
 
-    const { error } = await supabase.from('fp_findings').update({ evidence_url: null } as any).eq('id', findingId);
-    if (error) {
-      toast.error(`Failed to remove file: ${error.message}`);
+    try {
+      const rawList: unknown[] = Array.isArray(finding?.evidence_urls) ? finding.evidence_urls : [];
+      await fpFindingSetEvidence(findingId, rawList, true);
+    } catch (e: any) {
+      toast.error(`Failed to remove file: ${e?.message ?? 'unknown error'}`);
       return;
     }
     toast.success('Evidence file removed');
@@ -363,16 +376,7 @@ export default function FpaManualTaskDetail() {
     mutationFn: async (userId: string) => {
       if (!findingId) throw new Error('No finding ID');
       if (!user?.id) throw new Error('Not authenticated');
-      const { error } = await supabase
-        .from('fp_findings')
-        .update({
-          assigned_to: userId,
-          resolution_status: 'under_review',
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user.id,
-        } as any)
-        .eq('id', findingId);
-      if (error) throw error;
+      await fpFindingAssign(findingId, userId);
       try {
         await supabase.functions.invoke('dispatch-notification-event', {
           body: { event_key: 'fp_finding_assigned', entity_type: 'fp_finding', entity_id: findingId, payload: { assigned_to: userId } },
@@ -391,15 +395,7 @@ export default function FpaManualTaskDetail() {
   const saveNotesMutation = useMutation({
     mutationFn: async () => {
       if (!findingId) throw new Error('No finding ID');
-      const { error } = await supabase
-        .from('fp_findings')
-        .update({
-          review_note: notes,
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user?.id ?? null,
-        } as any)
-        .eq('id', findingId);
-      if (error) throw error;
+      await fpFindingSaveNote(findingId, notes);
     },
     onSuccess: () => {
       toast.success('Notes saved');
@@ -413,16 +409,10 @@ export default function FpaManualTaskDetail() {
   const markClearedMutation = useMutation({
     mutationFn: async () => {
       if (!findingId) throw new Error('No finding ID');
-      const { error } = await supabase
-        .from('fp_findings')
-        .update({
-          resolution_status: 'false_positive',
-          is_false_positive: true,
-          resolved_at: new Date().toISOString(),
-          resolved_by: user?.id ?? null,
-        } as any)
-        .eq('id', findingId);
-      if (error) throw error;
+      if (clearReason.trim().length < 10) {
+        throw new Error('Please record a rationale of at least 10 characters.');
+      }
+      await fpFindingDisposition(findingId, 'false_positive', clearReason.trim());
       try {
         await supabase.functions.invoke('dispatch-notification-event', {
           body: { event_key: 'fp_finding_resolved', entity_type: 'fp_finding', entity_id: findingId, payload: { assigned_to: finding?.assigned_to ?? null, outcome: 'cleared' } },
@@ -431,6 +421,7 @@ export default function FpaManualTaskDetail() {
     },
     onSuccess: () => {
       toast.success('Finding cleared');
+      setClearReason('');
       setClearDialogOpen(false);
       navigate('/fpa/manual-tasks');
     },
@@ -442,17 +433,11 @@ export default function FpaManualTaskDetail() {
   const confirmAdverseMutation = useMutation({
     mutationFn: async () => {
       if (!findingId) throw new Error('No finding ID');
-      const { error } = await supabase
-        .from('fp_findings')
-        .update({
-          resolution_status: 'confirmed',
-          is_false_positive: false,
-          review_note: adverseReason || notes || null,
-          resolved_at: new Date().toISOString(),
-          resolved_by: user?.id ?? null,
-        } as any)
-        .eq('id', findingId);
-      if (error) throw error;
+      const reason = (adverseReason || notes || '').trim();
+      if (reason.length < 10) {
+        throw new Error('Please record a rationale of at least 10 characters.');
+      }
+      await fpFindingDisposition(findingId, 'confirmed', reason);
       try {
         await supabase.functions.invoke('dispatch-notification-event', {
           body: { event_key: 'fp_finding_resolved', entity_type: 'fp_finding', entity_id: findingId, payload: { assigned_to: finding?.assigned_to ?? null, outcome: 'confirmed adverse' } },
@@ -1098,15 +1083,24 @@ export default function FpaManualTaskDetail() {
             {finding.title && (
               <p className="font-medium text-foreground">"{finding.title}"</p>
             )}
+            <div className="space-y-1.5">
+              <Label className="text-foreground">Rationale (required, min 10 characters)</Label>
+              <Textarea
+                value={clearReason}
+                onChange={(e) => setClearReason(e.target.value)}
+                rows={4}
+                placeholder="Explain why this finding is not a genuine match..."
+              />
+            </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={() => setClearDialogOpen(false)}>
+            <Button variant="ghost" onClick={() => { setClearDialogOpen(false); setClearReason(''); }}>
               Cancel
             </Button>
             <Button data-rbac="fit_and_proper.edit"
               className="bg-green-600 hover:bg-green-700 text-white"
               onClick={() => markClearedMutation.mutate()}
-              disabled={markClearedMutation.isPending}
+              disabled={markClearedMutation.isPending || clearReason.trim().length < 10}
             >
               {markClearedMutation.isPending && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -1157,7 +1151,7 @@ export default function FpaManualTaskDetail() {
             <Button data-rbac="fit_and_proper.edit"
               className="bg-red-600 hover:bg-red-700 text-white"
               onClick={() => confirmAdverseMutation.mutate()}
-              disabled={confirmAdverseMutation.isPending}
+              disabled={confirmAdverseMutation.isPending || (adverseReason || notes || '').trim().length < 10}
             >
               {confirmAdverseMutation.isPending && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

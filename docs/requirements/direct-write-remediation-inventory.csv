@@ -17,19 +17,6 @@ P1,enforcement_actions,src/components/entity-detail/EnforcementTab.tsx,50,delete
 P1,supervisory_plan_actions,src/components/entity-detail/LicensingAuditTab.tsx,289,insert,const { error: actErr } = await supabase.from('supervisory_plan_actions' as any).insert(actions);
 P1,supervisory_plan_actions,src/components/entity-detail/SupervisoryPlanTab.tsx,95,update,".update({ status: 'completed', completed_at: new Date().toISOString() } as any)"
 P1,supervisory_plan_actions,src/components/entity-detail/SupervisoryPlanTab.tsx,108,insert,const { error } = await supabase.from('supervisory_plan_actions' as any).insert({
-P1,fp_assessments,src/components/fit-and-proper/AssignCommitteeCard.tsx,60,update,".update({ committee_id: committeeId, status: 'awaiting_committee' })"
-P1,fp_conditions,src/components/fit-and-proper/FpConditionsPanel.tsx,118,insert,"const { data, error } = await supabase.from('fp_conditions').insert(payload).select('id').single();"
-P1,fp_conditions,src/components/fit-and-proper/FpConditionsPanel.tsx,146,update,"const { error } = await supabase.from('fp_conditions').update(patch).eq('id', id);"
-P1,fp_conditions,src/components/fit-and-proper/FpConditionsPanel.tsx,167,update,const { error } = await supabase.from('fp_conditions').update({
-P1,fp_conditions,src/components/fit-and-proper/FpConditionsPanel.tsx,191,update,const { error } = await supabase.from('fp_conditions').update({
-P1,fp_determinations,src/components/fit-and-proper/FpDeterminationsPanel.tsx,336,update,"await (supabase.from('fp_determinations') as any).update({ is_current: false }).eq('id', prior.id);"
-P1,fp_determinations,src/components/fit-and-proper/FpDeterminationsPanel.tsx,339,insert,"const { data: inserted, error } = await (supabase.from('fp_determinations') as any).insert({"
-P1,fp_assessments,src/components/fit-and-proper/FpDeterminationsPanel.tsx,347,update,await supabase.from('fp_assessments').update({
-P1,fp_findings,src/components/fit-and-proper/FpScreeningPanel.tsx,79,update,"const { error } = await supabase.from('fp_findings').update({ evidence_urls: updated as any }).eq('id', findingId);"
-P1,fp_findings,src/components/fit-and-proper/FpScreeningPanel.tsx,156,update,const { error } = await supabase.from('fp_findings').update({
-P1,fp_findings,src/components/fit-and-proper/FpScreeningPanel.tsx,197,update,const { error } = await supabase.from('fp_findings').update({
-P1,fp_assessments,src/components/fit-and-proper/PinnedPqForm.tsx,104,update,"const { error: aErr } = await supabase.from('fp_assessments').update(patch).eq('id', assessmentId);"
-P1,fp_assessments,src/components/fit-and-proper/RequestDeclarationDialog.tsx,176,update,.update({ declaration_data: merged })
 P1,examination_exit_meetings,src/hooks/useExaminations.ts,329,update,"? await sb.from('examination_exit_meetings').update(values).eq('id', existing.id).select().single()"
 P1,examination_exit_meetings,src/hooks/useExaminations.ts,330,insert,": await sb.from('examination_exit_meetings').insert({ ...values, examination_id: examinationId }).select().single();"
 P1,license_appeals,src/hooks/useLicenseAppeals.ts,401,insert,.insert({
@@ -96,26 +83,6 @@ P1,conduct_actions,src/pages/conduct/ConductActions.tsx,58,update,".update({ sta
 P1,conduct_alerts,src/pages/conduct/ConductAlerts.tsx,41,update,"const { error } = await supabase.from('conduct_alerts').update({ status: 'acknowledged', acknowledged_by: user?.id, acknowledged_at: new Date().toISOString() })"
 P1,conduct_alerts,src/pages/conduct/ConductAlerts.tsx,62,update,"const { error } = await supabase.from('conduct_alerts').update({ status: 'closed', closed_by: user?.id, closed_at: new Date().toISOString() }).eq('id', row.id);"
 P1,compliance_returns,src/pages/entity/returns/FillReturnPage.tsx,498,update,.update({
-P1,fp_findings,src/pages/fpa/FpaAiAnalysis.tsx,389,update,.update({
-P1,fp_conditions,src/pages/fpa/FpaConditions.tsx,378,update,.update({
-P1,fp_conditions,src/pages/fpa/FpaConditions.tsx,403,update,".update({ status: 'waived', waiver_reason: reason.trim() || null })"
-P1,fp_conditions,src/pages/fpa/FpaConditions.tsx,437,update,.update({ reminder_sent_at: new Date().toISOString() })
-P1,fp_conditions,src/pages/fpa/FpaConditions.tsx,508,insert,.insert({
-P1,fp_assessments,src/pages/fpa/FpaDeclarations.tsx,493,update,.update({ declaration_data: merged })
-P1,fp_determinations,src/pages/fpa/FpaDeterminations.tsx,769,update,"await supabase.from('fp_determinations').update({ is_current: false }).eq('id', prior.id);"
-P1,fp_determinations,src/pages/fpa/FpaDeterminations.tsx,789,insert,.insert(payload as any)
-P1,fp_assessments,src/pages/fpa/FpaDeterminations.tsx,797,update,await supabase.from('fp_assessments').update({
-P1,fp_findings,src/pages/fpa/FpaFindings.tsx,395,update,.update({
-P1,fp_assessments,src/pages/fpa/FpaIndividualProfile.tsx,794,insert,const { error } = await supabase.from('fp_assessments').insert({
-P1,fp_assessments,src/pages/fpa/FpaInitiation.tsx,338,insert,"const { data, error } = await supabase.from('fp_assessments').insert({"
-P1,fp_findings,src/pages/fpa/FpaManualTaskDetail.tsx,263,update,.update({ evidence_urls: merged } as any)
-P1,fp_findings,src/pages/fpa/FpaManualTaskDetail.tsx,299,update,.update({ evidence_urls: updated } as any)
-P1,fp_findings,src/pages/fpa/FpaManualTaskDetail.tsx,329,update,"const { error } = await supabase.from('fp_findings').update({ evidence_url: null } as any).eq('id', findingId);"
-P1,fp_findings,src/pages/fpa/FpaManualTaskDetail.tsx,368,update,.update({
-P1,fp_findings,src/pages/fpa/FpaManualTaskDetail.tsx,396,update,.update({
-P1,fp_findings,src/pages/fpa/FpaManualTaskDetail.tsx,418,update,.update({
-P1,fp_findings,src/pages/fpa/FpaManualTaskDetail.tsx,447,update,.update({
-P1,fp_findings,src/pages/fpa/FpaManualTasks.tsx,390,update,.update({
 P1,applications,src/pages/licenses/LicenseDetail.tsx,530,insert,.insert(insertPayload as any)
 P1,payments,src/pages/payments/PaymentHistory.tsx,260,update,"await supabase.from('payments' as any).update({ status: 'refunded' }).eq('id', refund.payment_id);"
 P1,registrations,src/pages/registration/PreLicenseeRegistration.tsx,888,update,.update({

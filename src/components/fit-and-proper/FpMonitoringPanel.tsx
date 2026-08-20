@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Radar, RefreshCw } from 'lucide-react';
+import { fpMonitoringEventAcknowledge } from '@/lib/fpGovernedOps';
 import { logFpAction } from '@/lib/fpAudit';
 
 const SEV_META: Record<string, string> = {
@@ -70,16 +71,7 @@ export function FpMonitoringPanel({ individualId }: Props) {
     mutationFn: async (eventId: string) => {
       const note = ackNote[eventId]?.trim();
       if (!note || note.length < 5) throw new Error('Acknowledgement note required (min 5 chars)');
-      const { error } = await supabase.from('fp_monitoring_events').update({
-        acknowledged_at: new Date().toISOString(),
-        acknowledged_by: user!.id,
-        acknowledgement_note: note,
-      }).eq('id', eventId);
-      if (error) throw error;
-      await logFpAction('fp.monitoring.acknowledged', 'fp_monitoring_event', eventId, {
-        after: { acknowledged: true, note },
-        context: { individualId, extra: { event_id: eventId } },
-      });
+      await fpMonitoringEventAcknowledge(eventId, note);
     },
     onSuccess: () => {
       toast.success('Alert acknowledged');

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Info } from 'lucide-react';
-import { logFpAction } from '@/lib/fpAudit';
+import { fpAssessmentAssignCommittee } from '@/lib/fpGovernedOps';
 import { fpStatusLabel } from '@/lib/fpStatus';
 
 function capitalize(s: string | null | undefined): string {
@@ -56,14 +56,7 @@ export function AssignCommitteeCard({
   const assign = useMutation({
     mutationFn: async () => {
       if (!committeeId) throw new Error('Pick a committee');
-      const { error } = await supabase.from('fp_assessments')
-        .update({ committee_id: committeeId, status: 'awaiting_committee' })
-        .eq('id', assessment.id);
-      if (error) throw error;
-      await logFpAction('fp.assessment.committee_assigned', 'fp_assessment', assessment.id, {
-        after: { committee_id: committeeId, status: 'awaiting_committee' },
-        context: { individualId, assessmentId: assessment.id, committeeId },
-      });
+      await fpAssessmentAssignCommittee(assessment.id, committeeId);
     },
     onSuccess: () => {
       toast.success(`Committee assigned to the ${capitalize(assessment.assessment_type)} assessment (${fmtDate(assessment.created_at)})`);

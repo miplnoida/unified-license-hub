@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Loader2, PlayCircle, ShieldAlert, ShieldOff, Sparkles, CheckCircle2, HelpCircle, ExternalLink } from 'lucide-react';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { logFpAction } from '@/lib/fpAudit';
+import { fpFindingDisposition, fpFindingSetEvidence, fpFindingSetFalsePositive } from '@/lib/fpGovernedOps';
 import { normalizeFpEvidence, fpEvidenceDisplayName, openFpEvidenceFile, uploadFpEvidence } from '@/lib/fpEvidence';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -76,12 +77,8 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
       const existing = normalizeFpEvidence(current?.evidence_urls);
       const uploaded = await uploadFpEvidence(findingId, file, user?.id ?? null);
       const updated = [...existing, uploaded];
-      const { error } = await supabase.from('fp_findings').update({ evidence_urls: updated as any }).eq('id', findingId);
-      if (error) throw error;
-      await logFpAction('fp.finding.evidence_uploaded', 'fp_finding', findingId, {
-        after: { evidence_path: uploaded.path, name: file.name },
-        context: { individualId, assessmentId, findingId },
-      });
+      // Governed operation — it validates and audits the evidence change itself.
+      await fpFindingSetEvidence(findingId, updated);
       toast.success(`Evidence uploaded: ${file.name}`);
       qc.invalidateQueries({ queryKey: ['fp_findings', individualId] });
     } catch (e: any) {
@@ -152,23 +149,12 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
   async function submitResolution() {
     if (!resolving) return;
     if (resolutionReason.trim().length < 10) { toast.error('Reason must be at least 10 characters.'); return; }
-    const before = (findings ?? []).find((f: any) => f.id === resolving.id) ?? null;
-    const { error } = await supabase.from('fp_findings').update({
-      resolution_status: resolving.status,
-      resolution_reason: resolutionReason.trim(),
-      resolved_by: user?.id,
-      resolved_at: new Date().toISOString(),
-      is_false_positive: resolving.status === 'false_positive',
-      reviewed_by: user?.id,
-      reviewed_at: new Date().toISOString(),
-    }).eq('id', resolving.id);
-    if (error) { toast.error(error.message); return; }
-    await logFpAction('fp.finding.resolved', 'fp_finding', resolving.id, {
-      before: before ? { resolution_status: before.resolution_status } : null,
-      after: { resolution_status: resolving.status },
-      context: { individualId, assessmentId, findingId: resolving.id },
-      justification: resolutionReason.trim(),
-    });
+    try {
+      await fpFindingDisposition(resolving.id, resolving.status, resolutionReason.trim());
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to record disposition');
+      return;
+    }
 
     // C1 — dispatch supervisor notification for HIGH true-positive findings
     const resolvedFinding = (findings ?? []).find((f: any) => f.id === resolving.id);
@@ -193,19 +179,11 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
 
   // Business update runs ONLY after the override has been logged.
   async function applyFindingStatus(findingId: string, isFalse: boolean) {
-    const before = (findings ?? []).find((f: any) => f.id === findingId) ?? null;
-    const { error } = await supabase.from('fp_findings').update({
-      is_false_positive: isFalse,
-      reviewed_by: user?.id,
-      reviewed_at: new Date().toISOString(),
-    }).eq('id', findingId);
-    if (error) throw error;
-    await logFpAction(isFalse ? 'fp.finding.false_positive' : 'fp.finding.restored', 'fp_finding', findingId, {
-      before: before ? { is_false_positive: before.is_false_positive } : null,
-      after: { is_false_positive: isFalse },
-      context: { individualId, assessmentId, findingId },
-      justification: isFalse ? 'False-positive override' : undefined,
-    });
+    await fpFindingSetFalsePositive(
+      findingId,
+      isFalse,
+      isFalse ? 'False-positive override recorded from the screening panel' : null,
+    );
     toast.success(isFalse ? 'Marked as false positive' : 'Finding restored');
     qc.invalidateQueries({ queryKey: ['fp_findings', individualId] });
   }

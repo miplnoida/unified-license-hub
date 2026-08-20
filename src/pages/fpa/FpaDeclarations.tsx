@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
+import { fpDeclarationInvitationCreate, fpDeclarationInvitationResend } from '@/lib/fpGovernedOps';
 import { toast } from 'sonner';
 import {
   Loader2, Plus, Bell, Send, Copy, CheckCheck, ClipboardList,
@@ -350,23 +351,12 @@ export default function FpaDeclarations() {
       const { raw: rawToken, hash: tokenHash } = await generateToken();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-      const { error: insertErr } = await supabase.from('declaration_invitations' as any).insert({
-        individual_id: individualId,
-        assessment_id: assessmentId,
-        token_hash: tokenHash,
-        verification_hash: prior.verification_hash,
-        verification_hash_alt: prior.verification_hash_alt ?? null,
-        channel: prior.channel,
-        recipient_email: recipientEmail || null,
-        recipient_phone: prior.recipient_phone ?? null,
-        status: 'SENT',
-        expires_at: expiresAt,
+      await fpDeclarationInvitationResend({
+        invitationId: prior.id,
+        tokenHash,
+        expiresAt,
+        recipientEmail: recipientEmail || null,
       });
-      if (insertErr) throw insertErr;
-
-      await supabase.from('declaration_invitations' as any)
-        .update({ status: 'EXPIRED' })
-        .eq('id', prior.id);
 
       const portalLink = `${window.location.origin}/declaration/${rawToken}`;
       let emailSent = false;
@@ -457,49 +447,16 @@ export default function FpaDeclarations() {
 
       // 3. Insert the declaration_invitation record
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { error: invError } = await supabase
-        .from('declaration_invitations' as any)
-        .insert({
-          individual_id: selectedIndividual,
-          assessment_id: selectedAssessment,
-          token_hash: tokenHash,
-          verification_hash: verificationHash,
-          verification_hash_alt: verificationHashAlt || null,
-          channel: channel,
-          recipient_email: recipientEmail.trim() || null,
-          recipient_phone: null,
-          status: 'PENDING',
-          expires_at: expiresAt,
-        });
-      if (invError) throw invError;
-
-      // 4. Update fp_assessments.declaration_data to record the request
-      const { data: existing } = await supabase
-        .from('fp_assessments' as any)
-        .select('declaration_data')
-        .eq('id', selectedAssessment)
-        .single();
-
-      const prev = (existing as any)?.declaration_data ?? {};
-      const merged = {
-        ...prev,
-        channel,
-        requested_at: new Date().toISOString(),
+      await fpDeclarationInvitationCreate({
+        assessmentId: selectedAssessment,
+        individualId: selectedIndividual,
+        tokenHash,
+        verificationHash,
+        verificationHashAlt: verificationHashAlt || null,
+        channel: channel as any,
+        expiresAt: expiresAt,
+        recipientEmail: recipientEmail.trim() || null,
         note: note.trim() || null,
-      };
-
-      const { error: updateError } = await supabase
-        .from('fp_assessments' as any)
-        .update({ declaration_data: merged })
-        .eq('id', selectedAssessment);
-      if (updateError) throw updateError;
-
-      // 5. Log a NOTIFICATION_SENT audit entry
-      await supabase.rpc('log_compliance_audit' as any, {
-        _action_type: 'NOTIFICATION_SENT',
-        _object_type: 'fp_assessment',
-        _object_id: selectedAssessment,
-        _justification: `Declaration invitation created via ${channel} channel`,
       });
 
       // 6. Send the invitation email with the secure portal link

@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Gavel, CheckCircle2, XCircle, MinusCircle, AlertCircle, ShieldAlert, Plus, Info } from 'lucide-react';
-import { logFpAction } from '@/lib/fpAudit';
+import { fpCommitteeCastVote, fpDeterminationRecord } from '@/lib/fpGovernedOps';
 import { resolveFpSectorRule, evaluateFpCriteria } from '@/lib/fpSectorRules';
 import { canTransitionFp, fpStatusLabel } from '@/lib/fpStatus';
 import { AssignCommitteeCard } from '@/components/fit-and-proper/AssignCommitteeCard';
@@ -258,17 +258,9 @@ export function FpDeterminationsPanel({ individualId }: Props) {
       if ((voteChoice === 'reject' || voteChoice === 'conditional') && voteNote.trim().length < 10) {
         throw new Error('Justification required for reject/conditional votes (min 10 chars)');
       }
-      const weight = (myMembership as any).vote_weight ?? 1;
-      const { data, error } = await supabase.from('fp_committee_votes').insert({
-        assessment_id: assessmentId, committee_id: assessment.committee_id,
-        member_id: myMembership.id, vote: voteChoice, justification: voteNote || null,
-        weight,
-      }).select('id').single();
-      if (error) throw error;
-      await logFpAction('fp.committee.vote_cast', 'fp_committee_vote', data.id, {
-        after: { vote: voteChoice, justification: voteNote || null, weight },
-        context: { individualId, assessmentId, committeeId: assessment.committee_id },
-      });
+      // Governed operation: it resolves the caller's own membership and weight,
+      // so a member can never cast a vote on another member's behalf.
+      await fpCommitteeCastVote(assessmentId, voteChoice, voteNote || null);
     },
     onSuccess: () => {
       toast.success('Vote recorded');
@@ -324,33 +316,16 @@ export function FpDeterminationsPanel({ individualId }: Props) {
       if (!rationale.trim() || rationale.trim().length < 10) throw new Error('Rationale required (min 10 chars)');
       // Multi-regulator scoping (Phase 6 Gap 1): each regulator's determinations
       // are independent — only supersede the current row for the SAME regulator.
-      const regulatorId = (assessment as any).regulator_id ?? null;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const priorQ = (supabase.from('fp_determinations') as any)
-        .select('id').eq('individual_id', individualId).eq('is_current', true);
-      const { data: prior } = regulatorId
-        ? await priorQ.eq('regulator_id', regulatorId).maybeSingle()
-        : await priorQ.is('regulator_id', null).maybeSingle();
-      if (prior) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase.from('fp_determinations') as any).update({ is_current: false }).eq('id', prior.id);
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: inserted, error } = await (supabase.from('fp_determinations') as any).insert({
-        assessment_id: assessmentId, individual_id: individualId,
-        outcome, rationale: rationale.trim(), determined_by: user!.id,
-        supersedes_id: prior?.id ?? null, is_current: true,
-        effective_from: new Date().toISOString().slice(0, 10),
-        regulator_id: regulatorId,
-      }).select('id').single();
-      if (error) throw error;
-      await supabase.from('fp_assessments').update({
-        status: 'determined', determined_at: new Date().toISOString(),
-      }).eq('id', assessmentId);
-      await logFpAction(`fp.determination.${outcome}`, 'fp_determination', inserted.id, {
-        after: { outcome, rationale: rationale.trim(), supersedes_id: prior?.id ?? null, regulator_id: regulatorId },
-        context: { individualId, assessmentId, determinationId: inserted.id, regulatorId },
-        justification: rationale.trim(),
+      // Governed operation: supersedes the prior current determination for the
+      // SAME regulator, moves the assessment to Determined and audits the
+      // decision — all in one transaction.
+      const recorded = await fpDeterminationRecord({
+        assessmentId,
+        individualId,
+        outcome,
+        rationale: rationale.trim(),
+        regulatorId: (assessment as any).regulator_id ?? null,
+        effectiveFrom: new Date().toISOString().slice(0, 10),
       });
 
       try {
@@ -358,13 +333,13 @@ export function FpDeterminationsPanel({ individualId }: Props) {
           body: {
             event_key: 'fp_determination_finalized',
             entity_type: 'fp_determination',
-            entity_id: inserted.id,
+            entity_id: recorded.id,
             payload: { outcome, individual_id: individualId },
           },
         });
       } catch (e) { console.warn('dispatch-notification-event failed', e); }
 
-      return { outcome, determinationId: inserted.id };
+      return { outcome, determinationId: recorded.id };
     },
     onSuccess: (result) => {
       setRationale('');

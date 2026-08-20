@@ -16,7 +16,7 @@ Generated: 2026-08-20 — scanner: `.insert(|.update(|.upsert(|.delete(` across 
 
 | Class | Sites |
 |---|---|
-| P1 (open) | 132 |
+| P1 (open) | 99 |
 | P2_REVIEW | 233 |
 | P2_P3 | 182 |
 | UNRESOLVED_DYNAMIC | 62 |
@@ -40,6 +40,8 @@ Tables with `INSERT`/`UPDATE`/`DELETE` revoked from `anon` and `authenticated` (
 
 Governed RPCs: `fp_appeal_file`, `fp_appeal_start_review`, `fp_appeal_record_decision`, `license_condition_create`, `license_condition_set_status`, `license_condition_delete`, `licensing_audit_record_determination`, `licensing_audit_record_risk_profile`, `record_entity_risk_rating`, `entity_relationship_save`, `entity_relationship_delete`, `twinpeaks_upsert_clearance`, `twinpeaks_raise_disagreement`, `twinpeaks_resolve_disagreement`, `inspection_finding_save`, `inspection_finding_escalate`.
 
+Fit & Proper governed operations (cluster closed): assessment lifecycle (`fp_assessment_initiate`, `fp_assessment_set_status`, `fp_assessment_assign_committee`, `fp_assessment_save_pq`, `fp_request_pq_amendment`), findings (`fp_finding_disposition`, `fp_finding_set_false_positive`, `fp_finding_escalate`, `fp_finding_assign`, `fp_finding_save_note`, `fp_finding_set_evidence`), conditions and evidence (`fp_condition_create`, `fp_condition_set_status`, `fp_condition_record_reminder`, `fp_condition_evidence_submit`, `fp_condition_evidence_review`), determinations (`fp_determination_record`), committees (`fp_committee_create`, `fp_committee_update`, `fp_committee_member_add`, `fp_committee_member_remove`, `fp_committee_member_set_active`, `fp_committee_member_set_weight`, `fp_committee_set_casting_vote`, `fp_committee_cast_vote`), monitoring (`fp_monitoring_event_raise`, `fp_monitoring_event_acknowledge`) and declarations (`fp_declaration_invitation_create`, `fp_declaration_invitation_resend`). All are exposed to the browser through the single typed wrapper `src/lib/fpGovernedOps.ts`.
+
 Migrated callers: `FpAppealsPanel.tsx`, `FpaAppeals.tsx`, `LicenseConditionsPanel.tsx`, `RelationshipsTab.tsx`, `RiskRatingsTab.tsx`, `LicensingAuditTab.tsx`, `InspectionDetail.tsx`, `twinPeaksClearance.ts`.
 
 ## 4. Remaining P1 sites by canonical store
@@ -47,16 +49,12 @@ Migrated callers: `FpAppealsPanel.tsx`, `FpaAppeals.tsx`, `LicenseConditionsPane
 | Table | Sites |
 |---|---|
 | applications | 14 |
-| fp_findings | 13 |
-| fp_assessments | 8 |
-| fp_conditions | 8 |
 | supervisory_plan_actions | 7 |
 | compliance_returns | 7 |
 | approval_actions | 6 |
 | conduct_actions | 5 |
 | returns_filed | 5 |
 | enforcement_actions | 4 |
-| fp_determinations | 4 |
 | conduct_alerts | 4 |
 | registration_form_submissions | 4 |
 | approval_step_actions | 3 |
@@ -87,18 +85,12 @@ Migrated callers: `FpAppealsPanel.tsx`, `FpaAppeals.tsx`, `LicenseConditionsPane
 | src/hooks/usePrudentialSupervision.ts | 15 |
 | src/pages/applications/ApplicationDetail.tsx | 8 |
 | src/hooks/useMarketConduct.ts | 7 |
-| src/pages/fpa/FpaManualTaskDetail.tsx | 7 |
 | src/hooks/usePrudentialConfig.ts | 6 |
 | src/pages/compliance/ReturnSubmission.tsx | 5 |
-| src/components/fit-and-proper/FpConditionsPanel.tsx | 4 |
 | src/pages/NewApplication.tsx | 4 |
-| src/pages/fpa/FpaConditions.tsx | 4 |
 | src/components/entity-detail/EnforcementTab.tsx | 3 |
-| src/components/fit-and-proper/FpDeterminationsPanel.tsx | 3 |
-| src/components/fit-and-proper/FpScreeningPanel.tsx | 3 |
 | src/hooks/useLicenseAppeals.ts | 3 |
 | src/hooks/useReturnsManagement.ts | 3 |
-| src/pages/fpa/FpaDeterminations.tsx | 3 |
 | src/pages/supervision/SupervisoryPlansDashboard.tsx | 3 |
 | src/components/applications/ApplicationRfiTab.tsx | 2 |
 | src/components/applications/PaymentVerificationDialog.tsx | 2 |
@@ -117,9 +109,6 @@ Migrated callers: `FpAppealsPanel.tsx`, `FpaAppeals.tsx`, `LicenseConditionsPane
 | src/components/conduct/IssueActionDialog.tsx | 1 |
 | src/components/entity-detail/BackgroundInfoTab.tsx | 1 |
 | src/components/entity-detail/LicensingAuditTab.tsx | 1 |
-| src/components/fit-and-proper/AssignCommitteeCard.tsx | 1 |
-| src/components/fit-and-proper/PinnedPqForm.tsx | 1 |
-| src/components/fit-and-proper/RequestDeclarationDialog.tsx | 1 |
 | src/hooks/usePrudentialPhase2.ts | 1 |
 | src/lib/workflowTemplateSnapshot.ts | 1 |
 | src/pages/ApplicationForms.tsx | 1 |
@@ -129,12 +118,6 @@ Migrated callers: `FpAppealsPanel.tsx`, `FpaAppeals.tsx`, `LicenseConditionsPane
 | src/pages/compliance/ComplianceReturns.tsx | 1 |
 | src/pages/conduct/ConductActions.tsx | 1 |
 | src/pages/entity/returns/FillReturnPage.tsx | 1 |
-| src/pages/fpa/FpaAiAnalysis.tsx | 1 |
-| src/pages/fpa/FpaDeclarations.tsx | 1 |
-| src/pages/fpa/FpaFindings.tsx | 1 |
-| src/pages/fpa/FpaIndividualProfile.tsx | 1 |
-| src/pages/fpa/FpaInitiation.tsx | 1 |
-| src/pages/fpa/FpaManualTasks.tsx | 1 |
 | src/pages/licenses/LicenseDetail.tsx | 1 |
 | src/pages/payments/PaymentHistory.tsx | 1 |
 | src/pages/registration/RegistrationPortal.tsx | 1 |
@@ -160,6 +143,6 @@ All probe records were created and deleted through governed RPCs; no residual te
 
 ## 7. A1 exit status
 
-- P1 bypasses: **132 open** — target 0. Highest-value remaining clusters: Fit & Proper decisions (33 sites), prudential supervision (22), application lifecycle (14), returns/compliance filings (12), conduct actions (12), enforcement (7).
+- P1 bypasses: **99 open** — target 0. Fit & Proper decisions cluster is **closed** (0 open). Highest-value remaining clusters: prudential supervision (22), application lifecycle (14), returns/compliance filings (12), conduct actions (12), enforcement (7).
 - Unjustified `anon`-executable `SECURITY DEFINER` mutators: reduced to 0 (see `docs/rbac/secdef-exposure-triage.md`).
 - **A1 COMPLETE: NO.**
