@@ -10,9 +10,12 @@ const FALLBACK = LucideIcons.Circle;
  */
 export function renderNavIcon(iconKey: string | null | undefined, className = 'h-4 w-4 shrink-0'): React.ReactNode {
   const key = (iconKey || '').trim();
-  const Comp = (key && (LucideIcons as unknown as Record<string, unknown>)[key]) as
-    | React.ComponentType<{ className?: string }>
-    | undefined;
-  const Icon = Comp && typeof Comp === 'function' ? Comp : FALLBACK;
+  const candidate = key ? (LucideIcons as unknown as Record<string, unknown>)[key] : undefined;
+  // Lucide icons are `forwardRef` objects, not plain functions — accept both
+  // shapes, otherwise every DB-driven icon silently degrades to the fallback.
+  const isComponent =
+    typeof candidate === 'function'
+    || (typeof candidate === 'object' && candidate !== null && '$$typeof' in candidate);
+  const Icon = (isComponent ? candidate : FALLBACK) as React.ComponentType<{ className?: string }>;
   return <Icon className={className} />;
 }
