@@ -29,21 +29,6 @@ import type { EntityDto } from '@/services/entityRegistry';
 import { formatDateTime } from '@/lib/datetime';
 
 
-const LIFECYCLE_TONE = (key: string | null) => {
-  const k = (key || '').toLowerCase();
-  if (k.includes('active') || k === 'authorised') return 'bg-emerald-500/10 text-emerald-700 border-emerald-200';
-  if (k.includes('suspend') || k.includes('restrict')) return 'bg-amber-500/10 text-amber-700 border-amber-200';
-  if (k.includes('revok') || k.includes('reject')) return 'bg-destructive/10 text-destructive border-destructive/30';
-  return 'bg-muted text-muted-foreground border-border';
-};
-
-const IDENTITY_TONE = (key: string | null) => {
-  const k = (key || '').toLowerCase();
-  if (k === 'verified') return 'bg-emerald-500/10 text-emerald-700 border-emerald-200';
-  if (k === 'disputed') return 'bg-destructive/10 text-destructive border-destructive/30';
-  if (k === 'merged') return 'bg-blue-500/10 text-blue-700 border-blue-200';
-  return 'bg-muted text-muted-foreground border-border';
-};
 
 function EntityDetailSheet({ entityId, onClose }: { entityId: string | null; onClose: () => void }) {
   const { data, isLoading } = useEntityDto(entityId);
