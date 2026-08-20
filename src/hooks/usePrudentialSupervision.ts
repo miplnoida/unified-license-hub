@@ -553,15 +553,16 @@ export function useCreateEscalation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: Partial<PrudentialEscalation>) => {
-      const user = (await sb.auth.getUser()).data.user;
       if (!row.reason || row.reason.trim().length < 5) throw new Error('Reason is required for escalation');
-      await authorizedAction('prudential_supervision', 'create', { entity_id: (row as any).entity_id, reason_preview: row.reason?.slice(0, 60) });
-      const { data, error } = await sb.from('prudential_escalations').insert({ ...row, created_by: user?.id }).select().single();
-
-      if (error) throw error;
-      await audit('CREATE', 'prudential_escalation', data.id, null, data, row.reason);
-      const ent = data.entity_id ? (await sb.from('licensees').select('name').eq('id', data.entity_id).maybeSingle()).data : null;
-      return data;
+      return await prudentialEscalationRaise({
+        entityId: (row as any).entity_id,
+        escalationType: (row as any).escalation_type ?? 'prudential',
+        reason: row.reason,
+        relatedType: (row as any).related_type ?? 'entity',
+        relatedId: (row as any).related_id ?? null,
+        priority: (row as any).priority ?? 'medium',
+        evidence: (row as any).evidence ?? {},
+      });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_escalations'] }); toast.success('Escalation created'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
@@ -571,20 +572,16 @@ export function useUpdateEscalation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<PrudentialEscalation> }) => {
-      await authorizedAction('prudential_supervision', 'edit', { escalation_id: id, status: patch.status });
-      const user = (await sb.auth.getUser()).data.user;
-      const before = (await sb.from('prudential_escalations').select('*, licensees(name)').eq('id', id).maybeSingle()).data;
-
-      const body: any = { ...patch };
       if (patch.status === 'resolved' || patch.status === 'withdrawn') {
         if (!patch.decision || !patch.outcome) throw new Error('Decision and outcome are required to close an escalation');
-        body.decided_at = new Date().toISOString();
-        body.decision_by = user?.id;
       }
-      const { error } = await sb.from('prudential_escalations').update(body).eq('id', id);
-      if (error) throw error;
-      await audit('UPDATE', 'prudential_escalation', id, before, { ...before, ...body });
-      
+      await prudentialEscalationDecide(
+        id,
+        (patch.status as string) ?? 'acknowledged',
+        (patch as any).decision ?? null,
+        (patch as any).outcome ?? null,
+        (patch as any).priority ?? null,
+      );
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_escalations'] }); toast.success('Escalation updated'); },
     onError: (e: any) => toast.error(e.message || 'Failed'),
