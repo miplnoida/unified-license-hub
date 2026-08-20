@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { formatDateTime } from '@/lib/datetime';
-import { useRdmDuplicateEntities, useRdmIntegrityReport } from '@/hooks/useRegulatoryDataModel';
+import { useRdmDuplicateEntities, useRdmDuplicateOrganizations, useRdmEntityFoundationReport, useRdmIntegrityReport } from '@/hooks/useRegulatoryDataModel';
 
 interface Metric {
   label: string;
@@ -25,6 +25,9 @@ interface Metric {
 export function DataIntegrityPanel() {
   const { data: report, isLoading, refetch, isRefetching } = useRdmIntegrityReport();
   const { data: duplicates = [] } = useRdmDuplicateEntities();
+  const { data: foundation, refetch: refetchFoundation } = useRdmEntityFoundationReport();
+  const { data: duplicateOrgs = [] } = useRdmDuplicateOrganizations();
+
 
   if (isLoading || !report) {
     return (
