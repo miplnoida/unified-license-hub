@@ -169,3 +169,69 @@ export function useRdmDuplicateEntities() {
     staleTime: 30_000,
   });
 }
+
+
+/**
+ * RDM-ENTITY-001 — Phase 2A foundation diagnostics (read-only).
+ *
+ * Reports party/entity binding coverage, multi-licence relationships,
+ * identifier scope integrity and application→entity mapping ambiguity.
+ */
+export interface RdmEntityFoundationReport {
+  generated_at: string;
+  parties_total: number;
+  organization_parties: number;
+  person_parties: number;
+  regulated_entities_total: number;
+  entities_without_party_binding: number;
+  organization_parties_without_entity: number;
+  duplicate_organization_candidates: number;
+  entities_without_lifecycle_stage: number;
+  entities_without_identity_status: number;
+  entity_licenses_rows: number;
+  entities_with_zero_licenses: number;
+  entities_with_one_license: number;
+  entities_with_multiple_licenses: number;
+  licenses_without_entity_relationship: number;
+  legacy_license_links_not_represented: number;
+  identifiers_total: number;
+  identifiers_by_type: Record<string, number>;
+  identifier_scope_conflicts: number;
+  identifiers_missing_required_scope: number;
+  licenses_without_regulator_scope_identifier: number;
+  applications_total: number;
+  applications_mapped_to_entity: number;
+  applications_ambiguous_entity_mapping: number;
+  applications_without_pinned_form_version: number;
+}
+
+export function useRdmEntityFoundationReport() {
+  return useQuery({
+    queryKey: ['rdm', 'entity-foundation-report'],
+    queryFn: async (): Promise<RdmEntityFoundationReport> => {
+      const { data, error } = await db().rpc('rdm_entity_foundation_report');
+      if (error) throw error;
+      return data as RdmEntityFoundationReport;
+    },
+    staleTime: 30_000,
+  });
+}
+
+export interface RdmDuplicateOrganization {
+  normalised_name: string;
+  org_count: number;
+  party_ids: string[];
+  legal_names: string[];
+}
+
+export function useRdmDuplicateOrganizations() {
+  return useQuery({
+    queryKey: ['rdm', 'duplicate-organizations'],
+    queryFn: async (): Promise<RdmDuplicateOrganization[]> => {
+      const { data, error } = await db().rpc('rdm_diag_duplicate_organizations');
+      if (error) throw error;
+      return (data ?? []) as RdmDuplicateOrganization[];
+    },
+    staleTime: 30_000,
+  });
+}
