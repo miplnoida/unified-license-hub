@@ -64,7 +64,7 @@ function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, path
       <button
         onClick={() => toggleGroup(item.label)}
         className={cn(
-          'nav-item w-full min-w-0 text-left items-start',
+          'nav-item w-full min-w-0 text-left items-start', collapsed && 'justify-center',
           depth > 0 && 'px-2.5 py-2 text-[13px] text-sidebar-foreground/65',
           hasActiveChild && 'text-sidebar-primary font-semibold',
         )}
