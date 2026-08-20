@@ -95,16 +95,49 @@ export const adminRoutes = (
     <Route path="/admin/forms/create" element={<P><ModuleRoute module="form_management" allowedRoles={['super_admin','admin','developer']}><FormBuilder /></ModuleRoute></P>} />
     <Route path="/admin/forms/:templateId/view" element={<P><ModuleRoute module="form_management" allowedRoles={['super_admin','admin','developer']}><FormTemplateView /></ModuleRoute></P>} />
 
-    {/* Database-driven configuration hubs. These collapse a whole level of
-        menu nesting into one entry that lists the tools the user may open. */}
+    {/* Database-driven configuration hubs. These collapse whole levels of menu
+        nesting into one entry that lists only the tools the user may open. */}
     <Route
-      path="/admin/returns/config"
-      element={<M module="returns_management"><NavHubPage navKey="nav_returns_management_returns_admin" title="Return Configuration" description="Return types, schedules, cut-offs, due dates and late fees." /></M>}
+      path="/admin/config/licensing"
+      element={<M module="settings"><NavHubPage navKey="nav_adm_cfg_licensing" title="Licensing & Registration Configuration" description="Application and registration forms, fees, RFI automation, regulators and portal access." /></M>}
     />
     <Route
-      path="/admin/returns/prudential"
-      element={<M module="prudential_supervision"><NavHubPage navKey="nav_sup_prud_config" title="Prudential Configuration" description="Thresholds, ratios, validations, risk taxonomy and prudential notifications." /></M>}
+      path="/admin/config/returns-prudential"
+      element={<M module="settings"><NavHubPage navKey="nav_adm_cfg_returns_prud" title="Returns & Prudential Configuration" description="Return types, schedules, cut-offs, late fees, prudential thresholds, ratios and validations." /></M>}
     />
+    <Route
+      path="/admin/config/supervision"
+      element={<M module="settings"><NavHubPage navKey="nav_adm_cfg_supervision" title="Supervision Configuration" description="Complaint taxonomy, triage and monitoring rules, supervisory plans and Fit & Proper policy." /></M>}
+    />
+    <Route
+      path="/admin/config/forms-master-data"
+      element={<M module="settings"><NavHubPage navKey="nav_adm_cfg_forms_data" title="Forms & Master Data" description="Sector taxonomy, master configuration, reference data and document intelligence." /></M>}
+    />
+    <Route
+      path="/admin/workflow-engine"
+      element={<M module="settings"><NavHubPage navKey="nav_adm_wf_overview" title="Workflow Engine" description="Workflow definitions, rule engine, decision options and sufficiency rules." /></M>}
+    />
+    <Route
+      path="/admin/workflow-engine/rules"
+      element={<M module="settings"><NavHubPage navKey="nav_adm_wf_rules" title="Rules & Approvals" description="Delegation rules, SLA management, escalation alerts and approval overrides." /></M>}
+    />
+    <Route
+      path="/admin/notification-engine"
+      element={<M module="settings"><NavHubPage navKey="nav_adm_notif_overview" title="Notification Engine" description="Routing rules, correspondence templates and email/SMS configuration." /></M>}
+    />
+    <Route
+      path="/admin/notification-engine/delivery"
+      element={<M module="settings"><NavHubPage navKey="nav_adm_notif_delivery" title="Delivery & Channels" description="Notification history and channel health monitoring." /></M>}
+    />
+    <Route
+      path="/admin/security-audit"
+      element={<M module="settings"><NavHubPage navKey="nav_adm_sec_system_events" title="System Events" description="Compliance audit, integration logs, audit exports and per-case audit trails." /></M>}
+    />
+
+    {/* Legacy hub paths */}
+    <Route path="/admin/returns/config" element={<Navigate to="/admin/config/returns-prudential" replace />} />
+    <Route path="/admin/returns/prudential" element={<Navigate to="/admin/config/returns-prudential" replace />} />
+
 
     <Route path="/admin/masters" element={<Navigate to="/admin/masters/sectors" replace />} />
     <Route path="/admin/masters/sectors" element={<M module="settings"><MasterConfiguration /></M>} />
