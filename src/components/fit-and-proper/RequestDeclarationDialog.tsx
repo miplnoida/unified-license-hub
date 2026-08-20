@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { fpDeclarationInvitationCreate } from '@/lib/fpGovernedOps';
 import { toast } from 'sonner';
 import { Send, Loader2, CheckCheck, Copy, AlertCircle } from 'lucide-react';
 import { generateToken, computeVerificationHash, computeIdentityHashes, getAssessmentEntityName } from '@/lib/fpDeclarationInvitation';
@@ -142,46 +143,16 @@ export function RequestDeclarationDialog({
       const { raw: rawToken, hash: tokenHash } = await generateToken();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-      const { error: invError } = await supabase
-        .from('declaration_invitations' as any)
-        .insert({
-          individual_id: individualId,
-          assessment_id: assessmentId,
-          token_hash: tokenHash,
-          verification_hash: verifHash,
-          verification_hash_alt: verifHashAlt || null,
-          channel: 'EMAIL',
-          recipient_email: recipientEmail.trim() || null,
-          status: 'PENDING',
-          expires_at: expiresAt,
-        });
-      if (invError) throw invError;
-
-      const { data: existing } = await supabase
-        .from('fp_assessments' as any)
-        .select('declaration_data')
-        .eq('id', assessmentId)
-        .single();
-
-      const prev = (existing as any)?.declaration_data ?? {};
-      const merged = {
-        ...prev,
+      await fpDeclarationInvitationCreate({
+        assessmentId,
+        individualId,
+        tokenHash,
+        verificationHash: verifHash,
+        verificationHashAlt: verifHashAlt || null,
         channel: 'EMAIL',
-        requested_at: new Date().toISOString(),
+        expiresAt,
+        recipientEmail: recipientEmail.trim() || null,
         note: note.trim() || null,
-      };
-
-      const { error: updateError } = await supabase
-        .from('fp_assessments' as any)
-        .update({ declaration_data: merged })
-        .eq('id', assessmentId);
-      if (updateError) throw updateError;
-
-      await supabase.rpc('log_compliance_audit' as any, {
-        _action_type: 'NOTIFICATION_SENT',
-        _object_type: 'fp_assessment',
-        _object_id: assessmentId,
-        _justification: 'Declaration invitation created via EMAIL channel',
       });
 
       // Send the invitation email with the secure portal link

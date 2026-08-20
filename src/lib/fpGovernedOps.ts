@@ -360,3 +360,30 @@ export const fpAppealDecide = (appealId: string, decision: string, rationale: st
 
 export const fpAppealWithdraw = (appealId: string, reason: string) =>
   call('fp_appeal_withdraw', { _appeal_id: appealId, _reason: reason });
+
+/* ---------------------------------------------------------------- declarations */
+
+export const fpDeclarationInvitationCreate = (i: {
+  assessmentId: string;
+  individualId: string;
+  tokenHash: string;
+  verificationHash: string;
+  channel: 'EMAIL' | 'SMS' | 'PORTAL';
+  expiresAt: string;
+  verificationHashAlt?: string | null;
+  recipientEmail?: string | null;
+  recipientPhone?: string | null;
+  note?: string | null;
+}) =>
+  call<{ invitation_id: string }>('fp_declaration_invitation_create', {
+    _assessment_id: i.assessmentId,
+    _individual_id: i.individualId,
+    _token_hash: i.tokenHash,
+    _verification_hash: i.verificationHash,
+    _channel: i.channel,
+    _expires_at: i.expiresAt,
+    _verification_hash_alt: i.verificationHashAlt ?? null,
+    _recipient_email: i.recipientEmail ?? null,
+    _recipient_phone: i.recipientPhone ?? null,
+    _note: i.note ?? null,
+  });
