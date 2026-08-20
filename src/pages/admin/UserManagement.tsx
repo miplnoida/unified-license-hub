@@ -206,12 +206,13 @@ export default function UserManagement() {
 
   const openRoleEdit = async (u: UserRecord) => {
     setEditingUser(u);
-    // Prefer authoritative user_dynamic_roles, fallback to row-cached IDs.
-    const { data: udr } = await supabase
-      .from('user_dynamic_roles' as any)
+    // Prefer the canonical sec_user_roles, fallback to row-cached IDs.
+    const { data: sur } = await supabase
+      .from('sec_user_roles' as any)
       .select('role_id')
-      .eq('user_id', u.id);
-    const ids = ((udr as any[]) || []).map(r => r.role_id);
+      .eq('user_id', u.id)
+      .eq('status', 'active');
+    const ids = ((sur as any[]) || []).map(r => r.role_id);
     if (ids.length > 0) {
       setSelectedRoleIds(ids);
     } else if (u.dynamic_role_ids && u.dynamic_role_ids.length > 0) {
