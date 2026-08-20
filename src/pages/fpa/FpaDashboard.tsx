@@ -328,9 +328,10 @@ export default function FpaDashboard() {
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
-          title="FP Assessment Hub"
-          description="All 15 scenarios for the Fit & Proper Assessment module"
+          title="Fit & Proper Assessment Hub"
+          description="The full fit and proper lifecycle — initiation, declarations and screening, adverse findings, determination, appeals and ongoing monitoring"
         />
+
 
         {/* ── Stats row ─────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
