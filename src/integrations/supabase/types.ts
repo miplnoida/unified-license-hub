@@ -8280,13 +8280,14 @@ export type Database = {
           id: string
           is_active: boolean
           is_system: boolean
-          is_unique_global: boolean
+          is_unique_global: boolean | null
           issuer: string | null
           key: string
           label: string
           normalization_rule: string | null
-          scope_requires_issuer: boolean
-          scope_requires_jurisdiction: boolean
+          scope_requires_issuer: boolean | null
+          scope_requires_jurisdiction: boolean | null
+          scope_requires_regulator: boolean | null
           sort_order: number
           uniqueness_scope: string
           updated_at: string
@@ -8298,13 +8299,14 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_system?: boolean
-          is_unique_global?: boolean
+          is_unique_global?: boolean | null
           issuer?: string | null
           key: string
           label: string
           normalization_rule?: string | null
-          scope_requires_issuer?: boolean
-          scope_requires_jurisdiction?: boolean
+          scope_requires_issuer?: boolean | null
+          scope_requires_jurisdiction?: boolean | null
+          scope_requires_regulator?: boolean | null
           sort_order?: number
           uniqueness_scope?: string
           updated_at?: string
@@ -8316,13 +8318,14 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_system?: boolean
-          is_unique_global?: boolean
+          is_unique_global?: boolean | null
           issuer?: string | null
           key?: string
           label?: string
           normalization_rule?: string | null
-          scope_requires_issuer?: boolean
-          scope_requires_jurisdiction?: boolean
+          scope_requires_issuer?: boolean | null
+          scope_requires_jurisdiction?: boolean | null
+          scope_requires_regulator?: boolean | null
           sort_order?: number
           uniqueness_scope?: string
           updated_at?: string
@@ -28565,7 +28568,7 @@ export type Database = {
       rdm_can_read: { Args: never; Returns: boolean }
       rdm_can_write: { Args: never; Returns: boolean }
       rdm_delete_metadata: {
-        Args: { _id: string; _table: string }
+        Args: { _id: string; _promote_id?: string; _table: string }
         Returns: undefined
       }
       rdm_diag_duplicate_entities: {
@@ -28580,8 +28583,12 @@ export type Database = {
       }
       rdm_integrity_report: { Args: never; Returns: Json }
       rdm_metadata_tables: { Args: never; Returns: string[] }
-      rdm_retire_metadata: {
+      rdm_promote_default_policy: {
         Args: { _id: string; _table: string }
+        Returns: undefined
+      }
+      rdm_retire_metadata: {
+        Args: { _id: string; _promote_id?: string; _table: string }
         Returns: undefined
       }
       rdm_save_metadata: {
