@@ -530,8 +530,9 @@ export default function FpaDashboard() {
               </p>
             ) : !loadingTypeData && (!assessmentTypeData || assessmentTypeData.length === 0) ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                No assessments found. Run a demo scenario to populate data.
+                No assessments recorded yet. Assessments appear here once they are initiated.
               </p>
+
             ) : (
               <div className="space-y-3">
                 {(assessmentTypeData ?? []).map((bucket) => (
