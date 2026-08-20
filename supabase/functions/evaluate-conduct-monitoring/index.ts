@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
             const { data: existing } = await supa.from('conduct_alerts')
               .select('id').eq('dedupe_key', dedupeKey).maybeSingle();
             if (!existing) {
-              const { data: alert } = await supa.from('conduct_alerts').insert({
+              const { data: alert, error: aErr } = await supa.from('conduct_alerts').insert({
                 dedupe_key: dedupeKey,
                 kind: 'monitoring_rule',
                 source: 'evaluate-conduct-monitoring',
@@ -78,11 +78,18 @@ Deno.serve(async (req) => {
                 status: 'open',
                 licensee_id: ev.entity_id ?? null,
                 product_id: ev.product_id ?? null,
+                monitoring_result_id: (resRow as Any).id,
+                rule_version: rule.current_version ?? 1,
+                threshold_value: rule.threshold_value ?? null,
+                rule_snapshot: { code: rule.code, name: rule.name, rule_type: rule.rule_type, definition: rule.definition },
+                explanation: `Detected ${ev.metrics?.count} matching complaints against a threshold of ${ev.metrics?.threshold} within ${ev.metrics?.window_days} days.`,
               }).select('id').maybeSingle();
+              if (aErr) summary.errors.push(`alert:${rule.id}:${aErr.message}`);
               if (alert?.id) {
                 summary.alerts_created++;
                 ruleAlerts++;
                 await supa.from('conduct_monitoring_results').update({ alert_id: alert.id }).eq('id', (resRow as Any).id);
+
 
                 // Fire notification event (best-effort)
                 try {
