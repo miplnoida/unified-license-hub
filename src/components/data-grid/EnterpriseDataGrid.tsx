@@ -253,7 +253,7 @@ export function EnterpriseDataGrid<T>({
                   );
                 })}
                 {hasActions && (
-                  <th scope="col" className="sticky right-0 z-10 w-24 bg-muted/95 px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <th scope="col" className="sticky right-0 z-10 w-40 min-w-[10rem] bg-muted/95 px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Actions
                   </th>
                 )}
