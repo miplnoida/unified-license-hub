@@ -60,15 +60,15 @@ CREATE TEMP TABLE _n AS
 WITH ins AS (
   INSERT INTO public.entity_identifiers
     (entity_id, identifier_type_id, identifier_value, source_type, jurisdiction_id)
-  SELECT e.id, t.id, v.raw, 'MANUAL',
+  SELECT (SELECT id FROM public.licensees ORDER BY id OFFSET v.entity_offset LIMIT 1),
+         t.id, v.raw, 'MANUAL',
          CASE WHEN t.uniqueness_scope = 'JURISDICTION' THEN (SELECT id FROM public.countries LIMIT 1) END
-    FROM (SELECT id FROM public.licensees LIMIT 1) e
-    CROSS JOIN (VALUES
-      ('legal_entity_identifier', '  549300ab  cd12 '),
-      ('taxpayer_registration_number', 'trn-123 456'),
-      ('company_registration_number', ' c-123/ab '),
-      ('company_registration_number', 'C123AB')
-    ) AS v(type_key, raw)
+    FROM (VALUES
+      ('legal_entity_identifier', '  549300ab  cd12 ', 0),
+      ('taxpayer_registration_number', 'trn-123 456', 0),
+      ('company_registration_number', ' c-123/ab ', 0),
+      ('company_registration_number', 'C123AB', 1)
+    ) AS v(type_key, raw, entity_offset)
     JOIN public.entity_identifier_types t ON t.key = v.type_key
   RETURNING identifier_type_id, identifier_value, normalized_value)
 SELECT t.key, i.identifier_value, i.normalized_value
