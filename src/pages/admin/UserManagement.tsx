@@ -102,6 +102,7 @@ async function uploadAvatarFile(file: File, userId: string): Promise<string | nu
 }
 
 export default function UserManagement() {
+  const qc = useQueryClient();
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
