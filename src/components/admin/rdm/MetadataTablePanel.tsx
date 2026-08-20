@@ -286,8 +286,11 @@ export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }
                         id={`rdm-${f.name}`}
                         type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
                         value={String(draft[f.name] ?? '')}
+                        readOnly={Boolean(editing && f.immutable)}
+                        disabled={Boolean(editing && f.immutable)}
                         onChange={(e) => setDraft((d) => ({ ...d, [f.name]: e.target.value }))}
                       />
+
                     )}
                   </>
                 )}
