@@ -237,6 +237,9 @@ export default function EntityDirectory() {
                         <Button variant="ghost" size="sm" asChild>
                           <Link to={`/entities/${e.entity_id}`}>Structure</Link>
                         </Button>
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link to={`/entities/${e.entity_id}/360`}>Entity 360</Link>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

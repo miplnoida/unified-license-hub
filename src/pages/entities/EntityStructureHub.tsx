@@ -114,6 +114,13 @@ export default function EntityStructureHub() {
         description="Canonical entity record — identity, licences, ownership and control, governance, relationships and controlled change."
         backHref="/entities"
         backLabel="Entity Directory"
+        actions={
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/entities/${entityId}/360`}>
+              <Eye className="mr-2 h-4 w-4" />Entity 360
+            </Link>
+          </Button>
+        }
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

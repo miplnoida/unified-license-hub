@@ -30458,6 +30458,10 @@ export type Database = {
           table_name: string
         }[]
       }
+      cert_reset_dependency_order: {
+        Args: { _hard_edges_only?: boolean }
+        Returns: Json
+      }
       cert_reset_detach_optional_links: {
         Args: { _tables: string[] }
         Returns: Json
@@ -30471,6 +30475,7 @@ export type Database = {
       cert_seed_identity_v1: { Args: never; Returns: undefined }
       cert_seed_returns_v1: { Args: never; Returns: undefined }
       cert_seed_structure_v1: { Args: never; Returns: undefined }
+      cert_seed_wave_d_v1: { Args: never; Returns: Json }
       cert_uuid: { Args: { _key: string }; Returns: string }
       cert_verify_dataset_v1: { Args: never; Returns: Json }
       check_applicant_name_exists: {
