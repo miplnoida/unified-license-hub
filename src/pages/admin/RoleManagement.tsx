@@ -38,6 +38,7 @@ import {
 } from '@/hooks/usePermissionCatalog';
 import PermissionCatalogTab from './PermissionCatalogTab';
 import { useCan } from '@/hooks/useCan';
+import { useRoleTemplates } from '@/hooks/useRoleTemplates';
 import {
   ACCESS_LEVEL_LABELS,
   ACCESS_LEVEL_DESCRIPTIONS,
@@ -213,6 +214,9 @@ export default function RoleManagement() {
   const canDelete = useCan('role_management', 'delete');
   const canReset = useCan('role_management', 'reset');
   const canAssign = useCan('role_management', 'assign_permissions');
+  // Wave A: templates are configuration in `sec_role_templates`; the static
+  // QUICK_TEMPLATES list is only an offline fallback.
+  const { data: dbTemplates = [] } = useRoleTemplates();
   const canViewCatalog = useCan('role_management', 'view_catalog');
   const canManageCatalog = useCan('role_management', 'manage_catalog');
 
@@ -438,6 +442,14 @@ export default function RoleManagement() {
     if (!canAssign) { toast.error('You do not have permission to assign role permissions.'); return; }
 
     if (!tplKey || tplKey === 'none') return;
+    const dbTpl = dbTemplates.find(t => t.key === tplKey);
+    if (dbTpl) {
+      setFormRoleType(dbTpl.role_type);
+      setFormDashboardTier((dbTpl.dashboard_tier as any) || 'operational');
+      setFormPerms([...new Set(dbTpl.permissionIds)]);
+      toast.success(`Template applied: ${dbTpl.name}`);
+      return;
+    }
     const tpl = QUICK_TEMPLATES.find(t => t.key === tplKey);
     if (!tpl) return;
     const targetGroups = buildCapabilityGroups(tpl.roleType);
@@ -954,7 +966,10 @@ export default function RoleManagement() {
                       <Select onValueChange={applyTemplate}>
                         <SelectTrigger className="h-8 w-64"><SelectValue placeholder="Pick a starting point..." /></SelectTrigger>
                         <SelectContent>
-                          {QUICK_TEMPLATES.map(t => (
+                          {(dbTemplates.length
+                            ? dbTemplates.map(t => ({ key: t.key, label: t.name }))
+                            : QUICK_TEMPLATES.map(t => ({ key: t.key, label: t.label }))
+                          ).map(t => (
                             <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>
                           ))}
                         </SelectContent>

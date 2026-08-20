@@ -8786,6 +8786,222 @@ export type Database = {
           },
         ]
       }
+      entity_match_candidates: {
+        Row: {
+          case_id: string
+          created_at: string
+          entity_id: string | null
+          external_entity_id: string | null
+          id: string
+          is_selected: boolean
+          match_basis: string
+          match_score: number
+          signals: Json
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          entity_id?: string | null
+          external_entity_id?: string | null
+          id?: string
+          is_selected?: boolean
+          match_basis: string
+          match_score?: number
+          signals?: Json
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          entity_id?: string | null
+          external_entity_id?: string | null
+          id?: string
+          is_selected?: boolean
+          match_basis?: string
+          match_score?: number
+          signals?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_match_candidates_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "entity_resolution_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_match_candidates_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_match_candidates_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
+      entity_membership_role_permissions: {
+        Row: {
+          capability: string
+          created_at: string
+          id: string
+          membership_role_id: string
+        }
+        Insert: {
+          capability: string
+          created_at?: string
+          id?: string
+          membership_role_id: string
+        }
+        Update: {
+          capability?: string
+          created_at?: string
+          id?: string
+          membership_role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_membership_role_permissions_membership_role_id_fkey"
+            columns: ["membership_role_id"]
+            isOneToOne: false
+            referencedRelation: "entity_membership_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_membership_roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_primary_representative: boolean
+          is_system: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_primary_representative?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_primary_representative?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      entity_merges: {
+        Row: {
+          absorbed_entity_id: string
+          after_snapshot: Json | null
+          approved_at: string | null
+          approved_by: string | null
+          before_snapshot: Json | null
+          case_id: string | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          impact_preview: Json
+          reason: string
+          requested_at: string
+          requested_by: string | null
+          status: string
+          survivor_entity_id: string
+        }
+        Insert: {
+          absorbed_entity_id: string
+          after_snapshot?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
+          before_snapshot?: Json | null
+          case_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          impact_preview?: Json
+          reason: string
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+          survivor_entity_id: string
+        }
+        Update: {
+          absorbed_entity_id?: string
+          after_snapshot?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
+          before_snapshot?: Json | null
+          case_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          impact_preview?: Json
+          reason?: string
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+          survivor_entity_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_merges_absorbed_entity_id_fkey"
+            columns: ["absorbed_entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_merges_absorbed_entity_id_fkey"
+            columns: ["absorbed_entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_merges_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "entity_resolution_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_merges_survivor_entity_id_fkey"
+            columns: ["survivor_entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_merges_survivor_entity_id_fkey"
+            columns: ["survivor_entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
       entity_registry_bindings: {
         Row: {
           authority_mode: string
@@ -9035,6 +9251,155 @@ export type Database = {
           },
         ]
       }
+      entity_resolution_cases: {
+        Row: {
+          application_id: string | null
+          approved_at: string | null
+          approved_by: string | null
+          authority_mode: string
+          case_number: string
+          created_at: string
+          decision_notes: string | null
+          escalated_at: string | null
+          escalated_by: string | null
+          id: string
+          outcome: string | null
+          provider_status: string
+          requested_at: string
+          requested_by: string | null
+          resolution_policy_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_entity_id: string | null
+          status: string
+          subject_identifiers: Json
+          subject_name: string
+          subject_payload: Json
+          updated_at: string
+        }
+        Insert: {
+          application_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          authority_mode?: string
+          case_number: string
+          created_at?: string
+          decision_notes?: string | null
+          escalated_at?: string | null
+          escalated_by?: string | null
+          id?: string
+          outcome?: string | null
+          provider_status?: string
+          requested_at?: string
+          requested_by?: string | null
+          resolution_policy_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_entity_id?: string | null
+          status?: string
+          subject_identifiers?: Json
+          subject_name: string
+          subject_payload?: Json
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          authority_mode?: string
+          case_number?: string
+          created_at?: string
+          decision_notes?: string | null
+          escalated_at?: string | null
+          escalated_by?: string | null
+          id?: string
+          outcome?: string | null
+          provider_status?: string
+          requested_at?: string
+          requested_by?: string | null
+          resolution_policy_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_entity_id?: string | null
+          status?: string
+          subject_identifiers?: Json
+          subject_name?: string
+          subject_payload?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_resolution_cases_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_resolution_cases_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_resolution_cases_resolution_policy_id_fkey"
+            columns: ["resolution_policy_id"]
+            isOneToOne: false
+            referencedRelation: "entity_resolution_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_resolution_cases_resolved_entity_id_fkey"
+            columns: ["resolved_entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_resolution_cases_resolved_entity_id_fkey"
+            columns: ["resolved_entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
+      entity_resolution_events: {
+        Row: {
+          actor_id: string | null
+          case_id: string
+          created_at: string
+          detail: Json
+          event_type: string
+          id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          case_id: string
+          created_at?: string
+          detail?: Json
+          event_type: string
+          id?: string
+        }
+        Update: {
+          actor_id?: string | null
+          case_id?: string
+          created_at?: string
+          detail?: Json
+          event_type?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_resolution_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "entity_resolution_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entity_resolution_policies: {
         Row: {
           allow_provisional_entity: boolean
@@ -9281,6 +9646,100 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_user_memberships: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          authority_evidence_reference: string | null
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          entity_id: string
+          id: string
+          membership_role_id: string
+          rejected_at: string | null
+          rejected_by: string | null
+          requested_at: string
+          requested_by: string | null
+          revocation_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          authority_evidence_reference?: string | null
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_id: string
+          id?: string
+          membership_role_id: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          authority_evidence_reference?: string | null
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_id?: string
+          id?: string
+          membership_role_id?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_user_memberships_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_user_memberships_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_user_memberships_membership_role_id_fkey"
+            columns: ["membership_role_id"]
+            isOneToOne: false
+            referencedRelation: "entity_membership_roles"
             referencedColumns: ["id"]
           },
         ]
@@ -14917,6 +15376,7 @@ export type Database = {
           lead_regulator_id: string | null
           license_id: string | null
           lifecycle_stage_id: string | null
+          merged_into_entity_id: string | null
           name: string
           party_id: string | null
           regulator_officer_id: string | null
@@ -14937,6 +15397,7 @@ export type Database = {
           lead_regulator_id?: string | null
           license_id?: string | null
           lifecycle_stage_id?: string | null
+          merged_into_entity_id?: string | null
           name: string
           party_id?: string | null
           regulator_officer_id?: string | null
@@ -14957,6 +15418,7 @@ export type Database = {
           lead_regulator_id?: string | null
           license_id?: string | null
           lifecycle_stage_id?: string | null
+          merged_into_entity_id?: string | null
           name?: string
           party_id?: string | null
           regulator_officer_id?: string | null
@@ -15001,6 +15463,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lifecycle_stages"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensees_merged_into_entity_id_fkey"
+            columns: ["merged_into_entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensees_merged_into_entity_id_fkey"
+            columns: ["merged_into_entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
           {
             foreignKeyName: "licensees_party_id_fkey"
@@ -22691,6 +23167,87 @@ export type Database = {
           },
         ]
       }
+      sec_role_template_scope_values: {
+        Row: {
+          created_at: string
+          id: string
+          template_scope_id: string
+          value_id: string | null
+          value_kind: string
+          value_text: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          template_scope_id: string
+          value_id?: string | null
+          value_kind: string
+          value_text?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          template_scope_id?: string
+          value_id?: string | null
+          value_kind?: string
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sec_role_template_scope_values_template_scope_id_fkey"
+            columns: ["template_scope_id"]
+            isOneToOne: false
+            referencedRelation: "sec_role_template_scopes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sec_role_template_scopes: {
+        Row: {
+          created_at: string
+          id: string
+          module_id: string
+          scope_type_id: string
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          module_id: string
+          scope_type_id: string
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          module_id?: string
+          scope_type_id?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sec_role_template_scopes_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "sec_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sec_role_template_scopes_scope_type_id_fkey"
+            columns: ["scope_type_id"]
+            isOneToOne: false
+            referencedRelation: "sec_scope_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sec_role_template_scopes_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "sec_role_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sec_role_templates: {
         Row: {
           created_at: string
@@ -22879,6 +23436,36 @@ export type Database = {
           sort_order?: number
           updated_at?: string
           value_kind?: string | null
+        }
+        Relationships: []
+      }
+      sec_seed_reports: {
+        Row: {
+          action: string
+          category: string
+          created_at: string
+          detail: string | null
+          id: string
+          subject: string
+          wave: string
+        }
+        Insert: {
+          action: string
+          category: string
+          created_at?: string
+          detail?: string | null
+          id?: string
+          subject: string
+          wave: string
+        }
+        Update: {
+          action?: string
+          category?: string
+          created_at?: string
+          detail?: string | null
+          id?: string
+          subject?: string
+          wave?: string
         }
         Relationships: []
       }
@@ -27365,6 +27952,75 @@ export type Database = {
         }
         Returns: Json
       }
+      entity_attach_license: {
+        Args: {
+          _entity_id: string
+          _is_primary?: boolean
+          _license_id: string
+          _source?: string
+        }
+        Returns: string
+      }
+      entity_create_local: {
+        Args: {
+          _case_id?: string
+          _identifiers?: Json
+          _identity_status_key?: string
+          _legal_name: string
+          _lifecycle_key?: string
+          _sector_id?: string
+        }
+        Returns: string
+      }
+      entity_membership_approve: { Args: { _id: string }; Returns: undefined }
+      entity_membership_reject: {
+        Args: { _id: string; _reason: string }
+        Returns: undefined
+      }
+      entity_membership_request: {
+        Args: {
+          _authority_evidence_reference?: string
+          _entity_id: string
+          _membership_role_key: string
+        }
+        Returns: string
+      }
+      entity_membership_revoke: {
+        Args: { _id: string; _reason: string }
+        Returns: undefined
+      }
+      entity_membership_verify: {
+        Args: { _id: string; _notes?: string }
+        Returns: undefined
+      }
+      entity_merge_execute: {
+        Args: {
+          _absorbed_entity_id: string
+          _case_id?: string
+          _reason: string
+          _survivor_entity_id: string
+        }
+        Returns: string
+      }
+      entity_merge_preview: {
+        Args: { _absorbed_entity_id: string; _survivor_entity_id: string }
+        Returns: Json
+      }
+      entity_registry_entity_dto: {
+        Args: { _entity_id: string }
+        Returns: Json
+      }
+      entity_registry_search: { Args: { _criteria: Json }; Returns: Json }
+      entity_resolution_decide: {
+        Args: {
+          _action: string
+          _case_id: string
+          _entity_id?: string
+          _notes?: string
+        }
+        Returns: Json
+      }
+      entity_resolve_identity: { Args: { _payload: Json }; Returns: Json }
       escalate_application: {
         Args: { _application_id: string; _reason?: string }
         Returns: {
@@ -30058,6 +30714,7 @@ export type Database = {
         }[]
       }
       sec_save_role: { Args: { _payload: Json }; Returns: Json }
+      sec_user_memberships: { Args: { _user_id: string }; Returns: Json }
       sec_user_permissions: {
         Args: { p_user_id: string }
         Returns: {
