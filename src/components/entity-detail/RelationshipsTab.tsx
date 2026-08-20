@@ -69,19 +69,16 @@ export default function RelationshipsTab({ entityId }: RelationshipsTabProps) {
   const handleSave = async () => {
     if (!form.related_entity_name.trim()) { toast.error('Related entity name is required'); return; }
     setSaving(true);
-    const payload = {
-      entity_id: entityId,
-      related_entity_name: form.related_entity_name,
-      relationship_type: form.relationship_type,
-      ownership_percentage: form.ownership_percentage ? parseFloat(form.ownership_percentage) : null,
-      effective_date: form.effective_date || null,
-      status: form.status,
-      notes: form.notes || null,
-    };
-
-    const { error } = editing
-      ? await supabase.from('entity_relationships' as any).update(payload).eq('id', editing.id)
-      : await supabase.from('entity_relationships' as any).insert(payload);
+    const { error } = await (supabase as any).rpc('entity_relationship_save', {
+      _entity_id: entityId,
+      _related_entity_name: form.related_entity_name,
+      _relationship_type: form.relationship_type,
+      _relationship_id: editing?.id ?? null,
+      _ownership_percentage: form.ownership_percentage ? parseFloat(form.ownership_percentage) : null,
+      _effective_date: form.effective_date || null,
+      _status: form.status,
+      _notes: form.notes || null,
+    });
 
     if (error) toast.error(error.message);
     else { toast.success(editing ? 'Updated' : 'Created'); setDialogOpen(false); fetchData(); }
@@ -91,7 +88,7 @@ export default function RelationshipsTab({ entityId }: RelationshipsTabProps) {
   const handleDelete = async (id: string) => {
     const result = await Swal.fire({ title: 'Delete relationship?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, delete' });
     if (!result.isConfirmed) return;
-    const { error } = await supabase.from('entity_relationships' as any).delete().eq('id', id);
+    const { error } = await (supabase as any).rpc('entity_relationship_delete', { _relationship_id: id });
     if (error) toast.error(error.message);
     else { toast.success('Deleted'); fetchData(); }
   };

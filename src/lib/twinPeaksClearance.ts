@@ -43,22 +43,13 @@ export async function upsertClearance(input: {
   rationale?: string | null;
   recorded_by?: string | null;
 }) {
-  const { data, error } = await (supabase as any)
-    .from('twinpeaks_clearances')
-    .upsert(
-      {
-        application_id: input.application_id,
-        regulator_role: input.regulator_role,
-        status: input.status,
-        conditions: input.conditions ?? [],
-        rationale: input.rationale ?? null,
-        recorded_by: input.recorded_by ?? null,
-        recorded_at: new Date().toISOString(),
-      },
-      { onConflict: 'application_id,regulator_role' },
-    )
-    .select('*')
-    .single();
+  const { data, error } = await (supabase as any).rpc('twinpeaks_record_clearance', {
+    _application_id: input.application_id,
+    _regulator_role: input.regulator_role,
+    _status: input.status,
+    _conditions: input.conditions ?? [],
+    _rationale: input.rationale ?? null,
+  });
   if (error) throw error;
   return data as TwinPeaksClearance;
 }
@@ -78,15 +69,10 @@ export async function raiseDisagreement(input: {
   description: string;
   raised_by?: string | null;
 }) {
-  const { data, error } = await (supabase as any)
-    .from('twinpeaks_disagreements')
-    .insert({
-      application_id: input.application_id,
-      description: input.description,
-      raised_by: input.raised_by ?? null,
-    })
-    .select('*')
-    .single();
+  const { data, error } = await (supabase as any).rpc('twinpeaks_raise_disagreement', {
+    _application_id: input.application_id,
+    _description: input.description,
+  });
   if (error) throw error;
   return data as TwinPeaksDisagreement;
 }
@@ -97,15 +83,10 @@ export async function resolveDisagreement(input: {
   resolved_by?: string | null;
   status?: 'resolved' | 'escalated';
 }) {
-  const { error } = await (supabase as any)
-    .from('twinpeaks_disagreements')
-    .update({
-      status: input.status ?? 'resolved',
-      resolution: input.resolution,
-      resolved_by: input.resolved_by ?? null,
-      resolved_at: new Date().toISOString(),
-    })
-    .eq('id', input.id);
+  const { error } = await (supabase as any).rpc('twinpeaks_resolve_disagreement', {
+    _disagreement_id: input.id,
+    _resolution: input.resolution,
+  });
   if (error) throw error;
 }
 

@@ -72,15 +72,14 @@ export function LicenseConditionsPanel({ licenseId, applicationId, isInternal }:
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from('license_conditions' as any).insert({
-      license_id: licenseId,
-      application_id: applicationId || null,
-      category: form.category,
-      description: form.description.trim(),
-      due_date: form.due_date || null,
-      monitoring_owner: form.monitoring_owner.trim() || null,
-      notes: form.notes.trim() || null,
-      created_by: user?.id || null,
+    const { error } = await (supabase as any).rpc('license_condition_create', {
+      _license_id: licenseId,
+      _category: form.category,
+      _description: form.description.trim(),
+      _application_id: applicationId || null,
+      _due_date: form.due_date || null,
+      _monitoring_owner: form.monitoring_owner.trim() || null,
+      _notes: form.notes.trim() || null,
     });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
@@ -91,12 +90,10 @@ export function LicenseConditionsPanel({ licenseId, applicationId, isInternal }:
   };
 
   const updateStatus = async (id: string, status: string) => {
-    const patch: any = { status };
-    if (status === 'satisfied') {
-      patch.satisfied_at = new Date().toISOString();
-      patch.satisfied_by = user?.id;
-    }
-    const { error } = await supabase.from('license_conditions' as any).update(patch).eq('id', id);
+    const { error } = await (supabase as any).rpc('license_condition_set_status', {
+      _condition_id: id,
+      _status: status,
+    });
     if (error) { toast.error(error.message); return; }
     toast.success('Updated');
     load();
@@ -104,7 +101,7 @@ export function LicenseConditionsPanel({ licenseId, applicationId, isInternal }:
 
   const remove = async (id: string) => {
     if (!confirm('Delete this condition?')) return;
-    const { error } = await supabase.from('license_conditions' as any).delete().eq('id', id);
+    const { error } = await (supabase as any).rpc('license_condition_delete', { _condition_id: id });
     if (error) { toast.error(error.message); return; }
     load();
   };

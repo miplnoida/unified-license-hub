@@ -30,13 +30,13 @@ export default function RiskRatingsTab({ entityId }: { entityId: string }) {
 
   const handleSave = async () => {
     setSaving(true);
-    const { error } = await supabase.from('risk_ratings' as any).insert({
-      entity_id: entityId,
-      overall_rating: form.overall_rating,
-      risk_score: parseFloat(form.risk_score) || 50,
-      assessment_date: form.assessment_date,
-      notes: form.notes || null,
-      mitigation_measures: form.mitigation_measures || null,
+    const { error } = await (supabase as any).rpc('record_entity_risk_rating', {
+      _entity_id: entityId,
+      _overall_rating: form.overall_rating,
+      _risk_score: parseFloat(form.risk_score) || 50,
+      _assessment_date: form.assessment_date,
+      _notes: form.notes || null,
+      _mitigation_measures: form.mitigation_measures || null,
     });
     if (error) toast.error(error.message); else { toast.success('Risk assessment added'); setDialogOpen(false); fetchData(); }
     setSaving(false);

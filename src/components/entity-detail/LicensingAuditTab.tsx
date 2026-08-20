@@ -193,18 +193,15 @@ export default function LicensingAuditTab({ entityId, onOpenSupervisoryTab }: Pr
     }
     setIssuing(true);
     try {
-      const { error } = await supabase.from('licensing_audit_determinations' as any).insert({
-        entity_id: entityId,
-        verdict,
-        rationale: rationale.trim(),
-        effective_date: effectiveDate,
-        risk_rating_id: latestRiskRatingId,
-        issued_by: user.id,
+      const { error } = await (supabase as any).rpc('licensing_audit_record_determination', {
+        _entity_id: entityId,
+        _verdict: verdict,
+        _rationale: rationale.trim(),
+        _effective_date: effectiveDate,
+        _risk_rating_id: latestRiskRatingId,
       });
       if (error) throw error;
-      await logAction('licensee.audit.determination_issued', 'licensee', entityId, {
-        after: { verdict, effective_date: effectiveDate },
-      });
+      // Authoritative audit event is written by the governed operation.
       toast.success('Final determination issued');
       setRationale('');
       load();
@@ -220,17 +217,16 @@ export default function LicensingAuditTab({ entityId, onOpenSupervisoryTab }: Pr
     setGenerating(true);
     try {
       const computed = computeProfile();
-      const { error } = await supabase.from('licensing_audit_risk_profiles' as any).insert({
-        entity_id: entityId,
-        profile_score: computed.profile_score,
-        tier: computed.tier,
-        key_drivers: computed.key_drivers,
-        snapshot: {
+      const { error } = await (supabase as any).rpc('licensing_audit_record_risk_profile', {
+        _entity_id: entityId,
+        _profile_score: computed.profile_score,
+        _tier: computed.tier,
+        _key_drivers: computed.key_drivers,
+        _snapshot: {
           risk_ratings: (rawInputs.risks || []).slice(0, 3),
           open_enforcement_count: (rawInputs.enf || []).filter((e: any) => !['closed', 'resolved'].includes(String(e.status || '').toLowerCase())).length,
           open_flags_count: (rawInputs.flags || []).filter((f: any) => !f.resolved_at).length,
         },
-        generated_by: user.id,
       });
       if (error) throw error;
       toast.success(`Risk profile generated: ${computed.tier.toUpperCase()} (${computed.profile_score})`);
