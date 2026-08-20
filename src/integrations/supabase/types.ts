@@ -30055,6 +30055,7 @@ export type Database = {
         Returns: Json
       }
       cert_seed_identity_v1: { Args: never; Returns: undefined }
+      cert_seed_structure_v1: { Args: never; Returns: undefined }
       cert_uuid: { Args: { _key: string }; Returns: string }
       check_applicant_name_exists: {
         Args: { p_name: string }
