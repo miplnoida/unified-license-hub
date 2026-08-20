@@ -30462,6 +30462,7 @@ export type Database = {
         Args: { _tables: string[] }
         Returns: Json
       }
+      cert_reset_force_delete: { Args: { _tables: string[] }; Returns: Json }
       cert_reset_nonproduction_business_data_v1: {
         Args: { _confirmation: string; _project_ref: string }
         Returns: Json
