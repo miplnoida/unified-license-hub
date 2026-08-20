@@ -14,6 +14,7 @@ const FormTemplateView = lazy(() => import('@/pages/admin/FormTemplateView'));
 const MasterConfiguration = lazy(() => import('@/pages/admin/MasterConfiguration'));
 const MasterDataManagement = lazy(() => import('@/pages/admin/MasterDataManagement'));
 const RegulatoryDataModel = lazy(() => import('@/pages/admin/RegulatoryDataModel'));
+const FormsPackagesWorkspace = lazy(() => import('@/pages/admin/FormsPackagesWorkspace'));
 
 const FeeManagement = lazy(() => import('@/pages/admin/FeeManagement'));
 const ReturnConfiguration = lazy(() => import('@/pages/admin/ReturnConfiguration'));
