@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CheckCircle2, Clock, Loader2, Plus, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { supervisoryPlanActionCreate, supervisoryPlanActionTransition } from '@/lib/prudentialGovernedOps';
 
 interface Plan {
   id: string;
