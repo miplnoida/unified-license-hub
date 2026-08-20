@@ -30196,6 +30196,10 @@ export type Database = {
         Args: { _licensee_id: string }
         Returns: string[]
       }
+      application_payment_verify: {
+        Args: { _application_id: string; _note: string; _payment_id: string }
+        Returns: Json
+      }
       application_pin_form_requirements: {
         Args: { _application_id: string }
         Returns: Json
@@ -30209,6 +30213,7 @@ export type Database = {
         }
         Returns: Json
       }
+      application_rfi_raise: { Args: { _payload: Json }; Returns: Json }
       application_rfi_submit_response: {
         Args: {
           p_file_upload_ids?: string[]
@@ -30239,6 +30244,7 @@ export type Database = {
         Args: { _change_set_id: string }
         Returns: Json
       }
+      approval_step_config_write: { Args: { _payload: Json }; Returns: Json }
       archive_prudential_ratio: {
         Args: { _ratio_id: string }
         Returns: undefined
@@ -34080,6 +34086,10 @@ export type Database = {
       }
       payment_incident_resolve: {
         Args: { _incident_id: string; _notes?: string }
+        Returns: Json
+      }
+      payment_refund_decide: {
+        Args: { _decision: string; _reason: string; _refund_id: string }
         Returns: Json
       }
       peer_ratio_snapshot: {
