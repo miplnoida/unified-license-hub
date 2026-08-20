@@ -3,6 +3,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logComplianceAudit } from '@/lib/complianceAudit';
 import { authorizedAction } from '@/lib/rbac/authorizedAction';
+import {
+  prudentialAssessmentCreate,
+  prudentialAssessmentSaveDraft,
+  prudentialAssessmentTransition,
+  prudentialActionIssue,
+  prudentialActionUpdate,
+  prudentialEscalationRaise,
+  prudentialEscalationDecide,
+  prudentialTaxonomySave,
+  prudentialStressIndicatorSave,
+  prudentialStressIndicatorDelete,
+  prudentialStressEventAcknowledge,
+  prudentialFeedLogRecord,
+} from '@/lib/prudentialGovernedOps';
 import { worstSeverity, normalizeSeverity } from '@/lib/prudentialSeverity';
 
 
