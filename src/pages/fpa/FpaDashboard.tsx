@@ -149,7 +149,7 @@ function AssessmentTypeBar({ bucket }: { bucket: AssessmentTypeBucket }) {
 
 // ─── Scenario definitions ─────────────────────────────────────────────────────
 
-const TAB_A_SCENARIOS: Scenario[] = [
+const STAGE_1_AREAS: Scenario[] = [
   {
     id: 'FPA-001',
     title: 'Initiation Pathways',
@@ -173,7 +173,7 @@ const TAB_A_SCENARIOS: Scenario[] = [
   },
 ];
 
-const TAB_B_SCENARIOS: Scenario[] = [
+const STAGE_2_AREAS: Scenario[] = [
   {
     id: 'FPA-004',
     title: 'Declarations',
@@ -197,7 +197,7 @@ const TAB_B_SCENARIOS: Scenario[] = [
   },
 ];
 
-const TAB_C_SCENARIOS: Scenario[] = [
+const STAGE_3_AREAS: Scenario[] = [
   {
     id: 'FPA-007',
     title: 'Findings Console',
@@ -214,7 +214,7 @@ const TAB_C_SCENARIOS: Scenario[] = [
   },
 ];
 
-const TAB_D_SCENARIOS: Scenario[] = [
+const STAGE_4_AREAS: Scenario[] = [
   {
     id: 'FPA-009',
     title: 'AI Analysis',
@@ -252,7 +252,7 @@ const TAB_D_SCENARIOS: Scenario[] = [
   },
 ];
 
-const TAB_E_SCENARIOS: Scenario[] = [
+const STAGE_5_AREAS: Scenario[] = [
   {
     id: 'FPA-014',
     title: 'Appeals',
@@ -378,7 +378,7 @@ export default function FpaDashboard() {
             <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-base font-semibold text-foreground">Demo Scenarios</h2>
             <Badge variant="secondary" className="text-xs">
-              {TAB_A_SCENARIOS.length + TAB_B_SCENARIOS.length + TAB_C_SCENARIOS.length + TAB_D_SCENARIOS.length + TAB_E_SCENARIOS.length} scenarios
+              {STAGE_1_AREAS.length + STAGE_2_AREAS.length + STAGE_3_AREAS.length + STAGE_4_AREAS.length + STAGE_5_AREAS.length} scenarios
             </Badge>
           </div>
 
@@ -414,7 +414,7 @@ export default function FpaDashboard() {
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {TAB_A_SCENARIOS.map((s) => (
+                {STAGE_1_AREAS.map((s) => (
                   <ScenarioCard
                     key={s.id}
                     scenario={s}
@@ -433,7 +433,7 @@ export default function FpaDashboard() {
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {TAB_B_SCENARIOS.map((s) => (
+                {STAGE_2_AREAS.map((s) => (
                   <ScenarioCard
                     key={s.id}
                     scenario={s}
@@ -452,7 +452,7 @@ export default function FpaDashboard() {
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {TAB_C_SCENARIOS.map((s) => (
+                {STAGE_3_AREAS.map((s) => (
                   <ScenarioCard
                     key={s.id}
                     scenario={s}
@@ -471,7 +471,7 @@ export default function FpaDashboard() {
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {TAB_D_SCENARIOS.map((s) => (
+                {STAGE_4_AREAS.map((s) => (
                   <ScenarioCard
                     key={s.id}
                     scenario={s}
@@ -490,7 +490,7 @@ export default function FpaDashboard() {
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {TAB_E_SCENARIOS.map((s) => (
+                {STAGE_5_AREAS.map((s) => (
                   <ScenarioCard
                     key={s.id}
                     scenario={s}
