@@ -20,6 +20,7 @@ import { Loader2, Target, ExternalLink, ShieldCheck, CalendarClock, UserCog, Che
 import { logAction } from '@/hooks/useAuditLog';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
+import { supervisoryPlanActionTransition, supervisoryPlanDecision } from '@/lib/prudentialGovernedOps';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   pending: { label: 'Pending', className: 'bg-blue-100 text-blue-800' },
