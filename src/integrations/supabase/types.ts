@@ -828,6 +828,48 @@ export type Database = {
           },
         ]
       }
+      application_requirement_migration_status: {
+        Row: {
+          application_id: string
+          classification: string
+          decided_at: string
+          decided_by: string | null
+          evidence: Json | null
+          requirements_created: number
+        }
+        Insert: {
+          application_id: string
+          classification: string
+          decided_at?: string
+          decided_by?: string | null
+          evidence?: Json | null
+          requirements_created?: number
+        }
+        Update: {
+          application_id?: string
+          classification?: string
+          decided_at?: string
+          decided_by?: string | null
+          evidence?: Json | null
+          requirements_created?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_requirement_migration_status_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_requirement_migration_status_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       application_rfi_auto_rules: {
         Row: {
           active: boolean
@@ -20702,6 +20744,48 @@ export type Database = {
         }
         Relationships: []
       }
+      rdm_migration_decisions: {
+        Row: {
+          affected_rows: number
+          canonical_value: Json | null
+          decided_at: string
+          decided_by: string | null
+          decision: string
+          evidence: Json | null
+          id: string
+          legacy_value: Json | null
+          reason: string | null
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          affected_rows?: number
+          canonical_value?: Json | null
+          decided_at?: string
+          decided_by?: string | null
+          decision: string
+          evidence?: Json | null
+          id?: string
+          legacy_value?: Json | null
+          reason?: string | null
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          affected_rows?: number
+          canonical_value?: Json | null
+          decided_at?: string
+          decided_by?: string | null
+          decision?: string
+          evidence?: Json | null
+          id?: string
+          legacy_value?: Json | null
+          reason?: string | null
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
       refunds: {
         Row: {
           amount: number
@@ -29862,6 +29946,7 @@ export type Database = {
         Returns: Json
       }
       entity_resolve_identity: { Args: { _payload: Json }; Returns: Json }
+      entity_structure_overview: { Args: { _entity_id: string }; Returns: Json }
       escalate_application: {
         Args: { _application_id: string; _reason?: string }
         Returns: {
@@ -30166,6 +30251,17 @@ export type Database = {
       }
       findfuncs: { Args: { "": string }; Returns: string[] }
       finish: { Args: { exception_on_failure?: boolean }; Returns: string[] }
+      form_applicability_rule_delete: {
+        Args: { _id: string }
+        Returns: boolean
+      }
+      form_applicability_rule_save: {
+        Args: { _payload: Json }
+        Returns: string
+      }
+      form_package_item_delete: { Args: { _id: string }; Returns: boolean }
+      form_package_item_save: { Args: { _payload: Json }; Returns: string }
+      form_package_save: { Args: { _payload: Json }; Returns: string }
       form_save_draft: {
         Args: {
           _change_notes?: string
@@ -31844,6 +31940,14 @@ export type Database = {
       rbac_delete_role: { Args: { _role_id: string }; Returns: Json }
       rbac_reclassify_roles: { Args: never; Returns: Json }
       rbac_save_role: { Args: { _payload: Json }; Returns: Json }
+      rdm_backfill_application_requirements: {
+        Args: { _application_id?: string }
+        Returns: Json
+      }
+      rdm_backfill_field_definitions: {
+        Args: { _template_id?: string }
+        Returns: Json
+      }
       rdm_can_read: { Args: never; Returns: boolean }
       rdm_can_write: { Args: never; Returns: boolean }
       rdm_delete_metadata: {
@@ -31873,18 +31977,42 @@ export type Database = {
       rdm_entity_registry_report: { Args: never; Returns: Json }
       rdm_integrity_report: { Args: never; Returns: Json }
       rdm_metadata_tables: { Args: never; Returns: string[] }
+      rdm_migration_decide: {
+        Args: {
+          _canonical?: Json
+          _decision: string
+          _evidence?: Json
+          _reason?: string
+          _target_id: string
+          _target_type: string
+        }
+        Returns: Json
+      }
       rdm_promote_default_policy: {
         Args: { _id: string; _table: string }
         Returns: undefined
+      }
+      rdm_require: {
+        Args: { _action: string; _module: string }
+        Returns: string
+      }
+      rdm_retire_data_concept: {
+        Args: { _id: string; _reason?: string }
+        Returns: boolean
       }
       rdm_retire_metadata: {
         Args: { _id: string; _promote_id?: string; _table: string }
         Returns: undefined
       }
+      rdm_save_data_concept: {
+        Args: { _id?: string; _values: Json }
+        Returns: string
+      }
       rdm_save_metadata: {
         Args: { _id?: string; _table: string; _values: Json }
         Returns: string
       }
+      rdm_wave_b_migration_report: { Args: never; Returns: Json }
       reap_stuck_notification_event_queue: { Args: never; Returns: number }
       reap_stuck_notification_outbox: { Args: never; Returns: number }
       recompute_return_ratios: { Args: { _return_id: string }; Returns: Json }
