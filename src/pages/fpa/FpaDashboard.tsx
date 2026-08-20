@@ -373,13 +373,15 @@ export default function FpaDashboard() {
           />
         </div>
 
-        {/* ── Scenario tabs ──────────────────────────────────────────── */}
+        {/* ── Lifecycle stages ───────────────────────────────────────── */}
         <div>
           <div className="flex items-center gap-2 mb-4">
             <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-base font-semibold text-foreground">Demo Scenarios</h2>
+            <h2 className="text-base font-semibold text-foreground">Assessment Lifecycle</h2>
             <Badge variant="secondary" className="text-xs">
-              {STAGE_1_AREAS.length + STAGE_2_AREAS.length + STAGE_3_AREAS.length + STAGE_4_AREAS.length + STAGE_5_AREAS.length} scenarios
+              5 stages ·{' '}
+              {STAGE_1_AREAS.length + STAGE_2_AREAS.length + STAGE_3_AREAS.length + STAGE_4_AREAS.length + STAGE_5_AREAS.length}{' '}
+              work areas
             </Badge>
           </div>
 
@@ -387,33 +389,34 @@ export default function FpaDashboard() {
             <TabsList className="h-9 mb-4 gap-1">
               <TabsTrigger value="A" className="text-xs gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-blue-500 inline-block" />
-                Tab A · Initiation
+                1. Initiation &amp; Register
               </TabsTrigger>
               <TabsTrigger value="B" className="text-xs gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-purple-500 inline-block" />
-                Tab B · Declarations
+                2. Declarations &amp; Screening
               </TabsTrigger>
               <TabsTrigger value="C" className="text-xs gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-red-500 inline-block" />
-                Tab C · Findings
+                3. Adverse Findings
               </TabsTrigger>
               <TabsTrigger value="D" className="text-xs gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-green-500 inline-block" />
-                Tab D · Decisioning
+                4. Determination
               </TabsTrigger>
               <TabsTrigger value="E" className="text-xs gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-amber-500 inline-block" />
-                Tab E · Appeals
+                5. Appeals &amp; Monitoring
               </TabsTrigger>
             </TabsList>
 
-            {/* Tab A – Initiation */}
+            {/* Stage 1 – Initiation & Register */}
             <TabsContent value="A">
               <div className="mb-3">
                 <p className="text-xs text-muted-foreground">
-                  Scenarios covering how assessments are initiated — from new licence applications to cycle-based and ad-hoc triggers.
+                  How assessments start and who they are about — initiation pathways, the individual register, and subject profiles.
                 </p>
               </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {STAGE_1_AREAS.map((s) => (
                   <ScenarioCard
