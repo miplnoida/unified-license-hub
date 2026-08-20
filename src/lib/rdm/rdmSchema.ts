@@ -100,16 +100,17 @@ export const RDM_SCHEMAS: Record<string, RdmTableSchema> = {
   relationship_types: {
     table: 'relationship_types',
     title: 'Relationship Types',
-    description: 'Configurable entity-to-entity and entity-to-person relationships used by group and ownership views.',
+    description: 'Typed entity-to-entity and entity-to-person relationships. Ownership relationships are graph semantics only — shareholding percentages, voting rights and beneficial-ownership history belong to the future ownership model, not here.',
     singular: 'relationship type',
     fields: [
       KEY_FIELD, LABEL_FIELD, DESC_FIELD,
       { name: 'category', label: 'Category', type: 'select', options: ['group', 'ownership', 'control', 'structure', 'commercial'], required: true, inList: true },
       { name: 'is_ownership', label: 'Ownership', type: 'boolean', inList: true },
       { name: 'is_group', label: 'Group structure', type: 'boolean', inList: true },
-      { name: 'inverse_key', label: 'Inverse key', type: 'text', help: 'Key of the mirrored relationship, if any.' },
+      { name: 'inverse_key', label: 'Inverse relationship', type: 'text', inList: true, help: 'Key of the mirrored relationship. Must resolve to an existing relationship type — the database stores the resolved reference and rejects unknown keys.' },
       ORDER_FIELD, ACTIVE_FIELD,
     ],
+
   },
   role_types: {
     table: 'role_types',
