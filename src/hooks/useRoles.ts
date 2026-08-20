@@ -60,8 +60,9 @@ export function useRoles() {
   return useQuery({
     queryKey: ['dynamic-roles'],
     queryFn: async () => {
+      // Canonical role catalogue.
       const { data, error } = await supabase
-        .from('roles' as any)
+        .from('sec_roles' as any)
         .select('*')
         .order('created_at');
       if (error) throw error;
@@ -130,7 +131,9 @@ async function callSaveRole(payload: Record<string, unknown>) {
       ? (payload as any).permission_ids.length
       : 0,
   });
-  const { data, error } = await supabase.rpc('rbac_save_role' as any, { _payload: payload as any });
+  // Canonical writer: validates, persists to sec_* and mirrors the legacy
+  // tables in one transaction.
+  const { data, error } = await supabase.rpc('sec_save_role' as any, { _payload: payload as any });
   if (error) throw error;
   return data as { id: string };
 }
@@ -162,6 +165,7 @@ export function useCreateRole() {
       qc.invalidateQueries({ queryKey: ['dynamic-roles'] });
       qc.invalidateQueries({ queryKey: ['all-role-permissions'] });
       qc.invalidateQueries({ queryKey: ['user-permissions'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['sec-context'], refetchType: 'all' });
       toast.success('Role created successfully');
     },
 
@@ -200,6 +204,7 @@ export function useUpdateRole() {
       // Force-refetch resolved access for the signed-in session so newly
       // granted modules appear in the sidebar/routes without a hard reload.
       qc.invalidateQueries({ queryKey: ['user-permissions'], refetchType: 'all' });
+      qc.invalidateQueries({ queryKey: ['sec-context'], refetchType: 'all' });
       qc.invalidateQueries({ queryKey: ['user-entity-assignments'], refetchType: 'all' });
       toast.success('Role updated successfully');
     },
@@ -213,7 +218,7 @@ export function useDeleteRole() {
   return useMutation({
     mutationFn: async (id: string) => {
       await authorizedAction('role_management', 'delete', { role_id: id });
-      const { error } = await supabase.rpc('rbac_delete_role' as any, { _role_id: id });
+      const { error } = await supabase.rpc('sec_delete_role' as any, { _role_id: id });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -249,18 +254,19 @@ export function useResetSystemRole() {
 }
 
 /**
- * Count users per dynamic role using user_dynamic_roles as source of truth.
- * Falls back to profiles.role_id (legacy) only for roles that have zero
- * dynamic-role assignments, so existing data is not lost.
+ * Count users per role from the canonical `sec_user_roles` table. A legacy
+ * `profiles.role_id` fallback is retained so historic assignments that were
+ * never mirrored still show up.
  */
 export function useRoleUserCounts() {
   return useQuery({
     queryKey: ['role-user-counts'],
     queryFn: async () => {
       const { data: udr } = await supabase
-        .from('user_dynamic_roles' as any)
-        .select('role_id, user_id');
-      const { data: roles } = await supabase.from('roles' as any).select('id');
+        .from('sec_user_roles' as any)
+        .select('role_id, user_id')
+        .eq('status', 'active');
+      const { data: roles } = await supabase.from('sec_roles' as any).select('id');
 
       const counts: Record<string, number> = {};
       const seenPerRole: Record<string, Set<string>> = {};
