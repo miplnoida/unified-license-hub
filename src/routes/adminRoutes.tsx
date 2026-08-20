@@ -188,7 +188,7 @@ export const adminRoutes = (
     <Route path="/admin/fp-sector-rules" element={<M module="fit_and_proper_screening"><FpSectorDecisionRules /></M>} />
     <Route path="/admin/case-audit" element={<M module="settings"><CaseAuditTrail /></M>} />
     <Route path="/admin/case-audit/:entityType/:entityId" element={<M module="settings"><CaseAuditTrail /></M>} />
-    <Route path="/supervision/early-warnings" element={<M module="returns_management"><PrudentialEarlyWarnings /></M>} />
+    <Route path="/supervision/early-warnings" element={<M module="prudential_supervision"><PrudentialEarlyWarnings /></M>} />
     <Route path="/admin/external-portal-access" element={<Navigate to="/admin/roles" replace />} />
     <Route path="/admin/overrides" element={<M module="settings"><RuleOverrides /></M>} />
     <Route path="/admin/conduct/risk-taxonomy" element={<M module="market_conduct"><ConductRiskTaxonomy /></M>} />
