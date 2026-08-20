@@ -32105,6 +32105,10 @@ export type Database = {
         Args: { _appeal_id: string; _reason?: string }
         Returns: Json
       }
+      fp_assessment_assign_committee: {
+        Args: { _assessment_id: string; _committee_id: string }
+        Returns: Json
+      }
       fp_assessment_comparison: {
         Args: { _assessment_id: string }
         Returns: {
@@ -32118,9 +32122,125 @@ export type Database = {
           title: string
         }[]
       }
+      fp_assessment_initiate: {
+        Args: {
+          _assessment_type: string
+          _declaration_data?: Json
+          _individual_id: string
+          _licensee_id?: string
+          _regulator_id?: string
+          _role_id?: string
+        }
+        Returns: Json
+      }
+      fp_assessment_save_pq: {
+        Args: {
+          _amendment_reason?: string
+          _assessment_id: string
+          _declaration_data: Json
+          _form_response_id?: string
+          _submit?: boolean
+        }
+        Returns: Json
+      }
+      fp_assessment_set_status: {
+        Args: { _assessment_id: string; _note?: string; _status: string }
+        Returns: Json
+      }
+      fp_audit_event: {
+        Args: {
+          _action: string
+          _after?: Json
+          _before?: Json
+          _compliance_action?: Database["public"]["Enums"]["compliance_audit_action"]
+          _context?: Json
+          _entity_id: string
+          _entity_type: string
+          _justification?: string
+        }
+        Returns: undefined
+      }
       fp_can_read_evidence_object: {
         Args: { _name: string; _user: string }
         Returns: boolean
+      }
+      fp_committee_cast_vote: {
+        Args: { _assessment_id: string; _justification?: string; _vote: string }
+        Returns: Json
+      }
+      fp_committee_member_add: {
+        Args: {
+          _committee_id: string
+          _member_role?: string
+          _user_id: string
+          _vote_weight?: number
+        }
+        Returns: Json
+      }
+      fp_committee_member_remove: {
+        Args: { _member_id: string }
+        Returns: Json
+      }
+      fp_committee_member_set_weight: {
+        Args: { _member_id: string; _vote_weight: number }
+        Returns: Json
+      }
+      fp_committee_set_casting_vote: {
+        Args: { _committee_id: string; _member_id: string }
+        Returns: Json
+      }
+      fp_condition_create: {
+        Args: {
+          _category: string
+          _description: string
+          _determination_id: string
+          _due_date?: string
+          _evidence_type?: string
+          _individual_id: string
+          _monitoring_owner?: string
+        }
+        Returns: Json
+      }
+      fp_condition_evidence_review: {
+        Args: {
+          _evidence_id: string
+          _review_note?: string
+          _review_state: string
+        }
+        Returns: Json
+      }
+      fp_condition_evidence_submit: {
+        Args: {
+          _condition_id: string
+          _description?: string
+          _file_name: string
+          _file_path: string
+          _file_size?: number
+        }
+        Returns: Json
+      }
+      fp_condition_record_reminder: {
+        Args: { _condition_id: string }
+        Returns: Json
+      }
+      fp_condition_set_status: {
+        Args: { _condition_id: string; _note?: string; _status: string }
+        Returns: Json
+      }
+      fp_determination_record: {
+        Args: {
+          _assessment_id: string
+          _conditions?: Json
+          _effective_from?: string
+          _effective_to?: string
+          _individual_id: string
+          _is_committee_override?: boolean
+          _outcome: string
+          _override_reason?: string
+          _rationale: string
+          _regulator_id?: string
+        }
+        Returns: Json
       }
       fp_find_duplicate_candidates: {
         Args: {
@@ -32142,7 +32262,51 @@ export type Database = {
           status: string
         }[]
       }
+      fp_finding_assign: {
+        Args: { _assignee: string; _finding_id: string }
+        Returns: Json
+      }
+      fp_finding_disposition: {
+        Args: {
+          _finding_id: string
+          _raw_payload?: Json
+          _reason: string
+          _resolution_status: string
+        }
+        Returns: Json
+      }
+      fp_finding_escalate: {
+        Args: { _finding_id: string; _note: string }
+        Returns: Json
+      }
+      fp_finding_save_note: {
+        Args: { _finding_id: string; _note: string }
+        Returns: Json
+      }
+      fp_finding_set_evidence: {
+        Args: {
+          _clear_legacy?: boolean
+          _evidence_urls?: Json
+          _finding_id: string
+        }
+        Returns: Json
+      }
       fp_link_persons_deterministic: { Args: never; Returns: Json }
+      fp_monitoring_event_acknowledge: {
+        Args: { _event_id: string; _note?: string }
+        Returns: Json
+      }
+      fp_monitoring_event_raise: {
+        Args: {
+          _detail?: Json
+          _determination_id?: string
+          _event_type: string
+          _individual_id: string
+          _severity?: string
+          _summary: string
+        }
+        Returns: Json
+      }
       fp_normalise_provider_state: {
         Args: {
           _environment?: string
