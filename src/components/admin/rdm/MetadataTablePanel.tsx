@@ -213,8 +213,13 @@ export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }
                             <Button size="icon" variant="ghost" onClick={() => openEdit(row)} aria-label="Edit">
                               <Edit className="h-4 w-4" />
                             </Button>
+                            {row.is_active !== false && (
+                              <Button size="icon" variant="ghost" onClick={() => confirmRetire(row)} aria-label="Retire">
+                                <Archive className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            )}
                             {row.is_system ? (
-                              <span title="Seeded system record — deactivate instead of deleting">
+                              <span title="Seeded system record — retire it instead of deleting">
                                 <Lock className="h-4 w-4 text-muted-foreground" />
                               </span>
                             ) : (
@@ -226,6 +231,7 @@ export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }
                         ) : (
                           <span className="text-xs text-muted-foreground">Read only</span>
                         )}
+
                       </div>
                     </TableCell>
                   </TableRow>
