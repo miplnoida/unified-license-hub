@@ -7,6 +7,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logComplianceAudit } from '@/lib/complianceAudit';
+import { conductEvidenceUpload } from '@/lib/conductGovernedOps';
+
 import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 
 const sb = supabase as any;
@@ -325,8 +327,8 @@ export function usePromoteAttachmentToEvidence() {
     mutationFn: async ({ attachment, investigationId, entityId }: {
       attachment: InterviewAttachment; investigationId: string; entityId?: string | null;
     }) => {
-      const { data: user } = await supabase.auth.getUser();
-      const { data: ev, error } = await sb.from('conduct_evidence').insert({
+      // Governed: uploader attribution and audit are derived server-side.
+      const ev: any = await conductEvidenceUpload({
         title: attachment.title,
         evidence_type: 'document',
         file_url: attachment.file_url,
@@ -335,14 +337,13 @@ export function usePromoteAttachmentToEvidence() {
         confidentiality_level: 'internal',
         investigation_id: investigationId,
         entity_id: entityId ?? null,
-        uploaded_by: user.user?.id ?? null,
         metadata: {
           storage_bucket: attachment.storage_bucket,
           storage_path: attachment.file_url,
           interview_attachment_id: attachment.id,
         },
-      }).select('*').single();
-      if (error) throw new Error(error.message);
+      });
+
       const { error: linkErr } = await sb
         .from('conduct_interview_attachments')
         .update({ evidence_id: ev.id })

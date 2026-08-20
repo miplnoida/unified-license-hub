@@ -23,6 +23,7 @@ import {
   CheckCircle, AlertTriangle, XCircle, RotateCcw,
 } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/StatCard';
+import { applicationDeleteDraft } from '@/lib/applicationGovernedOps';
 import { toast } from 'sonner';
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' | 'approved' | 'pending' | 'rejected' }> = {
@@ -66,8 +67,8 @@ export default function PreLicenseeDashboard() {
 
   const deleteMutation = useMutation({
     mutationFn: async (appId: string) => {
-      const { error } = await supabase.from('applications').delete().eq('id', appId).eq('status', 'draft');
-      if (error) throw error;
+      await applicationDeleteDraft(appId);
+
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] });

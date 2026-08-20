@@ -30183,7 +30183,15 @@ export type Database = {
         }
         Returns: Json
       }
+      app_require_rationale: {
+        Args: { _label: string; _min: number; _text: string }
+        Returns: undefined
+      }
       appeal_case_file_status: { Args: { _appeal_id: string }; Returns: Json }
+      application_delete_draft: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
       application_ids_for_licensee: {
         Args: { _licensee_id: string }
         Returns: string[]
@@ -30192,11 +30200,29 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      application_record_action: {
+        Args: {
+          _action: string
+          _application_id: string
+          _comments?: string
+          _metadata?: Json
+        }
+        Returns: Json
+      }
       application_rfi_submit_response: {
         Args: {
           p_file_upload_ids?: string[]
           p_response_text?: string
           p_rfi_item_id: string
+        }
+        Returns: Json
+      }
+      application_triage_update: {
+        Args: {
+          _application_ids: string[]
+          _assigned_to?: string
+          _priority?: number
+          _priority_reason?: string
         }
         Returns: Json
       }
@@ -30980,6 +31006,20 @@ export type Database = {
         }
         Returns: string
       }
+      complaint_task_create: {
+        Args: {
+          _complaint_id: string
+          _description?: string
+          _due_date?: string
+          _owner_id?: string
+          _title: string
+        }
+        Returns: Json
+      }
+      complaint_task_set_status: {
+        Args: { _status: string; _task_id: string }
+        Returns: Json
+      }
       complaints_analytics: { Args: { _filters?: Json }; Returns: Json }
       complaints_dashboard_counts: { Args: { _scope?: Json }; Returns: Json }
       complete_appeal_hearing:
@@ -31000,6 +31040,34 @@ export type Database = {
           _notes?: string
         }
         Returns: undefined
+      }
+      compliance_return_can_file: {
+        Args: { _license_id: string; _on_behalf_of: string; _user_id: string }
+        Returns: boolean
+      }
+      compliance_return_review_decision: {
+        Args: { _comments: string; _decision: string; _return_id: string }
+        Returns: Json
+      }
+      compliance_return_save_draft: { Args: { _payload: Json }; Returns: Json }
+      compliance_return_submit: { Args: { _payload: Json }; Returns: Json }
+      conduct_action_close: {
+        Args: {
+          _action_id: string
+          _disposition: string
+          _outcome?: string
+          _reason: string
+        }
+        Returns: Json
+      }
+      conduct_action_issue: { Args: { _payload: Json }; Returns: Json }
+      conduct_alert_acknowledge: {
+        Args: { _alert_id: string; _note?: string }
+        Returns: Json
+      }
+      conduct_alert_close: {
+        Args: { _alert_id: string; _metadata?: Json; _reason: string }
+        Returns: Json
       }
       conduct_amend_interview: {
         Args: { _interview_id: string; _justification: string; _patch: Json }
@@ -31068,6 +31136,11 @@ export type Database = {
         Args: { _entity_id: string }
         Returns: Json
       }
+      conduct_evidence_set_restriction: {
+        Args: { _evidence_id: string; _reason: string; _restricted: boolean }
+        Returns: Json
+      }
+      conduct_evidence_upload: { Args: { _payload: Json }; Returns: Json }
       conduct_finalise_interview: {
         Args: {
           _attestation_name?: string
@@ -31132,6 +31205,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      conduct_investigation_open: { Args: { _payload: Json }; Returns: Json }
+      conduct_investigation_update: {
+        Args: {
+          _investigation_id: string
+          _justification?: string
+          _patch: Json
+        }
+        Returns: Json
+      }
       conduct_monitoring_directive_upsert: {
         Args: {
           _closure_id?: string
@@ -31155,6 +31237,10 @@ export type Database = {
           _review_id: string
         }
         Returns: undefined
+      }
+      conduct_require: {
+        Args: { _action: string; _module: string }
+        Returns: string
       }
       conduct_supervision_learning: { Args: { _limit?: number }; Returns: Json }
       conduct_supervision_log_export: {
@@ -31616,8 +31702,30 @@ export type Database = {
         }
         Returns: undefined
       }
+      enforcement_action_create: { Args: { _payload: Json }; Returns: Json }
+      enforcement_action_delete: {
+        Args: { _action_id: string; _reason: string }
+        Returns: undefined
+      }
+      enforcement_action_update: {
+        Args: { _action_id: string; _patch: Json; _rationale?: string }
+        Returns: Json
+      }
       enforcement_lifecycle_action: {
         Args: { _action: string; _case_id: string; _payload?: Json }
+        Returns: Json
+      }
+      enforcement_obligation_add: {
+        Args: {
+          _case_id: string
+          _deadline?: string
+          _detail?: string
+          _obligation: string
+        }
+        Returns: Json
+      }
+      enforcement_obligation_set_status: {
+        Args: { _breach_note?: string; _obligation_id: string; _status: string }
         Returns: Json
       }
       engine_rule_activate: {

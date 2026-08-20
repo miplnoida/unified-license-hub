@@ -12,6 +12,8 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { complaintTaskCreate, complaintTaskSetStatus } from '@/lib/conductGovernedOps';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -110,15 +112,13 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
   const addTask = useMutation({
     mutationFn: async () => {
       if (!taskTitle.trim()) throw new Error('Please describe the work item');
-      const { error } = await (supabase.from('complaint_investigation_tasks') as any).insert({
-        complaint_id: complaintId,
+      // Governed: owner/creator attribution and audit are server-side.
+      await complaintTaskCreate({
+        complaintId,
         title: taskTitle.trim(),
         description: taskDesc.trim() || null,
-        due_date: taskDue || null,
-        owner_id: user?.id ?? null,
-        created_by: user?.id ?? null,
+        dueDate: taskDue || null,
       });
-      if (error) throw error;
       await logAction('complaint.investigation_task_created', 'complaint', complaintId, { meta: { title: taskTitle.trim() } });
     },
     onSuccess: () => {
@@ -139,13 +139,11 @@ export default function ComplaintInvestigationTab({ complaintId, complaintStatus
 
   const setTaskStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const patch: any = { status };
-      if (status === 'completed') { patch.completed_at = new Date().toISOString(); patch.completed_by = user?.id; }
-      if (status === 'pending' || status === 'in_progress') { patch.completed_at = null; patch.completed_by = null; }
-      const { error } = await supabase.from('complaint_investigation_tasks').update(patch).eq('id', id);
-      if (error) throw error;
+      // Governed: completion attribution and audit are server-side.
+      await complaintTaskSetStatus(id, status);
       await logAction(AUDIT_LABEL[status] ?? 'complaint.investigation_task_updated', 'complaint', complaintId, { meta: { task_id: id, task_status: status } });
     },
+
     onSuccess: () => { toast.success('Work item updated — the complaint itself is unchanged'); invalidate(); },
     onError: (e: any) => toast.error(e.message),
   });

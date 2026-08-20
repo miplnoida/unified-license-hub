@@ -38,6 +38,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
+import { applicationRecordAction } from '@/lib/applicationGovernedOps';
 import { useIsPreLicensee } from '@/hooks/useUserPermissions';
 import { resolveWorkflowApproval } from '@/lib/workflowApprovalResolver';
 import { useQueryClient } from '@tanstack/react-query';
@@ -638,11 +639,10 @@ export default function ApplicationDetail() {
     }
 
     // Other non-final transitions: only insert an action row (no locked-field write).
-    const { error: actionErr } = await supabase.from('approval_actions').insert({
-      application_id: app.id, action: actionType, actor_id: user.id, comments: comment || null,
-    } as any);
-    if (actionErr) {
-      const msg = actionErr.message || '';
+    try {
+      await applicationRecordAction({ applicationId: app.id, action: actionType, comments: comment || null });
+    } catch (actionErr: any) {
+      const msg = actionErr?.message || '';
       const m = msg.match(/REVIEW_BLOCKED:(\d+)/);
       toast.error(m
         ? `Approval blocked: ${m[1]} unresolved blocking review comment(s). Resolve them before proceeding.`
@@ -689,10 +689,15 @@ export default function ApplicationDetail() {
     }
     setProcessing(true);
 
-    await supabase.from('approval_actions').insert({
-      application_id: app.id, action: 'edit_requested', actor_id: user.id,
-      comments: actionComment,
-    } as any);
+    try {
+      await applicationRecordAction({
+        applicationId: app.id, action: 'edit_requested', comments: actionComment,
+      });
+    } catch (e: any) {
+      toast.error(e?.message || 'Edit request failed');
+      setProcessing(false);
+      return;
+    }
     toast.success('Edit request submitted. Admin will review your request.');
     setActionComment('');
     loadData();
@@ -727,12 +732,11 @@ export default function ApplicationDetail() {
         return;
       }
 
-      await supabase.from('approval_actions').insert({
-        application_id: app.id,
+      await applicationRecordAction({
+        applicationId: app.id,
         action: 'resubmitted',
-        actor_id: user.id,
         comments: actionComment || 'Application resubmitted after revision',
-      } as any);
+      });
 
       // `application.resubmitted` is written canonically by the status-change
       // trigger on public.applications and the approval_actions trigger.
@@ -839,9 +843,9 @@ export default function ApplicationDetail() {
         toast.error((rpcData as any)?.error || rpcErr?.message || 'Failed to allow edit');
         return;
       }
-      await supabase.from('approval_actions').insert({
-        application_id: app.id, action: 'edit_approved', actor_id: user.id, comments: reason,
-      } as any);
+      await applicationRecordAction({
+        applicationId: app.id, action: 'edit_approved', comments: reason,
+      });
       toast.success('Edit request approved. Applicant can now edit the application.');
       setActionComment('');
       await loadData();
@@ -859,9 +863,9 @@ export default function ApplicationDetail() {
     }
     setProcessing(true);
     try {
-      await supabase.from('approval_actions').insert({
-        application_id: app.id, action: 'edit_denied', actor_id: user.id, comments: actionComment,
-      } as any);
+      await applicationRecordAction({
+        applicationId: app.id, action: 'edit_denied', comments: actionComment,
+      });
       toast.success('Edit request denied');
       setActionComment('');
       await loadData();
@@ -1462,13 +1466,12 @@ export default function ApplicationDetail() {
                                 setActionComment(rationale);
                                 await handleAdminRequestResubmission();
                               } else {
-                                await supabase.from('approval_actions').insert({
-                                  application_id: app.id,
+                                await applicationRecordAction({
+                                  applicationId: app.id,
                                   action: outcome,
-                                  actor_id: user!.id,
                                   comments: rationale || null,
-                                  metadata: { decision_option_id: option.id, decision_option_code: option.code, conditions: conditions || null } as any,
-                                } as any);
+                                  metadata: { decision_option_id: option.id, decision_option_code: option.code, conditions: conditions || null },
+                                });
                                 toast.success(`Recorded: ${option.label}`);
                                 loadData();
                               }

@@ -6,6 +6,11 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  enforcementObligationAdd,
+  enforcementObligationSetStatus,
+} from '@/lib/enforcementGovernedOps';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,14 +41,13 @@ export function EnforcementObligationsPanel({ caseId }: { caseId: string }) {
 
   const add = useMutation({
     mutationFn: async () => {
-      if (obligation.trim().length < 3) throw new Error('Obligation description is required');
-      const { error } = await supabase.from('enforcement_obligations').insert({
-        case_id: caseId,
+      // Governed: permission, creator attribution and audit are server-side.
+      await enforcementObligationAdd({
+        caseId,
         obligation: obligation.trim(),
         detail: detail.trim() || null,
         deadline: deadline || null,
       });
-      if (error) throw error;
     },
     onSuccess: () => {
       setObligation(''); setDetail(''); setDeadline('');
@@ -55,19 +59,17 @@ export function EnforcementObligationsPanel({ caseId }: { caseId: string }) {
 
   const setStatus = useMutation({
     mutationFn: async (args: { id: string; status: string; breachNote?: string }) => {
-      const { error } = await supabase
-        .from('enforcement_obligations')
-        .update({
-          status: args.status,
-          breach_note: args.breachNote ?? null,
-          completed_at: args.status === 'complied' ? new Date().toISOString() : null,
-        })
-        .eq('id', args.id);
-      if (error) throw error;
+      // Governed: compliance outcome attribution and audit are server-side.
+      await enforcementObligationSetStatus({
+        obligationId: args.id,
+        status: args.status,
+        breachNote: args.breachNote ?? null,
+      });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['enforcement_obligations', caseId] }),
     onError: (e) => toast.error(e instanceof Error ? e.message : 'Update failed'),
   });
+
 
   const overdue = (o: any) =>
     o.status !== 'complied' && o.deadline && new Date(o.deadline) < new Date();
