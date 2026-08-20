@@ -11,7 +11,7 @@
  *   NO_MATCH      → provision a provisional entity, membership requested
  */
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
