@@ -11,9 +11,15 @@ import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
 import type { PermissionModule } from '@/lib/permissionModules';
 
 export interface NavItem {
+  /**
+   * Stable identity from `sec_navigation_items.key`. Used for accordion
+   * expansion state so renaming a label never loses/duplicates state.
+   */
+  key?: string;
   label: string;
   href?: string;
   icon: React.ReactNode;
+
   badge?: number;
   roles: AppRole[];
   /** If set, item is also gated by the dynamic role having access to this module */
