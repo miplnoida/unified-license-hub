@@ -112,11 +112,11 @@ export default function EntityStructureHub() {
       <PageHeader
         title={dto?.display_name || 'Regulated entity'}
         description="Canonical entity record — identity, licences, ownership and control, governance, relationships and controlled change."
-        backHref="/entities"
-        backLabel="Entity Directory"
+        backHref={`/entities/${entityId}`}
+        backLabel="Entity 360"
         actions={
           <Button variant="outline" size="sm" asChild>
-            <Link to={`/entities/${entityId}/360`}>
+            <Link to={`/entities/${entityId}`}>
               <Eye className="mr-2 h-4 w-4" />Entity 360
             </Link>
           </Button>
