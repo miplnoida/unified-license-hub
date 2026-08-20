@@ -235,10 +235,7 @@ export default function EntityDirectory() {
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/entities/${e.entity_id}`}>Structure</Link>
-                        </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/entities/${e.entity_id}/360`}>Entity 360</Link>
+                          <Link to={`/entities/${e.entity_id}`}>Entity 360</Link>
                         </Button>
                       </TableCell>
                     </TableRow>
