@@ -33861,6 +33861,10 @@ export type Database = {
         Args: { _status: string }
         Returns: boolean
       }
+      returns_adopt_legacy_config: {
+        Args: { _config_id: string }
+        Returns: string
+      }
       returns_attach_form_response: {
         Args: {
           _completion?: string
@@ -33878,18 +33882,65 @@ export type Database = {
         Returns: number
       }
       returns_can_file: { Args: { _entity_id: string }; Returns: boolean }
+      returns_classify_legacy: { Args: never; Returns: Json }
       returns_derive_entity_obligations: {
         Args: { _entity_id: string }
         Returns: Json
+      }
+      returns_entity_calendar: {
+        Args: { _entity_id: string }
+        Returns: {
+          current_version_id: string
+          days_remaining: number
+          definition_code: string
+          definition_name: string
+          due_date: string
+          filing_id: string
+          filing_reference: string
+          filing_status: string
+          frequency: string
+          is_overdue: boolean
+          obligation_id: string
+          period_end: string
+          period_id: string
+          period_label: string
+          period_start: string
+          period_status: string
+        }[]
       }
       returns_extract_metrics: {
         Args: { _version_id: string }
         Returns: number
       }
+      returns_filing_detail: { Args: { _filing_id: string }; Returns: Json }
+      returns_filing_queue: {
+        Args: { _entity_id?: string; _limit?: number; _status?: string }
+        Returns: {
+          blocking_errors: number
+          current_version_id: string
+          current_version_number: number
+          days_late: number
+          definition_code: string
+          definition_name: string
+          due_date: string
+          entity_id: string
+          entity_name: string
+          filing_id: string
+          filing_reference: string
+          frequency: string
+          is_overdue: boolean
+          open_requests: number
+          period_end: string
+          period_label: string
+          status: string
+          submitted_at: string
+        }[]
+      }
       returns_generate_periods: {
         Args: { _obligation_id: string; _through?: string }
         Returns: Json
       }
+      returns_legacy_classification_report: { Args: never; Returns: Json }
       returns_metric_series: {
         Args: { _entity_id: string; _limit?: number; _metric_codes?: string[] }
         Returns: {
@@ -33903,8 +33954,16 @@ export type Database = {
           value_numeric: number
         }[]
       }
+      returns_migrate_legacy_filing: {
+        Args: { _legacy_id: string }
+        Returns: Json
+      }
       returns_open_filing: { Args: { _period_id: string }; Returns: Json }
       returns_require: { Args: { _action: string }; Returns: undefined }
+      returns_respond_to_request: {
+        Args: { _request_id: string; _response: string }
+        Returns: undefined
+      }
       returns_review_filing: {
         Args: { _action: string; _reason?: string; _version_id: string }
         Returns: Json
