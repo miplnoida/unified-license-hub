@@ -84,3 +84,33 @@ authoritative artefacts, so a later wave never has to re-derive intent.
   table writes from the client.
 - Menu visibility is discoverability only — RLS, RPC checks and route guards
   are the enforcement layer.
+
+## Wave C — Returns, reporting obligations, metrics & filing history (server layer)
+- Canonical model: `return_definitions` (+ `return_definition_forms`),
+  `reporting_obligation_rules`, `entity_reporting_obligations`,
+  `reporting_periods`, `return_filings`, `return_filing_versions`,
+  `return_filing_form_requirements`, `regulatory_metrics`,
+  `metric_calculation_rules`, `return_metric_values`,
+  `return_filing_validation_results`, `return_filing_requests`,
+  `returns_legacy_mappings`.
+- Filing versions and their metric values are immutable once submitted/accepted;
+  metric codes are locked once values exist.
+- Measurement identity is label-independent via
+  `form_field_definitions.regulatory_metric_id`.
+- Governed RPCs: `returns_save_definition`, `returns_save_obligation_rule`,
+  `returns_save_metric`, `returns_bind_field_metric`,
+  `returns_derive_entity_obligations`, `returns_generate_periods`,
+  `returns_open_filing`, `returns_attach_form_response`,
+  `returns_extract_metrics`, `returns_calculate_metrics`,
+  `returns_validate_filing`, `returns_submit_filing`, `returns_review_filing`,
+  `returns_respond_to_request`, `returns_filing_queue`,
+  `returns_entity_calendar`, `returns_filing_detail`, `returns_metric_series`.
+- Legacy returns are classified explicitly
+  (`EXACT_CANONICAL_MAPPING | DERIVABLE_WITH_EVIDENCE | AMBIGUOUS | LEGACY_ONLY`)
+  before any migration; ambiguous/legacy-only records are never transformed.
+- External access is by approved membership capability only
+  (`view_status` / `submit`), mapped through `entity_membership_capability`.
+- Frontend: `src/hooks/useWaveC.ts`. Routes and navigation rows for
+  `/admin/returns/definitions`, `/admin/returns/metrics`,
+  `/admin/returns/migration`, `/returns/filings` and `/entity/reporting` are
+  registered but the nav rows are inactive until the Wave C screens ship.
