@@ -1,4 +1,4 @@
-import { Bell, Search, UserCircle, LogOut, Layers, Info, CheckCircle, AlertTriangle, XCircle, CheckCheck, Loader2 } from 'lucide-react';
+import { Bell, UserCircle, LogOut, Layers, Info, CheckCircle, AlertTriangle, XCircle, CheckCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { notificationLink } from '@/lib/notificationLinks';
 import {
+import { GlobalNavSearch } from '@/components/layout/GlobalNavSearch';
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -73,10 +74,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-card/80 backdrop-blur-md px-3 sm:px-6">
       <div className="flex items-center gap-4 pl-10 md:pl-0">
-        <div className="relative w-40 sm:w-56 md:w-72">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder={`Search...`} className="pl-10 h-9 bg-muted/40 border-0 text-sm" />
-        </div>
+        <GlobalNavSearch />
       </div>
 
       <div className="flex items-center gap-3">
