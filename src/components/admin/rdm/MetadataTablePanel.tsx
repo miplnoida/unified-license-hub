@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { Edit, Lock, Plus, Search, Trash2 } from 'lucide-react';
+import { Archive, Edit, Lock, Plus, Search, Trash2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useToast } from '@/hooks/use-toast';
 import { useRdmMutations, useRdmRows, type RdmRow } from '@/hooks/useRegulatoryDataModel';
