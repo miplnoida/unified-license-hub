@@ -237,6 +237,23 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   { pattern: '/admin/config/forms-master-data', label: 'Forms & master data', parent: '/admin' },
   { pattern: '/delegation-rules', label: 'Delegation rules', parent: '/admin' },
 
+  { pattern: '/admin/approved-licensees', label: 'Approved licensees', parent: '/admin/licensees' },
+  { pattern: '/admin/web-users', label: 'Web users', parent: '/admin' },
+  { pattern: '/admin/return-config', label: 'Return configuration', parent: '/admin/config/returns-prudential' },
+  { pattern: '/admin/returns/config', label: 'Return configuration', parent: '/admin/config/returns-prudential' },
+  { pattern: '/admin/returns/prudential', label: 'Prudential returns', parent: '/admin/config/returns-prudential' },
+  { pattern: '/admin/returns/queue', label: 'Return queue', parent: '/admin/config/returns-prudential' },
+
   // --------------------------------------------------------------- settings
   { pattern: '/settings', label: 'Settings', parent: '/admin' },
+  { pattern: '/settings/general', label: 'General', parent: '/settings' },
+  { pattern: '/settings/branding', label: 'Branding', parent: '/settings' },
+  { pattern: '/settings/security', label: 'Security', parent: '/settings' },
+  { pattern: '/settings/data', label: 'Data', parent: '/settings' },
+  { pattern: '/settings/applications', label: 'Applications', parent: '/settings' },
+  { pattern: '/settings/captcha', label: 'CAPTCHA', parent: '/settings' },
+  { pattern: '/settings/certificate-signatory', label: 'Certificate signatory', parent: '/settings' },
+  { pattern: '/settings/license-expiry', label: 'Licence expiry', parent: '/settings' },
+  { pattern: '/settings/payments', label: 'Payments', parent: '/settings' },
+  { pattern: '/settings/schedule', label: 'Schedule', parent: '/settings' },
 ];
