@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Activity, Award, BadgeCheck, Banknote, Bell, BellRing, BookOpenCheck, Boxes, BrainCircuit,
   Briefcase, Building2, Cable, CalendarCheck, CalendarCog, CalendarDays, ChartColumn,
-  ChartNoAxesCombined, ClipboardCheck, ClipboardList, ClipboardPen, ClipboardSearch, Clock, Cog,
+  ChartNoAxesCombined, ClipboardCheck, ClipboardList, ClipboardPen, Clock, Cog,
   CreditCard, Database, Download, FileChartColumn, FileCheck2, FilePlus2, FileSpreadsheet,
   FileStack, Files, FolderArchive, GitBranch, GitCompareArrows, GraduationCap, History, Home,
   Inbox, KeyRound, Landmark, LayoutDashboard, LayoutGrid, ListChecks, ListOrdered, ListTodo,
@@ -35,7 +35,7 @@ import {
 export const NAV_ICON_MAP: Record<string, LucideIcon> = {
   Activity, Award, BadgeCheck, Banknote, Bell, BellRing, BookOpenCheck, Boxes, BrainCircuit,
   Briefcase, Building2, Cable, CalendarCheck, CalendarCog, CalendarDays, ChartColumn,
-  ChartNoAxesCombined, ClipboardCheck, ClipboardList, ClipboardPen, ClipboardSearch, Clock, Cog,
+  ChartNoAxesCombined, ClipboardCheck, ClipboardList, ClipboardPen, Clock, Cog,
   CreditCard, Database, Download, FileChartColumn, FileCheck2, FilePlus2, FileSpreadsheet,
   FileStack, Files, FolderArchive, GitBranch, GitCompareArrows, GraduationCap, History, Home,
   Inbox, KeyRound, Landmark, LayoutDashboard, LayoutGrid, ListChecks, ListOrdered, ListTodo,
