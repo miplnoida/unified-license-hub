@@ -653,9 +653,9 @@ export function useEvaluateStressForReturn() {
       await logPrudentialFeed({ source: 'prudential', feed_type: 'stress_evaluation', status: 'success', related_return_id: returnId, row_count: newEvents.length + updatedEvents.length, completed_at: new Date().toISOString(), metadata: { new: newEvents.length, updated: updatedEvents.length } });
       // Fire notifications per newly triggered event
       for (const ev of newEvents) {
-        const ent = ev.entity_id ? (await sb.from('licensees').select('name').eq('id', ev.entity_id).maybeSingle()).data : null;
-        await audit('CREATE', 'prudential_stress_event', ev.event_id, null, ev, 'Auto-triggered by supervisor stress re-run');
-        try { await sb.from('prudential_stress_events').update({ notified: true }).eq('id', ev.event_id); } catch { /* ignore */ }
+        // Governed operation records the acknowledgement/notification flag and
+        // its own audit entry; no client-side audit or direct DML here.
+        try { await prudentialStressEventAcknowledge(ev.event_id); } catch { /* non-blocking */ }
       }
       return { new: newEvents.length, updated: updatedEvents.length };
     },
