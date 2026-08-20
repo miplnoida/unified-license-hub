@@ -60,27 +60,27 @@ function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, path
   const hasActiveChild = hasActiveDescendant(item, pathname);
 
   return (
-    <div>
+    <div className="min-w-0">
       <button
         onClick={() => toggleGroup(item.label)}
         className={cn(
-          'nav-item w-full text-left',
-          depth > 0 && 'px-3 py-2 text-[13px] text-sidebar-foreground/65',
+          'nav-item w-full min-w-0 text-left items-start', collapsed && 'justify-center',
+          depth > 0 && 'px-2.5 py-2 text-[13px] text-sidebar-foreground/65',
           hasActiveChild && 'text-sidebar-primary font-semibold',
         )}
-        title={collapsed ? item.label : undefined}
+        title={item.label}
       >
-        {item.icon}
+        <span className="shrink-0 mt-[1px]">{item.icon}</span>
         {!collapsed && (
           <>
-            <span className="flex-1 truncate">{item.label}</span>
-            <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 transition-transform duration-200', isExpanded && 'rotate-180')} />
+            <span className="flex-1 min-w-0 break-words leading-snug line-clamp-2">{item.label}</span>
+            <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 mt-[3px] transition-transform duration-200', isExpanded && 'rotate-180')} />
           </>
         )}
       </button>
       {!collapsed && (
         <div className={cn('overflow-hidden transition-all', isExpanded ? 'opacity-100' : 'max-h-0 opacity-0')}>
-          <div className={cn('border-l border-sidebar-border py-1 space-y-0.5', depth === 0 ? 'ml-4 pl-3' : 'ml-3 pl-2.5')}>
+          <div className={cn('min-w-0 border-l border-sidebar-border py-1 space-y-0.5', depth === 0 ? 'ml-3 pl-2' : 'ml-2 pl-2')}>
             {item.children?.map((child) => {
               if (child.children?.length) {
                 return (
@@ -102,14 +102,15 @@ function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, path
                   key={child.href}
                   to={child.href}
                   data-sidebar-active={isActive ? 'true' : undefined}
+                  title={child.label}
                   className={cn(
-                    'flex items-center gap-2 rounded-md text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors',
-                    depth === 0 ? 'px-3 py-2 text-[13px]' : 'px-2.5 py-1.5 text-[12.5px]',
+                    'flex min-w-0 items-start gap-2 rounded-md text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors',
+                    depth === 0 ? 'px-2.5 py-2 text-[13px]' : 'px-2 py-1.5 text-[12.5px]',
                     isActive && 'bg-sidebar-accent text-sidebar-primary font-semibold'
                   )}
                 >
-                  {child.icon}
-                  <span className="truncate">{child.label}</span>
+                  <span className="shrink-0 mt-[1px]">{child.icon}</span>
+                  <span className="min-w-0 flex-1 break-words leading-snug line-clamp-2">{child.label}</span>
                 </Link>
               );
             })}
@@ -118,6 +119,7 @@ function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, path
       )}
     </div>
   );
+
 }
 
 
@@ -301,20 +303,20 @@ export function Sidebar() {
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <ScrollArea className="flex-1 px-3" ref={navRef}>
-            <nav className="py-3 space-y-5">
+          <ScrollArea className="sidebar-nav-scroll flex-1 px-3" ref={navRef}>
+            <nav className="w-full min-w-0 py-3 space-y-5">
               {navSections.map((section) => {
                 const visibleItems = section.items.map(pruneItem).filter((i): i is NavItem => !!i);
                 if (visibleItems.length === 0) return null;
                 return (
-                  <div key={section.label || 'main'}>
+                  <div key={section.label || 'main'} className="min-w-0">
                     {section.label && (
-                      <p className="flex items-center gap-2 px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sidebar-foreground/40">
-                        <span className="text-sidebar-foreground/50">{section.icon}</span>
-                        {section.label}
+                      <p className="flex min-w-0 items-center gap-2 px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sidebar-foreground/40">
+                        <span className="shrink-0 text-sidebar-foreground/50">{section.icon}</span>
+                        <span className="min-w-0 truncate">{section.label}</span>
                       </p>
                     )}
-                    <div className="space-y-0.5">
+                    <div className="min-w-0 space-y-0.5">
                       {visibleItems.map((item) => {
                         if (item.children?.length) {
                           return (
@@ -325,13 +327,14 @@ export function Sidebar() {
                         if (!item.href) return null;
                         const isActive = isPathActive(item.href, location.pathname);
                         return (
-                          <Link key={item.href} to={item.href} className={cn('nav-item', isActive && 'nav-item-active')}>
-                            {item.icon}
-                            <span className="flex-1 truncate">{item.label}</span>
+                          <Link key={item.href} to={item.href} title={item.label} className={cn('nav-item items-start', isActive && 'nav-item-active')}>
+                            <span className="shrink-0 mt-[1px]">{item.icon}</span>
+                            <span className="flex-1 min-w-0 break-words leading-snug line-clamp-2">{item.label}</span>
                           </Link>
                         );
                       })}
                     </div>
+
                   </div>
                 );
               })}
@@ -376,20 +379,20 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <ScrollArea className="flex-1 px-3" ref={navRef}>
-        <nav className="py-3 space-y-5">
+      <ScrollArea className="sidebar-nav-scroll flex-1 px-3" ref={navRef}>
+        <nav className="w-full min-w-0 py-3 space-y-5">
           {navSections.map((section) => {
             const visibleItems = section.items.map(pruneItem).filter((i): i is NavItem => !!i);
             if (visibleItems.length === 0) return null;
             return (
-              <div key={section.label || 'main'}>
+              <div key={section.label || 'main'} className="min-w-0">
                 {!collapsed && section.label && (
-                  <p className="flex items-center gap-2 px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sidebar-foreground/40">
-                    <span className="text-sidebar-foreground/50">{section.icon}</span>
-                    {section.label}
+                  <p className="flex min-w-0 items-center gap-2 px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sidebar-foreground/40">
+                    <span className="shrink-0 text-sidebar-foreground/50">{section.icon}</span>
+                    <span className="min-w-0 truncate">{section.label}</span>
                   </p>
                 )}
-                <div className="space-y-0.5">
+                <div className="min-w-0 space-y-0.5">
                   {visibleItems.map((item) => {
                     if (item.children?.length) {
                       return (
@@ -410,16 +413,17 @@ export function Sidebar() {
                       <Link
                         key={item.href} to={item.href}
                         data-sidebar-active={isActive ? 'true' : undefined}
-                        className={cn('nav-item', isActive && 'nav-item-active')}
-                        title={collapsed ? item.label : undefined}
+                        className={cn('nav-item items-start', collapsed && 'justify-center', isActive && 'nav-item-active')}
+                        title={item.label}
                       >
-                        {item.icon}
-                        {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
+                        <span className="shrink-0 mt-[1px]">{item.icon}</span>
+                        {!collapsed && <span className="flex-1 min-w-0 break-words leading-snug line-clamp-2">{item.label}</span>}
                       </Link>
                     );
                   })}
                 </div>
               </div>
+
             );
           })}
 
