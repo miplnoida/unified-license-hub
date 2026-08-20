@@ -38,19 +38,81 @@ invariants it claims.
 * Governed write RPCs and canonical `regulatory_data.metadata.*` audit keys.
 * No business table, workflow, route or RLS policy for existing modules changed.
 
-## Phase 2 — Party / entity / multi-licence foundation (not started)
+## Phase 1.2 — Final metadata governance hardening (delivered)
 
-1. `entities` compatibility layer over `licensees` (view first, rename later).
-2. `entity_licenses` join table; migrate `licensees.license_id` into it and
-   keep the column as a generated/compat field for one release.
-3. `entity_identifiers` keyed by `entity_identifier_types`; uniqueness indexes
-   built from `uniqueness_scope` (never a blanket global unique index).
-4. `entity_id` + `identity_status_id` + `lifecycle_stage_id` on entities,
-   restricted to `domain = 'entity'` stages.
-5. Entity resolution service honouring `entity_resolution_policies` and
+* Direct `INSERT`/`UPDATE`/`DELETE` on the 12 metadata tables revoked from
+  `authenticated` and `anon`; `SELECT` retained. The only authenticated write
+  path is `rdm_save_metadata` / `rdm_retire_metadata` / `rdm_delete_metadata`
+  (permission re-check, key immutability, system-row protection, validation,
+  audit).
+* Exactly one active default policy for `entity_resolution_policies` and
+  `entity_registry_failure_policies`, enforced by a partial unique index (no
+  second default) **plus** a deferrable constraint trigger (never zero). An
+  atomic swap inside one transaction is legal; retiring or deleting the current
+  default requires promoting a replacement (`_promote_id`), otherwise the
+  operation is rejected. No hidden default is ever fabricated.
+* `scope_requires_jurisdiction` / `_issuer` / `_regulator` and the legacy
+  `is_unique_global` flag are generated columns derived from
+  `uniqueness_scope`, so inconsistent scope metadata is impossible.
+
+Future identifier uniqueness keys (canonical contract):
+
+| Scope | Uniqueness key |
+|-------|----------------|
+| `GLOBAL` | `(identifier_type_id, normalized_value)` |
+| `JURISDICTION` | `(identifier_type_id, jurisdiction_id, normalized_value)` |
+| `ISSUER` | `(identifier_type_id, issuer_key, normalized_value)` |
+| `REGULATOR` | `(identifier_type_id, regulator_id, normalized_value)` |
+| `NONE` | no uniqueness constraint |
+
+## Phase 2A — Party / organization / regulated entity / multi-licence (delivered)
+
+* `parties` (structural `party_kind`: `PERSON` | `ORGANIZATION`),
+  `organizations`, `persons`. `party_kind` is an engine primitive, never
+  regulator-configurable. `persons` is intentionally empty: consolidation of
+  `fp_individuals` / `profiles` is unresolved and no person identity is cloned.
+* `licensees.id` remains the transitional regulated-entity UUID (43+ FKs depend
+  on it). `licensees.party_id` binds each entity to exactly one organization
+  party; zero entity UUIDs changed. The physical rename to `regulated_entities`
+  is not part of this phase.
+* `licensees.lifecycle_stage_id` (restricted to `domain = 'entity'` by trigger)
+  and `licensees.identity_status_id`. Backfill is deterministic only: active
+  entity + active licence -> `authorised`, revoked + revoked ->
+  `former_licensee`; ambiguous legacy states stay NULL. Identity status is the
+  new `legacy_known` value — no external verification provenance is fabricated.
+* `entity_licenses` (entity, licence, effective period, `is_primary`, source).
+  `is_primary` is a UI/compatibility preference only, never entity identity.
+  `licensees.license_id` is retained as compatibility-only.
+* `entity_identifiers` with per-scope partial unique indexes implementing the
+  contract above and a normalisation/scope-validation trigger. Legal name is
+  not an identifier. Only licence numbers with a known regulator were
+  backfilled (provenance recorded); licences without a regulator are reported.
+* `applications.entity_id` (nullable) backfilled only via the deterministic
+  path `licenses.application_id`; ambiguous rows stay NULL and are reported.
+  No historical `form_version_id` was fabricated.
+* RLS: read-only policies scoped through `can_read_licensee` /
+  `licensee_management.view_all_entities`; no write grants for app users.
+* Diagnostics: `rdm_entity_foundation_report()` and
+  `rdm_diag_duplicate_organizations()` surfaced in the RDM Data Integrity tab.
+  Duplicate organisations are reported only — never merged.
+
+Phase 2A exit measurements: 23 parties / 23 organizations / 0 persons /
+23 regulated entities, 0 entities without a party binding, 0 shared parties,
+23 `entity_licenses` rows reconciling exactly with 23 legacy licence links,
+0 lost legacy links, 0 licences without a relationship, 0 entities with >1
+licence, 19 identifiers backfilled (4 licences have no regulator), 23
+applications deterministically mapped and 99 left NULL, 0 form versions
+fabricated.
+
+## Phase 2B — external registry schema foundation (not started)
+
+1. `entity_registry_bindings`, `entity_external_references`,
+   `entity_data_authority_rules`, `entity_identity_snapshots` — schema only,
+   reusing the existing Integration Manager, no provider adapters.
+2. Entity resolution service honouring `entity_resolution_policies` and
    `entity_registry_failure_policies`; duplicate candidates become resolution
    cases — never auto-merged.
-6. `applications.form_version_id`: pin **prospectively** on submission only.
+3. `applications.form_version_id`: pin **prospectively** on submission only.
    Historical rows are NOT back-filled with a current version — that would
    fabricate submission provenance. Legacy rows stay NULL and are reported as
    "version unknown"; the column therefore stays nullable, with a NOT NULL
