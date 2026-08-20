@@ -45,6 +45,11 @@ jobs:
       - name: RBAC atomic authz (no unallowlisted check-then-mutate)
         run: node scripts/verify-atomic-authz.mjs
 
+      - name: Navigation icons approved and non-placeholder
+        run: node scripts/validate-nav-icons.mjs
+
+
+
       - name: RBAC catalog fully enforced (enforced:false must be 0)
         run: |
           set -euo pipefail
