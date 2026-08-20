@@ -723,8 +723,18 @@ export function useFeedLogs() {
   });
 }
 export async function logPrudentialFeed(row: Partial<FeedLog>) {
-  const user = (await sb.auth.getUser()).data.user;
-  await sb.from('prudential_data_feed_logs').insert({ ...row, triggered_by: user?.id });
+  // Governed operation: the feed log row is written server-side with a derived
+  // actor. Direct DML on prudential_data_feed_logs is revoked.
+  await prudentialFeedLogRecord({
+    source: row.source ?? 'prudential',
+    feedType: row.feed_type ?? 'unspecified',
+    status: row.status ?? 'started',
+    rowCount: row.row_count ?? null,
+    error: row.error ?? null,
+    relatedFilingId: (row as any).related_filing_id ?? row.related_return_id ?? null,
+    completedAt: row.completed_at ?? null,
+    metadata: row.metadata ?? {},
+  });
 }
 
 // ---------- Sweep schedule info ----------
