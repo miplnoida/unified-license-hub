@@ -33861,25 +33861,65 @@ export type Database = {
         Args: { _status: string }
         Returns: boolean
       }
+      returns_attach_form_response: {
+        Args: {
+          _completion?: string
+          _form_response_id: string
+          _requirement_id: string
+        }
+        Returns: undefined
+      }
       returns_bind_field_metric: {
         Args: { _field_definition_id: string; _metric_id: string }
         Returns: undefined
       }
+      returns_calculate_metrics: {
+        Args: { _version_id: string }
+        Returns: number
+      }
+      returns_can_file: { Args: { _entity_id: string }; Returns: boolean }
       returns_derive_entity_obligations: {
         Args: { _entity_id: string }
         Returns: Json
+      }
+      returns_extract_metrics: {
+        Args: { _version_id: string }
+        Returns: number
       }
       returns_generate_periods: {
         Args: { _obligation_id: string; _through?: string }
         Returns: Json
       }
+      returns_metric_series: {
+        Args: { _entity_id: string; _limit?: number; _metric_codes?: string[] }
+        Returns: {
+          availability: string
+          metric_code: string
+          metric_name: string
+          period_end: string
+          period_label: string
+          source_kind: string
+          unit: string
+          value_numeric: number
+        }[]
+      }
+      returns_open_filing: { Args: { _period_id: string }; Returns: Json }
       returns_require: { Args: { _action: string }; Returns: undefined }
+      returns_review_filing: {
+        Args: { _action: string; _reason?: string; _version_id: string }
+        Returns: Json
+      }
       returns_save_definition: { Args: { _payload: Json }; Returns: string }
       returns_save_metric: { Args: { _payload: Json }; Returns: string }
       returns_save_obligation_rule: {
         Args: { _payload: Json }
         Returns: string
       }
+      returns_submit_filing: {
+        Args: { _declaration_accepted?: boolean; _version_id: string }
+        Returns: Json
+      }
+      returns_validate_filing: { Args: { _version_id: string }; Returns: Json }
       review_prudential_action_response: {
         Args: { _action_id: string; _decision: string; _notes: string }
         Returns: Json
