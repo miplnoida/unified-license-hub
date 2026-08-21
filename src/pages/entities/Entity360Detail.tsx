@@ -29,6 +29,7 @@ import { Entity360Header } from '@/components/entity-detail/Entity360Header';
 import { Entity360OverviewPanel } from '@/components/entity-detail/Entity360Overview';
 import { EntitySupervisoryStatePanel } from '@/components/entity-detail/EntitySupervisoryStatePanel';
 import { EntityPrudentialStatePanel } from '@/components/prudential/EntityPrudentialStatePanel';
+import { EntityFitAndProperPanel } from '@/components/fit-and-proper/EntityFitAndProperPanel';
 import { Entity360SectionView } from '@/components/entity-detail/Entity360SectionView';
 import { Entity360TimelinePanel } from '@/components/entity-detail/Entity360TimelinePanel';
 import { E360_GROUPS, E360_SECTIONS } from '@/components/entity-detail/sectionCatalogue';
