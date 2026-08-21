@@ -17577,13 +17577,119 @@ export type Database = {
           },
         ]
       }
+      license_decisions: {
+        Row: {
+          actor_id: string | null
+          appeal_deadline: string | null
+          appealable: boolean
+          artifact_reference: string | null
+          authority: string | null
+          checker_id: string | null
+          conditions: Json
+          created_at: string
+          decided_at: string
+          decision: string
+          decision_reference: string | null
+          decision_type: string
+          effective_date: string | null
+          entity_id: string | null
+          from_status: string | null
+          id: string
+          legal_basis: string | null
+          license_id: string
+          maker_id: string | null
+          matter_id: string | null
+          metadata: Json
+          rationale: string | null
+          remediation: Json
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          appeal_deadline?: string | null
+          appealable?: boolean
+          artifact_reference?: string | null
+          authority?: string | null
+          checker_id?: string | null
+          conditions?: Json
+          created_at?: string
+          decided_at?: string
+          decision: string
+          decision_reference?: string | null
+          decision_type: string
+          effective_date?: string | null
+          entity_id?: string | null
+          from_status?: string | null
+          id?: string
+          legal_basis?: string | null
+          license_id: string
+          maker_id?: string | null
+          matter_id?: string | null
+          metadata?: Json
+          rationale?: string | null
+          remediation?: Json
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          appeal_deadline?: string | null
+          appealable?: boolean
+          artifact_reference?: string | null
+          authority?: string | null
+          checker_id?: string | null
+          conditions?: Json
+          created_at?: string
+          decided_at?: string
+          decision?: string
+          decision_reference?: string | null
+          decision_type?: string
+          effective_date?: string | null
+          entity_id?: string | null
+          from_status?: string | null
+          id?: string
+          legal_basis?: string | null
+          license_id?: string
+          maker_id?: string | null
+          matter_id?: string | null
+          metadata?: Json
+          rationale?: string | null
+          remediation?: Json
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_decisions_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_decisions_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_decisions_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "license_lifecycle_matters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       license_lifecycle_configs: {
         Row: {
+          appeal_window_days: number
+          appealable: boolean
           breach_consequence: string
           category_id: string | null
           created_at: string
           created_by: string | null
           decision_authority: string | null
+          evidence_review_required: boolean
           expiry_behavior: string
           fee_required: boolean
           fee_type_code: string | null
@@ -17592,30 +17698,41 @@ export type Database = {
           id: string
           is_active: boolean
           late_renewal_treatment: string
+          late_representation_allowed: boolean
+          legal_basis_required: boolean
           license_type: string | null
+          maker_checker_required: boolean
           matter_kind: string
           notes: string | null
+          notice_required: boolean
           payment_verification_required: boolean
           period_days: number
           regulator_id: string | null
+          reinstatement_prerequisites: Json
           reminder_days: Json
           renewal_cycle: string
           renewal_window_days: number
+          representation_period_days: number
+          representation_waiver_allowed: boolean
           required_documents: Json
           required_form_package_id: string | null
           sector_id: string | null
           sub_sector_id: string | null
+          surrender_blockers: Json
           updated_at: string
           verification_checklist: Json
           verification_required: boolean
           workflow_id: string | null
         }
         Insert: {
+          appeal_window_days?: number
+          appealable?: boolean
           breach_consequence?: string
           category_id?: string | null
           created_at?: string
           created_by?: string | null
           decision_authority?: string | null
+          evidence_review_required?: boolean
           expiry_behavior?: string
           fee_required?: boolean
           fee_type_code?: string | null
@@ -17624,30 +17741,41 @@ export type Database = {
           id?: string
           is_active?: boolean
           late_renewal_treatment?: string
+          late_representation_allowed?: boolean
+          legal_basis_required?: boolean
           license_type?: string | null
+          maker_checker_required?: boolean
           matter_kind?: string
           notes?: string | null
+          notice_required?: boolean
           payment_verification_required?: boolean
           period_days?: number
           regulator_id?: string | null
+          reinstatement_prerequisites?: Json
           reminder_days?: Json
           renewal_cycle?: string
           renewal_window_days?: number
+          representation_period_days?: number
+          representation_waiver_allowed?: boolean
           required_documents?: Json
           required_form_package_id?: string | null
           sector_id?: string | null
           sub_sector_id?: string | null
+          surrender_blockers?: Json
           updated_at?: string
           verification_checklist?: Json
           verification_required?: boolean
           workflow_id?: string | null
         }
         Update: {
+          appeal_window_days?: number
+          appealable?: boolean
           breach_consequence?: string
           category_id?: string | null
           created_at?: string
           created_by?: string | null
           decision_authority?: string | null
+          evidence_review_required?: boolean
           expiry_behavior?: string
           fee_required?: boolean
           fee_type_code?: string | null
@@ -17656,19 +17784,27 @@ export type Database = {
           id?: string
           is_active?: boolean
           late_renewal_treatment?: string
+          late_representation_allowed?: boolean
+          legal_basis_required?: boolean
           license_type?: string | null
+          maker_checker_required?: boolean
           matter_kind?: string
           notes?: string | null
+          notice_required?: boolean
           payment_verification_required?: boolean
           period_days?: number
           regulator_id?: string | null
+          reinstatement_prerequisites?: Json
           reminder_days?: Json
           renewal_cycle?: string
           renewal_window_days?: number
+          representation_period_days?: number
+          representation_waiver_allowed?: boolean
           required_documents?: Json
           required_form_package_id?: string | null
           sector_id?: string | null
           sub_sector_id?: string | null
+          surrender_blockers?: Json
           updated_at?: string
           verification_checklist?: Json
           verification_required?: boolean
@@ -17680,61 +17816,113 @@ export type Database = {
         Row: {
           closed_at: string | null
           closed_by: string | null
+          config_id: string | null
           created_at: string
           decision: string | null
+          decision_id: string | null
           due_at: string | null
+          effective_date: string | null
           id: string
+          legal_basis: string | null
           license_id: string
           matter_kind: string
+          matter_reference: string | null
           metadata: Json
           opened_at: string
           opened_by: string | null
+          owner_user_id: string | null
           reason: string | null
+          related_matter_id: string | null
           renewal_id: string | null
+          sla_due_at: string | null
+          source_id: string | null
+          source_kind: string | null
+          source_reference: string | null
+          stage: string
           status: string
+          team: string | null
           title: string | null
           updated_at: string
           waiting_on: string
+          workflow_id: string | null
+          workflow_version: string | null
         }
         Insert: {
           closed_at?: string | null
           closed_by?: string | null
+          config_id?: string | null
           created_at?: string
           decision?: string | null
+          decision_id?: string | null
           due_at?: string | null
+          effective_date?: string | null
           id?: string
+          legal_basis?: string | null
           license_id: string
           matter_kind: string
+          matter_reference?: string | null
           metadata?: Json
           opened_at?: string
           opened_by?: string | null
+          owner_user_id?: string | null
           reason?: string | null
+          related_matter_id?: string | null
           renewal_id?: string | null
+          sla_due_at?: string | null
+          source_id?: string | null
+          source_kind?: string | null
+          source_reference?: string | null
+          stage?: string
           status?: string
+          team?: string | null
           title?: string | null
           updated_at?: string
           waiting_on?: string
+          workflow_id?: string | null
+          workflow_version?: string | null
         }
         Update: {
           closed_at?: string | null
           closed_by?: string | null
+          config_id?: string | null
           created_at?: string
           decision?: string | null
+          decision_id?: string | null
           due_at?: string | null
+          effective_date?: string | null
           id?: string
+          legal_basis?: string | null
           license_id?: string
           matter_kind?: string
+          matter_reference?: string | null
           metadata?: Json
           opened_at?: string
           opened_by?: string | null
+          owner_user_id?: string | null
           reason?: string | null
+          related_matter_id?: string | null
           renewal_id?: string | null
+          sla_due_at?: string | null
+          source_id?: string | null
+          source_kind?: string | null
+          source_reference?: string | null
+          stage?: string
           status?: string
+          team?: string | null
           title?: string | null
           updated_at?: string
           waiting_on?: string
+          workflow_id?: string | null
+          workflow_version?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "license_lifecycle_matters_decision_fk"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "license_decisions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "license_lifecycle_matters_license_id_fkey"
             columns: ["license_id"]
@@ -17750,10 +17938,185 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "license_lifecycle_matters_related_fk"
+            columns: ["related_matter_id"]
+            isOneToOne: false
+            referencedRelation: "license_lifecycle_matters"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "license_lifecycle_matters_renewal_id_fkey"
             columns: ["renewal_id"]
             isOneToOne: false
             referencedRelation: "license_renewals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      license_matter_notices: {
+        Row: {
+          body: string | null
+          correspondence_thread_id: string | null
+          created_at: string
+          delivery_channel: string | null
+          delivery_confirmed_at: string | null
+          delivery_evidence: Json
+          id: string
+          issued_at: string
+          issued_by: string | null
+          legal_basis: string | null
+          license_id: string
+          matter_id: string
+          metadata: Json
+          notice_kind: string
+          notice_reference: string | null
+          representation_deadline: string | null
+          subject: string | null
+        }
+        Insert: {
+          body?: string | null
+          correspondence_thread_id?: string | null
+          created_at?: string
+          delivery_channel?: string | null
+          delivery_confirmed_at?: string | null
+          delivery_evidence?: Json
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          legal_basis?: string | null
+          license_id: string
+          matter_id: string
+          metadata?: Json
+          notice_kind?: string
+          notice_reference?: string | null
+          representation_deadline?: string | null
+          subject?: string | null
+        }
+        Update: {
+          body?: string | null
+          correspondence_thread_id?: string | null
+          created_at?: string
+          delivery_channel?: string | null
+          delivery_confirmed_at?: string | null
+          delivery_evidence?: Json
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          legal_basis?: string | null
+          license_id?: string
+          matter_id?: string
+          metadata?: Json
+          notice_kind?: string
+          notice_reference?: string | null
+          representation_deadline?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_matter_notices_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_matter_notices_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_matter_notices_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "license_lifecycle_matters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      license_matter_representations: {
+        Row: {
+          created_at: string
+          documents: Json
+          id: string
+          is_late: boolean
+          is_waiver: boolean
+          license_id: string
+          matter_id: string
+          metadata: Json
+          notice_id: string | null
+          received_at: string
+          received_via: string | null
+          recorded_by: string | null
+          submitted_by: string | null
+          submitter_name: string | null
+          summary: string | null
+          waiver_reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          documents?: Json
+          id?: string
+          is_late?: boolean
+          is_waiver?: boolean
+          license_id: string
+          matter_id: string
+          metadata?: Json
+          notice_id?: string | null
+          received_at?: string
+          received_via?: string | null
+          recorded_by?: string | null
+          submitted_by?: string | null
+          submitter_name?: string | null
+          summary?: string | null
+          waiver_reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          documents?: Json
+          id?: string
+          is_late?: boolean
+          is_waiver?: boolean
+          license_id?: string
+          matter_id?: string
+          metadata?: Json
+          notice_id?: string | null
+          received_at?: string
+          received_via?: string | null
+          recorded_by?: string | null
+          submitted_by?: string | null
+          submitter_name?: string | null
+          summary?: string | null
+          waiver_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_matter_representations_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_matter_representations_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_matter_representations_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "license_lifecycle_matters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_matter_representations_notice_id_fkey"
+            columns: ["notice_id"]
+            isOneToOne: false
+            referencedRelation: "license_matter_notices"
             referencedColumns: ["id"]
           },
         ]
@@ -35817,6 +36180,7 @@ export type Database = {
         Args: { _ontime?: string; _return_id: string }
         Returns: Json
       }
+      license_adverse_matters: { Args: { _license_id: string }; Returns: Json }
       license_appeal_acknowledge: {
         Args: { _appeal_id: string }
         Returns: Json
@@ -35863,6 +36227,7 @@ export type Database = {
         Args: { _condition_id: string; _payload?: Json }
         Returns: Json
       }
+      license_expiry_sweep: { Args: { _limit?: number }; Returns: Json }
       license_ids_for_licensee: {
         Args: { _licensee_id: string }
         Returns: string[]
@@ -35925,6 +36290,10 @@ export type Database = {
         }[]
       }
       license_lifecycle_work_queue_counts: { Args: never; Returns: Json }
+      license_matter_prerequisites: {
+        Args: { _matter_id: string }
+        Returns: Json
+      }
       license_recipients_for_holder: {
         Args: { _license_id: string }
         Returns: {
