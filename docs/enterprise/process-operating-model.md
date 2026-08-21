@@ -24,7 +24,7 @@ through several non-equivalent surfaces with different truth sources.
 | P08 Conduct & Complaints | `/conduct`, `/complaints` | `/complaints`, `/conduct/alerts`, `/conduct/investigations` | `/complaints/:id`, `/conduct/investigations/:id` | `execute_complaint_workflow_action` | Mixed |
 | P09 Thematic | `/supervision/thematic-reviews` | `/supervision/thematic-closure-approvals` | `/supervision/thematic-reviews/:id` | thematic closure RPCs | Weak header |
 | P10 Examination / Inspection | `/prudential/examinations`, `/inspections` | both lists | `/prudential/examinations/:id` | **reference implementation** (`ExaminationStageActions`) | Best in platform |
-| P11 Enforcement | `/enforcement` | none | `/enforcement/:id` | **complaint workflow only** | Broken source model |
+| P11 Enforcement | `/enforcement` | `/enforcement` (server-backed queue) | `/enforcement/:id` | `enforcement_referral_create` + `enforcement_case_action` | **CLOSED (EPR-03)** — independent process, 9 referral sources, maker/checker enforced |
 | P12 Correspondence & RFI | `/correspondence` | `/correspondence/inbox` | `/correspondence/:id` | dispatch RPCs | 4 near-duplicate surfaces |
 | P13 Supervisory Intelligence | `/executive`, `/analytics` | n/a | n/a | read models (partial) | Mixed truth |
 | P14 Regulatory Configuration | `/admin/config/*`, `/settings` | n/a | n/a | config tables | Good after hub work |
