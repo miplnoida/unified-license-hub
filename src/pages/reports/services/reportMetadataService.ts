@@ -160,7 +160,7 @@ function mapSource(r: any): ReportSourceMeta {
 function staticSources(): ReportSourceMeta[] {
   const labels: Record<string, string> = {
     applications: 'Applications', licenses: 'Licenses', payments: 'Payments',
-    compliance_returns: 'Compliance Returns', complaints: 'Complaints',
+    compliance_returns: 'Compliance Returns (historical)', return_filings: 'Regulatory Returns', complaints: 'Complaints',
     users: 'Users', audit_logs: 'Audit Logs', report_logs: 'Report Logs',
   };
   const tables: Record<string, string> = { users: 'profiles' };
@@ -168,7 +168,8 @@ function staticSources(): ReportSourceMeta[] {
     applications: { detailPath: '/applications/:id', idColumn: 'id' },
     licenses: { detailPath: '/licenses/:id', idColumn: 'id' },
     complaints: { detailPath: '/complaints', idColumn: 'id' },
-    compliance_returns: { detailPath: '/returns-management/:id', idColumn: 'id' },
+    compliance_returns: { detailPath: '/returns/filings/legacy/:id', idColumn: 'id' },
+    return_filings: { detailPath: '/returns/filings/:id', idColumn: 'filing_id' },
   };
   return Object.entries(COLUMN_OPTIONS_BY_SOURCE).map(([k, cols], i) => ({
     sourceKey: k, label: labels[k] || k, tableName: tables[k] || k,
