@@ -8,6 +8,7 @@ import { Loader2, Shield, Eye } from 'lucide-react';
 import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
 import { useNavigate } from 'react-router-dom';
+import { useEntityLicenceSummary } from '@/hooks/useLicenseP04Extensions';
 
 interface LicensesTabProps {
   entityId: string;
@@ -18,6 +19,8 @@ export default function LicensesTab({ entityId, licenseId }: LicensesTabProps) {
   const [licenses, setLicenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { data: summary } = useEntityLicenceSummary(entityId);
+
 
   useEffect(() => {
     (async () => {
@@ -43,6 +46,24 @@ export default function LicensesTab({ entityId, licenseId }: LicensesTabProps) {
         <CardTitle className="flex items-center gap-2 text-lg"><Shield className="h-5 w-5 text-primary" />Licenses & Registrations</CardTitle>
       </CardHeader>
       <CardContent>
+        {/* P04 A.21 — server-computed licence summary for this entity. */}
+        {summary?.summary && (
+          <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-5">
+            {[
+              ['Total', summary.summary.total],
+              ['Active', summary.summary.active],
+              ['Suspended', summary.summary.suspended],
+              ['Revoked', summary.summary.revoked],
+              ['Expiring 90d', summary.summary.expiring_90d],
+            ].map(([label, value]) => (
+              <div key={String(label)} className="rounded-md border p-3">
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="font-mono text-lg font-semibold">{value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
         {licenses.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <Shield className="h-10 w-10 mx-auto mb-3 opacity-30" />

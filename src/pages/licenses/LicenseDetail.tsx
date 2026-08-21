@@ -33,6 +33,10 @@ import { useLicenseCase } from '@/hooks/useLicenseLifecycle';
 import LicenseTermHistoryPanel from '@/components/licenses/LicenseTermHistoryPanel';
 import LicenseConditionsPanel from '@/components/licenses/LicenseConditionsPanel';
 import LicenseAdverseMatterPanel from '@/components/licenses/LicenseAdverseMatterPanel';
+import LicenseVariationPanel from '@/components/licenses/LicenseVariationPanel';
+import LicenseDecisionAppealsPanel from '@/components/licenses/LicenseDecisionAppealsPanel';
+import LicenseFeeLedgerPanel from '@/components/licenses/LicenseFeeLedgerPanel';
+import LicenseVerificationPanel from '@/components/licenses/LicenseVerificationPanel';
 
 
 
@@ -728,6 +732,13 @@ export default function LicenseDetail() {
                 is only reachable through Current step, which enforces the governed matter
                 lifecycle (provenance → notice → representations → evidence review → decision). */}
             {isInternal && <LicenseAdverseMatterPanel licenseId={license.id} />}
+
+            {/* P04 A.6 / A.14–A.18 — variation change sets, decision appeals,
+                lifecycle fee ledger and verification cases. */}
+            {isInternal && <LicenseVariationPanel licenseId={license.id} />}
+            {isInternal && <LicenseDecisionAppealsPanel licenseId={license.id} />}
+            {isInternal && <LicenseFeeLedgerPanel licenseId={license.id} />}
+            {isInternal && <LicenseVerificationPanel licenseId={license.id} />}
 
             {isInternal && (pendingRenewalAppId || inProgressRenewalAppId) && (
               <Card>
