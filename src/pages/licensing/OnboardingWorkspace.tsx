@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, RefreshCw, Search } from 'lucide-react';
 import { formatDateTime } from '@/lib/datetime';
-import { EnterpriseDataGrid, exportRowsToCsv, type GridColumn } from '@/components/data-grid';
+import { EnterpriseDataGrid, type GridColumn } from '@/components/data-grid';
 import {
   useIdentificationActivity,
   useIdentificationCounts,
@@ -206,11 +206,15 @@ export default function OnboardingWorkspace() {
             <div className="py-10 text-center"><Loader2 className="inline h-5 w-5 animate-spin" /></div>
           ) : (
             <EnterpriseDataGrid
+              gridId="onboarding-identification-activity"
               rows={activity.data ?? []}
               columns={activityColumns}
               getRowId={(r) => r.id}
-              emptyMessage="No identification activity for these filters."
-              onExport={(rows) => exportRowsToCsv('onboarding-identification-activity', activityColumns, rows)}
+              emptyTitle="No identification activity"
+              emptyDescription="No organisation identification attempts match these filters."
+              enableExport
+              exportFileName="onboarding-identification-activity"
+              onRefresh={() => activity.refetch()}
             />
           )}
         </TabsContent>
@@ -254,11 +258,15 @@ export default function OnboardingWorkspace() {
             <div className="py-10 text-center"><Loader2 className="inline h-5 w-5 animate-spin" /></div>
           ) : (
             <EnterpriseDataGrid
+              gridId="registration-journeys"
               rows={journeys.data ?? []}
               columns={journeyColumns}
               getRowId={(r) => r.user_id}
-              emptyMessage="No registration journeys for these filters."
-              onExport={(rows) => exportRowsToCsv('registration-journeys', journeyColumns, rows)}
+              emptyTitle="No registration journeys"
+              emptyDescription="No onboarding journeys match these filters."
+              enableExport
+              exportFileName="registration-journeys"
+              onRefresh={() => journeys.refetch()}
             />
           )}
         </TabsContent>
