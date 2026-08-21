@@ -70,7 +70,140 @@ export interface ResolutionResult {
   }>;
 }
 
-export type ResolutionAction = 'RESOLVE_EXISTING' | 'CONFIRM_NEW' | 'REQUEST_EVIDENCE' | 'ESCALATE' | 'APPROVE';
+/**
+ * Governed resolution actions.
+ *
+ * Maker actions (Entity Resolution Officer): `RECOMMEND_EXISTING`,
+ * `RECOMMEND_NEW`, `REQUEST_EVIDENCE`, `ESCALATE`, plus direct
+ * `RESOLVE_EXISTING` / `CONFIRM_NEW` where the governing policy does not
+ * require maker-checker.
+ *
+ * Checker actions (Entity Resolution Supervisor, `entity_resolution.approve`):
+ * `APPROVE` (completes the recommended resolution) and `RETURN_FOR_REVIEW`
+ * (rejects the recommendation and sends the case back to operational review).
+ */
+export type ResolutionAction =
+  | 'RECOMMEND_EXISTING'
+  | 'RECOMMEND_NEW'
+  | 'RESOLVE_EXISTING'
+  | 'CONFIRM_NEW'
+  | 'REQUEST_EVIDENCE'
+  | 'ESCALATE'
+  | 'APPROVE'
+  | 'RETURN_FOR_REVIEW';
+
+export interface ResolutionQueueRow {
+  id: string;
+  case_number: string;
+  status: string;
+  outcome: string | null;
+  subject_name: string;
+  provider_status: string;
+  authority_mode: string;
+  journey_type: string | null;
+  registration_id: string | null;
+  registration_reference: string | null;
+  binding_status: string | null;
+  recommended_action: string | null;
+  recommended_entity_id: string | null;
+  recommended_entity_name: string | null;
+  recommended_by: string | null;
+  recommended_by_name: string | null;
+  recommended_at: string | null;
+  escalated_by: string | null;
+  escalated_by_name: string | null;
+  escalated_at: string | null;
+  escalation_reason: string | null;
+  supervisor_decision: string | null;
+  top_match_score: number | null;
+  candidate_count: number;
+  escalation_age_hours: number | null;
+  awaiting_supervisor: boolean;
+  resolved_entity_id: string | null;
+  requested_at: string;
+  resolved_at: string | null;
+  created_at: string;
+}
+
+export interface ResolutionCaseView {
+  detail: {
+    id: string;
+    case_number: string;
+    status: string;
+    outcome: string | null;
+    subject_name: string;
+    subject_identifiers: Array<Record<string, unknown>> | null;
+    provider_status: string;
+    authority_mode: string;
+    requires_maker_checker: boolean;
+    application_id: string | null;
+    resolved_entity_id: string | null;
+    resolved_entity_name: string | null;
+    decision_notes: string | null;
+    requested_at: string;
+    resolved_at: string | null;
+    resolved_by: string | null;
+    resolved_by_name: string | null;
+    recommended_action: string | null;
+    recommended_entity_id: string | null;
+    recommended_entity_name: string | null;
+    recommended_by: string | null;
+    recommended_by_name: string | null;
+    recommended_at: string | null;
+    recommendation_notes: string | null;
+    escalated_by: string | null;
+    escalated_by_name: string | null;
+    escalated_at: string | null;
+    escalation_reason: string | null;
+    supervisor_decision: string | null;
+    supervisor_notes: string | null;
+    supervisor_decided_by: string | null;
+    supervisor_decided_by_name: string | null;
+    supervisor_decided_at: string | null;
+    approved_by: string | null;
+    approved_at: string | null;
+  };
+  journey: {
+    journey_type: string | null;
+    registration_id: string | null;
+    registration_reference: string | null;
+    binding_status: string | null;
+    applicant_name: string | null;
+    applicant_email: string | null;
+    sector_name: string | null;
+    initiated_at: string | null;
+  };
+  candidates: Array<{
+    id: string;
+    entity_id: string | null;
+    entity_name: string | null;
+    lifecycle: string | null;
+    licence_numbers: string[];
+    match_score: number;
+    match_basis: string;
+    signals: Record<string, unknown>;
+    is_selected: boolean;
+  }>;
+  events: Array<{
+    id: string;
+    event_type: string;
+    created_at: string;
+    actor_id: string | null;
+    actor_name: string | null;
+    detail: Record<string, unknown>;
+  }>;
+}
+
+/** Enriched supervisory queue (case + recommendation + escalation context). */
+export const getResolutionQueue = (status?: string) =>
+  call<{ rows: ResolutionQueueRow[]; awaiting_supervisor_count: number }>('entity_resolution_queue', {
+    _status: status && status !== 'all' ? status : null,
+  });
+
+/** Enriched case workspace payload — regulator-facing names, never bare UUIDs. */
+export const getResolutionCaseView = (caseId: string) =>
+  call<ResolutionCaseView | null>('entity_resolution_case_view', { _case_id: caseId });
+
 
 /** Provider-agnostic search over the registry (local provider today). */
 export const searchEntities = (query: string, limit = 50) =>
