@@ -259,15 +259,12 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
         };
       });
 
-      const returnRows = ((returnsRes.data || []) as any[]).map((row) => ({
-        ...row,
-        workflow_status: String(row.workflow_status || '').toUpperCase(),
-      }));
-      const UNFILED = ['TEMP', 'WIP', 'TBR'] as const;
-      const retDueSoon = returnRows.filter((row) => UNFILED.includes(row.workflow_status) && !!row.due_date && row.due_date >= today && row.due_date <= in30).length;
-      const retOverdue = returnRows.filter((row) => UNFILED.includes(row.workflow_status) && !!row.due_date && row.due_date < today).length;
-      const retSubmitted = returnRows.filter((row) => ['SUB', 'VAL', 'REJ'].includes(row.workflow_status)).length;
-      const retPending = returnRows.filter((row) => row.workflow_status === 'SUB').length;
+      // EPR-01 — canonical Returns facts (server-aggregated over `return_filings`).
+      const retDueSoon = canonicalReturns.due_soon;
+      const retOverdue = canonicalReturns.overdue;
+      const retSubmitted = canonicalReturns.total - canonicalReturns.draft;
+      const retPending = canonicalReturns.pending_review;
+
 
 
       // ── Payments (via visible applications) ────────────────────────────────
