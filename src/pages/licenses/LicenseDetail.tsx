@@ -30,6 +30,9 @@ import { downloadLicenseCertificate, openSignedCertificateUrl } from '@/lib/lice
 import LicenseCaseHeader from '@/components/licenses/LicenseCaseHeader';
 import LicenseCurrentStepPanel from '@/components/licenses/LicenseCurrentStepPanel';
 import { useLicenseCase } from '@/hooks/useLicenseLifecycle';
+import LicenseTermHistoryPanel from '@/components/licenses/LicenseTermHistoryPanel';
+import LicenseConditionsPanel from '@/components/licenses/LicenseConditionsPanel';
+
 
 
 interface License {
