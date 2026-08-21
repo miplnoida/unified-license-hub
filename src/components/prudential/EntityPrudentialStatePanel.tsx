@@ -12,7 +12,8 @@ import { AlertTriangle, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatDate, formatDateTime } from '@/lib/datetime';
+import { formatDateTime } from '@/lib/datetime';
+import { formatDate } from '@/lib/presentation/format';
 import { humanize } from '@/lib/presentation/statusLabels';
 import { usePrudentialEntityState } from '@/hooks/usePrudentialProcess';
 
