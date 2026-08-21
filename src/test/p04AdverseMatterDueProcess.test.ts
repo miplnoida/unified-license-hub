@@ -35,7 +35,7 @@ describe('server-declared step inputs', () => {
 });
 
 describe('license_lifecycle_step is the only browser mutation path', () => {
-  const sql = migrationMatching('public.license_lifecycle_step');
+  const sql = migrationMatching('public.license_lifecycle_step', 'REVOKE');
 
   it('validates the payload against the declared requirements', () => {
     expect(sql).toMatch(/license_action_input_requirements/);
