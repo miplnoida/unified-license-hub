@@ -35793,6 +35793,10 @@ export type Database = {
         Returns: undefined
       }
       conduct_overview: { Args: never; Returns: Json }
+      conduct_related_cases: {
+        Args: { _case_id: string; _case_type: string }
+        Returns: Json
+      }
       conduct_require: {
         Args: { _action: string; _module: string }
         Returns: string
@@ -35928,6 +35932,10 @@ export type Database = {
         Args: { _party_role?: string; _thread_id: string; _user_id: string }
         Returns: string
       }
+      correspondence_case_href: {
+        Args: { _source_id: string; _source_type: string }
+        Returns: string
+      }
       correspondence_case_readable: {
         Args: { _source_id: string; _source_type: string; _user_id: string }
         Returns: boolean
@@ -35966,6 +35974,10 @@ export type Database = {
         Returns: undefined
       }
       correspondence_sla_sweep: { Args: never; Returns: Json }
+      correspondence_thread_case: {
+        Args: { _thread_id: string }
+        Returns: Json
+      }
       correspondence_thread_feed: {
         Args: { _filters?: Json; _limit?: number; _offset?: number }
         Returns: Json
@@ -35986,6 +35998,10 @@ export type Database = {
       correspondence_thread_visible: {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
+      }
+      correspondence_work_queue: {
+        Args: { _filters?: Json; _limit?: number; _offset?: number }
+        Returns: Json
       }
       create_application_draft: {
         Args: { _data?: Json; _license_type: string; _regulator_id?: string }
