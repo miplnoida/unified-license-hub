@@ -16,6 +16,7 @@ const ReportingMetricsConfig = lazy(() => import('@/pages/admin/ReportingMetrics
 const FormsPackagesWorkspace = lazy(() => import('@/pages/admin/FormsPackagesWorkspace'));
 
 const FeeManagement = lazy(() => import('@/pages/admin/FeeManagement'));
+const LifecycleConfiguration = lazy(() => import('@/pages/admin/LifecycleConfiguration'));
 const ReturnConfiguration = lazy(() => import('@/pages/admin/ReturnConfiguration'));
 const RegulatorManagement = lazy(() => import('@/pages/admin/RegulatorManagement'));
 const ManageLicensees = lazy(() => import('@/pages/admin/ManageLicensees'));

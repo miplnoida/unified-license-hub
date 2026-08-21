@@ -17940,71 +17940,101 @@ export type Database = {
         Row: {
           action_key: string | null
           amount_override: number | null
+          binding_key: string | null
           blocking: boolean
           category_id: string | null
+          charge_basis: string
           created_at: string
           created_by: string | null
           currency: string
           description: string | null
           due_days: number
+          effective_from: string
+          effective_to: string | null
           fee_configuration_id: string | null
           fee_type_code: string | null
+          gate_policy: string
           id: string
           is_active: boolean
           license_type: string | null
           matter_kind: string
           notes: string | null
           payment_verification_required: boolean
+          purpose: string
+          quantity: number
           regulator_id: string | null
           sector_id: string | null
           sub_sector_id: string | null
+          trigger_event: string | null
+          trigger_timing: string
           updated_at: string
+          workflow_step_key: string | null
         }
         Insert: {
           action_key?: string | null
           amount_override?: number | null
+          binding_key?: string | null
           blocking?: boolean
           category_id?: string | null
+          charge_basis?: string
           created_at?: string
           created_by?: string | null
           currency?: string
           description?: string | null
           due_days?: number
+          effective_from?: string
+          effective_to?: string | null
           fee_configuration_id?: string | null
           fee_type_code?: string | null
+          gate_policy?: string
           id?: string
           is_active?: boolean
           license_type?: string | null
           matter_kind: string
           notes?: string | null
           payment_verification_required?: boolean
+          purpose?: string
+          quantity?: number
           regulator_id?: string | null
           sector_id?: string | null
           sub_sector_id?: string | null
+          trigger_event?: string | null
+          trigger_timing?: string
           updated_at?: string
+          workflow_step_key?: string | null
         }
         Update: {
           action_key?: string | null
           amount_override?: number | null
+          binding_key?: string | null
           blocking?: boolean
           category_id?: string | null
+          charge_basis?: string
           created_at?: string
           created_by?: string | null
           currency?: string
           description?: string | null
           due_days?: number
+          effective_from?: string
+          effective_to?: string | null
           fee_configuration_id?: string | null
           fee_type_code?: string | null
+          gate_policy?: string
           id?: string
           is_active?: boolean
           license_type?: string | null
           matter_kind?: string
           notes?: string | null
           payment_verification_required?: boolean
+          purpose?: string
+          quantity?: number
           regulator_id?: string | null
           sector_id?: string | null
           sub_sector_id?: string | null
+          trigger_event?: string | null
+          trigger_timing?: string
           updated_at?: string
+          workflow_step_key?: string | null
         }
         Relationships: [
           {
@@ -18012,6 +18042,47 @@ export type Database = {
             columns: ["fee_configuration_id"]
             isOneToOne: false
             referencedRelation: "fee_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      license_fee_process_settings: {
+        Row: {
+          created_at: string
+          fees_enabled: boolean
+          id: string
+          matter_kind: string
+          notes: string | null
+          purpose: string
+          regulator_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fees_enabled?: boolean
+          id?: string
+          matter_kind: string
+          notes?: string | null
+          purpose?: string
+          regulator_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fees_enabled?: boolean
+          id?: string
+          matter_kind?: string
+          notes?: string | null
+          purpose?: string
+          regulator_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_fee_process_settings_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
             referencedColumns: ["id"]
           },
         ]
@@ -18790,7 +18861,9 @@ export type Database = {
           started_by: string | null
           status: string
           template_id: string | null
+          template_key: string | null
           template_snapshot: Json
+          template_version: number | null
           updated_at: string
         }
         Insert: {
@@ -18806,7 +18879,9 @@ export type Database = {
           started_by?: string | null
           status?: string
           template_id?: string | null
+          template_key?: string | null
           template_snapshot?: Json
+          template_version?: number | null
           updated_at?: string
         }
         Update: {
@@ -18822,7 +18897,9 @@ export type Database = {
           started_by?: string | null
           status?: string
           template_id?: string | null
+          template_key?: string | null
           template_snapshot?: Json
+          template_version?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -18908,45 +18985,77 @@ export type Database = {
       }
       license_verification_templates: {
         Row: {
+          blocking_semantics: Json
           created_at: string
           created_by: string | null
+          description: string | null
+          effective_from: string
+          effective_to: string | null
           id: string
           is_active: boolean
           items: Json
           license_type: string | null
           matter_kind: string
           name: string
+          purpose: string
           regulator_id: string | null
           sector_id: string | null
+          superseded_by: string | null
+          template_key: string | null
           updated_at: string
+          version: number
         }
         Insert: {
+          blocking_semantics?: Json
           created_at?: string
           created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
           id?: string
           is_active?: boolean
           items?: Json
           license_type?: string | null
           matter_kind: string
           name: string
+          purpose?: string
           regulator_id?: string | null
           sector_id?: string | null
+          superseded_by?: string | null
+          template_key?: string | null
           updated_at?: string
+          version?: number
         }
         Update: {
+          blocking_semantics?: Json
           created_at?: string
           created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
           id?: string
           is_active?: boolean
           items?: Json
           license_type?: string | null
           matter_kind?: string
           name?: string
+          purpose?: string
           regulator_id?: string | null
           sector_id?: string | null
+          superseded_by?: string | null
+          template_key?: string | null
           updated_at?: string
+          version?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "license_verification_templates_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "license_verification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       licensee_channels: {
         Row: {
@@ -22264,6 +22373,86 @@ export type Database = {
             columns: ["sub_sector_id"]
             isOneToOne: false
             referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      process_templates: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          license_type: string | null
+          name: string
+          notes: string | null
+          process_code: string
+          purpose: string
+          regulator_id: string | null
+          sector_id: string | null
+          service_id: string | null
+          steps: Json
+          sub_sector_id: string | null
+          template_key: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          license_type?: string | null
+          name: string
+          notes?: string | null
+          process_code: string
+          purpose?: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          service_id?: string | null
+          steps?: Json
+          sub_sector_id?: string | null
+          template_key: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          license_type?: string | null
+          name?: string
+          notes?: string | null
+          process_code?: string
+          purpose?: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          service_id?: string | null
+          steps?: Json
+          sub_sector_id?: string | null
+          template_key?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_templates_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
             referencedColumns: ["id"]
           },
         ]
@@ -36928,6 +37117,7 @@ export type Database = {
         }
         Returns: Json
       }
+      license_fee_configuration_overview: { Args: never; Returns: Json }
       license_fee_ledger: { Args: { _license_id: string }; Returns: Json }
       license_fee_operation: {
         Args: { _assessment_id: string; _operation: string; _payload?: Json }
@@ -36941,9 +37131,14 @@ export type Database = {
         }
         Returns: Json
       }
+      license_fee_simulate: { Args: { _payload?: Json }; Returns: Json }
       license_ids_for_licensee: {
         Args: { _licensee_id: string }
         Returns: string[]
+      }
+      license_is_certification_scoped: {
+        Args: { _license_id: string }
+        Returns: boolean
       }
       license_lifecycle_action: {
         Args: {
@@ -37889,6 +38084,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      process_preview: { Args: { _payload?: Json }; Returns: Json }
       provision_application_entity: {
         Args: { _application_id: string }
         Returns: Json
