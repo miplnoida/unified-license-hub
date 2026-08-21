@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -57,7 +57,13 @@ export default function Investigations() {
         <PageHeader
           title="Conduct Investigations"
           description="Formal investigations opened from complaints, alerts, thematic reviews or supervisory judgment."
-          actions={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" />Open investigation</Button>}
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline" asChild><Link to="/conduct/work-queue">Conduct work queue</Link></Button>
+              <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" />Open investigation</Button>
+            </div>
+          }
+
         />
         <Card>
           <CardContent className="p-0">
