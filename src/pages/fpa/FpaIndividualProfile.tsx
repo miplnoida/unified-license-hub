@@ -35,7 +35,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
-import { fpAssessmentInitiate } from '@/lib/fpGovernedOps';
+import Swal from 'sweetalert2';
+import {
+  fpAssessmentInitiate,
+  fpIndividualUpdate,
+  fpIndividualSetDirectoryStatus,
+  fpRoleCreate,
+  fpRoleEnd,
+  fpRoleSetReassessmentCycle,
+} from '@/lib/fpGovernedOps';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logComplianceAudit } from '@/lib/complianceAudit';
