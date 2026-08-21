@@ -462,9 +462,11 @@ function RolesTab({ id }: { id: string }) {
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-base">Roles &amp; Positions</CardTitle>
         <div className="flex gap-2">
-          <Button data-rbac="fit_and_proper.edit" size="sm" variant="outline" onClick={runCycleNow} disabled={runningCycle}>
-            {runningCycle ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <PlayCircle className="h-3.5 w-3.5 mr-1.5" />}
-            Run Cycle Scheduler
+          <Button asChild size="sm" variant="outline">
+            <Link to="/fpa/scheduler">
+              <PlayCircle className="h-3.5 w-3.5 mr-1.5" />
+              Reassessment scheduler
+            </Link>
           </Button>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
