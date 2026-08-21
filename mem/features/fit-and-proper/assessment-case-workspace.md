@@ -10,3 +10,7 @@ type: feature
 - `FpaIndividualProfile` is PERSON MASTER / HISTORY only (identity, roles, assessment history, regulator positions, conditions/appeals/monitoring summaries) — no screening tab, no determination-operating panel.
 - `FpScreeningPanel` takes `scopeToAssessment`; the workspace always sets it so evidence from another assessment cannot leak.
 - Guardrails: `src/test/fpAssessmentAuthorityGuardrails.test.ts` and `supabase/tests/fpa/01_assessment_case_isolation.sql`.
+- **Register is server-owned (M2)**: no client DML on `fp_individuals` / `fp_individual_roles`. Use `fpIndividualCreate/Update/SetDirectoryStatus`, `fpRoleCreate/SetReassessmentCycle/End` in `src/lib/fpGovernedOps.ts`. Status changes and cessations require a reason; due dates are computed server-side.
+- Reassessment sweep lives at `/fpa/scheduler` (gated `fit_and_proper.execute`), never on the person profile.
+- Entity 360 F&P section = read-only `EntityFitAndProperPanel` over `fp_entity_fp_summary`.
+- Enforcement leaves F&P only via `ReferToEnforcementDialog` with `sourceKind="FP_MATTER"` + assessment id.
