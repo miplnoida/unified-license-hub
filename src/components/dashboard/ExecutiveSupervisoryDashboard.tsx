@@ -125,7 +125,9 @@ export function ExecutiveSupervisoryDashboard() {
         (supabase.from('entity_risk_scores') as any)
           .select('band, score, entity_id')
           .eq('is_current', true),
-        supabase.from('returns_filed').select('id, status, submitted_at, created_at').gte('created_at', thirtyAgo),
+        // EPR-01: canonical returns totals from the server-side aggregate.
+        fetchCanonicalReturnsSummary(null),
+
         (supabase.from('prudential_actions') as any).select('id, status', { count: 'exact' }),
         (supabase.from('prudential_escalations') as any).select('id, status', { count: 'exact' }),
         (supabase.from('conduct_alerts') as any).select('id, status', { count: 'exact' }),
