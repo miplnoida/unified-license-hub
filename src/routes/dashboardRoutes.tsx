@@ -84,6 +84,10 @@ const InspectionDetail = lazy(() => import('@/pages/inspections/InspectionDetail
 const ConductDashboard = lazy(() => import('@/pages/conduct/ConductDashboard'));
 const ConductAlerts = lazy(() => import('@/pages/conduct/ConductAlerts'));
 const ConductActions = lazy(() => import('@/pages/conduct/ConductActions'));
+const RemediationDetail = lazy(() => import('@/pages/conduct/RemediationDetail'));
+const ConductFindings = lazy(() => import('@/pages/conduct/ConductFindings'));
+const FindingDetail = lazy(() => import('@/pages/conduct/FindingDetail'));
+
 const ThematicReviews = lazy(() => import('@/pages/supervision/ThematicReviews'));
 const NewThematicReview = lazy(() => import('@/pages/supervision/NewThematicReview'));
 const ThematicReviewDetail = lazy(() => import('@/pages/supervision/ThematicReviewDetail'));
