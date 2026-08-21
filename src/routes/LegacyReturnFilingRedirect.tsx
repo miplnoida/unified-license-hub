@@ -27,8 +27,8 @@ export default function LegacyReturnFilingRedirect() {
     );
   }
 
-  if (data?.filing_id) {
-    return <Navigate to={objectRoute.returnFiling(data.filing_id)} replace />;
+  if (data) {
+    return <Navigate to={objectRoute.returnFiling(data)} replace />;
   }
 
   return (
