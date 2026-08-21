@@ -126,33 +126,66 @@ export function useDeleteRatio() {
 }
 
 // ---------------- Computed ratios + breaches for a return ----------------
-export function useReturnComputedRatios(returnId?: string | null) {
+/**
+ * EPR-01 / P07 — persisted ratios/breaches for a CANONICAL filing.
+ *
+ * Both hooks take `return_filings.id` and read the server read model
+ * `prudential_filing_metric_facts()` (canonical `return_metric_values` +
+ * `v_prudential_current_breaches`). The retired `return_calculated_ratios` /
+ * legacy `return_threshold_breaches.return_id` reads are gone; where a caller
+ * has no canonical filing id the result is honestly empty.
+ */
+function useFilingMetricFacts(returnFilingId?: string | null) {
   return useQuery({
-    queryKey: ['return_calculated_ratios', returnId],
-    enabled: !!returnId,
+    queryKey: ['prudential_filing_metric_facts', returnFilingId],
+    enabled: !!returnFilingId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('return_calculated_ratios').select('*')
-        .eq('return_id', returnId).order('computed_at', { ascending: false });
+      const { data, error } = await (supabase as any).rpc('prudential_filing_metric_facts', {
+        _return_filing_id: returnFilingId,
+      });
       if (error) throw error;
-      return (data ?? []) as Array<ComputedRatio & { computed_at: string; id: string }>;
+      return (data ?? {}) as { filing?: any; metrics?: any[]; breaches?: any[] };
     },
   });
 }
 
-export function useReturnBreaches(returnId?: string | null) {
-  return useQuery({
-    queryKey: ['return_threshold_breaches', returnId],
-    enabled: !!returnId,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('return_threshold_breaches').select('*')
-        .eq('return_id', returnId).order('detected_at', { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as Array<DetectedBreach & { detected_at: string; id: string }>;
-    },
-  });
+function metricRatioFormat(unit?: string | null): string {
+  const u = String(unit ?? '').trim().toLowerCase();
+  if (u === '%' || u === 'percent' || u === 'percentage') return 'percent_points';
+  if (u === 'x' || u === 'ratio' || u === 'multiple') return 'multiple';
+  return 'decimal';
 }
+
+export function useReturnComputedRatios(returnFilingId?: string | null) {
+  const q = useFilingMetricFacts(returnFilingId);
+  return {
+    ...q,
+    data: ((q.data?.metrics ?? []) as any[]).map((m) => ({
+      id: `${m.filing_id}:${m.regulatory_metric_id}`,
+      ratio_key: m.metric_code,
+      label: m.metric_name || m.metric_code,
+      value: m.value_numeric,
+      display_format: metricRatioFormat(m.unit),
+      metric_key: m.metric_code,
+      computed_at: m.recorded_at,
+      return_filing_id: m.filing_id,
+      return_filing_version_id: m.return_filing_version_id,
+    })) as Array<ComputedRatio & { computed_at: string; id: string }>,
+  };
+}
+
+export function useReturnBreaches(returnFilingId?: string | null) {
+  const q = useFilingMetricFacts(returnFilingId);
+  return {
+    ...q,
+    data: ((q.data?.breaches ?? []) as any[]).map((b) => ({
+      ...b,
+      return_id: b.return_filing_id,
+      detected_at: b.detected_at,
+    })) as Array<DetectedBreach & { detected_at: string; id: string }>,
+  };
+}
+
 
 /**
  * Peer snapshot for a ratio at a specific period end.

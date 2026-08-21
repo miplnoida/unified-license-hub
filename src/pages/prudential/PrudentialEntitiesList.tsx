@@ -12,6 +12,7 @@ import { Info, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { severityLabel, severityTone, SEVERITY_FILTER_OPTIONS } from '@/lib/prudentialSeverity';
+import { RETURN_STATUS_FILTER_OPTIONS, returnStatusLabel } from '@/lib/prudentialLabels';
 
 const NEUTRAL = 'bg-muted text-muted-foreground border-border';
 const EMERALD = 'bg-emerald-500/10 text-emerald-700 border-emerald-200';
@@ -43,11 +44,15 @@ const RATING_TONE = (v: string) => {
   return NEUTRAL;
 };
 
+// Canonical `return_filings.status` codes (EPR-01).
 const RETURN_STATUS_TONE: Record<string, string> = {
-  approved: EMERALD,
-  submitted: BLUE,
-  under_review: BLUE,
-  rejected: RED,
+  ACCEPTED: EMERALD,
+  SUBMITTED: BLUE,
+  UNDER_REVIEW: BLUE,
+  CORRECTION_REQUESTED: AMBER,
+  REJECTED: RED,
+  DRAFT: NEUTRAL,
+  WITHDRAWN: NEUTRAL,
 };
 
 const COLUMN_HELP: Record<string, string> = {
@@ -99,7 +104,7 @@ export default function PrudentialEntitiesList() {
     if (actionState === 'has_overdue' && !e.overdue_actions) return false;
     if (actionState === 'open' && !e.open_actions) return false;
     if (escState === 'open' && !e.open_escalations) return false;
-    if (retStatus !== 'all' && e.last_return_status !== retStatus) return false;
+    if (retStatus !== 'all' && String(e.last_return_status ?? '').toUpperCase() !== retStatus) return false;
     return true;
   }), [data, actionState, escState, retStatus]);
 
@@ -163,10 +168,9 @@ export default function PrudentialEntitiesList() {
               <SelectTrigger className="w-44"><SelectValue placeholder="Latest return" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All return statuses</SelectItem>
-                <SelectItem value="submitted">Submitted</SelectItem>
-                <SelectItem value="under_review">Under review</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
+                {RETURN_STATUS_FILTER_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -223,8 +227,8 @@ export default function PrudentialEntitiesList() {
                           <div className="flex items-center gap-2">
                             <span>{new Date(e.last_return).toLocaleDateString()}</span>
                             {e.last_return_status && (
-                              <Badge variant="outline" className={`capitalize ${RETURN_STATUS_TONE[e.last_return_status] || NEUTRAL}`}>
-                                {String(e.last_return_status).replace(/_/g, ' ')}
+                              <Badge variant="outline" className={RETURN_STATUS_TONE[String(e.last_return_status).toUpperCase()] || NEUTRAL}>
+                                {returnStatusLabel(e.last_return_status)}
                               </Badge>
                             )}
                           </div>

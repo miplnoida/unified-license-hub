@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { cn } from '@/lib/utils';
 import { bandTone, formatAmount, ROLE_LABEL, TREATMENT_LABEL, type GroupMember } from '@/lib/groupConsolidation';
 import { GroupStructureTree } from '@/components/prudential/GroupStructureTree';
+import { GroupMemberMetricsPanel } from '@/components/prudential/GroupMemberMetricsPanel';
 import { ConsolidatedRatiosPanel } from '@/components/prudential/ConsolidatedRatiosPanel';
 import { IntragroupExposureMatrix } from '@/components/prudential/IntragroupExposureMatrix';
 import { SubsidiaryRiskHeatmap } from '@/components/prudential/SubsidiaryRiskHeatmap';
@@ -256,6 +257,18 @@ export default function FinancialGroupProfile() {
             </CardHeader>
             <CardContent>
               <ConsolidatedRatiosPanel ratios={snapshot?.ratios ?? []} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Member reported facts — {activePeriod || 'latest period'}</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Canonical metric values from each member's accepted return filing. Consolidated
+                figures above are derived from these facts only.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <GroupMemberMetricsPanel metrics={data?.member_metrics ?? []} period={activePeriod} />
             </CardContent>
           </Card>
           <Card>

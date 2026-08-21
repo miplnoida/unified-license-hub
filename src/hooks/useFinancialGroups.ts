@@ -76,27 +76,25 @@ export function useGroupConsolidated(groupId?: string | null, periodKey?: string
 }
 
 /** Periods that have any member return, newest first. */
+/**
+ * EPR-01 / P07 — group reporting periods from CANONICAL filings.
+ * `prudential_group_periods()` derives the distinct canonical reporting periods
+ * (`reporting_periods.period_label`) of the group's members server-side.
+ */
 export function useGroupPeriods(groupId?: string | null) {
   return useQuery({
     queryKey: ['group_periods', groupId],
     enabled: !!groupId,
     queryFn: async (): Promise<string[]> => {
-      const { data: members } = await sb.from('financial_group_members').select('licensee_id').eq('group_id', groupId);
-      const ids = (members ?? []).map((m: any) => m.licensee_id);
-      if (!ids.length) return [];
-      const { data } = await sb.from('returns_filed')
-        .select('return_year, return_period, period_end_date')
-        .in('entity_id', ids)
-        .order('period_end_date', { ascending: false });
-      const seen: string[] = [];
-      (data ?? []).forEach((r: any) => {
-        const key = `${r.return_year}-${r.return_period}`;
-        if (!seen.includes(key)) seen.push(key);
-      });
-      return seen;
+      const { data, error } = await sb.rpc('prudential_group_periods', { _group_id: groupId });
+      if (error) throw error;
+      return ((data ?? []) as any[])
+        .map((r) => r.period_key as string)
+        .filter((k): k is string => !!k);
     },
   });
 }
+
 
 export function useGroupSnapshots(groupId?: string | null) {
   return useQuery({

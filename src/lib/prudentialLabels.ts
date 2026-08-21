@@ -20,8 +20,20 @@ export function humanizeToken(value?: string | null): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
-/** `returns_filed.workflow_status` codes. */
+/**
+ * Canonical `return_filings.status` codes (EPR-01). The legacy `returns_filed`
+ * workflow codes are kept only so historical audit rows still read correctly —
+ * no live screen produces them any more.
+ */
 export const RETURN_STATUS_LABEL: Record<string, string> = {
+  DRAFT: 'Draft',
+  SUBMITTED: 'Submitted',
+  UNDER_REVIEW: 'Under review',
+  CORRECTION_REQUESTED: 'Correction requested',
+  ACCEPTED: 'Accepted',
+  REJECTED: 'Rejected',
+  WITHDRAWN: 'Withdrawn',
+  // Retired legacy codes (historical records only).
   TEMP: 'Draft (template)',
   WIP: 'Draft',
   SUB: 'Submitted',
@@ -32,14 +44,28 @@ export const RETURN_STATUS_LABEL: Record<string, string> = {
 
 export function returnStatusLabel(value?: string | null): string {
   if (!value) return '—';
-  return RETURN_STATUS_LABEL[value] ?? humanizeToken(value);
+  return RETURN_STATUS_LABEL[String(value).toUpperCase()] ?? humanizeToken(value);
 }
 
-/** Return states that represent a filing actually received by the regulator. */
-const SUBMITTED_RETURN_STATES = new Set(['SUB', 'VAL', 'TBR', 'REJ']);
+/** Filter options for "latest return status" — canonical codes only. */
+export const RETURN_STATUS_FILTER_OPTIONS = [
+  { value: 'DRAFT', label: 'Draft' },
+  { value: 'SUBMITTED', label: 'Submitted' },
+  { value: 'UNDER_REVIEW', label: 'Under review' },
+  { value: 'CORRECTION_REQUESTED', label: 'Correction requested' },
+  { value: 'ACCEPTED', label: 'Accepted' },
+  { value: 'REJECTED', label: 'Rejected' },
+] as const;
+
+/** States that represent a filing actually received by the regulator. */
+const SUBMITTED_RETURN_STATES = new Set([
+  'SUBMITTED', 'UNDER_REVIEW', 'CORRECTION_REQUESTED', 'ACCEPTED', 'REJECTED',
+  // Retired legacy codes.
+  'SUB', 'VAL', 'TBR', 'REJ',
+]);
 
 export function isSubmittedReturnStatus(value?: string | null): boolean {
-  return !!value && SUBMITTED_RETURN_STATES.has(value);
+  return !!value && SUBMITTED_RETURN_STATES.has(String(value).toUpperCase());
 }
 
 /** Assessment states that carry a supervisory-meaningful rating. */

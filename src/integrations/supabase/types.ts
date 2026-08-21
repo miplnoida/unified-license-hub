@@ -32848,6 +32848,10 @@ export type Database = {
         Args: { _form_data?: Json; _return_id: string }
         Returns: Json
       }
+      evaluate_stress_indicators_for_filing: {
+        Args: { _return_filing_id: string }
+        Returns: Json
+      }
       evaluate_stress_indicators_for_return: {
         Args: { _return_id: string }
         Returns: Json
@@ -35307,6 +35311,41 @@ export type Database = {
           user_role: string
         }[]
       }
+      prudential_entity_returns_profile: {
+        Args: { _entity_id: string }
+        Returns: Json
+      }
+      prudential_entity_universe: {
+        Args: { _search?: string; _sector_id?: string; _status?: string }
+        Returns: {
+          assigned_supervisor_id: string
+          breach_count: number
+          category_id: string
+          entity_id: string
+          entity_name: string
+          latest_accepted_filing_id: string
+          latest_accepted_period_end: string
+          latest_filing_id: string
+          latest_filing_reference: string
+          latest_filing_status: string
+          latest_period_end: string
+          latest_period_label: string
+          latest_rating: string
+          latest_rating_status: string
+          latest_submitted_at: string
+          license_id: string
+          open_actions: number
+          open_escalations: number
+          open_ewi: number
+          overdue_actions: number
+          sector_id: string
+          status: string
+          stress_open: number
+          sub_sector_id: string
+          systemic_importance: string
+          worst_breach: string
+        }[]
+      }
       prudential_escalation_decide: {
         Args: {
           _decision?: string
@@ -35447,9 +35486,20 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      prudential_filing_metric_facts: {
+        Args: { _return_filing_id: string }
+        Returns: Json
+      }
       prudential_group_consolidated: {
         Args: { _group_id: string; _period_key?: string }
         Returns: Json
+      }
+      prudential_group_periods: {
+        Args: { _group_id: string }
+        Returns: {
+          period_end: string
+          period_key: string
+        }[]
       }
       prudential_min_peers: { Args: never; Returns: number }
       prudential_ratio_delete: {
