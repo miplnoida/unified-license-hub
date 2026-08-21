@@ -50,7 +50,7 @@ export default function EntityFilingWorkspace() {
   const openRequests = data.requests.filter((r) => r.status !== 'RESOLVED' && r.status !== 'CLOSED');
   const requiredForms = currentForms.filter((f) => f.is_required);
   const completedRequiredForms = requiredForms.filter((f) => f.completion_status === 'COMPLETED').length;
-  const currentFindings = data.findings.filter((f) => !currentVersionId || true);
+  const currentFindings = data.findings;
   const blockingFindings = currentFindings.filter((f) => f.is_blocking).length;
   const warningFindings = currentFindings.length - blockingFindings;
 
