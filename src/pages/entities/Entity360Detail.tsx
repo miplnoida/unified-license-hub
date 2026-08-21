@@ -177,11 +177,18 @@ export default function Entity360Detail() {
           {view === 'timeline' && <Entity360TimelinePanel entityId={entity.id} />}
 
           {activeSection && (
-            <Entity360SectionView
-              entityId={entity.id}
-              section={activeSection.key}
-              asOf={asOf}
-            />
+            <div className="space-y-4">
+              {/* EPR-04: the entity's F&P position is a read-only summary that
+                  links out to the canonical assessment case workspace. */}
+              {activeSection.key === 'fit_and_proper' && (
+                <EntityFitAndProperPanel entityId={entity.id} />
+              )}
+              <Entity360SectionView
+                entityId={entity.id}
+                section={activeSection.key}
+                asOf={asOf}
+              />
+            </div>
           )}
         </div>
       </div>
