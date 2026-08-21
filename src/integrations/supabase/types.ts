@@ -10354,6 +10354,105 @@ export type Database = {
           },
         ]
       }
+      entity_identity_resolution_events: {
+        Row: {
+          candidate_count: number
+          candidate_entity_ids: string[]
+          created_at: string
+          event_reference: string
+          failure_reason: string | null
+          follow_up_action: string | null
+          follow_up_at: string | null
+          highest_match_score: number | null
+          id: string
+          identifier_type: string | null
+          identifier_value_hash: string | null
+          identifier_value_masked: string | null
+          journey_id: string | null
+          journey_type: string | null
+          licence_number_masked: string | null
+          match_basis: string | null
+          matched_entity_id: string | null
+          normalized_legal_name: string | null
+          occurred_at: string
+          regulator_id: string | null
+          request_correlation_id: string | null
+          resolution_case_id: string | null
+          resolution_outcome: string
+          resolver_provider: string
+          resolver_version: string | null
+          retention_class: string
+          searched_legal_name: string | null
+          sector_id: string | null
+          source_channel: string
+          user_id: string | null
+        }
+        Insert: {
+          candidate_count?: number
+          candidate_entity_ids?: string[]
+          created_at?: string
+          event_reference: string
+          failure_reason?: string | null
+          follow_up_action?: string | null
+          follow_up_at?: string | null
+          highest_match_score?: number | null
+          id?: string
+          identifier_type?: string | null
+          identifier_value_hash?: string | null
+          identifier_value_masked?: string | null
+          journey_id?: string | null
+          journey_type?: string | null
+          licence_number_masked?: string | null
+          match_basis?: string | null
+          matched_entity_id?: string | null
+          normalized_legal_name?: string | null
+          occurred_at?: string
+          regulator_id?: string | null
+          request_correlation_id?: string | null
+          resolution_case_id?: string | null
+          resolution_outcome: string
+          resolver_provider?: string
+          resolver_version?: string | null
+          retention_class?: string
+          searched_legal_name?: string | null
+          sector_id?: string | null
+          source_channel?: string
+          user_id?: string | null
+        }
+        Update: {
+          candidate_count?: number
+          candidate_entity_ids?: string[]
+          created_at?: string
+          event_reference?: string
+          failure_reason?: string | null
+          follow_up_action?: string | null
+          follow_up_at?: string | null
+          highest_match_score?: number | null
+          id?: string
+          identifier_type?: string | null
+          identifier_value_hash?: string | null
+          identifier_value_masked?: string | null
+          journey_id?: string | null
+          journey_type?: string | null
+          licence_number_masked?: string | null
+          match_basis?: string | null
+          matched_entity_id?: string | null
+          normalized_legal_name?: string | null
+          occurred_at?: string
+          regulator_id?: string | null
+          request_correlation_id?: string | null
+          resolution_case_id?: string | null
+          resolution_outcome?: string
+          resolver_provider?: string
+          resolver_version?: string | null
+          retention_class?: string
+          searched_legal_name?: string | null
+          sector_id?: string | null
+          source_channel?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       entity_identity_snapshots: {
         Row: {
           capture_reason: string
@@ -20893,6 +20992,89 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_alert_rules: {
+        Row: {
+          condition_type: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          rule_key: string
+          severity: string
+          threshold_count: number | null
+          window_minutes: number | null
+        }
+        Insert: {
+          condition_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          rule_key: string
+          severity?: string
+          threshold_count?: number | null
+          window_minutes?: number | null
+        }
+        Update: {
+          condition_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          rule_key?: string
+          severity?: string
+          threshold_count?: number | null
+          window_minutes?: number | null
+        }
+        Relationships: []
+      }
+      onboarding_alert_signals: {
+        Row: {
+          created_at: string
+          detail: Json
+          id: string
+          identification_event_id: string | null
+          rule_key: string
+          severity: string
+          status: string
+          subject_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json
+          id?: string
+          identification_event_id?: string | null
+          rule_key: string
+          severity?: string
+          status?: string
+          subject_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          detail?: Json
+          id?: string
+          identification_event_id?: string | null
+          rule_key?: string
+          severity?: string
+          status?: string
+          subject_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_alert_signals_identification_event_id_fkey"
+            columns: ["identification_event_id"]
+            isOneToOne: false
+            referencedRelation: "entity_identity_resolution_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       onboarding_journey_state: {
         Row: {
           context: Json
@@ -21012,6 +21194,86 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_prudential_early_warnings"
             referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
+      onboarding_retention_policies: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          retention_class: string
+          retention_days: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          retention_class: string
+          retention_days?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          retention_class?: string
+          retention_days?: number | null
+        }
+        Relationships: []
+      }
+      onboarding_security_metadata: {
+        Row: {
+          captured_by: string
+          created_at: string
+          device_hint: string | null
+          id: string
+          identification_event_id: string | null
+          request_correlation_id: string | null
+          retention_class: string
+          session_reference: string | null
+          source_ip: unknown
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          captured_by?: string
+          created_at?: string
+          device_hint?: string | null
+          id?: string
+          identification_event_id?: string | null
+          request_correlation_id?: string | null
+          retention_class?: string
+          session_reference?: string | null
+          source_ip?: unknown
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          captured_by?: string
+          created_at?: string
+          device_hint?: string | null
+          id?: string
+          identification_event_id?: string | null
+          request_correlation_id?: string | null
+          retention_class?: string
+          session_reference?: string | null
+          source_ip?: unknown
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_security_metadata_identification_event_id_fkey"
+            columns: ["identification_event_id"]
+            isOneToOne: false
+            referencedRelation: "entity_identity_resolution_events"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -24356,6 +24618,78 @@ export type Database = {
           },
         ]
       }
+      registration_entity_bindings: {
+        Row: {
+          binding_status: string
+          bound_at: string | null
+          created_at: string
+          entity_id: string | null
+          id: string
+          identification_event_id: string | null
+          registration_id: string
+          resolution_case_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          binding_status?: string
+          bound_at?: string | null
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          identification_event_id?: string | null
+          registration_id: string
+          resolution_case_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          binding_status?: string
+          bound_at?: string | null
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          identification_event_id?: string | null
+          registration_id?: string
+          resolution_case_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_entity_bindings_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_entity_bindings_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "registration_entity_bindings_identification_event_id_fkey"
+            columns: ["identification_event_id"]
+            isOneToOne: false
+            referencedRelation: "entity_identity_resolution_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_entity_bindings_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: true
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_entity_bindings_resolution_case_id_fkey"
+            columns: ["resolution_case_id"]
+            isOneToOne: false
+            referencedRelation: "entity_resolution_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       registration_form_configs: {
         Row: {
           captcha_visible_to_applicant: boolean
@@ -24506,6 +24840,134 @@ export type Database = {
             columns: ["registration_id"]
             isOneToOne: false
             referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_journey_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          entity_id: string | null
+          event_reference: string
+          id: string
+          identification_event_id: string | null
+          journey_type: string | null
+          occurred_at: string
+          registration_id: string | null
+          stage: string
+          user_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          entity_id?: string | null
+          event_reference: string
+          id?: string
+          identification_event_id?: string | null
+          journey_type?: string | null
+          occurred_at?: string
+          registration_id?: string | null
+          stage: string
+          user_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          entity_id?: string | null
+          event_reference?: string
+          id?: string
+          identification_event_id?: string | null
+          journey_type?: string | null
+          occurred_at?: string
+          registration_id?: string | null
+          stage?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_journey_events_identification_event_id_fkey"
+            columns: ["identification_event_id"]
+            isOneToOne: false
+            referencedRelation: "entity_identity_resolution_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_journey_types: {
+        Row: {
+          applicant_type: string | null
+          created_at: string
+          entry_route: string
+          help_text: string | null
+          id: string
+          is_default: boolean
+          is_enabled: boolean
+          is_public: boolean
+          key: string
+          label: string
+          public_description: string
+          public_title: string
+          regulator_id: string | null
+          resolution_timing: string
+          sector_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          applicant_type?: string | null
+          created_at?: string
+          entry_route: string
+          help_text?: string | null
+          id?: string
+          is_default?: boolean
+          is_enabled?: boolean
+          is_public?: boolean
+          key: string
+          label: string
+          public_description: string
+          public_title: string
+          regulator_id?: string | null
+          resolution_timing?: string
+          sector_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          applicant_type?: string | null
+          created_at?: string
+          entry_route?: string
+          help_text?: string | null
+          id?: string
+          is_default?: boolean
+          is_enabled?: boolean
+          is_public?: boolean
+          key?: string
+          label?: string
+          public_description?: string
+          public_title?: string
+          regulator_id?: string | null
+          resolution_timing?: string
+          sector_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_journey_types_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_journey_types_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
             referencedColumns: ["id"]
           },
         ]
@@ -38507,6 +38969,18 @@ export type Database = {
       notify_upcoming_form_versions: { Args: never; Returns: number }
       notify_workflow_sla_events: { Args: never; Returns: number }
       num_failed: { Args: never; Returns: number }
+      onboarding_can_view_audit: {
+        Args: { _user_id?: string }
+        Returns: boolean
+      }
+      onboarding_can_view_security_audit: {
+        Args: { _user_id?: string }
+        Returns: boolean
+      }
+      onboarding_evaluate_alert_rules: {
+        Args: { _event_id: string }
+        Returns: undefined
+      }
       onboarding_identifier_catalogue: { Args: never; Returns: Json }
       onboarding_issue_token: {
         Args: {
@@ -38518,9 +38992,46 @@ export type Database = {
         Returns: string
       }
       onboarding_journey_context: { Args: never; Returns: Json }
+      onboarding_log_identification_event: {
+        Args: {
+          _candidates?: Json
+          _failure_reason?: string
+          _journey_type: string
+          _match_basis?: string
+          _matched_entity_id?: string
+          _outcome: string
+          _payload: Json
+          _resolution_case_id?: string
+          _source_channel: string
+          _user_id: string
+        }
+        Returns: string
+      }
+      onboarding_mask_value: { Args: { _value: string }; Returns: string }
       onboarding_provision_from_token: {
         Args: { _resolution_token: string }
         Returns: Json
+      }
+      onboarding_record_follow_up: {
+        Args: {
+          _action: string
+          _detail?: Json
+          _event_id?: string
+          _user_id?: string
+        }
+        Returns: string
+      }
+      onboarding_record_journey_event: {
+        Args: {
+          _detail?: Json
+          _entity_id?: string
+          _identification_event_id?: string
+          _journey_type?: string
+          _registration_id?: string
+          _stage: string
+          _user_id: string
+        }
+        Returns: string
       }
       onboarding_redeem_token: {
         Args: { _kinds: string[]; _token: string }
