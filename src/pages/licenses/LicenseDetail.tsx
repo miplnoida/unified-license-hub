@@ -704,6 +704,13 @@ export default function LicenseDetail() {
               </CardContent>
             </Card>
 
+            {/* P04 A.4 — append-only licence term history + resolved renewal policy */}
+            <LicenseTermHistoryPanel licenseId={license.id} />
+
+            {/* P04 A.7/A.8 — conditions as monitored obligations */}
+            <LicenseConditionsPanel licenseId={license.id} isInternal={isInternal} />
+
+
             {/* Certificate Signing & Dispatch hidden on request (component retained). */}
             {false && isInternal && (
               <LicenseSignaturePanel licenseId={license.id} />
