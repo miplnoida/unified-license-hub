@@ -5,7 +5,6 @@ import { objectRoute } from '@/lib/routes/objectRoutes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { Link } from 'react-router-dom';
 import {
   Loader2, FileText, Shield, MessageSquareWarning, Gavel, ClipboardList, AlertTriangle,
 } from 'lucide-react';
