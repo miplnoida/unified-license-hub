@@ -339,7 +339,7 @@ Deno.serve(async (req) => {
     try {
       const { data: resolveData, error: resolveError } = await supabaseAdmin.rpc(
         "onboarding_form_first_resolve_service",
-        { _registration_id: regRow.id },
+        { _registration_id: regData.id },
       );
       if (resolveError) {
         console.error("FORM_FIRST resolution failed:", resolveError.message);
