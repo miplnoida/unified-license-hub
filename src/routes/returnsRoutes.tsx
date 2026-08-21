@@ -21,6 +21,9 @@ const EntityObligationsWorkbench = lazy(() => import('@/pages/returns-canonical/
 const EntityReportingCalendar = lazy(() => import('@/pages/returns-canonical/EntityReportingCalendar'));
 const FilingDetail = lazy(() => import('@/pages/returns-canonical/FilingDetail'));
 
+/* EPR-01 — legacy `returns_filed.id` links resolve server-side to the canonical filing */
+const LegacyReturnFilingRedirect = lazy(() => import('@/routes/LegacyReturnFilingRedirect'));
+
 export const returnsRoutes = (
   <>
     <Route path="/entity/returns/dashboard" element={<P><PortalRoute area="returns" capability="can_view_status"><EntityReturnsDashboard /></PortalRoute></P>} />
