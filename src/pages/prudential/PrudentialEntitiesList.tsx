@@ -44,11 +44,15 @@ const RATING_TONE = (v: string) => {
   return NEUTRAL;
 };
 
+// Canonical `return_filings.status` codes (EPR-01).
 const RETURN_STATUS_TONE: Record<string, string> = {
-  approved: EMERALD,
-  submitted: BLUE,
-  under_review: BLUE,
-  rejected: RED,
+  ACCEPTED: EMERALD,
+  SUBMITTED: BLUE,
+  UNDER_REVIEW: BLUE,
+  CORRECTION_REQUESTED: AMBER,
+  REJECTED: RED,
+  DRAFT: NEUTRAL,
+  WITHDRAWN: NEUTRAL,
 };
 
 const COLUMN_HELP: Record<string, string> = {
@@ -223,8 +227,8 @@ export default function PrudentialEntitiesList() {
                           <div className="flex items-center gap-2">
                             <span>{new Date(e.last_return).toLocaleDateString()}</span>
                             {e.last_return_status && (
-                              <Badge variant="outline" className={`capitalize ${RETURN_STATUS_TONE[e.last_return_status] || NEUTRAL}`}>
-                                {String(e.last_return_status).replace(/_/g, ' ')}
+                              <Badge variant="outline" className={RETURN_STATUS_TONE[String(e.last_return_status).toUpperCase()] || NEUTRAL}>
+                                {returnStatusLabel(e.last_return_status)}
                               </Badge>
                             )}
                           </div>
