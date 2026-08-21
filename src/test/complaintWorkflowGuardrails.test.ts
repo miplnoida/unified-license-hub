@@ -48,8 +48,8 @@ describe('complaint workflow guardrails', () => {
     expect(hits).toEqual([]);
   });
 
-  it('no hardcoded lifecycle gates remain in enforcement/complaint pages', () => {
-    const src = readFileSync('src/pages/enforcement/EnforcementDetail.tsx', 'utf8');
+  it('no hardcoded lifecycle gates remain in the enforcement workspace', () => {
+    const src = readFileSync('src/pages/enforcement/EnforcementWorkspace.tsx', 'utf8');
     expect(src).not.toMatch(/canIssueNotice|canRecordResponse|canDecide|canAppeal|canCloseOrWithdraw/);
     expect(src).not.toMatch(/from\('enforcement_actions'\)\.(update|insert|delete)/);
     expect(src).not.toMatch(/from\('enforcement_case_events'\)\.insert/);
@@ -65,9 +65,11 @@ describe('complaint workflow guardrails', () => {
     expect(src).not.toMatch(/rpc\(['"]start_complaint_investigation['"]/);
   });
 
-  it('EnforcementDetail is presentation-only (no lifecycle mutations, no direct events insert)', () => {
-    const src = readFileSync('src/pages/enforcement/EnforcementDetail.tsx', 'utf8');
-    expect(src).toContain('WorkflowActionPanel');
+  it('EPR-03: the enforcement workspace never borrows the complaint workflow', () => {
+    const src = readFileSync('src/pages/enforcement/EnforcementWorkspace.tsx', 'utf8');
+    expect(src).toContain('enforcementCaseAction');
+    expect(src).not.toContain('execute_complaint_workflow_action');
+    expect(src).not.toContain('WorkflowActionPanel');
     expect(src).not.toMatch(/status\s*===\s*'notice_issued'/);
     expect(src).not.toMatch(/status\s*===\s*'decided'/);
     expect(src).not.toMatch(/status\s*===\s*'response_received'/);
