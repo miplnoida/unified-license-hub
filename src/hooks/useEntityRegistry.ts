@@ -40,43 +40,33 @@ export interface ResolutionCaseRow {
   created_at: string;
 }
 
-export function useResolutionCases(status?: string) {
+/**
+ * Canonical supervisory queue. Reads the governed `entity_resolution_queue`
+ * read model so escalated rows carry recommendation, recommending officer and
+ * escalation age without any client-side table access.
+ */
+export function useResolutionQueue(status?: string) {
   return useQuery({
-    queryKey: ['entity-resolution-cases', status ?? 'all'],
-    queryFn: async (): Promise<ResolutionCaseRow[]> => {
-      let q = db().from('entity_resolution_cases').select('*').order('created_at', { ascending: false }).limit(200);
-      if (status && status !== 'all') q = q.eq('status', status);
-      const { data, error } = await q;
-      if (error) throw new Error(error.message);
-      return (data || []) as ResolutionCaseRow[];
-    },
+    queryKey: ['entity-resolution-queue', status ?? 'all'],
+    queryFn: () => registry.getResolutionQueue(status),
+    staleTime: 15_000,
   });
+}
+
+/** Legacy shape kept for callers that only need the raw case list. */
+export function useResolutionCases(status?: string) {
+  const q = useResolutionQueue(status);
+  return { ...q, data: (q.data?.rows ?? []) as unknown as ResolutionCaseRow[] };
 }
 
 export function useResolutionCase(caseId: string | null) {
   return useQuery({
     queryKey: ['entity-resolution-case', caseId],
     enabled: !!caseId,
-    queryFn: async () => {
-      const [caseRes, candRes, evtRes] = await Promise.all([
-        db().from('entity_resolution_cases').select('*').eq('id', caseId).maybeSingle(),
-        db().from('entity_match_candidates').select('*').eq('case_id', caseId).order('match_score', { ascending: false }),
-        db().from('entity_resolution_events').select('*').eq('case_id', caseId).order('created_at', { ascending: false }),
-      ]);
-      if (caseRes.error) throw new Error(caseRes.error.message);
-      return {
-        detail: caseRes.data as ResolutionCaseRow | null,
-        candidates: (candRes.data || []) as Array<{
-          id: string; entity_id: string | null; match_score: number; match_basis: string;
-          signals: Record<string, unknown>; is_selected: boolean;
-        }>,
-        events: (evtRes.data || []) as Array<{
-          id: string; event_type: string; actor_id: string | null; detail: Record<string, unknown>; created_at: string;
-        }>,
-      };
-    },
+    queryFn: () => registry.getResolutionCaseView(caseId!),
   });
 }
+
 
 export function useResolutionMutations() {
   const qc = useQueryClient();
