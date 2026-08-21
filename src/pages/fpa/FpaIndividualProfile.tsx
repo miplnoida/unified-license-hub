@@ -261,7 +261,7 @@ function ProfileTab({ individual, id }: { individual: any; id: string }) {
                   />
                 </div>
                 <div>
-                  <Label>Status</Label>
+                  <Label>Register status</Label>
                   <Select
                     value={form.status ?? ''}
                     onValueChange={(v) => setForm({ ...form, status: v })}
@@ -272,10 +272,20 @@ function ProfileTab({ individual, id }: { individual: any; id: string }) {
                     <SelectContent>
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="suspended">Suspended</SelectItem>
-                      <SelectItem value="revoked">Revoked</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Suspension and prohibition are determination outcomes, recorded in the
+                    assessment case — not here.
+                  </p>
+                </div>
+                <div>
+                  <Label>Reason {statusChanged ? '*' : '(optional)'}</Label>
+                  <Input
+                    value={form.reason ?? ''}
+                    onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                    placeholder="Why is the register being amended?"
+                  />
                 </div>
                 <div className="col-span-2">
                   <Label>Notes</Label>
