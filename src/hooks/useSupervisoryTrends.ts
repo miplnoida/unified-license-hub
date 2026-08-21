@@ -64,10 +64,11 @@ export function useSupervisoryTrends(enabled: SupervisoryTrendsOptions) {
         enabled.enforcement
           ? supabase.from('enforcement_actions').select('date_opened').gte('date_opened', sinceIso)
           : Promise.resolve({ data: [] as { date_opened: string }[] }),
+        // EPR-01: canonical returns volumes, aggregated server-side.
         enabled.returns
-          ? supabase.from('returns_filed').select('created_at').gte('created_at', sinceIso)
-          : Promise.resolve({ data: [] as { created_at: string }[] }),
-      ]);
+          ? fetchCanonicalReturnsTrend(MONTHS_BACK)
+          : Promise.resolve([] as CanonicalReturnsTrendPoint[]),
+
 
       const months = lastNMonthKeys(MONTHS_BACK);
       const buckets = new Map<string, SupervisoryTrendPoint>(
