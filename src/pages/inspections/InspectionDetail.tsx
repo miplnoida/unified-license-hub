@@ -242,7 +242,7 @@ export default function InspectionDetail() {
             <div className="font-medium">{licensee?.name ?? '—'}</div>
             {inspection.entity_id && (
               <Button variant="outline" size="sm" className="mt-3" asChild>
-                <Link to={`/admin/licensees/${inspection.entity_id}`}>Open licensee <ExternalLink className="h-3 w-3 ml-1" /></Link>
+                <Link to={`/entities/${inspection.entity_id}`}>Open licensee <ExternalLink className="h-3 w-3 ml-1" /></Link>
               </Button>
             )}
           </CardContent>

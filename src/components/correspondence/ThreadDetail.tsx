@@ -69,7 +69,7 @@ export function ThreadDetail({ threadId, embedded }: { threadId?: string; embedd
     ? t.source_type === 'application' ? `/applications/${t.source_id}`
     : t.source_type === 'complaint' ? `/complaints/${t.source_id}`
     : t.source_type === 'return' ? `/returns/${t.source_id}`
-    : t.source_type === 'licensee' ? `/admin/licensees/${t.source_id}`
+    : t.source_type === 'licensee' ? `/entities/${t.source_id}`
     : null
     : null;
   const closed = t.thread_state === 'closed';

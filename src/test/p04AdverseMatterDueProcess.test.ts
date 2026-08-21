@@ -21,6 +21,15 @@ function migrationMatching(...needles: string[]): string {
   throw new Error(`Migration containing ${needles.join(' + ')} not found`);
 }
 
+/** All migration SQL concatenated — for privilege assertions that may live in any increment. */
+function allMigrations(): string {
+  return readdirSync(DIR)
+    .filter((f) => f.endsWith('.sql'))
+    .sort()
+    .map((f) => readFileSync(resolve(DIR, f), 'utf-8'))
+    .join('\n');
+}
+
 const src = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf-8');
 
 describe('server-declared step inputs', () => {
@@ -35,7 +44,7 @@ describe('server-declared step inputs', () => {
 });
 
 describe('license_lifecycle_step is the only browser mutation path', () => {
-  const sql = migrationMatching('public.license_lifecycle_step');
+  const sql = migrationMatching('FUNCTION public.license_lifecycle_step', 'FIELD_REQUIRED', 'REVOKE');
 
   it('validates the payload against the declared requirements', () => {
     expect(sql).toMatch(/license_action_input_requirements/);
@@ -43,7 +52,7 @@ describe('license_lifecycle_step is the only browser mutation path', () => {
   });
 
   it('the raw executor is not granted to the browser', () => {
-    expect(sql).toMatch(/REVOKE[\s\S]{0,120}license_lifecycle_action[\s\S]{0,120}(authenticated|PUBLIC)/i);
+    expect(allMigrations()).toMatch(/REVOKE[\s\S]{0,120}license_lifecycle_action[\s\S]{0,120}(authenticated|PUBLIC)/i);
   });
 
   it('the frontend calls the validated step RPC', () => {

@@ -250,7 +250,7 @@ export default function ApprovedLicensees() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => licensee ? navigate(`/admin/licensees/${licensee.id}`) : navigate(`/applications/${app.id}`)}
+                              onClick={() => licensee ? navigate(`/entities/${licensee.id}`) : navigate(`/applications/${app.id}`)}
                             >
                               <Eye className="h-4 w-4 mr-1" />View
                             </Button>

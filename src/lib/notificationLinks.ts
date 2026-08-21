@@ -7,7 +7,7 @@ const ENTITY_ROUTES: Record<string, (id: string) => string> = {
   applications: (id) => `/applications/${id}`,
   registration: (id) => `/admin/registrations/${id}`,
   license: (id) => `/licenses/${id}`,
-  licensee: (id) => `/admin/licensees/${id}`,
+  licensee: (id) => `/entities/${id}`,
   return_filed: (id) => `/returns-mgmt/${id}`,
   return: (id) => `/returns-mgmt/${id}`,
   complaint: (id) => `/complaints/${id}`,

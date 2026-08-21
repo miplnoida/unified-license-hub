@@ -52,7 +52,7 @@ describe('A.4 licence term history', () => {
 });
 
 describe('A.5 configurable renewal policy', () => {
-  const sql = migrationMatching('public.license_lifecycle_configs', 'license_lifecycle_config_resolve');
+  const sql = migrationMatching('CREATE TABLE IF NOT EXISTS public.license_lifecycle_configs', 'license_lifecycle_config_resolve');
 
   it('makes renewal rules configurable rather than hardcoded', () => {
     for (const col of [
