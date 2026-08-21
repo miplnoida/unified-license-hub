@@ -77,7 +77,7 @@ export const navigationSnapshot: NavSnapshotItem[] = [
   { key: "nav_correspondence_records", parentKey: "grp_nav_correspondence", label: "Records", href: "/correspondence/records", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_correspondence_routing_rules", parentKey: "nav_adm_notif_overview", label: "Routing Rules", href: "/admin/correspondence-routing", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_correspondence_supervisory_actions", parentKey: "grp_nav_correspondence", label: "Supervisory Actions", href: "/entity/supervisory-actions", itemType: "link", audience: "external", showInSidebar: true },
-  { key: "nav_correspondence_thread_manager", parentKey: "grp_nav_correspondence", label: "Threads", href: "/correspondence/manager", itemType: "link", audience: "internal", showInSidebar: true },
+  { key: "nav_correspondence_thread_manager", parentKey: "grp_nav_correspondence", label: "Work Queue", href: "/correspondence/inbox", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_fit_proper_appeals_notifications_appeals", parentKey: "nav_lic_fitproper", label: "F&P Appeals", href: "/fpa/appeals", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_fit_proper_appeals_notifications_notification_log", parentKey: "nav_lic_fitproper", label: "Notification Log", href: "/fpa/notifications", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_fit_proper_assessment_hub", parentKey: "nav_lic_fitproper", label: "Overview", href: "/fpa", itemType: "link", audience: "internal", showInSidebar: true },

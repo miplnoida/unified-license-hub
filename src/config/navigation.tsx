@@ -349,7 +349,7 @@ export const mainNavSections: NavSection[] = [
     label: 'Correspondence',
     items: [
       { label: 'Dashboard', href: '/correspondence/dashboard', icon: <BarChart3 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'settings' },
-      { label: 'Thread Manager', href: '/correspondence/manager', icon: <Mail className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'settings' },
+      { label: 'Work Queue', href: '/correspondence/inbox', icon: <Mail className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'settings' },
       { label: 'Inbox', href: '/correspondence/inbox', icon: <Mail className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'settings' },
 
       { label: 'Records', href: '/correspondence/records', icon: <FolderOpen className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'settings' },

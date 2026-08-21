@@ -65,8 +65,8 @@ const CorrespondenceTemplates = lazy(() => import('@/pages/admin/CorrespondenceT
 const CorrespondenceDashboard = lazy(() => import('@/pages/correspondence/CorrespondenceDashboard'));
 const CorrespondenceInbox = lazy(() => import('@/pages/correspondence/CorrespondenceInbox'));
 const ThreadWorkspace = lazy(() => import('@/pages/correspondence/ThreadWorkspace'));
+const ConductEntityRedirect = lazy(() => import('@/routes/ConductEntityRedirect'));
 
-const CorrespondenceDetail = lazy(() => import('@/pages/correspondence/CorrespondenceDetail'));
 const CorrespondenceRecords = lazy(() => import('@/pages/correspondence/CorrespondenceRecords'));
 const CorrespondenceRoutingRules = lazy(() => import('@/pages/correspondence/RoutingRulesAdmin'));
 const MyCorrespondence = lazy(() => import('@/pages/entity/correspondence/MyCorrespondence'));
@@ -94,7 +94,6 @@ const ThematicReviewDetail = lazy(() => import('@/pages/supervision/ThematicRevi
 const ThematicClosureQueue = lazy(() => import('@/pages/supervision/ThematicClosureQueue'));
 const MonitoringRules = lazy(() => import('@/pages/admin/conduct/MonitoringRules'));
 const ConductEntitiesList = lazy(() => import('@/pages/conduct/ConductEntitiesList'));
-const ConductEntityProfile = lazy(() => import('@/pages/conduct/ConductEntityProfile'));
 const Investigations = lazy(() => import('@/pages/conduct/Investigations'));
 const ConductWorkQueue = lazy(() => import('@/pages/conduct/ConductWorkQueue'));
 const InvestigationDetail = lazy(() => import('@/pages/conduct/InvestigationDetail'));
