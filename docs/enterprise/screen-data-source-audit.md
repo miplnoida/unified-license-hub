@@ -10,31 +10,38 @@ Per-route classification is in `screen-process-inventory.md`. This document reco
 
 ## 1. Active legacy reads (`returns_filed` / legacy `return_id`)
 
-17 non-test source files still read the legacy returns table:
+**EPR-01 status update.** `returns_filed` now holds **0 rows** — the canonical spine
+(`return_filings` 124, `return_filing_versions` 140, `return_metric_values` 264,
+`reporting_periods` 245, `entity_reporting_obligations` 56) is the only populated truth.
+Every remaining legacy read therefore returned *empty* results, i.e. supervisory KPIs were
+silently rendering zero. `return_calculated_ratios`, `return_consolidated_analysis` and
+`prudential_stress_events` are also empty; `return_threshold_breaches` is fully canonical
+(16/16 rows carry `return_filing_id`).
 
-| File | Surface it powers | Class |
+### Migrated to canonical truth (this package)
+
+| File | Surface | New source |
 |---|---|---|
-| `src/hooks/useReturnsManagement.ts` | `/returns-management`, `/returns-management/:id`, `/admin/returns/queue` | LEGACY_TABLE |
-| `src/pages/returns-mgmt/ViewReturns.tsx` | Admin return queue | LEGACY_TABLE |
-| `src/pages/returns-mgmt/PrudentialAnalytics.tsx` | `/admin/returns/prudential/analytics` | LEGACY_TABLE |
-| `src/hooks/usePrudentialSupervision.ts` | `/prudential/*` | MIXED |
-| `src/hooks/useSupervisoryMetrics.ts` | Supervisory dashboards | MIXED |
-| `src/hooks/useSupervisoryTrends.ts` | `/analytics`, trends | MIXED |
-| `src/hooks/useLicenseeMetrics.ts` | Licensee dashboards | MIXED |
-| `src/hooks/useFinancialGroups.ts` | `/prudential/groups*` | MIXED |
-| `src/hooks/useWaveC.ts` | canonical queue + legacy bridge | MIXED (intentional bridge) |
-| `src/pages/analytics/AlertCenter.tsx` | `/alerts` | LEGACY_TABLE |
-| `src/pages/entity/returns/CreateReturnPage.tsx` | `/entity/returns/new` | LEGACY_TABLE |
-| `src/pages/entity/returns/FillReturnPage.tsx` | `/entity/returns/:id/fill` | LEGACY_TABLE |
-| `src/components/dashboard/ExecutiveSupervisoryDashboard.tsx` | `/executive` | MIXED |
-| `src/components/prudential/PrudentialEntityHistoryDrawer.tsx` | Prudential entity profile | LEGACY_TABLE |
-| `src/components/applications/ConsolidatedCaseTab.tsx` | `/applications/:id` | MIXED |
-| `src/components/applications/WorkflowActionPreviewDialog.tsx` | `/applications/:id` | MIXED |
-| `src/lib/caseAuditGraph.ts` | `/admin/case-audit/*` | MIXED |
+| `src/hooks/useSupervisoryMetrics.ts` | Supervisory dashboards | `returns_supervisory_summary()` |
+| `src/hooks/useSupervisoryTrends.ts` | `/analytics`, trends | `returns_filing_trend()` |
+| `src/components/dashboard/ExecutiveSupervisoryDashboard.tsx` | `/executive` | `returns_supervisory_summary()` |
+| `src/pages/analytics/AlertCenter.tsx` | `/alerts` | `v_return_filing_workflow_state` (server `is_overdue`) |
+| `src/components/prudential/PrudentialEntityHistoryDrawer.tsx` | Prudential entity profile | `returns_entity_filing_history()` |
+| `src/components/entity-detail/ReturnsTab.tsx` | Entity 360 → Returns | `returns_entity_filing_history()` |
 
-**Most serious:** prudential supervision and the executive dashboard derive supervisory
-truth from legacy filings while `v_prudential_current_breaches`,
-`sup_entity_supervisory_state()` and `return_metric_values` are the certified sources.
+All of these read through `src/lib/returns/canonicalReturnsSummary.ts`, which is the single
+client accessor for canonical Return aggregates. No KPI in these files is derived from
+`rows.length` any more — the counts are computed server-side under RLS.
+
+### Still on legacy truth (next tranche)
+
+`useLicenseeMetrics`, `usePrudentialSupervision`, `usePrudentialConfig`, `useFinancialGroups`,
+`useReturnsManagement`, `ViewReturns`, `ReturnAnalysis`, `PrudentialAnalytics`,
+`AnalyticsDashboard`, `ComplianceReturns`, `ReturnSubmission`, `CreateReturnPage`,
+`FillReturnPage`, `ConsolidatedCaseTab`, `WorkflowActionPreviewDialog`, `caseAuditGraph`,
+`dashboard/widgets`, `useApiQueries`, `reportService` (19 files; `useWaveC` keeps its
+intentional legacy-id bridge).
+
 
 ## 2. Canonical read-model consumers (correct pattern)
 

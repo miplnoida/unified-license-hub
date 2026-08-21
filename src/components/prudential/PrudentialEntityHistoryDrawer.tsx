@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { History, RefreshCw, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchCanonicalEntityFilingHistory } from '@/lib/returns/canonicalReturnsSummary';
 
 interface Props {
   open: boolean;
@@ -45,10 +46,9 @@ export function PrudentialEntityHistoryDrawer({ open, onOpenChange, entityId, en
     setLoading(true);
     setError(null);
     try {
-      const [returnsR, actionsR, escR, assessR, stressR, auditR] = await Promise.all([
-        supabase.from('returns_filed')
-          .select('id, unique_id, period_end_date, submit_date, workflow_status, status')
-          .eq('entity_id', entityId).order('period_end_date', { ascending: false }),
+      const [returns, actionsR, escR, assessR, stressR, auditR] = await Promise.all([
+        // EPR-01: canonical filing history (return_filings + versions/metrics).
+        fetchCanonicalEntityFilingHistory(entityId),
         supabase.from('prudential_actions').select('*').eq('entity_id', entityId),
         supabase.from('prudential_escalations').select('*').eq('entity_id', entityId),
         supabase.from('prudential_assessments').select('*').eq('entity_id', entityId),
@@ -57,72 +57,58 @@ export function PrudentialEntityHistoryDrawer({ open, onOpenChange, entityId, en
         supabase.rpc('prudential_entity_audit_history', { _entity_id: entityId }),
       ]);
 
-      const returns = returnsR.data ?? [];
-      const returnIds = returns.map((r: any) => r.id);
+      const filingIds = returns.map((r) => r.filing_id);
 
-      const [ratiosR, breachesR] = returnIds.length
-        ? await Promise.all([
-            supabase.from('return_calculated_ratios')
-              .select('id, return_id, label, ratio_key, value, display_format, computed_at')
-              .in('return_id', returnIds).order('computed_at', { ascending: false }),
-            supabase.from('return_threshold_breaches')
-              .select('id, return_id, metric_key, level, risk_level, value, threshold_value, detected_at')
-              .in('return_id', returnIds).order('detected_at', { ascending: false }),
-          ])
-        : [{ data: [] }, { data: [] }];
+      const breachesR = filingIds.length
+        ? await supabase.from('return_threshold_breaches')
+            .select('id, return_filing_id, metric_key, level, risk_level, value, threshold_value, detected_at')
+            .in('return_filing_id', filingIds).order('detected_at', { ascending: false })
+        : { data: [] as any[] };
 
-      const returnsById: Record<string, any> = Object.fromEntries(returns.map((r: any) => [r.id, r]));
+      const returnsById: Record<string, any> = Object.fromEntries(returns.map((r) => [r.filing_id, r]));
 
       const list: Event[] = [];
 
-      // Return submissions
+      // Canonical filing submissions / acceptances
       for (const r of returns) {
-        if (r.submit_date) {
+        if (r.submitted_at) {
           list.push({
-            id: `sub-${r.id}`,
-            ts: r.submit_date,
+            id: `sub-${r.filing_id}`,
+            ts: r.submitted_at,
             kind: 'submission',
-            title: `Return submitted (${r.period_end_date ?? '—'})`,
-            detail: r.unique_id ?? r.id.slice(0, 8),
-            badge: r.workflow_status || r.status,
+            title: `Return submitted (${r.period_label ?? r.period_end ?? '—'})`,
+            detail: `${r.filing_reference ?? r.filing_id.slice(0, 8)} · v${r.current_version_number ?? 1} · ${r.metric_count} metrics`,
+            badge: r.status_label || r.status || undefined,
             tone: 'info',
+          });
+        }
+        if (r.accepted_at) {
+          list.push({
+            id: `acc-${r.filing_id}`,
+            ts: r.accepted_at,
+            kind: 'submission',
+            title: `Return accepted (${r.period_label ?? r.period_end ?? '—'})`,
+            detail: r.filing_reference ?? r.filing_id.slice(0, 8),
+            badge: 'Accepted',
+            tone: 'neutral',
           });
         }
       }
 
-      // Ratios grouped per (return, day)
-      const ratioGroups = new Map<string, { ts: string; return_id: string; count: number }>();
-      for (const rr of (ratiosR.data ?? []) as any[]) {
-        const key = `${rr.return_id}-${rr.computed_at?.slice(0, 19)}`;
-        const g = ratioGroups.get(key);
-        if (g) g.count += 1;
-        else ratioGroups.set(key, { ts: rr.computed_at, return_id: rr.return_id, count: 1 });
-      }
-      for (const [k, g] of ratioGroups) {
-        const rf = returnsById[g.return_id];
-        list.push({
-          id: `ratio-${k}`,
-          ts: g.ts,
-          kind: 'ratio',
-          title: `Ratios recomputed (${g.count})`,
-          detail: rf ? `Period ${rf.period_end_date}` : undefined,
-          tone: 'neutral',
-        });
-      }
-
       // Breaches
       for (const b of (breachesR.data ?? []) as any[]) {
-        const rf = returnsById[b.return_id];
+        const rf = returnsById[b.return_filing_id];
         list.push({
           id: `br-${b.id}`,
           ts: b.detected_at,
           kind: 'breach',
           title: `${b.level === 'breach' ? 'Breach' : 'Warning'}: ${b.metric_key}`,
-          detail: `${b.value} vs threshold ${b.threshold_value}${rf ? ` · Period ${rf.period_end_date}` : ''}`,
+          detail: `${b.value} vs threshold ${b.threshold_value}${rf ? ` · Period ${rf.period_label ?? rf.period_end}` : ''}`,
           badge: b.risk_level || b.level,
           tone: b.level === 'breach' ? 'breach' : 'warn',
         });
       }
+
 
       // Actions / escalations / assessments / stress
       for (const a of (actionsR.data ?? []) as any[]) {

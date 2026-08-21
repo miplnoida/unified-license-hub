@@ -36323,7 +36323,29 @@ export type Database = {
           period_status: string
         }[]
       }
-      returns_entity_summary: { Args: { _entity_id: string }; Returns: Json }
+      returns_entity_filing_history: {
+        Args: { _entity_id: string }
+        Returns: {
+          accepted_at: string
+          accepted_version_id: string
+          breach_count: number
+          current_version_number: number
+          definition_name: string
+          due_date: string
+          filing_id: string
+          filing_reference: string
+          metric_count: number
+          period_end: string
+          period_label: string
+          period_start: string
+          status: string
+          status_label: string
+          submitted_at: string
+        }[]
+      }
+      returns_entity_summary:
+        | { Args: { _entity_id: string }; Returns: Json }
+        | { Args: { _entity_ids: string[] }; Returns: Json }
       returns_extract_metrics: {
         Args: { _version_id: string }
         Returns: number
@@ -36417,6 +36439,13 @@ export type Database = {
         Args: { _filing_id: string }
         Returns: Json
       }
+      returns_filing_trend: {
+        Args: { _months?: number }
+        Returns: {
+          filings: number
+          month: string
+        }[]
+      }
       returns_filing_workflow_state: {
         Args: { _filing_id: string }
         Returns: Json
@@ -36473,6 +36502,10 @@ export type Database = {
       }
       returns_submit_filing: {
         Args: { _declaration_accepted?: boolean; _version_id: string }
+        Returns: Json
+      }
+      returns_supervisory_summary: {
+        Args: { _sector_id?: string }
         Returns: Json
       }
       returns_test_obligation_rule: {

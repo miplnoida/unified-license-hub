@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchCanonicalReturnsSummary } from '@/lib/returns/canonicalReturnsSummary';
 import {
   Loader2,
   FileText,
@@ -125,7 +126,9 @@ export function ExecutiveSupervisoryDashboard() {
         (supabase.from('entity_risk_scores') as any)
           .select('band, score, entity_id')
           .eq('is_current', true),
-        supabase.from('returns_filed').select('id, status, submitted_at, created_at').gte('created_at', thirtyAgo),
+        // EPR-01: canonical returns totals from the server-side aggregate.
+        fetchCanonicalReturnsSummary(null),
+
         (supabase.from('prudential_actions') as any).select('id, status', { count: 'exact' }),
         (supabase.from('prudential_escalations') as any).select('id, status', { count: 'exact' }),
         (supabase.from('conduct_alerts') as any).select('id, status', { count: 'exact' }),
@@ -142,7 +145,7 @@ export function ExecutiveSupervisoryDashboard() {
         complaints: complaints.data || [],
         fpInd: (fpInd.data || []) as any[],
         risk: (risk.data || []) as any[],
-        returnsFiled: returnsFiled.data || [],
+        returnsSummary: returnsFiled,
         prudentialActions: (prudentialActions.data || []) as any[],
         prudentialEscalations: (prudentialEscalations.data || []) as any[],
         conductAlerts: (conductAlerts.data || []) as any[],
@@ -363,12 +366,13 @@ export function ExecutiveSupervisoryDashboard() {
           tone={stats.conductOpenAlerts > 0 ? 'warning' : 'default'}
         />
         <KpiCard
-          label="Returns (30d)"
-          value={data.returnsFiled.length}
-          sub={`${data.returnsFiled.filter((r: any) => r.submitted_at).length} submitted`}
+          label="Return filings"
+          value={data.returnsSummary.total}
+          sub={`${data.returnsSummary.pending_review} awaiting review · ${data.returnsSummary.overdue} overdue`}
           icon={<FileText className="h-4 w-4" />}
-          href="/returns-mgmt"
+          href="/returns/queue"
         />
+
         <KpiCard
           label="Penalty Recovery"
           value={
