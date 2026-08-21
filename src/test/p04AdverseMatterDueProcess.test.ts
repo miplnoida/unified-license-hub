@@ -24,7 +24,7 @@ function migrationMatching(...needles: string[]): string {
 const src = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf-8');
 
 describe('server-declared step inputs', () => {
-  const sql = migrationMatching('public.license_action_input_requirements');
+  const sql = migrationMatching('FUNCTION public.license_action_input_requirements');
 
   it('declares the payload schema per action', () => {
     expect(sql).toMatch(/CREATE OR REPLACE FUNCTION public\.license_action_input_requirements/);
