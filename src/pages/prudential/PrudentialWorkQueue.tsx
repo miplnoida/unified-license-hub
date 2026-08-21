@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/datetime';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   usePrudentialWorkQueue,
   usePrudentialWorkQueueCounts,
@@ -66,32 +67,17 @@ export default function PrudentialWorkQueue() {
   const search = params.get('q') ?? '';
   const page = Math.max(1, Number(params.get('page') ?? '1'));
 
-  const filters = useMemo(() => ({
+  const { user } = useAuth();
+
+  const rpcFilters = useMemo(() => ({
     types: typeParam ? (typeParam.split(',') as PrudentialWorkItemType[]) : null,
     entityId: entityId || null,
-    owner: scope === 'mine' ? 'self' : null,
+    owner: scope === 'mine' ? (user?.id ?? null) : null,
     unassigned: scope === 'unassigned',
     sla: (sla as 'overdue' | 'due_soon' | null) || null,
     stage: stage || null,
     search: search || null,
-  }), [typeParam, entityId, scope, sla, stage, search]);
-
-  // `owner: 'self'` is resolved server-side via auth.uid() when _owner is null and
-  // the "mine" scope is requested, so translate it here to an explicit flag.
-  const queueFilters = useMemo(() => ({
-    ...filters,
-    owner: null as string | null,
-    mineOnly: scope === 'mine',
-  }), [filters, scope]);
-
-  const rpcFilters = useMemo(() => ({
-    types: filters.types,
-    entityId: filters.entityId,
-    unassigned: filters.unassigned,
-    sla: filters.sla,
-    stage: filters.stage,
-    search: filters.search,
-  }), [filters]);
+  }), [typeParam, entityId, scope, user?.id, sla, stage, search]);
 
   const { data: counts } = usePrudentialWorkQueueCounts(rpcFilters);
   const { data: rows = [], isLoading, error } = usePrudentialWorkQueue({
@@ -99,11 +85,6 @@ export default function PrudentialWorkQueue() {
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
   });
-
-  const visibleRows = useMemo(
-    () => (queueFilters.mineOnly ? rows.filter((r) => r.owner_user_id && r.owner_name) : rows),
-    [rows, queueFilters.mineOnly],
-  );
 
   const total = counts?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -214,11 +195,11 @@ export default function PrudentialWorkQueue() {
                     ))
                   ) : error ? (
                     <TableRow><TableCell colSpan={8} className="text-destructive">{(error as Error).message}</TableCell></TableRow>
-                  ) : visibleRows.length === 0 ? (
+                  ) : rows.length === 0 ? (
                     <TableRow><TableCell colSpan={8} className="text-muted-foreground">
                       No outstanding prudential work matches these filters.
                     </TableCell></TableRow>
-                  ) : visibleRows.map((r) => (
+                  ) : rows.map((r) => (
                     <TableRow key={`${r.work_item_type}-${r.work_item_id}`}>
                       <TableCell className="max-w-[22rem]">
                         <div className="flex items-center gap-2">
