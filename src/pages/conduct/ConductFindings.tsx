@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useFindingCounts, useFindingRegister } from '@/hooks/useConductRegisters';
-import { formatDate } from '@/lib/datetime';
+import { formatDateOnly as formatDate } from '@/lib/datetime';
 
 const STATUSES = ['draft', 'under_analysis', 'awaiting_entity_response', 'response_received', 'confirmed', 'remediation_required', 'dismissed', 'closed'];
 const SOURCES = ['conduct_investigation', 'complaint', 'conduct_alert', 'thematic_review', 'examination', 'other'];

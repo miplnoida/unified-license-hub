@@ -20,7 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Loader2, Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { IssueActionDialog } from '@/components/conduct/IssueActionDialog';
 import { useRemediationCounts, useRemediationRegister } from '@/hooks/useConductRegisters';
-import { formatDate } from '@/lib/datetime';
+import { formatDateOnly as formatDate } from '@/lib/datetime';
 
 const SOURCE_TYPES = ['complaint', 'conduct_investigation', 'conduct_finding', 'thematic_review', 'monitoring', 'enforcement', 'entity', 'product', 'other'];
 const STATUSES = ['open', 'in_progress', 'under_review', 'returned', 'escalated', 'completed', 'waived', 'cancelled'];

@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import { useFindingCase, useFindingStep } from '@/hooks/useConductRegisters';
-import { formatDate, formatDateTime } from '@/lib/datetime';
+import { formatDateOnly as formatDate, formatDateTime } from '@/lib/datetime';
 
 export default function FindingDetail() {
   const { id = '' } = useParams();
