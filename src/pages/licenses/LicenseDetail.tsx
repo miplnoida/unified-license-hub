@@ -32,6 +32,7 @@ import LicenseCurrentStepPanel from '@/components/licenses/LicenseCurrentStepPan
 import { useLicenseCase } from '@/hooks/useLicenseLifecycle';
 import LicenseTermHistoryPanel from '@/components/licenses/LicenseTermHistoryPanel';
 import LicenseConditionsPanel from '@/components/licenses/LicenseConditionsPanel';
+import LicenseAdverseMatterPanel from '@/components/licenses/LicenseAdverseMatterPanel';
 
 
 
