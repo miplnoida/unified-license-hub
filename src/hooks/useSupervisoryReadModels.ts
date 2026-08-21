@@ -117,21 +117,26 @@ export interface SupEntitySupervisoryState {
   };
 }
 
+export interface SupTeamPerformanceOfficer {
+  officer_id: string | null;
+  officer_name: string | null;
+  department: string | null;
+  open_items: number;
+  overdue_items: number;
+  due_soon_items: number;
+  completed_in_period: number;
+  by_domain: Partial<Record<SupDomain, number>>;
+}
+
 export interface SupTeamPerformance {
-  generated_at: string;
-  officers: Array<{
-    officer_id: string | null;
-    officer_name: string | null;
-    entities_supervised: number;
-    open_items: number;
-    overdue_items: number;
-    open_investigations?: number;
-    open_applications?: number;
-    unacknowledged_signals?: number;
-    overdue_filings?: number;
-    [key: string]: unknown;
-  }>;
-  totals?: Record<string, number>;
+  domains: Partial<Record<'prudential' | 'conduct' | 'licensing', boolean>>;
+  period: { from: string; to: string };
+  officers: SupTeamPerformanceOfficer[];
+  unassigned: {
+    breaches_awaiting_acknowledgement: number;
+    complaints_unassigned_team: number;
+    filings_unassigned: number;
+  };
 }
 
 /* ------------------------------------------------------------------ hooks */
