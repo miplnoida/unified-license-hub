@@ -4,11 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { APPLICATION_DRILLDOWNS, type ApplicationDrilldownKey } from '@/lib/dashboardDrilldowns';
 import { fetchCanonicalReturnsSummary } from '@/lib/returns/canonicalReturnsSummary';
 
-import {
-  getAdminReturnDisplayStatus,
-  mapReturnWorkflowStatus,
-  todayDateIso,
-} from '@/lib/adminReturnFilters';
 
 /**
  * Aggregate supervisory metrics across all modules.
