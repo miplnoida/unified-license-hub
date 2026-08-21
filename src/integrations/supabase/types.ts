@@ -863,6 +863,72 @@ export type Database = {
           },
         ]
       }
+      application_fp_links: {
+        Row: {
+          application_id: string
+          assessment_id: string
+          created_at: string
+          id: string
+          is_required: boolean
+          linked_by: string | null
+          role_note: string | null
+        }
+        Insert: {
+          application_id: string
+          assessment_id: string
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          linked_by?: string | null
+          role_note?: string | null
+        }
+        Update: {
+          application_id?: string
+          assessment_id?: string
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          linked_by?: string | null
+          role_note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_fp_links_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_fp_links_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_fp_links_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_fp_links_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fp_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_fp_links_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "v_fp_determination_integrity"
+            referencedColumns: ["assessment_id"]
+          },
+        ]
+      }
       application_legal_notes: {
         Row: {
           actor_id: string
@@ -31892,6 +31958,16 @@ export type Database = {
         Args: { _application_id: string; _audience?: string }
         Returns: Json
       }
+      application_classification_update: {
+        Args: {
+          _application_id: string
+          _category_id?: string
+          _license_type?: string
+          _sector_id?: string
+          _sub_sector_id?: string
+        }
+        Returns: Json
+      }
       application_delete_draft: {
         Args: { _application_id: string }
         Returns: Json
@@ -31932,6 +32008,17 @@ export type Database = {
           _application_id: string
           _comments?: string
           _metadata?: Json
+        }
+        Returns: Json
+      }
+      application_resolve_form_set: {
+        Args: {
+          _application_type?: string
+          _category_id: string
+          _license_type?: string
+          _regulator_id: string
+          _sector_id: string
+          _sub_sector_id: string
         }
         Returns: Json
       }
