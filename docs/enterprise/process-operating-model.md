@@ -19,12 +19,12 @@ through several non-equivalent surfaces with different truth sources.
 | P03 Licensing | `/applications` | `/applications/queue` | `/applications/:id` | `approval_steps` + workflow RPCs | Weak — status-centric, no current-step UX |
 | P04 Licence Lifecycle | `/licenses` | none | `/licenses/:id`, `/admin/licensees/:id` | licence RPCs | Weak — no lifecycle queue (renewals/expiry live in config + alerts) |
 | P05 Fit & Proper | `/fpa` | `/fpa/processes`, `/fpa/screening`, `/fpa/determinations` | **missing** (`/fpa/assessments/:id` is a redirect) | governed F&P gate | Weak — process-stage pages instead of one case workspace |
-| P06 Returns | `/returns/queue`, `/entity/returns` | `/returns/queue`, `/returns/obligations`, `/returns-management`, `/admin/returns/queue` | `/returns/filings/:filingId` vs `/returns-management/:id` | return workflow RPCs | Poor — canonical and legacy spines run in parallel |
-| P07 Prudential | `/prudential/dashboard` | `/supervision/breaches`, `/prudential/actions`, `/prudential/escalations` | `/prudential/entities/:id`, `/prudential/assessments/:id` | detection triggers + acknowledgement RPCs | Mixed — reads legacy `returns_filed` |
+| P06 Returns | `/returns/queue` | `/returns/queue`, `/returns/obligations` | `/returns/filings/:filingId` | return workflow RPCs | **CLOSED (EPR-01)** — single canonical spine, legacy retired |
+| P07 Prudential | `/prudential/dashboard` | `/prudential/work-queue` | `/entities/:entityId`, `/prudential/assessments/:id` | prudential governed RPCs + read models | **CLOSED (EPR-02)** — canonical returns truth only |
 | P08 Conduct & Complaints | `/conduct`, `/complaints` | `/complaints`, `/conduct/alerts`, `/conduct/investigations` | `/complaints/:id`, `/conduct/investigations/:id` | `execute_complaint_workflow_action` | Mixed |
 | P09 Thematic | `/supervision/thematic-reviews` | `/supervision/thematic-closure-approvals` | `/supervision/thematic-reviews/:id` | thematic closure RPCs | Weak header |
 | P10 Examination / Inspection | `/prudential/examinations`, `/inspections` | both lists | `/prudential/examinations/:id` | **reference implementation** (`ExaminationStageActions`) | Best in platform |
-| P11 Enforcement | `/enforcement` | none | `/enforcement/:id` | **complaint workflow only** | Broken source model |
+| P11 Enforcement | `/enforcement` | `/enforcement` (server-backed queue) | `/enforcement/:id` | `enforcement_referral_create` + `enforcement_case_action` | **CLOSED (EPR-03)** — independent process, 9 referral sources, maker/checker enforced |
 | P12 Correspondence & RFI | `/correspondence` | `/correspondence/inbox` | `/correspondence/:id` | dispatch RPCs | 4 near-duplicate surfaces |
 | P13 Supervisory Intelligence | `/executive`, `/analytics` | n/a | n/a | read models (partial) | Mixed truth |
 | P14 Regulatory Configuration | `/admin/config/*`, `/settings` | n/a | n/a | config tables | Good after hub work |

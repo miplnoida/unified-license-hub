@@ -8192,6 +8192,24 @@ export type Database = {
           },
         ]
       }
+      enforcement_case_number_counters: {
+        Row: {
+          last_value: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          last_value?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          last_value?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       enforcement_compliance_evidence: {
         Row: {
           accepted: boolean | null
@@ -33126,6 +33144,7 @@ export type Database = {
         Args: { _action: string; _case_id: string; _payload?: Json }
         Returns: Json
       }
+      enforcement_next_case_number: { Args: never; Returns: string }
       enforcement_obligation_add: {
         Args: {
           _case_id: string

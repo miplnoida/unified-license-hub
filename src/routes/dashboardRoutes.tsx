@@ -46,8 +46,8 @@ const CoordinationDetail = lazy(() => import('@/pages/coordination/CoordinationD
 const LicenseAppealsRegister = lazy(() => import('@/pages/admin/LicenseAppealsRegister'));
 const LicenseAppealPanelsAdmin = lazy(() => import('@/pages/admin/LicenseAppealPanels'));
 const MyAppeals = lazy(() => import('@/pages/appeals/MyAppeals'));
-const EnforcementList = lazy(() => import('@/pages/enforcement/EnforcementWorkQueue'));
-const EnforcementDetail = lazy(() => import('@/pages/enforcement/EnforcementWorkspace'));
+const EnforcementWorkQueue = lazy(() => import('@/pages/enforcement/EnforcementWorkQueue'));
+const EnforcementWorkspace = lazy(() => import('@/pages/enforcement/EnforcementWorkspace'));
 const Penalties = lazy(() => import('@/pages/billing/Penalties'));
 const BreachInbox = lazy(() => import('@/pages/supervision/BreachInbox'));
 const SupervisoryPlansDashboard = lazy(() => import('@/pages/supervision/SupervisoryPlansDashboard'));
@@ -217,8 +217,8 @@ export const dashboardRoutes = (
     <Route path="/registration-status" element={<P><RegistrationStatusPage /></P>} />
     <Route path="/coordination" element={<M module="coordination"><CoordinationList /></M>} />
     <Route path="/coordination/:caseId" element={<M module="coordination"><CoordinationDetail /></M>} />
-    <Route path="/enforcement" element={<M module="enforcement_management"><EnforcementList /></M>} />
-    <Route path="/enforcement/:id" element={<M module="enforcement_management"><EnforcementDetail /></M>} />
+    <Route path="/enforcement" element={<M module="enforcement_management"><EnforcementWorkQueue /></M>} />
+    <Route path="/enforcement/:id" element={<M module="enforcement_management"><EnforcementWorkspace /></M>} />
     <Route path="/billing/penalties" element={<M module="fee_management"><Penalties /></M>} />
     <Route path="/supervision/breaches" element={<M module="prudential_supervision"><BreachInbox /></M>} />
     <Route path="/inspections" element={<M module="inspection_management"><InspectionsList /></M>} />
