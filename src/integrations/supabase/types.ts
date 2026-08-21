@@ -35940,6 +35940,17 @@ export type Database = {
         Args: { _source_id: string; _source_type: string; _user_id: string }
         Returns: boolean
       }
+      correspondence_delivery_state: {
+        Args: {
+          _bounce_reason: string
+          _delivered_at: string
+          _dispatch_status: string
+          _msg_status: string
+          _opened_at: string
+          _sent_at: string
+        }
+        Returns: string
+      }
       correspondence_discard_draft: {
         Args: { _message_id: string }
         Returns: undefined
