@@ -49,9 +49,9 @@ DECLARE
   v_n integer;
   v_json jsonb;
 
-  PROCEDURE_MARKER text := 'EPR-03';
+  v_marker text := 'EPR-03';
 BEGIN
-  RAISE NOTICE '=== % P11 Enforcement certification starting ===', PROCEDURE_MARKER;
+  RAISE NOTICE '=== % P11 Enforcement certification starting ===', v_marker;
 
   -- -------------------------------------------------------------------------
   -- 0. RBAC fixtures
@@ -438,13 +438,24 @@ BEGIN
   -- -------------------------------------------------------------------------
   -- Teardown
   -- -------------------------------------------------------------------------
-  PERFORM set_config('request.jwt.claims', NULL, true);
-  DELETE FROM compliance_audit_logs
-   WHERE object_type = 'enforcement_actions' AND object_id IN (v_case_e1::text, v_case_e2::text);
-  DELETE FROM enforcement_actions WHERE id IN (v_case_e1, v_case_e2);
+  PERFORM set_config('request.jwt.claims', '', true);
+
+  BEGIN
+    DELETE FROM compliance_audit_logs
+     WHERE object_type = 'enforcement_actions' AND object_id = v_case_e1::text;
+    RAISE EXCEPTION 'CERT FAIL: enforcement audit entries were deletable';
+  EXCEPTION WHEN raise_exception THEN
+    IF sqlerrm LIKE 'CERT FAIL%' THEN RAISE; END IF;
+    RAISE NOTICE 'PASS 4.7  Enforcement audit entries are immutable (append-only)';
+  END;
+
+  -- The two certification cases and their immutable audit trail are retained as
+  -- EPR-03 evidence in the non-production certification dataset. Only the
+  -- synthetic RBAC fixtures are removed.
   DELETE FROM sec_user_roles WHERE user_id IN (v_officer, v_decider, v_outsider);
   DELETE FROM sec_roles WHERE key IN ('epr03_cert_officer','epr03_cert_decider');
+  RAISE NOTICE 'EVIDENCE: E1 case %, E2 case % retained for inspection', v_case_e1, v_case_e2;
 
-  RAISE NOTICE '=== % P11 Enforcement certification: ALL ASSERTIONS PASSED ===', PROCEDURE_MARKER;
+  RAISE NOTICE '=== % P11 Enforcement certification: ALL ASSERTIONS PASSED ===', v_marker;
 END
 $cert$;
