@@ -363,12 +363,13 @@ export function ExecutiveSupervisoryDashboard() {
           tone={stats.conductOpenAlerts > 0 ? 'warning' : 'default'}
         />
         <KpiCard
-          label="Returns (30d)"
-          value={data.returnsFiled.length}
-          sub={`${data.returnsFiled.filter((r: any) => r.submitted_at).length} submitted`}
+          label="Return filings"
+          value={data.returnsSummary.total}
+          sub={`${data.returnsSummary.pending_review} awaiting review · ${data.returnsSummary.overdue} overdue`}
           icon={<FileText className="h-4 w-4" />}
-          href="/returns-mgmt"
+          href="/returns/queue"
         />
+
         <KpiCard
           label="Penalty Recovery"
           value={
