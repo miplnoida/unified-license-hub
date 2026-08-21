@@ -101,10 +101,11 @@ const PrudentialWorkQueue = lazy(() => import('@/pages/prudential/PrudentialWork
 const PrudentialEngineOperations = lazy(() => import('@/pages/admin/PrudentialEngineOperations'));
 const PrudentialEntitiesList = lazy(() => import('@/pages/prudential/PrudentialEntitiesList'));
 const PrudentialEntityProfile = lazy(() => import('@/pages/prudential/PrudentialEntityProfile'));
+const PrudentialEntityRedirect = lazy(() => import('@/routes/PrudentialEntityRedirect'));
 const FinancialGroupsList = lazy(() => import('@/pages/prudential/FinancialGroupsList'));
 const FinancialGroupProfile = lazy(() => import('@/pages/prudential/FinancialGroupProfile'));
 const AssessmentsList = lazy(() => import('@/pages/prudential/AssessmentsList'));
-const AssessmentDetail = lazy(() => import('@/pages/prudential/AssessmentDetail'));
+const AssessmentWorkspace = lazy(() => import('@/pages/prudential/AssessmentWorkspace'));
 const ActionsList = lazy(() => import('@/pages/prudential/ActionsList'));
 const EscalationsList = lazy(() => import('@/pages/prudential/EscalationsList'));
 const StressIndicatorsAdmin = lazy(() => import('@/pages/prudential/StressIndicatorsAdmin'));
@@ -259,11 +260,13 @@ export const dashboardRoutes = (
     <Route path="/prudential/work" element={<M module="prudential_supervision"><PrudentialWorkQueue /></M>} />
     <Route path="/admin/prudential/operations" element={<M module="prudential_supervision"><PrudentialEngineOperations /></M>} />
     <Route path="/prudential/entities" element={<M module="prudential_supervision"><PrudentialEntitiesList /></M>} />
-    <Route path="/prudential/entities/:id" element={<M module="prudential_supervision"><PrudentialEntityProfile /></M>} />
+    {/* EPR-02: legacy prudential entity profile → canonical Entity 360 (prudential section). */}
+    <Route path="/prudential/entities/:id" element={<PrudentialEntityRedirect />} />
+    <Route path="/prudential/analysis/:id" element={<M module="prudential_supervision"><PrudentialEntityProfile /></M>} />
     <Route path="/prudential/groups" element={<M module="prudential_supervision"><FinancialGroupsList /></M>} />
     <Route path="/prudential/groups/:groupId" element={<M module="prudential_supervision"><FinancialGroupProfile /></M>} />
     <Route path="/prudential/assessments" element={<M module="prudential_supervision"><AssessmentsList /></M>} />
-    <Route path="/prudential/assessments/:id" element={<M module="prudential_supervision"><AssessmentDetail /></M>} />
+    <Route path="/prudential/assessments/:id" element={<M module="prudential_supervision"><AssessmentWorkspace /></M>} />
     <Route path="/prudential/actions" element={<M module="prudential_supervision"><ActionsList /></M>} />
     <Route path="/prudential/escalations" element={<M module="prudential_supervision"><EscalationsList /></M>} />
     <Route path="/prudential/examinations" element={<M module="prudential_supervision"><ExaminationsList /></M>} />
