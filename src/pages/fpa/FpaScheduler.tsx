@@ -273,7 +273,7 @@ export default function FpaScheduler() {
           backHref="/fpa/individuals"
           backLabel="Register"
           actions={
-            <Button data-rbac="fit_and_proper.configure" size="sm" onClick={runScheduler} disabled={schedulerLoading}>
+            <Button data-rbac="fit_and_proper.execute" size="sm" onClick={runScheduler} disabled={schedulerLoading}>
               {schedulerLoading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
