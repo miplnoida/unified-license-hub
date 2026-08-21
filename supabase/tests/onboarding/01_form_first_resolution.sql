@@ -31,10 +31,10 @@ DECLARE
   v_name text := 'ZZQXV Holdings Trust Company ' || substr(gen_random_uuid()::text, 1, 8);
 BEGIN
   -- two non-staff-agnostic actors
-  SELECT id INTO v_owner FROM auth.users ORDER BY created_at LIMIT 1;
-  SELECT id INTO v_other FROM auth.users WHERE id <> v_owner ORDER BY created_at LIMIT 1;
+  SELECT id INTO v_owner FROM public.profiles ORDER BY created_at LIMIT 1;
+  SELECT id INTO v_other FROM public.profiles WHERE id <> v_owner ORDER BY created_at LIMIT 1;
   IF v_owner IS NULL OR v_other IS NULL THEN
-    RAISE EXCEPTION 'need two auth users to run this check';
+    RAISE EXCEPTION 'need two application users to run this check';
   END IF;
 
   INSERT INTO public.regulators(id, name, code, status)
