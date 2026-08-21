@@ -131,6 +131,7 @@ const Entity360Redirect = lazy(() => import('@/routes/Entity360Redirect'));
 const EntityResolutionQueue = lazy(() => import('@/pages/licensing/EntityResolutionQueue'));
 const EntityResolutionDetail = lazy(() => import('@/pages/licensing/EntityResolutionDetail'));
 const EntityMemberships = lazy(() => import('@/pages/admin/EntityMemberships'));
+const OnboardingWorkspace = lazy(() => import('@/pages/licensing/OnboardingWorkspace'));
 
 
 
@@ -314,6 +315,8 @@ export const dashboardRoutes = (
     <Route path="/licensing/entity-resolution" element={<M module="entity_resolution"><EntityResolutionQueue /></M>} />
     <Route path="/licensing/entity-resolution/:caseId" element={<M module="entity_resolution"><EntityResolutionDetail /></M>} />
     <Route path="/admin/entity-memberships" element={<M module="entity_membership"><EntityMemberships /></M>} />
+    {/* Registration & entity onboarding oversight — durable identification audit ledger. */}
+    <Route path="/licensing/onboarding-oversight" element={<M module="onboarding"><OnboardingWorkspace /></M>} />
 
 
 

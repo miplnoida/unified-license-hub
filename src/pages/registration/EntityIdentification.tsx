@@ -161,6 +161,10 @@ export default function EntityIdentification() {
         legal_name: legalName.trim(),
         identifiers: idValue.trim() ? [{ type: idType, value: idValue.trim() }] : [],
         license_number: licenceNumber.trim() || null,
+        journey_type: 'ENTITY_FIRST',
+        source_channel: 'PUBLIC_REGISTRATION',
+        intended_journey: intent?.path ? 'ENTITY_FIRST' : undefined,
+        intended_route: intent?.path,
       },
       {
         onSuccess: (r) => setOutcome(r),
