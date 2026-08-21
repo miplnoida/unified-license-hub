@@ -33184,6 +33184,34 @@ export type Database = {
           },
         ]
       }
+      v_conduct_work_items: {
+        Row: {
+          assigned_to: string | null
+          assigned_to_name: string | null
+          blockers: Json | null
+          canonical_href: string | null
+          created_at: string | null
+          entity_id: string | null
+          entity_name: string | null
+          is_terminal: boolean | null
+          item_id: string | null
+          kind: string | null
+          kind_label: string | null
+          last_activity_at: string | null
+          next_action_label: string | null
+          priority: string | null
+          reference: string | null
+          severity: string | null
+          sla_due_at: string | null
+          sla_state: string | null
+          stage: string | null
+          stage_label: string | null
+          status: string | null
+          subject: string | null
+          waiting_on: string | null
+        }
+        Relationships: []
+      }
       v_enforcement_case_state: {
         Row: {
           appeal_deadline: string | null
@@ -34987,6 +35015,72 @@ export type Database = {
       }
       conduct_alert_close: {
         Args: { _alert_id: string; _metadata?: Json; _reason: string }
+        Returns: Json
+      }
+      conduct_alert_dispose: {
+        Args: {
+          _alert_id: string
+          _disposition: string
+          _reason: string
+          _target_id?: string
+        }
+        Returns: Json
+      }
+      conduct_alert_promote_to_investigation: {
+        Args: {
+          _alert_id: string
+          _allegation?: string
+          _due_date?: string
+          _rationale: string
+        }
+        Returns: Json
+      }
+      conduct_alert_register: {
+        Args: {
+          _entity_id?: string
+          _include_closed?: boolean
+          _limit?: number
+          _offset?: number
+          _search?: string
+          _severities?: string[]
+          _statuses?: string[]
+        }
+        Returns: {
+          acknowledged_at: string
+          acknowledged_by: string
+          acknowledged_by_name: string
+          canonical_href: string
+          channel_name: string
+          complaint_href: string
+          complaint_id: string
+          disposition: string
+          disposition_reason: string
+          entity_id: string
+          entity_name: string
+          explanation: string
+          generated_at: string
+          id: string
+          investigation_href: string
+          investigation_id: string
+          kind: string
+          last_activity_at: string
+          observation_end: string
+          observation_start: string
+          product_name: string
+          reference: string
+          risk_category_name: string
+          rule_id: string
+          rule_version: number
+          severity: string
+          source: string
+          status: string
+          threshold_value: number
+          title: string
+          total_count: number
+        }[]
+      }
+      conduct_alert_register_counts: {
+        Args: { _entity_id?: string }
         Returns: Json
       }
       conduct_amend_interview: {
