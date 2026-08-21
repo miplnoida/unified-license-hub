@@ -28,6 +28,7 @@ import { CaseHeader } from '@/components/cases/CaseHeader';
 import { FpScreeningPanel } from '@/components/fit-and-proper/FpScreeningPanel';
 import { SubmittedDeclarationView } from '@/components/fit-and-proper/SubmittedDeclarationView';
 import { RequestDeclarationDialog } from '@/components/fit-and-proper/RequestDeclarationDialog';
+import { ReferToEnforcementDialog } from '@/components/enforcement/ReferToEnforcementDialog';
 import { FpPqAmendmentDialog } from '@/components/fit-and-proper/FpPqAmendmentDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useFpAssessmentCase, type FpCaseAction } from '@/hooks/useFpProcess';
@@ -238,7 +239,7 @@ export default function FpaAssessmentWorkspace() {
         <div className="flex justify-end">
           <ReferToEnforcementDialog
             sourceKind="FP_MATTER"
-            sourceId={assessmentId}
+            sourceId={id!}
             sourceLabel={`${header.reference} — ${header.subject}`}
             triggerLabel="Refer to enforcement"
           />
