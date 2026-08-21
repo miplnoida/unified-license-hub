@@ -13,6 +13,7 @@
 -- Usage: psql -v ON_ERROR_STOP=1 -f supabase/tests/onboarding/01_form_first_resolution.sql
 -- Everything runs inside a transaction and is rolled back.
 BEGIN;
+SET LOCAL ROLE postgres;
 
 DO $$
 DECLARE
