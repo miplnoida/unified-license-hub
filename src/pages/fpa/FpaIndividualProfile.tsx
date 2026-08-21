@@ -570,6 +570,7 @@ function RolesTab({ id }: { id: string }) {
                   <TableHead>Current</TableHead>
                   <TableHead>Reassessment Cycle</TableHead>
                   <TableHead>Recorded</TableHead>
+                  <TableHead className="text-right">Appointment</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
