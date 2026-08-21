@@ -52,7 +52,9 @@ BEGIN
   INSERT INTO public.licensees(id, name, status)
   VALUES (gen_random_uuid(), v_name, 'active') RETURNING id INTO v_entity;
 
-  SELECT id INTO v_type FROM public.entity_identifier_types WHERE is_active ORDER BY sort_order NULLS LAST LIMIT 1;
+  -- globally-unique identifier type keeps the fixture jurisdiction-free
+  SELECT id INTO v_type FROM public.entity_identifier_types
+   WHERE key = 'legal_entity_identifier' AND is_active;
   INSERT INTO public.entity_identifiers(entity_id, identifier_type_id, identifier_value, source_type, regulator_id)
   VALUES (v_entity, v_type, 'FFTEST-'||substr(gen_random_uuid()::text,1,10), 'MANUAL', v_reg_uid);
 
