@@ -15,6 +15,15 @@ import { supabase } from '@/integrations/supabase/client';
  * `license_lifecycle_action()` RPC re-validates against. The browser MUST NOT
  * infer eligibility.
  */
+export interface LicenseActionInputRequirement {
+  key: string;
+  label: string;
+  type: 'text' | 'textarea' | 'date' | 'select';
+  required: boolean;
+  options?: string[];
+  help?: string;
+}
+
 export interface LicenseAvailableAction {
   key: string;
   label: string;
@@ -24,6 +33,11 @@ export interface LicenseAvailableAction {
   blockers: Array<{ key: string; label: string; href?: string }>;
   section?: string | null;
   href?: string | null;
+  matter_id?: string | null;
+  matter_kind?: string | null;
+  stage?: string | null;
+  /** Server-declared payload schema for this step (A.9–A.13 §7). */
+  input_requirements?: LicenseActionInputRequirement[];
 }
 
 export interface LicenseCaseHeaderModel {
@@ -218,27 +232,84 @@ export function useLicenseLifecycleQueueCounts() {
   });
 }
 
-export type LicenseLifecycleActionKey =
-  | 'START_RENEWAL'
-  | 'REQUEST_RENEWAL_INFORMATION'
-  | 'APPROVE_RENEWAL'
-  | 'REFUSE_RENEWAL'
-  | 'APPLY_VARIATION'
-  | 'APPROVE_VARIATION'
-  | 'BEGIN_SUSPENSION'
-  | 'SUSPEND'
-  | 'REINSTATE'
-  | 'BEGIN_REVOCATION'
-  | 'REVOKE'
-  | 'BEGIN_SURRENDER'
-  | 'ACCEPT_SURRENDER'
-  | 'MARK_EXPIRED';
+/**
+ * Canonical adverse-matter case (A.9–A.13). Matter spine, notices,
+ * representations, formal decisions and the due-process timeline are all built
+ * by `license_adverse_matter_case()`; the browser never reconstructs stage.
+ */
+export interface LicenseMatterTimelineEvent {
+  key: string;
+  label: string;
+  at: string | null;
+  detail: string | null;
+  actor?: string | null;
+  state: 'done' | 'current' | 'pending' | 'skipped';
+  meta?: Record<string, unknown>;
+}
 
+export interface LicenseAdverseMatter {
+  id: string;
+  matter_reference: string;
+  matter_kind: string;
+  title: string | null;
+  stage: string;
+  status: string;
+  source_kind: string | null;
+  source_reference: string | null;
+  legal_basis: string | null;
+  reason: string | null;
+  owner_name: string | null;
+  team: string | null;
+  sla_due_at: string | null;
+  sla_state: string;
+  waiting_on: string | null;
+  opened_at: string;
+  closed_at: string | null;
+  effective_date: string | null;
+  related_matter_reference: string | null;
+  blockers: Array<{ key: string; label: string; href?: string }>;
+  timeline: LicenseMatterTimelineEvent[];
+  notices: Array<Record<string, any>>;
+  representations: Array<Record<string, any>>;
+  decisions: Array<Record<string, any>>;
+}
+
+export interface LicenseAdverseMatterCase {
+  license_id: string;
+  matters: LicenseAdverseMatter[];
+  actions: LicenseAvailableAction[];
+  decisions: Array<Record<string, any>>;
+  generated_at: string;
+}
+
+export function useLicenseAdverseMatterCase(licenseId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['license-adverse-matters', licenseId],
+    enabled: !!licenseId,
+    staleTime: 15_000,
+    queryFn: async (): Promise<LicenseAdverseMatterCase> => {
+      const { data, error } = await supabase.rpc('license_adverse_matter_case' as never, {
+        _license_id: licenseId,
+      } as never);
+      if (error) throw error;
+      return data as unknown as LicenseAdverseMatterCase;
+    },
+  });
+}
+
+export type LicenseLifecycleActionKey = string;
+
+/**
+ * Governed licence lifecycle mutation. `license_lifecycle_step` is the ONLY
+ * browser-reachable licence lifecycle write path: it re-validates availability,
+ * the server-declared input requirements and every due-process blocker before
+ * delegating to the (service-role-only) executor.
+ */
 export function useLicenseLifecycleAction(licenseId: string | null | undefined) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: { actionKey: LicenseLifecycleActionKey; reason?: string | null; payload?: Record<string, unknown> }) => {
-      const { data, error } = await supabase.rpc('license_lifecycle_action' as never, {
+      const { data, error } = await supabase.rpc('license_lifecycle_step' as never, {
         _license_id: licenseId,
         _action_key: args.actionKey,
         _payload: (args.payload ?? {}) as never,
@@ -249,6 +320,7 @@ export function useLicenseLifecycleAction(licenseId: string | null | undefined) 
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['license-case', licenseId] });
+      qc.invalidateQueries({ queryKey: ['license-adverse-matters', licenseId] });
       qc.invalidateQueries({ queryKey: ['license-register'] });
       qc.invalidateQueries({ queryKey: ['license-lifecycle-queue'] });
       qc.invalidateQueries({ queryKey: ['license-lifecycle-queue-counts'] });

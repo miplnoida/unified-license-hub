@@ -17680,6 +17680,48 @@ export type Database = {
           },
         ]
       }
+      license_expiry_sweep_runs: {
+        Row: {
+          auto_expired_count: number
+          eligible_count: number
+          error_count: number
+          errors: Json
+          finished_at: string | null
+          id: string
+          initiator: string
+          result: Json
+          review_created_count: number
+          skipped_count: number
+          started_at: string
+        }
+        Insert: {
+          auto_expired_count?: number
+          eligible_count?: number
+          error_count?: number
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          initiator?: string
+          result?: Json
+          review_created_count?: number
+          skipped_count?: number
+          started_at?: string
+        }
+        Update: {
+          auto_expired_count?: number
+          eligible_count?: number
+          error_count?: number
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          initiator?: string
+          result?: Json
+          review_created_count?: number
+          skipped_count?: number
+          started_at?: string
+        }
+        Relationships: []
+      }
       license_lifecycle_configs: {
         Row: {
           appeal_window_days: number
@@ -36180,6 +36222,18 @@ export type Database = {
         Args: { _ontime?: string; _return_id: string }
         Returns: Json
       }
+      license_action_input_requirements: {
+        Args: {
+          _action_key: string
+          _license_id: string
+          _matter_kind?: string
+        }
+        Returns: Json
+      }
+      license_adverse_matter_case: {
+        Args: { _license_id: string }
+        Returns: Json
+      }
       license_adverse_matters: { Args: { _license_id: string }; Returns: Json }
       license_appeal_acknowledge: {
         Args: { _appeal_id: string }
@@ -36228,6 +36282,7 @@ export type Database = {
         Returns: Json
       }
       license_expiry_sweep: { Args: { _limit?: number }; Returns: Json }
+      license_expiry_sweep_run: { Args: { _limit?: number }; Returns: Json }
       license_ids_for_licensee: {
         Args: { _licensee_id: string }
         Returns: string[]
@@ -36251,6 +36306,15 @@ export type Database = {
       }
       license_lifecycle_policy: {
         Args: { _cat: string; _sector: string; _sub: string }
+        Returns: Json
+      }
+      license_lifecycle_step: {
+        Args: {
+          _action_key: string
+          _license_id: string
+          _payload?: Json
+          _reason?: string
+        }
         Returns: Json
       }
       license_lifecycle_work_queue: {
