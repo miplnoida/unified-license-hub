@@ -85,7 +85,11 @@ export interface PrudentialAssessment {
 type PrudentialAssessmentWithLicensee = PrudentialAssessment & {
   licensee?: { name: string | null } | null;
   licensees?: { name: string | null } | null;
+  /** EPR-01 — canonical filing provenance for the assessed return. */
+  return_filing_id?: string | null;
+  return_filing_version_id?: string | null;
 };
+
 
 const ASSESSMENT_WRITE_COLUMNS = new Set([
   'id',
