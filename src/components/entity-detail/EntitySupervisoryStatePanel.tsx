@@ -146,11 +146,25 @@ export function EntitySupervisoryStatePanel({ entityId }: { entityId: string }) 
                   <Badge variant="outline" className="text-[10px]">
                     {s.acknowledged_at ? `Acknowledged ${formatDate(s.acknowledged_at)}` : 'Awaiting acknowledgement'}
                   </Badge>
+                  {(s.directives ?? []).map((d) => (
+                    <Link
+                      key={d.id}
+                      to={`/prudential/actions/${d.id}`}
+                      className="text-xs font-medium text-primary hover:underline"
+                      title={`${d.title ?? 'Supervisory directive'} — ${humanize(d.status)}`}
+                    >
+                      {d.reference ?? 'Directive'} · {humanize(d.status)}
+                    </Link>
+                  ))}
                   {s.escalated_enforcement_id && (
                     <Link to={`/enforcement/${s.escalated_enforcement_id}`} className="text-xs text-primary hover:underline">
-                      Directive issued
+                      Enforcement escalation
                     </Link>
                   )}
+                  {!s.escalated_enforcement_id && (s.directives ?? []).length === 0 && s.level === 'breach' && (
+                    <span className="text-xs text-muted-foreground">No directive raised</span>
+                  )}
+
                 </div>
               </div>
             ))}
