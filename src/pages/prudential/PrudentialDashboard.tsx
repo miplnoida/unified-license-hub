@@ -209,7 +209,7 @@ export default function PrudentialDashboard() {
 
         <div className="text-sm text-muted-foreground">
           Looking for a specialist register? <Link to="/supervision/breaches" className="text-primary hover:underline">Breach register</Link>
-          {' · '}<Link to="/prudential/analytics" className="text-primary hover:underline">Analytics</Link>
+          {' · '}<Link to="/admin/returns/prudential/analytics" className="text-primary hover:underline">Analytics</Link>
           {' · '}<Link to={WORK} className="inline-flex items-center gap-1 text-primary hover:underline">Work queue <ArrowUpRight className="h-3 w-3" /></Link>
         </div>
       </div>
