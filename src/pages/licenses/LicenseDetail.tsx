@@ -27,6 +27,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
 import { downloadLicenseCertificate, openSignedCertificateUrl } from '@/lib/licenseCertificate';
+import LicenseCaseHeader from '@/components/licenses/LicenseCaseHeader';
+import LicenseCurrentStepPanel from '@/components/licenses/LicenseCurrentStepPanel';
+import { useLicenseCase } from '@/hooks/useLicenseLifecycle';
 
 
 interface License {
@@ -101,6 +104,9 @@ export default function LicenseDetail() {
   const [pendingRenewalAppId, setPendingRenewalAppId] = useState<string | null>(null);
   const [inProgressRenewalAppId, setInProgressRenewalAppId] = useState<string | null>(null);
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
+  // P04 — canonical licence case read model (stage, SLA, priority, blockers,
+  // next action). Nothing about the lifecycle is derived in this component.
+  const { data: licenseCase } = useLicenseCase(id, isInternal ? 'internal' : 'external');
 
   // Submitted (post-submit) renewal — duplicates blocked, opens read-only.
   const PENDING_RENEWAL_STATUSES = ['submitted', 'under_review', 'query_raised', 'resubmission_requested'];
@@ -650,6 +656,12 @@ export default function LicenseDetail() {
             </div>
           }
         />
+
+        {licenseCase?.header && <LicenseCaseHeader licenseId={license.id} caseModel={licenseCase} />}
+
+        {licenseCase?.header && isInternal && (
+          <LicenseCurrentStepPanel model={licenseCase} />
+        )}
 
         {(() => {
           const alertMap: Record<string, { title: string; variant: 'destructive' | 'default'; icon: any; actionTypes: string[] }> = {

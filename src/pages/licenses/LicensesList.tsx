@@ -18,6 +18,8 @@ import { Search, Eye, Loader2, X, FileDown } from 'lucide-react';
 import { resolveLicenseStatus } from '@/lib/licenseStatusBadge';
 import { describeLicensesFilter } from '@/lib/licenseeDashboardDrilldowns';
 import { downloadLicenseCertificate } from '@/lib/licenseCertificate';
+import { useLicenseRegister } from '@/hooks/useLicenseLifecycle';
+import { formatDateTime } from '@/lib/datetime';
 
 interface License {
   id: string;
@@ -69,6 +71,23 @@ export default function LicensesList() {
     ? activeSectorId
     : null;
 
+  // P04 — the internal licence register is a server read model: status, SLA
+  // state, open conditions and next action are all server-owned.
+  const [registerPage, setRegisterPage] = useState(0);
+  const registerPageSize = 25;
+  const registerSlaFilter = urlFilter === 'expiring' ? 'due_soon' : urlFilter === 'expired' ? 'breached' : null;
+  const register = useLicenseRegister({
+    search,
+    status: statusFilter,
+    sectorId: validActiveSectorId,
+    slaState: registerSlaFilter,
+    page: registerPage,
+    pageSize: registerPageSize,
+  });
+  const registerRows = isGlobalInternalView ? register.data?.rows ?? [] : [];
+  const registerTotal = register.data?.total ?? 0;
+  const registerLastPage = Math.max(0, Math.ceil(registerTotal / registerPageSize) - 1);
+
   useEffect(() => {
     if (urlStatus && urlStatus !== 'all') setStatusFilter(urlStatus);
     else if (urlFilter === 'expired') setStatusFilter('expired');
@@ -82,6 +101,7 @@ export default function LicensesList() {
 
   useEffect(() => {
     async function load() {
+      if (isGlobalInternalView) { setLoading(false); return; }
       setLoading(true);
       const rpcParams = {
         _page: 0,
@@ -232,6 +252,81 @@ export default function LicensesList() {
           </div>
         )}
 
+        {isGlobalInternalView ? (
+          <>
+            <Card>
+              <CardContent className="p-0">
+                {register.isLoading ? (
+                  <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                ) : register.isError ? (
+                  <div className="p-6 text-sm text-destructive">{(register.error as { message?: string })?.message ?? 'Failed to load the licence register'}</div>
+                ) : registerRows.length === 0 ? (
+                  <p className="p-8 text-center text-sm text-muted-foreground">No licences match this view.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>License #</TableHead>
+                          <TableHead>Entity Name</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Valid Until</TableHead>
+                          <TableHead>Lifecycle</TableHead>
+                          <TableHead>Conditions</TableHead>
+                          <TableHead>Next action</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {registerRows.map((row) => (
+                          <TableRow key={row.license_id}>
+                            <TableCell className="font-mono font-medium text-sm">{row.license_number}</TableCell>
+                            <TableCell className="text-sm">{row.entity_name || <span className="text-muted-foreground">—</span>}</TableCell>
+                            <TableCell className="text-sm">{row.license_type || '—'}</TableCell>
+                            <TableCell><Badge variant={statusVariant[row.status] || 'outline'} className="capitalize">{LICENSE_STATUS_LABELS[row.status as LicenseStatus] || row.status}</Badge></TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {row.valid_until ? new Date(row.valid_until).toLocaleDateString() : 'No expiry'}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              <div className="flex flex-col gap-1">
+                                <Badge variant="outline" className="w-fit text-[10px] capitalize">{row.sla_state.replace('_', ' ')}</Badge>
+                                {row.open_matter_kind && (
+                                  <span className="text-muted-foreground capitalize">{row.open_matter_kind.replace('_', ' ')} open</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {row.open_conditions}
+                              {row.overdue_conditions > 0 && <span className="text-destructive"> ({row.overdue_conditions} overdue)</span>}
+                            </TableCell>
+                            <TableCell className="text-sm">{row.next_action ?? '—'}</TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="sm" onClick={() => navigate(`/licenses/${row.license_id}`)}>
+                                <Eye className="h-4 w-4 mr-1" />Open
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            {registerTotal > registerPageSize && (
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {registerTotal} licences · page {registerPage + 1} of {registerLastPage + 1}
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" disabled={registerPage === 0} onClick={() => setRegisterPage((p) => p - 1)}>Previous</Button>
+                  <Button variant="outline" size="sm" disabled={registerPage >= registerLastPage} onClick={() => setRegisterPage((p) => p + 1)}>Next</Button>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
         <Card>
           <CardContent className="p-0">
             {loading ? (
@@ -309,6 +404,7 @@ export default function LicensesList() {
             )}
           </CardContent>
         </Card>
+        )}
       </div>
     </DashboardLayout>
   );
