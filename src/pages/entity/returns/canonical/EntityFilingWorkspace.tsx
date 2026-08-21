@@ -102,6 +102,24 @@ export default function EntityFilingWorkspace() {
           <p className="text-sm text-muted-foreground">You have read-only access to this filing.</p>
         )}
 
+        {/* EPR-01 — filer-facing guidance only (no internal reviewer/SLA facts). */}
+        <FilerGuidancePanel
+          filingStatus={data.filing.status}
+          versionStatus={current?.status ?? null}
+          versionNumber={data.filing.current_version_number ?? null}
+          dueDate={data.period.due_date}
+          requiresDeclaration={!!data.definition.requires_declaration}
+          declarationAccepted={declarationAccepted}
+          totalRequiredForms={requiredForms.length}
+          completedRequiredForms={completedRequiredForms}
+          blockingIssues={blockingFindings}
+          warningIssues={warningFindings}
+          openRequests={openRequests.length}
+          isEditable={canEdit}
+          isReadOnly={capabilities.isViewer}
+        />
+
+
         {current?.status === 'CORRECTION_REQUESTED' && (
           <Card className="border-destructive/30">
             <CardHeader><CardTitle className="text-base text-destructive">Correction requested</CardTitle></CardHeader>
