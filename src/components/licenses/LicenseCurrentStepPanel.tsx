@@ -108,7 +108,7 @@ export function LicenseCurrentStepPanel({ model, readOnly }: { model: LicenseCas
         {readOnly || model.audience === 'external' ? (
           <p className="text-sm text-muted-foreground">Lifecycle actions are performed by the regulator.</p>
         ) : actions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">This licence is closed — no lifecycle actions are available.</p>
+          <p className="text-sm text-muted-foreground">No lifecycle actions are available to you for this licence.</p>
         ) : (
           <div className="space-y-3">
             <Select value={selected} onValueChange={setSelected}>
