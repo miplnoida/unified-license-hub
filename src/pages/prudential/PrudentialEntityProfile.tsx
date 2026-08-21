@@ -948,7 +948,7 @@ export default function PrudentialEntityProfile() {
                         <div className="flex justify-between"><span>Reference</span><span className="font-mono">{rf.unique_id || rf.id.slice(0, 8)}</span></div>
                         <div className="flex justify-between"><span>Status</span><Badge variant="outline">{returnStatusLabel(rf.workflow_status || rf.status)}</Badge></div>
                         <Button asChild size="sm" variant="outline" className="w-full mt-2">
-                          <Link to={`/returns-management/${rf.id}`} onClick={() => setRatioPoint(null)}>Open return</Link>
+                          <Link to={objectRoute.returnFiling(rf.id)} onClick={() => setRatioPoint(null)}>Open return</Link>
                         </Button>
 
                       </div>
