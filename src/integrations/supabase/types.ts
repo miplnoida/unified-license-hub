@@ -3963,6 +3963,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "complaints_enforcement_action_id_fkey"
+            columns: ["enforcement_action_id"]
+            isOneToOne: false
+            referencedRelation: "v_enforcement_case_state"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "complaints_licensee_id_fkey"
             columns: ["licensee_id"]
             isOneToOne: false
@@ -4264,6 +4271,13 @@ export type Database = {
             columns: ["enforcement_action_id"]
             isOneToOne: false
             referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_actions_enforcement_action_id_fkey"
+            columns: ["enforcement_action_id"]
+            isOneToOne: false
+            referencedRelation: "v_enforcement_case_state"
             referencedColumns: ["id"]
           },
           {
@@ -5334,6 +5348,13 @@ export type Database = {
             columns: ["enforcement_action_id"]
             isOneToOne: false
             referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_investigation_closures_enforcement_action_id_fkey"
+            columns: ["enforcement_action_id"]
+            isOneToOne: false
+            referencedRelation: "v_enforcement_case_state"
             referencedColumns: ["id"]
           },
           {
@@ -7832,33 +7853,50 @@ export type Database = {
           approval_notes: string | null
           approved_at: string | null
           approved_by: string | null
+          assigned_team: string | null
+          assigned_to: string | null
           case_number: string
           closed_at: string | null
           closed_by: string | null
+          closure_rationale: string | null
           created_at: string
           date_opened: string
           decision_at: string | null
+          decision_authority: string | null
           decision_outcome: string | null
           decision_rationale: string | null
           description: string | null
+          directive_detail: string | null
           effective_date: string | null
           enforcement_type: string
           entity_id: string
+          evidence_review_at: string | null
+          evidence_review_note: string | null
           findings: string | null
           id: string
+          legal_basis: string | null
           linked_document_ids: string[] | null
           monitoring_state: string
           non_compliance_flag: boolean
           non_compliance_note: string | null
+          notice_dispatch_method: string | null
           notice_issued_at: string | null
+          notice_recipient: string | null
+          notice_reference: string | null
           opened_by: string | null
           penalty_amount: number | null
           penalty_currency: string | null
           penalty_paid_amount: number | null
+          penalty_waived_amount: number
           proposal_rationale: string | null
           proposed_action: string | null
           proposed_at: string | null
           proposed_by: string | null
+          referral_reason: string | null
+          referred_at: string | null
+          referred_by: string | null
+          representation_deadline: string | null
+          representations_closed_at: string | null
           resolution_date: string | null
           response_received_at: string | null
           response_summary: string | null
@@ -7866,44 +7904,71 @@ export type Database = {
           review_state: string
           reviewed_at: string | null
           reviewed_by: string | null
+          sanction_detail: string | null
+          sanction_imposed_at: string | null
+          sanction_type: string | null
+          severity: string
+          source_id: string | null
           source_investigation_id: string | null
+          source_kind: string | null
+          source_reference: string | null
           source_reference_id: string | null
           source_type: string | null
+          stage: string
           status: string
           updated_at: string
+          withdrawal_reason: string | null
+          withdrawn_at: string | null
         }
         Insert: {
           appeal_deadline?: string | null
           approval_notes?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          assigned_team?: string | null
+          assigned_to?: string | null
           case_number?: string
           closed_at?: string | null
           closed_by?: string | null
+          closure_rationale?: string | null
           created_at?: string
           date_opened?: string
           decision_at?: string | null
+          decision_authority?: string | null
           decision_outcome?: string | null
           decision_rationale?: string | null
           description?: string | null
+          directive_detail?: string | null
           effective_date?: string | null
           enforcement_type?: string
           entity_id: string
+          evidence_review_at?: string | null
+          evidence_review_note?: string | null
           findings?: string | null
           id?: string
+          legal_basis?: string | null
           linked_document_ids?: string[] | null
           monitoring_state?: string
           non_compliance_flag?: boolean
           non_compliance_note?: string | null
+          notice_dispatch_method?: string | null
           notice_issued_at?: string | null
+          notice_recipient?: string | null
+          notice_reference?: string | null
           opened_by?: string | null
           penalty_amount?: number | null
           penalty_currency?: string | null
           penalty_paid_amount?: number | null
+          penalty_waived_amount?: number
           proposal_rationale?: string | null
           proposed_action?: string | null
           proposed_at?: string | null
           proposed_by?: string | null
+          referral_reason?: string | null
+          referred_at?: string | null
+          referred_by?: string | null
+          representation_deadline?: string | null
+          representations_closed_at?: string | null
           resolution_date?: string | null
           response_received_at?: string | null
           response_summary?: string | null
@@ -7911,44 +7976,71 @@ export type Database = {
           review_state?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          sanction_detail?: string | null
+          sanction_imposed_at?: string | null
+          sanction_type?: string | null
+          severity?: string
+          source_id?: string | null
           source_investigation_id?: string | null
+          source_kind?: string | null
+          source_reference?: string | null
           source_reference_id?: string | null
           source_type?: string | null
+          stage?: string
           status?: string
           updated_at?: string
+          withdrawal_reason?: string | null
+          withdrawn_at?: string | null
         }
         Update: {
           appeal_deadline?: string | null
           approval_notes?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          assigned_team?: string | null
+          assigned_to?: string | null
           case_number?: string
           closed_at?: string | null
           closed_by?: string | null
+          closure_rationale?: string | null
           created_at?: string
           date_opened?: string
           decision_at?: string | null
+          decision_authority?: string | null
           decision_outcome?: string | null
           decision_rationale?: string | null
           description?: string | null
+          directive_detail?: string | null
           effective_date?: string | null
           enforcement_type?: string
           entity_id?: string
+          evidence_review_at?: string | null
+          evidence_review_note?: string | null
           findings?: string | null
           id?: string
+          legal_basis?: string | null
           linked_document_ids?: string[] | null
           monitoring_state?: string
           non_compliance_flag?: boolean
           non_compliance_note?: string | null
+          notice_dispatch_method?: string | null
           notice_issued_at?: string | null
+          notice_recipient?: string | null
+          notice_reference?: string | null
           opened_by?: string | null
           penalty_amount?: number | null
           penalty_currency?: string | null
           penalty_paid_amount?: number | null
+          penalty_waived_amount?: number
           proposal_rationale?: string | null
           proposed_action?: string | null
           proposed_at?: string | null
           proposed_by?: string | null
+          referral_reason?: string | null
+          referred_at?: string | null
+          referred_by?: string | null
+          representation_deadline?: string | null
+          representations_closed_at?: string | null
           resolution_date?: string | null
           response_received_at?: string | null
           response_summary?: string | null
@@ -7956,11 +8048,21 @@ export type Database = {
           review_state?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          sanction_detail?: string | null
+          sanction_imposed_at?: string | null
+          sanction_type?: string | null
+          severity?: string
+          source_id?: string | null
           source_investigation_id?: string | null
+          source_kind?: string | null
+          source_reference?: string | null
           source_reference_id?: string | null
           source_type?: string | null
+          stage?: string
           status?: string
           updated_at?: string
+          withdrawal_reason?: string | null
+          withdrawn_at?: string | null
         }
         Relationships: [
           {
@@ -7976,6 +8078,72 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_prudential_early_warnings"
             referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
+      enforcement_appeals: {
+        Row: {
+          appellant: string | null
+          case_id: string
+          created_at: string
+          decided_by: string | null
+          decision: string | null
+          decision_at: string | null
+          decision_rationale: string | null
+          effect_on_action: string | null
+          grounds: string
+          id: string
+          lodged_at: string
+          lodged_by: string | null
+          review_body: string | null
+          status: string
+        }
+        Insert: {
+          appellant?: string | null
+          case_id: string
+          created_at?: string
+          decided_by?: string | null
+          decision?: string | null
+          decision_at?: string | null
+          decision_rationale?: string | null
+          effect_on_action?: string | null
+          grounds: string
+          id?: string
+          lodged_at?: string
+          lodged_by?: string | null
+          review_body?: string | null
+          status?: string
+        }
+        Update: {
+          appellant?: string | null
+          case_id?: string
+          created_at?: string
+          decided_by?: string | null
+          decision?: string | null
+          decision_at?: string | null
+          decision_rationale?: string | null
+          effect_on_action?: string | null
+          grounds?: string
+          id?: string
+          lodged_at?: string
+          lodged_by?: string | null
+          review_body?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enforcement_appeals_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enforcement_appeals_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v_enforcement_case_state"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -8013,6 +8181,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enforcement_case_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v_enforcement_case_state"
             referencedColumns: ["id"]
           },
         ]
@@ -8075,6 +8250,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "enforcement_compliance_evidence_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v_enforcement_case_state"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "enforcement_compliance_evidence_obligation_id_fkey"
             columns: ["obligation_id"]
             isOneToOne: false
@@ -8134,7 +8316,230 @@ export type Database = {
             referencedRelation: "enforcement_actions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "enforcement_obligations_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v_enforcement_case_state"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      enforcement_penalty_payments: {
+        Row: {
+          amount: number
+          case_id: string
+          created_at: string
+          currency: string
+          id: string
+          kind: string
+          note: string | null
+          paid_on: string
+          payment_reference: string | null
+          recorded_by: string | null
+        }
+        Insert: {
+          amount: number
+          case_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          paid_on?: string
+          payment_reference?: string | null
+          recorded_by?: string | null
+        }
+        Update: {
+          amount?: number
+          case_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          paid_on?: string
+          payment_reference?: string | null
+          recorded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enforcement_penalty_payments_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enforcement_penalty_payments_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v_enforcement_case_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enforcement_representations: {
+        Row: {
+          attachment_reference: string | null
+          case_id: string
+          channel: string | null
+          created_at: string
+          id: string
+          received_at: string
+          received_from: string | null
+          recorded_by: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          summary: string
+        }
+        Insert: {
+          attachment_reference?: string | null
+          case_id: string
+          channel?: string | null
+          created_at?: string
+          id?: string
+          received_at?: string
+          received_from?: string | null
+          recorded_by?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          summary: string
+        }
+        Update: {
+          attachment_reference?: string | null
+          case_id?: string
+          channel?: string | null
+          created_at?: string
+          id?: string
+          received_at?: string
+          received_from?: string | null
+          recorded_by?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enforcement_representations_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enforcement_representations_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "v_enforcement_case_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enforcement_workflow_stages: {
+        Row: {
+          created_at: string
+          description: string | null
+          due_soon_days: number
+          id: string
+          is_active: boolean
+          is_terminal: boolean
+          label: string
+          seq: number
+          sla_days: number
+          stage: string
+          version: number
+          waiting_on: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          due_soon_days?: number
+          id?: string
+          is_active?: boolean
+          is_terminal?: boolean
+          label: string
+          seq: number
+          sla_days?: number
+          stage: string
+          version?: number
+          waiting_on?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          due_soon_days?: number
+          id?: string
+          is_active?: boolean
+          is_terminal?: boolean
+          label?: string
+          seq?: number
+          sla_days?: number
+          stage?: string
+          version?: number
+          waiting_on?: string
+        }
+        Relationships: []
+      }
+      enforcement_workflow_transitions: {
+        Row: {
+          action_code: string
+          created_at: string
+          description: string | null
+          from_stage: string
+          id: string
+          is_active: boolean
+          label: string
+          min_rationale_length: number
+          permission_action: string
+          requires_evidence: boolean
+          requires_maker_checker: boolean
+          requires_rationale: boolean
+          seq: number
+          to_stage: string
+          to_status: string | null
+          version: number
+        }
+        Insert: {
+          action_code: string
+          created_at?: string
+          description?: string | null
+          from_stage: string
+          id?: string
+          is_active?: boolean
+          label: string
+          min_rationale_length?: number
+          permission_action?: string
+          requires_evidence?: boolean
+          requires_maker_checker?: boolean
+          requires_rationale?: boolean
+          seq?: number
+          to_stage: string
+          to_status?: string | null
+          version?: number
+        }
+        Update: {
+          action_code?: string
+          created_at?: string
+          description?: string | null
+          from_stage?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          min_rationale_length?: number
+          permission_action?: string
+          requires_evidence?: boolean
+          requires_maker_checker?: boolean
+          requires_rationale?: boolean
+          seq?: number
+          to_stage?: string
+          to_status?: string | null
+          version?: number
+        }
+        Relationships: []
       }
       engine_rule_action_results: {
         Row: {
@@ -15071,6 +15476,13 @@ export type Database = {
             columns: ["escalated_enforcement_id"]
             isOneToOne: false
             referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_escalated_enforcement_id_fkey"
+            columns: ["escalated_enforcement_id"]
+            isOneToOne: false
+            referencedRelation: "v_enforcement_case_state"
             referencedColumns: ["id"]
           },
           {
@@ -25834,6 +26246,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "return_threshold_breaches_escalated_enforcement_id_fkey"
+            columns: ["escalated_enforcement_id"]
+            isOneToOne: false
+            referencedRelation: "v_enforcement_case_state"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "return_threshold_breaches_reporting_period_id_fkey"
             columns: ["reporting_period_id"]
             isOneToOne: false
@@ -30398,6 +30817,77 @@ export type Database = {
         }
         Relationships: []
       }
+      v_enforcement_case_state: {
+        Row: {
+          appeal_deadline: string | null
+          assigned_team: string | null
+          assigned_to: string | null
+          assigned_to_name: string | null
+          case_number: string | null
+          closed_at: string | null
+          closure_rationale: string | null
+          created_at: string | null
+          decision_at: string | null
+          decision_outcome: string | null
+          enforcement_type: string | null
+          entered_stage_at: string | null
+          entity_id: string | null
+          entity_name: string | null
+          findings: string | null
+          id: string | null
+          is_terminal: boolean | null
+          last_activity_at: string | null
+          legal_basis: string | null
+          monitoring_state: string | null
+          non_compliance_flag: boolean | null
+          notice_issued_at: string | null
+          notice_reference: string | null
+          open_appeals: number | null
+          open_obligations: number | null
+          penalty_amount: number | null
+          penalty_currency: string | null
+          penalty_paid_amount: number | null
+          penalty_waived_amount: number | null
+          priority: string | null
+          referral_reason: string | null
+          referred_at: string | null
+          referred_by: string | null
+          referred_by_name: string | null
+          representation_count: number | null
+          representation_deadline: string | null
+          sanction_imposed_at: string | null
+          sanction_type: string | null
+          severity: string | null
+          sla_due_at: string | null
+          sla_state: string | null
+          source_id: string | null
+          source_kind: string | null
+          source_reference: string | null
+          stage: string | null
+          stage_label: string | null
+          stage_seq: number | null
+          status: string | null
+          updated_at: string | null
+          waiting_on: string | null
+          withdrawn_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enforcement_actions_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enforcement_actions_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
       v_engine_metric_series: {
         Row: {
           computed_at: string | null
@@ -30623,6 +31113,13 @@ export type Database = {
             columns: ["escalated_enforcement_id"]
             isOneToOne: false
             referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_threshold_breaches_escalated_enforcement_id_fkey"
+            columns: ["escalated_enforcement_id"]
+            isOneToOne: false
+            referencedRelation: "v_enforcement_case_state"
             referencedColumns: ["id"]
           },
           {
@@ -32615,6 +33112,16 @@ export type Database = {
         Args: { _action_id: string; _patch: Json; _rationale?: string }
         Returns: Json
       }
+      enforcement_case: { Args: { _case_id: string }; Returns: Json }
+      enforcement_case_action: {
+        Args: { _action: string; _case_id: string; _payload?: Json }
+        Returns: Json
+      }
+      enforcement_case_blockers: { Args: { _case_id: string }; Returns: Json }
+      enforcement_entity_summary: {
+        Args: { _entity_id: string }
+        Returns: Json
+      }
       enforcement_lifecycle_action: {
         Args: { _action: string; _case_id: string; _payload?: Json }
         Returns: Json
@@ -32632,6 +33139,60 @@ export type Database = {
         Args: { _breach_note?: string; _obligation_id: string; _status: string }
         Returns: Json
       }
+      enforcement_referral_create: { Args: { _payload: Json }; Returns: string }
+      enforcement_resolve_source: {
+        Args: { _id: string; _kind: string }
+        Returns: Json
+      }
+      enforcement_source_href: {
+        Args: { _id: string; _kind: string }
+        Returns: string
+      }
+      enforcement_work_queue: {
+        Args: {
+          _assigned_to?: string
+          _entity_id?: string
+          _include_closed?: boolean
+          _limit?: number
+          _offset?: number
+          _search?: string
+          _sla_states?: string[]
+          _sort?: string
+          _source_kinds?: string[]
+          _stages?: string[]
+        }
+        Returns: {
+          assigned_team: string
+          assigned_to: string
+          assigned_to_name: string
+          blockers: Json
+          canonical_href: string
+          case_id: string
+          case_number: string
+          enforcement_type: string
+          entity_id: string
+          entity_name: string
+          last_activity_at: string
+          next_action_code: string
+          next_action_label: string
+          open_obligations: number
+          penalty_amount: number
+          penalty_currency: string
+          priority: string
+          severity: string
+          sla_due_at: string
+          sla_state: string
+          source_href: string
+          source_kind: string
+          source_reference: string
+          stage: string
+          stage_label: string
+          status: string
+          total_count: number
+          waiting_on: string
+        }[]
+      }
+      enforcement_work_queue_counts: { Args: never; Returns: Json }
       engine_rule_activate: {
         Args: { _note?: string; _rule_id: string }
         Returns: Json
