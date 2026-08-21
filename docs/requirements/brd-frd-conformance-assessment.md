@@ -1,5 +1,13 @@
 # BRD / FRD Conformance & Supervisory Readiness Assessment
 
+> **SUPERSEDED — 2026-08-21.** This document records the pre-implementation
+> discovery position (before packages A1–A4). Its "NOT CERTIFIED" verdicts
+> for the detection-to-action chains are closed: breaches, directives,
+> investigations, thematic reviews, enforcement actions, decision
+> artefacts, escalations and reviewed AI insights all now hold live
+> records produced through governed paths. The authoritative current
+> verdict is `docs/certification/final-brd-frd-certification.md`.
+
 **Programme:** SUPTECH BRD/FRD Conformance & Supervisory Readiness
 **Task type:** Discovery and analysis only. No functionality was
 implemented, no schema was changed, no data was seeded.

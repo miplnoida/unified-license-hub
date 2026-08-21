@@ -1,5 +1,12 @@
 # Supervisory Gap Register
 
+> **SUPERSEDED — 2026-08-21.** All P1 gaps in this register (including
+> GAP-XC-01 direct-write remediation and GAP-PS-01 breach detection) were
+> closed by packages A1–A4 and re-verified in the final certification. Do
+> not treat the entries below as open. See
+> `docs/certification/final-brd-frd-certification.md` and
+> `docs/certification/production-readiness-matrix.md`.
+
 **Task type:** Discovery. Nothing in this register has been implemented.
 Priorities: **P1** = blocks BRD/FRD conformance or demo credibility.
 **P2** = material supervisory weakness. **P3** = polish / hardening.
