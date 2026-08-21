@@ -1,62 +1,89 @@
 /**
  * P04 — Current Step: the ONLY surface that advances the licence lifecycle.
  *
- * The available actions, their eligibility and the recommended next action all
- * come from the `license_case` read model; the panel only submits the chosen
- * governed operation (`license_lifecycle_action`) with a rationale.
+ * Availability, adversity, rationale requirement, due-process blockers AND the
+ * payload schema for the chosen step all come from the server
+ * (`license_case().available_actions` enriched by
+ * `license_adverse_matter_case().actions[].input_requirements`). The panel
+ * renders the requested fields and submits them through
+ * `license_lifecycle_step`, which re-validates every one of them.
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { AlertTriangle, ArrowRight, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { formatDateTime } from '@/lib/datetime';
 import {
+  useLicenseAdverseMatterCase,
   useLicenseLifecycleAction,
   type LicenseCaseModel,
   type LicenseAvailableAction,
-  type LicenseLifecycleActionKey,
+  type LicenseActionInputRequirement,
 } from '@/hooks/useLicenseLifecycle';
 
+function humanise(message: string): string {
+  if (message.includes('REASON_REQUIRED')) return 'A rationale of at least 10 characters is required.';
+  if (message.includes('FIELD_REQUIRED')) return message.replace(/^.*FIELD_REQUIRED[^A-Za-z]*/, '') || 'A required field is missing.';
+  if (message.includes('INVALID_FROM_STATE')) return 'The licence is not in a valid state for this action.';
+  if (message.includes('RENEWAL_ALREADY_OPEN')) return 'A renewal is already open for this licence.';
+  if (message.includes('NO_OPEN_RENEWAL')) return 'There is no open renewal to decide.';
+  if (message.includes('BLOCKED')) return 'Outstanding due-process blockers must be resolved before this action.';
+  if (message.includes('FORBIDDEN')) return 'You do not hold the authority for this action.';
+  return message;
+}
+
 export function LicenseCurrentStepPanel({ model, readOnly }: { model: LicenseCaseModel; readOnly?: boolean }) {
-  // Availability, adversity, rationale requirement and blockers are all server
-  // owned (`license_case().available_actions`). No client eligibility logic.
-  const actions: LicenseAvailableAction[] = model.header.available_actions ?? model.available_actions ?? [];
+  const baseActions: LicenseAvailableAction[] = model.header.available_actions ?? model.available_actions ?? [];
+  // Server-declared payload schema for adverse/due-process steps.
+  const { data: adverseCase } = useLicenseAdverseMatterCase(model.header.license_id);
+  const actions = useMemo<LicenseAvailableAction[]>(() => {
+    const enriched = adverseCase?.actions ?? [];
+    if (!enriched.length) return baseActions;
+    return baseActions.map((a) => {
+      const match = enriched.find((e) => e.key === a.key && (e.matter_id ?? null) === (a.matter_id ?? null));
+      return match ? { ...a, ...match } : a;
+    });
+  }, [baseActions, adverseCase]);
+
   const recommended = model.header.next_action?.key ?? null;
   const [selected, setSelected] = useState<string>('');
   const [reason, setReason] = useState('');
+  const [fields, setFields] = useState<Record<string, string>>({});
   const mutation = useLicenseLifecycleAction(model.header.license_id);
 
-  const chosen = actions.find((a) => a.key === selected) ?? null;
+  const chosen = actions.find((a) => `${a.key}:${a.matter_id ?? ''}` === selected) ?? null;
   const requiresReason = chosen?.requires_reason ?? false;
   const reasonTooShort = requiresReason && reason.trim().length < 10;
   const chosenBlockers = chosen?.blockers ?? [];
+  const requirements: LicenseActionInputRequirement[] = chosen?.input_requirements ?? [];
+  const missingRequired = requirements.filter((r) => r.required && !(fields[r.key] ?? '').trim());
 
   const submit = async () => {
     if (!chosen) return;
+    const payload: Record<string, unknown> = { ...fields };
+    if (chosen.matter_id) payload.matter_id = chosen.matter_id;
     try {
       await mutation.mutateAsync({
-        actionKey: chosen.key as LicenseLifecycleActionKey,
+        actionKey: chosen.key,
         reason: reason.trim() || null,
+        payload,
       });
       toast({ title: 'Lifecycle action recorded', description: chosen.label });
       setSelected('');
       setReason('');
+      setFields({});
     } catch (error) {
-      const message = (error as { message?: string })?.message ?? 'Action failed';
+      const err = error as { message?: string; details?: string };
       toast({
         variant: 'destructive',
         title: 'Action rejected',
-        description:
-          message.includes('REASON_REQUIRED') ? 'A rationale of at least 10 characters is required.'
-          : message.includes('INVALID_FROM_STATE') ? 'The licence is not in a valid state for this action.'
-          : message.includes('RENEWAL_ALREADY_OPEN') ? 'A renewal is already open for this licence.'
-          : message.includes('NO_OPEN_RENEWAL') ? 'There is no open renewal to decide.'
-          : message.includes('BLOCKED') ? 'Outstanding blockers must be resolved before this action.'
-          : message,
+        description: humanise(err?.details || err?.message || 'Action failed'),
       });
     }
   };
@@ -110,13 +137,18 @@ export function LicenseCurrentStepPanel({ model, readOnly }: { model: LicenseCas
         ) : actions.length === 0 ? (
           <p className="text-sm text-muted-foreground">No lifecycle actions are available to you for this licence.</p>
         ) : (
-          <div className="space-y-3">
-            <Select value={selected} onValueChange={setSelected}>
+          <div className="space-y-3" data-testid="license-current-step-actions">
+            <Select
+              value={selected}
+              onValueChange={(v) => { setSelected(v); setFields({}); }}
+            >
               <SelectTrigger className="max-w-md"><SelectValue placeholder="Select a lifecycle action" /></SelectTrigger>
               <SelectContent>
                 {actions.map((a) => (
-                  <SelectItem key={a.key} value={a.key}>
-                    {a.label}{recommended === a.key ? ' (recommended)' : ''}
+                  <SelectItem key={`${a.key}:${a.matter_id ?? ''}`} value={`${a.key}:${a.matter_id ?? ''}`}>
+                    {a.label}
+                    {a.matter_kind ? ` · ${a.matter_kind}` : ''}
+                    {recommended === a.key ? ' (recommended)' : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -133,6 +165,46 @@ export function LicenseCurrentStepPanel({ model, readOnly }: { model: LicenseCas
                     ))}
                   </div>
                 )}
+
+                {/* Server-declared payload schema — no hardcoded per-action form. */}
+                {requirements.length > 0 && (
+                  <div className="grid gap-3 md:grid-cols-2" data-testid="license-step-input-requirements">
+                    {requirements.map((r) => (
+                      <div key={r.key} className={r.type === 'textarea' ? 'md:col-span-2' : ''}>
+                        <Label className="text-xs">
+                          {r.label}{r.required ? ' *' : ''}
+                        </Label>
+                        {r.type === 'textarea' ? (
+                          <Textarea
+                            rows={3}
+                            value={fields[r.key] ?? ''}
+                            onChange={(e) => setFields((f) => ({ ...f, [r.key]: e.target.value }))}
+                          />
+                        ) : r.type === 'select' ? (
+                          <Select
+                            value={fields[r.key] ?? ''}
+                            onValueChange={(v) => setFields((f) => ({ ...f, [r.key]: v }))}
+                          >
+                            <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                            <SelectContent>
+                              {(r.options ?? []).map((o) => (
+                                <SelectItem key={o} value={o}>{o.replace(/_/g, ' ')}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            type={r.type === 'date' ? 'date' : 'text'}
+                            value={fields[r.key] ?? ''}
+                            onChange={(e) => setFields((f) => ({ ...f, [r.key]: e.target.value }))}
+                          />
+                        )}
+                        {r.help && <p className="text-xs text-muted-foreground mt-1">{r.help}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <Textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
@@ -143,13 +215,18 @@ export function LicenseCurrentStepPanel({ model, readOnly }: { model: LicenseCas
                   <Button
                     data-rbac={chosen.permission}
                     onClick={submit}
-                    disabled={mutation.isPending || reasonTooShort || chosenBlockers.length > 0}
+                    disabled={mutation.isPending || reasonTooShort || chosenBlockers.length > 0 || missingRequired.length > 0}
                   >
                     {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ArrowRight className="h-4 w-4 mr-2" />}
                     {chosen.label}
                   </Button>
                   {reasonTooShort && (
                     <span className="text-xs text-muted-foreground">Rationale must be at least 10 characters.</span>
+                  )}
+                  {missingRequired.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      Required: {missingRequired.map((r) => r.label).join(', ')}
+                    </span>
                   )}
                 </div>
               </>
