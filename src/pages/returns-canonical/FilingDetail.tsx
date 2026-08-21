@@ -394,6 +394,10 @@ export default function FilingDetail() {
               ))}
             </CardContent></Card>
           </TabsContent>
+
+          <TabsContent value="related">
+            {filingId && <FilingRelatedCases filingId={filingId} />}
+          </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
