@@ -119,6 +119,7 @@ export default function InvestigationDetail() {
             <TabsTrigger value="evidence">Evidence</TabsTrigger>
             <TabsTrigger value="interviews">Interviews</TabsTrigger>
             <TabsTrigger value="closure">Closure</TabsTrigger>
+            <TabsTrigger value="timeline">Case timeline</TabsTrigger>
             <TabsTrigger value="communications">Communications</TabsTrigger>
           </TabsList>
           <TabsContent value="casefile">
@@ -127,10 +128,28 @@ export default function InvestigationDetail() {
           <TabsContent value="evidence"><EvidenceRepositoryPanel investigationId={data.id} entityId={data.licensee_id || undefined} /></TabsContent>
           <TabsContent value="interviews"><InterviewsPanel investigationId={data.id} entityId={data.licensee_id || undefined} /></TabsContent>
           <TabsContent value="closure"><ClosurePanel investigationId={data.id} investigation={data} /></TabsContent>
+          <TabsContent value="timeline">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Case timeline</CardTitle></CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {(model?.timeline ?? []).length === 0 ? (
+                  <p className="text-muted-foreground">No recorded case events yet.</p>
+                ) : (model?.timeline ?? []).map((t, i) => (
+                  <div key={`${t.code}-${i}`} className="flex items-start gap-3 border-b pb-2 last:border-0">
+                    <span className="w-40 shrink-0 font-mono text-xs text-muted-foreground">
+                      {t.at ? formatDateTime(t.at) : '—'}
+                    </span>
+                    <span>{t.label}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
           <TabsContent value="communications">
             <CommunicationTimeline objectType="conduct_investigation" objectId={data.id} />
           </TabsContent>
         </Tabs>
+
 
 
       </div>
