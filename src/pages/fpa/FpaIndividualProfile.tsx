@@ -381,23 +381,10 @@ function RolesTab({ id }: { id: string }) {
   const [isCurrent, setIsCurrent] = useState(true);
   const [reassessmentCycleMonths, setReassessmentCycleMonths] = useState('');
   const [cycleEdits, setCycleEdits] = useState<Record<string, string>>({});
-  const [runningCycle, setRunningCycle] = useState(false);
 
-  async function runCycleNow() {
-    setRunningCycle(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('fp-cycle-scheduler', { body: {} });
-      if (error) throw error;
-      if (!data?.ok) throw new Error(data?.error || 'Scheduler failed');
-      toast.success(`Cycle scheduler ran — opened ${data.opened}, evaluated ${data.evaluated}, due ${data.due}`);
-      qc.invalidateQueries({ queryKey: ['fp_individual_roles', id] });
-    } catch (e: any) {
-      toast.error(e?.message || 'Failed to run cycle scheduler');
-    } finally {
-      setRunningCycle(false);
-    }
-  }
-
+  // EPR-04 M2: running the reassessment scheduler is a platform operation, not
+  // a person-record action — it lives on /fpa/scheduler. The cycle itself is
+  // governed here, and the server computes the next due date.
   async function saveCycle(roleId: string) {
     const raw = cycleEdits[roleId];
     const months = raw === '' || raw == null ? null : Number(raw);
@@ -405,17 +392,10 @@ function RolesTab({ id }: { id: string }) {
       toast.error('Cycle must be 1-120 months');
       return;
     }
-    const patch: Record<string, unknown> = { reassessment_cycle_months: months };
-    if (months != null) {
-      const next = new Date();
-      next.setMonth(next.getMonth() + months);
-      patch.next_reassessment_due = next.toISOString().slice(0, 10);
-    } else {
-      patch.next_reassessment_due = null;
-    }
-    const { error } = await supabase.from('fp_individual_roles').update(patch).eq('id', roleId);
-    if (error) {
-      toast.error(error.message);
+    try {
+      await fpRoleSetReassessmentCycle(roleId, months);
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to update reassessment cycle');
       return;
     }
     toast.success('Reassessment cycle updated');
