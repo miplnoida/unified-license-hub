@@ -12,6 +12,7 @@ import { Info, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { severityLabel, severityTone, SEVERITY_FILTER_OPTIONS } from '@/lib/prudentialSeverity';
+import { RETURN_STATUS_FILTER_OPTIONS, returnStatusLabel } from '@/lib/prudentialLabels';
 
 const NEUTRAL = 'bg-muted text-muted-foreground border-border';
 const EMERALD = 'bg-emerald-500/10 text-emerald-700 border-emerald-200';
