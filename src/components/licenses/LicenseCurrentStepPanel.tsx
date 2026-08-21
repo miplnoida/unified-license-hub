@@ -124,17 +124,26 @@ export function LicenseCurrentStepPanel({ model, readOnly }: { model: LicenseCas
 
             {chosen && (
               <>
+                {chosenBlockers.length > 0 && (
+                  <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 space-y-1">
+                    {chosenBlockers.map((b) => (
+                      <p key={b.key} className="text-sm flex items-center gap-2 text-destructive">
+                        <AlertTriangle className="h-4 w-4" />{b.label}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 <Textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   rows={3}
-                  placeholder={adverse ? 'Rationale (min 10 characters) — required for adverse actions' : 'Rationale (optional)'}
+                  placeholder={requiresReason ? 'Rationale (min 10 characters) — required for this action' : 'Rationale (optional)'}
                 />
                 <div className="flex items-center gap-3">
                   <Button
                     data-rbac={chosen.permission}
                     onClick={submit}
-                    disabled={mutation.isPending || reasonTooShort}
+                    disabled={mutation.isPending || reasonTooShort || chosenBlockers.length > 0}
                   >
                     {mutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ArrowRight className="h-4 w-4 mr-2" />}
                     {chosen.label}
