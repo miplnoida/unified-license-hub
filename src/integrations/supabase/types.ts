@@ -35545,20 +35545,29 @@ export type Database = {
           _search?: string
         }
         Returns: {
+          blocker_count: number
+          blockers: Json
           canonical_href: string
           entity_id: string
           entity_name: string
           last_activity_at: string
           license_id: string
           next_action: string
+          next_action_code: string
+          next_action_label: string
+          next_action_permission: string
           object_id: string
           object_type: string
+          owner_name: string
+          owner_user_id: string
           priority: string
+          priority_reason: string
           reference: string
           sla_due_at: string
           sla_state: string
           stage: string
           status: string
+          team: string
           total_count: number
           waiting_on: string
           work_kind: string
