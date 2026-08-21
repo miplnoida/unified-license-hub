@@ -200,7 +200,7 @@ export function sourceRouteFor({ module, scope, recordId }: RouteInput): {
     case 'prudential':
       return scope === 'portfolio' || !id
         ? { route: '/prudential/dashboard', label: 'Open prudential dashboard' }
-        : { route: `/prudential/entities/${id}`, label: 'Open entity profile' };
+        : { route: `/prudential/analysis/${id}`, label: 'Open entity profile' };
     case 'examination':
       return id
         ? { route: `/prudential/examinations/${id}`, label: 'Open examination' }
@@ -219,7 +219,7 @@ export function sourceRouteFor({ module, scope, recordId }: RouteInput): {
         : { route: '/enforcement', label: 'Open enforcement cases' };
     case 'cross_module':
       return id
-        ? { route: `/prudential/entities/${id}`, label: 'Open entity profile' }
+        ? { route: `/prudential/analysis/${id}`, label: 'Open entity profile' }
         : { route: '/prudential/entities', label: 'Open supervised entities' };
     case 'executive':
     default:

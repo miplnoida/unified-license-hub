@@ -17,8 +17,8 @@ describe('supervisory action drill-through', () => {
   });
 
   it('falls back to the entity profile for return breaches and stress indicators', () => {
-    expect(sourceLink({ ...base, source_type: 'return_breach', source_id: 'r1' })).toBe('/prudential/entities/e1');
-    expect(sourceLink({ ...base, source_type: 'stress_indicator', source_id: 's1' })).toBe('/prudential/entities/e1');
+    expect(sourceLink({ ...base, source_type: 'return_breach', source_id: 'r1' })).toBe('/entities/e1?view=prudential');
+    expect(sourceLink({ ...base, source_type: 'stress_indicator', source_id: 's1' })).toBe('/entities/e1?view=prudential');
   });
 
 
