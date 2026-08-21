@@ -1,12 +1,12 @@
 /**
- * RDM-ENTITY-001 Wave C — `/register` is a USER ACCOUNT step only (§17).
+ * `/register/account` — shared USER ACCOUNT prerequisite for both public
+ * registration journeys. Account creation is NOT a registration journey.
  *
- * Chain: /register (this page, user account) → /register/entity (entity
- * identification) → authority/membership request → Application / Form
- * Package. The legacy full new-registration flow (entity + documents +
- * declarations bundled together) still exists at `/register/legacy` and at
- * the update/resubmission routes — nothing is removed, just no longer the
- * default `/register` destination.
+ * Chain: /register (journey choice) → either FORM_FIRST /register/applicant
+ * or ENTITY_FIRST /register/entity. When a journey needs an account first,
+ * the user lands here and is returned to the journey they selected (carried in
+ * `?journey=` / `?next=`, defaulting to entity identification), keeping the
+ * intended application and query parameters intact.
  *
  * Reuses the existing OTP edge functions (`send-registration-otp`,
  * `verify-registration-otp`) and verification persistence helpers — no new
@@ -56,7 +56,20 @@ export default function UserAccountStep() {
   const resolvedEmail = normalizeVerificationEmail(email);
   const emailValid = EMAIL_RE.test(resolvedEmail);
 
-  const goToEntityStep = () => navigate(withIntentParam('/register/entity', intent));
+  // The selected journey must survive account creation: never force the user
+  // into ENTITY_FIRST when they chose FORM_FIRST.
+  const journeyKey = new URLSearchParams(location.search).get('journey') || '';
+  const nextParam = new URLSearchParams(location.search).get('next') || '';
+  const resumeRoute =
+    (nextParam.startsWith('/register/') && nextParam) ||
+    (journeyKey === 'FORM_FIRST' ? '/register/applicant' : '/register/entity');
+
+  const goToJourneyStep = () => {
+    const target = journeyKey
+      ? `${resumeRoute}${resumeRoute.includes('?') ? '&' : '?'}journey=${encodeURIComponent(journeyKey)}`
+      : resumeRoute;
+    navigate(withIntentParam(target, intent));
+  };
 
   const handleSendOtp = async () => {
     if (!emailValid) { toast.error('Enter a valid email address first'); return; }
@@ -116,8 +129,12 @@ export default function UserAccountStep() {
     try {
       const { error } = await signup(resolvedEmail, password, `${firstName.trim()} ${lastName.trim()}`, 'pre_licensee');
       if (error) { toast.error(error); return; }
-      toast.success('Account created. Next, tell us which entity you act for.');
-      goToEntityStep();
+      toast.success(
+        resumeRoute === '/register/applicant'
+          ? 'Account created. Continuing with your registration.'
+          : 'Account created. Next, tell us which entity you act for.',
+      );
+      goToJourneyStep();
     } finally {
       setCreating(false);
     }
@@ -129,12 +146,12 @@ export default function UserAccountStep() {
       <main className="mx-auto max-w-xl space-y-4 px-4 py-10 sm:px-6">
         <div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-            <UserPlus className="h-4 w-4" /> Step 1 of 2 · User account
+            <UserPlus className="h-4 w-4" /> User account
           </div>
           <h1 className="text-2xl font-bold">Create your account</h1>
           <p className="text-sm text-muted-foreground">
-            This creates only your personal user account. Once verified, you will identify the regulated entity you act
-            for on the next step — your account and the entity are kept separate.
+            This creates only your personal user account. Once verified, you will continue with the registration option
+            you selected — your account and the organisation’s records are kept separate.
           </p>
         </div>
 
@@ -215,8 +232,8 @@ export default function UserAccountStep() {
           <AlertTitle>Updating or resubmitting an existing registration?</AlertTitle>
           <AlertDescription>
             Use the <Link className="underline" to="/registration/portal">registration portal</Link> — do not create a new
-            account. Need the legacy all-in-one form instead?{' '}
-            <Link className="underline" to="/register/legacy">Use the legacy registration flow</Link>.
+            account. Starting fresh instead?{' '}
+            <Link className="underline" to="/register">Choose a registration option</Link>.
           </AlertDescription>
         </Alert>
       </main>
