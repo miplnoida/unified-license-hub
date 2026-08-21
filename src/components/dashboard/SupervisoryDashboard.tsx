@@ -15,6 +15,8 @@ import { StatusBreakdownCard } from './cards/StatusBreakdownCard';
 import { PriorityListCard } from './cards/PriorityListCard';
 import { WorkflowSlaOverviewWidget } from './widgets/WorkflowSlaOverviewWidget';
 import { SupervisoryTrendsWidget } from './widgets/SupervisoryTrendsWidget';
+import { SupervisoryPriorityQueueWidget } from './widgets/SupervisoryPriorityQueueWidget';
+import { useSupDashboardSummary } from '@/hooks/useSupervisoryReadModels';
 import { APPLICATION_DRILLDOWNS, RETURN_DRILLDOWNS, drilldownTo, returnDrilldownTo } from '@/lib/dashboardDrilldowns';
 import {
   AlertTriangle, FileText, ClipboardList, DollarSign, AlertOctagon,
@@ -34,19 +36,10 @@ export function SupervisoryDashboard() {
   const { data: sectors } = useSectors();
   const { hasModuleAccess } = useUserDynamicPermissions();
 
-  // Open (unacknowledged, non-escalated) prudential breaches — tile links to inbox
-  const { data: openBreaches } = useQuery({
-    queryKey: ['supervisory_open_breaches'],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('return_threshold_breaches')
-        .select('id', { head: true, count: 'exact' })
-        .is('acknowledged_at', null)
-        .is('escalated_enforcement_id', null);
-      return count ?? 0;
-    },
-    staleTime: 60_000,
-  });
+  // Package A4: supervisory truth (prudential signals, canonical returns,
+  // conduct and licensing) comes from the governed `sup_dashboard_summary`
+  // read model, so this dashboard and Entity 360 can never disagree.
+  const { data: supSummary, isLoading: loadingSup } = useSupDashboardSummary();
 
   const insights = useMemo(() => (data ? buildInsights(data) : []), [data]);
 
@@ -130,7 +123,7 @@ export function SupervisoryDashboard() {
           </>
         )}
         {can.returns && (
-          <MetricCard title={RETURN_DRILLDOWNS.overdue.label} value={data?.returns.overdue ?? 0} icon={ClipboardList} tone="warning" loading={isLoading} to={returnDrilldownTo('overdue')} />
+          <MetricCard title="Overdue Return Filings" value={supSummary?.returns?.overdue ?? 0} icon={ClipboardList} tone="warning" loading={loadingSup} to="/returns/queue?overdue=1" />
         )}
         {can.risk && (
           <MetricCard title="High-Risk Entities" value={data?.risk.high ?? 0} icon={ShieldAlert} tone="destructive" loading={isLoading} to="/supervision/risk?risk=high" />
@@ -142,7 +135,7 @@ export function SupervisoryDashboard() {
           <MetricCard title="Open Enforcement" value={data?.enforcement.open ?? 0} icon={AlertTriangle} tone="destructive" loading={isLoading} to="/enforcement?status=open" />
         )}
         {can.returns && (
-          <MetricCard title="Open Breaches" value={openBreaches ?? 0} icon={ShieldAlert} tone="destructive" loading={openBreaches === undefined} to="/supervision/breaches" />
+          <MetricCard title="Breaches Awaiting Acknowledgement" value={supSummary?.prudential?.awaiting_acknowledgement ?? 0} icon={ShieldAlert} tone="destructive" loading={loadingSup} to="/supervision/breaches" />
         )}
         {can.fitAndProper && (
           <MetricCard title="F&P High-Severity Open" value={fpaMetrics?.openHighSeverityFindings ?? 0} icon={UserCheck} tone="destructive" loading={loadingFpa} to="/fpa/findings?quickTab=high" />
@@ -154,6 +147,9 @@ export function SupervisoryDashboard() {
           <MetricCard title="Conduct Alerts Open" value={conductMetrics?.openAlerts ?? 0} icon={Megaphone} tone="warning" loading={loadingConduct} to="/conduct/alerts" />
         )}
       </div>
+
+      {/* Canonical supervisory priority queue — one ranked list of outstanding work */}
+      <SupervisoryPriorityQueueWidget />
 
       {/* Workflow SLA Overview — same calculation as Applications list + WorkflowPanel */}
       {(can.applications || can.workflows) && <WorkflowSlaOverviewWidget />}
@@ -223,13 +219,13 @@ export function SupervisoryDashboard() {
         )}
         {can.returns && (
           <StatusBreakdownCard
-            title="Returns"
-            loading={isLoading}
+            title="Return filings (canonical)"
+            loading={loadingSup}
             items={[
-              { label: 'Due soon', value: data?.returns.due_soon ?? 0, tone: 'warning', to: returnDrilldownTo('dueSoon') },
-              { label: RETURN_DRILLDOWNS.overdue.label, value: data?.returns.overdue ?? 0, tone: 'destructive', to: returnDrilldownTo('overdue') },
-              { label: RETURN_DRILLDOWNS.pendingReview.label, value: data?.returns.pending_review ?? 0, tone: 'primary', to: returnDrilldownTo('pendingReview') },
-              { label: RETURN_DRILLDOWNS.submitted.label, value: data?.returns.submitted ?? 0, tone: 'success', to: returnDrilldownTo('submitted') },
+              { label: 'Due next 30 days', value: supSummary?.returns?.due_next_30_days ?? 0, tone: 'warning', to: '/returns/queue' },
+              { label: 'Overdue', value: supSummary?.returns?.overdue ?? 0, tone: 'destructive', to: '/returns/queue?overdue=1' },
+              { label: 'Awaiting review', value: supSummary?.returns?.awaiting_review ?? 0, tone: 'primary', to: '/returns/queue?status=SUBMITTED' },
+              { label: 'Accepted (30 days)', value: supSummary?.returns?.accepted_last_30_days ?? 0, tone: 'success', to: '/returns/queue?status=ACCEPTED' },
             ]}
           />
         )}
@@ -411,7 +407,8 @@ export function SupervisoryDashboard() {
         {(() => {
           const links: Array<{ to: string; label: string }> = [];
           if (can.applications) links.push({ to: '/applications/queue', label: 'Application queue' });
-          if (can.returns) links.push({ to: '/returns-management', label: 'Returns admin' });
+          if (can.returns) links.push({ to: '/returns/queue', label: 'Return filing queue' });
+          if (can.prudential) links.push({ to: '/supervision/team-performance', label: 'Team performance' });
           if (can.fees) links.push({ to: '/payments', label: 'Fee management' });
           if (can.workflows) links.push({ to: '/workflows', label: 'Workflows' });
           if (can.complaints) links.push({ to: '/complaints', label: 'Complaints' });
