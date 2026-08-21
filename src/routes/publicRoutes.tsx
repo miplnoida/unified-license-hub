@@ -19,6 +19,8 @@ const PublicEnforcement = lazy(() => import('@/pages/public/PublicEnforcement'))
 const PublicEntityRegister = lazy(() => import('@/pages/public/PublicEntityRegister'));
 const PublicEntityDetail = lazy(() => import('@/pages/public/PublicEntityDetail'));
 const EntityIdentification = lazy(() => import('@/pages/registration/EntityIdentification'));
+const UserAccountStep = lazy(() => import('@/pages/registration/UserAccountStep'));
+const LegacyRegisterRedirect = lazy(() => import('@/routes/LegacyRegisterRedirect'));
 const DeclarationLanding = lazy(() => import('@/pages/public/DeclarationLanding'));
 
 
