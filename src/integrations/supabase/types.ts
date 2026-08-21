@@ -33821,10 +33821,6 @@ export type Database = {
         Returns: Json
       }
       fp_assessment_case: { Args: { _assessment_id: string }; Returns: Json }
-      fp_assessment_case_licensee_name: {
-        Args: { _licensee_id: string }
-        Returns: string
-      }
       fp_assessment_comparison: {
         Args: { _assessment_id: string }
         Returns: {
