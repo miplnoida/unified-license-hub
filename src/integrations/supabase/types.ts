@@ -21223,6 +21223,30 @@ export type Database = {
           },
         ]
       }
+      prudential_process_sla_config: {
+        Row: {
+          due_soon_days: number
+          label: string
+          sla_days: number
+          updated_at: string
+          work_item_type: string
+        }
+        Insert: {
+          due_soon_days?: number
+          label: string
+          sla_days: number
+          updated_at?: string
+          work_item_type: string
+        }
+        Update: {
+          due_soon_days?: number
+          label?: string
+          sla_days?: number
+          updated_at?: string
+          work_item_type?: string
+        }
+        Relationships: []
+      }
       prudential_ratio_versions: {
         Row: {
           display_format: string | null
@@ -35275,6 +35299,10 @@ export type Database = {
           unit: string
         }[]
       }
+      prudential_assessment_case: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       prudential_assessment_create: {
         Args: {
           _auto_suggested_rating?: string
@@ -35500,6 +35528,7 @@ export type Database = {
         }
       }
       prudential_dashboard_metrics: { Args: never; Returns: Json }
+      prudential_dashboard_portfolio: { Args: never; Returns: Json }
       prudential_enforce: {
         Args: { _action: string; _entity_id?: string }
         Returns: undefined
@@ -35524,6 +35553,7 @@ export type Database = {
         Args: { _entity_id: string }
         Returns: Json
       }
+      prudential_entity_state: { Args: { _entity_id: string }; Returns: Json }
       prudential_entity_universe: {
         Args: { _search?: string; _sector_id?: string; _status?: string }
         Returns: {
@@ -35885,6 +35915,67 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      prudential_work_queue: {
+        Args: {
+          _entity_id?: string
+          _limit?: number
+          _offset?: number
+          _owner?: string
+          _search?: string
+          _sector_id?: string
+          _severity?: string[]
+          _sla?: string
+          _stage?: string
+          _types?: string[]
+          _unassigned?: boolean
+        }
+        Returns: {
+          blocker_count: number
+          blockers: Json
+          canonical_href: string
+          detail: Json
+          entity_id: string
+          entity_name: string
+          last_activity_at: string
+          next_action_code: string
+          next_action_href: string
+          next_action_label: string
+          next_action_permission: string
+          owner_name: string
+          owner_user_id: string
+          priority: string
+          priority_reason: string
+          reference: string
+          sla_due_at: string
+          sla_state: string
+          source_id: string
+          source_type: string
+          stage: string
+          stage_label: string
+          status: string
+          status_label: string
+          team: string
+          title: string
+          total_count: number
+          waiting_on: string
+          work_item_id: string
+          work_item_type: string
+        }[]
+      }
+      prudential_work_queue_counts: {
+        Args: {
+          _entity_id?: string
+          _owner?: string
+          _search?: string
+          _sector_id?: string
+          _severity?: string[]
+          _sla?: string
+          _stage?: string
+          _types?: string[]
+          _unassigned?: boolean
+        }
+        Returns: Json
       }
       public_entity_register_detail: { Args: { _slug: string }; Returns: Json }
       public_entity_register_search: {

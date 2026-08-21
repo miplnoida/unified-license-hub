@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { Entity360Header } from '@/components/entity-detail/Entity360Header';
 import { Entity360OverviewPanel } from '@/components/entity-detail/Entity360Overview';
 import { EntitySupervisoryStatePanel } from '@/components/entity-detail/EntitySupervisoryStatePanel';
+import { EntityPrudentialStatePanel } from '@/components/prudential/EntityPrudentialStatePanel';
 import { Entity360SectionView } from '@/components/entity-detail/Entity360SectionView';
 import { Entity360TimelinePanel } from '@/components/entity-detail/Entity360TimelinePanel';
 import { E360_GROUPS, E360_SECTIONS } from '@/components/entity-detail/sectionCatalogue';
@@ -163,6 +164,7 @@ export default function Entity360Detail() {
           {view === 'overview' && (
             <div className="space-y-4">
               <EntitySupervisoryStatePanel entityId={entity.id} />
+              <EntityPrudentialStatePanel entityId={entity.id} />
               <Entity360OverviewPanel
                 overview={overview}
                 allowed={allowed}
