@@ -79,7 +79,7 @@ export default function EscalationsList() {
               <TableRow key={es.id}>
                 <TableCell>
                   {es.entity_id ? (
-                    <Link to={`/prudential/entities/${es.entity_id}`} className="text-primary hover:underline">
+                    <Link to={`/entities/${es.entity_id}?view=prudential`} className="text-primary hover:underline">
                       {es.licensees?.name || 'Open entity'}
                     </Link>
                   ) : (es.licensees?.name || '—')}

@@ -193,7 +193,7 @@ export function RiskScoreExplainer({ row, entityName, showProfileLink = true, ac
           <Button
             variant="outline"
             className="w-full justify-between"
-            onClick={() => navigate(`/prudential/entities/${row.entity_id}`)}
+            onClick={() => navigate(`/entities/${row.entity_id}?view=prudential`)}
           >
             Open supervisory profile <ArrowRight className="h-4 w-4" />
           </Button>

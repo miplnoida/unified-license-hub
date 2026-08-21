@@ -60,7 +60,7 @@ export interface ActionMonitorResult {
 
 /** Source drill-through target for a supervisory action. */
 export function sourceLink(row: Pick<MonitoredAction, 'source_type' | 'source_id' | 'entity_id'>): string | null {
-  if (!row.source_id) return row.entity_id ? `/prudential/entities/${row.entity_id}` : null;
+  if (!row.source_id) return row.entity_id ? `/entities/${row.entity_id}?view=prudential` : null;
   switch (row.source_type) {
     case 'assessment':
       return `/prudential/assessments/${row.source_id}`;
@@ -70,9 +70,9 @@ export function sourceLink(row: Pick<MonitoredAction, 'source_type' | 'source_id
       return '/prudential/examinations';
     case 'return_breach':
     case 'stress_indicator':
-      return row.entity_id ? `/prudential/entities/${row.entity_id}` : null;
+      return row.entity_id ? `/entities/${row.entity_id}?view=prudential` : null;
     default:
-      return row.entity_id ? `/prudential/entities/${row.entity_id}` : null;
+      return row.entity_id ? `/entities/${row.entity_id}?view=prudential` : null;
   }
 }
 

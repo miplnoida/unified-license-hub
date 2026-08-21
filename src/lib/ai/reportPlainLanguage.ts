@@ -115,7 +115,7 @@ export const SUPERVISORY_AREAS: SupervisoryArea[] = [
     label: 'Prudential risk',
     description: 'Ratios, thresholds, early-warning indicators and peer position.',
     modules: ['prudential'],
-    generateRoute: (id) => `/prudential/entities/${id}`,
+    generateRoute: (id) => `/prudential/analysis/${id}`,
     generateLabel: 'Open entity profile',
   },
   {
@@ -147,7 +147,7 @@ export const SUPERVISORY_AREAS: SupervisoryArea[] = [
     label: 'Entity history & cross-module view',
     description: 'Cross-module briefs that read the entity’s whole supervisory record.',
     modules: ['cross_module', 'executive'],
-    generateRoute: (id) => `/prudential/entities/${id}`,
+    generateRoute: (id) => `/prudential/analysis/${id}`,
     generateLabel: 'Open entity 360 profile',
   },
 ];

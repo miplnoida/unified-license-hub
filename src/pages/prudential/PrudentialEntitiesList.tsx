@@ -238,7 +238,7 @@ export default function PrudentialEntitiesList() {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button asChild variant="ghost" size="icon" aria-label={`View prudential profile for ${e.name}`}>
-                              <Link to={`/prudential/entities/${e.id}`}>
+                              <Link to={`/entities/${e.id}?view=prudential`}>
                                 <Eye className="h-4 w-4" />
                               </Link>
                             </Button>

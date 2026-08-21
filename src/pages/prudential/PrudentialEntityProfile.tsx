@@ -276,28 +276,30 @@ export default function PrudentialEntityProfile() {
           <Link to="/prudential/entities"><ChevronLeft className="h-4 w-4 mr-1" />Back to Entities</Link>
         </Button>
       </div>
-      <div className="flex items-center justify-between">
+      {/* EPR-02: this surface is prudential ANALYSIS only. Entity identity, licence
+          status and supervisory state live on the canonical Entity 360 profile;
+          operational actions are raised from the work queue / case workspaces. */}
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-semibold">{e.name}</h1>
+          <h1 className="text-2xl font-semibold">Prudential analysis</h1>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <span>License status:</span>
-            <Badge variant="outline">{e.status ? humanizeToken(e.status) : '—'}</Badge>
-            {e.systemic_importance && (
-              <>
-                <span>· Systemic importance:</span>
-                <Badge>{humanizeToken(e.systemic_importance)}</Badge>
-              </>
-            )}
+            <Link to={`/entities/${e.id}?view=prudential`} className="text-primary hover:underline">{e.name}</Link>
+            <span>· ratio trends, peer comparison and analytical evidence</span>
           </div>
         </div>
 
         <div className="flex gap-2">
-          <Button data-rbac="prudential_supervision.create" size="sm" variant="outline" onClick={() => setCreateAction({ entity_id: e.id, source_type: 'manual' })}>New action</Button>
-          <Button data-rbac="prudential_supervision.create" size="sm" variant="outline" onClick={() => setCreateEscalation({ entity_id: e.id, related_type: 'entity' })}>New escalation</Button>
+          <Button size="sm" variant="outline" asChild>
+            <Link to={`/entities/${e.id}?view=prudential`}>Open Entity 360</Link>
+          </Button>
+          <Button size="sm" variant="outline" asChild>
+            <Link to={`/prudential/work?entity=${e.id}`}>Open work queue</Link>
+          </Button>
           <Button data-rbac="prudential_supervision.export" size="sm" variant="outline" onClick={exportProfile}><Download className="h-3 w-3 mr-1" />Export</Button>
           <Button size="sm" variant="outline" onClick={() => setHistoryOpen(true)}><History className="h-3 w-3 mr-1" />History</Button>
         </div>
       </div>
+
 
       <Tabs defaultValue="overview">
         <TabsList className="flex h-auto flex-wrap justify-start gap-1">
