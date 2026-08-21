@@ -9,6 +9,23 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Server-owned licence lifecycle action availability. Computed by
+ * `license_lifecycle_available_actions()` — the same authority the governed
+ * `license_lifecycle_action()` RPC re-validates against. The browser MUST NOT
+ * infer eligibility.
+ */
+export interface LicenseAvailableAction {
+  key: string;
+  label: string;
+  permission: string;
+  adverse: boolean;
+  requires_reason: boolean;
+  blockers: Array<{ key: string; label: string; href?: string }>;
+  section?: string | null;
+  href?: string | null;
+}
+
 export interface LicenseCaseHeaderModel {
   license_id: string;
   reference: string;
