@@ -33,6 +33,10 @@ import { useLicenseCase } from '@/hooks/useLicenseLifecycle';
 import LicenseTermHistoryPanel from '@/components/licenses/LicenseTermHistoryPanel';
 import LicenseConditionsPanel from '@/components/licenses/LicenseConditionsPanel';
 import LicenseAdverseMatterPanel from '@/components/licenses/LicenseAdverseMatterPanel';
+import LicenseVariationPanel from '@/components/licenses/LicenseVariationPanel';
+import LicenseDecisionAppealsPanel from '@/components/licenses/LicenseDecisionAppealsPanel';
+import LicenseFeeLedgerPanel from '@/components/licenses/LicenseFeeLedgerPanel';
+import LicenseVerificationPanel from '@/components/licenses/LicenseVerificationPanel';
 
 
 
