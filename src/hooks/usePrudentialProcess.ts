@@ -159,11 +159,37 @@ export interface PrudentialAssessmentCase {
     waiting_on: string | null; last_activity_at: string | null;
   };
   blockers?: Array<{ code: string; label: string; href?: string }>;
+  /** Canonical EPR-01 filing the assessment is evidenced on (null when none). */
+  filing?: {
+    return_filing_id: string; filing_reference: string | null; status: string | null;
+    period_label: string | null; period_end: string | null;
+    accepted_version_id: string | null; accepted_version_number: number | null;
+    accepted_at: string | null; href: string;
+  } | null;
+  linked_actions?: Array<{
+    id: string; reference: string | null; title: string; status: string;
+    severity: string | null; due_date: string | null; href: string;
+  }>;
+  /**
+   * Server-owned supervisory rating policy. `has_methodology: false` means the
+   * platform has NO configured rating methodology, so the workspace must show
+   * `message` verbatim rather than deriving a rating in the browser.
+   */
+  rating_guidance?: {
+    has_methodology: boolean;
+    suggested_rating: string | null;
+    basis: string | null;
+    message: string;
+    detail: string | null;
+  };
+  evidence?: { return_filing_id: string | null; return_filing_version_id: string | null; available: boolean };
+  completed_steps?: Array<{ label: string; at: string | null }>;
   available_actions?: CaseAction[];
   next_action?: { code: string; label: string };
   review_notes?: string | null;
   related_cases?: Array<{ kind: string; label: string; detail: string | null; href: string }>;
 }
+
 
 /* ------------------------------------------------------------------ hooks */
 
