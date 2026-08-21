@@ -36584,6 +36584,10 @@ export type Database = {
         Args: { _absorbed_entity_id: string; _survivor_entity_id: string }
         Returns: Json
       }
+      entity_onboarding_activity: {
+        Args: { _entity_id: string }
+        Returns: Json
+      }
       entity_registry_entity_dto: {
         Args: { _entity_id: string }
         Returns: Json
@@ -38981,6 +38985,41 @@ export type Database = {
         Args: { _event_id: string }
         Returns: undefined
       }
+      onboarding_form_first_resolve: {
+        Args: { _registration_id: string }
+        Returns: Json
+      }
+      onboarding_identification_activity: {
+        Args: { _filters?: Json; _limit?: number; _offset?: number }
+        Returns: {
+          candidate_count: number
+          event_reference: string
+          failure_reason: string
+          follow_up_action: string
+          follow_up_at: string
+          highest_match_score: number
+          id: string
+          identifier_type: string
+          identifier_value_masked: string
+          journey_type: string
+          licence_number_masked: string
+          match_basis: string
+          matched_entity_id: string
+          matched_entity_name: string
+          occurred_at: string
+          resolution_case_id: string
+          resolution_case_number: string
+          resolution_outcome: string
+          searched_legal_name: string
+          source_channel: string
+          user_email: string
+          user_id: string
+        }[]
+      }
+      onboarding_identification_activity_counts: {
+        Args: { _filters?: Json }
+        Returns: Json
+      }
       onboarding_identifier_catalogue: { Args: never; Returns: Json }
       onboarding_issue_token: {
         Args: {
@@ -39008,6 +39047,7 @@ export type Database = {
         Returns: string
       }
       onboarding_mask_value: { Args: { _value: string }; Returns: string }
+      onboarding_overview: { Args: never; Returns: Json }
       onboarding_provision_from_token: {
         Args: { _resolution_token: string }
         Returns: Json
@@ -39063,6 +39103,17 @@ export type Database = {
         Returns: Json
       }
       onboarding_resolve_entity: { Args: { _payload: Json }; Returns: Json }
+      onboarding_user_journey_events: {
+        Args: { _user_id: string }
+        Returns: {
+          detail: Json
+          entity_id: string
+          event_reference: string
+          journey_type: string
+          occurred_at: string
+          stage: string
+        }[]
+      }
       os_name: { Args: never; Returns: string }
       pass:
         | { Args: never; Returns: string }
@@ -40246,6 +40297,21 @@ export type Database = {
           _signal_id: string
         }
         Returns: string
+      }
+      registration_journey_register: {
+        Args: { _filters?: Json; _limit?: number; _offset?: number }
+        Returns: {
+          entity_id: string
+          entity_name: string
+          event_count: number
+          journey_type: string
+          last_event_at: string
+          latest_stage: string
+          membership_status: string
+          stage: string
+          user_email: string
+          user_id: string
+        }[]
       }
       regulatory_request_available_types: {
         Args: { _entity_id: string }
