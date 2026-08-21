@@ -188,10 +188,8 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
       if (entityLicenseLinksRes.error) {
         console.warn('[useLicenseeMetrics] Could not read licensee links; falling back to holder licenses:', entityLicenseLinksRes.error);
       }
-      if (returnsRes.error) {
-        console.error('[useLicenseeMetrics] Failed to resolve returns:', returnsRes.error);
-        throw returnsRes.error;
-      }
+
+
 
       const linkedLicenseIds = ((entityLicenseLinksRes.error ? [] : entityLicenseLinksRes.data || []) as Array<{ license_id?: string | null }>)
         .map((row) => row.license_id)
