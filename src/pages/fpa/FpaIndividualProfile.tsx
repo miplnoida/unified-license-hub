@@ -620,6 +620,23 @@ function RolesTab({ id }: { id: string }) {
                       <TableCell className="text-sm text-muted-foreground tabular-nums">
                         {fmtDate(r.created_at)}
                       </TableCell>
+                      <TableCell className="text-right">
+                        {r.is_current ? (
+                          <Button
+                            data-rbac="fit_and_proper.edit"
+                            size="sm"
+                            variant="outline"
+                            className="h-8"
+                            onClick={() => ceaseRole(r.id)}
+                          >
+                            Cease
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            ceased {r.effective_to ? fmtDate(r.effective_to) : ''}
+                          </span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   );
                 })}
