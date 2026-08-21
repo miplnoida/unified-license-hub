@@ -10,6 +10,9 @@
 -- somebody else's registration, anonymous callers are refused, and the browser
 -- roles hold no execute rights on the service-only entry point.
 --
+-- The onboarding audit ledger is append-only (deletes are refused), so this
+-- script relies on transaction rollback rather than cleanup DML.
+--
 -- Usage: psql -v ON_ERROR_STOP=1 -f supabase/tests/onboarding/01_form_first_resolution.sql
 -- Everything runs inside a transaction and is rolled back.
 BEGIN;
@@ -172,7 +175,12 @@ BEGIN
                   WHERE registration_id = v_reg AND journey_type = 'FORM_FIRST') THEN
     RAISE EXCEPTION '[FAIL] no FORM_FIRST journey event recorded for provisioning';
   END IF;
-  RAISE NOTICE '[OK] NO_MATCH → governed provisional entity bound, journey event recorded';
+  IF (SELECT legal_name_authority FROM public.organizations o
+        JOIN public.licensees l ON l.party_id = o.party_id
+       WHERE l.id = v_binding.entity_id) <> 'LOCAL_PROVISIONAL' THEN
+    RAISE EXCEPTION '[FAIL] provisional entity name authority must be LOCAL_PROVISIONAL';
+  END IF;
+  RAISE NOTICE '[OK] NO_MATCH → governed provisional entity bound (LOCAL_PROVISIONAL), journey event recorded';
 
   -- ===================================================== D. execute surface
   IF has_function_privilege('anon', 'public.onboarding_form_first_resolve_service(uuid)', 'EXECUTE')
