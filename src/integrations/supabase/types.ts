@@ -17441,6 +17441,88 @@ export type Database = {
           },
         ]
       }
+      license_lifecycle_matters: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          decision: string | null
+          due_at: string | null
+          id: string
+          license_id: string
+          matter_kind: string
+          metadata: Json
+          opened_at: string
+          opened_by: string | null
+          reason: string | null
+          renewal_id: string | null
+          status: string
+          title: string | null
+          updated_at: string
+          waiting_on: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          decision?: string | null
+          due_at?: string | null
+          id?: string
+          license_id: string
+          matter_kind: string
+          metadata?: Json
+          opened_at?: string
+          opened_by?: string | null
+          reason?: string | null
+          renewal_id?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          waiting_on?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          decision?: string | null
+          due_at?: string | null
+          id?: string
+          license_id?: string
+          matter_kind?: string
+          metadata?: Json
+          opened_at?: string
+          opened_by?: string | null
+          reason?: string | null
+          renewal_id?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          waiting_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_lifecycle_matters_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_lifecycle_matters_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_lifecycle_matters_renewal_id_fkey"
+            columns: ["renewal_id"]
+            isOneToOne: false
+            referencedRelation: "license_renewals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       license_renewals: {
         Row: {
           created_at: string
@@ -35410,6 +35492,10 @@ export type Database = {
         Args: { _appeal_id: string; _reason?: string }
         Returns: Json
       }
+      license_case: {
+        Args: { _audience?: string; _license_id: string }
+        Returns: Json
+      }
       license_condition_create: {
         Args: {
           _application_id?: string
@@ -35434,11 +35520,82 @@ export type Database = {
         Args: { _licensee_id: string }
         Returns: string[]
       }
+      license_lifecycle_action: {
+        Args: {
+          _action_key: string
+          _license_id: string
+          _payload?: Json
+          _reason?: string
+        }
+        Returns: Json
+      }
+      license_lifecycle_policy: {
+        Args: { _cat: string; _sector: string; _sub: string }
+        Returns: Json
+      }
+      license_lifecycle_work_queue: {
+        Args: {
+          _kinds?: string[]
+          _page?: number
+          _page_size?: number
+          _search?: string
+        }
+        Returns: {
+          canonical_href: string
+          entity_id: string
+          entity_name: string
+          last_activity_at: string
+          license_id: string
+          next_action: string
+          object_id: string
+          object_type: string
+          priority: string
+          reference: string
+          sla_due_at: string
+          sla_state: string
+          stage: string
+          status: string
+          total_count: number
+          waiting_on: string
+          work_kind: string
+        }[]
+      }
+      license_lifecycle_work_queue_counts: { Args: never; Returns: Json }
       license_recipients_for_holder: {
         Args: { _license_id: string }
         Returns: {
           email: string
           user_id: string
+        }[]
+      }
+      license_register_page: {
+        Args: {
+          _page?: number
+          _page_size?: number
+          _search?: string
+          _sector_id?: string
+          _sla_state?: string
+          _sort_by?: string
+          _sort_dir?: string
+          _status?: string
+        }
+        Returns: {
+          days_to_expiry: number
+          entity_id: string
+          entity_name: string
+          issued_at: string
+          license_id: string
+          license_number: string
+          license_type: string
+          next_action: string
+          open_conditions: number
+          open_matter_kind: string
+          overdue_conditions: number
+          sla_state: string
+          status: string
+          total_count: number
+          valid_from: string
+          valid_until: string
         }[]
       }
       licensee_group_membership: {
