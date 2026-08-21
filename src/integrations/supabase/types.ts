@@ -12457,6 +12457,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "form_field_definitions_regulatory_metric_id_fkey"
+            columns: ["regulatory_metric_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
+            referencedColumns: ["regulatory_metric_id"]
+          },
+          {
             foreignKeyName: "form_field_definitions_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -17497,6 +17504,13 @@ export type Database = {
             referencedRelation: "regulatory_metrics"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "metric_calculation_rules_regulatory_metric_id_fkey"
+            columns: ["regulatory_metric_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
+            referencedColumns: ["regulatory_metric_id"]
+          },
         ]
       }
       module_rule_tests: {
@@ -20679,6 +20693,13 @@ export type Database = {
             referencedColumns: ["filing_id"]
           },
           {
+            foreignKeyName: "prudential_assessments_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
+            referencedColumns: ["filing_id"]
+          },
+          {
             foreignKeyName: "prudential_assessments_return_filing_version_id_fkey"
             columns: ["return_filing_version_id"]
             isOneToOne: false
@@ -20760,6 +20781,13 @@ export type Database = {
             columns: ["related_filing_id"]
             isOneToOne: false
             referencedRelation: "v_return_filing_workflow_state"
+            referencedColumns: ["filing_id"]
+          },
+          {
+            foreignKeyName: "prudential_data_feed_logs_related_filing_id_fkey"
+            columns: ["related_filing_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
             referencedColumns: ["filing_id"]
           },
           {
@@ -20872,6 +20900,13 @@ export type Database = {
             columns: ["return_filing_id"]
             isOneToOne: false
             referencedRelation: "v_return_filing_workflow_state"
+            referencedColumns: ["filing_id"]
+          },
+          {
+            foreignKeyName: "prudential_detection_runs_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
             referencedColumns: ["filing_id"]
           },
           {
@@ -21075,6 +21110,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "prudential_ewi_alerts_regulatory_metric_id_fkey"
+            columns: ["regulatory_metric_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
+            referencedColumns: ["regulatory_metric_id"]
+          },
+          {
             foreignKeyName: "prudential_ewi_alerts_reporting_period_id_fkey"
             columns: ["reporting_period_id"]
             isOneToOne: false
@@ -21093,6 +21135,13 @@ export type Database = {
             columns: ["return_filing_id"]
             isOneToOne: false
             referencedRelation: "v_return_filing_workflow_state"
+            referencedColumns: ["filing_id"]
+          },
+          {
+            foreignKeyName: "prudential_ewi_alerts_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
             referencedColumns: ["filing_id"]
           },
           {
@@ -21392,6 +21441,13 @@ export type Database = {
             columns: ["return_filing_id"]
             isOneToOne: false
             referencedRelation: "v_return_filing_workflow_state"
+            referencedColumns: ["filing_id"]
+          },
+          {
+            foreignKeyName: "prudential_stress_events_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
             referencedColumns: ["filing_id"]
           },
           {
@@ -24751,6 +24807,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "return_filing_requests_regulatory_metric_id_fkey"
+            columns: ["regulatory_metric_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
+            referencedColumns: ["regulatory_metric_id"]
+          },
+          {
             foreignKeyName: "return_filing_requests_return_filing_id_fkey"
             columns: ["return_filing_id"]
             isOneToOne: false
@@ -24762,6 +24825,13 @@ export type Database = {
             columns: ["return_filing_id"]
             isOneToOne: false
             referencedRelation: "v_return_filing_workflow_state"
+            referencedColumns: ["filing_id"]
+          },
+          {
+            foreignKeyName: "return_filing_requests_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
             referencedColumns: ["filing_id"]
           },
           {
@@ -24829,6 +24899,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "return_filing_validation_results_regulatory_metric_id_fkey"
+            columns: ["regulatory_metric_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
+            referencedColumns: ["regulatory_metric_id"]
+          },
+          {
             foreignKeyName: "return_filing_validation_results_return_filing_id_fkey"
             columns: ["return_filing_id"]
             isOneToOne: false
@@ -24840,6 +24917,13 @@ export type Database = {
             columns: ["return_filing_id"]
             isOneToOne: false
             referencedRelation: "v_return_filing_workflow_state"
+            referencedColumns: ["filing_id"]
+          },
+          {
+            foreignKeyName: "return_filing_validation_results_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
             referencedColumns: ["filing_id"]
           },
           {
@@ -24929,6 +25013,13 @@ export type Database = {
             columns: ["return_filing_id"]
             isOneToOne: false
             referencedRelation: "v_return_filing_workflow_state"
+            referencedColumns: ["filing_id"]
+          },
+          {
+            foreignKeyName: "return_filing_versions_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
             referencedColumns: ["filing_id"]
           },
           {
@@ -25284,6 +25375,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "regulatory_metrics"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_metric_values_regulatory_metric_id_fkey"
+            columns: ["regulatory_metric_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
+            referencedColumns: ["regulatory_metric_id"]
           },
           {
             foreignKeyName: "return_metric_values_reporting_period_id_fkey"
@@ -25730,6 +25828,13 @@ export type Database = {
             columns: ["return_filing_id"]
             isOneToOne: false
             referencedRelation: "v_return_filing_workflow_state"
+            referencedColumns: ["filing_id"]
+          },
+          {
+            foreignKeyName: "return_threshold_breaches_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
             referencedColumns: ["filing_id"]
           },
           {
@@ -30518,6 +30623,13 @@ export type Database = {
             referencedColumns: ["filing_id"]
           },
           {
+            foreignKeyName: "return_threshold_breaches_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
+            referencedColumns: ["filing_id"]
+          },
+          {
             foreignKeyName: "return_threshold_breaches_return_filing_version_id_fkey"
             columns: ["return_filing_version_id"]
             isOneToOne: false
@@ -30656,6 +30768,64 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "return_definitions"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_return_metric_facts_current: {
+        Row: {
+          availability: string | null
+          entity_id: string | null
+          filing_id: string | null
+          filing_status: string | null
+          filing_updated_at: string | null
+          filing_version_id: string | null
+          metric_code: string | null
+          metric_name: string | null
+          metric_unit: string | null
+          metric_value_id: string | null
+          period_end: string | null
+          period_label: string | null
+          regulatory_metric_id: string | null
+          reporting_period_id: string | null
+          source_kind: string | null
+          value_numeric: number | null
+          version_status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_metric_values_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_metric_values_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "return_metric_values_reporting_period_id_fkey"
+            columns: ["reporting_period_id"]
+            isOneToOne: false
+            referencedRelation: "reporting_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_metric_values_return_filing_version_id_fkey"
+            columns: ["filing_version_id"]
+            isOneToOne: false
+            referencedRelation: "return_filing_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_metric_values_return_filing_version_id_fkey"
+            columns: ["filing_version_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_filing_workflow_state"
+            referencedColumns: ["current_version_id"]
           },
         ]
       }
@@ -35075,6 +35245,35 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      prudential_analytics_metric_context: {
+        Args: { _metric_code: string }
+        Returns: Json
+      }
+      prudential_analytics_metric_trend: {
+        Args: { _entity_id: string; _limit?: number; _metric_code: string }
+        Returns: {
+          availability: string
+          entity_id: string
+          filing_id: string
+          filing_version_id: string
+          metric_code: string
+          period_end: string
+          period_label: string
+          reporting_period_id: string
+          value_numeric: number
+        }[]
+      }
+      prudential_analytics_metrics: {
+        Args: never
+        Returns: {
+          entity_count: number
+          latest_period_end: string
+          metric_code: string
+          metric_name: string
+          period_count: number
+          unit: string
+        }[]
       }
       prudential_assessment_create: {
         Args: {
