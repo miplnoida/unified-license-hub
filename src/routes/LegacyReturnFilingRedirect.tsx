@@ -13,8 +13,14 @@ import { Loader2, AlertTriangle } from 'lucide-react';
 import { useResolveLegacyFiling } from '@/hooks/useWaveC';
 import { objectRoute } from '@/lib/routes/objectRoutes';
 
-export default function LegacyReturnFilingRedirect() {
-  const { legacyId } = useParams<{ legacyId: string }>();
+/**
+ * `target` selects the canonical spine the user is returned to:
+ *  - 'internal' → /returns/filings/:filingId (supervisory workspace)
+ *  - 'external' → /entity/returns/filings/:filingId (filer workspace)
+ */
+export default function LegacyReturnFilingRedirect({ target = 'internal' }: { target?: 'internal' | 'external' }) {
+  const params = useParams<{ legacyId?: string; id?: string }>();
+  const legacyId = params.legacyId ?? params.id;
   const { data, isLoading, error } = useResolveLegacyFiling(legacyId);
 
   if (isLoading) {
@@ -28,7 +34,10 @@ export default function LegacyReturnFilingRedirect() {
   }
 
   if (data) {
-    return <Navigate to={objectRoute.returnFiling(data)} replace />;
+    const href = target === 'external'
+      ? `/entity/returns/filings/${encodeURIComponent(data)}`
+      : objectRoute.returnFiling(data);
+    return <Navigate to={href} replace />;
   }
 
   return (
@@ -39,7 +48,9 @@ export default function LegacyReturnFilingRedirect() {
         <AlertDescription>
           {error
             ? 'The canonical filing could not be resolved for this historical record.'
-            : 'This record exists only in the retired returns store, so there is no supervisory filing to open. Use the returns filing queue for current obligations.'}
+            : target === 'external'
+              ? 'This record exists only in the retired returns store, so there is no current filing to open. Use “Returns” for your active obligations; historical records remain viewable under Returns → Historical records.'
+              : 'This record exists only in the retired returns store, so there is no supervisory filing to open. Use the returns filing queue for current obligations.'}
         </AlertDescription>
       </Alert>
     </DashboardLayout>
