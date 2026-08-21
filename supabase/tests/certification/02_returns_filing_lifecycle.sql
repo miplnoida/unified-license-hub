@@ -40,8 +40,8 @@ SELECT is((SELECT status FROM public.return_filing_versions WHERE id = (SELECT v
 SELECT is((SELECT is_immutable FROM public.return_filing_versions WHERE id = (SELECT version_id FROM v1)),
           false, 'v1 is mutable while in DRAFT');
 
--- act as the filer
-SET LOCAL ROLE authenticated;
+-- act as the filer (claims only: the governed RPCs authorise on auth.uid();
+-- CI runs this file as the migration role, which cannot SET ROLE)
 SELECT set_config('request.jwt.claims',
   json_build_object('sub', (SELECT filer_id FROM actors), 'role', 'authenticated')::text, true);
 
@@ -53,7 +53,7 @@ SELECT lives_ok(
   format('SELECT public.returns_submit_filing(%L::uuid, true)', (SELECT version_id FROM v1)),
   'filer can submit v1 through the governed RPC');
 
-RESET ROLE;
+SELECT set_config('request.jwt.claims', NULL, true);
 
 SELECT is((SELECT status FROM public.return_filings WHERE id = (SELECT filing_id FROM actors)),
           'SUBMITTED', 'filing moves to SUBMITTED after v1 submit');
@@ -62,7 +62,6 @@ SELECT is((SELECT is_immutable FROM public.return_filing_versions WHERE id = (SE
           true, 'v1 becomes immutable on submission');
 
 -- ------------------------------------ regulator review: request correction
-SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims',
   json_build_object('sub', (SELECT regulator_id FROM actors), 'role', 'authenticated')::text, true);
 
@@ -71,7 +70,7 @@ SELECT lives_ok(
          (SELECT version_id FROM v1), 'REQUEST_CORRECTION', 'EPR-01 lifecycle certification'),
   'regulator can request a correction through the governed RPC');
 
-RESET ROLE;
+SELECT set_config('request.jwt.claims', NULL, true);
 
 SELECT is((SELECT status FROM public.return_filings WHERE id = (SELECT filing_id FROM actors)),
           'CORRECTION_REQUESTED', 'filing moves to CORRECTION_REQUESTED');
@@ -88,7 +87,6 @@ SELECT is((SELECT version_number FROM public.return_filing_versions WHERE id = (
           2, 'the correction version is numbered v2');
 
 -- ---------------------------------------------------- v2: resubmit, accept
-SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims',
   json_build_object('sub', (SELECT filer_id FROM actors), 'role', 'authenticated')::text, true);
 
@@ -104,7 +102,7 @@ SELECT lives_ok(
          (SELECT version_id FROM v2), 'ACCEPT', 'EPR-01 lifecycle certification'),
   'regulator can accept the corrected version');
 
-RESET ROLE;
+SELECT set_config('request.jwt.claims', NULL, true);
 
 SELECT is((SELECT status FROM public.return_filings WHERE id = (SELECT filing_id FROM actors)),
           'ACCEPTED', 'filing closes as ACCEPTED after the v2 acceptance');
