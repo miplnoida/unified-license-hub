@@ -65,6 +65,7 @@ const PrudentialEarlyWarnings = lazy(() => import('@/pages/supervision/Prudentia
 
 
 // Returns Management - Admin
+const LegacyReturnFilingRedirect = lazy(() => import('@/routes/LegacyReturnFilingRedirect'));
 const ReturnTypesPage = lazy(() => import('@/pages/admin/returns/ReturnTypesPage'));
 const ReturnConfigsPage = lazy(() => import('@/pages/admin/returns/ReturnConfigsPage'));
 const CutoffConfigPage = lazy(() => import('@/pages/admin/returns/CutoffConfigPage'));
@@ -207,9 +208,11 @@ export const adminRoutes = (
 
 
     {/* Returns Management - Admin */}
-    <Route path="/admin/returns/queue" element={<M module="returns_management"><ViewReturns /></M>} />
-    <Route path="/admin/returns/queue/:id" element={<M module="returns_management"><ReturnDetail /></M>} />
-    <Route path="/admin/returns/queue/:id/analysis" element={<M module="returns_management"><ReturnAnalysis /></M>} />
+    {/* EPR-01 — COMPATIBILITY_ONLY. The canonical internal Returns spine is
+        /returns/queue + /returns/filings/:filingId. */}
+    <Route path="/admin/returns/queue" element={<Navigate to="/returns/queue" replace />} />
+    <Route path="/admin/returns/queue/:id" element={<M module="returns_management"><LegacyReturnFilingRedirect /></M>} />
+    <Route path="/admin/returns/queue/:id/analysis" element={<M module="returns_management"><LegacyReturnFilingRedirect /></M>} />
     <Route path="/admin/returns/types" element={<M module="returns_management"><ReturnTypesPage /></M>} />
     <Route path="/admin/returns/configurations" element={<M module="returns_management"><ReturnConfigsPage /></M>} />
     <Route path="/admin/returns/cutoff" element={<M module="returns_management"><CutoffConfigPage /></M>} />
