@@ -435,23 +435,14 @@ function RolesTab({ id }: { id: string }) {
       if (months != null && (!Number.isFinite(months) || months <= 0 || months > 120)) {
         throw new Error('Reassessment cycle must be 1-120 months');
       }
-      const nextDue = months
-        ? (() => { const d = new Date(); d.setMonth(d.getMonth() + months); return d.toISOString().slice(0, 10); })()
-        : null;
-      const payload = {
-        individual_id: id,
-        role_type: roleType.trim(),
-        licensee_id: licenseeId || null,
-        is_current: isCurrent,
-        reassessment_cycle_months: months,
-        next_reassessment_due: nextDue,
-        created_by: user?.id ?? null,
-      };
-      const { data, error } = await supabase.from('fp_individual_roles').insert(payload).select('id').single();
-      if (error) throw error;
-      await logFpAction('fp.role.added', 'fp_individual_role', data.id, {
-        after: payload,
-        context: { individualId: id },
+      // Governed: duplicate-appointment control, entity validation and the
+      // reassessment schedule are all decided by the server.
+      await fpRoleCreate({
+        individualId: id,
+        roleType: roleType.trim(),
+        licenseeId: licenseeId || null,
+        isCurrent,
+        reassessmentCycleMonths: months,
       });
     },
     onSuccess: () => {
