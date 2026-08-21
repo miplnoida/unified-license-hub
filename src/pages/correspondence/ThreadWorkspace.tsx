@@ -15,7 +15,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CaseHeader } from '@/components/cases/CaseHeader';
 import { ThreadDetail } from '@/components/correspondence/ThreadDetail';
 import { formatDateTime } from '@/lib/datetime';
-import { caseHeaderSlaState, useCorrespondenceThreadCase } from '@/hooks/useCorrespondenceQueue';
+import {
+  caseHeaderSlaState, useCorrespondenceThreadCase,
+  DELIVERY_EVIDENCE_LABELS, DELIVERY_FAILED_STATES, type DeliveryEvidenceState,
+} from '@/hooks/useCorrespondenceQueue';
 import { CORRESPONDENCE_MODULE_LABELS } from '@/hooks/useCorrespondence';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 
