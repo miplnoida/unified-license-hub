@@ -374,7 +374,7 @@ export function SupervisoryDashboard() {
               primary: r.entity_id.slice(0, 8),
               secondary: `Rating: ${r.overall_rating}`,
               badge: { label: 'high', tone: 'destructive' },
-              to: `/admin/licensees/${r.entity_id}`,
+              to: `/entities/${r.entity_id}`,
             }))}
           />
         )}

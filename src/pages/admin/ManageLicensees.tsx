@@ -333,7 +333,7 @@ export default function ManageLicensees() {
                         </TableCell>
                       </TableRow>
                     ) : paged.map(row => (
-                      <TableRow key={row.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/licensees/${row.id}`)}>
+                      <TableRow key={row.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/entities/${row.id}`)}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -350,7 +350,7 @@ export default function ManageLicensees() {
                         <TableCell className="text-sm">{fmtDate(row.registered_at)}</TableCell>
                         <TableCell>{renderStatusCell(row)}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/admin/licensees/${row.id}`); }}>
+                          <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/entities/${row.id}`); }}>
                             <Eye className="h-4 w-4 mr-1" />View
                           </Button>
                         </TableCell>

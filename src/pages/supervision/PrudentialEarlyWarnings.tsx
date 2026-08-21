@@ -214,7 +214,7 @@ export default function PrudentialEarlyWarnings() {
                       <TableCell><Badge variant="outline" className={LEVEL_BADGE[r.warning_level]}>{r.warning_level}</Badge></TableCell>
                       <TableCell className="text-xs whitespace-nowrap">{new Date(r.last_seen).toLocaleString()}</TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" variant="ghost" onClick={() => nav(`/admin/licensees/${r.licensee_id}`)}>Open</Button>
+                        <Button size="sm" variant="ghost" onClick={() => nav(`/entities/${r.licensee_id}`)}>Open</Button>
                         <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => seedAction.mutate(r)} disabled={seedAction.isPending}>
                           <ClipboardList className="h-3 w-3 mr-1" />Seed action
                         </Button>

@@ -334,7 +334,7 @@ export default function SupervisoryPlansDashboard() {
                               </td>
                               <td className="p-2">
                                 {a.licensee ? (
-                                  <Link to={`/admin/licensees/${a.licensee.id}`} className="hover:underline inline-flex items-center gap-1">
+                                  <Link to={`/entities/${a.licensee.id}`} className="hover:underline inline-flex items-center gap-1">
                                     {a.licenseeName} <ExternalLink className="h-3 w-3" />
                                   </Link>
                                 ) : '—'}
