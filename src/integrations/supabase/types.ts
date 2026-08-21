@@ -4383,6 +4383,7 @@ export type Database = {
           due_date: string | null
           enforcement_action_id: string | null
           entity_id: string | null
+          finding_id: string | null
           id: string
           metadata: Json
           outcome: string | null
@@ -4410,6 +4411,7 @@ export type Database = {
           due_date?: string | null
           enforcement_action_id?: string | null
           entity_id?: string | null
+          finding_id?: string | null
           id?: string
           metadata?: Json
           outcome?: string | null
@@ -4437,6 +4439,7 @@ export type Database = {
           due_date?: string | null
           enforcement_action_id?: string | null
           entity_id?: string | null
+          finding_id?: string | null
           id?: string
           metadata?: Json
           outcome?: string | null
@@ -4478,6 +4481,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_prudential_early_warnings"
             referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "conduct_actions_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_findings"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "conduct_actions_product_id_fkey"
@@ -4880,6 +4890,7 @@ export type Database = {
           evidence_type: string
           file_id: string | null
           file_url: string | null
+          finding_id: string | null
           id: string
           investigation_id: string | null
           metadata: Json
@@ -4902,6 +4913,7 @@ export type Database = {
           evidence_type?: string
           file_id?: string | null
           file_url?: string | null
+          finding_id?: string | null
           id?: string
           investigation_id?: string | null
           metadata?: Json
@@ -4924,6 +4936,7 @@ export type Database = {
           evidence_type?: string
           file_id?: string | null
           file_url?: string | null
+          finding_id?: string | null
           id?: string
           investigation_id?: string | null
           metadata?: Json
@@ -4936,6 +4949,13 @@ export type Database = {
           uploaded_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "conduct_evidence_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_findings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conduct_evidence_investigation_id_fkey"
             columns: ["investigation_id"]
@@ -4984,6 +5004,138 @@ export type Database = {
           user_agent?: string | null
         }
         Relationships: []
+      }
+      conduct_findings: {
+        Row: {
+          category: string | null
+          closed_at: string | null
+          closure_rationale: string | null
+          complaint_id: string | null
+          conduct_risk_category_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          dismissal_reason: string | null
+          enforcement_action_id: string | null
+          enforcement_referred_at: string | null
+          entity_id: string | null
+          entity_response: string | null
+          entity_response_at: string | null
+          finding_reference: string
+          id: string
+          investigation_id: string | null
+          legal_basis: string | null
+          opened_at: string
+          owner_id: string | null
+          owner_team: string | null
+          remediation_required: boolean
+          risk_rating: string | null
+          severity: string
+          source_id: string
+          source_type: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          closed_at?: string | null
+          closure_rationale?: string | null
+          complaint_id?: string | null
+          conduct_risk_category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          dismissal_reason?: string | null
+          enforcement_action_id?: string | null
+          enforcement_referred_at?: string | null
+          entity_id?: string | null
+          entity_response?: string | null
+          entity_response_at?: string | null
+          finding_reference: string
+          id?: string
+          investigation_id?: string | null
+          legal_basis?: string | null
+          opened_at?: string
+          owner_id?: string | null
+          owner_team?: string | null
+          remediation_required?: boolean
+          risk_rating?: string | null
+          severity?: string
+          source_id: string
+          source_type: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          closed_at?: string | null
+          closure_rationale?: string | null
+          complaint_id?: string | null
+          conduct_risk_category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          dismissal_reason?: string | null
+          enforcement_action_id?: string | null
+          enforcement_referred_at?: string | null
+          entity_id?: string | null
+          entity_response?: string | null
+          entity_response_at?: string | null
+          finding_reference?: string
+          id?: string
+          investigation_id?: string | null
+          legal_basis?: string | null
+          opened_at?: string
+          owner_id?: string | null
+          owner_team?: string | null
+          remediation_required?: boolean
+          risk_rating?: string | null
+          severity?: string
+          source_id?: string
+          source_type?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_findings_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_findings_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_findings_conduct_risk_category_id_fkey"
+            columns: ["conduct_risk_category_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_risk_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_findings_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_investigations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_findings_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "v_conduct_investigation_state"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conduct_intelligence_report_recipients: {
         Row: {
@@ -34758,6 +34910,62 @@ export type Database = {
           _refusal_witnessed_by?: string
           _signed_document_url?: string
         }
+        Returns: Json
+      }
+      conduct_finding_available_actions: {
+        Args: { _finding_id: string }
+        Returns: Json
+      }
+      conduct_finding_case: { Args: { _finding_id: string }; Returns: Json }
+      conduct_finding_next_reference: { Args: never; Returns: string }
+      conduct_finding_raise: { Args: { _payload: Json }; Returns: Json }
+      conduct_finding_register: {
+        Args: {
+          _complaint_id?: string
+          _entity_id?: string
+          _include_closed?: boolean
+          _investigation_id?: string
+          _limit?: number
+          _offset?: number
+          _search?: string
+          _source_type?: string
+          _statuses?: string[]
+        }
+        Returns: {
+          canonical_href: string
+          category: string
+          closed_at: string
+          complaint_id: string
+          enforcement_referred_at: string
+          entity_id: string
+          entity_name: string
+          evidence_count: number
+          finding_reference: string
+          id: string
+          investigation_id: string
+          last_activity_at: string
+          open_remediation: number
+          opened_at: string
+          owner_id: string
+          owner_name: string
+          owner_team: string
+          remediation_required: boolean
+          risk_rating: string
+          severity: string
+          source_href: string
+          source_id: string
+          source_type: string
+          status: string
+          title: string
+          total_count: number
+        }[]
+      }
+      conduct_finding_register_counts: {
+        Args: { _entity_id?: string }
+        Returns: Json
+      }
+      conduct_finding_step: {
+        Args: { _action_code: string; _finding_id: string; _payload?: Json }
         Returns: Json
       }
       conduct_intel_aggregate: {
