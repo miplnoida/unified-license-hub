@@ -132,6 +132,8 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   // ------------------------------------------------------------- prudential
   { pattern: '/prudential', label: 'Prudential supervision', parent: '/dashboard' },
   { pattern: '/prudential/dashboard', label: 'Overview', parent: '/prudential' },
+  { pattern: '/prudential/work', label: 'Work queue', parent: '/prudential' },
+  { pattern: '/admin/prudential/operations', label: 'Prudential engine operations', parent: '/prudential' },
   { pattern: '/prudential/entities', label: 'Supervised entities', parent: '/prudential' },
   { pattern: '/prudential/entities/:id', resolver: 'entity', param: 'id', parent: '/prudential/entities' },
   { pattern: '/prudential/assessments', label: 'Assessments', parent: '/prudential' },

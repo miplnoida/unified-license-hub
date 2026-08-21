@@ -97,6 +97,8 @@ const SurveillanceWorkspace = lazy(() => import('@/pages/conduct/SurveillanceWor
 
 const NewInternalComplaint = lazy(() => import('@/pages/complaints/NewInternalComplaint'));
 const PrudentialDashboard = lazy(() => import('@/pages/prudential/PrudentialDashboard'));
+const PrudentialWorkQueue = lazy(() => import('@/pages/prudential/PrudentialWorkQueue'));
+const PrudentialEngineOperations = lazy(() => import('@/pages/admin/PrudentialEngineOperations'));
 const PrudentialEntitiesList = lazy(() => import('@/pages/prudential/PrudentialEntitiesList'));
 const PrudentialEntityProfile = lazy(() => import('@/pages/prudential/PrudentialEntityProfile'));
 const FinancialGroupsList = lazy(() => import('@/pages/prudential/FinancialGroupsList'));
@@ -254,6 +256,8 @@ export const dashboardRoutes = (
 
     <Route path="/prudential" element={<Navigate to="/prudential/dashboard" replace />} />
     <Route path="/prudential/dashboard" element={<M module="prudential_supervision"><PrudentialDashboard /></M>} />
+    <Route path="/prudential/work" element={<M module="prudential_supervision"><PrudentialWorkQueue /></M>} />
+    <Route path="/admin/prudential/operations" element={<M module="prudential_supervision"><PrudentialEngineOperations /></M>} />
     <Route path="/prudential/entities" element={<M module="prudential_supervision"><PrudentialEntitiesList /></M>} />
     <Route path="/prudential/entities/:id" element={<M module="prudential_supervision"><PrudentialEntityProfile /></M>} />
     <Route path="/prudential/groups" element={<M module="prudential_supervision"><FinancialGroupsList /></M>} />
