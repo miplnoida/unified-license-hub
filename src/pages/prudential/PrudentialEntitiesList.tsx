@@ -99,7 +99,7 @@ export default function PrudentialEntitiesList() {
     if (actionState === 'has_overdue' && !e.overdue_actions) return false;
     if (actionState === 'open' && !e.open_actions) return false;
     if (escState === 'open' && !e.open_escalations) return false;
-    if (retStatus !== 'all' && e.last_return_status !== retStatus) return false;
+    if (retStatus !== 'all' && String(e.last_return_status ?? '').toUpperCase() !== retStatus) return false;
     return true;
   }), [data, actionState, escState, retStatus]);
 
@@ -163,10 +163,9 @@ export default function PrudentialEntitiesList() {
               <SelectTrigger className="w-44"><SelectValue placeholder="Latest return" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All return statuses</SelectItem>
-                <SelectItem value="submitted">Submitted</SelectItem>
-                <SelectItem value="under_review">Under review</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
+                {RETURN_STATUS_FILTER_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
