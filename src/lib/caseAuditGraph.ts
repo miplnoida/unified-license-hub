@@ -77,7 +77,8 @@ export async function buildRelatedGraph(root: RelatedEntity): Promise<RelatedEnt
       const { data: enf } = await (supabase.from('enforcement_actions') as any).select('id').eq('licensee_id', root.id).limit(200);
       (enf ?? []).forEach((e: Row) => add({ kind: 'enforcement_action', id: e.id }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: rets } = await (supabase.from('returns_filed') as any).select('id').eq('entity_id', root.id).limit(200);
+      // EPR-01 — canonical filings are the Returns truth for the case graph.
+      const { data: rets } = await (supabase.from('return_filings') as any).select('id').eq('entity_id', root.id).limit(200);
       (rets ?? []).forEach((r: Row) => add({ kind: 'return', id: r.id }));
       // Fit & Proper linkage: a licensee's assessments were never surfaced here.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -108,7 +109,7 @@ export async function buildRelatedGraph(root: RelatedEntity): Promise<RelatedEnt
       if (e?.licensee_id) add({ kind: 'licensee', id: e.licensee_id });
     }
     if (root.kind === 'return') {
-      const r = await fetchOne('returns_filed', root.id, 'id, entity_id');
+      const r = await fetchOne('return_filings', root.id, 'id, entity_id');
       if (r?.entity_id) add({ kind: 'licensee', id: r.entity_id });
     }
   } catch (_err) {
@@ -139,7 +140,9 @@ const KIND_TO_ENTITY_TYPE: Record<EntityKind, string[]> = {
   fp_assessment: ['fp_assessment', 'fp_assessments', 'fp_determination', 'fp_committee_vote'],
   complaint: ['complaint', 'complaints'],
   enforcement_action: ['enforcement_action', 'enforcement_actions'],
-  return: ['return', 'returns_filed', 'return_form_data'],
+  // Historical audit rows still carry legacy entity_type values, so keep them in
+  // the read filter while all NEW linkage resolves canonical `return_filings`.
+  return: ['return', 'return_filing', 'return_filings', 'returns_filed', 'return_form_data'],
 };
 
 export async function fetchCaseTimeline(entities: RelatedEntity[]): Promise<TimelineEvent[]> {

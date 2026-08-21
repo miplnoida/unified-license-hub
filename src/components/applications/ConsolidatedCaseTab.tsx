@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
+import { objectRoute } from '@/lib/objectRoutes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -102,17 +104,20 @@ export function ConsolidatedCaseTab({ applicationId, applicantId, hiddenSections
             : Promise.resolve({ data: [] as any[] }),
           entityIds.length
             ? supabase
-                .from('returns_filed')
-                .select('id, unique_id, return_period, return_year, status, due_date, workflow_status')
+                // EPR-01 — canonical Returns truth.
+                .from('v_return_filing_workflow_state')
+                .select('filing_id, filing_reference, period_label, definition_code, status, status_label, due_date, stage_label, is_overdue')
                 .in('entity_id', entityIds)
-                .in('status', ['pending', 'draft', 'in_progress', 'overdue'])
+                .not('status', 'in', '("ACCEPTED","REJECTED","SUPERSEDED","CANCELLED")')
                 .order('due_date', { ascending: true })
                 .limit(15)
             : Promise.resolve({ data: [] as any[] }),
           entityIds.length
             ? supabase
-                .from('return_threshold_breaches' as any)
-                .select('id, ratio_key, breach_severity, breach_value, threshold_value, created_at, returns_filed_id')
+                // EPR-01 — canonical breach read model keyed on return_filing_id.
+                .from('v_prudential_current_breaches' as any)
+                .select('id, metric_key, risk_level, level, value, threshold_value, detected_at, return_filing_id')
+                .in('entity_id', entityIds)
                 .order('created_at', { ascending: false })
                 .limit(10)
             : Promise.resolve({ data: [] as any[] }),
@@ -255,16 +260,20 @@ export function ConsolidatedCaseTab({ applicationId, applicantId, hiddenSections
         >
           <div className="space-y-2">
             {data.pendingReturns.map((r) => (
-              <div key={r.id} className="flex items-center gap-3 rounded border px-3 py-2 text-sm">
-                <div className="font-mono text-xs">{r.unique_id}</div>
+              <Link
+                key={r.filing_id}
+                to={objectRoute.returnFiling(r.filing_id)}
+                className="flex items-center gap-3 rounded border px-3 py-2 text-sm hover:bg-muted/50"
+              >
+                <div className="font-mono text-xs">{r.filing_reference}</div>
                 <div className="flex-1">
-                  {r.return_period} {r.return_year}
+                  {r.definition_code} — {r.period_label}
                 </div>
-                <Badge variant="outline" className="text-xs">{r.status}</Badge>
+                <Badge variant="outline" className="text-xs">{r.status_label ?? r.status}</Badge>
                 <span className="text-xs text-muted-foreground">
                   {r.due_date ? `due ${new Date(r.due_date).toLocaleDateString()}` : '—'}
                 </span>
-              </div>
+              </Link>
             ))}
           </div>
         </Section>
@@ -280,11 +289,11 @@ export function ConsolidatedCaseTab({ applicationId, applicantId, hiddenSections
           <div className="space-y-2">
             {data.prudentialBreaches.map((b) => (
               <div key={b.id} className="flex items-center gap-3 rounded border px-3 py-2 text-sm">
-                <div className="font-mono text-xs">{b.ratio_key}</div>
+                <div className="font-mono text-xs">{b.metric_key}</div>
                 <div className="flex-1">
-                  {b.breach_value} vs {b.threshold_value}
+                  {b.value} vs {b.threshold_value}
                 </div>
-                <Badge variant="destructive" className="text-xs">{b.breach_severity}</Badge>
+                <Badge variant="destructive" className="text-xs">{b.risk_level ?? b.level}</Badge>
               </div>
             ))}
           </div>

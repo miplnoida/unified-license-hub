@@ -236,17 +236,18 @@ function useEntityPreviewData(entityType: WorkflowEntityKind, entityId: string) 
       }
       if (entityType === 'return') {
         const { data } = await supabase
-          .from('returns_filed')
-          .select('id, unique_id, status, workflow_status, return_year, return_period')
-          .eq('id', entityId)
+          // EPR-01 — canonical Returns truth.
+          .from('v_return_filing_workflow_state')
+          .select('filing_id, filing_reference, status, status_label, period_label, period_end, entity_name')
+          .eq('filing_id', entityId)
           .maybeSingle();
         return {
           return_id: entityId,
-          return_name: (data as any)?.unique_id || entityId,
-          entity_name: 'Licensee',
-          period: (data as any)?.return_period || '',
-          year: (data as any)?.return_year || '',
-          status: (data as any)?.workflow_status || (data as any)?.status || '',
+          return_name: (data as any)?.filing_reference || entityId,
+          entity_name: (data as any)?.entity_name || 'Entity',
+          period: (data as any)?.period_label || '',
+          year: (data as any)?.period_end ? String((data as any).period_end).slice(0, 4) : '',
+          status: (data as any)?.status_label || (data as any)?.status || '',
         };
       }
       const { data } = await supabase
