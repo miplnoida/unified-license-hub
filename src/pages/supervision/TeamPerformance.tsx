@@ -138,12 +138,13 @@ export default function TeamPerformance() {
               />
             </div>
 
-            <EnterpriseDataGrid
-              data={officers}
+            <EnterpriseDataGrid<SupTeamPerformanceOfficer>
+              gridId="supervisory-team-performance"
+              rows={officers}
               columns={columns}
               getRowId={(r) => r.officer_id ?? 'unassigned'}
               isLoading={isLoading}
-              onRefresh={refetch}
+              onRefresh={() => { void refetch(); }}
               searchPlaceholder="Search officers"
               emptyTitle="No supervisory workload"
               emptyDescription="No officers currently hold open supervisory items in the domains you can access."
