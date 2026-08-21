@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { APPLICATION_DRILLDOWNS, type ApplicationDrilldownKey } from '@/lib/dashboardDrilldowns';
+import { fetchCanonicalReturnsSummary } from '@/lib/returns/canonicalReturnsSummary';
+
 import {
   getAdminReturnDisplayStatus,
   mapReturnWorkflowStatus,
