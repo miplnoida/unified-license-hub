@@ -217,8 +217,8 @@ export const dashboardRoutes = (
     <Route path="/registration-status" element={<P><RegistrationStatusPage /></P>} />
     <Route path="/coordination" element={<M module="coordination"><CoordinationList /></M>} />
     <Route path="/coordination/:caseId" element={<M module="coordination"><CoordinationDetail /></M>} />
-    <Route path="/enforcement" element={<M module="enforcement_management"><EnforcementList /></M>} />
-    <Route path="/enforcement/:id" element={<M module="enforcement_management"><EnforcementDetail /></M>} />
+    <Route path="/enforcement" element={<M module="enforcement_management"><EnforcementWorkQueue /></M>} />
+    <Route path="/enforcement/:id" element={<M module="enforcement_management"><EnforcementWorkspace /></M>} />>
     <Route path="/billing/penalties" element={<M module="fee_management"><Penalties /></M>} />
     <Route path="/supervision/breaches" element={<M module="prudential_supervision"><BreachInbox /></M>} />
     <Route path="/inspections" element={<M module="inspection_management"><InspectionsList /></M>} />
