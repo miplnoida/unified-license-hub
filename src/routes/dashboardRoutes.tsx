@@ -299,7 +299,10 @@ export const dashboardRoutes = (
     <Route path="/correspondence/:id" element={<M module="notification_management"><ThreadWorkspace /></M>} />
     <Route path="/admin/correspondence-routing" element={<M module="settings"><CorrespondenceRoutingRules /></M>} />
     <Route path="/entity/correspondence" element={<P><MyCorrespondence /></P>} />
-    <Route path="/entity/correspondence/:id" element={<MyCorrespondenceDetail />} />
+    <Route path="/entity/correspondence/:id" element={<P><MyCorrespondenceDetail /></P>} />
+    <Route path="/entity/correspondence/thread/:id" element={<Navigate to="/entity/correspondence" replace />} />
+    <Route path="/correspondence/threads" element={<Navigate to="/correspondence/inbox" replace />} />
+    <Route path="/correspondence/thread/:id" element={<LegacyThreadRedirect />} />
     <Route path="/entity/complaint-rfis" element={<MyComplaintRfis />} />
     <Route path="/entity/supervisory-actions" element={<MySupervisoryActions />} />
 
