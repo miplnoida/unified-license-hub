@@ -3,8 +3,6 @@ import { lazyWithRetry as lazy } from '@/lib/lazyWithRetry';
 import { P } from '@/routes/routeHelpers';
 import { AdminRoute, ModuleRoute, PermissionRoute } from '@/components/auth/RouteGuards';
 import type { PermissionModule } from '@/lib/permissionModules';
-import ReturnDetail from '@/pages/returns-mgmt/ReturnDetail';
-import ViewReturns from '@/pages/returns-mgmt/ViewReturns';
 
 const AdminHub = lazy(() => import('@/pages/admin/AdminHub'));
 const NavHubPage = lazy(() => import('@/pages/admin/NavHubPage'));
@@ -78,7 +76,6 @@ const ManageValidations = lazy(() => import('@/pages/returns-mgmt/ManageValidati
 const PrudentialThresholds = lazy(() => import('@/pages/returns-mgmt/PrudentialThresholds'));
 const PrudentialRatios = lazy(() => import('@/pages/returns-mgmt/PrudentialRatios'));
 const PrudentialAnalytics = lazy(() => import('@/pages/returns-mgmt/PrudentialAnalytics'));
-const ReturnAnalysis = lazy(() => import('@/pages/returns-mgmt/ReturnAnalysis'));
 
 function A({ children }: { children: React.ReactNode }) {
   return <P><AdminRoute>{children}</AdminRoute></P>;
