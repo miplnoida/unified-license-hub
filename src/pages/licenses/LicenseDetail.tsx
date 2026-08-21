@@ -729,6 +729,13 @@ export default function LicenseDetail() {
                 lifecycle (provenance → notice → representations → evidence review → decision). */}
             {isInternal && <LicenseAdverseMatterPanel licenseId={license.id} />}
 
+            {/* P04 A.6 / A.14–A.18 — variation change sets, decision appeals,
+                lifecycle fee ledger and verification cases. */}
+            {isInternal && <LicenseVariationPanel licenseId={license.id} />}
+            {isInternal && <LicenseDecisionAppealsPanel licenseId={license.id} />}
+            {isInternal && <LicenseFeeLedgerPanel licenseId={license.id} />}
+            {isInternal && <LicenseVerificationPanel licenseId={license.id} />}
+
             {isInternal && (pendingRenewalAppId || inProgressRenewalAppId) && (
               <Card>
                 <CardHeader><CardTitle>Renewal navigation</CardTitle></CardHeader>
