@@ -17,7 +17,7 @@ import { WorkflowSlaOverviewWidget } from './widgets/WorkflowSlaOverviewWidget';
 import { SupervisoryTrendsWidget } from './widgets/SupervisoryTrendsWidget';
 import { SupervisoryPriorityQueueWidget } from './widgets/SupervisoryPriorityQueueWidget';
 import { useSupDashboardSummary } from '@/hooks/useSupervisoryReadModels';
-import { APPLICATION_DRILLDOWNS, RETURN_DRILLDOWNS, drilldownTo, returnDrilldownTo } from '@/lib/dashboardDrilldowns';
+import { APPLICATION_DRILLDOWNS, drilldownTo } from '@/lib/dashboardDrilldowns';
 import {
   AlertTriangle, FileText, ClipboardList, DollarSign, AlertOctagon,
   Building2, ShieldAlert, Gauge, MessagesSquare, UserCheck, Landmark, Megaphone, Filter as FilterIcon,
@@ -362,20 +362,6 @@ export function SupervisoryDashboard() {
               primary: l.license_number || l.id.slice(0, 8),
               secondary: l.valid_until ? `Expires ${new Date(l.valid_until).toLocaleDateString()}` : undefined,
               badge: { label: 'expiring', tone: 'warning' },
-            }))}
-          />
-        )}
-        {can.returns && (
-          <PriorityListCard
-            title="Overdue returns"
-            loading={isLoading}
-            viewAll={{ label: 'All', to: returnDrilldownTo('overdue') }}
-            rows={(data?.priority_lists.overdue_returns ?? []).map((r: any) => ({
-              id: r.id,
-              primary: r.id.slice(0, 8),
-              secondary: r.due_date ? `Due ${new Date(r.due_date).toLocaleDateString()}` : undefined,
-              ageDays: r.due_date ? Math.floor((Date.now() - new Date(r.due_date).getTime()) / 86400000) : undefined,
-              badge: r.due_date ? undefined : { label: r.status, tone: 'destructive' },
             }))}
           />
         )}
