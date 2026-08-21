@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { LegacyReturnsNotice } from '@/components/returns/LegacyReturnsNotice';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -222,6 +223,7 @@ export default function ViewReturns() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <LegacyReturnsNotice />
         <PageHeader
           title={activeFilterMeta?.chip || ADMIN_RETURN_DRILLDOWNS.all.label}
           description={

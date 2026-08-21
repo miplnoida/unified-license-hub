@@ -27,6 +27,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { Entity360Header } from '@/components/entity-detail/Entity360Header';
 import { Entity360OverviewPanel } from '@/components/entity-detail/Entity360Overview';
+import { EntitySupervisoryStatePanel } from '@/components/entity-detail/EntitySupervisoryStatePanel';
 import { Entity360SectionView } from '@/components/entity-detail/Entity360SectionView';
 import { Entity360TimelinePanel } from '@/components/entity-detail/Entity360TimelinePanel';
 import { E360_GROUPS, E360_SECTIONS } from '@/components/entity-detail/sectionCatalogue';
@@ -160,11 +161,14 @@ export default function Entity360Detail() {
         {/* Active view */}
         <div className="min-w-0">
           {view === 'overview' && (
-            <Entity360OverviewPanel
-              overview={overview}
-              allowed={allowed}
-              onOpenSection={(section) => setView(section)}
-            />
+            <div className="space-y-4">
+              <EntitySupervisoryStatePanel entityId={entity.id} />
+              <Entity360OverviewPanel
+                overview={overview}
+                allowed={allowed}
+                onOpenSection={(section) => setView(section)}
+              />
+            </div>
           )}
 
           {view === 'timeline' && <Entity360TimelinePanel entityId={entity.id} />}

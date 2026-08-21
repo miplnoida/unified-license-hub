@@ -7,7 +7,7 @@
  * every value is rendered through the shared presentation layer.
  */
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -32,8 +32,26 @@ const STATUS_TONE: Record<string, 'positive' | 'critical' | 'warning' | 'progres
 
 export default function ReturnsFilingQueue() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<string>('ALL');
-  const { data: rows = [], isLoading, error, refetch } = useFilingQueue(tab === 'ALL' ? null : tab);
+  // Deep-link contract for supervisory drill-downs (dashboard, Entity 360,
+  // team performance): `?status=SUBMITTED` selects a status tab and
+  // `?overdue=1` narrows the queue to overdue filings.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusParam = (searchParams.get('status') ?? '').toUpperCase();
+  const overdueOnly = searchParams.get('overdue') === '1';
+  const initialTab = (TABS as readonly string[]).includes(statusParam) ? statusParam : 'ALL';
+  const [tab, setTab] = useState<string>(initialTab);
+  const { data: allRows = [], isLoading, error, refetch } = useFilingQueue(tab === 'ALL' ? null : tab);
+  const rows = useMemo(
+    () => (overdueOnly ? allRows.filter((r) => r.is_overdue) : allRows),
+    [allRows, overdueOnly],
+  );
+
+  const selectTab = (value: string) => {
+    setTab(value);
+    const next = new URLSearchParams(searchParams);
+    if (value === 'ALL') next.delete('status'); else next.set('status', value);
+    setSearchParams(next, { replace: true });
+  };
 
   const overdue = rows.filter((r) => r.is_overdue).length;
   const blocking = rows.filter((r) => r.blocking_errors > 0).length;
@@ -238,15 +256,35 @@ export default function ReturnsFilingQueue() {
           syncUrlState
           caption="Canonical return filings visible to your role."
           aboveGrid={(
-            <Tabs value={tab} onValueChange={setTab}>
-              <TabsList className="flex-wrap">
-                {TABS.map((t) => (
-                  <TabsTrigger key={t} value={t}>
-                    {t === 'ALL' ? 'All filings' : FILING_STATUS_LABELS[t] ?? t}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+            <div className="space-y-2">
+              <Tabs value={tab} onValueChange={selectTab}>
+                <TabsList className="flex-wrap">
+                  {TABS.map((t) => (
+                    <TabsTrigger key={t} value={t}>
+                      {t === 'ALL' ? 'All filings' : FILING_STATUS_LABELS[t] ?? t}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+              {overdueOnly && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1 font-medium text-destructive">
+                    Overdue filings only
+                  </span>
+                  <button
+                    type="button"
+                    className="text-primary hover:underline"
+                    onClick={() => {
+                      const next = new URLSearchParams(searchParams);
+                      next.delete('overdue');
+                      setSearchParams(next, { replace: true });
+                    }}
+                  >
+                    Show all filings
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         />
       </div>
