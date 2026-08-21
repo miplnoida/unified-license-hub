@@ -30,6 +30,9 @@ import { downloadLicenseCertificate, openSignedCertificateUrl } from '@/lib/lice
 import LicenseCaseHeader from '@/components/licenses/LicenseCaseHeader';
 import LicenseCurrentStepPanel from '@/components/licenses/LicenseCurrentStepPanel';
 import { useLicenseCase } from '@/hooks/useLicenseLifecycle';
+import LicenseTermHistoryPanel from '@/components/licenses/LicenseTermHistoryPanel';
+import LicenseConditionsPanel from '@/components/licenses/LicenseConditionsPanel';
+
 
 
 interface License {
@@ -703,6 +706,13 @@ export default function LicenseDetail() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* P04 A.4 — append-only licence term history + resolved renewal policy */}
+            <LicenseTermHistoryPanel licenseId={license.id} />
+
+            {/* P04 A.7/A.8 — conditions as monitored obligations */}
+            <LicenseConditionsPanel licenseId={license.id} isInternal={isInternal} />
+
 
             {/* Certificate Signing & Dispatch hidden on request (component retained). */}
             {false && isInternal && (
