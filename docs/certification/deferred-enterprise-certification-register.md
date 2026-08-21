@@ -32,6 +32,13 @@ Implementation is complete for the items below; what remains is **live end-to-en
 | P12.4 | Entity-side and regulator-side views of the same thread proven to agree on state, service level and waiting-on, with internal notes invisible to the entity | Needs paired internal and entity certification users | Two certification users (internal + entity primary) |
 | P12.5 | RFI links on the thread workspace populated by a live complaint and application RFI cycle | Depends on RFI scenarios being executed | RFI certification fixtures |
 
+## Closure certification pass (2026-08-21)
+
+See `docs/certification/p12-p08-closure-certification.md`. Regulator-side journeys are certified
+end to end (queue → thread → related case → delivery evidence → SLA/waiting-on). Two runtime
+defects in the correspondence read models were found and fixed during that pass. P12.2–P12.5 above
+remain open; P12.4 is blocked on provisioning an external portal user, not on implementation.
+
 ## Governance
 
 - No runtime defaults were hardcoded to work around missing configuration; unresolved configuration

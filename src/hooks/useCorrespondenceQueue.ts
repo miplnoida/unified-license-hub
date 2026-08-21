@@ -106,6 +106,32 @@ export function useCorrespondenceWorkQueue(
   });
 }
 
+/**
+ * Governed delivery-evidence vocabulary (`public.correspondence_delivery_state`).
+ * `recorded` means a message record exists with no provider confirmation, and
+ * `unknown` means no evidence at all — neither may be presented as delivered.
+ */
+export type DeliveryEvidenceState =
+  | 'queued' | 'sent' | 'delivered' | 'opened' | 'retrying'
+  | 'failed' | 'bounced' | 'not_delivered' | 'recorded' | 'unknown';
+
+export const DELIVERY_EVIDENCE_LABELS: Record<DeliveryEvidenceState, string> = {
+  queued: 'Queued',
+  sent: 'Sent to provider',
+  delivered: 'Delivered',
+  opened: 'Opened',
+  retrying: 'Retrying',
+  failed: 'Failed',
+  bounced: 'Bounced',
+  not_delivered: 'Not delivered',
+  recorded: 'Recorded — delivery unconfirmed',
+  unknown: 'No delivery evidence',
+};
+
+/** Only these states may be presented to a user as proof the message arrived. */
+export const DELIVERY_CONFIRMED_STATES: DeliveryEvidenceState[] = ['delivered', 'opened'];
+export const DELIVERY_FAILED_STATES: DeliveryEvidenceState[] = ['failed', 'bounced', 'not_delivered'];
+
 export interface CorrespondenceThreadCase {
   id: string;
   reference: string;
@@ -136,6 +162,8 @@ export interface CorrespondenceThreadCase {
   delivery_evidence: Array<{
     message_id: string; channel: string; status: string | null; sent_at: string | null;
     delivered_at: string | null; opened_at: string | null; bounce_reason: string | null; recipient: string | null;
+    dispatch_status?: string | null; error_message?: string | null; provider_message_id?: string | null;
+    evidence_state?: DeliveryEvidenceState; delivery_confirmed?: boolean;
   }>;
   reopened_count: number;
   can_act: boolean;
