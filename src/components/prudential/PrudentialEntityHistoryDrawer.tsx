@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { History, RefreshCw, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchCanonicalEntityFilingHistory } from '@/lib/returns/canonicalReturnsSummary';
 
 interface Props {
   open: boolean;
