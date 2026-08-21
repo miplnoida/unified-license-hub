@@ -317,7 +317,7 @@ Deno.serve(async (req) => {
       email_verified: true,
       terms_accepted: terms_accepted || false,
       status: "pending_review",
-    }).select("registration_reference").single();
+    }).select("id, registration_reference").single();
 
     if (regError) {
       console.error("Registration insert error:", regError);
@@ -328,6 +328,26 @@ Deno.serve(async (req) => {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // FORM_FIRST governed entity resolution (§ registration convergence).
+    // The applicant has no session at submission time, so this runs through the
+    // service-role-only entry point. It never creates entities via direct DML:
+    //   EXACT_MATCH    → binds the registration to the existing canonical entity
+    //   POSSIBLE_MATCH → governed resolution case, binding pending resolution
+    //   NO_MATCH       → governed provisional entity, binding provisional
+    try {
+      const { data: resolveData, error: resolveError } = await supabaseAdmin.rpc(
+        "onboarding_form_first_resolve_service",
+        { _registration_id: regRow.id },
+      );
+      if (resolveError) {
+        console.error("FORM_FIRST resolution failed:", resolveError.message);
+      } else {
+        console.log("FORM_FIRST resolution outcome:", JSON.stringify(resolveData));
+      }
+    } catch (resolveErr) {
+      console.error("FORM_FIRST resolution threw:", resolveErr);
     }
 
     try {
