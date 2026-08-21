@@ -309,16 +309,17 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
         .filter((payment: any) => visibleAppIdSet.has(payment.application_id));
       const outstanding_amount = pendingPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
 
-      const upcomingReturns = returnRows
-        .filter((row) => UNFILED.includes(row.workflow_status) && !!row.due_date && row.due_date >= today)
-        .sort((a, b) => String(a.due_date || '').localeCompare(String(b.due_date || '')))
+      // Canonical upcoming filings — ids are `return_filings.id`, so drill-downs
+      // can use objectRoute.returnFiling() directly.
+      const upcomingReturns = (canonicalReturns.upcoming ?? [])
         .slice(0, 5)
         .map((r) => ({
-        id: r.id,
-        unique_id: r.unique_id,
-        due_date: r.due_date,
-        status: r.workflow_status,
+          id: r.id,
+          unique_id: r.filing_reference ?? r.definition_name ?? null,
+          due_date: r.due_date ?? null,
+          status: r.status_label ?? r.status ?? '',
         }));
+
 
       const expiringLicenses = normalizedLicenseRows
         .filter((row) => row.status === 'active' && !!row.valid_until)
