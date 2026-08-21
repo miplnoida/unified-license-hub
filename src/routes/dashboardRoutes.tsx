@@ -46,8 +46,8 @@ const CoordinationDetail = lazy(() => import('@/pages/coordination/CoordinationD
 const LicenseAppealsRegister = lazy(() => import('@/pages/admin/LicenseAppealsRegister'));
 const LicenseAppealPanelsAdmin = lazy(() => import('@/pages/admin/LicenseAppealPanels'));
 const MyAppeals = lazy(() => import('@/pages/appeals/MyAppeals'));
-const EnforcementList = lazy(() => import('@/pages/enforcement/EnforcementList'));
-const EnforcementDetail = lazy(() => import('@/pages/enforcement/EnforcementDetail'));
+const EnforcementList = lazy(() => import('@/pages/enforcement/EnforcementWorkQueue'));
+const EnforcementDetail = lazy(() => import('@/pages/enforcement/EnforcementWorkspace'));
 const Penalties = lazy(() => import('@/pages/billing/Penalties'));
 const BreachInbox = lazy(() => import('@/pages/supervision/BreachInbox'));
 const SupervisoryPlansDashboard = lazy(() => import('@/pages/supervision/SupervisoryPlansDashboard'));
