@@ -40,8 +40,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logComplianceAudit } from '@/lib/complianceAudit';
 import { logFpAction } from '@/lib/fpAudit';
-import { FpScreeningPanel } from '@/components/fit-and-proper/FpScreeningPanel';
-import { FpDeterminationsPanel } from '@/components/fit-and-proper/FpDeterminationsPanel';
 import { FpRegulatorPositionsPanel } from '@/components/fit-and-proper/FpRegulatorPositionsPanel';
 import { FpConditionsPanel } from '@/components/fit-and-proper/FpConditionsPanel';
 import { FpAppealsPanel } from '@/components/fit-and-proper/FpAppealsPanel';
@@ -804,11 +802,6 @@ function AssessmentsTab({ id }: { id: string }) {
     onError: (e: any) => toast.error(e?.message || 'Failed to create assessment'),
   });
 
-  const handleViewAssessment = (a: any) => {
-    setViewAssessment(a);
-    setViewOpen(true);
-  };
-
   return (
     <>
       <AssessmentDetailDialog
@@ -902,15 +895,16 @@ function AssessmentsTab({ id }: { id: string }) {
                         {fmtDate(a.created_at)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleViewAssessment(a)}
-                        >
-                          <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                          View
+                        {/* EPR-04: the assessment CASE is the process authority —
+                            open its workspace rather than a person-level dialog. */}
+                        <Button size="sm" variant="ghost" asChild>
+                          <Link to={`/fpa/assessments/${a.id}`}>
+                            <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                            Open case
+                          </Link>
                         </Button>
                       </TableCell>
+
                     </TableRow>
                   ))}
                 </TableBody>
@@ -1104,7 +1098,10 @@ function AccessControlTab({ id }: { id: string }) {
 // Page
 // ---------------------------------------------------------------------------
 
-const PROFILE_TAB_VALUES = ['profile', 'roles', 'assessments', 'screening', 'determinations', 'conditions', 'appeals', 'monitoring', 'access-control'];
+// EPR-04: this screen is PERSON MASTER / HISTORY. It no longer hosts a
+// screening tab or the assessment-operating determination panel — those belong
+// to the assessment case workspace at /fpa/assessments/:id.
+const PROFILE_TAB_VALUES = ['profile', 'roles', 'assessments', 'determinations', 'conditions', 'appeals', 'monitoring', 'access-control'];
 
 export default function FpaIndividualProfile() {
   const { id } = useParams<{ id: string }>();
@@ -1129,25 +1126,12 @@ export default function FpaIndividualProfile() {
     },
   });
 
-  // Committee assignment/finalize, screening runs, conditions, appeals, and
-  // monitoring events are surfaced as tabs below so this individual profile
-  // is the single place staff need to work a case end-to-end.
-  const { data: latestAssessment } = useQuery({
-    queryKey: ['fp_latest_assessment', id],
-    enabled: !!id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('fp_assessments')
-        .select('id')
-        .eq('individual_id', id!)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
-  const latestAssessmentId = latestAssessment?.id ?? null;
+  // EPR-04: no "latest assessment" lookup lives here any more. Assessment
+  // process work (declaration, screening, findings, committee, determination)
+  // is done in the assessment case workspace, which is always opened with an
+  // explicit assessment id.
+
+
 
   if (isLoading) {
     return (
@@ -1228,7 +1212,6 @@ export default function FpaIndividualProfile() {
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
             <TabsTrigger value="assessments">Assessments</TabsTrigger>
-            <TabsTrigger value="screening">Screening</TabsTrigger>
             <TabsTrigger value="determinations">Determinations</TabsTrigger>
             <TabsTrigger value="conditions">Conditions</TabsTrigger>
             <TabsTrigger value="appeals">Appeals</TabsTrigger>
@@ -1248,15 +1231,12 @@ export default function FpaIndividualProfile() {
             <AssessmentsTab id={id!} />
           </TabsContent>
 
-          <TabsContent value="screening">
-            <FpScreeningPanel individualId={id!} assessmentId={latestAssessmentId} />
+          <TabsContent value="determinations" className="space-y-4">
+            {/* Person-level regulatory position only (Twin Peaks). Assessment
+                determinations are recorded in the assessment case workspace. */}
+            <FpRegulatorPositionsPanel individualId={id!} />
           </TabsContent>
 
-          <TabsContent value="determinations" className="space-y-4">
-            {/* Phase 3G — independent regulator positions (Twin Peaks) */}
-            <FpRegulatorPositionsPanel individualId={id!} />
-            <FpDeterminationsPanel individualId={id!} />
-          </TabsContent>
 
           <TabsContent value="conditions">
             <FpConditionsPanel individualId={id!} />

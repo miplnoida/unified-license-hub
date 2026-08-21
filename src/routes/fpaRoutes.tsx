@@ -36,7 +36,9 @@ const FpaNotificationLog = lazy(() => import('@/pages/fpa/FpaNotificationLog'));
 const FpaScheduler = lazy(() => import('@/pages/fpa/FpaScheduler'));
 const FpaInitiationLog = lazy(() => import('@/pages/fpa/FpaInitiationLog'));
 const FpaInvitationTracker = lazy(() => import('@/pages/fpa/FpaInvitationTracker'));
-const FpaAssessmentRedirect = lazy(() => import('@/pages/fpa/FpaAssessmentRedirect'));
+// EPR-04: /fpa/assessments/:id is now a real assessment case workspace, not a
+// redirect into the person profile.
+const FpaAssessmentWorkspace = lazy(() => import('@/pages/fpa/FpaAssessmentWorkspace'));
 const FpaEntityRedirect = lazy(() => import('@/pages/fpa/FpaEntityRedirect'));
 const FpaTraining = lazy(() => import('@/pages/fpa/FpaTraining'));
 
@@ -65,7 +67,7 @@ export const fpaRoutes = (
     <Route path="/fpa/scheduler" element={<M><FpaScheduler /></M>} />
     <Route path="/fpa/initiation-log" element={<M><FpaInitiationLog /></M>} />
     <Route path="/fpa/invitations" element={<M><FpaInvitationTracker /></M>} />
-    <Route path="/fpa/assessments/:id" element={<M><FpaAssessmentRedirect /></M>} />
+    <Route path="/fpa/assessments/:id" element={<M><FpaAssessmentWorkspace /></M>} />
     <Route path="/fpa/entity/:type/:id" element={<M><FpaEntityRedirect /></M>} />
     <Route path="/fpa/training" element={<M><FpaTraining /></M>} />
   </>
