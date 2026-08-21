@@ -21,6 +21,9 @@ const EntityObligationsWorkbench = lazy(() => import('@/pages/returns-canonical/
 const EntityReportingCalendar = lazy(() => import('@/pages/returns-canonical/EntityReportingCalendar'));
 const FilingDetail = lazy(() => import('@/pages/returns-canonical/FilingDetail'));
 
+/* EPR-01 — legacy `returns_filed.id` links resolve server-side to the canonical filing */
+const LegacyReturnFilingRedirect = lazy(() => import('@/routes/LegacyReturnFilingRedirect'));
+
 export const returnsRoutes = (
   <>
     <Route path="/entity/returns/dashboard" element={<P><PortalRoute area="returns" capability="can_view_status"><EntityReturnsDashboard /></PortalRoute></P>} />
@@ -35,6 +38,7 @@ export const returnsRoutes = (
     <Route path="/returns/queue" element={<P><ModuleRoute module="returns_management" allowedRoles={INTERNAL_ROLES}><ReturnsFilingQueue /></ModuleRoute></P>} />
     <Route path="/returns/obligations" element={<P><ModuleRoute module="returns_management" allowedRoles={INTERNAL_ROLES}><EntityObligationsWorkbench /></ModuleRoute></P>} />
     <Route path="/returns/calendar" element={<P><ModuleRoute module="returns_management" allowedRoles={INTERNAL_ROLES}><EntityReportingCalendar /></ModuleRoute></P>} />
+    <Route path="/returns/filings/legacy/:legacyId" element={<P><ModuleRoute module="returns_management" allowedRoles={INTERNAL_ROLES}><LegacyReturnFilingRedirect /></ModuleRoute></P>} />
     <Route path="/returns/filings/:filingId" element={<P><ModuleRoute module="returns_management" allowedRoles={INTERNAL_ROLES}><FilingDetail /></ModuleRoute></P>} />
     {/* Configuration is governed and lives under Administration → Regulatory Data Model. */}
     <Route path="/returns/configuration" element={<Navigate to="/admin/regulatory-data-model/reporting" replace />} />

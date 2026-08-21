@@ -599,3 +599,222 @@ export const FILING_STATUS_LABELS: Record<string, string> = {
   REJECTED: 'Rejected',
   WITHDRAWN: 'Withdrawn',
 };
+
+/* ------------------------------------------------------------------ */
+/* EPR-01 — canonical enterprise queue + server-supplied workflow      */
+/* guidance. React never derives Returns stage, SLA, priority or the   */
+/* next required action; all of it comes from the server read model.   */
+/* ------------------------------------------------------------------ */
+
+export interface FilingQueueFilters {
+  status?: string | null;
+  stage?: string | null;
+  entityId?: string | null;
+  ownerUserId?: string | null;
+  overdueOnly?: boolean;
+}
+
+export interface FilingQueueRowV2 {
+  filing_id: string;
+  filing_reference: string;
+  entity_id: string;
+  entity_name: string | null;
+  return_definition_id: string;
+  definition_code: string;
+  definition_name: string;
+  frequency: ReturnFrequency;
+  reporting_period_id: string;
+  period_label: string;
+  period_start: string;
+  period_end: string;
+  due_date: string;
+  stage: string;
+  stage_label: string;
+  status: string;
+  status_label: string;
+  owner_user_id: string | null;
+  owner_name: string | null;
+  team: string | null;
+  priority: string;
+  priority_reason: string;
+  sla_due_at: string | null;
+  sla_state: string;
+  waiting_on: string;
+  blocker_count: number;
+  blocking_validation_count: number;
+  open_request_count: number;
+  incomplete_required_forms: number;
+  last_activity_at: string | null;
+  next_action: string;
+  next_action_label: string;
+  next_action_href: string;
+  next_action_permission: string | null;
+  current_version_id: string | null;
+  current_version_number: number;
+  submitted_at: string | null;
+  is_overdue: boolean;
+  days_late: number;
+}
+
+export interface FilingQueueCounts {
+  total: number;
+  overdue: number;
+  sla_breached: number;
+  blocking_validations: number;
+  open_requests: number;
+  unassigned: number;
+  awaiting_regulator: number;
+  awaiting_entity: number;
+  by_stage: Record<string, number>;
+}
+
+const queueArgs = (f: FilingQueueFilters) => ({
+  _status: f.status ?? null,
+  _stage: f.stage ?? null,
+  _entity_id: f.entityId ?? null,
+  _owner_user_id: f.ownerUserId ?? null,
+  _overdue_only: !!f.overdueOnly,
+});
+
+export function useFilingQueueV2(filters: FilingQueueFilters = {}) {
+  return useQuery({
+    queryKey: [...KEY, 'filing-queue-v2', filters],
+    queryFn: () => rpc<FilingQueueRowV2[]>('returns_filing_queue_v2', { ...queueArgs(filters), _limit: 500 }),
+    staleTime: 15_000,
+  });
+}
+
+export function useFilingQueueCounts(filters: FilingQueueFilters = {}) {
+  return useQuery({
+    queryKey: [...KEY, 'filing-queue-counts', filters],
+    queryFn: () => rpc<FilingQueueCounts>('returns_filing_queue_counts', queueArgs(filters)),
+    staleTime: 15_000,
+  });
+}
+
+export interface FilingBlocker {
+  code: string;
+  label: string;
+  detail: string;
+  severity: 'critical' | 'warning' | string;
+}
+
+export interface FilingAvailableAction {
+  code: 'START_REVIEW' | 'VALIDATE' | 'REQUEST_CORRECTION' | 'ACCEPT' | 'REJECT' | 'ASSIGN' | string;
+  label: string;
+  variant: string;
+  requires_reason?: boolean;
+}
+
+export interface FilingWorkflowState {
+  filing_id: string;
+  stage: string;
+  stage_label: string;
+  status: string;
+  status_label: string;
+  waiting_on: 'ENTITY' | 'REGULATOR' | 'NOBODY' | string;
+  owner_user_id: string | null;
+  owner_name: string | null;
+  team: string | null;
+  priority: string;
+  priority_reason: string;
+  sla_due_at: string | null;
+  sla_state: 'ON_TRACK' | 'DUE_SOON' | 'BREACHED' | 'NOT_APPLICABLE' | string;
+  due_date: string;
+  is_overdue: boolean;
+  days_late: number;
+  last_activity_at: string | null;
+  current_version_id: string | null;
+  current_version_number: number;
+  accepted_version_id: string | null;
+  blocker_count: number;
+  blockers: FilingBlocker[];
+  available_actions: FilingAvailableAction[];
+  next_action: string;
+  next_action_label: string;
+  next_action_href: string;
+  next_action_permission: string | null;
+  completed: {
+    submitted_at: string | null;
+    accepted_at: string | null;
+    rejected_at: string | null;
+    required_forms_complete: boolean;
+    declaration_accepted_at: string | null;
+  };
+}
+
+export function useFilingWorkflowState(filingId?: string | null) {
+  return useQuery({
+    queryKey: [...KEY, 'filing-workflow-state', filingId],
+    enabled: !!filingId,
+    queryFn: () => rpc<FilingWorkflowState>('returns_filing_workflow_state', { _filing_id: filingId }),
+    staleTime: 10_000,
+  });
+}
+
+export interface FilingRelatedCases {
+  breaches: Array<{
+    id: string; metric_key: string | null; level: string | null; value: number | null;
+    threshold_value: number | null; risk_level: string | null; detected_at: string | null;
+    acknowledged_at: string | null; return_filing_version_id: string | null;
+  }>;
+  ewi_alerts: Array<{ id: string; severity: string | null; status: string | null; created_at: string | null }>;
+  assessments: Array<{ id: string; status: string | null; created_at: string | null }>;
+  actions: Array<{
+    id: string; action_reference: string | null; action_type: string | null; title: string | null;
+    status: string | null; severity: string | null; due_date: string | null;
+  }>;
+  enforcement: Array<{ id: string; escalated_at: string | null }>;
+}
+
+export function useFilingRelatedCases(filingId?: string | null) {
+  return useQuery({
+    queryKey: [...KEY, 'filing-related-cases', filingId],
+    enabled: !!filingId,
+    queryFn: () => rpc<FilingRelatedCases>('returns_filing_related_cases', { _filing_id: filingId }),
+    staleTime: 20_000,
+  });
+}
+
+/** Governed ownership assignment for a canonical filing. */
+export function useAssignFiling() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { filingId: string; ownerUserId: string | null; team?: string | null }) =>
+      rpc('returns_assign_filing', {
+        _filing_id: v.filingId, _owner_user_id: v.ownerUserId, _team: v.team ?? null,
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+/** Server-side translation of a legacy `returns_filed.id` to the canonical filing id. */
+export function useResolveLegacyFiling(legacyId?: string | null) {
+  return useQuery({
+    queryKey: [...KEY, 'resolve-legacy-filing', legacyId],
+    enabled: !!legacyId,
+    retry: false,
+    queryFn: () => rpc<string | null>('returns_resolve_legacy_filing', { _legacy_id: legacyId }),
+  });
+}
+
+export const RETURN_STAGE_LABELS: Record<string, string> = {
+  ENTITY_PREPARATION: 'Entity preparation',
+  SUBMITTED_INTAKE: 'Submitted — intake',
+  REGULATOR_REVIEW: 'Regulator review',
+  CORRECTION: 'Correction',
+  CLOSED: 'Closed',
+};
+
+export const WAITING_ON_LABELS: Record<string, string> = {
+  ENTITY: 'Regulated entity',
+  REGULATOR: 'Regulator',
+  NOBODY: 'No one — closed',
+};
+
+export const SLA_STATE_LABELS: Record<string, string> = {
+  ON_TRACK: 'On track',
+  DUE_SOON: 'Due soon',
+  BREACHED: 'Breached',
+  NOT_APPLICABLE: 'Not applicable',
+};
