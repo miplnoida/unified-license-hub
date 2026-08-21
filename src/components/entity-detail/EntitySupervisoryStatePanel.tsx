@@ -149,13 +149,14 @@ export function EntitySupervisoryStatePanel({ entityId }: { entityId: string }) 
                   {(s.directives ?? []).map((d) => (
                     <Link
                       key={d.id}
-                      to={`/prudential/actions/${d.id}`}
+                      to="/prudential/actions"
                       className="text-xs font-medium text-primary hover:underline"
                       title={`${d.title ?? 'Supervisory directive'} — ${humanize(d.status)}`}
                     >
                       {d.reference ?? 'Directive'} · {humanize(d.status)}
                     </Link>
                   ))}
+
                   {s.escalated_enforcement_id && (
                     <Link to={`/enforcement/${s.escalated_enforcement_id}`} className="text-xs text-primary hover:underline">
                       Enforcement escalation
