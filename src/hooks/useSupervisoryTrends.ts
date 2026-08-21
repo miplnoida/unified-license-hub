@@ -1,5 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  fetchCanonicalReturnsTrend,
+  type CanonicalReturnsTrendPoint,
+} from '@/lib/returns/canonicalReturnsSummary';
 
 export interface SupervisoryTrendPoint {
   month: string;      // 'YYYY-MM'
