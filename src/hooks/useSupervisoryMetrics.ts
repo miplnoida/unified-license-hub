@@ -47,45 +47,27 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 // `.in()` no-op behaviour (which would otherwise return everything).
 const NO_MATCH_ID = '00000000-0000-0000-0000-000000000000';
 
-// Real returns live in `returns_filed` (workflow_status TEMP/WIP/SUB/VAL/TBR/REJ),
-// not the legacy `compliance_returns` table (which nothing in the live filing
-// flow writes to — see ViewReturns.tsx for the same returns_filed pattern this
-// mirrors). One fetch produces both the dashboard counts and the top-5
-// overdue list, avoiding a duplicate query. `returns_filed` carries its own
-// `sector_id` column, so this is filtered directly (no licensee join needed).
+// EPR-01: Return volumes come from the canonical model via a server-side
+// aggregate (`returns_supervisory_summary`) over `return_filings` /
+// `v_return_filing_workflow_state`. The retired `returns_filed` table is no
+// longer read here, and no KPI is derived from `rows.length`.
 const fetchReturnsFiledSummary = async (sectorId: string | null) => {
-  const today = todayDateIso();
-  let q = supabase.from('returns_filed').select('id, workflow_status, due_date');
-  if (sectorId) q = q.eq('sector_id', sectorId);
-  const { data, error } = await q;
-  const empty = { overdue: 0, pending_review: 0, submitted: 0, due_soon: 0 };
-  if (error) return { counts: empty, overdueRows: [] as Array<{ id: string; due_date: string | null; status: string }> };
-
-  const rows = (data || []) as Array<{ id: string; workflow_status: string | null; due_date: string | null }>;
-  let overdue = 0, pendingReview = 0, submitted = 0, dueSoon = 0;
-  const overdueRows: Array<{ id: string; due_date: string | null; status: string }> = [];
-
-  for (const row of rows) {
-    const status = mapReturnWorkflowStatus(row, today);
-    const display = getAdminReturnDisplayStatus({ status, due_date: row.due_date }, today);
-    if (display === 'due_soon') {
-      dueSoon++;
-    } else if (display === 'overdue') {
-      overdue++; submitted++;
-      overdueRows.push({ id: row.id, due_date: row.due_date, status: 'overdue' });
-    } else if (display === 'submitted') {
-      pendingReview++; submitted++;
-    } else if (display) {
-      submitted++;
-    }
-  }
-  overdueRows.sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''));
-
+  const summary = await fetchCanonicalReturnsSummary(sectorId);
   return {
-    counts: { overdue, pending_review: pendingReview, submitted, due_soon: dueSoon },
-    overdueRows: overdueRows.slice(0, 5),
+    counts: {
+      overdue: summary.overdue,
+      pending_review: summary.pending_review,
+      submitted: summary.submitted,
+      due_soon: summary.due_soon,
+    },
+    overdueRows: (summary.top_overdue || []).map((r) => ({
+      id: r.id,
+      due_date: r.due_date,
+      status: 'overdue' as const,
+    })),
   };
 };
+
 
 export interface SupervisoryFilters {
   sectorId?: string | null;
