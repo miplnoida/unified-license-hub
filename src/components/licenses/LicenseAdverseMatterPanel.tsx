@@ -13,7 +13,7 @@ import { AlertTriangle, CircleDot, Clock, FileText, ShieldAlert } from 'lucide-r
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatDate, formatDateTime } from '@/lib/datetime';
+import { formatDateOnly as formatDate, formatDateTime } from '@/lib/datetime';
 import { useLicenseAdverseMatterCase, type LicenseAdverseMatter } from '@/hooks/useLicenseLifecycle';
 
 function stageTone(state: string) {
