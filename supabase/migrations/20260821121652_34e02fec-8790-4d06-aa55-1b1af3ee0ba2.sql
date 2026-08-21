@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.fp_assessment_case(uuid) TO postgres;

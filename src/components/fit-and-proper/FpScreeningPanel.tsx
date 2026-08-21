@@ -27,7 +27,16 @@ const ROUTING_BADGE: Record<string, { label: string; className: string }> = {
   low: { label: 'ASSESSOR REVIEW', className: 'bg-slate-100 text-slate-700 border-slate-300' },
 };
 
-interface Props { individualId: string; assessmentId?: string | null }
+interface Props {
+  individualId: string;
+  assessmentId?: string | null;
+  /**
+   * EPR-04: when true the panel shows ONLY the runs and findings belonging to
+   * `assessmentId`. The assessment case workspace always sets this so evidence
+   * from another assessment of the same person can never leak into the case.
+   */
+  scopeToAssessment?: boolean;
+}
 
 type PendingOverride = {
   ruleKey: string;
@@ -39,7 +48,7 @@ type PendingOverride = {
   apply: () => Promise<void>;
 };
 
-export function FpScreeningPanel({ individualId, assessmentId }: Props) {
+export function FpScreeningPanel({ individualId, assessmentId, scopeToAssessment = false }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -49,27 +58,32 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
   const [resolving, setResolving] = useState<{ id: string; status: 'true_positive' | 'false_positive' | 'needs_review'; title: string } | null>(null);
   const [resolutionReason, setResolutionReason] = useState('');
 
+  const scoped = scopeToAssessment && !!assessmentId;
+
   const { data: runs } = useQuery({
-    queryKey: ['fp_screening_runs', individualId],
+    queryKey: ['fp_screening_runs', individualId, scoped ? assessmentId : null],
     queryFn: async () => {
-      const { data, error } = await supabase.from('fp_screening_runs')
-        .select('id, assessment_id, run_type, status, total_checks, total_hits, started_at, completed_at, config_snapshot')
-        .eq('individual_id', individualId).order('started_at', { ascending: false }).limit(20);
+      let q = supabase.from('fp_screening_runs')
+        .select('id, assessment_id, run_type, status, total_checks, total_hits, started_at, completed_at, config_snapshot');
+      q = scoped ? q.eq('assessment_id', assessmentId!) : q.eq('individual_id', individualId);
+      const { data, error } = await q.order('started_at', { ascending: false }).limit(20);
       if (error) throw error;
       return data ?? [];
     },
   });
 
   const { data: findings } = useQuery({
-    queryKey: ['fp_findings', individualId],
+    queryKey: ['fp_findings', individualId, scoped ? assessmentId : null],
     queryFn: async () => {
-      const { data, error } = await supabase.from('fp_findings')
-        .select('id, run_id, config_id, check_type, title, severity, summary, source, severity_basis, is_false_positive, review_note, reviewed_at, created_at, confidence_score, resolution_status, resolution_reason, resolved_at, citations, evidence_urls')
-        .eq('individual_id', individualId).order('created_at', { ascending: false }).limit(200);
+      let q = supabase.from('fp_findings')
+        .select('id, run_id, config_id, check_type, title, severity, summary, source, severity_basis, is_false_positive, review_note, reviewed_at, created_at, confidence_score, resolution_status, resolution_reason, resolved_at, citations, evidence_urls');
+      q = scoped ? q.eq('assessment_id', assessmentId!) : q.eq('individual_id', individualId);
+      const { data, error } = await q.order('created_at', { ascending: false }).limit(200);
       if (error) throw error;
       return data ?? [];
     },
   });
+
 
   async function uploadEvidence(findingId: string, file: File) {
     try {

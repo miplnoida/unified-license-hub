@@ -136,14 +136,17 @@ export default function FpaProcessList() {
 
   const hasExtraFilters = regulatorFilter !== 'all' || !!dateFrom || !!dateTo;
 
+  // EPR-04: every row opens its own ASSESSMENT CASE workspace. The person
+  // profile is master data/history only and is offered as a secondary link.
   function rowActionsFor(row: FpProcessRow): RowAction[] {
-    const base = `/fpa/individuals/${row.individual_id}`;
+    const kase = `/fpa/assessments/${row.id}`;
     return [
-      { label: 'Open Profile', icon: User, onClick: () => nav(base) },
-      { label: 'Open Declaration', icon: FileText, onClick: () => nav(`${base}?tab=assessments`) },
-      { label: 'Open Screening', icon: ShieldCheck, onClick: () => nav(`${base}?tab=screening`), hidden: !['submitted', 'screening'].includes(row.status ?? '') },
-      { label: 'Open Committee Voting', icon: Gavel, onClick: () => nav('/fpa/committee'), hidden: row.status !== 'awaiting_committee' },
-      { label: 'Open Determination', icon: ScrollText, onClick: () => nav(`${base}?tab=determinations`), hidden: !['determined', 'closed'].includes(row.status ?? '') },
+      { label: 'Open Case', icon: ScrollText, onClick: () => nav(kase) },
+      { label: 'Open Declaration', icon: FileText, onClick: () => nav(`${kase}?section=declaration`) },
+      { label: 'Open Screening', icon: ShieldCheck, onClick: () => nav(`${kase}?section=screening`), hidden: !['submitted', 'screening'].includes(row.status ?? '') },
+      { label: 'Open Committee', icon: Gavel, onClick: () => nav(`${kase}?section=committee`), hidden: row.status !== 'awaiting_committee' },
+      { label: 'Open Determination', icon: ScrollText, onClick: () => nav(`${kase}?section=determination`), hidden: !['determined', 'closed'].includes(row.status ?? '') },
+      { label: 'Open Person Record', icon: User, onClick: () => nav(`/fpa/individuals/${row.individual_id}`) },
     ];
   }
 
@@ -265,7 +268,7 @@ export default function FpaProcessList() {
                       <TableRow
                         key={row.id}
                         className="cursor-pointer hover:bg-muted/40"
-                        onClick={() => nav(`/fpa/individuals/${row.individual_id}?tab=assessments`)}
+                        onClick={() => nav(`/fpa/assessments/${row.id}`)}
                       >
                         <TableCell className="font-medium whitespace-nowrap">{row.individual_name ?? '—'}</TableCell>
                         <TableCell className="text-xs text-muted-foreground font-mono">{row.individual_national_id ?? '—'}</TableCell>
