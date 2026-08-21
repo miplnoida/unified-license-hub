@@ -146,7 +146,8 @@ export function useDashboardStats() {
         supabase.from('applications').select('status', { count: 'exact', head: true }),
         supabase.from('licenses').select('status', { count: 'exact', head: true }),
         supabase.from('payments').select('status', { count: 'exact', head: true }),
-        supabase.from('compliance_returns').select('status', { count: 'exact', head: true }),
+        // EPR-01 — canonical Returns truth.
+        supabase.from('v_return_filing_workflow_state').select('status', { count: 'exact', head: true }),
       ]);
       return {
         applications: apps.count || 0,
