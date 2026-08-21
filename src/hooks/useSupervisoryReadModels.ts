@@ -91,7 +91,12 @@ export interface SupEntitySupervisoryState {
       detection_source: string | null; detection_run_id: string | null;
       return_filing_id: string | null; acknowledged_at: string | null;
       escalated_enforcement_id: string | null;
+      directives?: Array<{
+        id: string; reference: string | null; action_type: string | null; title: string | null;
+        status: string; severity: string | null; due_date: string | null;
+      }>;
     }>;
+
     latest_approved_assessment: { id: string; period_end: string | null; overall_rating: string | null; status: string; approved_at: string } | null;
     open_plan_actions: number;
   };

@@ -1,5 +1,7 @@
 import { COLLAB_REVIEW_ENABLED } from '@/lib/featureFlags';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { LegacyReturnsNotice } from '@/components/returns/LegacyReturnsNotice';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -608,7 +610,9 @@ export default function ReturnDetail() {
   return (
     <DashboardLayout>
       <div className="space-y-4">
+        <LegacyReturnsNotice />
         {/* Header */}
+
         <div className="flex items-center justify-between gap-2">
           <Button variant="ghost" size="sm" onClick={() => navigate(adminBasePath)}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to Returns

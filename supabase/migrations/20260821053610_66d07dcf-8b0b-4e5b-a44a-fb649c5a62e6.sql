@@ -1,0 +1,1 @@
+ALTER VIEW public.v_prudential_current_breaches SET (security_invoker = on);
