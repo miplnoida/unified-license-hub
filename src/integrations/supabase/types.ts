@@ -39016,6 +39016,14 @@ export type Database = {
         Args: { _registration_id: string }
         Returns: Json
       }
+      onboarding_form_first_resolve_internal: {
+        Args: { _registration_id: string }
+        Returns: Json
+      }
+      onboarding_form_first_resolve_service: {
+        Args: { _registration_id: string }
+        Returns: Json
+      }
       onboarding_identification_activity: {
         Args: { _filters?: Json; _limit?: number; _offset?: number }
         Returns: {

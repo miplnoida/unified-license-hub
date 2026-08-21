@@ -1,12 +1,17 @@
 /**
- * RDM-ENTITY-001 Wave C — `/register` is the USER ACCOUNT step only (§17).
- * Chain: /register (user account) → /register/entity (entity identification)
- * → authority/membership request → Application / Form Package.
- * The legacy all-in-one flow remains available at `/register/legacy` and at
- * the existing update/resubmission routes.
+ * `/register` — public registration decision page (not a journey itself).
+ *
+ * Chain:
+ *   /register            → choose a governed public registration journey
+ *   /register/applicant  → FORM_FIRST  (New Applicant Registration)
+ *   /register/entity     → ENTITY_FIRST (Connect to an Existing Entity)
+ *
+ * Account creation (`/register/account`) is a shared prerequisite, not a
+ * journey. Both journeys converge on canonical entity resolution/binding and
+ * the same regulator-side onboarding controls.
  */
-import UserAccountStep from '@/pages/registration/UserAccountStep';
+import RegistrationJourneyChoice from '@/pages/registration/RegistrationJourneyChoice';
 
 export default function Register() {
-  return <UserAccountStep />;
+  return <RegistrationJourneyChoice />;
 }

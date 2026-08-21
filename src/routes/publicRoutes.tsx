@@ -19,6 +19,8 @@ const PublicEnforcement = lazy(() => import('@/pages/public/PublicEnforcement'))
 const PublicEntityRegister = lazy(() => import('@/pages/public/PublicEntityRegister'));
 const PublicEntityDetail = lazy(() => import('@/pages/public/PublicEntityDetail'));
 const EntityIdentification = lazy(() => import('@/pages/registration/EntityIdentification'));
+const UserAccountStep = lazy(() => import('@/pages/registration/UserAccountStep'));
+const LegacyRegisterRedirect = lazy(() => import('@/routes/LegacyRegisterRedirect'));
 const DeclarationLanding = lazy(() => import('@/pages/public/DeclarationLanding'));
 
 
@@ -26,15 +28,20 @@ export const publicRoutes = (
   <>
     <Route path="/" element={<Index />} />
     <Route path="/login" element={<Login />} />
-    {/* /register is for BRAND NEW registrations only. Existing users editing or
-        resubmitting a registration must use /registration/portal — never /register. */}
+    {/* /register is the public registration DECISION page — it renders the
+        governed journeys from registration_journey_types and is not itself a
+        journey. Existing users editing or resubmitting a registration must use
+        /registration/portal — never /register. */}
     <Route path="/register" element={<Register />} />
-    {/* Wave C: user identity and entity identity are separate steps. */}
+    {/* FORM_FIRST — New Applicant Registration (canonical new-registration form). */}
+    <Route path="/register/applicant" element={<PreLicenseeRegistration />} />
+    {/* ENTITY_FIRST — Connect to an Existing Entity. */}
     <Route path="/register/entity" element={<EntityIdentification />} />
-    {/* Compatibility: the legacy all-in-one new-registration flow (entity +
-        documents + declarations in one form) remains reachable here — nothing
-        from it was removed, /register just no longer defaults to it. */}
-    <Route path="/register/legacy" element={<PreLicenseeRegistration />} />
+    {/* Shared prerequisite for either journey: user account + email verification. */}
+    <Route path="/register/account" element={<UserAccountStep />} />
+    {/* Compatibility alias only: the old all-in-one route now resolves to the
+        canonical FORM_FIRST route. Not a third active workflow. */}
+    <Route path="/register/legacy" element={<LegacyRegisterRedirect />} />
     {/* Backward compatibility: legacy nested route redirects to canonical /register */}
     <Route path="/registration/pre-licensee" element={<Navigate to="/register" replace />} />
     <Route path="/registration/success" element={<RegistrationSuccess />} />

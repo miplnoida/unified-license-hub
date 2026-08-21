@@ -104,7 +104,9 @@ export default function EntityIdentification() {
             </AlertDescription>
           </Alert>
           <div className="mt-4 flex gap-2">
-            <Button onClick={() => navigate('/register')}>Create an account</Button>
+            <Button onClick={() => navigate('/register/account?journey=ENTITY_FIRST&next=%2Fregister%2Fentity')}>
+              Create an account
+            </Button>
             <Button variant="outline" onClick={() => navigate('/login?redirect=%2Fregister%2Fentity')}>Sign in</Button>
           </div>
         </main>
