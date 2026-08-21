@@ -8,8 +8,12 @@ import type {
 import { REPORT_DEFINITIONS, SENSITIVE_COLUMNS } from '../reportDefinitions';
 
 export const ALLOWED_SOURCES: ReportSource[] = [
-  'applications', 'licenses', 'payments', 'compliance_returns', 'complaints', 'users', 'audit_logs', 'report_logs',
+  'applications', 'licenses', 'payments', 'complaints', 'users', 'audit_logs', 'report_logs',
   'return_threshold_breaches',
+  // EPR-01 — canonical Returns reporting source.
+  'return_filings',
+  // HISTORICAL ONLY: still accepted so saved/scheduled legacy runs resolve.
+  'compliance_returns',
 ];
 
 export function isAllowedSource(s: string): s is ReportSource {
@@ -20,9 +24,9 @@ export function isAllowedSource(s: string): s is ReportSource {
 export const REPORT_SLUG_SOURCE_MAP: Record<string, ReportSource> = {
   'app-status': 'applications', 'app-aging': 'applications', 'app-sla': 'applications',
   'lic-issuance': 'licenses', 'lic-expiry': 'licenses', 'lic-suspended': 'licenses', 'lic-distribution': 'licenses',
-  'ret-status': 'compliance_returns', 'ret-overdue': 'compliance_returns', 'ret-defaulters': 'compliance_returns',
-  'ret-scorecard': 'compliance_returns', 'ret-latefee': 'compliance_returns', 'ret-risk': 'compliance_returns',
-  'ret-repeat': 'compliance_returns',
+  'ret-status': 'return_filings', 'ret-overdue': 'return_filings', 'ret-defaulters': 'return_filings',
+  'ret-scorecard': 'return_filings', 'ret-latefee': 'return_filings', 'ret-risk': 'return_filings',
+  'ret-repeat': 'return_filings',
   'fee-collection': 'payments', 'fee-outstanding': 'payments', 'fee-failed': 'payments',
   'fee-refund': 'payments', 'fee-sector': 'payments', 'fee-trend': 'payments',
   'op-workload': 'applications', 'op-productivity': 'applications', 'op-process-time': 'applications',
@@ -31,7 +35,7 @@ export const REPORT_SLUG_SOURCE_MAP: Record<string, ReportSource> = {
   'cmp-category': 'complaints', 'cmp-escalated': 'complaints', 'cmp-sla': 'complaints',
   'aud-trail': 'audit_logs', 'aud-permissions': 'audit_logs', 'aud-export': 'report_logs',
   'aud-failed-login': 'audit_logs', 'aud-admin': 'audit_logs',
-  'prud-breach': 'return_threshold_breaches', 'ret-sla': 'compliance_returns',
+  'prud-breach': 'return_threshold_breaches', 'ret-sla': 'return_filings',
 };
 
 export function resolveScheduleSource(schedule: { source?: string | null; report_slug?: string | null }): ReportSource | null {
@@ -519,7 +523,7 @@ export async function getReportMetrics() {
     supabase.from('applications').select('status, created_at, license_type').limit(5000),
     supabase.from('payments').select('amount, status, created_at').limit(5000),
     supabase.from('licenses').select('status, expiry_date').limit(5000),
-    supabase.from('compliance_returns').select('status, due_date, submitted_at').limit(5000),
+    supabase.from('v_return_filing_workflow_state').select('status, due_date, submitted_at').limit(5000),
     supabase.from('complaints').select('status, created_at, complaint_type_id').limit(5000),
   ]);
 

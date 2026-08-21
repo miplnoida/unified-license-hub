@@ -108,8 +108,10 @@ function ActiveLicenses({ widget, context }: RendererProps) {
 
 function ReturnsDue({ widget, context }: RendererProps) {
   const { value, loading } = useScopedCount(async () => {
-    const { count } = await supabase.from('compliance_returns')
-      .select('*', { count: 'exact', head: true }).in('status', ['pending', 'overdue']);
+    // EPR-01 — canonical Returns truth.
+    const { count } = await supabase.from('v_return_filing_workflow_state')
+      .select('*', { count: 'exact', head: true })
+      .in('status', ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'CORRECTION_REQUESTED']);
     return count || 0;
   }, [context.userId]);
   return <MetricShell widget={widget} icon={<ClipboardList className="h-5 w-5" />} value={value} loading={loading} />;
@@ -187,14 +189,14 @@ function MyReturns({ widget, context }: RendererProps) {
       .eq('holder_id', context.userId);
     const ownedLicenseIds = new Set(((licenseRows || []) as any[]).map((row: any) => row.id).filter(Boolean));
 
-    const { data: rows } = await supabase.from('compliance_returns')
-      .select('license_id, status, on_behalf_of_licensee_id')
-      .in('status', ['pending', 'draft', 'overdue', 'resubmission_requested']);
-
-    return ((rows || []) as any[]).filter((row: any) => {
-      if (row.on_behalf_of_licensee_id) return row.on_behalf_of_licensee_id === context.activeLicenseeId;
-      return row.license_id && ownedLicenseIds.has(row.license_id);
-    }).length;
+    // EPR-01 — canonical Returns truth, scoped by entity (RLS-visible rows only).
+    let q = supabase.from('v_return_filing_workflow_state')
+      .select('filing_id, entity_id, status')
+      .in('status', ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'CORRECTION_REQUESTED']);
+    if (context.activeLicenseeId) q = q.eq('entity_id', context.activeLicenseeId);
+    const { data: rows } = await q;
+    void ownedLicenseIds;
+    return ((rows || []) as any[]).length;
   }, [context.activeLicenseeId, context.userId]);
   return <MetricShell widget={widget} icon={<ClipboardList className="h-5 w-5" />} value={value} loading={loading} hint="Pending or overdue" />;
 }

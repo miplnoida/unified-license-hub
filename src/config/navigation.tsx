@@ -126,7 +126,7 @@ export const mainNavSections: NavSection[] = [
          { label: 'Schedule Calendar', href: '/admin/returns/schedule', icon: <CalendarDays className="h-4 w-4" />, roles: ADMIN_ROLES, module: 'returns_management' },
         ],
       },
-      { label: 'Returns Queue', href: '/admin/returns/queue', icon: <ClipboardList className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'analyst'], module: 'returns_management' },
+      { label: 'Returns Queue', href: '/returns/queue', icon: <ClipboardList className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'analyst'], module: 'returns_management' },
       { label: 'Returns Dashboard', href: '/entity/returns/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, roles: LICENSEE_ALL },
       { label: 'My Returns', href: '/entity/returns', icon: <CalendarCheck className="h-5 w-5" />, roles: LICENSEE_ALL },
     ],

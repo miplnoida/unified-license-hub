@@ -9,6 +9,7 @@ import { INTERNAL_ROLES } from '@/types/platform';
 import type { PortalArea, PortalCapability } from '@/lib/portalAccess';
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const LegacyReturnFilingRedirect = lazy(() => import('@/routes/LegacyReturnFilingRedirect'));
 const ApplicationsList = lazy(() => import('@/pages/applications/ApplicationsList'));
 const ApplicationQueue = lazy(() => import('@/pages/applications/ApplicationQueue'));
 const ApplicationDetail = lazy(() => import('@/pages/applications/ApplicationDetail'));
@@ -19,8 +20,6 @@ const PostLicenseApplicationForms = lazy(() => import('@/pages/PostLicenseApplic
 const ApplicationForms = lazy(() => import('@/pages/ApplicationForms'));
 const LicensesList = lazy(() => import('@/pages/licenses/LicensesList'));
 const LicenseDetail = lazy(() => import('@/pages/licenses/LicenseDetail'));
-const ComplianceReturns = lazy(() => import('@/pages/compliance/ComplianceReturns'));
-const ReturnSubmission = lazy(() => import('@/pages/compliance/ReturnSubmission'));
 const PaymentHistory = lazy(() => import('@/pages/payments/PaymentHistory'));
 const PaymentDetail = lazy(() => import('@/pages/payments/PaymentDetail'));
 const ComplaintsList = lazy(() => import('@/pages/complaints/ComplaintsList'));
@@ -37,9 +36,6 @@ const NotificationCenter = lazy(() => import('@/pages/notifications/Notification
 const AnalyticsDashboard = lazy(() => import('@/pages/analytics/AnalyticsDashboard'));
 const ReportsDashboard = lazy(() => import('@/pages/reports/ReportsDashboard'));
 const FormDetail = lazy(() => import('@/pages/FormDetail'));
-const ViewReturns = lazy(() => import('@/pages/returns-mgmt/ViewReturns'));
-const ReturnDetail = lazy(() => import('@/pages/returns-mgmt/ReturnDetail'));
-const ReturnAnalysis = lazy(() => import('@/pages/returns-mgmt/ReturnAnalysis'));
 const Profile = lazy(() => import('@/pages/Profile'));
 const ChangePassword = lazy(() => import('@/pages/ChangePassword'));
 const FormPreview = lazy(() => import('@/pages/FormPreview'));
@@ -174,12 +170,18 @@ export const dashboardRoutes = (
     <Route path="/licenses" element={<EP area="licensing" capability="can_view_status"><LicensesList /></EP>} />
     <Route path="/licenses/:id" element={<EP area="licensing" capability="can_view_status"><LicenseDetail /></EP>} />
 
-    <Route path="/returns-management" element={<M module="returns_management"><ViewReturns /></M>} />
-    <Route path="/returns-management/:id" element={<M module="returns_management"><ReturnDetail /></M>} />
-    <Route path="/returns-management/:id/analysis" element={<M module="returns_management"><ReturnAnalysis /></M>} />
+    {/* EPR-01 — the legacy internal Returns spine is RETIRED. These paths are
+        COMPATIBILITY_ONLY: old bookmarks resolve to the canonical spine
+        (/returns/queue, /returns/filings/:filingId). No regulatory action may
+        be taken here and there are no navigation entries pointing at them. */}
+    <Route path="/returns-management" element={<Navigate to="/returns/queue" replace />} />
+    <Route path="/returns-management/:id" element={<M module="returns_management"><LegacyReturnFilingRedirect /></M>} />
+    <Route path="/returns-management/:id/analysis" element={<M module="returns_management"><LegacyReturnFilingRedirect /></M>} />
 
-    <Route path="/compliance/returns" element={<EP area="returns" capability="can_view_status"><ComplianceReturns /></EP>} />
-    <Route path="/compliance/returns/submit" element={<EP area="returns" capability="can_submit_returns"><ReturnSubmission /></EP>} />
+    {/* EPR-01 — the legacy external "Compliance Returns" spine is RETIRED in
+        favour of the canonical filer journey at /entity/returns. */}
+    <Route path="/compliance/returns" element={<Navigate to="/entity/returns" replace />} />
+    <Route path="/compliance/returns/submit" element={<Navigate to="/entity/returns" replace />} />
 
     <Route path="/payments" element={<EP area="licensing" capability="can_view_status"><PaymentHistory /></EP>} />
     <Route path="/payments/:id" element={<EP area="licensing" capability="can_view_status"><PaymentDetail /></EP>} />

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { loadVisibleApplications } from '@/lib/visibleApplications';
+import { fetchCanonicalEntityReturnsSummary } from '@/lib/returns/canonicalReturnsSummary';
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const daysFromNow = (n: number) => {
@@ -73,7 +74,7 @@ async function resolveLicenseeScope(
     supabase.from('profiles').select('licensee_id, entity_name').eq('id', userId).maybeSingle(),
     supabase.from('licenses').select('id').eq('holder_id', userId),
     supabase
-      .from('returns_filed')
+      .from('return_filings')
       .select('entity_id')
       .eq('created_by', userId)
       .not('entity_id', 'is', null)
@@ -143,12 +144,6 @@ async function resolveLicenseeScope(
   };
 }
 
-function buildReturnsScope(licenseeIds: string[]) {
-  return licenseeIds
-    .flatMap((id) => [`entity_id.eq.${id}`, `on_behalf_of_licensee_id.eq.${id}`])
-    .join(',');
-}
-
 /**
  * Aggregates dashboard metrics for the currently-selected licensee entity.
  *
@@ -157,11 +152,10 @@ function buildReturnsScope(licenseeIds: string[]) {
  *   - Licences are matched by `licenses.holder_id = activeLicenseeId` (a
  *     licensee can hold multiple licences; we must NOT collapse to a single
  *     primary `licensees.license_id`).
- *   - Returns are read from `returns_filed` (the canonical table used across
- *     the returns module) and matched on either `entity_id` or
- *     `on_behalf_of_licensee_id` so PPOC-filed returns are included.
- *   - Returns workflow statuses: TEMP/WIP = unfinished draft, SUB = submitted
- *     awaiting review, VAL = validated/approved, TBR = sent back for edit.
+ *   - EPR-01: Returns come from the CANONICAL server aggregate
+ *     (`returns_entity_summary` over `return_filings` +
+ *     `v_return_filing_workflow_state`). The retired `returns_filed` store is
+ *     never read here — counts and the upcoming list are supplied server-side.
  *   - Payments are scoped through this licensee's visible applications.
  */
 export async function fetchLicenseeMetrics(activeLicenseeId: string | null | undefined, userId: string | undefined): Promise<LicenseeMetrics> {
@@ -169,7 +163,6 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
       const lid = scope.primaryId;
       const today = todayIso();
       const in30 = daysFromNow(30);
-      const returnScope = scope.licenseeIds.length > 0 ? buildReturnsScope(scope.licenseeIds) : null;
 
       let visibleApps: Awaited<ReturnType<typeof loadVisibleApplications>> = [];
       try {
@@ -185,25 +178,19 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
       const approvedApps = visibleApps.filter((app) => app.status === 'approved').length;
       const rejectedApps = visibleApps.filter((app) => app.status === 'rejected').length;
 
-      const [entityLicenseLinksRes, returnsRes] = await Promise.all([
+      const [entityLicenseLinksRes, canonicalReturns] = await Promise.all([
         scope.licenseeIds.length > 0
           ? supabase.from('licensees').select('id, license_id').in('id', scope.licenseeIds)
           : Promise.resolve({ data: [], error: null } as any),
-        returnScope
-          ? supabase
-              .from('returns_filed')
-              .select('id, unique_id, due_date, workflow_status, entity_id, on_behalf_of_licensee_id')
-              .or(returnScope)
-          : Promise.resolve({ data: [], error: null } as any),
+        fetchCanonicalEntityReturnsSummary(scope.licenseeIds),
       ]);
+
 
       if (entityLicenseLinksRes.error) {
         console.warn('[useLicenseeMetrics] Could not read licensee links; falling back to holder licenses:', entityLicenseLinksRes.error);
       }
-      if (returnsRes.error) {
-        console.error('[useLicenseeMetrics] Failed to resolve returns:', returnsRes.error);
-        throw returnsRes.error;
-      }
+
+
 
       const linkedLicenseIds = ((entityLicenseLinksRes.error ? [] : entityLicenseLinksRes.data || []) as Array<{ license_id?: string | null }>)
         .map((row) => row.license_id)
@@ -273,15 +260,12 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
         };
       });
 
-      const returnRows = ((returnsRes.data || []) as any[]).map((row) => ({
-        ...row,
-        workflow_status: String(row.workflow_status || '').toUpperCase(),
-      }));
-      const UNFILED = ['TEMP', 'WIP', 'TBR'] as const;
-      const retDueSoon = returnRows.filter((row) => UNFILED.includes(row.workflow_status) && !!row.due_date && row.due_date >= today && row.due_date <= in30).length;
-      const retOverdue = returnRows.filter((row) => UNFILED.includes(row.workflow_status) && !!row.due_date && row.due_date < today).length;
-      const retSubmitted = returnRows.filter((row) => ['SUB', 'VAL', 'REJ'].includes(row.workflow_status)).length;
-      const retPending = returnRows.filter((row) => row.workflow_status === 'SUB').length;
+      // EPR-01 — canonical Returns facts (server-aggregated over `return_filings`).
+      const retDueSoon = canonicalReturns.due_soon;
+      const retOverdue = canonicalReturns.overdue;
+      const retSubmitted = canonicalReturns.total - canonicalReturns.draft;
+      const retPending = canonicalReturns.pending_review;
+
 
 
       // ── Payments (via visible applications) ────────────────────────────────
@@ -326,16 +310,17 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
         .filter((payment: any) => visibleAppIdSet.has(payment.application_id));
       const outstanding_amount = pendingPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
 
-      const upcomingReturns = returnRows
-        .filter((row) => UNFILED.includes(row.workflow_status) && !!row.due_date && row.due_date >= today)
-        .sort((a, b) => String(a.due_date || '').localeCompare(String(b.due_date || '')))
+      // Canonical upcoming filings — ids are `return_filings.id`, so drill-downs
+      // can use objectRoute.returnFiling() directly.
+      const upcomingReturns = (canonicalReturns.upcoming ?? [])
         .slice(0, 5)
         .map((r) => ({
-        id: r.id,
-        unique_id: r.unique_id,
-        due_date: r.due_date,
-        status: r.workflow_status,
+          id: r.id,
+          unique_id: r.filing_reference ?? r.definition_name ?? null,
+          due_date: r.due_date ?? null,
+          status: r.status_label ?? r.status ?? '',
         }));
+
 
       const expiringLicenses = normalizedLicenseRows
         .filter((row) => row.status === 'active' && !!row.valid_until)

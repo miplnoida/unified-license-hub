@@ -54,7 +54,8 @@ export default function AnalyticsDashboard() {
       // Payments
       const { count: payCount } = await supabase.from('payments' as any).select('*', { count: 'exact', head: true });
       // Returns
-      const { count: retCount } = await supabase.from('compliance_returns' as any).select('*', { count: 'exact', head: true });
+      // EPR-01 — canonical Returns truth.
+      const { count: retCount } = await supabase.from('v_return_filing_workflow_state' as any).select('*', { count: 'exact', head: true });
 
       setStats({
         totalApps: allApps.length, pendingApps: pending, approvedApps: approved, rejectedApps: rejected,

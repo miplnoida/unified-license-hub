@@ -29,7 +29,8 @@ const FALLBACK_ROUTES: Partial<Record<ReportSource, { detailPath: string; idColu
   applications: { detailPath: '/applications/:id', idColumn: 'id' },
   licenses: { detailPath: '/licenses/:id', idColumn: 'id' },
   complaints: { detailPath: '/complaints', idColumn: 'id' },
-  compliance_returns: { detailPath: '/returns-management/:id', idColumn: 'id' },
+  compliance_returns: { detailPath: '/returns/filings/legacy/:id', idColumn: 'id' },
+  return_filings: { detailPath: '/returns/filings/:id', idColumn: 'filing_id' },
 };
 
 function resolveRoute(

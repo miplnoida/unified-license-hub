@@ -2,7 +2,8 @@ export type ReportSource =
   | 'applications'
   | 'licenses'
   | 'payments'
-  | 'compliance_returns'
+  | 'compliance_returns' // HISTORICAL ONLY (pre-canonical store)
+  | 'return_filings'   // EPR-01 canonical Regulatory Returns read model
   | 'complaints'
   | 'users'
   | 'audit_logs'

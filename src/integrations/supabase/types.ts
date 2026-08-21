@@ -32141,18 +32141,28 @@ export type Database = {
         Args: { _steps: Json; _workflow: Json }
         Returns: Json
       }
-      create_audit_log: {
-        Args: {
-          _action: string
-          _entity_id?: string
-          _entity_type: string
-          _metadata?: Json
-          _new_value?: Json
-          _old_value?: Json
-          _user_id: string
-        }
-        Returns: string
-      }
+      create_audit_log:
+        | {
+            Args: {
+              _action: string
+              _entity_id: string
+              _entity_type: string
+              _metadata?: Json
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _action: string
+              _entity_id?: string
+              _entity_type: string
+              _metadata?: Json
+              _new_value?: Json
+              _old_value?: Json
+              _user_id: string
+            }
+            Returns: string
+          }
       create_complaint:
         | { Args: { _payload: Json }; Returns: Json }
         | { Args: { _payload: Json; _variant: string }; Returns: Json }

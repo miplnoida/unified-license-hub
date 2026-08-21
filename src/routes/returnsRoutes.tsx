@@ -7,9 +7,6 @@ import { INTERNAL_ROLES } from '@/types/platform';
 
 const EntityReturnsDashboard = lazy(() => import('@/pages/entity/returns/EntityReturnsDashboard'));
 const MyReturnsPage = lazy(() => import('@/pages/entity/returns/MyReturnsPage'));
-const CreateReturnPage = lazy(() => import('@/pages/entity/returns/CreateReturnPage'));
-const FillReturnPage = lazy(() => import('@/pages/entity/returns/FillReturnPage'));
-const ViewReturnPage = lazy(() => import('@/pages/entity/returns/ViewReturnPage'));
 
 /* RDM-ENTITY-001 Wave C — canonical external (regulated entity) returns experience */
 const EntityReturnsWorkspace = lazy(() => import('@/pages/entity/returns/canonical/EntityReturnsWorkspace'));
@@ -29,11 +26,14 @@ export const returnsRoutes = (
     <Route path="/entity/returns/dashboard" element={<P><PortalRoute area="returns" capability="can_view_status"><EntityReturnsDashboard /></PortalRoute></P>} />
     <Route path="/entity/returns" element={<P><PortalRoute area="returns" capability="can_view_status"><EntityReturnsWorkspace /></PortalRoute></P>} />
     <Route path="/entity/returns/filings/:filingId" element={<P><PortalRoute area="returns" capability="can_view_status"><EntityFilingWorkspace /></PortalRoute></P>} />
-    {/* Legacy returns_filed screens retained for historical records */}
+    {/* EPR-01 — HISTORY_ONLY: read-only register of pre-canonical filings. */}
     <Route path="/entity/returns/legacy" element={<P><PortalRoute area="returns" capability="can_view_status"><MyReturnsPage /></PortalRoute></P>} />
-    <Route path="/entity/returns/new" element={<P><PortalRoute area="returns" capability="can_submit_returns"><CreateReturnPage /></PortalRoute></P>} />
-    <Route path="/entity/returns/:id/fill" element={<P><PortalRoute area="returns" capability="can_submit_returns"><FillReturnPage /></PortalRoute></P>} />
-    <Route path="/entity/returns/:id/view" element={<P><PortalRoute area="returns" capability="can_view_status"><ViewReturnPage /></PortalRoute></P>} />
+    {/* EPR-01 — the legacy external create/fill/view spine is RETIRED. Filings are
+        opened from an obligation period in the canonical workspace, and old
+        bookmarks resolve server-side to the canonical filing. */}
+    <Route path="/entity/returns/new" element={<Navigate to="/entity/returns" replace />} />
+    <Route path="/entity/returns/:id/fill" element={<P><PortalRoute area="returns" capability="can_submit_returns"><LegacyReturnFilingRedirect target="external" /></PortalRoute></P>} />
+    <Route path="/entity/returns/:id/view" element={<P><PortalRoute area="returns" capability="can_view_status"><LegacyReturnFilingRedirect target="external" /></PortalRoute></P>} />
 
     <Route path="/returns/queue" element={<P><ModuleRoute module="returns_management" allowedRoles={INTERNAL_ROLES}><ReturnsFilingQueue /></ModuleRoute></P>} />
     <Route path="/returns/obligations" element={<P><ModuleRoute module="returns_management" allowedRoles={INTERNAL_ROLES}><EntityObligationsWorkbench /></ModuleRoute></P>} />

@@ -9,7 +9,9 @@ export const corsHeaders = {
 };
 
 export const ALLOWED_SOURCES = new Set([
-  'applications', 'licenses', 'payments', 'compliance_returns',
+  'applications', 'licenses', 'payments',
+  // EPR-01 canonical Returns source; compliance_returns stays for historical runs.
+  'return_filings', 'compliance_returns',
   'complaints', 'profiles', 'users', 'audit_logs', 'report_logs',
   'return_threshold_breaches',
 ]);
@@ -28,10 +30,10 @@ export const REPORT_SLUG_SOURCE_MAP: Record<string, string> = {
   'lic-issuance': 'licenses', 'lic-expiry': 'licenses', 'lic-suspended': 'licenses',
   'lic-distribution': 'licenses',
   // Returns
-  'ret-status': 'compliance_returns', 'ret-overdue': 'compliance_returns',
-  'ret-defaulters': 'compliance_returns', 'ret-scorecard': 'compliance_returns',
-  'ret-latefee': 'compliance_returns', 'ret-risk': 'compliance_returns',
-  'ret-repeat': 'compliance_returns',
+  'ret-status': 'return_filings', 'ret-overdue': 'return_filings',
+  'ret-defaulters': 'return_filings', 'ret-scorecard': 'return_filings',
+  'ret-latefee': 'return_filings', 'ret-risk': 'return_filings',
+  'ret-repeat': 'return_filings',
   // Revenue
   'fee-collection': 'payments', 'fee-outstanding': 'payments', 'fee-failed': 'payments',
   'fee-refund': 'payments', 'fee-sector': 'payments', 'fee-trend': 'payments',
@@ -49,7 +51,7 @@ export const REPORT_SLUG_SOURCE_MAP: Record<string, string> = {
   // Prudential
   'prud-breach': 'return_threshold_breaches',
   // Returns (added after the initial Returns block above)
-  'ret-sla': 'compliance_returns',
+  'ret-sla': 'return_filings',
 };
 
 export function resolveScheduleSource(schedule: { source?: string | null; report_slug?: string | null }): string | null {
@@ -66,6 +68,7 @@ export const FILTER_COLUMN_MAP: Record<string, Record<string, string>> = {
   licenses: { status: 'status', licenseType: 'license_type', regulator: 'regulator_id', sector: 'sector_id', subSector: 'sub_sector_id' },
   payments: { paymentStatus: 'status', status: 'status' },
   compliance_returns: { returnStatus: 'status', status: 'status', licensee: 'license_id' },
+  return_filings: { returnStatus: 'status', status: 'status', stage: 'stage', licensee: 'entity_id', entity: 'entity_id' },
   complaints: { complaintStatus: 'status', status: 'status', regulator: 'regulator_id' },
   profiles: {},
   users: {},
