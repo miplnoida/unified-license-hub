@@ -23,9 +23,12 @@ SELECT
   c.filing_id,
   c.regulator_id,
   f.entity_id,
-  (SELECT eum.user_id FROM public.entity_user_memberships eum
-    WHERE eum.entity_id = f.entity_id AND eum.status = 'active'
-    ORDER BY eum.created_at LIMIT 1) AS filer_id
+  COALESCE(
+    (SELECT eum.user_id FROM public.entity_user_memberships eum
+      WHERE eum.entity_id = f.entity_id AND eum.status = 'active'
+      ORDER BY eum.created_at LIMIT 1),
+    c.regulator_id  -- fall back to a returns_management.create holder
+  ) AS filer_id
 FROM ctx c JOIN public.return_filings f ON f.id = c.filing_id;
 
 -- ------------------------------------------------- v1: validate and submit
