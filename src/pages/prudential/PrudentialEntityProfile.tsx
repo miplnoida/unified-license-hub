@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
+import { objectRoute } from '@/lib/routes/objectRoutes';
 import { useEntityHistoricalProfile, useEvaluateStressForReturn, useEntityAuditHistory } from '@/hooks/usePrudentialSupervision';
 import { usePeerSnapshot } from '@/hooks/usePrudentialConfig';
 import { usePeerMinPeers } from '@/hooks/usePeerSettings';
@@ -454,7 +455,7 @@ export default function PrudentialEntityProfile() {
               <TableBody>
                 {data.returns.map((r: any) => (
                   <TableRow key={r.id}>
-                    <TableCell><Link className="text-primary underline" to={`/returns-management/${r.id}`}>{r.unique_id || r.id.slice(0,8)}</Link></TableCell>
+                    <TableCell><Link className="text-primary underline" to={objectRoute.returnFiling(r.id)}>{r.unique_id || r.id.slice(0,8)}</Link></TableCell>
                     <TableCell>{formatDateOnly(r.period_end_date)}</TableCell>
                     <TableCell>{formatDateTime(r.submit_date)}</TableCell>
                     <TableCell><Badge variant="outline">{returnStatusLabel(r.workflow_status || r.status)}</Badge></TableCell>

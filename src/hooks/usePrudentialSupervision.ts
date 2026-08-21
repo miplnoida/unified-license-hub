@@ -188,6 +188,16 @@ export function useDeleteTaxonomy() {
 }
 
 // ---------- Entities (universe) ----------
+/**
+ * EPR-01 / P07 — the prudential entity universe is a SERVER read model.
+ *
+ * `prudential_entity_universe()` is RLS-scoped and SECURITY INVOKER; it derives
+ * the latest canonical filing (`v_return_filing_workflow_state`), current
+ * breach counts/severity (`v_prudential_current_breaches`), open EWI, actions,
+ * escalations, stress events and the latest rated assessment server-side.
+ * Nothing here is reconstructed in the browser and no read touches the retired
+ * `returns_filed` / legacy `return_id` path.
+ */
 export interface EntityUniverseFilters {
   search?: string;
   sector_id?: string;
@@ -196,140 +206,188 @@ export interface EntityUniverseFilters {
 }
 export function usePrudentialEntities(filters?: EntityUniverseFilters) {
   return useQuery({
-    queryKey: ['prudential_entities', filters ?? {}],
+    queryKey: ['prudential_entity_universe', filters ?? {}],
     queryFn: async () => {
-      let q = sb.from('licensees').select('id, name, status, sector_id, sub_sector_id, category_id, license_id, assigned_supervisor_id, systemic_importance').order('name');
-      if (filters?.sector_id) q = q.eq('sector_id', filters.sector_id);
-      if (filters?.status) q = q.eq('status', filters.status);
-      if (filters?.search) q = q.ilike('name', `%${filters.search}%`);
-      const { data: entities, error } = await q;
+      const { data, error } = await sb.rpc('prudential_entity_universe', {
+        _sector_id: filters?.sector_id ?? null,
+        _status: filters?.status ?? null,
+        _search: filters?.search ?? null,
+      });
       if (error) throw error;
-      const ids = (entities ?? []).map((e: any) => e.id);
-      if (!ids.length) return [];
-      // Returns per entity → then breaches through those return ids
-      const returnsRes = await sb.from('returns_filed')
-        .select('id, entity_id, submit_date, period_end_date, workflow_status, status')
-        .in('entity_id', ids)
-        .order('submit_date', { ascending: false });
-      const returnIds = (returnsRes.data ?? []).map((r: any) => r.id);
-      const [breachesRes, actionsRes, escRes, assessRes, stressRes] = await Promise.all([
-        returnIds.length
-          ? sb.from('return_threshold_breaches').select('id, return_id, risk_level, level').in('return_id', returnIds)
-          : Promise.resolve({ data: [] }),
-        sb.from('prudential_actions').select('id, entity_id, status').in('entity_id', ids),
-        sb.from('prudential_escalations').select('id, entity_id, status').in('entity_id', ids),
-        sb.from('prudential_assessments').select('id, entity_id, overall_rating, approved_at, created_at, status').in('entity_id', ids).order('created_at', { ascending: false }),
-        sb.from('prudential_stress_events').select('id, entity_id, resolved_at').in('entity_id', ids),
-      ]);
-
-      // return_id -> entity_id
-      const returnToEntity: Record<string, string> = {};
-      const lastReturnByEntity: Record<string, { date: string; workflow_status?: string }> = {};
-      (returnsRes.data ?? []).forEach((r: any) => {
-        returnToEntity[r.id] = r.entity_id;
-        const d = r.submit_date || r.period_end_date;
-        if (d && !lastReturnByEntity[r.entity_id]) lastReturnByEntity[r.entity_id] = { date: d, workflow_status: r.workflow_status || r.status };
-      });
-
-      const breachCounts: Record<string, { total: number; worst: string | null }> = {};
-      (breachesRes.data ?? []).forEach((b: any) => {
-        const ent = returnToEntity[b.return_id]; if (!ent) return;
-        const severity = b.risk_level || b.level;
-        const cur = breachCounts[ent] || { total: 0, worst: null };
-        cur.total += 1;
-        cur.worst = worstSeverity([cur.worst, severity]);
-        breachCounts[ent] = cur;
-      });
-
-      const openActions: Record<string, number> = {};
-      const overdueActions: Record<string, number> = {};
-      (actionsRes.data ?? []).forEach((a: any) => {
-        if (['open','in_progress','overdue'].includes(a.status)) openActions[a.entity_id] = (openActions[a.entity_id] ?? 0) + 1;
-        if (a.status === 'overdue') overdueActions[a.entity_id] = (overdueActions[a.entity_id] ?? 0) + 1;
-      });
-      const openEsc: Record<string, number> = {};
-      (escRes.data ?? []).forEach((e: any) => {
-        if (['open','under_review'].includes(e.status)) openEsc[e.entity_id] = (openEsc[e.entity_id] ?? 0) + 1;
-      });
-      const latestAssess: Record<string, any> = {};
-      (assessRes.data ?? []).forEach((a: any) => { if (!latestAssess[a.entity_id]) latestAssess[a.entity_id] = a; });
-      const openStress: Record<string, number> = {};
-      (stressRes.data ?? []).forEach((s: any) => { if (!s.resolved_at) openStress[s.entity_id] = (openStress[s.entity_id] ?? 0) + 1; });
-
-      const rows = (entities ?? []).map((e: any) => ({
-        ...e,
-        open_actions: openActions[e.id] ?? 0,
-        overdue_actions: overdueActions[e.id] ?? 0,
-        open_escalations: openEsc[e.id] ?? 0,
-        breach_count: breachCounts[e.id]?.total ?? 0,
-        worst_breach: breachCounts[e.id]?.worst ?? null,
-        stress_open: openStress[e.id] ?? 0,
-        last_return: lastReturnByEntity[e.id]?.date ?? null,
-        last_return_status: lastReturnByEntity[e.id]?.workflow_status ?? null,
-        latest_rating: latestAssess[e.id]?.overall_rating ?? null,
+      const rows = ((data ?? []) as any[]).map((r) => ({
+        // Identity (canonical entity id).
+        id: r.entity_id,
+        name: r.entity_name,
+        status: r.status,
+        sector_id: r.sector_id,
+        sub_sector_id: r.sub_sector_id,
+        category_id: r.category_id,
+        license_id: r.license_id,
+        assigned_supervisor_id: r.assigned_supervisor_id,
+        systemic_importance: r.systemic_importance,
+        // Canonical Return provenance.
+        latest_filing_id: r.latest_filing_id,
+        latest_filing_reference: r.latest_filing_reference,
+        latest_period_label: r.latest_period_label,
+        latest_accepted_filing_id: r.latest_accepted_filing_id,
+        latest_accepted_period_end: r.latest_accepted_period_end,
+        last_return: r.latest_period_end ?? null,
+        last_return_status: r.latest_filing_status ?? null,
+        // Server-computed supervisory counters.
+        breach_count: Number(r.breach_count ?? 0),
+        worst_breach: r.worst_breach ?? null,
+        open_ewi: Number(r.open_ewi ?? 0),
+        open_actions: Number(r.open_actions ?? 0),
+        overdue_actions: Number(r.overdue_actions ?? 0),
+        open_escalations: Number(r.open_escalations ?? 0),
+        stress_open: Number(r.stress_open ?? 0),
+        latest_rating: r.latest_rating ?? null,
+        latest_rating_status: r.latest_rating_status ?? null,
       }));
       if (filters?.risk) {
         const wanted = normalizeSeverity(filters.risk);
-        return rows.filter(r => normalizeSeverity(r.worst_breach) === wanted);
+        return rows.filter((r) => normalizeSeverity(r.worst_breach) === wanted);
       }
       return rows;
     },
   });
 }
 
-/**
- * Recomputations are appended, not replaced, so a return can hold several rows
- * for the same ratio/breach. Keep only the newest record per logical key so the
- * profile page never renders the same ratio or breach twice.
- */
-function dedupeLatest<T extends Record<string, any>>(rows: T[], keyOf: (row: T) => string, tsField: string): T[] {
-  const best = new Map<string, T>();
-  for (const row of rows ?? []) {
-    const key = keyOf(row);
-    const current = best.get(key);
-    if (!current) { best.set(key, row); continue; }
-    const a = new Date(row?.[tsField] ?? 0).getTime();
-    const b = new Date(current?.[tsField] ?? 0).getTime();
-    if (a > b) best.set(key, row);
-  }
-  return Array.from(best.values());
+export interface CanonicalPrudentialFiling {
+  filing_id: string;
+  filing_reference: string | null;
+  definition_name: string | null;
+  reporting_period_id: string | null;
+  period_label: string | null;
+  period_start: string | null;
+  period_end: string | null;
+  due_date: string | null;
+  status: string | null;
+  status_label: string | null;
+  submitted_at: string | null;
+  accepted_at: string | null;
+  current_version_id: string | null;
+  current_version_number: number | null;
+  accepted_version_id: string | null;
+  is_overdue: boolean | null;
+  days_late: number | null;
 }
 
+export interface CanonicalPrudentialMetric {
+  filing_id: string;
+  return_filing_version_id: string | null;
+  reporting_period_id: string | null;
+  period_label: string | null;
+  period_end: string | null;
+  filing_status: string | null;
+  regulatory_metric_id: string;
+  metric_code: string;
+  metric_name: string | null;
+  unit: string | null;
+  value_numeric: number | null;
+  availability: string | null;
+  source_kind: string | null;
+  recorded_at: string | null;
+}
+
+/** `%`-unit metrics are stored in percentage points (18.40 = 18.40%). */
+function metricDisplayFormat(unit?: string | null): string {
+  const u = String(unit ?? '').trim().toLowerCase();
+  if (u === '%' || u === 'percent' || u === 'percentage') return 'percent_points';
+  if (u === 'x' || u === 'ratio' || u === 'multiple') return 'multiple';
+  if (!u) return 'decimal';
+  return 'decimal';
+}
+
+/**
+ * EPR-01 / P07 — canonical prudential entity profile.
+ *
+ * Returns/metrics/breaches come from `prudential_entity_returns_profile()`
+ * (canonical filings, `return_metric_values`, `v_prudential_current_breaches`).
+ * The `returns`/`ratios`/`breaches` keys keep their existing presentation shape
+ * but every row now carries canonical provenance (`filing_id`,
+ * `return_filing_version_id`, `reporting_period_id`). No legacy id is minted.
+ */
 export function useEntityHistoricalProfile(entityId?: string | null) {
 
   return useQuery({
     queryKey: ['entity_prudential_profile', entityId],
     enabled: !!entityId,
     queryFn: async () => {
-      const [entityRes, returnsRes, breachesRes, assessRes, actionsRes, escRes, stressRes] = await Promise.all([
+      const [entityRes, returnsProfile, assessRes, actionsRes, escRes, stressRes] = await Promise.all([
         sb.from('licensees').select('*').eq('id', entityId).maybeSingle(),
-        sb.from('returns_filed').select('id, unique_id, period_end_date, submit_date, workflow_status, status').eq('entity_id', entityId).order('period_end_date', { ascending: false }),
-        sb.from('return_threshold_breaches').select('*').order('detected_at', { ascending: false }).limit(200),
+        sb.rpc('prudential_entity_returns_profile', { _entity_id: entityId }),
         sb.from('prudential_assessments').select('*').eq('entity_id', entityId).order('created_at', { ascending: false }),
         sb.from('prudential_actions').select('*').eq('entity_id', entityId).order('created_at', { ascending: false }),
         sb.from('prudential_escalations').select('*').eq('entity_id', entityId).order('created_at', { ascending: false }),
         sb.from('prudential_stress_events').select('*, prudential_stress_indicators(label, severity, metric_key)').eq('entity_id', entityId).order('triggered_at', { ascending: false }),
       ]);
-      const returnIds = (returnsRes.data ?? []).map((r: any) => r.id);
-      const breaches = dedupeLatest(
-        (breachesRes.data ?? []).filter((b: any) => returnIds.includes(b.return_id)),
-        (b) => `${b.return_id}|${b.metric_key ?? b.ratio_key ?? ''}`,
-        'detected_at',
-      ).sort((a: any, b: any) => new Date(b.detected_at ?? 0).getTime() - new Date(a.detected_at ?? 0).getTime());
+      if (returnsProfile.error) throw returnsProfile.error;
+      const profile = (returnsProfile.data ?? {}) as {
+        filings?: CanonicalPrudentialFiling[];
+        metrics?: CanonicalPrudentialMetric[];
+        current_breaches?: any[];
+        breach_history?: any[];
+      };
 
-      const ratiosRes = returnIds.length
-        ? await sb.from('return_calculated_ratios').select('*').in('return_id', returnIds).order('computed_at', { ascending: false })
-        : { data: [] };
-      const ratios = dedupeLatest(
-        ratiosRes.data ?? [],
-        (r) => `${r.return_id}|${r.ratio_key}`,
-        'computed_at',
-      ).sort((a: any, b: any) => new Date(b.computed_at ?? 0).getTime() - new Date(a.computed_at ?? 0).getTime());
+      const filings = profile.filings ?? [];
+      const returns = filings.map((f) => ({
+        // Canonical identity — `id` is `return_filings.id`, never a legacy id.
+        id: f.filing_id,
+        unique_id: f.filing_reference,
+        definition_name: f.definition_name,
+        reporting_period_id: f.reporting_period_id,
+        period_label: f.period_label,
+        period_start_date: f.period_start,
+        period_end_date: f.period_end,
+        due_date: f.due_date,
+        submit_date: f.submitted_at,
+        accepted_at: f.accepted_at,
+        workflow_status: f.status,
+        status: f.status,
+        status_label: f.status_label,
+        current_version_id: f.current_version_id,
+        current_version_number: f.current_version_number,
+        accepted_version_id: f.accepted_version_id,
+        is_overdue: f.is_overdue,
+        days_late: f.days_late,
+      }));
+
+      // "Ratios" in the UI are canonical regulatory metric facts. Labels stay
+      // user-facing (CAR / NPL …) — no second ratio engine, no zero-filling.
+      const metrics = profile.metrics ?? [];
+      const ratios = metrics.map((m) => ({
+        ratio_key: m.metric_code,
+        label: m.metric_name || m.metric_code,
+        value: m.value_numeric,
+        display_format: metricDisplayFormat(m.unit),
+        computed_at: m.recorded_at,
+        availability: m.availability,
+        source_kind: m.source_kind,
+        // Canonical provenance
+        return_id: m.filing_id,
+        return_filing_id: m.filing_id,
+        return_filing_version_id: m.return_filing_version_id,
+        reporting_period_id: m.reporting_period_id,
+        regulatory_metric_id: m.regulatory_metric_id,
+        period_label: m.period_label,
+        period_end: m.period_end,
+      }));
+
+      const breaches = (profile.current_breaches ?? []).map((b: any) => ({
+        ...b,
+        // Presentation code keys off `return_id`; it now holds the canonical
+        // filing id so drill-downs resolve through objectRoute.returnFiling().
+        return_id: b.return_filing_id,
+      }));
 
       return {
         entity: entityRes.data,
-        returns: returnsRes.data ?? [],
+        returns,
+        filings,
+        metrics,
         breaches,
+        breach_history: profile.breach_history ?? [],
         ratios,
 
         assessments: assessRes.data ?? [],
@@ -340,6 +398,7 @@ export function useEntityHistoricalProfile(entityId?: string | null) {
     },
   });
 }
+
 
 // ---------- Assessments ----------
 export function useAssessments(filters?: { entity_id?: string; status?: string }) {
@@ -406,28 +465,53 @@ export function useTransitionAssessment() {
 }
 
 // Pull signals to prefill an assessment from a return
-export function useAssessmentPrefill(returnId?: string | null) {
+/**
+ * EPR-01 / P07 — assessment prefill from the CANONICAL filing.
+ *
+ * Takes `return_filings.id`. Metric facts and current breaches come from
+ * `prudential_filing_metric_facts()`; stress events are matched on the
+ * canonical `return_filing_id`. No `returns_filed` / `return_calculated_ratios`
+ * read remains, so a prefill is either canonical or honestly empty.
+ */
+export function useAssessmentPrefill(returnFilingId?: string | null) {
   return useQuery({
-    queryKey: ['prudential_assessment_prefill', returnId],
-    enabled: !!returnId,
+    queryKey: ['prudential_assessment_prefill', returnFilingId],
+    enabled: !!returnFilingId,
     queryFn: async () => {
-      const [rf, ratios, breaches, analysis, stress] = await Promise.all([
-        sb.from('returns_filed').select('id, entity_id, period_end_date, period_start_date').eq('id', returnId).maybeSingle(),
-        sb.from('return_calculated_ratios').select('*').eq('return_id', returnId),
-        sb.from('return_threshold_breaches').select('*').eq('return_id', returnId),
-        sb.from('return_consolidated_analysis').select('*').eq('return_id', returnId).order('computed_at', { ascending: false }).limit(1).maybeSingle(),
-        sb.from('prudential_stress_events').select('*, prudential_stress_indicators(label, severity, metric_key)').eq('return_id', returnId),
+      const [facts, stress] = await Promise.all([
+        sb.rpc('prudential_filing_metric_facts', { _return_filing_id: returnFilingId }),
+        sb.from('prudential_stress_events')
+          .select('*, prudential_stress_indicators(label, severity, metric_key)')
+          .eq('return_filing_id', returnFilingId),
       ]);
+      if (facts.error) throw facts.error;
+      const payload = (facts.data ?? {}) as {
+        filing?: any;
+        metrics?: CanonicalPrudentialMetric[];
+        breaches?: any[];
+      };
+      const metrics = payload.metrics ?? [];
       return {
-        return_row: rf.data,
-        ratios: ratios.data ?? [],
-        breaches: breaches.data ?? [],
-        analysis: analysis.data ?? null,
+        return_row: payload.filing ?? null,
+        filing: payload.filing ?? null,
+        metrics,
+        ratios: metrics.map((m) => ({
+          id: `${m.regulatory_metric_id}`,
+          ratio_key: m.metric_code,
+          label: m.metric_name || m.metric_code,
+          value: m.value_numeric,
+          display_format: metricDisplayFormat(m.unit),
+          return_filing_id: m.filing_id,
+          return_filing_version_id: m.return_filing_version_id,
+        })),
+        breaches: (payload.breaches ?? []).map((b: any) => ({ ...b, return_id: b.return_filing_id })),
+        analysis: null,
         stress_events: stress.data ?? [],
       };
     },
   });
 }
+
 
 // ---------- Actions ----------
 export function useActions(filters?: { entity_id?: string; status?: string }) {
@@ -599,11 +683,17 @@ export function useDeleteStressIndicator() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prudential_stress_indicators'] }); toast.success('Indicator deactivated'); },
   });
 }
+/**
+ * EPR-01 / P07 — stress evaluation against the CANONICAL filing.
+ * Takes `return_filings.id`; the server reads the accepted/current version's
+ * `return_metric_values` (never `return_calculated_ratios`).
+ */
 export function useEvaluateStressForReturn() {
   return useMutation({
-    mutationFn: async (returnId: string) => {
+    mutationFn: async (returnFilingId: string) => {
+      const returnId = returnFilingId;
       await logPrudentialFeed({ source: 'prudential', feed_type: 'stress_evaluation', status: 'started', related_return_id: returnId });
-      const { data, error } = await sb.rpc('evaluate_stress_indicators_for_return', { _return_id: returnId });
+      const { data, error } = await sb.rpc('evaluate_stress_indicators_for_filing', { _return_filing_id: returnFilingId });
       if (error) {
         await logPrudentialFeed({ source: 'prudential', feed_type: 'stress_evaluation', status: 'failed', related_return_id: returnId, error: error.message, completed_at: new Date().toISOString() });
         throw error;

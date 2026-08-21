@@ -24,9 +24,9 @@ export default function AssessmentDetail() {
   const { data: assessment } = useAssessment(id);
   const upsert = useUpsertAssessment();
   const transition = useTransitionAssessment();
-  const { data: ratios = [] } = useReturnComputedRatios(assessment?.return_id);
-  const { data: breaches = [] } = useReturnBreaches(assessment?.return_id);
-  const { data: prefill } = useAssessmentPrefill(assessment?.return_id);
+  const { data: ratios = [] } = useReturnComputedRatios(assessment?.return_filing_id);
+  const { data: breaches = [] } = useReturnBreaches(assessment?.return_filing_id);
+  const { data: prefill } = useAssessmentPrefill(assessment?.return_filing_id);
   const evalStress = useEvaluateStressForReturn();
 
   const [form, setForm] = useState<any>({});
