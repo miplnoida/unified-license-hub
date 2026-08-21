@@ -33,14 +33,22 @@ All of these read through `src/lib/returns/canonicalReturnsSummary.ts`, which is
 client accessor for canonical Return aggregates. No KPI in these files is derived from
 `rows.length` any more — the counts are computed server-side under RLS.
 
+### P07 Prudential — migrated (EPR-01 P07 tranche)
+
+`usePrudentialSupervision` (entity universe, entity history, assessment prefill,
+stress evaluation), `usePrudentialConfig` (persisted ratios/breaches) and
+`useFinancialGroups` (group periods, member facts) now read canonical server read
+models only — see `docs/certification/epr-01-p07-canonical-returns-truth.md`.
+
 ### Still on legacy truth (next tranche)
 
-`useLicenseeMetrics`, `usePrudentialSupervision`, `usePrudentialConfig`, `useFinancialGroups`,
-`useReturnsManagement`, `ViewReturns`, `ReturnAnalysis`, `PrudentialAnalytics`,
-`AnalyticsDashboard`, `ComplianceReturns`, `ReturnSubmission`, `CreateReturnPage`,
-`FillReturnPage`, `ConsolidatedCaseTab`, `WorkflowActionPreviewDialog`, `caseAuditGraph`,
-`dashboard/widgets`, `useApiQueries`, `reportService` (19 files; `useWaveC` keeps its
+`useLicenseeMetrics`, `useReturnsManagement`, `ViewReturns`, `ReturnAnalysis`,
+`PrudentialAnalytics`, `AnalyticsDashboard`, `ComplianceReturns`,
+`ReturnSubmission`, `CreateReturnPage`, `FillReturnPage`, `ConsolidatedCaseTab`,
+`WorkflowActionPreviewDialog`, `caseAuditGraph`, `dashboard/widgets`,
+`useApiQueries`, `reportService` (P13 + external spine; `useWaveC` keeps its
 intentional legacy-id bridge).
+
 
 
 ## 2. Canonical read-model consumers (correct pattern)
