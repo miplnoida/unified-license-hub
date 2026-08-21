@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { FREQUENCY_LABELS, FILING_STATUS_LABELS } from '@/hooks/useWaveC';
 import { useEntityFilingDetail, useEntityCapabilities, useEntityReturnsMutations } from '@/hooks/useEntityReturns';
 import { EntityFilingForm } from '@/components/entity/returns-canonical/EntityFilingForm';
+import { FilerGuidancePanel } from '@/components/entity/returns-canonical/FilerGuidancePanel';
 
 const EDITABLE_STATUSES = new Set(['DRAFT', 'CORRECTION_REQUESTED']);
 
@@ -47,6 +48,11 @@ export default function EntityFilingWorkspace() {
   const currentForms = data.forms.filter((f) => f.return_filing_version_id === currentVersionId);
   const historicVersions = data.versions.filter((v) => v.id !== currentVersionId);
   const openRequests = data.requests.filter((r) => r.status !== 'RESOLVED' && r.status !== 'CLOSED');
+  const requiredForms = currentForms.filter((f) => f.is_required);
+  const completedRequiredForms = requiredForms.filter((f) => f.completion_status === 'COMPLETED').length;
+  const currentFindings = data.findings.filter((f) => !currentVersionId || true);
+  const blockingFindings = currentFindings.filter((f) => f.is_blocking).length;
+  const warningFindings = currentFindings.length - blockingFindings;
 
   const handleValidate = async () => {
     if (!currentVersionId) return;
