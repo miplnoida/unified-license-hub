@@ -403,6 +403,32 @@ function RolesTab({ id }: { id: string }) {
     qc.invalidateQueries({ queryKey: ['fp_individual_roles', id] });
   }
 
+  /**
+   * Ceasing an appointment is a governed register change: it needs a reason and
+   * is refused by the server while an assessment against that appointment is
+   * still open.
+   */
+  async function ceaseRole(roleId: string) {
+    const result = await Swal.fire({
+      title: 'Cease this appointment?',
+      text: 'The appointment stops being current and its reassessment cycle is cleared. A reason is required and is recorded in the audit trail.',
+      icon: 'warning',
+      input: 'text',
+      inputPlaceholder: 'Reason (e.g. resigned 12 March 2026)',
+      showCancelButton: true,
+      confirmButtonText: 'Cease appointment',
+      inputValidator: (v) => (v && v.trim().length >= 3 ? null : 'A reason is required'),
+    });
+    if (!result.isConfirmed) return;
+    try {
+      await fpRoleEnd(roleId, String(result.value).trim());
+      toast.success('Appointment ceased');
+      qc.invalidateQueries({ queryKey: ['fp_individual_roles', id] });
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to cease appointment');
+    }
+  }
+
   const { data: licensees = [], isLoading: licenseesLoading } = useQuery({
     queryKey: ['licensees-for-role-select'],
     queryFn: async () => {
