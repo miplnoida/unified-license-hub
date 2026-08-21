@@ -248,6 +248,10 @@ export const dashboardRoutes = (
     <Route path="/conduct/alerts" element={<M module="market_conduct"><ConductAlerts /></M>} />
     <Route path="/conduct/surveillance" element={<M module="market_conduct"><SurveillanceWorkspace /></M>} />
     <Route path="/conduct/actions" element={<M module="market_conduct"><ConductActions /></M>} />
+    <Route path="/conduct/actions/:id" element={<M module="market_conduct"><RemediationDetail /></M>} />
+    <Route path="/conduct/findings" element={<M module="market_conduct"><ConductFindings /></M>} />
+    <Route path="/conduct/findings/:id" element={<M module="market_conduct"><FindingDetail /></M>} />
+
 
     <Route path="/supervision/thematic-reviews" element={<M module="market_conduct"><ThematicReviews /></M>} />
     <Route path="/supervision/thematic-reviews/new" element={<M module="market_conduct"><NewThematicReview /></M>} />
