@@ -82,3 +82,61 @@ Repeatable suites:
 | PROCESS LIST ROUTES TO ASSESSMENT | PASS |
 | INDIVIDUAL PROFILE PERSON-ONLY | PASS |
 | TYPECHECK | PASS |
+
+---
+
+# Milestone 2 — Person / appointment governance and closure
+
+## Person & appointment register (server-owned)
+
+Direct `INSERT/UPDATE/DELETE` on `fp_individuals` and `fp_individual_roles` is
+revoked for `authenticated`. All register changes go through governed ops:
+
+| Operation | RPC | Notes |
+|---|---|---|
+| Register a subject | `fp_individual_create` | owns the duplicate rule (national id / email) and the initial status |
+| Amend master data | `fp_individual_update` | master data only, never register status |
+| Change register status | `fp_individual_set_directory_status` | active/inactive only, reason mandatory |
+| Record an appointment | `fp_role_create` | validates entity, duplicate appointment, computes first due date |
+| Set reassessment cycle | `fp_role_set_reassessment_cycle` | server computes `next_reassessment_due` |
+| Cease an appointment | `fp_role_end` | reason mandatory; refused while an assessment on that appointment is open |
+
+Frontend call sites: `src/lib/fpGovernedOps.ts` only. `FpaIndividuals.tsx`
+(register) and `FpaIndividualProfile.tsx` (master data, status, roles) contain no
+table DML.
+
+## Scheduler vs operations separation
+
+The reassessment sweep is a platform operation: the "Run cycle scheduler" button
+was removed from the person profile, which now links to `/fpa/scheduler`. The
+page's run button is gated on `fit_and_proper.execute`, matching the
+`fp-cycle-scheduler` edge function's own permission gate.
+
+## Entity 360 summary
+
+`fp_entity_fp_summary(entity_id)` backs
+`src/components/fit-and-proper/EntityFitAndProperPanel.tsx` in the Entity 360
+Fit & Proper section: appointments, open assessments and live conditions,
+read-only, linking to the canonical case workspace and the person master.
+
+## Enforcement integration
+
+The assessment workspace exposes `ReferToEnforcementDialog` with
+`sourceKind="FP_MATTER"` and the assessment id. `enforcement_resolve_source`
+already resolves `FP_MATTER` to the assessment's entity, so F&P uses the single
+enforcement entry point with no F&P-specific enforcement path.
+
+## Certification
+
+| Check | Result |
+|---|---|
+| DIRECT REGISTER DML IN CLIENT SOURCE | 0 |
+| GOVERNED OPS COVER CREATE/UPDATE/STATUS/ROLE/CEASE | PASS |
+| BROWSER-COMPUTED DUE DATES | 0 |
+| SCHEDULER PERMISSION ALIGNMENT (UI ↔ EDGE) | PASS |
+| ENTITY 360 F&P SUMMARY | PASS |
+| ENFORCEMENT REFERRAL FROM ASSESSMENT (FP_MATTER) | PASS |
+| GUARDRAIL SUITE `fpAssessmentAuthorityGuardrails` | 8/8 PASS |
+| TYPECHECK | PASS |
+
+**EPR-04 COMPLETE: YES.**

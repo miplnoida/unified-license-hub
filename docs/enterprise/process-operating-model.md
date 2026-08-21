@@ -18,7 +18,7 @@ through several non-equivalent surfaces with different truth sources.
 | P02 Entity Resolution & Registry | `/entities` | `/licensing/entity-resolution` | `/entities/:entityId`, `/licensing/entity-resolution/:caseId` | entity change-set RPCs | Good, but 4 competing entity detail pages |
 | P03 Licensing | `/applications` | `/applications/queue` | `/applications/:id` | `approval_steps` + workflow RPCs | Weak — status-centric, no current-step UX |
 | P04 Licence Lifecycle | `/licenses` | none | `/licenses/:id`, `/admin/licensees/:id` | licence RPCs | Weak — no lifecycle queue (renewals/expiry live in config + alerts) |
-| P05 Fit & Proper | `/fpa` | `/fpa/processes`, `/fpa/screening`, `/fpa/determinations` | **missing** (`/fpa/assessments/:id` is a redirect) | governed F&P gate | Weak — process-stage pages instead of one case workspace |
+| P05 Fit & Proper | `/fpa` | `/fpa/processes` | `/fpa/assessments/:assessmentId` | `fp_assessment_case` read model + governed F&P ops | **CLOSED (EPR-04)** — canonical assessment case, server-owned person/appointment register, FP_MATTER enforcement referral |
 | P06 Returns | `/returns/queue` | `/returns/queue`, `/returns/obligations` | `/returns/filings/:filingId` | return workflow RPCs | **CLOSED (EPR-01)** — single canonical spine, legacy retired |
 | P07 Prudential | `/prudential/dashboard` | `/prudential/work-queue` | `/entities/:entityId`, `/prudential/assessments/:id` | prudential governed RPCs + read models | **CLOSED (EPR-02)** — canonical returns truth only |
 | P08 Conduct & Complaints | `/conduct`, `/complaints` | `/complaints`, `/conduct/alerts`, `/conduct/investigations` | `/complaints/:id`, `/conduct/investigations/:id` | `execute_complaint_workflow_action` | Mixed |

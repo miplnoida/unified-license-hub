@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { logFpAction } from '@/lib/fpAudit';
+import { fpIndividualCreate } from '@/lib/fpGovernedOps';
 import { toast } from 'sonner';
 import {
   Loader2,
@@ -281,52 +281,21 @@ export default function FpaIndividuals() {
 
   // ── Insert mutation ──────────────────────────────────────────────────────
 
+  // EPR-04 M2: the subject register is written only by
+  // `fp_individual_create`, which owns the duplicate rule, the initial status
+  // and the audit entry. Direct inserts are revoked.
   const addIndividual = useMutation({
     mutationFn: async () => {
       if (!form.full_name.trim()) throw new Error('Full name is required.');
-
-      // Hard duplicate check: same national_id OR email
-      const orParts: string[] = [];
-      if (form.national_id.trim())
-        orParts.push(`national_id.eq.${form.national_id.trim()}`);
-      if (form.email.trim()) orParts.push(`email.eq.${form.email.trim()}`);
-
-      if (orParts.length > 0) {
-        const { data: existing } = await supabase
-          .from('fp_individuals')
-          .select('id, full_name, national_id, email')
-          .or(orParts.join(','))
-          .limit(1);
-        if (existing && existing.length > 0) {
-          const dup = existing[0] as any;
-          throw new Error(
-            `Duplicate record: "${dup.full_name}" already exists with ${
-              dup.national_id === form.national_id.trim()
-                ? `National ID ${dup.national_id}`
-                : `email ${dup.email}`
-            }.`
-          );
-        }
-      }
-
-      const payload: Record<string, any> = {
+      await fpIndividualCreate({
         full_name: form.full_name.trim(),
-        status: 'active',
-        created_by: user?.id ?? null,
-      };
-      if (form.national_id.trim()) payload.national_id = form.national_id.trim();
-      if (form.nationality.trim()) payload.nationality = form.nationality.trim();
-      if (form.date_of_birth) payload.date_of_birth = form.date_of_birth;
-      if (form.email.trim()) payload.email = form.email.trim();
-      if (form.phone.trim()) payload.phone = form.phone.trim();
-      if (form.address.trim()) payload.address = form.address.trim();
-      if (form.notes.trim()) payload.notes = form.notes.trim();
-
-      const { data, error } = await supabase.from('fp_individuals').insert(payload as any).select('id').single();
-      if (error) throw error;
-      await logFpAction('fp.individual.created', 'fp_individual', data.id, {
-        after: { full_name: payload.full_name, national_id: payload.national_id ?? null },
-        context: { individualId: data.id },
+        national_id: form.national_id.trim() || null,
+        nationality: form.nationality.trim() || null,
+        date_of_birth: form.date_of_birth || null,
+        email: form.email.trim() || null,
+        phone: form.phone.trim() || null,
+        address: form.address.trim() || null,
+        notes: form.notes.trim() || null,
       });
     },
     onSuccess: () => {

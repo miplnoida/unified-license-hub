@@ -63,3 +63,25 @@ describe('F&P latest-assessment authority', () => {
     expect(routes).not.toContain('FpaAssessmentRedirect');
   });
 });
+
+describe('F&P person/appointment register is server-owned (EPR-04 M2)', () => {
+  const GOVERNED = ['fp_individuals', 'fp_individual_roles'] as const;
+
+  it('no client source writes the subject register directly', () => {
+    const offenders: string[] = [];
+    for (const f of files) {
+      const s = readFileSync(f, 'utf8');
+      for (const t of GOVERNED) {
+        const re = new RegExp(`from\\(['"]${t}['"]\\)[\\s\\S]{0,200}?\\.(insert|update|upsert|delete)\\(`);
+        if (re.test(s)) offenders.push(`${f} → ${t}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('the person profile does not compute reassessment due dates in the browser', () => {
+    const s = readFileSync(join(SRC, 'pages/fpa/FpaIndividualProfile.tsx'), 'utf8');
+    expect(s).not.toMatch(/setMonth\(/);
+    expect(s).toMatch(/fpRoleSetReassessmentCycle/);
+  });
+});

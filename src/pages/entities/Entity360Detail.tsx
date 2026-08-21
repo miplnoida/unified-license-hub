@@ -29,6 +29,7 @@ import { Entity360Header } from '@/components/entity-detail/Entity360Header';
 import { Entity360OverviewPanel } from '@/components/entity-detail/Entity360Overview';
 import { EntitySupervisoryStatePanel } from '@/components/entity-detail/EntitySupervisoryStatePanel';
 import { EntityPrudentialStatePanel } from '@/components/prudential/EntityPrudentialStatePanel';
+import { EntityFitAndProperPanel } from '@/components/fit-and-proper/EntityFitAndProperPanel';
 import { Entity360SectionView } from '@/components/entity-detail/Entity360SectionView';
 import { Entity360TimelinePanel } from '@/components/entity-detail/Entity360TimelinePanel';
 import { E360_GROUPS, E360_SECTIONS } from '@/components/entity-detail/sectionCatalogue';
@@ -176,11 +177,18 @@ export default function Entity360Detail() {
           {view === 'timeline' && <Entity360TimelinePanel entityId={entity.id} />}
 
           {activeSection && (
-            <Entity360SectionView
-              entityId={entity.id}
-              section={activeSection.key}
-              asOf={asOf}
-            />
+            <div className="space-y-4">
+              {/* EPR-04: the entity's F&P position is a read-only summary that
+                  links out to the canonical assessment case workspace. */}
+              {activeSection.key === 'fit_and_proper' && (
+                <EntityFitAndProperPanel entityId={entity.id} />
+              )}
+              <Entity360SectionView
+                entityId={entity.id}
+                section={activeSection.key}
+                asOf={asOf}
+              />
+            </div>
           )}
         </div>
       </div>

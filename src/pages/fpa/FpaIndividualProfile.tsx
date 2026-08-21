@@ -35,7 +35,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
-import { fpAssessmentInitiate } from '@/lib/fpGovernedOps';
+import Swal from 'sweetalert2';
+import {
+  fpAssessmentInitiate,
+  fpIndividualUpdate,
+  fpIndividualSetDirectoryStatus,
+  fpRoleCreate,
+  fpRoleEnd,
+  fpRoleSetReassessmentCycle,
+} from '@/lib/fpGovernedOps';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { logComplianceAudit } from '@/lib/complianceAudit';
@@ -149,17 +157,22 @@ function ProfileTab({ individual, id }: { individual: any; id: string }) {
       phone: individual.phone ?? '',
       address: individual.address ?? '',
       status: individual.status ?? '',
+      reason: '',
       notes: individual.notes ?? '',
     });
     setOpen(true);
   };
 
+  const statusChanged = !!form.status && form.status !== (individual.status ?? '');
+
+  // EPR-04 M2: the subject register is server-owned. Master data and register
+  // status are two distinct governed operations; direct DML is revoked.
   const updateMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from('fp_individuals')
-        .update({
-          full_name: form.full_name.trim() || null,
+      await fpIndividualUpdate(
+        id,
+        {
+          full_name: form.full_name.trim(),
           national_id: form.national_id.trim() || null,
           passport_number: form.passport_number.trim() || null,
           nationality: form.nationality.trim() || null,
@@ -167,11 +180,18 @@ function ProfileTab({ individual, id }: { individual: any; id: string }) {
           email: form.email.trim() || null,
           phone: form.phone.trim() || null,
           address: form.address.trim() || null,
-          status: form.status || null,
           notes: form.notes.trim() || null,
-        })
-        .eq('id', id);
-      if (error) throw error;
+        },
+        form.reason?.trim() || null,
+      );
+      if (statusChanged) {
+        if (!form.reason?.trim()) throw new Error('A reason is required to change register status.');
+        await fpIndividualSetDirectoryStatus(
+          id,
+          form.status as 'active' | 'inactive',
+          form.reason.trim(),
+        );
+      }
     },
     onSuccess: () => {
       toast.success('Profile updated');
@@ -261,7 +281,7 @@ function ProfileTab({ individual, id }: { individual: any; id: string }) {
                   />
                 </div>
                 <div>
-                  <Label>Status</Label>
+                  <Label>Register status</Label>
                   <Select
                     value={form.status ?? ''}
                     onValueChange={(v) => setForm({ ...form, status: v })}
@@ -272,10 +292,20 @@ function ProfileTab({ individual, id }: { individual: any; id: string }) {
                     <SelectContent>
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="suspended">Suspended</SelectItem>
-                      <SelectItem value="revoked">Revoked</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Suspension and prohibition are determination outcomes, recorded in the
+                    assessment case — not here.
+                  </p>
+                </div>
+                <div>
+                  <Label>Reason {statusChanged ? '*' : '(optional)'}</Label>
+                  <Input
+                    value={form.reason ?? ''}
+                    onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                    placeholder="Why is the register being amended?"
+                  />
                 </div>
                 <div className="col-span-2">
                   <Label>Notes</Label>
@@ -359,23 +389,10 @@ function RolesTab({ id }: { id: string }) {
   const [isCurrent, setIsCurrent] = useState(true);
   const [reassessmentCycleMonths, setReassessmentCycleMonths] = useState('');
   const [cycleEdits, setCycleEdits] = useState<Record<string, string>>({});
-  const [runningCycle, setRunningCycle] = useState(false);
 
-  async function runCycleNow() {
-    setRunningCycle(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('fp-cycle-scheduler', { body: {} });
-      if (error) throw error;
-      if (!data?.ok) throw new Error(data?.error || 'Scheduler failed');
-      toast.success(`Cycle scheduler ran — opened ${data.opened}, evaluated ${data.evaluated}, due ${data.due}`);
-      qc.invalidateQueries({ queryKey: ['fp_individual_roles', id] });
-    } catch (e: any) {
-      toast.error(e?.message || 'Failed to run cycle scheduler');
-    } finally {
-      setRunningCycle(false);
-    }
-  }
-
+  // EPR-04 M2: running the reassessment scheduler is a platform operation, not
+  // a person-record action — it lives on /fpa/scheduler. The cycle itself is
+  // governed here, and the server computes the next due date.
   async function saveCycle(roleId: string) {
     const raw = cycleEdits[roleId];
     const months = raw === '' || raw == null ? null : Number(raw);
@@ -383,22 +400,41 @@ function RolesTab({ id }: { id: string }) {
       toast.error('Cycle must be 1-120 months');
       return;
     }
-    const patch: Record<string, unknown> = { reassessment_cycle_months: months };
-    if (months != null) {
-      const next = new Date();
-      next.setMonth(next.getMonth() + months);
-      patch.next_reassessment_due = next.toISOString().slice(0, 10);
-    } else {
-      patch.next_reassessment_due = null;
-    }
-    const { error } = await supabase.from('fp_individual_roles').update(patch).eq('id', roleId);
-    if (error) {
-      toast.error(error.message);
+    try {
+      await fpRoleSetReassessmentCycle(roleId, months);
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to update reassessment cycle');
       return;
     }
     toast.success('Reassessment cycle updated');
     setCycleEdits((s) => { const c = { ...s }; delete c[roleId]; return c; });
     qc.invalidateQueries({ queryKey: ['fp_individual_roles', id] });
+  }
+
+  /**
+   * Ceasing an appointment is a governed register change: it needs a reason and
+   * is refused by the server while an assessment against that appointment is
+   * still open.
+   */
+  async function ceaseRole(roleId: string) {
+    const result = await Swal.fire({
+      title: 'Cease this appointment?',
+      text: 'The appointment stops being current and its reassessment cycle is cleared. A reason is required and is recorded in the audit trail.',
+      icon: 'warning',
+      input: 'text',
+      inputPlaceholder: 'Reason (e.g. resigned 12 March 2026)',
+      showCancelButton: true,
+      confirmButtonText: 'Cease appointment',
+      inputValidator: (v) => (v && v.trim().length >= 3 ? null : 'A reason is required'),
+    });
+    if (!result.isConfirmed) return;
+    try {
+      await fpRoleEnd(roleId, String(result.value).trim());
+      toast.success('Appointment ceased');
+      qc.invalidateQueries({ queryKey: ['fp_individual_roles', id] });
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to cease appointment');
+    }
   }
 
   const { data: licensees = [], isLoading: licenseesLoading } = useQuery({
@@ -433,23 +469,14 @@ function RolesTab({ id }: { id: string }) {
       if (months != null && (!Number.isFinite(months) || months <= 0 || months > 120)) {
         throw new Error('Reassessment cycle must be 1-120 months');
       }
-      const nextDue = months
-        ? (() => { const d = new Date(); d.setMonth(d.getMonth() + months); return d.toISOString().slice(0, 10); })()
-        : null;
-      const payload = {
-        individual_id: id,
-        role_type: roleType.trim(),
-        licensee_id: licenseeId || null,
-        is_current: isCurrent,
-        reassessment_cycle_months: months,
-        next_reassessment_due: nextDue,
-        created_by: user?.id ?? null,
-      };
-      const { data, error } = await supabase.from('fp_individual_roles').insert(payload).select('id').single();
-      if (error) throw error;
-      await logFpAction('fp.role.added', 'fp_individual_role', data.id, {
-        after: payload,
-        context: { individualId: id },
+      // Governed: duplicate-appointment control, entity validation and the
+      // reassessment schedule are all decided by the server.
+      await fpRoleCreate({
+        individualId: id,
+        roleType: roleType.trim(),
+        licenseeId: licenseeId || null,
+        isCurrent,
+        reassessmentCycleMonths: months,
       });
     },
     onSuccess: () => {
@@ -469,9 +496,11 @@ function RolesTab({ id }: { id: string }) {
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-base">Roles &amp; Positions</CardTitle>
         <div className="flex gap-2">
-          <Button data-rbac="fit_and_proper.edit" size="sm" variant="outline" onClick={runCycleNow} disabled={runningCycle}>
-            {runningCycle ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <PlayCircle className="h-3.5 w-3.5 mr-1.5" />}
-            Run Cycle Scheduler
+          <Button asChild size="sm" variant="outline">
+            <Link to="/fpa/scheduler">
+              <PlayCircle className="h-3.5 w-3.5 mr-1.5" />
+              Reassessment scheduler
+            </Link>
           </Button>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
@@ -575,6 +604,7 @@ function RolesTab({ id }: { id: string }) {
                   <TableHead>Current</TableHead>
                   <TableHead>Reassessment Cycle</TableHead>
                   <TableHead>Recorded</TableHead>
+                  <TableHead className="text-right">Appointment</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -623,6 +653,23 @@ function RolesTab({ id }: { id: string }) {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground tabular-nums">
                         {fmtDate(r.created_at)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {r.is_current ? (
+                          <Button
+                            data-rbac="fit_and_proper.edit"
+                            size="sm"
+                            variant="outline"
+                            className="h-8"
+                            onClick={() => ceaseRole(r.id)}
+                          >
+                            Cease
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            ceased {r.effective_to ? fmtDate(r.effective_to) : ''}
+                          </span>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
