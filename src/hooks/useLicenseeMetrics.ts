@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { loadVisibleApplications } from '@/lib/visibleApplications';
+import { fetchCanonicalEntityReturnsSummary } from '@/lib/returns/canonicalReturnsSummary';
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const daysFromNow = (n: number) => {
@@ -73,7 +74,7 @@ async function resolveLicenseeScope(
     supabase.from('profiles').select('licensee_id, entity_name').eq('id', userId).maybeSingle(),
     supabase.from('licenses').select('id').eq('holder_id', userId),
     supabase
-      .from('returns_filed')
+      .from('return_filings')
       .select('entity_id')
       .eq('created_by', userId)
       .not('entity_id', 'is', null)
