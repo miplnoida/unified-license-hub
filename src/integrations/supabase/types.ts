@@ -524,6 +524,13 @@ export type Database = {
             referencedRelation: "report_view_applications"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "application_acknowledgements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
         ]
       }
       application_ai_assessments: {
@@ -651,11 +658,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "application_ai_assessments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "application_ai_assessments_proposed_routing_step_id_fkey"
             columns: ["proposed_routing_step_id"]
             isOneToOne: false
             referencedRelation: "approval_steps"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_ai_assessments_proposed_routing_step_id_fkey"
+            columns: ["proposed_routing_step_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["current_step_id"]
           },
         ]
       }
@@ -725,6 +746,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_form_requirements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
             referencedColumns: ["id"]
           },
           {
@@ -813,6 +841,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "application_form_versions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "application_form_versions_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -892,6 +927,13 @@ export type Database = {
             referencedRelation: "approval_steps"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "application_legal_notes_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["current_step_id"]
+          },
         ]
       }
       application_legal_referrals: {
@@ -968,11 +1010,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "application_legal_referrals_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "application_legal_referrals_step_id_fkey"
             columns: ["step_id"]
             isOneToOne: false
             referencedRelation: "approval_steps"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_legal_referrals_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["current_step_id"]
           },
         ]
       }
@@ -1014,6 +1070,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: true
             referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_requirement_migration_status_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "v_application_case_state"
             referencedColumns: ["id"]
           },
         ]
@@ -1243,6 +1306,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "application_rfis_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "application_rfis_approval_step_action_id_fkey"
             columns: ["approval_step_action_id"]
             isOneToOne: false
@@ -1448,6 +1518,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "approval_action_notifications_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["current_step_id"]
+          },
+          {
             foreignKeyName: "approval_action_notifications_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -1530,11 +1607,32 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "approval_actions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "approval_actions_step_id_fkey"
             columns: ["step_id"]
             isOneToOne: false
             referencedRelation: "approval_steps"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_actions_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["current_step_id"]
+          },
+          {
+            foreignKeyName: "approval_actions_workflow_instance_id_fkey"
+            columns: ["workflow_instance_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["workflow_instance_id"]
           },
           {
             foreignKeyName: "approval_actions_workflow_instance_id_fkey"
@@ -1646,11 +1744,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "approval_step_actions_next_step_id_fkey"
+            columns: ["next_step_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["current_step_id"]
+          },
+          {
             foreignKeyName: "approval_step_actions_step_id_fkey"
             columns: ["step_id"]
             isOneToOne: false
             referencedRelation: "approval_steps"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_step_actions_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["current_step_id"]
           },
         ]
       }
@@ -1695,6 +1807,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "approval_steps"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_step_entry_notifications_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["current_step_id"]
           },
           {
             foreignKeyName: "approval_step_entry_notifications_template_id_fkey"
@@ -7341,6 +7460,13 @@ export type Database = {
             referencedRelation: "report_view_applications"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "decision_artifacts_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
         ]
       }
       decision_options: {
@@ -9476,6 +9602,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "entity_change_sets_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "entity_change_sets_entity_id_fkey"
             columns: ["entity_id"]
             isOneToOne: false
@@ -10012,6 +10145,13 @@ export type Database = {
             columns: ["source_application_id"]
             isOneToOne: false
             referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_identity_snapshots_source_application_id_fkey"
+            columns: ["source_application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
             referencedColumns: ["id"]
           },
         ]
@@ -10760,6 +10900,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_resolution_cases_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
             referencedColumns: ["id"]
           },
           {
@@ -12265,6 +12412,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_components_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
             referencedColumns: ["id"]
           },
           {
@@ -16983,6 +17137,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "license_appeals_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "license_appeals_panel_id_fkey"
             columns: ["panel_id"]
             isOneToOne: false
@@ -17189,6 +17350,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_conditions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
             referencedColumns: ["id"]
           },
           {
@@ -17613,6 +17781,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenses_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
             referencedColumns: ["id"]
           },
           {
@@ -20022,6 +20197,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
             referencedColumns: ["id"]
           },
           {
@@ -26698,6 +26880,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "returns_filed_current_step_id_fkey"
+            columns: ["current_step_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["current_step_id"]
+          },
+          {
             foreignKeyName: "returns_filed_entity_id_fkey"
             columns: ["entity_id"]
             isOneToOne: false
@@ -28813,6 +29002,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sufficiency_determinations_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sufficiency_determinations_evaluation_id_fkey"
             columns: ["evaluation_id"]
             isOneToOne: false
@@ -28928,6 +29124,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sufficiency_evaluations_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
             referencedColumns: ["id"]
           },
           {
@@ -30092,6 +30295,13 @@ export type Database = {
             referencedRelation: "report_view_applications"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "twinpeaks_clearances_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
         ]
       }
       twinpeaks_disagreements: {
@@ -30147,6 +30357,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "twinpeaks_disagreements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
             referencedColumns: ["id"]
           },
         ]
@@ -30299,6 +30516,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "approval_steps"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_instances_current_step_id_fkey"
+            columns: ["current_step_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["current_step_id"]
           },
           {
             foreignKeyName: "workflow_instances_workflow_id_fkey"
@@ -30663,6 +30887,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "licenses_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "licenses_regulator_id_fkey"
             columns: ["regulator_id"]
             isOneToOne: false
@@ -30737,6 +30968,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
             referencedColumns: ["id"]
           },
         ]
@@ -30834,6 +31072,80 @@ export type Database = {
           volatility: string | null
         }
         Relationships: []
+      }
+      v_application_case_state: {
+        Row: {
+          applicant_id: string | null
+          applicant_name: string | null
+          applicant_org: string | null
+          application_category: string | null
+          application_number: string | null
+          canonical_href: string | null
+          created_at: string | null
+          current_step_id: string | null
+          current_step_is_terminal: boolean | null
+          current_step_name: string | null
+          current_step_order: number | null
+          entity_id: string | null
+          entity_name: string | null
+          id: string | null
+          is_terminal: boolean | null
+          last_activity_at: string | null
+          license_count: number | null
+          license_id: string | null
+          license_type: string | null
+          manual_priority: number | null
+          open_rfi_count: number | null
+          owner_name: string | null
+          owner_user_id: string | null
+          priority: string | null
+          priority_reason: string | null
+          priority_source: string | null
+          regulator_id: string | null
+          sla_due_at: string | null
+          sla_hours: number | null
+          sla_state: string | null
+          stage: string | null
+          stage_label: string | null
+          status: string | null
+          status_label: string | null
+          submitted_at: string | null
+          sufficiency_status: string | null
+          team: string | null
+          waiting_on: string | null
+          workflow_id: string | null
+          workflow_instance_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "applications_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_instances_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v_enforcement_case_state: {
         Row: {
@@ -31568,11 +31880,18 @@ export type Database = {
         }
         Returns: Json
       }
+      app_actor_display_name: { Args: { _user_id: string }; Returns: string }
+      app_applicant_org_name: { Args: { _user_id: string }; Returns: string }
       app_require_rationale: {
         Args: { _label: string; _min: number; _text: string }
         Returns: undefined
       }
       appeal_case_file_status: { Args: { _appeal_id: string }; Returns: Json }
+      application_blockers: { Args: { _application_id: string }; Returns: Json }
+      application_case: {
+        Args: { _application_id: string; _audience?: string }
+        Returns: Json
+      }
       application_delete_draft: {
         Args: { _application_id: string }
         Returns: Json
@@ -31586,9 +31905,18 @@ export type Database = {
         }
         Returns: Json
       }
+      application_fp_gate: { Args: { _application_id: string }; Returns: Json }
       application_ids_for_licensee: {
         Args: { _licensee_id: string }
         Returns: string[]
+      }
+      application_next_action: {
+        Args: { _audience?: string; _stage: string }
+        Returns: Json
+      }
+      application_open_rfi_count: {
+        Args: { _application_id: string }
+        Returns: number
       }
       application_payment_verify: {
         Args: { _application_id: string; _note: string; _payment_id: string }
@@ -31611,6 +31939,10 @@ export type Database = {
         Args: { _closure_notes?: string; _rfi_id: string }
         Returns: Json
       }
+      application_rfi_pauses_sla: {
+        Args: { _application_id: string }
+        Returns: boolean
+      }
       application_rfi_raise: { Args: { _payload: Json }; Returns: Json }
       application_rfi_submit_response: {
         Args: {
@@ -31627,6 +31959,68 @@ export type Database = {
           _priority?: number
           _priority_reason?: string
         }
+        Returns: Json
+      }
+      application_work_queue: {
+        Args: {
+          _assigned_to?: string
+          _categories?: string[]
+          _entity_id?: string
+          _include_closed?: boolean
+          _include_drafts?: boolean
+          _license_type?: string
+          _limit?: number
+          _offset?: number
+          _priorities?: string[]
+          _regulator_id?: string
+          _search?: string
+          _sector_id?: string
+          _sla_states?: string[]
+          _sort?: string
+          _stages?: string[]
+          _statuses?: string[]
+          _submitted_from?: string
+          _submitted_to?: string
+          _unassigned?: boolean
+          _waiting_on?: string
+        }
+        Returns: {
+          applicant_id: string
+          applicant_name: string
+          application_category: string
+          application_id: string
+          application_number: string
+          blocker_count: number
+          blockers: Json
+          canonical_href: string
+          current_workflow_step: string
+          entity_id: string
+          entity_name: string
+          last_activity_at: string
+          license_type: string
+          next_action_code: string
+          next_action_href: string
+          next_action_label: string
+          next_action_permission: string
+          owner_name: string
+          owner_user_id: string
+          priority: string
+          priority_reason: string
+          priority_source: string
+          sla_due_at: string
+          sla_state: string
+          stage: string
+          stage_label: string
+          status: string
+          status_label: string
+          submitted_at: string
+          team: string
+          total_count: number
+          waiting_on: string
+        }[]
+      }
+      application_work_queue_counts: {
+        Args: { _regulator_id?: string; _sector_id?: string }
         Returns: Json
       }
       apply_application_guard: {
@@ -34988,6 +35382,7 @@ export type Database = {
         }
         Returns: Json
       }
+      licensing_default_sla_hours: { Args: never; Returns: number }
       link_complaint_licensee: {
         Args: { _complaint_id: string; _licensee_id: string }
         Returns: undefined

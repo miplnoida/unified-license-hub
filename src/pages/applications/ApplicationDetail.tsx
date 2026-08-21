@@ -69,6 +69,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
 import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
 import { formatDateTime } from '@/lib/datetime';
+import { ApplicationCaseHeader } from '@/components/applications/ApplicationCaseHeader';
+import { ApplicationCurrentStepSummary } from '@/components/applications/ApplicationCurrentStepSummary';
+import { useApplicationCase } from '@/hooks/useApplicationCaseModels';
+
 
 
 
@@ -168,6 +172,10 @@ export default function ApplicationDetail() {
   const licenseGate = useLicenseStatusGate();
   const accessGuard = useLicenseeAccessGuard();
   const { resolvedLicenseeId } = usePpoc();
+  // EPR-05 — canonical licensing case read model (stage, SLA, priority, blockers,
+  // next action). Server-owned; nothing here is derived in the client.
+  const { data: caseModel } = useApplicationCase(id, isInternal ? 'internal' : 'external');
+
 
   // Internal reviewers land on the Workflow tab when a workflow review is live,
   // unless the URL asked for a specific tab.
@@ -903,8 +911,16 @@ export default function ApplicationDetail() {
           }
         />
 
+        {/* EPR-05 — standard licensing case header (server read model) */}
+        <ApplicationCaseHeader
+          applicationId={app.id}
+          audience={isInternal ? 'internal' : 'external'}
+          caseModel={caseModel}
+        />
+
         {isOwner && <LicenseStatusBanner />}
         {isInternal && <DecisionGatesBanner applicationId={app.id} />}
+
 
         <ReinstatedAfterAppealBanner applicationId={app.id} status={app.status} />
 
@@ -943,7 +959,7 @@ export default function ApplicationDetail() {
                 {hasSubmittedForms && <TabsTrigger value="form" className={TAB_TRIGGER_CLASS}>Submitted Forms</TabsTrigger>}
                 <TabsTrigger value="documents" className={TAB_TRIGGER_CLASS}>Documents</TabsTrigger>
                 <TabsTrigger value="fees" className={TAB_TRIGGER_CLASS}>{isInternal ? 'Fees' : 'Payment'}</TabsTrigger>
-                {showWorkflowTab && <TabsTrigger value="workflow" className={TAB_TRIGGER_CLASS}>Workflow</TabsTrigger>}
+                {showWorkflowTab && <TabsTrigger value="workflow" className={TAB_TRIGGER_CLASS}>Current Step</TabsTrigger>}
                 <TabsTrigger value="activity" className={TAB_TRIGGER_CLASS}>Activity</TabsTrigger>
                 <TabsTrigger value="rfi" className={`gap-1.5 ${TAB_TRIGGER_CLASS}`}>
 
@@ -1333,6 +1349,16 @@ export default function ApplicationDetail() {
                 </TabsContent>
               )}
             </Tabs>
+
+            {/* EPR-05 — Current Step is the sole lifecycle controller for licensing */}
+            {activeTab === 'workflow' && (
+              <ApplicationCurrentStepSummary
+                applicationId={app.id}
+                audience={isInternal ? 'internal' : 'external'}
+                caseModel={caseModel}
+              />
+            )}
+
 
 
 
