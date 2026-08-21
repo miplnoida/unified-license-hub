@@ -35529,6 +35529,10 @@ export type Database = {
         }
         Returns: Json
       }
+      license_lifecycle_available_actions: {
+        Args: { _license_id: string }
+        Returns: Json
+      }
       license_lifecycle_policy: {
         Args: { _cat: string; _sector: string; _sub: string }
         Returns: Json
