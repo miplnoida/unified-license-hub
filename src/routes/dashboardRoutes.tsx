@@ -66,6 +66,7 @@ const CorrespondenceDashboard = lazy(() => import('@/pages/correspondence/Corres
 const CorrespondenceInbox = lazy(() => import('@/pages/correspondence/CorrespondenceInbox'));
 const ThreadWorkspace = lazy(() => import('@/pages/correspondence/ThreadWorkspace'));
 const ConductEntityRedirect = lazy(() => import('@/routes/ConductEntityRedirect'));
+const LegacyThreadRedirect = lazy(() => import('@/routes/LegacyThreadRedirect'));
 
 const CorrespondenceRecords = lazy(() => import('@/pages/correspondence/CorrespondenceRecords'));
 const CorrespondenceRoutingRules = lazy(() => import('@/pages/correspondence/RoutingRulesAdmin'));
