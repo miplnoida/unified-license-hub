@@ -154,6 +154,8 @@ export const adminRoutes = (
     <Route path="/admin/forms-packages" element={<M module="form_management"><FormsPackagesWorkspace /></M>} />
 
     <Route path="/admin/fees" element={<M module="fee_management"><FeeManagement /></M>} />
+    <Route path="/admin/config/lifecycle" element={<M module="license_management"><LifecycleConfiguration /></M>} />
+
     <Route path="/admin/return-config" element={<M module="returns_management"><ReturnConfiguration /></M>} />
     <Route path="/admin/regulators" element={<M module="settings"><RegulatorManagement /></M>} />
     <Route path="/admin/licensees" element={<M module="license_management"><ManageLicensees /></M>} />
