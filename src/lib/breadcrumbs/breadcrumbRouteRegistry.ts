@@ -102,9 +102,8 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   // ---------------------------------------------------------- correspondence
   { pattern: '/correspondence', label: 'Correspondence', parent: '/dashboard' },
   { pattern: '/correspondence/dashboard', label: 'Overview', parent: '/correspondence' },
-  { pattern: '/correspondence/inbox', label: 'Inbox', parent: '/correspondence' },
+  { pattern: '/correspondence/inbox', label: 'Work queue', parent: '/correspondence' },
   { pattern: '/correspondence/manager', label: 'Manager', parent: '/correspondence' },
-  { pattern: '/correspondence/:id', label: 'Thread', parent: '/correspondence/inbox' },
   { pattern: '/correspondence/records', label: 'Records', parent: '/correspondence' },
   { pattern: '/correspondence/:id', resolver: 'correspondence', param: 'id', parent: '/correspondence' },
   { pattern: '/entity/correspondence', label: 'Correspondence', parent: '/dashboard' },
