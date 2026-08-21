@@ -4727,6 +4727,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conduct_alerts_investigation_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "v_conduct_investigation_state"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "conduct_alerts_licensee_id_fkey"
             columns: ["licensee_id"]
             isOneToOne: false
@@ -4934,6 +4941,13 @@ export type Database = {
             columns: ["investigation_id"]
             isOneToOne: false
             referencedRelation: "conduct_investigations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_evidence_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "v_conduct_investigation_state"
             referencedColumns: ["id"]
           },
         ]
@@ -5421,6 +5435,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conduct_interviews_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "v_conduct_investigation_state"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "conduct_interviews_licensee_id_fkey"
             columns: ["licensee_id"]
             isOneToOne: false
@@ -5547,6 +5568,13 @@ export type Database = {
             columns: ["investigation_id"]
             isOneToOne: false
             referencedRelation: "conduct_investigations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_investigation_closures_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "v_conduct_investigation_state"
             referencedColumns: ["id"]
           },
         ]
@@ -6026,6 +6054,13 @@ export type Database = {
             columns: ["investigation_id"]
             isOneToOne: false
             referencedRelation: "conduct_investigations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_post_closure_monitoring_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "v_conduct_investigation_state"
             referencedColumns: ["id"]
           },
         ]
@@ -32846,6 +32881,56 @@ export type Database = {
           },
         ]
       }
+      v_conduct_investigation_state: {
+        Row: {
+          active_closure_id: string | null
+          allegation: string | null
+          assigned_to: string | null
+          assigned_to_name: string | null
+          closure_status: string | null
+          code: string | null
+          created_at: string | null
+          due_date: string | null
+          entity_id: string | null
+          entity_name: string | null
+          evidence_count: number | null
+          id: string | null
+          interview_count: number | null
+          investigation_plan: string | null
+          is_terminal: boolean | null
+          last_activity_at: string | null
+          legal_basis: string | null
+          open_action_count: number | null
+          outcome: string | null
+          priority: string | null
+          scope: string | null
+          severity: string | null
+          sla_due_at: string | null
+          sla_state: string | null
+          source_id: string | null
+          source_type: string | null
+          stage: string | null
+          stage_label: string | null
+          stage_seq: number | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_investigations_licensee_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_investigations_licensee_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
       v_enforcement_case_state: {
         Row: {
           appeal_deadline: string | null
@@ -34728,7 +34813,27 @@ export type Database = {
         }
         Returns: undefined
       }
+      conduct_investigation_available_actions: {
+        Args: { _investigation_id: string }
+        Returns: Json
+      }
+      conduct_investigation_blockers: {
+        Args: { _investigation_id: string }
+        Returns: Json
+      }
+      conduct_investigation_case: {
+        Args: { _investigation_id: string }
+        Returns: Json
+      }
       conduct_investigation_open: { Args: { _payload: Json }; Returns: Json }
+      conduct_investigation_step: {
+        Args: {
+          _action_code: string
+          _investigation_id: string
+          _payload?: Json
+        }
+        Returns: Json
+      }
       conduct_investigation_update: {
         Args: {
           _investigation_id: string
@@ -34801,6 +34906,45 @@ export type Database = {
         Args: { _entity_id?: string; _sector_id?: string }
         Returns: Json
       }
+      conduct_work_queue: {
+        Args: {
+          _assigned_to?: string
+          _entity_id?: string
+          _include_closed?: boolean
+          _kinds?: string[]
+          _limit?: number
+          _offset?: number
+          _search?: string
+          _sla_states?: string[]
+          _sort?: string
+          _unassigned?: boolean
+        }
+        Returns: {
+          assigned_to: string
+          assigned_to_name: string
+          blockers: Json
+          canonical_href: string
+          entity_id: string
+          entity_name: string
+          item_id: string
+          kind: string
+          kind_label: string
+          last_activity_at: string
+          next_action_label: string
+          priority: string
+          reference: string
+          severity: string
+          sla_due_at: string
+          sla_state: string
+          stage: string
+          stage_label: string
+          status: string
+          subject: string
+          total_count: number
+          waiting_on: string
+        }[]
+      }
+      conduct_work_queue_counts: { Args: never; Returns: Json }
       configure_application_form: {
         Args: { _config: Json; _form_config_id: string }
         Returns: {
