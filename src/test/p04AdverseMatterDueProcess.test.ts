@@ -21,6 +21,15 @@ function migrationMatching(...needles: string[]): string {
   throw new Error(`Migration containing ${needles.join(' + ')} not found`);
 }
 
+/** All migration SQL concatenated — for privilege assertions that may live in any increment. */
+function allMigrations(): string {
+  return readdirSync(DIR)
+    .filter((f) => f.endsWith('.sql'))
+    .sort()
+    .map((f) => readFileSync(resolve(DIR, f), 'utf-8'))
+    .join('\n');
+}
+
 const src = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf-8');
 
 describe('server-declared step inputs', () => {
