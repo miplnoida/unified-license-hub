@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchCanonicalReturnsSummary } from '@/lib/returns/canonicalReturnsSummary';
 import {
   Loader2,
   FileText,
@@ -144,7 +145,7 @@ export function ExecutiveSupervisoryDashboard() {
         complaints: complaints.data || [],
         fpInd: (fpInd.data || []) as any[],
         risk: (risk.data || []) as any[],
-        returnsFiled: returnsFiled.data || [],
+        returnsSummary: returnsFiled,
         prudentialActions: (prudentialActions.data || []) as any[],
         prudentialEscalations: (prudentialEscalations.data || []) as any[],
         conductAlerts: (conductAlerts.data || []) as any[],
