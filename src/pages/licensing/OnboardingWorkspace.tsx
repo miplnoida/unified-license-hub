@@ -87,7 +87,20 @@ export default function OnboardingWorkspace() {
       },
       { id: 'candidate_count', header: 'Candidates', accessor: (r) => r.candidate_count ?? 0, sortable: true, align: 'right' },
       { id: 'follow_up_action', header: 'Follow-up', accessor: (r) => r.follow_up_action ?? '' },
-      { id: 'resolution_case_number', header: 'Case', accessor: (r) => r.resolution_case_number ?? '' },
+      {
+        id: 'resolution_case_number', header: 'Case',
+        accessor: (r) => r.resolution_case_number ?? '',
+        cell: (r) =>
+          r.resolution_case_id ? (
+            <button
+              className="font-mono text-xs text-primary underline-offset-2 hover:underline"
+              onClick={() => navigate(`/licensing/entity-resolution/${r.resolution_case_id}`)}
+            >
+              {r.resolution_case_number || 'Open case'}
+            </button>
+          ) : <span className="text-muted-foreground">—</span>,
+      },
+
       { id: 'journey_type', header: 'Journey', accessor: (r) => r.journey_type ?? '', sortable: true },
       { id: 'event_reference', header: 'Audit reference', accessor: (r) => r.event_reference, cell: (r) => <span className="font-mono text-[11px]">{r.event_reference}</span> },
     ],
