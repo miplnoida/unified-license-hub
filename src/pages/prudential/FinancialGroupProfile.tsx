@@ -232,7 +232,7 @@ export default function FinancialGroupProfile() {
               <GroupStructureTree
                 members={members}
                 canEdit={canEdit}
-                onSelectMember={(m) => navigate(`/prudential/entities/${m.licensee_id}`)}
+                onSelectMember={(m) => navigate(`/entities/${m.licensee_id}?view=prudential`)}
                 onEditMember={(m) => setMemberDialog({
                   id: m.member_id, licensee_id: m.licensee_id, parent_member_id: m.parent_member_id,
                   member_role: m.member_role, ownership_percentage: m.ownership_percentage,
