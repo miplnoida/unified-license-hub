@@ -9,6 +9,23 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Server-owned licence lifecycle action availability. Computed by
+ * `license_lifecycle_available_actions()` — the same authority the governed
+ * `license_lifecycle_action()` RPC re-validates against. The browser MUST NOT
+ * infer eligibility.
+ */
+export interface LicenseAvailableAction {
+  key: string;
+  label: string;
+  permission: string;
+  adverse: boolean;
+  requires_reason: boolean;
+  blockers: Array<{ key: string; label: string; href?: string }>;
+  section?: string | null;
+  href?: string | null;
+}
+
 export interface LicenseCaseHeaderModel {
   license_id: string;
   reference: string;
@@ -18,6 +35,7 @@ export interface LicenseCaseHeaderModel {
   stage: string;
   status: string;
   owner_id: string | null;
+  owner_name: string | null;
   team: string | null;
   priority: string;
   priority_reason: string | null;
@@ -26,6 +44,7 @@ export interface LicenseCaseHeaderModel {
   waiting_on: string;
   blockers: Array<{ key: string; label: string; href?: string }>;
   next_action: { key: string; label: string; href?: string; permission?: string } | null;
+  available_actions: LicenseAvailableAction[];
   last_activity_at: string | null;
   issued_at: string | null;
   valid_from: string | null;
@@ -60,6 +79,7 @@ export interface LicenseCaseModel {
     renewal_window_days: number;
     reminder_days: number[];
   };
+  available_actions: LicenseAvailableAction[];
   counts: { open_conditions: number; overdue_conditions: number };
   open_matter: LicenseLifecycleMatter | null;
   matters: LicenseLifecycleMatter[];
@@ -101,10 +121,19 @@ export interface LicenseLifecycleQueueRow {
   stage: string;
   status: string;
   priority: string;
+  priority_reason: string | null;
   sla_due_at: string | null;
   sla_state: string;
   waiting_on: string;
+  owner_user_id: string | null;
+  owner_name: string | null;
+  team: string | null;
+  blocker_count: number;
+  blockers: Array<{ key: string; label: string; href?: string }>;
   next_action: string | null;
+  next_action_code: string | null;
+  next_action_label: string | null;
+  next_action_permission: string | null;
   canonical_href: string;
   last_activity_at: string | null;
   total_count: number;

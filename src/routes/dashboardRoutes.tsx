@@ -21,6 +21,7 @@ const ApplicationForms = lazy(() => import('@/pages/ApplicationForms'));
 const LicensesList = lazy(() => import('@/pages/licenses/LicensesList'));
 const LicenseDetail = lazy(() => import('@/pages/licenses/LicenseDetail'));
 const LicenseLifecycleQueue = lazy(() => import('@/pages/licenses/LicenseLifecycleQueue'));
+const RegulatoryRequestsRegister = lazy(() => import('@/pages/licensing/RegulatoryRequestsRegister'));
 const PaymentHistory = lazy(() => import('@/pages/payments/PaymentHistory'));
 const PaymentDetail = lazy(() => import('@/pages/payments/PaymentDetail'));
 const ComplaintsList = lazy(() => import('@/pages/complaints/ComplaintsList'));
@@ -172,6 +173,7 @@ export const dashboardRoutes = (
     <Route path="/admin/appeal-panels" element={<M module="license_appeals"><LicenseAppealPanelsAdmin /></M>} />
 
     <Route path="/licenses" element={<EP area="licensing" capability="can_view_status"><LicensesList /></EP>} />
+    <Route path="/licensing/regulatory-requests" element={<M module="license_management"><RegulatoryRequestsRegister /></M>} />
     <Route path="/licenses/lifecycle" element={<M module="license_management"><LicenseLifecycleQueue /></M>} />
     <Route path="/licenses/:id" element={<EP area="licensing" capability="can_view_status"><LicenseDetail /></EP>} />
 

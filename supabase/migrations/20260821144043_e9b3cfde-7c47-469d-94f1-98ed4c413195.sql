@@ -1,0 +1,2 @@
+GRANT EXECUTE ON FUNCTION public.license_lifecycle_work_queue(text[], text, integer, integer) TO supabase_read_only_user;
+GRANT EXECUTE ON FUNCTION public.license_lifecycle_available_actions(uuid) TO supabase_read_only_user;
