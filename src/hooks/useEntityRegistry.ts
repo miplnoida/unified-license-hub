@@ -71,10 +71,12 @@ export function useResolutionCase(caseId: string | null) {
 export function useResolutionMutations() {
   const qc = useQueryClient();
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ['entity-resolution-cases'] });
+    qc.invalidateQueries({ queryKey: ['entity-resolution-queue'] });
     qc.invalidateQueries({ queryKey: ['entity-resolution-case'] });
     qc.invalidateQueries({ queryKey: ['entity-registry-search'] });
+    qc.invalidateQueries({ queryKey: ['onboarding-audit'] });
   };
+
 
   return {
     resolveIdentity: useMutation({ mutationFn: registry.resolveIdentity, onSuccess: invalidate }),
