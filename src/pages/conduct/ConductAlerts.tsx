@@ -1,149 +1,372 @@
-import { useEffect, useState } from 'react';
+/**
+ * P08.17–P08.19 — Conduct alert register.
+ *
+ * The register is served by `conduct_alert_register` with server paging,
+ * filtering and counts, and exposes the full signal lineage (source, rule and
+ * version, observation window, explanation). Every disposition — acknowledge,
+ * dismiss, link to an existing case, or promote to an investigation — runs
+ * through a governed RPC that requires a written rationale and audits itself.
+ */
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
-import { conductAlertAcknowledge, conductAlertClose } from '@/lib/conductGovernedOps';
-import { useAuth } from '@/contexts/AuthContext';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Loader2, CheckCircle2, XCircle, Bell } from 'lucide-react';
-import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
+import { Loader2, CheckCircle2, Bell, ChevronLeft, ChevronRight, ArrowUpRight, Search } from 'lucide-react';
+import { conductAlertAcknowledge } from '@/lib/conductGovernedOps';
+import { useAlertCounts, useAlertDispose, useAlertPromote, useAlertRegister, type AlertRow } from '@/hooks/useConductRegisters';
+import { formatDateTime } from '@/lib/datetime';
 
-const SEV_VARIANT: Record<string, any> = { low: 'outline', medium: 'secondary', high: 'default', critical: 'destructive' };
+const SEV_VARIANT: Record<string, 'outline' | 'secondary' | 'default' | 'destructive'> = {
+  low: 'outline', medium: 'secondary', high: 'default', critical: 'destructive',
+};
+const PAGE_SIZE = 25;
 
 export default function ConductAlerts() {
-  const { user } = useAuth();
-  const [rows, setRows] = useState<any[]>([]);
   const [status, setStatus] = useState('open');
-  const [loading, setLoading] = useState(true);
-  const [overrideAlert, setOverrideAlert] = useState<any | null>(null);
+  const [severity, setSeverity] = useState('all');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [dispose, setDispose] = useState<AlertRow | null>(null);
+  const [promote, setPromote] = useState<AlertRow | null>(null);
 
-  const load = async () => {
-    setLoading(true);
-    let q = supabase.from('conduct_alerts')
-      .select('*, licensees(name), conduct_products(name), conduct_channels(name), conduct_risk_categories(name)')
-      .order('created_at', { ascending: false })
-      .limit(200);
-    if (status !== 'all') q = q.eq('status', status);
-    const { data, error } = await q;
-    if (error) toast.error(error.message);
-    setRows(data || []); setLoading(false);
-  };
-  useEffect(() => { load(); }, [status]);
+  const filters = useMemo(() => ({
+    statuses: status === 'all' ? null : [status],
+    severities: severity === 'all' ? null : [severity],
+    search: search.trim() || null,
+    includeClosed: status === 'all' || status === 'closed' || status === 'dismissed',
+    limit: PAGE_SIZE,
+    offset: page * PAGE_SIZE,
+  }), [status, severity, search, page]);
 
-  const ack = async (row: any) => {
+  const { data: rows = [], isLoading, refetch } = useAlertRegister(filters);
+  const { data: counts } = useAlertCounts();
+  const total = rows[0]?.total_count ?? 0;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const acknowledge = async (row: AlertRow) => {
+    setBusyId(row.id);
     try {
-      // Governed: acknowledger, timestamp and audit are derived server-side.
       await conductAlertAcknowledge(row.id);
-    } catch (e: any) {
-      return toast.error(e?.message || 'Could not acknowledge alert');
+      toast.success('Alert acknowledged');
+      refetch();
+    } catch (e) {
+      toast.error((e as Error).message || 'Could not acknowledge alert');
+    } finally {
+      setBusyId(null);
     }
-    load();
-  };
-  const doClose = async (row: any, extra?: Record<string, any>) => {
-    const reason = String(extra?.override_reason || extra?.reason || '').trim()
-      || 'Closed after supervisory review of the alert.';
-    try {
-      // Governed: closure attribution, reason validation and audit are server-side.
-      await conductAlertClose(row.id, reason, extra || {});
-    } catch (e: any) {
-      return toast.error(e?.message || 'Could not close alert');
-    }
-    load();
-  };
-
-  const close = async (row: any) => {
-    if (row.triage_rule_id) { setOverrideAlert(row); return; }
-    await doClose(row);
   };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
-          title="Conduct Alerts"
-          description="Repeat complaints, vulnerable customers, critical severities, thematic spikes, and SLA breaches."
-          actions={
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="acknowledged">Acknowledged</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
-                <SelectItem value="all">All</SelectItem>
-              </SelectContent>
-            </Select>
-          }
+          title="Conduct Alert Register"
+          description="Detected conduct signals with their full lineage: source, rule and version, observation window and explanation. Each alert must be dispositioned — dismissed with reasons, linked to an existing case, or promoted to an investigation."
         />
-        <Card>
-          <CardContent className="p-0">
-            {loading ? <div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div> :
-             rows.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground"><Bell className="h-8 w-8 mx-auto mb-2" />No alerts.</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>When</TableHead>
-                    <TableHead>Kind</TableHead>
-                    <TableHead>Severity</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Licensee</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Channel</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((r: any) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="text-xs">{new Date(r.created_at).toLocaleString()}</TableCell>
-                      <TableCell><Badge variant="outline" className="capitalize">{r.kind.replace('_', ' ')}</Badge></TableCell>
-                      <TableCell><Badge variant={SEV_VARIANT[r.severity] || 'outline'} className="capitalize">{r.severity}</Badge></TableCell>
-                      <TableCell className="max-w-xs truncate font-medium">
-                        {r.complaint_id ? <Link to={`/complaints/${r.complaint_id}`} className="text-primary hover:underline">{r.title}</Link> : r.title}
-                      </TableCell>
-                      <TableCell className="text-sm">{r.licensees?.name || '—'}</TableCell>
-                      <TableCell className="text-sm">{r.conduct_products?.name || '—'}</TableCell>
-                      <TableCell className="text-sm">{r.conduct_channels?.name || '—'}</TableCell>
-                      <TableCell className="text-sm">{r.conduct_risk_categories?.name || '—'}</TableCell>
-                      <TableCell><Badge variant={r.status === 'open' ? 'destructive' : r.status === 'acknowledged' ? 'secondary' : 'default'} className="capitalize">{r.status}</Badge></TableCell>
-                      <TableCell className="text-right">
-                        {r.status === 'open' && <Button data-rbac="market_conduct.edit" size="sm" variant="outline" onClick={() => ack(r)}><CheckCircle2 className="h-3 w-3 mr-1" />Ack</Button>}
-                        {r.status !== 'closed' && <Button size="sm" variant="ghost" className="ml-1" onClick={() => close(r)}><XCircle className="h-3 w-3 mr-1" />Close</Button>}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+          <Kpi label="Open" value={Number(counts?.open ?? 0)} />
+          <Kpi label="Acknowledged" value={Number(counts?.acknowledged ?? 0)} />
+          <Kpi label="High / critical open" value={Number(counts?.high_severity_open ?? 0)} tone="destructive" />
+          <Kpi label="Promoted" value={Number(counts?.promoted ?? 0)} />
+          <Kpi label="Disposed" value={Number(counts?.closed ?? 0)} />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <div className="relative min-w-[240px] flex-1">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="pl-8"
+              placeholder="Search alert title or entity"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            />
+          </div>
+          <Select value={status} onValueChange={(v) => { setStatus(v); setPage(0); }}>
+            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="open">Open</SelectItem>
+              <SelectItem value="acknowledged">Acknowledged</SelectItem>
+              <SelectItem value="dismissed">Dismissed</SelectItem>
+              <SelectItem value="closed">Closed</SelectItem>
+              <SelectItem value="all">All</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={severity} onValueChange={(v) => { setSeverity(v); setPage(0); }}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Severity" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All severities</SelectItem>
+              {['critical', 'high', 'medium', 'low'].map((s) => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Card><CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-8 text-center"><Loader2 className="inline h-5 w-5 animate-spin" /></div>
+          ) : rows.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground">
+              <Bell className="mx-auto mb-2 h-8 w-8" />No alerts match.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Reference</TableHead>
+                <TableHead>Signal</TableHead>
+                <TableHead>Entity</TableHead>
+                <TableHead>Observation window</TableHead>
+                <TableHead>Severity</TableHead>
+                <TableHead>Status / disposition</TableHead>
+                <TableHead>Linked case</TableHead>
+                <TableHead className="text-right">Disposition</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>{rows.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-mono text-xs">
+                    {r.reference}
+                    <div className="text-[11px] text-muted-foreground">{r.generated_at ? formatDateTime(r.generated_at) : ''}</div>
+                  </TableCell>
+                  <TableCell className="max-w-xs">
+                    <div className="font-medium">{r.title}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {(r.kind ?? '').replace(/_/g, ' ')}
+                      {r.source ? ` · ${r.source}` : ''}
+                      {r.rule_id ? ` · rule v${r.rule_version ?? 1}` : ''}
+                    </div>
+                    {r.explanation ? (
+                      <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{r.explanation}</div>
+                    ) : null}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {r.entity_name ?? '—'}
+                    <div className="text-xs text-muted-foreground">
+                      {[r.product_name, r.channel_name, r.risk_category_name].filter(Boolean).join(' · ')}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {r.observation_start || r.observation_end
+                      ? `${r.observation_start ? formatDateTime(r.observation_start) : '—'} → ${r.observation_end ? formatDateTime(r.observation_end) : '—'}`
+                      : 'Not recorded'}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={SEV_VARIANT[r.severity ?? 'low'] ?? 'outline'} className="capitalize">{r.severity}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize">{r.status}</Badge>
+                    {r.disposition ? (
+                      <div className="mt-1 text-xs capitalize text-muted-foreground">{r.disposition.replace(/_/g, ' ')}</div>
+                    ) : null}
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {r.investigation_href ? (
+                      <Link to={r.investigation_href} className="text-primary hover:underline">Investigation</Link>
+                    ) : r.complaint_href ? (
+                      <Link to={r.complaint_href} className="text-primary hover:underline">Complaint</Link>
+                    ) : '—'}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {r.status === 'open' && (
+                      <Button
+                        data-rbac="market_conduct.edit"
+                        size="sm"
+                        variant="outline"
+                        disabled={busyId === r.id}
+                        onClick={() => acknowledge(r)}
+                      >
+                        <CheckCircle2 className="mr-1 h-3 w-3" />Acknowledge
+                      </Button>
+                    )}
+                    {!['closed', 'dismissed'].includes(r.status) && (
+                      <>
+                        {!r.investigation_id && (
+                          <Button
+                            data-rbac="market_conduct.initiate_investigation"
+                            size="sm"
+                            variant="ghost"
+                            className="ml-1"
+                            onClick={() => setPromote(r)}
+                          >
+                            <ArrowUpRight className="mr-1 h-3 w-3" />Promote
+                          </Button>
+                        )}
+                        <Button
+                          data-rbac="market_conduct.edit"
+                          size="sm"
+                          variant="ghost"
+                          className="ml-1"
+                          onClick={() => setDispose(r)}
+                        >
+                          Dispose
+                        </Button>
+                      </>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}</TableBody>
+            </Table>
+          )}
+        </CardContent></Card>
+
+        {total > PAGE_SIZE && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">{total} alert(s) · page {page + 1} of {pages}</span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" disabled={page + 1 >= pages} onClick={() => setPage((p) => p + 1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {overrideAlert && (
-        <OverrideReasonDialog
-          open
-          onOpenChange={(o) => { if (!o) setOverrideAlert(null); }}
-          module="complaints"
-          entityType="conduct_alert"
-          entityId={overrideAlert.id}
-          ruleKey="complaints.conduct_alert.close_rule_generated"
-          originalValue={{ status: overrideAlert.status, triage_rule_id: overrideAlert.triage_rule_id }}
-          overriddenValue={{ status: 'closed' }}
-          metadata={{ source: 'ConductAlerts', complaint_id: overrideAlert.complaint_id, kind: overrideAlert.kind }}
-          title="Close rule-generated alert"
-          description="This alert was raised by an active triage rule. Provide a written justification before closing."
-          onOverridden={async () => { await doClose(overrideAlert, { override: true, override_rule_id: overrideAlert.triage_rule_id }); setOverrideAlert(null); }}
-        />
-      )}
+      {dispose ? <DisposeDialog alert={dispose} onClose={() => setDispose(null)} /> : null}
+      {promote ? <PromoteDialog alert={promote} onClose={() => setPromote(null)} /> : null}
     </DashboardLayout>
+  );
+}
+
+function Kpi({ label, value, tone }: { label: string; value: number; tone?: 'destructive' }) {
+  return (
+    <Card><CardContent className="pt-6">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={`text-2xl font-semibold ${tone === 'destructive' && value > 0 ? 'text-destructive' : ''}`}>{value}</p>
+    </CardContent></Card>
+  );
+}
+
+function DisposeDialog({ alert, onClose }: { alert: AlertRow; onClose: () => void }) {
+  const dispose = useAlertDispose();
+  const [disposition, setDisposition] = useState<'DISMISS' | 'LINK_TO_EXISTING_COMPLAINT' | 'LINK_TO_EXISTING_INVESTIGATION'>('DISMISS');
+  const [reason, setReason] = useState('');
+  const [targetId, setTargetId] = useState('');
+
+  const needsTarget = disposition !== 'DISMISS';
+  const submit = async () => {
+    try {
+      await dispose.mutateAsync({ alertId: alert.id, disposition, reason, targetId: needsTarget ? targetId : null });
+      toast.success('Disposition recorded');
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message || 'Disposition rejected');
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Disposition alert {alert.reference}</DialogTitle>
+          <DialogDescription>
+            The disposition and its rationale are recorded against the alert and audited. Nothing is closed silently.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Disposition</Label>
+            <Select value={disposition} onValueChange={(v) => setDisposition(v as typeof disposition)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="DISMISS">Dismiss — no regulatory concern</SelectItem>
+                <SelectItem value="LINK_TO_EXISTING_COMPLAINT">Link to an existing complaint</SelectItem>
+                <SelectItem value="LINK_TO_EXISTING_INVESTIGATION">Link to an existing investigation</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {needsTarget && (
+            <div>
+              <Label className="text-xs">
+                {disposition === 'LINK_TO_EXISTING_COMPLAINT' ? 'Complaint id' : 'Investigation id'} *
+              </Label>
+              <Input value={targetId} onChange={(e) => setTargetId(e.target.value)} placeholder="UUID of the existing case" />
+            </div>
+          )}
+          <div>
+            <Label className="text-xs">Rationale * (min 10 characters)</Label>
+            <Textarea rows={4} value={reason} onChange={(e) => setReason(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button
+            data-rbac="market_conduct.edit"
+            disabled={dispose.isPending || reason.trim().length < 10 || (needsTarget && !targetId.trim())}
+            onClick={submit}
+          >
+            {dispose.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Record disposition
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PromoteDialog({ alert, onClose }: { alert: AlertRow; onClose: () => void }) {
+  const promote = useAlertPromote();
+  const [rationale, setRationale] = useState('');
+  const [allegation, setAllegation] = useState(alert.title ?? '');
+  const [dueDate, setDueDate] = useState('');
+
+  const submit = async () => {
+    try {
+      const res = await promote.mutateAsync({ alertId: alert.id, rationale, allegation, dueDate }) as { code?: string };
+      toast.success(`Investigation ${res?.code ?? ''} opened from this alert`);
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message || 'Promotion rejected');
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Promote alert {alert.reference} to an investigation</DialogTitle>
+          <DialogDescription>
+            The new investigation carries this alert's exact lineage — signal source, rule and version, observation
+            window, threshold and explanation — so the reason it exists remains provable.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Allegation / scope summary</Label>
+            <Input value={allegation} onChange={(e) => setAllegation(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">Target completion date</Label>
+            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">Promotion rationale * (min 20 characters)</Label>
+            <Textarea rows={4} value={rationale} onChange={(e) => setRationale(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button
+            data-rbac="market_conduct.initiate_investigation"
+            disabled={promote.isPending || rationale.trim().length < 20}
+            onClick={submit}
+          >
+            {promote.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Open investigation
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
