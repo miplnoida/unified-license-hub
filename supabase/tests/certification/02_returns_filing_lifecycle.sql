@@ -6,15 +6,13 @@
 -- and asserts that version provenance, immutability and the canonical
 -- workflow read model stay consistent at every hop.
 BEGIN;
-SELECT plan(14);
+SELECT plan(15);
 
 -- ---------------------------------------------------------------- fixtures
 CREATE TEMP TABLE ctx AS
 SELECT
   (SELECT id FROM public.return_filings WHERE status = 'DRAFT' ORDER BY created_at LIMIT 1) AS filing_id,
   (SELECT user_id FROM public.user_roles WHERE role IN ('super_admin','admin') ORDER BY user_id LIMIT 1) AS regulator_id;
-
-UPDATE ctx SET filing_id = filing_id; -- no-op, keeps plan stable when empty
 
 SELECT isnt((SELECT filing_id FROM ctx), NULL, 'a DRAFT canonical filing exists to exercise');
 SELECT isnt((SELECT regulator_id FROM ctx), NULL, 'an internal regulator user exists to review');
