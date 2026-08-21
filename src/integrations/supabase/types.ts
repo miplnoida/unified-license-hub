@@ -34005,6 +34005,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fp_entity_fp_summary: { Args: { _entity_id: string }; Returns: Json }
       fp_find_duplicate_candidates: {
         Args: {
           _date_of_birth?: string
@@ -34062,6 +34063,15 @@ export type Database = {
         }
         Returns: Json
       }
+      fp_individual_create: { Args: { _payload: Json }; Returns: Json }
+      fp_individual_set_directory_status: {
+        Args: { _individual_id: string; _reason: string; _status: string }
+        Returns: Json
+      }
+      fp_individual_update: {
+        Args: { _individual_id: string; _patch: Json; _reason?: string }
+        Returns: Json
+      }
       fp_link_persons_deterministic: { Args: never; Returns: Json }
       fp_monitoring_event_acknowledge: {
         Args: { _event_id: string; _note?: string }
@@ -34117,6 +34127,26 @@ export type Database = {
       fp_request_pq_amendment: {
         Args: { _assessment_id: string; _reason: string }
         Returns: undefined
+      }
+      fp_role_create: {
+        Args: {
+          _effective_from?: string
+          _individual_id: string
+          _is_current?: boolean
+          _licensee_id?: string
+          _reassessment_cycle_months?: number
+          _role_title?: string
+          _role_type: string
+        }
+        Returns: Json
+      }
+      fp_role_end: {
+        Args: { _effective_to?: string; _reason: string; _role_id: string }
+        Returns: Json
+      }
+      fp_role_set_reassessment_cycle: {
+        Args: { _months: number; _reason?: string; _role_id: string }
+        Returns: Json
       }
       fp_run_is_conclusive: { Args: { _run_id: string }; Returns: boolean }
       fp_screening_provider_status: {

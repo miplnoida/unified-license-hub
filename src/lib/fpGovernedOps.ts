@@ -400,3 +400,87 @@ export const fpDeclarationInvitationResend = (i: {
     _expires_at: i.expiresAt,
     _recipient_email: i.recipientEmail ?? null,
   });
+
+/* -------------------------------------------- person master data & appointments */
+
+/**
+ * EPR-04 M2 — the subject register (`fp_individuals`) and the appointment
+ * register (`fp_individual_roles`) are server-owned. Direct DML on both tables
+ * is revoked from `authenticated`, so these are the only write paths.
+ */
+
+export interface FpIndividualMasterData {
+  full_name?: string;
+  national_id?: string | null;
+  passport_number?: string | null;
+  nationality?: string | null;
+  date_of_birth?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  notes?: string | null;
+}
+
+export const fpIndividualCreate = (payload: FpIndividualMasterData) =>
+  call<{ id: string }>('fp_individual_create', { _payload: payload });
+
+/** Master data only — register status is a separate governed operation. */
+export const fpIndividualUpdate = (
+  individualId: string,
+  patch: FpIndividualMasterData,
+  reason?: string | null,
+) =>
+  call('fp_individual_update', {
+    _individual_id: individualId,
+    _patch: patch,
+    _reason: reason ?? null,
+  });
+
+/**
+ * Register status only (`active` | `inactive`). Suspension and prohibition are
+ * determination outcomes and are rejected by the server.
+ */
+export const fpIndividualSetDirectoryStatus = (
+  individualId: string,
+  status: 'active' | 'inactive',
+  reason: string,
+) =>
+  call('fp_individual_set_directory_status', {
+    _individual_id: individualId,
+    _status: status,
+    _reason: reason,
+  });
+
+export const fpRoleCreate = (i: {
+  individualId: string;
+  roleType: string;
+  licenseeId?: string | null;
+  isCurrent?: boolean;
+  reassessmentCycleMonths?: number | null;
+  effectiveFrom?: string | null;
+  roleTitle?: string | null;
+}) =>
+  call<{ id: string }>('fp_role_create', {
+    _individual_id: i.individualId,
+    _role_type: i.roleType,
+    _licensee_id: i.licenseeId ?? null,
+    _is_current: i.isCurrent ?? true,
+    _reassessment_cycle_months: i.reassessmentCycleMonths ?? null,
+    _effective_from: i.effectiveFrom ?? null,
+    _role_title: i.roleTitle ?? null,
+  });
+
+/** `next_reassessment_due` is computed by the server, never by the browser. */
+export const fpRoleSetReassessmentCycle = (
+  roleId: string,
+  months: number | null,
+  reason?: string | null,
+) =>
+  call('fp_role_set_reassessment_cycle', {
+    _role_id: roleId,
+    _months: months,
+    _reason: reason ?? null,
+  });
+
+export const fpRoleEnd = (roleId: string, reason: string, effectiveTo?: string | null) =>
+  call('fp_role_end', { _role_id: roleId, _reason: reason, _effective_to: effectiveTo ?? null });
