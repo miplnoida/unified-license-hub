@@ -8,6 +8,7 @@ import { Loader2, Shield, Eye } from 'lucide-react';
 import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
 import { useNavigate } from 'react-router-dom';
+import { useEntityLicenceSummary } from '@/hooks/useLicenseP04Extensions';
 
 interface LicensesTabProps {
   entityId: string;
