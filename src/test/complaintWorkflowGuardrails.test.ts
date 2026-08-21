@@ -67,7 +67,7 @@ describe('complaint workflow guardrails', () => {
 
   it('EPR-03: the enforcement workspace never borrows the complaint workflow', () => {
     const src = readFileSync('src/pages/enforcement/EnforcementWorkspace.tsx', 'utf8');
-    expect(src).toContain('enforcementCaseAction');
+    expect(src).toContain('useEnforcementCaseAction');
     expect(src).not.toContain('execute_complaint_workflow_action');
     expect(src).not.toContain('WorkflowActionPanel');
     expect(src).not.toMatch(/status\s*===\s*'notice_issued'/);
