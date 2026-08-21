@@ -27,6 +27,7 @@ export interface LicenseCaseHeaderModel {
   waiting_on: string;
   blockers: Array<{ key: string; label: string; href?: string }>;
   next_action: { key: string; label: string; href?: string; permission?: string } | null;
+  available_actions: LicenseAvailableAction[];
   last_activity_at: string | null;
   issued_at: string | null;
   valid_from: string | null;
