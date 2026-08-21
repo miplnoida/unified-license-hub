@@ -5,7 +5,7 @@
  * come from the `license_case` read model; the panel only submits the chosen
  * governed operation (`license_lifecycle_action`) with a rationale.
  */
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { AlertTriangle, ArrowRight, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,92 +17,31 @@ import { formatDateTime } from '@/lib/datetime';
 import {
   useLicenseLifecycleAction,
   type LicenseCaseModel,
+  type LicenseAvailableAction,
   type LicenseLifecycleActionKey,
 } from '@/hooks/useLicenseLifecycle';
 
-interface ActionDef {
-  key: LicenseLifecycleActionKey;
-  label: string;
-  permission: string;
-  adverse?: boolean;
-}
-
-const ADVERSE_KEYS: LicenseLifecycleActionKey[] = [
-  'REFUSE_RENEWAL', 'BEGIN_SUSPENSION', 'SUSPEND', 'BEGIN_REVOCATION', 'REVOKE', 'ACCEPT_SURRENDER', 'MARK_EXPIRED',
-];
-
-/**
- * Client-side list only narrows which governed operations are *offered*; the
- * server re-validates permission, from-state and rationale on every call.
- */
-function offeredActions(model: LicenseCaseModel): ActionDef[] {
-  const h = model.header;
-  const openMatter = model.open_matter?.matter_kind ?? null;
-  const openRenewal = (model.renewals ?? []).some(
-    (r) => !['approved', 'refused', 'withdrawn'].includes(String((r as { status?: string }).status ?? '')),
-  );
-  const out: ActionDef[] = [];
-
-  if (['revoked', 'surrendered'].includes(h.status)) return out;
-
-  if (openRenewal) {
-    out.push({ key: 'REQUEST_RENEWAL_INFORMATION', label: 'Request renewal information', permission: 'license_management.workflow_action' });
-    out.push({ key: 'APPROVE_RENEWAL', label: 'Approve renewal', permission: 'license_management.approve' });
-    out.push({ key: 'REFUSE_RENEWAL', label: 'Refuse renewal', permission: 'license_management.approve', adverse: true });
-  } else if (['active', 'restricted', 'expired'].includes(h.status)) {
-    out.push({ key: 'START_RENEWAL', label: 'Start renewal', permission: 'license_management.workflow_action' });
-  }
-
-  if (openMatter === 'variation') {
-    out.push({ key: 'APPROVE_VARIATION', label: 'Approve variation', permission: 'license_management.approve' });
-  } else if (h.status === 'active') {
-    out.push({ key: 'APPLY_VARIATION', label: 'Open variation matter', permission: 'license_management.workflow_action' });
-  }
-
-  if (h.status === 'suspended') {
-    out.push({ key: 'REINSTATE', label: 'Reinstate licence', permission: 'license_management.manage_license_actions' });
-  } else if (['active', 'restricted'].includes(h.status)) {
-    if (openMatter === 'suspension') {
-      out.push({ key: 'SUSPEND', label: 'Suspend licence', permission: 'license_management.manage_license_actions', adverse: true });
-    } else {
-      out.push({ key: 'BEGIN_SUSPENSION', label: 'Begin suspension review', permission: 'license_management.manage_license_actions', adverse: true });
-    }
-  }
-
-  if (openMatter === 'revocation') {
-    out.push({ key: 'REVOKE', label: 'Revoke licence', permission: 'license_management.manage_license_actions', adverse: true });
-  } else if (!['revoked', 'surrendered'].includes(h.status)) {
-    out.push({ key: 'BEGIN_REVOCATION', label: 'Begin revocation review', permission: 'license_management.manage_license_actions', adverse: true });
-  }
-
-  if (openMatter === 'surrender') {
-    out.push({ key: 'ACCEPT_SURRENDER', label: 'Accept surrender', permission: 'license_management.manage_license_actions', adverse: true });
-  } else {
-    out.push({ key: 'BEGIN_SURRENDER', label: 'Open surrender matter', permission: 'license_management.workflow_action' });
-  }
-
-  if (h.sla_state === 'breached' && h.status === 'active') {
-    out.push({ key: 'MARK_EXPIRED', label: 'Mark expired', permission: 'license_management.manage_license_actions', adverse: true });
-  }
-
-  return out;
-}
-
 export function LicenseCurrentStepPanel({ model, readOnly }: { model: LicenseCaseModel; readOnly?: boolean }) {
-  const actions = useMemo(() => offeredActions(model), [model]);
+  // Availability, adversity, rationale requirement and blockers are all server
+  // owned (`license_case().available_actions`). No client eligibility logic.
+  const actions: LicenseAvailableAction[] = model.header.available_actions ?? model.available_actions ?? [];
   const recommended = model.header.next_action?.key ?? null;
   const [selected, setSelected] = useState<string>('');
   const [reason, setReason] = useState('');
   const mutation = useLicenseLifecycleAction(model.header.license_id);
 
   const chosen = actions.find((a) => a.key === selected) ?? null;
-  const adverse = chosen ? ADVERSE_KEYS.includes(chosen.key) : false;
-  const reasonTooShort = adverse && reason.trim().length < 10;
+  const requiresReason = chosen?.requires_reason ?? false;
+  const reasonTooShort = requiresReason && reason.trim().length < 10;
+  const chosenBlockers = chosen?.blockers ?? [];
 
   const submit = async () => {
     if (!chosen) return;
     try {
-      await mutation.mutateAsync({ actionKey: chosen.key, reason: reason.trim() || null });
+      await mutation.mutateAsync({
+        actionKey: chosen.key as LicenseLifecycleActionKey,
+        reason: reason.trim() || null,
+      });
       toast({ title: 'Lifecycle action recorded', description: chosen.label });
       setSelected('');
       setReason('');
