@@ -126,21 +126,38 @@ export default function ThreadWorkspace() {
               <CardContent className="space-y-2 text-sm">
                 {(model.delivery_evidence ?? []).length === 0 ? (
                   <p className="text-muted-foreground">No dispatched messages yet.</p>
-                ) : model.delivery_evidence.map((d) => (
-                  <div key={d.message_id} className="rounded-md border p-2 text-xs">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="capitalize">{d.channel}</span>
-                      <Badge variant="outline" className="text-[10px] capitalize">{d.status ?? 'sent'}</Badge>
+                ) : model.delivery_evidence.map((d) => {
+                  const state = (d.evidence_state ?? 'unknown') as DeliveryEvidenceState;
+                  const failed = DELIVERY_FAILED_STATES.includes(state);
+                  const confirmed = d.delivery_confirmed === true;
+                  return (
+                    <div key={d.message_id} className="rounded-md border p-2 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="capitalize">{d.channel}</span>
+                        <Badge
+                          variant={failed ? 'destructive' : confirmed ? 'default' : 'outline'}
+                          className="text-[10px]"
+                        >
+                          {DELIVERY_EVIDENCE_LABELS[state] ?? state}
+                        </Badge>
+                      </div>
+                      {d.recipient && <div className="text-muted-foreground">{d.recipient}</div>}
+                      <div className="text-muted-foreground">
+                        Sent {d.sent_at ? formatDateTime(d.sent_at) : '—'}
+                        {d.delivered_at ? ` · delivered ${formatDateTime(d.delivered_at)}` : ''}
+                        {d.opened_at ? ` · opened ${formatDateTime(d.opened_at)}` : ''}
+                      </div>
+                      {!confirmed && !failed && (
+                        <div className="text-muted-foreground">Delivery not confirmed by the provider.</div>
+                      )}
+                      {failed && (
+                        <div className="text-destructive">
+                          {d.error_message ?? d.bounce_reason ?? 'Delivery did not succeed.'}
+                        </div>
+                      )}
                     </div>
-                    {d.recipient && <div className="text-muted-foreground">{d.recipient}</div>}
-                    <div className="text-muted-foreground">
-                      Sent {d.sent_at ? formatDateTime(d.sent_at) : '—'}
-                      {d.delivered_at ? ` · delivered ${formatDateTime(d.delivered_at)}` : ''}
-                      {d.opened_at ? ` · opened ${formatDateTime(d.opened_at)}` : ''}
-                    </div>
-                    {d.bounce_reason && <div className="text-destructive">Bounced: {d.bounce_reason}</div>}
-                  </div>
-                ))}
+                  );
+                })}
               </CardContent>
             </Card>
           </div>
