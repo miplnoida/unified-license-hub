@@ -722,51 +722,26 @@ export default function LicenseDetail() {
 
 
 
-            {isInternal && license.status !== 'revoked' && license.status !== 'cancelled' && (
+            {/* P04 A.9–A.13 — adverse matters, due process, notices, representations, decisions.
+                Legacy Suspend / Revoke / Reinstate / Cancel buttons are retired: adverse action
+                is only reachable through Current step, which enforces the governed matter
+                lifecycle (provenance → notice → representations → evidence review → decision). */}
+            {isInternal && <LicenseAdverseMatterPanel licenseId={license.id} />}
+
+            {isInternal && (pendingRenewalAppId || inProgressRenewalAppId) && (
               <Card>
-                <CardHeader><CardTitle>License Actions</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Select an action below. If an internal form is configured for the action it will be required before the license status changes.
-                  </p>
-                  <div className="flex gap-2 flex-wrap">
-                    {license.status === 'active' && (
-                      <>
-                        <Button data-rbac="license_management.edit" variant="outline" onClick={() => openAction('suspension')} disabled={processing}><PauseCircle className="h-4 w-4 mr-1" />Suspend</Button>
-                        <Button data-rbac="license_management.delete" variant="destructive" onClick={() => openAction('revocation')} disabled={processing}><XCircle className="h-4 w-4 mr-1" />Revoke</Button>
-                        {pendingRenewalAppId && (
-                          <Button data-rbac="license_management.view" variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
-                            <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
-                          </Button>
-                        )}
-                        {inProgressRenewalAppId && (
-                          <Button data-rbac="license_management.view" variant="outline" onClick={() => navigate(`/post-licensee/applications/${inProgressRenewalAppId}/forms?service=Renew`)}>
-                            <RefreshCw className="h-4 w-4 mr-1" />Continue Renewal
-                          </Button>
-                        )}
-                      </>
-                    )}
-                    {license.status === 'suspended' && (
-                      <>
-                        <Button data-rbac="license_management.edit" onClick={() => openAction('reinstatement')} disabled={processing}><RotateCcw className="h-4 w-4 mr-1" />Reinstate</Button>
-                        <Button data-rbac="license_management.delete" variant="destructive" onClick={() => openAction('cancellation')} disabled={processing}><XCircle className="h-4 w-4 mr-1" />Cancel</Button>
-                      </>
-                    )}
-                    {license.status === 'expired' && (
-                      <>
-                        {pendingRenewalAppId && (
-                          <Button data-rbac="license_management.view" variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
-                            <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
-                          </Button>
-                        )}
-                        {inProgressRenewalAppId && (
-                          <Button data-rbac="license_management.view" variant="outline" onClick={() => navigate(`/post-licensee/applications/${inProgressRenewalAppId}/forms?service=Renew`)}>
-                            <RefreshCw className="h-4 w-4 mr-1" />Continue Renewal
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </div>
+                <CardHeader><CardTitle>Renewal navigation</CardTitle></CardHeader>
+                <CardContent className="flex gap-2 flex-wrap">
+                  {pendingRenewalAppId && (
+                    <Button data-rbac="license_management.view" variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
+                      <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
+                    </Button>
+                  )}
+                  {inProgressRenewalAppId && (
+                    <Button data-rbac="license_management.view" variant="outline" onClick={() => navigate(`/post-licensee/applications/${inProgressRenewalAppId}/forms?service=Renew`)}>
+                      <RefreshCw className="h-4 w-4 mr-1" />Continue Renewal
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}
