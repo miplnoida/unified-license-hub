@@ -104,3 +104,52 @@ export const applicationRfiClose = (rfiId: string, closureNotes?: string | null)
     _rfi_id: rfiId,
     _closure_notes: closureNotes ?? null,
   });
+
+export interface ApplicationFormRequirement {
+  template_id: string;
+  template_name: string;
+  is_required: boolean;
+  sequence: number;
+  form_version_id: string | null;
+  form_version: number | null;
+}
+
+export interface ApplicationClassificationResult {
+  success: boolean;
+  application_id: string;
+  resolved: boolean;
+  source: 'package' | 'template_taxonomy' | 'none';
+  scope: string | null;
+  package_id: string | null;
+  items: ApplicationFormRequirement[];
+  form_template_ids: string[];
+  form_version_ids: Record<string, string>;
+  archived_form_answers: number;
+}
+
+/**
+ * EPR-05 — governed classification update.
+ *
+ * The server validates the sector / sub-sector / category relationship, resolves
+ * the applicable package (or configured template ladder), pins the published
+ * form versions, decides which draft answers stay compatible (incompatible ones
+ * are archived, never destroyed) and returns the authoritative requirement set.
+ *
+ * The browser must NEVER compute the applicable form set — no client template
+ * matching, no client pruning of `forms_data` / `form_version_ids`.
+ */
+export const applicationClassificationUpdate = (input: {
+  applicationId: string;
+  sectorId?: string | null;
+  subSectorId?: string | null;
+  categoryId?: string | null;
+  licenseType?: string | null;
+}) =>
+  call<ApplicationClassificationResult>('application_classification_update', {
+    _application_id: input.applicationId,
+    _sector_id: input.sectorId || null,
+    _sub_sector_id: input.subSectorId || null,
+    _category_id: input.categoryId || null,
+    _license_type: input.licenseType ?? null,
+  });
+

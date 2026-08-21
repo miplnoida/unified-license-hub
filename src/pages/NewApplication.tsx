@@ -21,7 +21,7 @@ import { BatchDocumentUpload } from '@/components/shared/BatchDocumentUpload';
 import { AttachmentList } from '@/components/shared/AttachmentList';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
-import { applicationDraftSave } from '@/lib/applicationGovernedOps';
+import { applicationDraftSave, applicationClassificationUpdate } from '@/lib/applicationGovernedOps';
 import { toast } from 'sonner';
 import { getApplicationStatusLabel, markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/lib/applicationStatus';
 import {
@@ -194,38 +194,37 @@ export default function NewApplication() {
   const filteredSubSectors = allSubSectors.filter(s => s.sector_id === selectedSector);
   const filteredCategories = allCategories.filter(c => c.sub_sector_id === selectedSubSector);
 
-  // Find ALL matching form templates
+  // EPR-05 — the applicable form set is resolved by the SERVER
+  // (`application_resolve_form_set`: configured package first, then the
+  // configured sector / sub-sector / category ladder, published versions only).
+  // The browser renders the result; it never matches templates itself.
+  const { data: serverFormSet } = useQuery({
+    queryKey: ['application_form_set', activeRegulator?.id ?? null, selectedSector, selectedSubSector, selectedCategory],
+    enabled: !!selectedSector && !!selectedSubSector && !!selectedCategory,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc('application_resolve_form_set', {
+        _regulator_id: activeRegulator?.id ?? null,
+        _sector_id: selectedSector,
+        _sub_sector_id: selectedSubSector,
+        _category_id: selectedCategory,
+        _license_type: null,
+        _application_type: 'pre_license',
+      });
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
   const matchedTemplates = useMemo(() => {
-    if (!selectedCategory) return [];
-    const published = formTemplates.filter(t =>
-      t.status === 'published' &&
-      (t.form_type === 'pre_license' || t.form_type === 'application')
-    );
+    const items: any[] = Array.isArray(serverFormSet?.items) ? serverFormSet.items : [];
+    if (items.length === 0) return [] as any[];
+    return items.map((item) => {
+      const template = formTemplates.find((t) => t.id === item.template_id);
+      return template ?? ({ id: item.template_id, name: item.template_name, status: 'published' } as any);
+    });
+  }, [serverFormSet, formTemplates]);
 
-    // Priority 1: Match by category_id (most specific)
-    const byCategory = published.filter(t => t.category_id === selectedCategory);
-    if (byCategory.length > 0) return byCategory;
-
-    // Priority 2: Match by sub_sector_id (no category set on template)
-    const bySubSector = published.filter(t => t.sub_sector_id === selectedSubSector && !t.category_id);
-    if (bySubSector.length > 0) return bySubSector;
-
-    // Priority 3: Match by sector_id (no sub-sector or category set)
-    const bySector = published.filter(t => t.sector_id === selectedSector && !t.sub_sector_id && !t.category_id);
-    if (bySector.length > 0) return bySector;
-
-    // Priority 4: Fallback to string-based name matching for legacy templates
-    const catObj = allCategories.find(c => c.id === selectedCategory);
-    const subObj = allSubSectors.find(s => s.id === selectedSubSector);
-    const secObj = sectors.find(s => s.id === selectedSector);
-    if (!catObj || !subObj || !secObj) return [];
-
-    return published.filter(t =>
-      (t.category && t.category === catObj.name) ||
-      (t.sub_sector && t.sub_sector === subObj.name && !t.category) ||
-      (t.sector && t.sector === secObj.name && !t.category && !t.sub_sector)
-    );
-  }, [selectedCategory, selectedSubSector, selectedSector, formTemplates, allCategories, allSubSectors, sectors]);
 
   const reviewTemplates = useMemo(
     () => (matchedTemplates.length > 0
@@ -1060,16 +1059,9 @@ export default function NewApplication() {
 
   const buildDraftPayload = (existing: Record<string, any> | null) => {
     const licenseType = [sectorObj?.name, subSectorObj?.name, categoryObj?.name].filter(Boolean).join(' - ');
-    const tmplIds = matchedTemplates.map(t => t.id);
-    const tmplIdSet = new Set(tmplIds);
-
-    const prevFormsData = (existing?.forms_data || {}) as Record<string, any>;
-    const prevVersionIds = (existing?.form_version_ids || {}) as Record<string, string>;
-    const keptFormsData: Record<string, any> = {};
-    const keptVersionIds: Record<string, string> = {};
-    Object.keys(prevFormsData).forEach(k => { if (tmplIdSet.has(k)) keptFormsData[k] = prevFormsData[k]; });
-    Object.keys(prevVersionIds).forEach(k => { if (tmplIdSet.has(k)) keptVersionIds[k] = prevVersionIds[k]; });
-
+    // Classification only. The applicable form set (`form_template_ids`,
+    // `form_version_ids`) and any pruning of `forms_data` is written by
+    // `application_classification_update` on the server — see EPR-05 gate 1/2.
     return {
       license_type: licenseType,
       status: 'draft' as const,
@@ -1083,12 +1075,24 @@ export default function NewApplication() {
         sector_name: sectorObj?.name,
         sub_sector_name: subSectorObj?.name,
         category_name: categoryObj?.name,
-        form_template_ids: tmplIds,
-        forms_data: keptFormsData,
-        form_version_ids: keptVersionIds,
       },
     };
   };
+
+  /** Server pins the authoritative package / forms / versions for the draft. */
+  const syncServerFormApplicability = async (appId: string) => {
+    try {
+      await applicationClassificationUpdate({
+        applicationId: appId,
+        sectorId: selectedSector,
+        subSectorId: selectedSubSector,
+        categoryId: selectedCategory,
+      });
+    } catch (err) {
+      console.warn('[NewApplication] server form applicability sync failed', err);
+    }
+  };
+
 
   // Upsert (create or update) the draft application
   const upsertDraftApplication = async (): Promise<string | null> => {
@@ -1111,6 +1115,7 @@ export default function NewApplication() {
         toast.error('Failed to update draft: ' + (error?.message || 'Unknown error'));
         return null;
       }
+      await syncServerFormApplicability(applicationId);
       return applicationId;
     } else {
       const payload = buildDraftPayload(null);
@@ -1130,10 +1135,12 @@ export default function NewApplication() {
       }
       const newId = (data as any).id as string;
       setApplicationId(newId);
+      await syncServerFormApplicability(newId);
       // `application.created` is written canonically by the DB trigger on
       // public.applications (tg_applications_audit). No frontend log needed.
       return newId;
     }
+
   };
 
   // Stable key of matched template ids so auto-save only re-runs when the

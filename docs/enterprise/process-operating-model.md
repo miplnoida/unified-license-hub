@@ -16,7 +16,7 @@ through several non-equivalent surfaces with different truth sources.
 |---|---|---|---|---|---|
 | P01 Onboarding | `/register`, `/register/entity` | `/admin/registration-review` | `/admin/registration-review/:id` | registration governed RPCs | Good |
 | P02 Entity Resolution & Registry | `/entities` | `/licensing/entity-resolution` | `/entities/:entityId`, `/licensing/entity-resolution/:caseId` | entity change-set RPCs | Good, but 4 competing entity detail pages |
-| P03 Licensing | `/applications` | `/applications/queue` | `/applications/:id` | `v_application_case_state` + `approval_steps` + workflow RPCs | **CLOSED (EPR-05)** — server-owned queue/case read models, standard case header, Current Step controller |
+| P03 Licensing | `/applications` | `/applications/queue` | `/applications/:id` | `v_application_case_state` + `approval_steps` + workflow RPCs | **IMPLEMENTED / CERTIFICATION PENDING (EPR-05)** — server-owned queue/case read models, server form applicability, F&P + decision gates certified; live happy-path, RFI journey, RBAC persona and licence-handoff certification runs still outstanding |
 | P04 Licence Lifecycle | `/licenses` | none | `/licenses/:id`, `/admin/licensees/:id` | licence RPCs | Weak — no lifecycle queue (renewals/expiry live in config + alerts) |
 | P05 Fit & Proper | `/fpa` | `/fpa/processes` | `/fpa/assessments/:assessmentId` | `fp_assessment_case` read model + governed F&P ops | **CLOSED (EPR-04)** — canonical assessment case, server-owned person/appointment register, FP_MATTER enforcement referral |
 | P06 Returns | `/returns/queue` | `/returns/queue`, `/returns/obligations` | `/returns/filings/:filingId` | return workflow RPCs | **CLOSED (EPR-01)** — single canonical spine, legacy retired |

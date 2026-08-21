@@ -38,7 +38,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
-import { applicationRecordAction, applicationDraftSave } from '@/lib/applicationGovernedOps';
+import { applicationRecordAction, applicationDraftSave, applicationClassificationUpdate } from '@/lib/applicationGovernedOps';
 import { useIsPreLicensee } from '@/hooks/useUserPermissions';
 import { resolveWorkflowApproval } from '@/lib/workflowApprovalResolver';
 import { useQueryClient } from '@tanstack/react-query';
@@ -222,84 +222,39 @@ export default function ApplicationDetail() {
     (c: any) => c.sub_sector_id === taxSubSector && c.status === 'active'
   );
 
-  // Same priority ladder as NewApplication.tsx `matchedTemplates` memo.
-  const resolveMatchedTemplateIds = (secId: string, subId: string, catId: string): string[] => {
-    const published = (allFormTemplates as any[]).filter((t: any) =>
-      t.status === 'published' && (t.form_type === 'pre_license' || t.form_type === 'application')
-    );
-    const byCategory = published.filter((t: any) => t.category_id === catId);
-    if (byCategory.length > 0) return byCategory.map((t: any) => t.id);
-    const bySub = published.filter((t: any) => t.sub_sector_id === subId && !t.category_id);
-    if (bySub.length > 0) return bySub.map((t: any) => t.id);
-    const bySec = published.filter((t: any) => t.sector_id === secId && !t.sub_sector_id && !t.category_id);
-    if (bySec.length > 0) return bySec.map((t: any) => t.id);
-    const catObj = (allCategoriesList as any[]).find((c: any) => c.id === catId);
-    const subObj = (allSubSectorsList as any[]).find((s: any) => s.id === subId);
-    const secObj = (allSectorsList as any[]).find((s: any) => s.id === secId);
-    if (!catObj || !subObj || !secObj) return [];
-    return published
-      .filter((t: any) =>
-        (t.category && t.category === catObj.name) ||
-        (t.sub_sector && t.sub_sector === subObj.name && !t.category) ||
-        (t.sector && t.sector === secObj.name && !t.category && !t.sub_sector))
-      .map((t: any) => t.id);
-  };
-
+  // EPR-05 — form/package applicability is SERVER authority. The browser sends the
+  // requested classification and renders whatever requirement set the server
+  // returns; it never matches templates or prunes regulatory answers itself.
   const persistTaxonomy = async (secId: string, subId: string, catId: string) => {
     if (!app) return;
     setSavingTaxonomy(true);
     try {
-      const sectorName = (allSectorsList as any[]).find((s: any) => s.id === secId)?.name || '';
-      const subSectorName = (allSubSectorsList as any[]).find((s: any) => s.id === subId)?.name || '';
-      const categoryName = (allCategoriesList as any[]).find((c: any) => c.id === catId)?.name || '';
-      const currentData = (app.data as any) || {};
-      const prevTriple = `${currentData.sector_id || ''}|${currentData.sub_sector_id || ''}|${currentData.category_id || ''}`;
-      const nextTriple = `${secId}|${subId}|${catId}`;
-      const tripleChanged = prevTriple !== nextTriple;
-      const fullTriple = !!(secId && subId && catId);
-
-      const nextData: any = {
-        ...currentData,
-        sector_id: secId || '',
-        sub_sector_id: subId || '',
-        category_id: catId || '',
-        sector_name: sectorName,
-        sub_sector_name: subSectorName,
-        category_name: categoryName,
-      };
-
-      // When the fully-selected triple changes, recompute form templates and
-      // prune stale form data so the Submitted Forms tab reflects the new sector.
-      if (fullTriple && tripleChanged) {
-        const nextIds = resolveMatchedTemplateIds(secId, subId, catId);
-        const keep = new Set(nextIds);
-        const prevForms = (currentData.forms_data || {}) as Record<string, any>;
-        const prevVersions = (currentData.form_version_ids || {}) as Record<string, string>;
-        const nextForms: Record<string, any> = {};
-        const nextVersions: Record<string, string> = {};
-        for (const tid of Object.keys(prevForms)) if (keep.has(tid)) nextForms[tid] = prevForms[tid];
-        for (const tid of Object.keys(prevVersions)) if (keep.has(tid)) nextVersions[tid] = prevVersions[tid];
-        nextData.form_template_ids = nextIds;
-        nextData.forms_data = nextForms;
-        nextData.form_version_ids = nextVersions;
-      } else if (!fullTriple) {
-        // Any partial selection invalidates the previously-linked forms — clear
-        // them so an incomplete triple can never leak the old sector's form.
-        nextData.form_template_ids = [];
-        nextData.forms_data = {};
-        nextData.form_version_ids = {};
+      const result = await applicationClassificationUpdate({
+        applicationId: app.id,
+        sectorId: secId,
+        subSectorId: subId,
+        categoryId: catId,
+      });
+      if (result?.archived_form_answers > 0) {
+        toast.info(
+          `${result.archived_form_answers} form response set(s) are no longer applicable and have been archived by the regulator system.`,
+        );
       }
-
-
-      await applicationDraftSave({ applicationId: app.id, data: nextData as any });
-      setApp({ ...app, data: nextData } as any);
+      const { data: refreshed } = await supabase
+        .from('applications')
+        .select('*')
+        .eq('id', app.id)
+        .single();
+      if (refreshed) setApp(refreshed as any);
       queryClient.invalidateQueries({ queryKey: ['application', app.id] });
+      queryClient.invalidateQueries({ queryKey: ['application_case', app.id] });
     } catch (e: any) {
       toast.error(e?.message || 'Failed to update sector details');
     } finally {
       setSavingTaxonomy(false);
     }
   };
+
 
   const handleTaxSectorChange = (v: string) => {
     setTaxSector(v);
