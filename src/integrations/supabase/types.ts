@@ -34798,6 +34798,7 @@ export type Database = {
           template_version: number
         }[]
       }
+      complaint_blockers: { Args: { _complaint_id: string }; Returns: Json }
       complaint_bulk_import: {
         Args: {
           _file_name: string
@@ -34807,6 +34808,7 @@ export type Database = {
         }
         Returns: Json
       }
+      complaint_case: { Args: { _complaint_id: string }; Returns: Json }
       complaint_intake_decide: {
         Args: { _payload: Json; _regulator_id: string; _variant: string }
         Returns: Json
@@ -35328,6 +35330,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      conduct_overview: { Args: never; Returns: Json }
       conduct_require: {
         Args: { _action: string; _module: string }
         Returns: string
@@ -36054,6 +36057,7 @@ export type Database = {
         Args: { _action: string; _change_set_id: string; _notes?: string }
         Returns: Json
       }
+      entity_conduct_summary: { Args: { _entity_id: string }; Returns: Json }
       entity_create_local: {
         Args: {
           _case_id?: string
