@@ -47,3 +47,28 @@ Browser DML on `conduct_investigations` for lifecycle purposes is zero: all stag
 3. Retirement of `/conduct/entities/:id` in favour of Entity 360 conduct summary.
 4. Integrated live certification scenarios — recorded in
    `docs/certification/deferred-enterprise-certification-register.md`.
+
+## B.2, B.9–B.19, B.27 — Findings, remediation, alerts, complaint case, overview — IMPLEMENTED
+
+| Object | Purpose |
+| --- | --- |
+| `public.v_conduct_action_state` (SECURITY INVOKER) | Canonical remediation state: stage, SLA, evidence status, waiting-on, next action. |
+| `conduct_action_register` / `_counts` / `_case` / `_available_actions` / `_step` | Governed remediation obligations. Evidence must be submitted and reviewed before completion; return, escalate, waive and cancel all require a rationale. Direct browser DML on `conduct_actions` is revoked. |
+| `conduct_alert_register` / `_counts` | Alert register with full signal lineage (source, rule + version, observation window, threshold, explanation). |
+| `conduct_alert_dispose`, `conduct_alert_promote_to_investigation` | Governed dispositions. Promotion copies the exact alert lineage onto the new investigation and links both records. |
+| `public.v_conduct_work_items` (SECURITY INVOKER) | The single work-item spine: complaints, alerts, investigations, remediation, findings. Queue and counters are computed from the same set, so totals are no longer capped. |
+| `complaint_case`, `complaint_blockers` | Complaint read model on the shared case header contract, with genuine blockers and cross-domain counts. |
+| `conduct_overview`, `entity_conduct_summary` | Server-owned conduct posture for the overview and the Entity 360 conduct section. |
+
+### Frontend
+
+| Surface | Role |
+| --- | --- |
+| `/conduct/actions`, `/conduct/actions/:id` | Remediation register (server paged) and case workspace on `CaseHeader` + `GovernedStepPanel`. |
+| `/conduct/findings`, `/conduct/findings/:id` | Findings register and case workspace. |
+| `/conduct/alerts` | Alert register with acknowledge / dispose / promote dialogs. |
+| `src/components/conduct/GovernedStepPanel.tsx` | Shared server-declared step controller for conduct objects. |
+| `src/hooks/useConductRegisters.ts` | Typed read/mutation layer for the registers above. |
+
+Legacy "Complete" buttons that closed a remediation requirement with one click are retired; completion now requires
+submitted evidence and a recorded supervisory review.

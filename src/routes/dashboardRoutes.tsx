@@ -84,6 +84,10 @@ const InspectionDetail = lazy(() => import('@/pages/inspections/InspectionDetail
 const ConductDashboard = lazy(() => import('@/pages/conduct/ConductDashboard'));
 const ConductAlerts = lazy(() => import('@/pages/conduct/ConductAlerts'));
 const ConductActions = lazy(() => import('@/pages/conduct/ConductActions'));
+const RemediationDetail = lazy(() => import('@/pages/conduct/RemediationDetail'));
+const ConductFindings = lazy(() => import('@/pages/conduct/ConductFindings'));
+const FindingDetail = lazy(() => import('@/pages/conduct/FindingDetail'));
+
 const ThematicReviews = lazy(() => import('@/pages/supervision/ThematicReviews'));
 const NewThematicReview = lazy(() => import('@/pages/supervision/NewThematicReview'));
 const ThematicReviewDetail = lazy(() => import('@/pages/supervision/ThematicReviewDetail'));
@@ -244,6 +248,10 @@ export const dashboardRoutes = (
     <Route path="/conduct/alerts" element={<M module="market_conduct"><ConductAlerts /></M>} />
     <Route path="/conduct/surveillance" element={<M module="market_conduct"><SurveillanceWorkspace /></M>} />
     <Route path="/conduct/actions" element={<M module="market_conduct"><ConductActions /></M>} />
+    <Route path="/conduct/actions/:id" element={<M module="market_conduct"><RemediationDetail /></M>} />
+    <Route path="/conduct/findings" element={<M module="market_conduct"><ConductFindings /></M>} />
+    <Route path="/conduct/findings/:id" element={<M module="market_conduct"><FindingDetail /></M>} />
+
 
     <Route path="/supervision/thematic-reviews" element={<M module="market_conduct"><ThematicReviews /></M>} />
     <Route path="/supervision/thematic-reviews/new" element={<M module="market_conduct"><NewThematicReview /></M>} />

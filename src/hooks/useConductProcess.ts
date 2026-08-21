@@ -23,14 +23,16 @@ async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
 /* --------------------------------------------------------------- types */
 
 export type ConductSlaState = 'on_track' | 'due_soon' | 'breached' | 'paused';
-export type ConductWorkKind = 'COMPLAINT' | 'ALERT' | 'INVESTIGATION' | 'ACTION';
+export type ConductWorkKind = 'COMPLAINT' | 'ALERT' | 'INVESTIGATION' | 'ACTION' | 'FINDING';
 
 export const CONDUCT_KIND_LABEL: Record<ConductWorkKind, string> = {
   COMPLAINT: 'Complaints',
   ALERT: 'Conduct alerts',
   INVESTIGATION: 'Investigations',
-  ACTION: 'Supervisory actions',
+  ACTION: 'Remediation',
+  FINDING: 'Findings',
 };
+
 
 export interface ConductBlocker { code: string; label: string; href?: string }
 
