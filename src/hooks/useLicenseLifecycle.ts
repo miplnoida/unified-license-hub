@@ -79,6 +79,7 @@ export interface LicenseCaseModel {
     renewal_window_days: number;
     reminder_days: number[];
   };
+  available_actions: LicenseAvailableAction[];
   counts: { open_conditions: number; overdue_conditions: number };
   open_matter: LicenseLifecycleMatter | null;
   matters: LicenseLifecycleMatter[];
