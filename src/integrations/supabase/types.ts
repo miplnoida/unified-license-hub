@@ -17577,6 +17577,104 @@ export type Database = {
           },
         ]
       }
+      license_decision_appeals: {
+        Row: {
+          appeal_deadline: string | null
+          appeal_reference: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_id: string
+          entity_id: string | null
+          grounds: string
+          id: string
+          license_id: string
+          lodged_at: string
+          lodged_by: string | null
+          matter_id: string | null
+          metadata: Json
+          outcome: string | null
+          outcome_rationale: string | null
+          relief_sought: string | null
+          status: string
+          stay_of_effect: boolean
+          updated_at: string
+        }
+        Insert: {
+          appeal_deadline?: string | null
+          appeal_reference?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_id: string
+          entity_id?: string | null
+          grounds: string
+          id?: string
+          license_id: string
+          lodged_at?: string
+          lodged_by?: string | null
+          matter_id?: string | null
+          metadata?: Json
+          outcome?: string | null
+          outcome_rationale?: string | null
+          relief_sought?: string | null
+          status?: string
+          stay_of_effect?: boolean
+          updated_at?: string
+        }
+        Update: {
+          appeal_deadline?: string | null
+          appeal_reference?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_id?: string
+          entity_id?: string | null
+          grounds?: string
+          id?: string
+          license_id?: string
+          lodged_at?: string
+          lodged_by?: string | null
+          matter_id?: string | null
+          metadata?: Json
+          outcome?: string | null
+          outcome_rationale?: string | null
+          relief_sought?: string | null
+          status?: string
+          stay_of_effect?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_decision_appeals_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "license_decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_decision_appeals_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_decision_appeals_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_decision_appeals_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "license_lifecycle_matters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       license_decisions: {
         Row: {
           actor_id: string | null
@@ -17721,6 +17819,202 @@ export type Database = {
           started_at?: string
         }
         Relationships: []
+      }
+      license_fee_assessments: {
+        Row: {
+          amount: number
+          assessed_at: string
+          assessed_by: string | null
+          binding_id: string | null
+          binding_snapshot: Json
+          blocking: boolean
+          created_at: string
+          currency: string
+          description: string | null
+          due_date: string | null
+          fee_type_code: string | null
+          id: string
+          license_id: string
+          matter_id: string | null
+          matter_kind: string | null
+          paid_at: string | null
+          payment_reference: string | null
+          payment_verification_required: boolean
+          recorded_by: string | null
+          status: string
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+          waived_at: string | null
+          waived_by: string | null
+          waiver_reason: string | null
+        }
+        Insert: {
+          amount?: number
+          assessed_at?: string
+          assessed_by?: string | null
+          binding_id?: string | null
+          binding_snapshot?: Json
+          blocking?: boolean
+          created_at?: string
+          currency?: string
+          description?: string | null
+          due_date?: string | null
+          fee_type_code?: string | null
+          id?: string
+          license_id: string
+          matter_id?: string | null
+          matter_kind?: string | null
+          paid_at?: string | null
+          payment_reference?: string | null
+          payment_verification_required?: boolean
+          recorded_by?: string | null
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waiver_reason?: string | null
+        }
+        Update: {
+          amount?: number
+          assessed_at?: string
+          assessed_by?: string | null
+          binding_id?: string | null
+          binding_snapshot?: Json
+          blocking?: boolean
+          created_at?: string
+          currency?: string
+          description?: string | null
+          due_date?: string | null
+          fee_type_code?: string | null
+          id?: string
+          license_id?: string
+          matter_id?: string | null
+          matter_kind?: string | null
+          paid_at?: string | null
+          payment_reference?: string | null
+          payment_verification_required?: boolean
+          recorded_by?: string | null
+          status?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waiver_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_fee_assessments_binding_id_fkey"
+            columns: ["binding_id"]
+            isOneToOne: false
+            referencedRelation: "license_fee_bindings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_fee_assessments_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_fee_assessments_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_fee_assessments_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "license_lifecycle_matters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      license_fee_bindings: {
+        Row: {
+          action_key: string | null
+          amount_override: number | null
+          blocking: boolean
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          due_days: number
+          fee_configuration_id: string | null
+          fee_type_code: string | null
+          id: string
+          is_active: boolean
+          license_type: string | null
+          matter_kind: string
+          notes: string | null
+          payment_verification_required: boolean
+          regulator_id: string | null
+          sector_id: string | null
+          sub_sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_key?: string | null
+          amount_override?: number | null
+          blocking?: boolean
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          due_days?: number
+          fee_configuration_id?: string | null
+          fee_type_code?: string | null
+          id?: string
+          is_active?: boolean
+          license_type?: string | null
+          matter_kind: string
+          notes?: string | null
+          payment_verification_required?: boolean
+          regulator_id?: string | null
+          sector_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_key?: string | null
+          amount_override?: number | null
+          blocking?: boolean
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          due_days?: number
+          fee_configuration_id?: string | null
+          fee_type_code?: string | null
+          id?: string
+          is_active?: boolean
+          license_type?: string | null
+          matter_kind?: string
+          notes?: string | null
+          payment_verification_required?: boolean
+          regulator_id?: string | null
+          sector_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_fee_bindings_fee_configuration_id_fkey"
+            columns: ["fee_configuration_id"]
+            isOneToOne: false
+            referencedRelation: "fee_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       license_lifecycle_configs: {
         Row: {
@@ -18324,6 +18618,335 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      license_variation_items: {
+        Row: {
+          approved_value: string | null
+          created_at: string
+          current_value: string | null
+          field_key: string
+          id: string
+          label: string
+          requested_value: string | null
+          requires_assessment: boolean
+          variation_id: string
+        }
+        Insert: {
+          approved_value?: string | null
+          created_at?: string
+          current_value?: string | null
+          field_key: string
+          id?: string
+          label: string
+          requested_value?: string | null
+          requires_assessment?: boolean
+          variation_id: string
+        }
+        Update: {
+          approved_value?: string | null
+          created_at?: string
+          current_value?: string | null
+          field_key?: string
+          id?: string
+          label?: string
+          requested_value?: string | null
+          requires_assessment?: boolean
+          variation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_variation_items_variation_id_fkey"
+            columns: ["variation_id"]
+            isOneToOne: false
+            referencedRelation: "license_variations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      license_variations: {
+        Row: {
+          application_id: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision: string | null
+          decision_id: string | null
+          effective_date: string | null
+          id: string
+          license_id: string
+          matter_id: string | null
+          metadata: Json
+          rationale: string | null
+          requested_at: string
+          requested_by: string | null
+          status: string
+          updated_at: string
+          variation_reference: string | null
+          variation_type: string
+        }
+        Insert: {
+          application_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          decision_id?: string | null
+          effective_date?: string | null
+          id?: string
+          license_id: string
+          matter_id?: string | null
+          metadata?: Json
+          rationale?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+          variation_reference?: string | null
+          variation_type: string
+        }
+        Update: {
+          application_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          decision_id?: string | null
+          effective_date?: string | null
+          id?: string
+          license_id?: string
+          matter_id?: string | null
+          metadata?: Json
+          rationale?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+          variation_reference?: string | null
+          variation_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_variations_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_variations_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_variations_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_variations_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "license_decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_variations_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_variations_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_variations_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "license_lifecycle_matters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      license_verification_cases: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          id: string
+          license_id: string
+          matter_id: string | null
+          matter_kind: string | null
+          outcome: string | null
+          started_at: string
+          started_by: string | null
+          status: string
+          template_id: string | null
+          template_snapshot: Json
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          license_id: string
+          matter_id?: string | null
+          matter_kind?: string | null
+          outcome?: string | null
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          template_id?: string | null
+          template_snapshot?: Json
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          id?: string
+          license_id?: string
+          matter_id?: string | null
+          matter_kind?: string | null
+          outcome?: string | null
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          template_id?: string | null
+          template_snapshot?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_verification_cases_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_verification_cases_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_verification_cases_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "license_lifecycle_matters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_verification_cases_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "license_verification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      license_verification_items: {
+        Row: {
+          case_id: string
+          created_at: string
+          evidence_document_id: string | null
+          id: string
+          item_key: string
+          label: string
+          note: string | null
+          recorded_at: string | null
+          recorded_by: string | null
+          required: boolean
+          result: string | null
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          evidence_document_id?: string | null
+          id?: string
+          item_key: string
+          label: string
+          note?: string | null
+          recorded_at?: string | null
+          recorded_by?: string | null
+          required?: boolean
+          result?: string | null
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          evidence_document_id?: string | null
+          id?: string
+          item_key?: string
+          label?: string
+          note?: string | null
+          recorded_at?: string | null
+          recorded_by?: string | null
+          required?: boolean
+          result?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_verification_items_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "license_verification_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      license_verification_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          items: Json
+          license_type: string | null
+          matter_kind: string
+          name: string
+          regulator_id: string | null
+          sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          items?: Json
+          license_type?: string | null
+          matter_kind: string
+          name: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          items?: Json
+          license_type?: string | null
+          matter_kind?: string
+          name?: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       licensee_channels: {
         Row: {
@@ -34652,6 +35275,7 @@ export type Database = {
         Args: { _application_id?: string; _license_id: string }
         Returns: string
       }
+      entity_license_summary: { Args: { _entity_id: string }; Returns: Json }
       entity_link_license: {
         Args: {
           _application_id?: string
@@ -36244,6 +36868,10 @@ export type Database = {
         Args: { _appeal_id: string; _reason?: string }
         Returns: Json
       }
+      license_appealable_decisions: {
+        Args: { _license_id: string }
+        Returns: Json
+      }
       license_case: {
         Args: { _audience?: string; _license_id: string }
         Returns: Json
@@ -36281,8 +36909,38 @@ export type Database = {
         Args: { _condition_id: string; _payload?: Json }
         Returns: Json
       }
+      license_decision_appeal_operation: {
+        Args: { _operation: string; _payload?: Json }
+        Returns: Json
+      }
+      license_decision_appeal_view: {
+        Args: { _license_id: string }
+        Returns: Json
+      }
       license_expiry_sweep: { Args: { _limit?: number }; Returns: Json }
       license_expiry_sweep_run: { Args: { _limit?: number }; Returns: Json }
+      license_fee_assess: {
+        Args: {
+          _action_key?: string
+          _license_id: string
+          _matter_id: string
+          _matter_kind: string
+        }
+        Returns: Json
+      }
+      license_fee_ledger: { Args: { _license_id: string }; Returns: Json }
+      license_fee_operation: {
+        Args: { _assessment_id: string; _operation: string; _payload?: Json }
+        Returns: Json
+      }
+      license_fee_resolve: {
+        Args: {
+          _action_key?: string
+          _license_id: string
+          _matter_kind: string
+        }
+        Returns: Json
+      }
       license_ids_for_licensee: {
         Args: { _licensee_id: string }
         Returns: string[]
@@ -36302,6 +36960,10 @@ export type Database = {
       }
       license_lifecycle_config_resolve: {
         Args: { _license_id: string; _matter_kind?: string }
+        Returns: Json
+      }
+      license_lifecycle_gates: {
+        Args: { _license_id: string; _matter_id?: string }
         Returns: Json
       }
       license_lifecycle_policy: {
@@ -36394,6 +37056,23 @@ export type Database = {
           valid_from: string
           valid_until: string
         }[]
+      }
+      license_variation_case: { Args: { _license_id: string }; Returns: Json }
+      license_variation_operation: {
+        Args: { _operation: string; _payload?: Json }
+        Returns: Json
+      }
+      license_verification_case_view: {
+        Args: { _license_id: string }
+        Returns: Json
+      }
+      license_verification_operation: {
+        Args: { _operation: string; _payload?: Json }
+        Returns: Json
+      }
+      license_verification_template_resolve: {
+        Args: { _license_id: string; _matter_kind: string }
+        Returns: string
       }
       licensee_group_membership: {
         Args: { _licensee_id: string }
