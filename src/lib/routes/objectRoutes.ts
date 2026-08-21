@@ -27,8 +27,15 @@ export const objectRoute = {
   licence: (licenceId: string) => `/licenses/${id(licenceId)}`,
   fpIndividual: (individualId: string) => `/fpa/individuals/${id(individualId)}`,
   fpAssessment: (assessmentId: string) => `/fpa/assessments/${id(assessmentId)}`,
-  /** Canonical return filing workspace — expects `return_filings.id`. */
-  returnFiling: (filingId: string) => `/returns/filings/${id(filingId)}`,
+  /**
+   * Canonical return filing workspace — expects `return_filings.id`.
+   * `audience: 'external'` emits the regulated entity's filing workspace; the
+   * default emits the internal supervisory workspace.
+   */
+  returnFiling: (filingId: string, audience: 'internal' | 'external' = 'internal') =>
+    audience === 'external'
+      ? `/entity/returns/filings/${id(filingId)}`
+      : `/returns/filings/${id(filingId)}`,
   /**
    * Compatibility entry point for call sites that only hold a legacy
    * `returns_filed.id`. The route resolves the canonical filing id server-side

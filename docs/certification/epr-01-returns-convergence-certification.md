@@ -1,14 +1,14 @@
 # EPR-01 — P06 Regulatory Returns Canonical Convergence — Certification
 
-Status: **PASS (one outstanding legacy read)** — see Outstanding.
+Status: **PASS / CLOSED**. `ACTIVE_OPERATIONAL_LEGACY = 0`.
 
 ## 1. Canonical spine
 
 Single internal spine: `/returns/queue` → `/returns/filings/:filingId`.
 Single external spine: `/entity/returns` → canonical `EntityFilingWorkspace`.
 Truth objects: `return_filings`, `return_filing_versions`, `return_metric_values`,
-`return_filing_requests`, read through `v_return_filing_workflow_state` and the
-`returns_*` / `prudential_*` read models.
+`return_filing_requests`, read through `v_return_filing_workflow_state`,
+`v_return_metric_facts_current` and the `returns_*` / `prudential_*` read models.
 
 ## 2. Legacy spine retirement
 
@@ -19,10 +19,12 @@ Truth objects: `return_filings`, `return_filing_versions`, `return_metric_values
 | `/compliance/returns`, `/compliance/returns/submit` | `/entity/returns` |
 | `/entity/returns/new` | `/entity/returns` |
 | `/entity/returns/:id/fill`, `/entity/returns/:id/view` | `LegacyReturnFilingRedirect target="external"` |
+| `/entity/returns/legacy` | HISTORY_ONLY register of pre-canonical filings |
 
 All are COMPATIBILITY_ONLY: no navigation entry points at them and no
 regulatory action can be taken there. All new links are emitted through
-`objectRoute.returnFiling` (`src/lib/routes/objectRoutes.ts`).
+`objectRoute.returnFiling` (`src/lib/routes/objectRoutes.ts`), which now emits
+the internal or the external workspace from the same canonical filing id.
 
 ## 3. Certified lifecycle run (governed RPCs only)
 
@@ -47,20 +49,42 @@ Audit trail written: `SUBMIT` ×2, `RETURN_REVIEW_START_REVIEW` ×2,
 Regression file: `supabase/tests/certification/02_returns_filing_lifecycle.sql`
 (15 assertions; runs under the CI migration role which can `SET ROLE authenticated`).
 
-## 4. Defect found and fixed
+## 4. Prudential Metric Analytics — final legacy read closed
 
-**BLOCKER — governed Returns mutations failed at runtime.** Twelve `returns_*`
-governed functions call `create_audit_log(entity_type, entity_id, action, metadata)`,
-an overload that no longer existed. Every open/submit/review/definition-save call
-aborted with `42883 function public.create_audit_log(unknown, uuid, unknown, jsonb)
-does not exist`. Fixed by restoring the four-argument overload, which delegates to
-the canonical seven-argument writer with `auth.uid()` as the actor
-(`SECURITY DEFINER`, `search_path = public`, `anon`/`PUBLIC` execute revoked).
-Re-verified by the full lifecycle run above.
+`/admin/returns/prudential/analytics` no longer touches `return_calculated_ratios`
+or `returns_filed`. New canonical read models (all `SECURITY INVOKER`, `anon`
+and `PUBLIC` execute revoked):
 
-## 5. Reporting and case-audit source map
+| Read model | Purpose |
+| --- | --- |
+| `v_return_metric_facts_current` (view, `security_invoker`) | Eligible metric facts: the accepted version, else the filing's current version |
+| `prudential_analytics_metrics()` | Metric catalogue with entity/period coverage; labels from `regulatory_metrics` |
+| `prudential_analytics_metric_context(metric_code)` | Entities and reporting periods that actually hold a fact |
+| `prudential_analytics_metric_trend(entity_id, metric_code, limit)` | One point per reporting period, no superseded duplicates |
 
-- `report_sources` / `report_source_filters` now expose `return_filings` mapped to
+`peer_ratio_snapshot(date, text, uuid, uuid, integer)` keeps its signature,
+grants and confidentiality behaviour and now derives peers from
+`v_return_metric_facts_current`, matching metric codes case-insensitively. The
+regulator-configured minimum peer sample and the hard floor of 3 are unchanged;
+an unmet sample still returns `state = INSUFFICIENT_PEER_DATA` rather than
+zeroed statistics. No ratio is recomputed in the browser, and a missing metric
+fact renders as absent rather than as zero.
+
+Verified against the certification dataset: 269 eligible facts, 0 superseded
+versions leaking, 0 duplicate entity/metric/period rows.
+
+## 5. External Returns overview repointed
+
+`/entity/returns/dashboard` (linked from external navigation) previously counted
+`returns_filed` rows in the browser and, with that table empty, displayed zeros.
+It now reads `returns_entity_summary` and `returns_entity_filing_history` for the
+user's approved entity memberships and links through
+`objectRoute.returnFiling(id, 'external')`. The legacy `StatusBadge` remains
+exported for the HISTORY_ONLY register only.
+
+## 6. Reporting and case-audit source map
+
+- `report_sources` / `report_source_filters` expose `return_filings` mapped to
   `v_return_filing_workflow_state`; `compliance_returns` marked historical.
 - `ret-*` report definitions, `reportService`, `reportMetadataService` and
   `supabase/functions/_shared/report-generator.ts` repointed.
@@ -70,20 +94,32 @@ Re-verified by the full lifecycle run above.
   `useLicenseeMetrics`, `ExecutiveSupervisoryDashboard`, `AlertCenter`) read the
   canonical workflow state / `returns_*` aggregates.
 
-## 6. Legacy-read recount
+## 7. Audit regression guard
 
-Active client/edge reads of `returns_filed` / `return_calculated_ratios` /
-`compliance_returns` outside retired (unrouted) screens, migration adapters and
-generated types: **1 screen**.
+The four-argument `create_audit_log(text, uuid, text, jsonb)` overload used by
+the twelve governed `returns_*` functions is asserted to exist, to be
+`SECURITY DEFINER` with a pinned `search_path`, and to be un-executable by
+`anon` and `PUBLIC` — `supabase/tests/certification/03_audit_writer_contract.sql`.
+
+## 8. Final legacy-read recount
+
+Navigable surfaces reading `returns_filed` / `return_calculated_ratios` /
+`return_consolidated_analysis`: **0**.
+
+Remaining references, all non-navigable and enumerated:
+
+| Reference | Classification |
+| --- | --- |
+| `MyReturnsPage` (`/entity/returns/legacy`), `useMyReturns`/`useReturnById` | HISTORY_ONLY register |
+| `useWaveC` legacy-id bridge, `LegacyReturnFilingRedirect`, `returns_resolve_legacy_filing` | COMPATIBILITY_ONLY resolution |
+| `returns-mgmt/ViewReturns`, `ReturnDetail`, `ReturnAnalysis`, `entity/returns/CreateReturnPage|FillReturnPage|ViewReturnPage` | Unrouted dead code, pending deletion in a cleanup tranche |
+| `supabase/functions/*` legacy sweeps and analysis writers | Server-side, no supervisory screen reads their legacy output |
+| `src/integrations/supabase/types.ts` | Generated types |
+
+Guards: `src/test/returnsCanonicalTruth.test.ts` (client),
+`supabase/tests/certification/04_prudential_analytics_canonical.sql` (database).
 
 ## Outstanding
 
-- `src/pages/returns-mgmt/PrudentialAnalytics.tsx` (`/admin/returns/prudential/analytics`)
-  still assembles its ratio universe, period list and trend in the browser from
-  `return_calculated_ratios` + `returns_filed`. It must be repointed to canonical
-  metric facts (`return_metric_values` + `regulatory_metrics`, filtered through
-  `v_return_filing_workflow_state`) before EPR-01 can be recorded as fully closed.
-  No other routed surface reads legacy Returns truth.
-- The unrouted legacy screens (`returns-mgmt/ViewReturns`, `returns-mgmt/ReturnDetail`,
-  `entity/returns/FillReturnPage|ViewReturnPage|CreateReturnPage`) remain in the tree
-  as dead code pending deletion in a cleanup tranche.
+None for EPR-01. Deletion of the unrouted legacy Returns screens and retirement
+of the legacy edge-function sweeps are cleanup items outside this package.

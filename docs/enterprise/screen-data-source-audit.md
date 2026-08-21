@@ -40,14 +40,25 @@ stress evaluation), `usePrudentialConfig` (persisted ratios/breaches) and
 `useFinancialGroups` (group periods, member facts) now read canonical server read
 models only — see `docs/certification/epr-01-p07-canonical-returns-truth.md`.
 
+### P06 Returns — closed (EPR-01 final tranche)
+
+`PrudentialAnalytics` (`/admin/returns/prudential/analytics`) now reads
+`prudential_analytics_metrics/_metric_context/_metric_trend` over
+`v_return_metric_facts_current`, and `peer_ratio_snapshot` derives peers from the
+same canonical facts. `EntityReturnsDashboard` (`/entity/returns/dashboard`) reads
+`returns_entity_summary` + `returns_entity_filing_history`.
+
+**Navigable legacy Returns reads: 0.** Remaining references are the HISTORY_ONLY
+legacy register (`/entity/returns/legacy`), the `useWaveC` legacy-id bridge,
+unrouted dead screens and server-side sweeps — enumerated in
+`docs/certification/epr-01-returns-convergence-certification.md` §8 and guarded by
+`src/test/returnsCanonicalTruth.test.ts`.
+
 ### Still on legacy truth (next tranche)
 
-`useLicenseeMetrics`, `useReturnsManagement`, `ViewReturns`, `ReturnAnalysis`,
-`PrudentialAnalytics`, `AnalyticsDashboard`, `ComplianceReturns`,
-`ReturnSubmission`, `CreateReturnPage`, `FillReturnPage`, `ConsolidatedCaseTab`,
-`WorkflowActionPreviewDialog`, `caseAuditGraph`, `dashboard/widgets`,
-`useApiQueries`, `reportService` (P13 + external spine; `useWaveC` keeps its
-intentional legacy-id bridge).
+`useLicenseeMetrics`, `ComplianceReturns`, `ReturnSubmission`, `dashboard/widgets`,
+`useApiQueries`, `reportService` (P13 spine).
+
 
 
 
