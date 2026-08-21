@@ -13,7 +13,6 @@
 -- Usage: psql -v ON_ERROR_STOP=1 -f supabase/tests/onboarding/01_form_first_resolution.sql
 -- Everything runs inside a transaction and is rolled back.
 BEGIN;
-SET LOCAL ROLE postgres;
 
 DO $$
 DECLARE
@@ -33,7 +32,12 @@ DECLARE
 BEGIN
   -- two non-staff-agnostic actors
   SELECT id INTO v_owner FROM public.profiles ORDER BY created_at LIMIT 1;
-  SELECT id INTO v_other FROM public.profiles WHERE id <> v_owner ORDER BY created_at LIMIT 1;
+  -- the other actor must be an ordinary user: internal staff are legitimately
+  -- permitted to resolve on an applicant's behalf.
+  SELECT id INTO v_other FROM public.profiles
+   WHERE id <> v_owner
+     AND NOT public.is_internal_staff(id) AND NOT public.is_super_admin(id)
+   ORDER BY created_at LIMIT 1;
   IF v_owner IS NULL OR v_other IS NULL THEN
     RAISE EXCEPTION 'need two application users to run this check';
   END IF;
