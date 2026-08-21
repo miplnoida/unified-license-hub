@@ -16,13 +16,21 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDateTime } from '@/lib/datetime';
 import { useLicenseLifecycleQueue, useLicenseLifecycleQueueCounts } from '@/hooks/useLicenseLifecycle';
 
-const KIND_TABS: Array<{ value: string; label: string; kinds: string[] | null; countKey?: string }> = [
-  { value: 'all', label: 'All work', kinds: null, countKey: 'total' },
-  { value: 'renewal', label: 'Renewals', kinds: ['renewal'], countKey: 'renewal' },
-  { value: 'expiry', label: 'Expiry', kinds: ['expiry'], countKey: 'expiry' },
-  { value: 'condition', label: 'Conditions', kinds: ['condition'], countKey: 'condition' },
-  { value: 'enforcement_matter', label: 'Adverse matters', kinds: ['suspension', 'revocation', 'surrender', 'variation'], countKey: 'matter' },
+const KIND_TABS: Array<{ value: string; label: string; kinds: string[] | null }> = [
+  { value: 'all', label: 'All work', kinds: null },
+  { value: 'renewal', label: 'Renewals', kinds: ['renewal'] },
+  { value: 'expiry', label: 'Expiry', kinds: ['expiry'] },
+  { value: 'condition', label: 'Conditions', kinds: ['condition'] },
+  { value: 'matters', label: 'Adverse matters', kinds: ['suspension', 'revocation', 'surrender', 'variation'] },
 ];
+
+/** Counts are keyed by the server's work_kind; a tab shows the sum of its kinds. */
+function tabCount(counts: Record<string, number> | undefined, kinds: string[] | null): number | undefined {
+  if (!counts) return undefined;
+  const entries = Object.entries(counts);
+  if (!kinds) return entries.reduce((sum, [, v]) => sum + Number(v), 0);
+  return kinds.reduce((sum, k) => sum + Number(counts[k] ?? 0), 0);
+}
 
 const SLA_CLASS: Record<string, string> = {
   breached: 'bg-destructive/10 text-destructive border-destructive/30',
@@ -58,8 +66,8 @@ export default function LicenseLifecycleQueue() {
           {KIND_TABS.map((t) => (
             <TabsTrigger key={t.value} value={t.value} className="gap-2">
               {t.label}
-              {counts?.[t.countKey ?? ''] !== undefined && (
-                <Badge variant="secondary" className="text-xs">{counts[t.countKey as string]}</Badge>
+              {tabCount(counts, t.kinds) !== undefined && (
+                <Badge variant="secondary" className="text-xs">{tabCount(counts, t.kinds)}</Badge>
               )}
             </TabsTrigger>
           ))}
