@@ -49,6 +49,7 @@ export const KNOWN_PERMISSION_MODULES = [
   'rule_engine',
   'entity_resolution',
   'entity_membership',
+  'onboarding',
   'regulatory_data_model',
   'integration_management',
 ] as const;
