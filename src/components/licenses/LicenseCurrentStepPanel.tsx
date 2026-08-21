@@ -55,6 +55,7 @@ export function LicenseCurrentStepPanel({ model, readOnly }: { model: LicenseCas
           : message.includes('INVALID_FROM_STATE') ? 'The licence is not in a valid state for this action.'
           : message.includes('RENEWAL_ALREADY_OPEN') ? 'A renewal is already open for this licence.'
           : message.includes('NO_OPEN_RENEWAL') ? 'There is no open renewal to decide.'
+          : message.includes('BLOCKED') ? 'Outstanding blockers must be resolved before this action.'
           : message,
       });
     }
