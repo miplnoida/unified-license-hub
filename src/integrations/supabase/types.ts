@@ -7487,6 +7487,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "declaration_invitations_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "v_fp_determination_integrity"
+            referencedColumns: ["assessment_id"]
+          },
+          {
             foreignKeyName: "declaration_invitations_individual_id_fkey"
             columns: ["individual_id"]
             isOneToOne: false
@@ -13525,6 +13532,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fp_committee_decision_snapshots_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "v_fp_determination_integrity"
+            referencedColumns: ["assessment_id"]
+          },
+          {
             foreignKeyName: "fp_committee_decision_snapshots_committee_id_fkey"
             columns: ["committee_id"]
             isOneToOne: false
@@ -13612,6 +13626,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fp_assessments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_committee_votes_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "v_fp_determination_integrity"
+            referencedColumns: ["assessment_id"]
           },
           {
             foreignKeyName: "fp_committee_votes_committee_id_fkey"
@@ -13944,6 +13965,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fp_determinations_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "v_fp_determination_integrity"
+            referencedColumns: ["assessment_id"]
+          },
+          {
             foreignKeyName: "fp_determinations_individual_id_fkey"
             columns: ["individual_id"]
             isOneToOne: false
@@ -14058,6 +14086,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fp_assessments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_findings_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "v_fp_determination_integrity"
+            referencedColumns: ["assessment_id"]
           },
           {
             foreignKeyName: "fp_findings_config_id_fkey"
@@ -14346,6 +14381,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fp_manual_screening_tasks_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "v_fp_determination_integrity"
+            referencedColumns: ["assessment_id"]
+          },
+          {
             foreignKeyName: "fp_manual_screening_tasks_finding_id_fkey"
             columns: ["finding_id"]
             isOneToOne: false
@@ -14570,6 +14612,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fp_assessments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_screening_runs_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "v_fp_determination_integrity"
+            referencedColumns: ["assessment_id"]
           },
           {
             foreignKeyName: "fp_screening_runs_individual_id_fkey"
@@ -30102,6 +30151,55 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sectors"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_fp_determination_integrity: {
+        Row: {
+          assessment_id: string | null
+          defect: string | null
+          determined_at: string | null
+          individual_id: string | null
+          licensee_id: string | null
+          status: string | null
+        }
+        Insert: {
+          assessment_id?: string | null
+          defect?: never
+          determined_at?: string | null
+          individual_id?: string | null
+          licensee_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          assessment_id?: string | null
+          defect?: never
+          determined_at?: string | null
+          individual_id?: string | null
+          licensee_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_assessments_individual_id_fkey"
+            columns: ["individual_id"]
+            isOneToOne: false
+            referencedRelation: "fp_individuals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_assessments_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_assessments_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
         ]
       }
