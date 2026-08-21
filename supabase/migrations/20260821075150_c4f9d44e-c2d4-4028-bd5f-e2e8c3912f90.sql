@@ -1,0 +1,1 @@
+ALTER VIEW public.v_return_filing_workflow_state SET (security_invoker = true);
