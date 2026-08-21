@@ -88,6 +88,7 @@ describe('P08 closure guardrails', () => {
     expect(investigation).toContain('ConductRelatedCasesPanel');
     expect(investigation).toContain('CaseThreadsPanel');
     expect(investigation).toContain('sourceType="conduct_investigation"');
+    expect(investigation).toContain('caseType="conduct_investigation"');
   });
 
   it('retires the conduct-only entity profile in favour of the canonical entity', () => {

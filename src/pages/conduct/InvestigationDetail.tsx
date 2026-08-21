@@ -149,7 +149,7 @@ export default function InvestigationDetail() {
             </Card>
           </TabsContent>
           <TabsContent value="related">
-            <ConductRelatedCasesPanel objectType="conduct_investigation" objectId={data.id} />
+            <ConductRelatedCasesPanel caseType="conduct_investigation" caseId={data.id} />
           </TabsContent>
           <TabsContent value="communications" className="space-y-4">
             <CaseThreadsPanel

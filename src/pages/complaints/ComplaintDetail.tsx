@@ -50,6 +50,7 @@ import type { CaseSection, CaseWorkSection } from '@/lib/complaintWorkflow';
 // `execute_complaint_workflow_action` → notification_outbox — never React.
 
 import { complaintStatusLabel, complaintStatusVariant } from '@/lib/complaintStatus';
+import { ConductRelatedCasesPanel } from '@/components/conduct/ConductRelatedCasesPanel';
 import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
 import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
 import { formatDateTime } from '@/lib/datetime';
@@ -709,6 +710,7 @@ export default function ComplaintDetail() {
                 )}
               </CardContent>
             </Card>
+            <ConductRelatedCasesPanel caseType="complaint" caseId={complaint.id} />
             <CaseThreadsPanel
               sourceType="complaint"
               sourceId={complaint.id}
