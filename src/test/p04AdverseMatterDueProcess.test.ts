@@ -52,7 +52,7 @@ describe('license_lifecycle_step is the only browser mutation path', () => {
   });
 
   it('the raw executor is not granted to the browser', () => {
-    expect(sql).toMatch(/REVOKE[\s\S]{0,120}license_lifecycle_action[\s\S]{0,120}(authenticated|PUBLIC)/i);
+    expect(allMigrations()).toMatch(/REVOKE[\s\S]{0,120}license_lifecycle_action[\s\S]{0,120}(authenticated|PUBLIC)/i);
   });
 
   it('the frontend calls the validated step RPC', () => {
