@@ -18,6 +18,7 @@ export interface LicenseCaseHeaderModel {
   stage: string;
   status: string;
   owner_id: string | null;
+  owner_name: string | null;
   team: string | null;
   priority: string;
   priority_reason: string | null;
