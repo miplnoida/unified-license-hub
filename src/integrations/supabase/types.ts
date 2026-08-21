@@ -11210,9 +11210,15 @@ export type Database = {
           decision_notes: string | null
           escalated_at: string | null
           escalated_by: string | null
+          escalation_reason: string | null
           id: string
           outcome: string | null
           provider_status: string
+          recommendation_notes: string | null
+          recommended_action: string | null
+          recommended_at: string | null
+          recommended_by: string | null
+          recommended_entity_id: string | null
           requested_at: string
           requested_by: string | null
           resolution_policy_id: string | null
@@ -11223,6 +11229,10 @@ export type Database = {
           subject_identifiers: Json
           subject_name: string
           subject_payload: Json
+          supervisor_decided_at: string | null
+          supervisor_decided_by: string | null
+          supervisor_decision: string | null
+          supervisor_notes: string | null
           updated_at: string
         }
         Insert: {
@@ -11235,9 +11245,15 @@ export type Database = {
           decision_notes?: string | null
           escalated_at?: string | null
           escalated_by?: string | null
+          escalation_reason?: string | null
           id?: string
           outcome?: string | null
           provider_status?: string
+          recommendation_notes?: string | null
+          recommended_action?: string | null
+          recommended_at?: string | null
+          recommended_by?: string | null
+          recommended_entity_id?: string | null
           requested_at?: string
           requested_by?: string | null
           resolution_policy_id?: string | null
@@ -11248,6 +11264,10 @@ export type Database = {
           subject_identifiers?: Json
           subject_name: string
           subject_payload?: Json
+          supervisor_decided_at?: string | null
+          supervisor_decided_by?: string | null
+          supervisor_decision?: string | null
+          supervisor_notes?: string | null
           updated_at?: string
         }
         Update: {
@@ -11260,9 +11280,15 @@ export type Database = {
           decision_notes?: string | null
           escalated_at?: string | null
           escalated_by?: string | null
+          escalation_reason?: string | null
           id?: string
           outcome?: string | null
           provider_status?: string
+          recommendation_notes?: string | null
+          recommended_action?: string | null
+          recommended_at?: string | null
+          recommended_by?: string | null
+          recommended_entity_id?: string | null
           requested_at?: string
           requested_by?: string | null
           resolution_policy_id?: string | null
@@ -11273,6 +11299,10 @@ export type Database = {
           subject_identifiers?: Json
           subject_name?: string
           subject_payload?: Json
+          supervisor_decided_at?: string | null
+          supervisor_decided_by?: string | null
+          supervisor_decision?: string | null
+          supervisor_notes?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -11370,6 +11400,7 @@ export type Database = {
           on_no_match: string
           on_possible_match: string
           registry_authority_mode: string
+          requires_maker_checker: boolean
           updated_at: string
         }
         Insert: {
@@ -11386,6 +11417,7 @@ export type Database = {
           on_no_match?: string
           on_possible_match?: string
           registry_authority_mode?: string
+          requires_maker_checker?: boolean
           updated_at?: string
         }
         Update: {
@@ -11402,6 +11434,7 @@ export type Database = {
           on_no_match?: string
           on_possible_match?: string
           registry_authority_mode?: string
+          requires_maker_checker?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -36638,6 +36671,7 @@ export type Database = {
         }
         Returns: Json
       }
+      entity_resolution_case_view: { Args: { _case_id: string }; Returns: Json }
       entity_resolution_decide: {
         Args: {
           _action: string
@@ -36646,6 +36680,26 @@ export type Database = {
           _notes?: string
         }
         Returns: Json
+      }
+      entity_resolution_finalise: {
+        Args: {
+          _action: string
+          _approver: string
+          _case_id: string
+          _entity_id: string
+          _notes: string
+          _resolver: string
+        }
+        Returns: string
+      }
+      entity_resolution_notify_approvers: {
+        Args: { _body: string; _case_id: string; _title: string }
+        Returns: undefined
+      }
+      entity_resolution_queue: { Args: { _status?: string }; Returns: Json }
+      entity_resolution_requires_maker_checker: {
+        Args: { _case_id: string }
+        Returns: boolean
       }
       entity_resolve_identity: { Args: { _payload: Json }; Returns: Json }
       entity_set_publication_policy: {
