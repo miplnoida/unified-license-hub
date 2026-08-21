@@ -37,6 +37,7 @@ import LicenseVariationPanel from '@/components/licenses/LicenseVariationPanel';
 import LicenseDecisionAppealsPanel from '@/components/licenses/LicenseDecisionAppealsPanel';
 import LicenseFeeLedgerPanel from '@/components/licenses/LicenseFeeLedgerPanel';
 import LicenseVerificationPanel from '@/components/licenses/LicenseVerificationPanel';
+import LicenseRelatedCasesPanel from '@/components/licenses/LicenseRelatedCasesPanel';
 
 
 
@@ -739,6 +740,9 @@ export default function LicenseDetail() {
             {isInternal && <LicenseDecisionAppealsPanel licenseId={license.id} />}
             {isInternal && <LicenseFeeLedgerPanel licenseId={license.id} />}
             {isInternal && <LicenseVerificationPanel licenseId={license.id} />}
+
+            {/* P04 A.23 / A.24 — canonical Related Cases and Correspondence. */}
+            {isInternal && <LicenseRelatedCasesPanel licenseId={license.id} />}
 
             {isInternal && (pendingRenewalAppId || inProgressRenewalAppId) && (
               <Card>
