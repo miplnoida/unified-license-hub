@@ -68,7 +68,7 @@ export function useSupervisoryTrends(enabled: SupervisoryTrendsOptions) {
         enabled.returns
           ? fetchCanonicalReturnsTrend(MONTHS_BACK)
           : Promise.resolve([] as CanonicalReturnsTrendPoint[]),
-
+      ]);
 
       const months = lastNMonthKeys(MONTHS_BACK);
       const buckets = new Map<string, SupervisoryTrendPoint>(
@@ -87,10 +87,11 @@ export function useSupervisoryTrends(enabled: SupervisoryTrendsOptions) {
         const b = buckets.get(monthKey(row.date_opened));
         if (b) b.enforcement++;
       }
-      for (const row of (returnsRes.data ?? []) as { created_at: string }[]) {
-        const b = buckets.get(monthKey(row.created_at));
-        if (b) b.returns++;
+      for (const point of returnsRes as CanonicalReturnsTrendPoint[]) {
+        const b = buckets.get(point.month);
+        if (b) b.returns += point.filings;
       }
+
 
       return months.map((m) => buckets.get(m)!);
     },
