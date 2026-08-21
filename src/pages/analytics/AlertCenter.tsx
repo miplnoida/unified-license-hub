@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { objectRoute } from '@/lib/routes/objectRoutes';
 import {
   Loader2,
   AlertTriangle,
@@ -105,11 +106,12 @@ export default function AlertCenter() {
             .eq('status', 'scheduled')
             .lt('scheduled_date', new Date().toISOString())
             .limit(200),
+          // EPR-01: overdue returns come from the canonical workflow-state view.
           supabase
-            .from('returns_filed')
-            .select('id, status, due_date, created_at, return_type_id')
-            .in('status', ['pending', 'draft'])
-            .lt('due_date', new Date().toISOString())
+            .from('v_return_filing_workflow_state')
+            .select('filing_id, entity_name, definition_name, period_label, due_date, days_late, status')
+            .eq('is_overdue', true)
+            .order('due_date', { ascending: true })
             .limit(200),
           (supabase.from('fp_monitoring_events') as any)
             .select('id, individual_id, severity, event_type, created_at, acknowledged_at, notes')
@@ -185,17 +187,17 @@ export default function AlertCenter() {
       });
 
       (returns.data || []).forEach((r: any) => {
-        const daysOver = Math.floor(
-          (now - new Date(r.due_date).getTime()) / (1000 * 60 * 60 * 24),
+        const daysOver = Number(
+          r.days_late ?? Math.floor((now - new Date(r.due_date).getTime()) / (1000 * 60 * 60 * 24)),
         );
         items.push({
-          id: `ret-${r.id}`,
+          id: `ret-${r.filing_id}`,
           source: 'return',
           title: 'Overdue return',
-          detail: `${daysOver} day(s) past due`,
+          detail: `${r.entity_name ?? 'Entity'} — ${r.definition_name ?? 'Return'} ${r.period_label ?? ''} · ${daysOver} day(s) past due`,
           severity: daysOver > 30 ? 'critical' : daysOver > 14 ? 'high' : 'medium',
           created_at: r.due_date,
-          href: '/returns-mgmt',
+          href: objectRoute.returnFiling(r.filing_id),
         });
       });
 
