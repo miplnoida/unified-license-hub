@@ -18,6 +18,8 @@ export default function LicensesTab({ entityId, licenseId }: LicensesTabProps) {
   const [licenses, setLicenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { data: summary } = useEntityLicenceSummary(entityId);
+
 
   useEffect(() => {
     (async () => {
