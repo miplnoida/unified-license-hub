@@ -14,7 +14,7 @@
  */
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CalendarClock, Loader2, LayoutDashboard, History } from 'lucide-react';
+import { CalendarClock, Loader2, LayoutDashboard, History, UserSearch } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,12 +30,13 @@ import { Entity360OverviewPanel } from '@/components/entity-detail/Entity360Over
 import { EntitySupervisoryStatePanel } from '@/components/entity-detail/EntitySupervisoryStatePanel';
 import { EntityPrudentialStatePanel } from '@/components/prudential/EntityPrudentialStatePanel';
 import { EntityFitAndProperPanel } from '@/components/fit-and-proper/EntityFitAndProperPanel';
+import { OnboardingActivityPanel } from '@/components/entity/OnboardingActivityPanel';
 import { Entity360SectionView } from '@/components/entity-detail/Entity360SectionView';
 import { Entity360TimelinePanel } from '@/components/entity-detail/Entity360TimelinePanel';
 import { E360_GROUPS, E360_SECTIONS } from '@/components/entity-detail/sectionCatalogue';
 import { useEntity360Overview, type E360SectionKey } from '@/hooks/useEntity360';
 
-type ViewKey = 'overview' | 'timeline' | E360SectionKey;
+type ViewKey = 'overview' | 'timeline' | 'onboarding' | E360SectionKey;
 
 export default function Entity360Detail() {
   const { entityId } = useParams<{ entityId: string }>();
@@ -109,6 +110,12 @@ export default function Entity360Detail() {
                 onClick={() => setView('timeline')}
               />
             )}
+            <NavButton
+              label="Onboarding & identity activity"
+              icon={UserSearch}
+              active={view === 'onboarding'}
+              onClick={() => setView('onboarding')}
+            />
 
             {groups.map((group) => (
               <div key={group.key} className="mt-3">
@@ -175,6 +182,8 @@ export default function Entity360Detail() {
           )}
 
           {view === 'timeline' && <Entity360TimelinePanel entityId={entity.id} />}
+
+          {view === 'onboarding' && <OnboardingActivityPanel entityId={entity.id} />}
 
           {activeSection && (
             <div className="space-y-4">
