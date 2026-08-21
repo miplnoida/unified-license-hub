@@ -256,15 +256,35 @@ export default function ReturnsFilingQueue() {
           syncUrlState
           caption="Canonical return filings visible to your role."
           aboveGrid={(
-            <Tabs value={tab} onValueChange={setTab}>
-              <TabsList className="flex-wrap">
-                {TABS.map((t) => (
-                  <TabsTrigger key={t} value={t}>
-                    {t === 'ALL' ? 'All filings' : FILING_STATUS_LABELS[t] ?? t}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+            <div className="space-y-2">
+              <Tabs value={tab} onValueChange={selectTab}>
+                <TabsList className="flex-wrap">
+                  {TABS.map((t) => (
+                    <TabsTrigger key={t} value={t}>
+                      {t === 'ALL' ? 'All filings' : FILING_STATUS_LABELS[t] ?? t}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+              {overdueOnly && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1 font-medium text-destructive">
+                    Overdue filings only
+                  </span>
+                  <button
+                    type="button"
+                    className="text-primary hover:underline"
+                    onClick={() => {
+                      const next = new URLSearchParams(searchParams);
+                      next.delete('overdue');
+                      setSearchParams(next, { replace: true });
+                    }}
+                  >
+                    Show all filings
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         />
       </div>
