@@ -35299,6 +35299,10 @@ export type Database = {
           unit: string
         }[]
       }
+      prudential_assessment_case: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       prudential_assessment_create: {
         Args: {
           _auto_suggested_rating?: string
@@ -35524,6 +35528,7 @@ export type Database = {
         }
       }
       prudential_dashboard_metrics: { Args: never; Returns: Json }
+      prudential_dashboard_portfolio: { Args: never; Returns: Json }
       prudential_enforce: {
         Args: { _action: string; _entity_id?: string }
         Returns: undefined
@@ -35548,6 +35553,7 @@ export type Database = {
         Args: { _entity_id: string }
         Returns: Json
       }
+      prudential_entity_state: { Args: { _entity_id: string }; Returns: Json }
       prudential_entity_universe: {
         Args: { _search?: string; _sector_id?: string; _status?: string }
         Returns: {
