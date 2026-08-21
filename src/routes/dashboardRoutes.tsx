@@ -64,7 +64,7 @@ const SupervisoryAiReports = lazy(() => import('@/pages/analytics/SupervisoryAiR
 const CorrespondenceTemplates = lazy(() => import('@/pages/admin/CorrespondenceTemplates'));
 const CorrespondenceDashboard = lazy(() => import('@/pages/correspondence/CorrespondenceDashboard'));
 const CorrespondenceInbox = lazy(() => import('@/pages/correspondence/CorrespondenceInbox'));
-const CorrespondenceManager = lazy(() => import('@/pages/correspondence/CorrespondenceManager'));
+const ThreadWorkspace = lazy(() => import('@/pages/correspondence/ThreadWorkspace'));
 
 const CorrespondenceDetail = lazy(() => import('@/pages/correspondence/CorrespondenceDetail'));
 const CorrespondenceRecords = lazy(() => import('@/pages/correspondence/CorrespondenceRecords'));
@@ -261,7 +261,7 @@ export const dashboardRoutes = (
 
     <Route path="/admin/conduct/monitoring-rules" element={<M module="market_conduct"><MonitoringRules /></M>} />
     <Route path="/conduct/entities" element={<M module="market_conduct"><ConductEntitiesList /></M>} />
-    <Route path="/conduct/entities/:id" element={<M module="market_conduct"><ConductEntityProfile /></M>} />
+    <Route path="/conduct/entities/:id" element={<ConductEntityRedirect />} />
     <Route path="/conduct/supervision-loop" element={<M module="market_conduct"><SupervisionLoop /></M>} />
     <Route path="/conduct/work-queue" element={<M module="market_conduct"><ConductWorkQueue /></M>} />
     <Route path="/conduct/investigations" element={<M module="market_conduct"><Investigations /></M>} />
@@ -293,11 +293,11 @@ export const dashboardRoutes = (
     <Route path="/admin/prudential-taxonomy" element={<M module="prudential_supervision"><PrudentialTaxonomyAdmin /></M>} />
     <Route path="/correspondence" element={<M module="notification_management"><CorrespondenceDashboard /></M>} />
     <Route path="/correspondence/dashboard" element={<M module="notification_management"><CorrespondenceDashboard /></M>} />
-    <Route path="/correspondence/manager" element={<M module="notification_management"><CorrespondenceManager /></M>} />
+    <Route path="/correspondence/manager" element={<Navigate to="/correspondence/inbox" replace />} />
     <Route path="/correspondence/inbox" element={<M module="notification_management"><CorrespondenceInbox /></M>} />
 
     <Route path="/correspondence/records" element={<M module="notification_management"><CorrespondenceRecords /></M>} />
-    <Route path="/correspondence/:id" element={<M module="notification_management"><CorrespondenceDetail /></M>} />
+    <Route path="/correspondence/:id" element={<M module="notification_management"><ThreadWorkspace /></M>} />
     <Route path="/admin/correspondence-routing" element={<M module="settings"><CorrespondenceRoutingRules /></M>} />
     <Route path="/entity/correspondence" element={<P><MyCorrespondence /></P>} />
     <Route path="/entity/correspondence/:id" element={<MyCorrespondenceDetail />} />

@@ -20,6 +20,8 @@ import { InterviewsPanel } from '@/components/conduct/InterviewsPanel';
 import { ClosurePanel } from '@/components/conduct/ClosurePanel';
 import { InvestigationCaseFilePanel } from '@/components/conduct/InvestigationCaseFilePanel';
 import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
+import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
+import { ConductRelatedCasesPanel } from '@/components/conduct/ConductRelatedCasesPanel';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { formatDateTime } from '@/lib/datetime';
 import { Loader2, ArrowLeft } from 'lucide-react';
@@ -120,7 +122,8 @@ export default function InvestigationDetail() {
             <TabsTrigger value="interviews">Interviews</TabsTrigger>
             <TabsTrigger value="closure">Closure</TabsTrigger>
             <TabsTrigger value="timeline">Case timeline</TabsTrigger>
-            <TabsTrigger value="communications">Communications</TabsTrigger>
+            <TabsTrigger value="related">Related cases</TabsTrigger>
+            <TabsTrigger value="communications">Correspondence</TabsTrigger>
           </TabsList>
           <TabsContent value="casefile">
             <InvestigationCaseFilePanel investigation={data as any} locked={concluded} onSaved={refetch} />
@@ -145,8 +148,18 @@ export default function InvestigationDetail() {
               </CardContent>
             </Card>
           </TabsContent>
-          <TabsContent value="communications">
-            <CommunicationTimeline objectType="conduct_investigation" objectId={data.id} />
+          <TabsContent value="related">
+            <ConductRelatedCasesPanel objectType="conduct_investigation" objectId={data.id} />
+          </TabsContent>
+          <TabsContent value="communications" className="space-y-4">
+            <CaseThreadsPanel
+              sourceType="conduct_investigation"
+              sourceId={data.id}
+              sourceReference={model?.reference ?? data.code ?? null}
+              licenseeId={data.licensee_id ?? null}
+              title="Correspondence on this investigation"
+            />
+            <CommunicationTimeline objectType="conduct_investigation" objectId={data.id} title="Emails and text messages sent" />
           </TabsContent>
         </Tabs>
 

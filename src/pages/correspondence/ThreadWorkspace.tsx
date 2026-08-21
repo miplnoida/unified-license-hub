@@ -73,7 +73,7 @@ export default function ThreadWorkspace() {
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <Card className="overflow-hidden">
-            <ThreadDetail threadId={model.id} embedded />
+            <ThreadDetail threadId={model.id} />
           </Card>
 
           <div className="space-y-4">
