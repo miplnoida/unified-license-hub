@@ -37252,6 +37252,7 @@ export type Database = {
           valid_until: string
         }[]
       }
+      license_related_cases: { Args: { _license_id: string }; Returns: Json }
       license_variation_case: { Args: { _license_id: string }; Returns: Json }
       license_variation_operation: {
         Args: { _operation: string; _payload?: Json }
