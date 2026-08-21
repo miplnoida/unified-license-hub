@@ -149,17 +149,22 @@ function ProfileTab({ individual, id }: { individual: any; id: string }) {
       phone: individual.phone ?? '',
       address: individual.address ?? '',
       status: individual.status ?? '',
+      reason: '',
       notes: individual.notes ?? '',
     });
     setOpen(true);
   };
 
+  const statusChanged = !!form.status && form.status !== (individual.status ?? '');
+
+  // EPR-04 M2: the subject register is server-owned. Master data and register
+  // status are two distinct governed operations; direct DML is revoked.
   const updateMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from('fp_individuals')
-        .update({
-          full_name: form.full_name.trim() || null,
+      await fpIndividualUpdate(
+        id,
+        {
+          full_name: form.full_name.trim(),
           national_id: form.national_id.trim() || null,
           passport_number: form.passport_number.trim() || null,
           nationality: form.nationality.trim() || null,
@@ -167,11 +172,18 @@ function ProfileTab({ individual, id }: { individual: any; id: string }) {
           email: form.email.trim() || null,
           phone: form.phone.trim() || null,
           address: form.address.trim() || null,
-          status: form.status || null,
           notes: form.notes.trim() || null,
-        })
-        .eq('id', id);
-      if (error) throw error;
+        },
+        form.reason?.trim() || null,
+      );
+      if (statusChanged) {
+        if (!form.reason?.trim()) throw new Error('A reason is required to change register status.');
+        await fpIndividualSetDirectoryStatus(
+          id,
+          form.status as 'active' | 'inactive',
+          form.reason.trim(),
+        );
+      }
     },
     onSuccess: () => {
       toast.success('Profile updated');
