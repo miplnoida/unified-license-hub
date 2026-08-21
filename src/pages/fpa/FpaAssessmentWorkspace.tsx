@@ -232,6 +232,19 @@ export default function FpaAssessmentWorkspace() {
           lastActivityAt={header.last_activity_at}
         />
 
+        {/* EPR-04 M2: regulatory consequence leaves F&P through the single
+            enforcement referral entry point, carrying this assessment as the
+            source. The entity is derived server-side from the assessment. */}
+        <div className="flex justify-end">
+          <ReferToEnforcementDialog
+            sourceKind="FP_MATTER"
+            sourceId={assessmentId}
+            sourceLabel={`${header.reference} — ${header.subject}`}
+            triggerLabel="Refer to enforcement"
+          />
+        </div>
+
+
         {detour ? (
           <div className="flex items-center justify-between rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
             <span className="text-muted-foreground">
