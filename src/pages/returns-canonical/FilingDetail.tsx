@@ -260,6 +260,7 @@ export default function FilingDetail() {
             <TabsTrigger value="findings">Validation ({data.findings.length})</TabsTrigger>
             <TabsTrigger value="compare">Compare</TabsTrigger>
             <TabsTrigger value="requests">Requests ({data.requests.length})</TabsTrigger>
+            <TabsTrigger value="related">Related cases</TabsTrigger>
 
           </TabsList>
 
