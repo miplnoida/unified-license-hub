@@ -54,8 +54,9 @@ describe('entity resolution — maker-checker actions', () => {
     expect(detail).toContain("run('APPROVE'");
     expect(detail).toContain("run('RETURN_FOR_REVIEW'");
     expect(detail).toContain("run('REQUEST_EVIDENCE'");
-    expect(detail).toContain("run('RECOMMEND_EXISTING'");
-    expect(detail).toContain("run('RECOMMEND_NEW'");
+    expect(detail).toContain("'RECOMMEND_EXISTING'");
+    expect(detail).toContain("'RECOMMEND_NEW'");
+
   });
 
   it('gates supervisory actions on entity_resolution.approve', () => {
