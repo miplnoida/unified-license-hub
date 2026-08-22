@@ -21,6 +21,7 @@ import {
   isVerificationStageId,
 } from '@/lib/registrationEmailVerification';
 import { visibleRegSteps } from '@/lib/sectionVisibility';
+import { validateEmailFieldSettings } from '@/lib/emailFieldValidation';
 import {
   isItemVisible,
   isEffectiveRequired,
@@ -165,6 +166,9 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const [pendingPrimaryEmailChecks, setPendingPrimaryEmailChecks] = useState<Record<string, boolean>>({});
   const latestPrimaryEmailCheckRef = useRef<Record<string, number>>({});
   const dynamicFormDataRef = useRef<Record<string, unknown>>(dynamicFormData);
+  /** Snapshot of the record's own values in update mode — an unchanged email is
+   *  never treated as a duplicate and never needs re-verification. */
+  const initialDynamicDataRef = useRef<Record<string, unknown>>(dynamicFormData);
   // Captures the last dynamic-step validation result so handleNext/handleSubmit
   // can show a summary toast naming the offending fields with their labels.
   const lastDynamicErrorsRef = useRef<{ errs: Record<string, string>; step: RegStep | null }>({ errs: {}, step: null });
@@ -525,7 +529,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
               field: { type: 'email', validation: field.validation as any },
               fieldKey: effectiveName,
               value: val,
-              ownEmail: updateMode ? (dynamicInitialData?.[effectiveName] as string | undefined) ?? null : null,
+              ownEmail: isUpdateMode ? (initialDynamicDataRef.current?.[effectiveName] as string | undefined) ?? null : null,
             });
             if (emailIssue) errs[effectiveName] = emailIssue;
           }
