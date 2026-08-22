@@ -1002,10 +1002,15 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       />
       {noWorkflowActions && canAddRemark && (
         <p className="text-xs text-muted-foreground">
-          This step is assigned to <strong>{stepRoleLabel(currentStep)}</strong>. You can add a remark for the
-          audit trail; you are not authorized to advance this workflow.
+          {pendingStepMessage(currentStep as any, {
+            dynamicRolesMap,
+            userNamesMap: approverNamesMap,
+            legacyRoleLabels: ROLE_LABELS as Record<string, string>,
+          }).text}{' '}
+          You can add a remark for the audit trail.
         </p>
       )}
+
     </div>
   );
 
