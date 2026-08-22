@@ -120,6 +120,7 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   { pattern: '/returns/calendar', label: 'Reporting calendar', parent: '/dashboard' },
   { pattern: '/returns/configuration', label: 'Returns configuration', parent: '/dashboard' },
   { pattern: '/returns/filings/:filingId', resolver: 'filing', param: 'filingId', parent: '/returns/queue' },
+  { pattern: '/returns/filings/legacy/:legacyId', label: 'Filing', parent: '/returns/queue' },
   { pattern: '/returns-management', label: 'Returns management', parent: '/dashboard' },
   { pattern: '/returns-management/:id', resolver: 'legacyReturn', param: 'id', parent: '/returns-management' },
   { pattern: '/returns-management/:id/analysis', label: 'Analysis', parent: '/returns-management/:id' },
