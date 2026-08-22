@@ -992,19 +992,21 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
                       )}
 
                       {!noConfiguredActions && canActResult && !canActResult.can_act && (
-                        <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
-                          <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                        <div className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+                          <Clock className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                           <div className="space-y-1">
-                            <p className="font-medium">You are not authorized to act on this step</p>
+                            <p className="font-medium">Pending Review</p>
                             <p className="text-xs text-muted-foreground">
-                              {(s as any).approver_type === 'specific_users'
-                                ? <>This step is assigned to <strong>{stepRoleLabel(s)}</strong>. Only the assigned user(s) can take action.</>
-                                : <>Required role: <strong>{canActResult.required_role_name || canActResult.required_system_role || stepRoleLabel(s)}</strong>.</>}
-                              {canActResult.reason && canActResult.reason !== 'WRONG_APPROVER' && <> Reason: {canActResult.reason}.</>}
+                              {pendingStepMessage(s as any, {
+                                dynamicRolesMap,
+                                userNamesMap: approverNamesMap,
+                                legacyRoleLabels: ROLE_LABELS as Record<string, string>,
+                              }).text}
                             </p>
                           </div>
                         </div>
                       )}
+
 
                       {WORKFLOW_SIGNATURE_CAPTURE_ENABLED && (s as any).require_digital_signature && (
                         <div className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-2 text-xs">
