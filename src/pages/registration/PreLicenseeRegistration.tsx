@@ -635,8 +635,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
 
     switch (step.type) {
-      case 'static':
-        return validateStep(step.id === 'entity' ? 0 : 1);
+
       case 'dynamic':
         return step.stepData ? validateDynamicStep(step.stepData) : true;
       case 'declarations': {
