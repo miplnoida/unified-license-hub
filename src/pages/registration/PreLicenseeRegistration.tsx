@@ -5,9 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRegistrationForm } from '@/hooks/useRegistrationForm';
 import { useRegistrationConfig } from '@/hooks/useRegistrationConfig';
-import { EntityDetailsStep } from '@/components/registration/EntityDetailsStep';
 import { SectorSelectionSection } from '@/components/registration/SectorSelectionSection';
-import { PrimaryUserStep } from '@/components/registration/PrimaryUserStep';
 import { DocumentsStep } from '@/components/registration/DocumentsStep';
 import { SecurityScanningNotice } from '@/components/registration/SecurityScanningNotice';
 import { DeclarationsStep } from '@/components/registration/DeclarationsStep';
@@ -110,7 +108,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const updateRegistrationParam = routeRegistrationId || searchParams.get('registration');
   const updateSubmissionParam = searchParams.get('submission');
   const {
-    form, errors, lastErrorsRef, setField, setEntityField, setMailingField, setPhysicalField,
+    form, errors, lastErrorsRef, setField,
     setSectorId, setSubSectorId, addDocument, removeDocument, validateStep,
     validateDeclarations, hydrate, reset,
   } = useRegistrationForm({ updateMode: isUpdateMode });
