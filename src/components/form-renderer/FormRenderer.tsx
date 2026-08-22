@@ -957,7 +957,6 @@ export function FormRenderer({
         break;
       }
 
-        break;
       case 'phone':
         input = <Input type="tel" value={val} onChange={e => onChange(field.fieldName, e.target.value)} placeholder={field.placeholder || '+1 (555) 123-4567'} disabled={readOnly} />;
         break;
