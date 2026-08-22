@@ -525,6 +525,18 @@ export function FormRenderer({
       if (field.type === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val))) {
         pushErr(field, 'Invalid email address');
       }
+      if (field.type === 'email' && val) {
+        // Admin-configured verification / uniqueness. Only reachable for fields
+        // the user can actually see (hidden sections never get here).
+        const emailIssue = validateEmailFieldSettings({
+          field,
+          fieldKey: field.fieldName,
+          value: val,
+          ownEmail: (initialData?.[field.fieldName] as string | undefined) ?? null,
+        });
+        if (emailIssue) pushErr(field, emailIssue);
+      }
+
       if (field.type === 'phone' && val && !/^[+]?[\d\s\-()]{7,20}$/.test(String(val))) {
         pushErr(field, 'Invalid phone number');
       }
