@@ -415,7 +415,7 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
       if (!readOnly && (emailSettings.requireVerification || emailSettings.requireUniqueness)) {
         input = (
           <EmailFieldControl
-            fieldKey={fieldKeyForState}
+            fieldKey={field.fieldName}
             value={strValue}
             onChange={handleChange}
             onBlur={handleBlur}
@@ -423,7 +423,7 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
             placeholder={field.placeholder}
             disabled={readOnly}
             invalid={!!error}
-            ownEmail={ownEmail ?? null}
+            ownEmail={typeof allData?.__ownEmail === 'string' ? allData.__ownEmail : null}
           />
         );
         break;
