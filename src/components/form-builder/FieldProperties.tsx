@@ -512,7 +512,37 @@ export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateF
         {!isParagraph && !isTable && (
           <div className="space-y-2">
             <Label className="text-xs font-semibold">Validation</Label>
+            {f.type === 'email' && (
+              <div className="space-y-2 p-2 rounded border bg-muted/30">
+                <Label className="text-[11px] font-semibold">Email Field Configuration</Label>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={f.validation?.requireEmailVerification === true}
+                    onCheckedChange={v => updateValidation({ requireEmailVerification: v || undefined })}
+                  />
+                  <div className="flex-1">
+                    <Label className="text-xs">Email Verification Required</Label>
+                    <p className="text-[10px] text-muted-foreground">
+                      Yes = user must verify this address with a one-time code before submitting.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={f.validation?.uniqueEmail === true}
+                    onCheckedChange={v => updateValidation({ uniqueEmail: v || undefined })}
+                  />
+                  <div className="flex-1">
+                    <Label className="text-xs">Uniqueness Check</Label>
+                    <p className="text-[10px] text-muted-foreground">
+                      Yes = block the address when it already belongs to another account.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             {['text', 'textarea', 'email', 'phone'].includes(f.type) && (
+
               <>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
