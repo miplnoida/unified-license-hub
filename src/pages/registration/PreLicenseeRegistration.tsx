@@ -347,14 +347,13 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const baseSteps = useMemo(() => {
     const result: { id: string; label: string; type: 'static' | 'dynamic' | 'documents' | 'declarations' | 'review' | 'verification'; stepData?: RegStep }[] = [];
 
-    if (visibleSchema.length > 0) {
-      visibleSchema.forEach((regStep) => {
-        result.push({ id: regStep.id, label: regStep.title, type: 'dynamic', stepData: regStep });
-      });
-    } else {
-      result.push({ id: 'entity', label: 'Entity Details', type: 'static' });
-      result.push({ id: 'user', label: 'Primary User', type: 'static' });
-    }
+    // Only configured, applicant-visible sections become steps. An empty result
+    // is NOT permission to substitute the legacy Entity Details / Primary User
+    // form — the page renders an "unavailable" state instead (see below).
+    visibleSchema.forEach((regStep) => {
+      result.push({ id: regStep.id, label: regStep.title, type: 'dynamic', stepData: regStep });
+    });
+
 
     // A hidden section (or a section whose every item is hidden) is skipped entirely.
     if (isDocumentsStepVisible({
