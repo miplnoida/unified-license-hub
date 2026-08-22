@@ -22,18 +22,26 @@ interface Props {
 export function FormPreview({ schema, showNavigation = true, showStepper = true }: Props) {
   const [currentStep, setCurrentStep] = useState(0);
 
-  if (schema.length === 0) {
+  // Preview must mirror the applicant runtime: steps hidden from applicants are
+  // excluded here too (they stay fully editable in the builder).
+  const applicantSchema = visibleRegSteps(schema);
+
+  if (applicantSchema.length === 0) {
     return (
       <Card>
         <CardContent className="py-12 text-center text-muted-foreground text-sm">
-          No steps to preview. Add steps and fields to see the preview.
+          {schema.length === 0
+            ? 'No steps to preview. Add steps and fields to see the preview.'
+            : 'Every step is hidden from applicants, so the applicant form would be empty.'}
         </CardContent>
       </Card>
     );
   }
 
-  const step = schema[currentStep];
-  const stepNames = schema.map(s => s.title);
+  const stepIdx = Math.min(currentStep, applicantSchema.length - 1);
+  const step = applicantSchema[stepIdx];
+  const stepNames = applicantSchema.map(s => s.title);
+
 
   return (
     <div className="space-y-6">
