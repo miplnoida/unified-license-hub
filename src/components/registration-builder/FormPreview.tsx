@@ -31,14 +31,24 @@ export function FormPreview({ schema, showNavigation = true, showStepper = true 
   if (applicantSchema.length === 0) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-muted-foreground text-sm">
-          {schema.length === 0
-            ? 'No steps to preview. Add steps and fields to see the preview.'
-            : 'Every step is hidden from applicants, so the applicant form would be empty.'}
+        <CardContent className="py-12 text-center">
+          {schema.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              No steps to preview. Add steps and fields to see the preview.
+            </p>
+          ) : (
+            <>
+              <h2 className="text-base font-semibold text-foreground mb-2">Registration Form Not Available</h2>
+              <p className="text-sm text-muted-foreground">
+                Every step is hidden from applicants, so this is the message the applicant will see.
+              </p>
+            </>
+          )}
         </CardContent>
       </Card>
     );
   }
+
 
   const stepIdx = Math.min(currentStep, applicantSchema.length - 1);
   const step = applicantSchema[stepIdx];

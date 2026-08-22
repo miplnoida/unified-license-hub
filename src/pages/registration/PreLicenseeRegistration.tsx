@@ -5,9 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRegistrationForm } from '@/hooks/useRegistrationForm';
 import { useRegistrationConfig } from '@/hooks/useRegistrationConfig';
-import { EntityDetailsStep } from '@/components/registration/EntityDetailsStep';
 import { SectorSelectionSection } from '@/components/registration/SectorSelectionSection';
-import { PrimaryUserStep } from '@/components/registration/PrimaryUserStep';
 import { DocumentsStep } from '@/components/registration/DocumentsStep';
 import { SecurityScanningNotice } from '@/components/registration/SecurityScanningNotice';
 import { DeclarationsStep } from '@/components/registration/DeclarationsStep';
@@ -110,7 +108,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const updateRegistrationParam = routeRegistrationId || searchParams.get('registration');
   const updateSubmissionParam = searchParams.get('submission');
   const {
-    form, errors, lastErrorsRef, setField, setEntityField, setMailingField, setPhysicalField,
+    form, errors, lastErrorsRef, setField,
     setSectorId, setSubSectorId, addDocument, removeDocument, validateStep,
     validateDeclarations, hydrate, reset,
   } = useRegistrationForm({ updateMode: isUpdateMode });
@@ -234,11 +232,18 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     reset();
   }, [clearPersistedStep, reset]);
 
-  // Persist current step across page refreshes (cleared on submit/reset)
+  // Persist current step across page refreshes (cleared on submit/reset).
+  // With no applicant-visible step the stored index is dropped so a later
+  // config change never restores a stale position.
   useEffect(() => {
     if (isUpdateMode) return;
+    if (visibleSchema.length === 0) {
+      sessionStorage.removeItem(STEP_KEY);
+      return;
+    }
     sessionStorage.setItem(STEP_KEY, String(currentStep));
-  }, [currentStep, isUpdateMode]);
+  }, [currentStep, isUpdateMode, visibleSchema.length]);
+
 
   // Remember the furthest step reached so the stepper allows forward jumps back
   // to steps the user already visited (e.g. after going back from Review).
@@ -347,14 +352,13 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const baseSteps = useMemo(() => {
     const result: { id: string; label: string; type: 'static' | 'dynamic' | 'documents' | 'declarations' | 'review' | 'verification'; stepData?: RegStep }[] = [];
 
-    if (visibleSchema.length > 0) {
-      visibleSchema.forEach((regStep) => {
-        result.push({ id: regStep.id, label: regStep.title, type: 'dynamic', stepData: regStep });
-      });
-    } else {
-      result.push({ id: 'entity', label: 'Entity Details', type: 'static' });
-      result.push({ id: 'user', label: 'Primary User', type: 'static' });
-    }
+    // Only configured, applicant-visible sections become steps. An empty result
+    // is NOT permission to substitute the legacy Entity Details / Primary User
+    // form — the page renders an "unavailable" state instead (see below).
+    visibleSchema.forEach((regStep) => {
+      result.push({ id: regStep.id, label: regStep.title, type: 'dynamic', stepData: regStep });
+    });
+
 
     // A hidden section (or a section whose every item is hidden) is skipped entirely.
     if (isDocumentsStepVisible({
@@ -636,8 +640,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
 
     switch (step.type) {
-      case 'static':
-        return validateStep(step.id === 'entity' ? 0 : 1);
+
       case 'dynamic':
         return step.stepData ? validateDynamicStep(step.stepData) : true;
       case 'declarations': {
@@ -1224,19 +1227,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     if (!step) return null;
 
     switch (step.type) {
-      case 'static':
-        if (step.id === 'entity') {
-          return (
-            <EntityDetailsStep
-              form={form} errors={errors} setField={setField}
-              setEntityField={setEntityField} setMailingField={setMailingField}
-              setPhysicalField={setPhysicalField} setSectorId={setSectorId}
-              setSubSectorId={setSubSectorId}
-              updateMode={isUpdateMode}
-            />
-          );
-        }
-        return <PrimaryUserStep form={form} errors={errors} setField={setField} updateMode={isUpdateMode} />;
+
 
       case 'dynamic':
         if (step.stepData) {
@@ -1357,28 +1348,8 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
         }));
         sections.push({ title: s.title, fields });
       });
-    } else {
-      sections.push({
-        title: 'Entity Details',
-        fields: [
-          { label: 'Applicant Name', value: form.applicantName },
-          { label: 'Alt Name', value: form.applicantNameAlt },
-          { label: 'Registration Number', value: form.registrationNumber },
-          { label: 'Mailing Address', value: [form.mailingAddress.street, form.mailingAddress.city, form.mailingAddress.state, form.mailingAddress.country].filter(Boolean).join(', ') },
-          { label: 'Physical Address', value: form.sameAsMailing ? 'Same as mailing' : [form.physicalAddress.street, form.physicalAddress.city, form.physicalAddress.state, form.physicalAddress.country].filter(Boolean).join(', ') },
-        ],
-      });
-      sections.push({
-        title: 'Primary User',
-        fields: [
-          { label: 'First Name', value: form.firstName },
-          { label: 'Last Name', value: form.lastName },
-          { label: 'Email', value: form.email },
-          { label: 'Telephone', value: form.telephone },
-          { label: 'Username', value: form.username },
-        ],
-      });
     }
+
 
     const documentsSectionShown = isDocumentsStepVisible({
       requireDocuments: config ? config.requireDocuments : true,
@@ -1462,20 +1433,29 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     );
   }
 
-  if (!config) {
+  // Two distinct states, one applicant-facing message:
+  //  - no active registration configuration exists at all, or
+  //  - a configuration exists but the admin hid every section.
+  // Neither may fall back to the legacy Entity Details / Primary User form.
+  if (!config || visibleSchema.length === 0) {
     return (
       <div className="min-h-screen bg-background">
         <LandingNav />
         <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-          <h2 className="text-xl font-semibold text-foreground mb-2">Registration is currently unavailable</h2>
+          <h2 className="text-xl font-semibold text-foreground mb-2">Registration Form Not Available</h2>
           <p className="text-sm text-muted-foreground mb-6">
-            No active registration form has been configured. Please check back soon or contact the administrator.
+            The registration form is currently not available. Please try again later or contact the
+            administrator for assistance.
           </p>
-          <Button variant="outline" onClick={() => reloadConfig()}>Refresh</Button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Button onClick={() => navigate('/')}>Back to Home</Button>
+            <Button variant="outline" onClick={() => reloadConfig()}>Refresh</Button>
+          </div>
         </div>
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -1534,11 +1514,10 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
       {/* Form Content */}
       <div className="max-w-4xl mx-auto px-4 pb-8">
-        {/* Licensee Type Scope — only on first step, when not already rendered by
-            EntityDetailsStep AND the dynamic schema does not itself supply
-            sector fields (avoids duplicating sector selection). */}
+        {/* Licensee Type Scope — only on first step, and only when the dynamic
+            schema does not itself supply sector fields (avoids duplicating
+            sector selection). */}
         {currentStep === 0
-          && !steps.some(s => s.type === 'static' && s.id === 'entity')
           && !(visibleSchema || []).some(st => st.rows.some(r => r.columns.some(c => c.field?.dataSource === 'sector'))) && (
           <div className="mb-6">
             <SectorSelectionSection

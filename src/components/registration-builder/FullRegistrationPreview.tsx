@@ -145,6 +145,26 @@ export function FullRegistrationPreview({
     </div>
   );
 
+  // Mirrors the applicant runtime: with no visible section the public page shows
+  // the unavailable screen instead of any form (never a legacy fallback form).
+  if (schema.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-base font-semibold">Public Registration Preview</h3>
+          <p className="text-xs text-muted-foreground">This is what the applicant will see.</p>
+        </div>
+        <div className="rounded-lg border bg-muted/20 py-12 px-6 text-center">
+          <h2 className="text-lg font-semibold text-foreground mb-2">Registration Form Not Available</h2>
+          <p className="text-sm text-muted-foreground">
+            The registration form is currently not available. Please try again later or contact the
+            administrator for assistance.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -152,6 +172,7 @@ export function FullRegistrationPreview({
           <h3 className="text-base font-semibold">Public Registration Preview</h3>
           <p className="text-xs text-muted-foreground">This is what the applicant will see.</p>
         </div>
+
         <div className="flex flex-wrap gap-2">
           {effectiveRequireOtp && <Badge variant="outline" className="gap-1"><Mail className="h-3 w-3" /> OTP</Badge>}
           {effectiveRequireCaptcha && <Badge variant="outline" className="gap-1"><Bot className="h-3 w-3" /> CAPTCHA</Badge>}
