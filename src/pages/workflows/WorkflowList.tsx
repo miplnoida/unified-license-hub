@@ -44,6 +44,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ActionNotificationsEditor } from '@/components/workflows/ActionNotificationsEditor';
 import { ApproverConfigEditor } from '@/components/workflows/ApproverConfigEditor';
 import { StepActionsEditor } from '@/components/workflows/StepActionsEditor';
+import { useStepActions } from '@/hooks/useStepActions';
 import { StepEntryNotificationsEditor } from '@/components/workflows/StepEntryNotificationsEditor';
 import { Switch } from '@/components/ui/switch';
 import { useNotificationTemplates } from '@/hooks/useActionNotifications';
@@ -1514,9 +1515,8 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
   const [slaError, setSlaError] = useState<string | null>(null);
   const [nameFocused, setNameFocused] = useState(false);
   const [slaFocused, setSlaFocused] = useState(false);
-  const [allowedDraft, setAllowedDraft] = useState<WorkflowActionType[]>(
-    Array.isArray(step.allowed_actions) ? (step.allowed_actions as WorkflowActionType[]) : [],
-  );
+  const { data: configuredActions = [] } = useStepActions(step.id);
+
   const [orderDraft, setOrderDraft] = useState<string>(String(step.step_order));
   const [orderFocused, setOrderFocused] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -1563,9 +1563,6 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
     }
   }, [step.id, step.sla_hours, slaFocused]);
 
-  useEffect(() => {
-    setAllowedDraft(Array.isArray(step.allowed_actions) ? (step.allowed_actions as WorkflowActionType[]) : []);
-  }, [step.id, step.allowed_actions]);
 
   // Re-sync when the server-side step prop changes (e.g. after refetch or
   // when switching workflows).
@@ -1628,7 +1625,17 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
     }
   };
 
-  const allowedActions = allowedDraft;
+  // Single source of truth: the read-only summary shows exactly the actions the
+  // editor manages (enabled rows in approval_step_actions), never the legacy
+  // `allowed_actions` array — which is now a server-maintained runtime mirror.
+  const allowedActions = useMemo(
+    () =>
+      configuredActions
+        .filter(a => a.is_enabled)
+        .map(a => a.action_type as WorkflowActionType),
+    [configuredActions],
+  );
+
 
   const commitName = () => {
     setNameFocused(false);
@@ -1662,17 +1669,10 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
     );
   };
 
-  const toggleAction = (action: WorkflowActionType, checked: boolean) => {
-    const prev = allowedDraft;
-    const next = checked
-      ? Array.from(new Set([...prev, action]))
-      : prev.filter(a => a !== action);
-    setAllowedDraft(next);
-    Promise.resolve(onUpdate(step.id, { allowed_actions: next } as any)).catch((e: any) => {
-      setAllowedDraft(prev);
-      toast.error(e?.message || 'Failed to update allowed actions');
-    });
-  };
+  // `allowed_actions` is no longer edited from the browser — it is maintained
+  // server-side by approval_step_action_save / _delete so the runtime gate can
+  // never drift from the per-action configuration.
+
 
 
 
