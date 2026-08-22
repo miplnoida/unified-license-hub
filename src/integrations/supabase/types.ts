@@ -34617,6 +34617,8 @@ export type Database = {
         Args: { _change_set_id: string }
         Returns: Json
       }
+      approval_step_action_delete: { Args: { _id: string }; Returns: Json }
+      approval_step_action_save: { Args: { _payload: Json }; Returns: Json }
       approval_step_config_write: { Args: { _payload: Json }; Returns: Json }
       archive_prudential_ratio: {
         Args: { _ratio_id: string }

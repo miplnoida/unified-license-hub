@@ -15,7 +15,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { WorkflowActionType } from '@/hooks/useWorkflowEngine';
-import { getDefaultEventForAction, pickDefaultEmailTemplateId } from '@/hooks/useActionNotifications';
+// Default action-notification seeding now happens server-side inside
+// `approval_step_action_save` (that table is also write-revoked for the browser).
+
 
 export type NextStepMode =
   | 'next'
@@ -63,67 +65,27 @@ export interface StepActionInput {
 const TABLE = 'approval_step_actions' as const;
 
 /**
- * Re-sync approval_steps.allowed_actions to the union of currently enabled
- * action_types in approval_step_actions for this step. Keeps the legacy
- * runtime gate (`v_allowed_actions` in perform_workflow_transition) in lock-step
- * with per-action config so admins only have to manage one list.
+ * Writes go through governed SECURITY DEFINER RPCs — the browser holds no
+ * INSERT/UPDATE/DELETE grant on `approval_step_actions`,
+ * `approval_action_notifications` or `approval_step_entry_notifications`.
+ *
+ * `approval_step_action_save` upserts on the natural key (step_id, action_type),
+ * re-syncs `approval_steps.allowed_actions`, seeds the default action
+ * notification and writes the audit row — all server-side, gated by
+ * workflow_management edit/manage_config/publish (or super admin).
  */
-async function syncAllowedActions(stepId: string) {
-  const { data, error } = await supabase
-    .from(TABLE as any)
-    .select('action_type, is_enabled')
-    .eq('step_id', stepId);
-  if (error) throw error;
-  const allowed = Array.from(
-    new Set(((data ?? []) as any[]).filter(r => r.is_enabled).map(r => r.action_type as string)),
-  );
-  const { error: upErr } = await supabase
-    .from('approval_steps')
-    .update({ allowed_actions: allowed as any })
-    .eq('id', stepId);
-  if (upErr) throw upErr;
+function friendlyWriteError(error: unknown): Error {
+  const e = error as { code?: string; message?: string } | null;
+  const message = e?.message ?? '';
+  if (e?.code === '42501' || /permission/i.test(message)) {
+    return new Error('You do not have permission to configure workflow actions.');
+  }
+  if (e?.code === '23505') {
+    return new Error('This step already has a row for that action type. Edit the existing row.');
+  }
+  return new Error(message || 'Failed to save action');
 }
 
-async function ensureDefaultActionNotification(
-  stepId: string,
-  actionType: WorkflowActionType,
-  entityType: string | null | undefined,
-) {
-  const eventKey = getDefaultEventForAction(actionType, entityType);
-  const { data: existing, error: existingError } = await supabase
-    .from('approval_action_notifications' as any)
-    .select('id')
-    .eq('step_id', stepId)
-    .eq('action_type', actionType)
-    .eq('event_key', eventKey)
-    .limit(1);
-  if (existingError) throw existingError;
-  if ((existing ?? []).length > 0) return;
-
-  const { data: templates, error: templateError } = await supabase
-    .from('notification_templates')
-    .select('id, event_type, channel, is_active')
-    .eq('event_type', eventKey)
-    .eq('channel', 'email')
-    .eq('is_active', true)
-    .order('created_at', { ascending: true });
-  if (templateError) throw templateError;
-  const templateId = pickDefaultEmailTemplateId(eventKey, (templates ?? []) as any[]);
-  if (!templateId) return;
-
-  const { error: insertError } = await supabase
-    .from('approval_action_notifications' as any)
-    .insert({
-      step_id: stepId,
-      action_type: actionType,
-      event_key: eventKey,
-      recipient_type: 'applicant',
-      recipient_config: {},
-      template_id: templateId,
-      is_enabled: true,
-    } as any);
-  if (insertError && (insertError as any).code !== '23505') throw insertError;
-}
 
 export function useStepActions(stepId: string | null | undefined) {
   return useQuery({
@@ -144,8 +106,12 @@ export function useStepActions(stepId: string | null | undefined) {
 
 export function useUpsertStepAction(stepId: string, entityType?: string | null) {
   const qc = useQueryClient();
+  // entityType is kept in the signature for call-site clarity; the RPC derives
+  // the workflow entity type itself when seeding notification defaults.
+  void entityType;
   return useMutation({
     mutationFn: async (row: StepActionInput) => {
+
       const mode: NextStepMode = row.next_step_mode ?? 'next';
       if (mode === 'specific_step' && !row.next_step_id) {
         throw new Error('Choose the target step for "Move to Specific Step".');
@@ -169,20 +135,10 @@ export function useUpsertStepAction(stepId: string, entityType?: string | null) 
         signature_data_url: row.require_digital_signature ? (row.signature_data_url ?? null) : null,
       };
 
-      const query = row.id
-        ? supabase.from(TABLE as any).update(payload as any).eq('id', row.id)
-        : supabase.from(TABLE as any).insert(payload as any);
-      const { data, error } = await query.select().single();
-      if (error) {
-        if ((error as any).code === '23505') {
-          throw new Error('This step already has a row for that action type. Edit the existing row.');
-        }
-        throw error;
-      }
-      await syncAllowedActions(stepId);
-      if (payload.is_enabled) {
-        await ensureDefaultActionNotification(stepId, payload.action_type as WorkflowActionType, entityType);
-      }
+      const { data, error } = await supabase.rpc('approval_step_action_save' as any, {
+        _payload: payload as any,
+      } as any);
+      if (error) throw friendlyWriteError(error);
       return data as unknown as StepAction;
     },
     onSuccess: () => {
@@ -198,10 +154,10 @@ export function useDeleteStepAction(stepId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from(TABLE as any).delete().eq('id', id);
-      if (error) throw error;
-      await syncAllowedActions(stepId);
+      const { error } = await supabase.rpc('approval_step_action_delete' as any, { _id: id } as any);
+      if (error) throw friendlyWriteError(error);
     },
+
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['approval_step_actions', stepId] });
       qc.invalidateQueries({ queryKey: ['approval_steps'] });
