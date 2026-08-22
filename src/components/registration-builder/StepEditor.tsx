@@ -222,13 +222,12 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
               {step.isVisible === false && (
                 <Badge variant="outline" className="text-[9px] px-1 border-destructive/40 text-destructive">Hidden</Badge>
               )}
-              <input
+              <Switch
                 id={`visible-${step.id}`}
-                type="checkbox"
                 checked={step.isVisible !== false}
-                onChange={e => update({ isVisible: e.target.checked })}
-                className="h-3.5 w-3.5"
+                onCheckedChange={val => update({ isVisible: val })}
               />
+
             </div>
           </div>
           {step.isRepeatable && (
