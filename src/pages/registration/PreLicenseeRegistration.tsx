@@ -1533,11 +1533,10 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
       {/* Form Content */}
       <div className="max-w-4xl mx-auto px-4 pb-8">
-        {/* Licensee Type Scope — only on first step, when not already rendered by
-            EntityDetailsStep AND the dynamic schema does not itself supply
-            sector fields (avoids duplicating sector selection). */}
+        {/* Licensee Type Scope — only on first step, and only when the dynamic
+            schema does not itself supply sector fields (avoids duplicating
+            sector selection). */}
         {currentStep === 0
-          && !steps.some(s => s.type === 'static' && s.id === 'entity')
           && !(visibleSchema || []).some(st => st.rows.some(r => r.columns.some(c => c.field?.dataSource === 'sector'))) && (
           <div className="mb-6">
             <SectorSelectionSection
