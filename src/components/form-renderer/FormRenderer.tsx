@@ -22,6 +22,10 @@ import {
 import type { FormSection, FormField, FormRow, ConditionalRule } from '@/types/formBuilder';
 import { migrateSectionsToRows } from '@/lib/formRows';
 import { isSectionEffectivelyVisible } from '@/lib/sectionVisibility';
+import { EmailFieldControl } from '@/components/forms/EmailFieldControl';
+import { resolveEmailFieldSettings } from '@/lib/emailFieldConfig';
+import { validateEmailFieldSettings } from '@/lib/emailFieldValidation';
+
 import { isFieldChanged, deepEqualField, isFileFieldChanged, diffRepeatable, type DiffPair, type DiffStatus } from '@/lib/formDiff';
 import { evaluateFormula } from '@/lib/safeEval';
 import { uploadFormFile, deleteFormFile, refreshFormFileUrl, resolveFormFileStoragePath, type FormFileData } from '@/lib/formFileUpload';
