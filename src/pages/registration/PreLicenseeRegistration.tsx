@@ -198,10 +198,13 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
         }
         const staticData = registrationToFormData(resolved.registration);
         hydrate(staticData);
-        setDynamicFormData(deepMergeRegistrationData(
+        const existingDynamic = deepMergeRegistrationData(
           (resolved.registration.entity_specific_data as Record<string, unknown>) || {},
           (resolved.submission?.form_data as Record<string, unknown>) || {},
-        ));
+        );
+        initialDynamicDataRef.current = existingDynamic;
+        setDynamicFormData(existingDynamic);
+
         setUpdateContext(resolved);
       } catch (err) {
         console.error('[registration] Failed to load update context', err);
