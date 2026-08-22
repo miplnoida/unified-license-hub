@@ -1,4 +1,6 @@
 import { Input } from '@/components/ui/input';
+import { EmailFieldControl } from '@/components/forms/EmailFieldControl';
+import { EMAIL_FIELD_SETTINGS_OFF, resolveEmailFieldSettings } from '@/lib/emailFieldConfig';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -404,9 +406,30 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
           ? 'email'
           : field.type;
 
+  const emailSettings = effectiveType === 'email'
+    ? resolveEmailFieldSettings({ type: 'email', validation: field.validation as any })
+    : EMAIL_FIELD_SETTINGS_OFF;
+
   switch (effectiveType) {
-    case 'text':
     case 'email':
+      if (!readOnly && (emailSettings.requireVerification || emailSettings.requireUniqueness)) {
+        input = (
+          <EmailFieldControl
+            fieldKey={fieldKeyForState}
+            value={strValue}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            settings={emailSettings}
+            placeholder={field.placeholder}
+            disabled={readOnly}
+            invalid={!!error}
+            ownEmail={ownEmail ?? null}
+          />
+        );
+        break;
+      }
+      // falls through to the plain input below
+    case 'text':
     case 'password':
     case 'confirm_password':
       input = (
