@@ -934,8 +934,29 @@ export function FormRenderer({
 
     switch (field.type) {
       case 'text':
-      case 'email':
+      case 'email': {
+        const emailSettings = field.type === 'email'
+          ? resolveEmailFieldSettings(field)
+          : { requireVerification: false, requireUniqueness: false };
+        if (field.type === 'email' && (emailSettings.requireVerification || emailSettings.requireUniqueness) && !readOnly) {
+          input = (
+            <EmailFieldControl
+              fieldKey={field.fieldName}
+              value={typeof val === 'string' ? val : ''}
+              onChange={v => onChange(field.fieldName, v)}
+              settings={emailSettings}
+              placeholder={field.placeholder}
+              disabled={readOnly}
+              invalid={!!error}
+              ownEmail={(initialData?.[field.fieldName] as string | undefined) ?? null}
+            />
+          );
+          break;
+        }
         input = <Input type={field.type === 'email' ? 'email' : 'text'} value={val} onChange={e => onChange(field.fieldName, e.target.value)} placeholder={field.placeholder} disabled={readOnly} />;
+        break;
+      }
+
         break;
       case 'phone':
         input = <Input type="tel" value={val} onChange={e => onChange(field.fieldName, e.target.value)} placeholder={field.placeholder || '+1 (555) 123-4567'} disabled={readOnly} />;
