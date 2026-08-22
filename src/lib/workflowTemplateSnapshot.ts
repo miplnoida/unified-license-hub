@@ -248,18 +248,22 @@ export async function applyV2SnapshotToWorkflow(params: ApplySnapshotParams): Pr
       auto_approve_on_timeout: !!s.auto_approve_on_timeout,
       require_digital_signature: !!s.require_digital_signature,
       sla_hours: s.sla_hours ?? 48,
-      allowed_actions: s.allowed_actions ?? [],
+      // allowed_actions is intentionally omitted: it is derived server-side from
+      // the approval_step_actions rows inserted below.
     };
   });
 
-  const { data: insertedSteps, error: stepErr } = await supabase
-    .from('approval_steps')
-    .insert(stepPayload as any)
-    .select('id, step_order');
+  // Direct DML on approval_steps is revoked; the governed RPC performs the insert.
+  const { data: snapshotResult, error: stepErr } = await supabase.rpc(
+    'approval_steps_snapshot_insert' as any,
+    { _payload: { steps: stepPayload } as any },
+  );
   if (stepErr) throw stepErr;
+  const insertedSteps = (((snapshotResult as any)?.steps ?? []) as any[]);
 
   // Sort by step_order so we can pair to the (also sorted) snapshot steps.
-  const insertedSorted = [...((insertedSteps ?? []) as any[])].sort((a, b) => a.step_order - b.step_order);
+  const insertedSorted = [...insertedSteps].sort((a, b) => a.step_order - b.step_order);
+
   const localIdMap = buildLocalIdMap({ version: 2, steps: sorted }, insertedSorted.map(r => r.id as string));
 
   // Build child-row payloads.

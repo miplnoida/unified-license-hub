@@ -34617,9 +34617,31 @@ export type Database = {
         Args: { _change_set_id: string }
         Returns: Json
       }
+      approval_action_notification_delete: {
+        Args: { _id: string }
+        Returns: Json
+      }
+      approval_action_notification_save: {
+        Args: { _payload: Json }
+        Returns: Json
+      }
       approval_step_action_delete: { Args: { _id: string }; Returns: Json }
       approval_step_action_save: { Args: { _payload: Json }; Returns: Json }
       approval_step_config_write: { Args: { _payload: Json }; Returns: Json }
+      approval_step_delete: { Args: { _id: string }; Returns: Json }
+      approval_step_entry_notification_delete: {
+        Args: { _id: string }
+        Returns: Json
+      }
+      approval_step_entry_notification_save: {
+        Args: { _payload: Json }
+        Returns: Json
+      }
+      approval_step_save: { Args: { _payload: Json }; Returns: Json }
+      approval_steps_snapshot_insert: {
+        Args: { _payload: Json }
+        Returns: Json
+      }
       archive_prudential_ratio: {
         Args: { _ratio_id: string }
         Returns: undefined
@@ -34636,6 +34658,7 @@ export type Database = {
         Args: { _action: string }
         Returns: undefined
       }
+      assert_workflow_config_writer: { Args: never; Returns: string }
       assign_appeal_panel: {
         Args: {
           _appeal_id: string
@@ -42110,6 +42133,10 @@ export type Database = {
         Returns: Json
       }
       user_workflow_role_slugs: { Args: { _user: string }; Returns: string[] }
+      validate_notification_recipient_config: {
+        Args: { _recipient_config: Json; _recipient_type: string }
+        Returns: Json
+      }
       validate_scope_config: {
         Args: { _scope_config: Json }
         Returns: {

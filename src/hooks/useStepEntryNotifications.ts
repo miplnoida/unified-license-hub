@@ -9,8 +9,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { throwWorkflowConfigError } from '@/lib/workflowConfigErrors';
 import type { ActionNotificationRecipientType } from '@/hooks/useActionNotifications';
 import { normalizeRecipientConfig } from '@/hooks/useActionNotifications';
+
 
 export interface StepEntryNotification {
   id: string;
@@ -74,6 +76,7 @@ export function useUpsertStepEntryNotification(stepId: string) {
       }
 
       const payload = {
+        id: row.id ?? null,
         step_id: stepId,
         event_key: eventKey,
         recipient_type: row.recipient_type,
@@ -82,11 +85,12 @@ export function useUpsertStepEntryNotification(stepId: string) {
         is_enabled: row.is_enabled ?? true,
       };
 
-      const q = row.id
-        ? supabase.from(TABLE as any).update(payload as any).eq('id', row.id)
-        : supabase.from(TABLE as any).insert(payload as any);
-      const { data, error } = await q.select().single();
-      if (error) throw error;
+      // Direct DML is revoked on this table — governed RPC validates + audits.
+      const { data, error } = await supabase.rpc(
+        'approval_step_entry_notification_save' as any,
+        { _payload: payload as any },
+      );
+      if (error) throwWorkflowConfigError(error, 'Failed to save notification');
       return data as unknown as StepEntryNotification;
     },
     onSuccess: () => {
@@ -100,8 +104,11 @@ export function useDeleteStepEntryNotification(stepId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from(TABLE as any).delete().eq('id', id);
-      if (error) throw error;
+      const { error } = await supabase.rpc(
+        'approval_step_entry_notification_delete' as any,
+        { _id: id },
+      );
+      if (error) throwWorkflowConfigError(error, 'Failed to delete notification');
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['approval_step_entry_notifications', stepId] });
@@ -109,3 +116,4 @@ export function useDeleteStepEntryNotification(stepId: string) {
     onError: (e: any) => toast.error(e?.message || 'Failed to delete notification'),
   });
 }
+

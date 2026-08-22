@@ -17,16 +17,19 @@ import { resolve } from 'node:path';
 
 function loadVersioningMigration(): string {
   const dir = resolve(__dirname, '../../supabase/migrations');
-  // Most recent migration that creates approval_workflow_versions.
+  // Most recent migration that actually DEFINES the versioning surface. A later
+  // migration merely mentioning these identifiers must not shadow it.
   const files = readdirSync(dir).filter(f => f.endsWith('.sql')).sort();
   for (const f of [...files].reverse()) {
     const src = readFileSync(resolve(dir, f), 'utf-8');
-    if (/approval_workflow_versions/.test(src) && /publish_workflow_version/.test(src)) {
+    if (/CREATE TABLE IF NOT EXISTS public\.approval_workflow_versions/.test(src)
+        && /FUNCTION public\.publish_workflow_version/.test(src)) {
       return src;
     }
   }
   throw new Error('Workflow versioning migration not found');
 }
+
 
 describe('workflow versioning migration', () => {
   const sql = loadVersioningMigration();
