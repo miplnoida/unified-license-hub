@@ -1278,7 +1278,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                         </div>
                       )}
 
-                      {!noConfiguredActions && noWorkflowActions && canActResult && (
+                      {!noConfiguredActions && canActResult && !canActResult.can_act && (
                         <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
                           <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                           <div className="space-y-1">
