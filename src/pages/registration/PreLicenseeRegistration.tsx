@@ -1356,28 +1356,8 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
         }));
         sections.push({ title: s.title, fields });
       });
-    } else {
-      sections.push({
-        title: 'Entity Details',
-        fields: [
-          { label: 'Applicant Name', value: form.applicantName },
-          { label: 'Alt Name', value: form.applicantNameAlt },
-          { label: 'Registration Number', value: form.registrationNumber },
-          { label: 'Mailing Address', value: [form.mailingAddress.street, form.mailingAddress.city, form.mailingAddress.state, form.mailingAddress.country].filter(Boolean).join(', ') },
-          { label: 'Physical Address', value: form.sameAsMailing ? 'Same as mailing' : [form.physicalAddress.street, form.physicalAddress.city, form.physicalAddress.state, form.physicalAddress.country].filter(Boolean).join(', ') },
-        ],
-      });
-      sections.push({
-        title: 'Primary User',
-        fields: [
-          { label: 'First Name', value: form.firstName },
-          { label: 'Last Name', value: form.lastName },
-          { label: 'Email', value: form.email },
-          { label: 'Telephone', value: form.telephone },
-          { label: 'Username', value: form.username },
-        ],
-      });
     }
+
 
     const documentsSectionShown = isDocumentsStepVisible({
       requireDocuments: config ? config.requireDocuments : true,
