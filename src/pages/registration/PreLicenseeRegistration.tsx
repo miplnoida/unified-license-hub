@@ -1428,20 +1428,29 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     );
   }
 
-  if (!config) {
+  // Two distinct states, one applicant-facing message:
+  //  - no active registration configuration exists at all, or
+  //  - a configuration exists but the admin hid every section.
+  // Neither may fall back to the legacy Entity Details / Primary User form.
+  if (!config || visibleSchema.length === 0) {
     return (
       <div className="min-h-screen bg-background">
         <LandingNav />
         <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-          <h2 className="text-xl font-semibold text-foreground mb-2">Registration is currently unavailable</h2>
+          <h2 className="text-xl font-semibold text-foreground mb-2">Registration Form Not Available</h2>
           <p className="text-sm text-muted-foreground mb-6">
-            No active registration form has been configured. Please check back soon or contact the administrator.
+            The registration form is currently not available. Please try again later or contact the
+            administrator for assistance.
           </p>
-          <Button variant="outline" onClick={() => reloadConfig()}>Refresh</Button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Button onClick={() => navigate('/')}>Back to Home</Button>
+            <Button variant="outline" onClick={() => reloadConfig()}>Refresh</Button>
+          </div>
         </div>
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-background">
