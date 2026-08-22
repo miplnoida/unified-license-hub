@@ -31,6 +31,11 @@ export interface RegFieldValidation {
   patternMessage?: string;
   /** When true, this field's value must be unique across registration applicant names. */
   uniqueApplicantName?: boolean;
+  /** Email fields only: applicant must complete OTP verification of the address. */
+  requireEmailVerification?: boolean;
+  /** Email fields only: the address must not already belong to another account. */
+  uniqueEmail?: boolean;
+
   // File validation
   allowedTypes?: string[];
   minSizeKB?: number;
