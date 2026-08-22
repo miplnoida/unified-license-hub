@@ -12,6 +12,8 @@ import {
 import { DynamicRegistrationStepper } from '@/components/registration/DynamicRegistrationStepper';
 import { FileText, Eye, Download } from 'lucide-react';
 import type { RegFormSchema, RegField } from '@/types/registrationForm';
+import { visibleRegSteps } from '@/lib/sectionVisibility';
+import { resolveEmailFieldSettings } from '@/lib/emailFieldConfig';
 
 interface Props {
   schema: RegFormSchema;
@@ -48,8 +50,8 @@ export function FormPreview({ schema, showNavigation = true, showStepper = true 
       {showStepper && (
         <DynamicRegistrationStepper
           steps={stepNames}
-          currentStep={currentStep}
-          completedSteps={new Set(Array.from({ length: currentStep }, (_, i) => i))}
+          currentStep={stepIdx}
+          completedSteps={new Set(Array.from({ length: stepIdx }, (_, i) => i))}
         />
       )}
 
@@ -87,10 +89,10 @@ export function FormPreview({ schema, showNavigation = true, showStepper = true 
 
       {showNavigation && (
         <div className="flex justify-between">
-          <Button variant="outline" onClick={() => setCurrentStep(Math.max(0, currentStep - 1))} disabled={currentStep === 0}>
+          <Button variant="outline" onClick={() => setCurrentStep(Math.max(0, stepIdx - 1))} disabled={stepIdx === 0}>
             Previous
           </Button>
-          <Button onClick={() => setCurrentStep(Math.min(schema.length - 1, currentStep + 1))} disabled={currentStep === schema.length - 1}>
+          <Button onClick={() => setCurrentStep(Math.min(applicantSchema.length - 1, stepIdx + 1))} disabled={stepIdx === applicantSchema.length - 1}>
             Next
           </Button>
         </div>
@@ -217,6 +219,20 @@ function FieldPreview({ field }: { field: RegField }) {
             disabled
             className="text-sm"
           />
+          {field.type === 'email' && (() => {
+            const settings = resolveEmailFieldSettings(field);
+            if (!settings.requireVerification && !settings.requireUniqueness) return null;
+            return (
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {settings.requireVerification && (
+                  <Button type="button" variant="outline" size="sm" disabled>Verify Email</Button>
+                )}
+                {settings.requireUniqueness && (
+                  <Badge variant="outline" className="text-[10px]">Uniqueness checked</Badge>
+                )}
+              </div>
+            );
+          })()}
           {field.helpText && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
         </div>
       );
