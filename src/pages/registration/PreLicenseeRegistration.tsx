@@ -234,11 +234,18 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     reset();
   }, [clearPersistedStep, reset]);
 
-  // Persist current step across page refreshes (cleared on submit/reset)
+  // Persist current step across page refreshes (cleared on submit/reset).
+  // With no applicant-visible step the stored index is dropped so a later
+  // config change never restores a stale position.
   useEffect(() => {
     if (isUpdateMode) return;
+    if (visibleSchema.length === 0) {
+      sessionStorage.removeItem(STEP_KEY);
+      return;
+    }
     sessionStorage.setItem(STEP_KEY, String(currentStep));
-  }, [currentStep, isUpdateMode]);
+  }, [currentStep, isUpdateMode, visibleSchema.length]);
+
 
   // Remember the furthest step reached so the stepper allows forward jumps back
   // to steps the user already visited (e.g. after going back from Review).
