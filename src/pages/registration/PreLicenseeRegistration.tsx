@@ -21,6 +21,7 @@ import {
   isVerificationStageId,
 } from '@/lib/registrationEmailVerification';
 import { visibleRegSteps } from '@/lib/sectionVisibility';
+import { validateEmailFieldSettings } from '@/lib/emailFieldValidation';
 import {
   isItemVisible,
   isEffectiveRequired,
@@ -165,6 +166,9 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const [pendingPrimaryEmailChecks, setPendingPrimaryEmailChecks] = useState<Record<string, boolean>>({});
   const latestPrimaryEmailCheckRef = useRef<Record<string, number>>({});
   const dynamicFormDataRef = useRef<Record<string, unknown>>(dynamicFormData);
+  /** Snapshot of the record's own values in update mode — an unchanged email is
+   *  never treated as a duplicate and never needs re-verification. */
+  const initialDynamicDataRef = useRef<Record<string, unknown>>(dynamicFormData);
   // Captures the last dynamic-step validation result so handleNext/handleSubmit
   // can show a summary toast naming the offending fields with their labels.
   const lastDynamicErrorsRef = useRef<{ errs: Record<string, string>; step: RegStep | null }>({ errs: {}, step: null });
@@ -194,10 +198,13 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
         }
         const staticData = registrationToFormData(resolved.registration);
         hydrate(staticData);
-        setDynamicFormData(deepMergeRegistrationData(
+        const existingDynamic = deepMergeRegistrationData(
           (resolved.registration.entity_specific_data as Record<string, unknown>) || {},
           (resolved.submission?.form_data as Record<string, unknown>) || {},
-        ));
+        );
+        initialDynamicDataRef.current = existingDynamic;
+        setDynamicFormData(existingDynamic);
+
         setUpdateContext(resolved);
       } catch (err) {
         console.error('[registration] Failed to load update context', err);
@@ -520,6 +527,16 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           if (isRegistrationEmailField(field) && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val))) {
             errs[effectiveName] = 'Invalid email address';
           }
+          if (isRegistrationEmailField(field) && val) {
+            const emailIssue = validateEmailFieldSettings({
+              field: { type: 'email', validation: field.validation as any },
+              fieldKey: effectiveName,
+              value: val,
+              ownEmail: isUpdateMode ? (initialDynamicDataRef.current?.[effectiveName] as string | undefined) ?? null : null,
+            });
+            if (emailIssue) errs[effectiveName] = emailIssue;
+          }
+
           if (field.type === 'phone' && val && !/^[+]?[\d\s\-()]{7,20}$/.test(String(val))) {
             errs[effectiveName] = 'Invalid phone number';
           }

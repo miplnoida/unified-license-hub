@@ -7,9 +7,14 @@ export interface ValidationRules {
   max?: number;
   pattern?: string;
   patternMessage?: string;
+  /** Email fields only: applicant must complete OTP verification of the address. */
+  requireEmailVerification?: boolean;
+  /** Email fields only: the address must not already belong to another account. */
+  uniqueEmail?: boolean;
   // File validation
   allowedTypes?: string[];   // e.g. ['.pdf', '.jpg']
   minSizeKB?: number;
+
   maxSizeMB?: number;
 }
 

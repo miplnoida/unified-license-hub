@@ -22,6 +22,10 @@ import {
 import type { FormSection, FormField, FormRow, ConditionalRule } from '@/types/formBuilder';
 import { migrateSectionsToRows } from '@/lib/formRows';
 import { isSectionEffectivelyVisible } from '@/lib/sectionVisibility';
+import { EmailFieldControl } from '@/components/forms/EmailFieldControl';
+import { resolveEmailFieldSettings } from '@/lib/emailFieldConfig';
+import { validateEmailFieldSettings } from '@/lib/emailFieldValidation';
+
 import { isFieldChanged, deepEqualField, isFileFieldChanged, diffRepeatable, type DiffPair, type DiffStatus } from '@/lib/formDiff';
 import { evaluateFormula } from '@/lib/safeEval';
 import { uploadFormFile, deleteFormFile, refreshFormFileUrl, resolveFormFileStoragePath, type FormFileData } from '@/lib/formFileUpload';
@@ -521,6 +525,18 @@ export function FormRenderer({
       if (field.type === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val))) {
         pushErr(field, 'Invalid email address');
       }
+      if (field.type === 'email' && val) {
+        // Admin-configured verification / uniqueness. Only reachable for fields
+        // the user can actually see (hidden sections never get here).
+        const emailIssue = validateEmailFieldSettings({
+          field,
+          fieldKey: field.fieldName,
+          value: val,
+          ownEmail: (initialData?.[field.fieldName] as string | undefined) ?? null,
+        });
+        if (emailIssue) pushErr(field, emailIssue);
+      }
+
       if (field.type === 'phone' && val && !/^[+]?[\d\s\-()]{7,20}$/.test(String(val))) {
         pushErr(field, 'Invalid phone number');
       }
@@ -918,9 +934,29 @@ export function FormRenderer({
 
     switch (field.type) {
       case 'text':
-      case 'email':
+      case 'email': {
+        const emailSettings = field.type === 'email'
+          ? resolveEmailFieldSettings(field)
+          : { requireVerification: false, requireUniqueness: false };
+        if (field.type === 'email' && (emailSettings.requireVerification || emailSettings.requireUniqueness) && !readOnly) {
+          input = (
+            <EmailFieldControl
+              fieldKey={field.fieldName}
+              value={typeof val === 'string' ? val : ''}
+              onChange={v => onChange(field.fieldName, v)}
+              settings={emailSettings}
+              placeholder={field.placeholder}
+              disabled={readOnly}
+              invalid={!!error}
+              ownEmail={(initialData?.[field.fieldName] as string | undefined) ?? null}
+            />
+          );
+          break;
+        }
         input = <Input type={field.type === 'email' ? 'email' : 'text'} value={val} onChange={e => onChange(field.fieldName, e.target.value)} placeholder={field.placeholder} disabled={readOnly} />;
         break;
+      }
+
       case 'phone':
         input = <Input type="tel" value={val} onChange={e => onChange(field.fieldName, e.target.value)} placeholder={field.placeholder || '+1 (555) 123-4567'} disabled={readOnly} />;
         break;
