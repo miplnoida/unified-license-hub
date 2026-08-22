@@ -520,6 +520,16 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           if (isRegistrationEmailField(field) && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val))) {
             errs[effectiveName] = 'Invalid email address';
           }
+          if (isRegistrationEmailField(field) && val) {
+            const emailIssue = validateEmailFieldSettings({
+              field: { type: 'email', validation: field.validation as any },
+              fieldKey: effectiveName,
+              value: val,
+              ownEmail: updateMode ? (dynamicInitialData?.[effectiveName] as string | undefined) ?? null : null,
+            });
+            if (emailIssue) errs[effectiveName] = emailIssue;
+          }
+
           if (field.type === 'phone' && val && !/^[+]?[\d\s\-()]{7,20}$/.test(String(val))) {
             errs[effectiveName] = 'Invalid phone number';
           }
