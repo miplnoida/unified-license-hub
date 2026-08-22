@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
+import { throwWorkflowConfigError } from '@/lib/workflowConfigErrors';
+
 import type { AppRole } from '@/types/platform';
 
 // ─── Types ───
@@ -500,9 +502,11 @@ export function useCreateStep() {
       escalation_role?: string;
       escalation_after_hours?: number;
     }) => {
-      const { data, error } = await supabase
-        .from('approval_steps')
-        .insert({
+      // Direct DML on approval_steps is revoked for `authenticated`. The governed
+      // RPC owns the write and NEVER accepts allowed_actions from the browser —
+      // that column is maintained from approval_step_actions server-side.
+      const { data, error } = await supabase.rpc('approval_step_save' as any, {
+        _payload: {
           workflow_id: params.workflow_id,
           step_order: params.step_order,
           name: params.name,
@@ -514,16 +518,11 @@ export function useCreateStep() {
           ),
           step_type: params.step_type || 'sequential',
           sla_hours: params.sla_hours || 48,
-          // No silent default: callers MUST pass an explicit allowed_actions list.
-          // A step with empty/missing allowed_actions surfaces a config warning in
-          // WorkflowPanel and the backend rejects every action on it.
-          allowed_actions: Array.isArray(params.allowed_actions) ? params.allowed_actions : [],
           escalation_role: params.escalation_role || null,
           escalation_after_hours: params.escalation_after_hours || null,
-        } as any)
-        .select()
-        .single();
-      if (error) throw error;
+        } as any,
+      });
+      if (error) throwWorkflowConfigError(error, 'Failed to create step');
       return data as unknown as WorkflowStep;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['approval_steps'] }),
@@ -534,8 +533,13 @@ export function useUpdateStep() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<WorkflowStep> & { id: string }) => {
-      const { error } = await supabase.from('approval_steps').update(updates as any).eq('id', id);
-      if (error) throw error;
+      // `allowed_actions` is server-owned (derived from approval_step_actions);
+      // strip it so a stale client copy can never overwrite the canonical value.
+      const { allowed_actions: _ignored, ...safeUpdates } = updates as Record<string, unknown>;
+      const { error } = await supabase.rpc('approval_step_save' as any, {
+        _payload: { id, ...safeUpdates } as any,
+      });
+      if (error) throwWorkflowConfigError(error, 'Failed to update step');
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['approval_steps'] }),
   });
@@ -545,37 +549,16 @@ export function useDeleteStep() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      // Capture the owning workflow before the row disappears so we can
-      // compact the remaining step orders and never leave a numbering gap
-      // (a gap makes the builder look like it has an empty step).
-      const { data: row } = await supabase
-        .from('approval_steps')
-        .select('workflow_id')
-        .eq('id', id)
-        .maybeSingle();
-      const workflowId = (row as any)?.workflow_id as string | undefined;
-
-      const { error } = await supabase.from('approval_steps').delete().eq('id', id);
-      if (error) throw error;
-
-      if (!workflowId) return;
-      const { data: remaining } = await supabase
-        .from('approval_steps')
-        .select('id, step_order')
-        .eq('workflow_id', workflowId)
-        .order('step_order', { ascending: true });
-      const list = ((remaining as any[]) || []);
-      if (list.length === 0) return;
-      const needsCompaction = list.some((s, i) => s.step_order !== i + 1);
-      if (!needsCompaction) return;
-      await supabase.rpc('reorder_approval_steps' as any, {
-        _workflow_id: workflowId,
-        _orders: list.map((s, i) => ({ id: s.id, step_order: i + 1 })) as any,
-      });
+      // The RPC removes dependent action/notification config, blocks deletion of a
+      // step that is the current step of an in-flight workflow, and compacts the
+      // remaining step_order values so the builder never shows a numbering gap.
+      const { error } = await supabase.rpc('approval_step_delete' as any, { _id: id });
+      if (error) throwWorkflowConfigError(error, 'Failed to delete step');
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['approval_steps'] }),
   });
 }
+
 
 
 export function useReorderSteps() {

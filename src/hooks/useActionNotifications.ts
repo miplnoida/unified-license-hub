@@ -9,7 +9,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { throwWorkflowConfigError } from '@/lib/workflowConfigErrors';
 import type { WorkflowActionType } from '@/hooks/useWorkflowEngine';
+
 
 export type ActionNotificationRecipientType =
   | 'applicant'
@@ -176,11 +178,12 @@ export function useUpsertActionNotification(stepId: string) {
   return useMutation({
     mutationFn: async (row: ActionNotificationSaveInput) => {
       const payload = buildActionNotificationPayload(stepId, row);
-      const query = row.id
-        ? supabase.from(TABLE as any).update(payload as any).eq('id', row.id)
-        : supabase.from(TABLE as any).insert(payload as any);
-      const { data, error } = await query.select().single();
-      if (error) throw error;
+      // Direct DML on approval_action_notifications is revoked for `authenticated`;
+      // writes go through the governed RPC which validates + audits server-side.
+      const { data, error } = await supabase.rpc('approval_action_notification_save' as any, {
+        _payload: { ...payload, id: row.id ?? null } as any,
+      });
+      if (error) throwWorkflowConfigError(error, 'Failed to save notification');
       return data;
     },
     onSuccess: () => {
@@ -194,8 +197,8 @@ export function useDeleteActionNotification(stepId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from(TABLE as any).delete().eq('id', id);
-      if (error) throw error;
+      const { error } = await supabase.rpc('approval_action_notification_delete' as any, { _id: id });
+      if (error) throwWorkflowConfigError(error, 'Failed to delete notification');
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['action_notifications', stepId] });
@@ -203,6 +206,7 @@ export function useDeleteActionNotification(stepId: string) {
     onError: (e: any) => toast.error(e?.message || 'Failed to delete notification'),
   });
 }
+
 
 /**
  * Default suggested event_key per action_type, used when admin adds a fresh row.

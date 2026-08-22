@@ -42,7 +42,12 @@ describe('workflow builder runtime contract', () => {
 
   it('RPC loads per-action config from approval_step_actions', () => {
     expect(rpcSrc).toMatch(/FROM\s+public\.approval_step_actions/);
-    expect(rpcSrc).toMatch(/WHERE\s+step_id\s*=\s*v_step\.id\s+AND\s+action_type\s*=\s*_action_type/);
+    // The lookup key is the *effective* action (raw action after save_comment /
+    // alias normalisation), so accept either the raw parameter or v_effective_action.
+    expect(rpcSrc).toMatch(
+      /WHERE\s+step_id\s*=\s*v_step\.id\s+AND\s+action_type\s*=\s*(_action_type|v_effective_action)/,
+    );
+
   });
 
   it('RPC honors end_workflow + end_state', () => {
