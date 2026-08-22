@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
+import { pendingStepMessage } from '@/lib/workflowPendingLabel';
+
 import { WORKFLOW_SIGNATURE_CAPTURE_ENABLED } from '@/lib/workflowSignatureCapture';
 import { useStepActions, type StepAction } from '@/hooks/useStepActions';
 import { WorkflowActionPreviewDialog, type ActionNotificationOverride } from '@/components/applications/WorkflowActionPreviewDialog';
