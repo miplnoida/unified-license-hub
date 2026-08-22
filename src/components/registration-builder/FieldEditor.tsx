@@ -340,6 +340,39 @@ export function FieldEditor({ field, onChange, onClose, allFields }: Props) {
           </div>
         )}
 
+        {/* Email field configuration — independent settings, both default No */}
+        {field.type === 'email' && (
+          <div className="space-y-2 p-2 rounded border bg-muted/30">
+            <Label className="text-xs font-semibold">Email Field Configuration</Label>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={field.validation?.requireEmailVerification === true}
+                onCheckedChange={v => update({ validation: { ...field.validation, requireEmailVerification: v || undefined } })}
+              />
+              <div className="flex-1">
+                <Label className="text-xs">Email Verification Required</Label>
+                <p className="text-[10px] text-muted-foreground">
+                  Yes = applicant must verify this address with a one-time code before submitting.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={field.validation?.uniqueEmail === true}
+                onCheckedChange={v => update({ validation: { ...field.validation, uniqueEmail: v || undefined } })}
+              />
+              <div className="flex-1">
+                <Label className="text-xs">Uniqueness Check</Label>
+                <p className="text-[10px] text-muted-foreground">
+                  Yes = block the address when it already belongs to another account or registration.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+
+
         {/* Text pattern presets */}
         {['text', 'textarea'].includes(field.type) && (() => {
           const PRESETS: Record<string, { pattern?: string; msg?: string }> = {
