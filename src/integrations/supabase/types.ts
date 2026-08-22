@@ -38658,6 +38658,16 @@ export type Database = {
         Args: { _context?: string; _results: Json; _return_id: string }
         Returns: string
       }
+      log_workflow_authz_denial: {
+        Args: {
+          _action_type: string
+          _actor_id: string
+          _diagnostic?: Json
+          _reason: string
+          _step_id: string
+        }
+        Returns: undefined
+      }
       manual_escalate_complaint: {
         Args: {
           _complaint_id: string
@@ -42148,6 +42158,10 @@ export type Database = {
         Returns: undefined
       }
       worker_kick: { Args: { _function_name: string }; Returns: number }
+      workflow_actor_sector_allowed: {
+        Args: { _sector_id: string; _user_id: string }
+        Returns: boolean
+      }
       workflow_diagnostic_for_application: {
         Args: { _application_id: string }
         Returns: Json
