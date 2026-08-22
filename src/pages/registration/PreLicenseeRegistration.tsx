@@ -1223,19 +1223,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     if (!step) return null;
 
     switch (step.type) {
-      case 'static':
-        if (step.id === 'entity') {
-          return (
-            <EntityDetailsStep
-              form={form} errors={errors} setField={setField}
-              setEntityField={setEntityField} setMailingField={setMailingField}
-              setPhysicalField={setPhysicalField} setSectorId={setSectorId}
-              setSubSectorId={setSubSectorId}
-              updateMode={isUpdateMode}
-            />
-          );
-        }
-        return <PrimaryUserStep form={form} errors={errors} setField={setField} updateMode={isUpdateMode} />;
+
 
       case 'dynamic':
         if (step.stepData) {
