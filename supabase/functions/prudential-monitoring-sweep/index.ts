@@ -174,7 +174,8 @@ Deno.serve(async (req) => {
         touchedEntities.add(l.id);
       } catch (e) {
         summary.failed += 1;
-        summary.errors.push({ entity_id: l.id, error: e instanceof Error ? e.message : String(e) });
+        const msg = e instanceof Error ? e.message : (e as any)?.message ?? JSON.stringify(e);
+        summary.errors.push({ entity_id: l.id, error: msg });
       }
     }
 
