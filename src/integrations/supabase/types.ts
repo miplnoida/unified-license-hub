@@ -40638,6 +40638,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      prudential_visible_entities: {
+        Args: { _user: string }
+        Returns: {
+          id: string
+          name: string
+          sector_id: string
+        }[]
+      }
       prudential_work_queue: {
         Args: {
           _entity_id?: string
@@ -40738,6 +40746,20 @@ export type Database = {
       rbac_delete_role: { Args: { _role_id: string }; Returns: Json }
       rbac_reclassify_roles: { Args: never; Returns: Json }
       rbac_save_role: { Args: { _payload: Json }; Returns: Json }
+      rc1_time_as_user_ms: {
+        Args: { _reps?: number; _sql: string; _uid: string }
+        Returns: {
+          ms: number
+          rep: number
+        }[]
+      }
+      rc1_time_ms: {
+        Args: { _reps?: number; _sql: string }
+        Returns: {
+          ms: number
+          rep: number
+        }[]
+      }
       rdm_backfill_application_requirements: {
         Args: { _application_id?: string }
         Returns: Json
