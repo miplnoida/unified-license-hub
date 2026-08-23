@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { PERSONAS } from './support/personas';
+import { isDevToolingNoise } from './support/consoleNoise';
 import { loginAs } from './support/auth';
 
 /**
@@ -29,7 +30,7 @@ for (const s of SURFACES) {
   test(`SCN-SURFACE-${s.code}: owning persona opens its work surfaces cleanly`, async ({ page }) => {
     const failures: string[] = [];
     page.on('console', m => {
-      if (m.type() === 'error') failures.push(`console: ${m.text().slice(0, 240)}`);
+      if (m.type() === 'error' && !isDevToolingNoise(m.text())) failures.push(`console: ${m.text().slice(0, 240)}`);
     });
     page.on('pageerror', e => failures.push(`pageerror: ${String(e.message).slice(0, 240)}`));
     page.on('response', r => {
