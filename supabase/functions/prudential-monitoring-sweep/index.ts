@@ -94,8 +94,11 @@ Deno.serve(async (req) => {
 
   const summary = {
     entities_scanned: 0,
+    // Canonical terminology: one canonical filing version evaluated per entity.
+    canonical_versions_evaluated: 0,
+    // Retained for existing dashboard readers (same count as above).
     returns_evaluated: 0,
-    ewi_evaluated: 0,
+    detection_runs: [] as string[],
     failed: 0,
     errors: [] as Array<{ entity_id: string; error: string }>,
   };
@@ -112,61 +115,65 @@ Deno.serve(async (req) => {
     const { data: licensees, error: licErr } = await q;
     if (licErr) throw licErr;
 
-    // entity id -> period end of the return we just evaluated (for EWI evaluation)
-    const touchedEntities = new Map<string, string | null>();
+    const touchedEntities = new Set<string>();
 
     for (const l of (licensees as any[]) ?? []) {
       summary.entities_scanned += 1;
-      // Latest submitted/approved return per entity.
-      const { data: latest } = await admin
-        .from("returns_filed")
-        .select("id, workflow_status, status, submit_date, period_end_date")
-        .eq("entity_id", l.id)
-        .in("workflow_status", ["VAL", "SUB", "TBR"])
-        .order("submit_date", { ascending: false, nullsFirst: false })
-        .order("period_end_date", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const latestReturn = latest as any;
-      if (!latestReturn?.id) continue;
-
       try {
-        // Delegate to the authoritative single-return evaluator so ratios,
-        // breaches, stress events, and downstream escalations run identically
-        // to the submission-time chain.
-        const invokeHeaders: Record<string, string> = {};
-        if (auth) invokeHeaders["Authorization"] = auth;
-        await admin.functions.invoke("evaluate-return-prudential", {
-          body: {
-            return_id: latestReturn.id,
-            dispatch_notifications: true,
-            context: "scheduled_sweep",
-          },
-          headers: invokeHeaders,
+        // Latest eligible canonical filing version for this entity. Eligibility
+        // follows the canonical detector's own rule set (ACCEPTED, SUBMITTED,
+        // UNDER_REVIEW); ordering is by reporting period, then version.
+        const { data: versions, error: vErr } = await admin
+          .from("return_filing_versions")
+          .select(
+            "id, version_number, status, created_at, return_filings!inner(id, entity_id, reporting_periods(period_end))",
+          )
+          .eq("return_filings.entity_id", l.id)
+          .in("status", ["ACCEPTED", "SUBMITTED", "UNDER_REVIEW"])
+          .limit(200);
+        if (vErr) throw vErr;
+
+        const rows = ((versions as any[]) ?? []).map((v) => ({
+          id: v.id as string,
+          version_number: v.version_number as number,
+          period_end: v.return_filings?.reporting_periods?.period_end ?? null,
+          created_at: v.created_at as string,
+        }));
+        rows.sort((a, b) => {
+          const pa = a.period_end ?? "";
+          const pb = b.period_end ?? "";
+          if (pa !== pb) return pa < pb ? 1 : -1;
+          if (a.version_number !== b.version_number) return b.version_number - a.version_number;
+          return a.created_at < b.created_at ? 1 : -1;
         });
+        const latest = rows[0];
+        if (!latest) continue;
+
+        const { data: run, error: detErr } = await admin.rpc("_prudential_canonical_detect_run", {
+          _return_filing_version_id: latest.id,
+          _trigger_kind: trigger === "scheduled" ? "scheduled_sweep" : "manual_sweep",
+          _actor: actorId,
+        });
+        if (detErr) throw detErr;
+
+        summary.canonical_versions_evaluated += 1;
         summary.returns_evaluated += 1;
-        touchedEntities.set(l.id, latestReturn.period_end_date ?? null);
+        const runId = (run as any)?.detection_run_id ?? (run as any)?.run_id ?? null;
+        if (runId) summary.detection_runs.push(runId);
+        touchedEntities.add(l.id);
       } catch (e) {
         summary.failed += 1;
         summary.errors.push({ entity_id: l.id, error: e instanceof Error ? e.message : String(e) });
       }
     }
 
-    // Recompute composite risk scores and re-evaluate early-warning rules for
-    // entities whose returns we touched. Both are idempotent.
-    for (const [entityId, periodEnd] of touchedEntities) {
+    // Recompute composite risk scores for entities whose filings we evaluated.
+    for (const entityId of touchedEntities) {
       try {
         await admin.functions.invoke("risk-score-recompute", { body: { entity_id: entityId } });
       } catch { /* best effort */ }
-      if (!periodEnd) continue;
-      try {
-        const { error: ewiErr } = await admin.rpc("prudential_ewi_evaluate", {
-          _entity_id: entityId,
-          _period_end: periodEnd,
-        });
-        if (!ewiErr) summary.ewi_evaluated += 1;
-      } catch { /* best effort */ }
     }
+
 
     if (logId) {
       await admin
