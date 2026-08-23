@@ -35148,6 +35148,10 @@ export type Database = {
         Args: { _run_id: string; _status?: string }
         Returns: undefined
       }
+      cert_v2_exec_unguarded: {
+        Args: { _ids: string[]; _sql: string; _table: string }
+        Returns: number
+      }
       cert_v2_guard_ok: { Args: never; Returns: boolean }
       cert_v2_integrity_gate: {
         Args: never
