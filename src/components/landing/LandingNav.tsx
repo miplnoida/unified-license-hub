@@ -1,14 +1,29 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Layers, Menu, X, HelpCircle } from 'lucide-react';
+import { Layers, Menu, X, HelpCircle, Lock } from 'lucide-react';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { PublicBreadcrumbBar } from '@/components/layout/ApplicationBreadcrumbs';
+
+/**
+ * Canonical logged-out navigation. These entries are fixed platform
+ * destinations (not editable branding links) so that public licensee-facing
+ * routes and Sign In are always reachable.
+ */
+const PUBLIC_NAV = [
+  { label: 'Home', to: '/' },
+  { label: 'Applicants', to: '/applicants' },
+  { label: 'For Licensees', to: '/licensee-services' },
+  { label: 'Public Register', to: '/registry' },
+  { label: 'Guidance', to: '/guidance' },
+  { label: 'Help / Contact', to: '/help' },
+];
 
 export function LandingNav() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const { branding, header_menu } = useSiteSettings();
+  const { branding } = useSiteSettings();
+
 
   return (
     <nav className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur-sm">
