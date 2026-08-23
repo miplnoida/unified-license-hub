@@ -46,7 +46,7 @@ WITH v1_entities AS (
               ELSE 'MANUAL_REVIEW' END,
          'cascades with parent filing', count(*)
     FROM public.return_filing_versions v
-    JOIN public.return_filings f ON f.id = v.filing_id GROUP BY 1,2,3
+    JOIN public.return_filings f ON f.id = v.return_filing_id GROUP BY 1,2,3
   UNION ALL
   SELECT 'complaints',
          CASE WHEN c.licensee_id IN (SELECT entity_id FROM v1_entities) THEN 'PURGE_OLD_FIXTURE'
