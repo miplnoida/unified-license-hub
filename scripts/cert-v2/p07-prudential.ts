@@ -124,7 +124,7 @@ async function main() {
   record('P07.13 supervisory action issued from the signal', action.ok && !!actionId, action.text);
 
   if (typeof actionId === 'string') {
-    const monitor = await rpc(SUPERVISOR, 'prudential_action_update', { _action_id: actionId, _patch: { status: 'in_progress', progress_percent: 25 }, _note: 'Remediation plan requested; entity acknowledged and work is under way.' });
+    const monitor = await rpc(SUPERVISOR, 'prudential_action_update', { _action_id: actionId, _patch: { status: 'in_progress', progress_percent: 25 }, _reason: 'Remediation plan requested; entity acknowledged and work is under way.' });
     record('P07.14 action monitoring / follow-up runs', monitor.ok, monitor.text);
   }
 
