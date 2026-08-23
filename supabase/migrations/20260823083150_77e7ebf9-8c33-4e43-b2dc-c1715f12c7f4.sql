@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.cert_v2_operational_area_matrix() TO PUBLIC;

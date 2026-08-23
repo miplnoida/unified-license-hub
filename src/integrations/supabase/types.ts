@@ -2792,6 +2792,30 @@ export type Database = {
         }
         Relationships: []
       }
+      cert_machine_identities: {
+        Row: {
+          email: string | null
+          evidence: string
+          owner_system: string
+          registered_at: string
+          user_id: string
+        }
+        Insert: {
+          email?: string | null
+          evidence: string
+          owner_system: string
+          registered_at?: string
+          user_id: string
+        }
+        Update: {
+          email?: string | null
+          evidence?: string
+          owner_system?: string
+          registered_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cert_nonproduction_guard: {
         Row: {
           environment: string
@@ -35175,6 +35199,18 @@ export type Database = {
       cert_seed_wave_d_v1: { Args: never; Returns: Json }
       cert_uuid: { Args: { _key: string }; Returns: string }
       cert_v2_assert_allowed: { Args: never; Returns: undefined }
+      cert_v2_auth_identity_classification: {
+        Args: never
+        Returns: {
+          classification: string
+          created_at: string
+          email: string
+          evidence: string
+          last_sign_in_at: string
+          user_id: string
+        }[]
+      }
+      cert_v2_auth_purge_precheck: { Args: never; Returns: Json }
       cert_v2_begin_run: {
         Args: { _fixture_version: string; _notes?: string }
         Returns: string
@@ -35222,6 +35258,16 @@ export type Database = {
           actual_count: number
           check_name: string
           status: string
+        }[]
+      }
+      cert_v2_operational_area_matrix: {
+        Args: never
+        Returns: {
+          area: string
+          expectation: string
+          row_count: number
+          status: string
+          tables_count: number
         }[]
       }
       cert_v2_pk_column: { Args: { _table: string }; Returns: string }
@@ -35290,6 +35336,15 @@ export type Database = {
           table_name: string
         }[]
       }
+      cert_v2_table_classification_base: {
+        Args: never
+        Returns: {
+          category: string
+          reason: string
+          row_count: number
+          table_name: string
+        }[]
+      }
       cert_v2_user_identity_tables: { Args: never; Returns: string[] }
       cert_v2_verify: {
         Args: { _dataset_key?: string }
@@ -35297,6 +35352,14 @@ export type Database = {
           check_key: string
           detail: string
           status: string
+        }[]
+      }
+      cert_v2_zero_message_runtime: {
+        Args: never
+        Returns: {
+          rows_after: number
+          rows_before: number
+          table_name: string
         }[]
       }
       cert_v2_zero_runtime: {
