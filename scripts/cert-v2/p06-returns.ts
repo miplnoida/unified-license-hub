@@ -63,9 +63,22 @@ async function main() {
   const blockedOk = blocked.ok && blocked.body?.submitted === false && (blocked.body?.validation?.errors ?? 0) > 0;
   record('P06.10 blocking validation prevents submission of an incomplete V2', blockedOk, blocked.text);
 
-  // Carry the previously completed form responses into V2 (the filer's edit).
-  const carry = await rpc(PRIMARY, 'cert_v2_carry_forward_requirements', { _from_version: V1, _to_version: v2Id });
-  record('P06.11 filer completes V2 forms', carry.ok, carry.text);
+  // The prepare-only secondary user completes V2 by carrying forward and
+  // correcting the previously filed form responses.
+  const v1Reqs = await sel(SECONDARY, `return_filing_form_requirements?return_filing_version_id=eq.${V1}&select=form_template_id,form_response_id`);
+  const v2Reqs = await sel(SECONDARY, `return_filing_form_requirements?return_filing_version_id=eq.${v2Id}&select=id,form_template_id,completion_status`);
+  let attached = 0;
+  const attachErrors: string[] = [];
+  for (const r of (Array.isArray(v2Reqs.body) ? v2Reqs.body : [])) {
+    const src = (Array.isArray(v1Reqs.body) ? v1Reqs.body : []).find((x: any) => x.form_template_id === r.form_template_id);
+    if (!src?.form_response_id) continue;
+    const att = await rpc(SECONDARY, 'returns_attach_form_response', {
+      _requirement_id: r.id, _form_response_id: src.form_response_id, _completion: 'COMPLETED',
+    });
+    if (att.ok) attached += 1; else attachErrors.push(att.text);
+  }
+  record('P06.11 prepare-only secondary can complete V2 forms', attached > 0,
+    `attached=${attached} ${attachErrors[0] ?? ''}`);
 
   const noDecl = await rpc(PRIMARY, 'returns_submit_filing', { _version_id: v2Id, _declaration_accepted: false });
   record('P06.12 declaration is mandatory', !noDecl.ok || noDecl.body?.submitted === false, noDecl.text);
