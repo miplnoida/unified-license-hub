@@ -22,8 +22,11 @@ async function resolveTarget() {
     FILING = v.body?.[0]?.return_filing_id ?? '';
     return;
   }
+  const filings = await sel(OFFICER, `return_filings?entity_id=eq.${ENTITY}&select=id`);
+  const ids = (Array.isArray(filings.body) ? filings.body : []).map((r: any) => r.id);
+  if (!ids.length) return;
   const res = await sel(OFFICER,
-    `return_filing_versions?status=eq.SUBMITTED&version_number=eq.1&select=id,return_filing_id,return_filings!inner(entity_id)&return_filings.entity_id=eq.${ENTITY}&limit=1`);
+    `return_filing_versions?status=eq.SUBMITTED&version_number=eq.1&return_filing_id=in.(${ids.join(',')})&select=id,return_filing_id&limit=1`);
   V1 = res.body?.[0]?.id ?? '';
   FILING = res.body?.[0]?.return_filing_id ?? '';
 }
