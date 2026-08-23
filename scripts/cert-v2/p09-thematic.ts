@@ -1,6 +1,6 @@
 import { P, rpc, sel, ins, patch, denied, record, summary } from './api';
 
-const SUPERVISOR = P('inspection_supervisor');   // has_role supervisor -> can_manage_thematic_review
+const SUPERVISOR = P('conduct_supervisor');   // holds market_conduct.initiate_thematic_review
 const SUPERVISOR2 = P('prudential_supervisor');  // separate supervisor for maker-checker closure approval
 const ANALYST = P('conduct_analyst');            // has_role analyst -> read only
 
