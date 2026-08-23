@@ -8,3 +8,4 @@
 - [Role Catalogue](mem://features/rbac/role-catalogue) — 48 DB-governed role templates, officer/supervisor maker-checker split, break-glass only for super_admin
 
 - [Registration Journeys](mem://features/registration/two-route-public-journeys) — FORM_FIRST vs ENTITY_FIRST public routes and governed resolution
+- [Environment Safety](mem://security/environment-safety-guard) — Production classification, fail-closed destructive tooling guard, cutover drops
