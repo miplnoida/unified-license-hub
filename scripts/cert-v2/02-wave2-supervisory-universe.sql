@@ -711,7 +711,7 @@ BEGIN
   PERFORM public.cert_v2_complete_run(v_run, 'completed');
   RETURN jsonb_build_object('run_id', v_run, 'reference', v_ref, 'entities', v_ent,
                             'returns', v_ret, 'calculation', v_calc,
-                            'message_runtime_rows_remaining', v_msg);
+                            'message_runtime_rows_cleared', v_msg);
 END $$;
 
 -- ======================================================== golden verification
