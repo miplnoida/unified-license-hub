@@ -55,7 +55,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: {
-          executablePath: process.env.E2E_CHROMIUM_PATH || undefined,
+          executablePath: resolveChromium(),
           args: ['--no-sandbox', '--disable-dev-shm-usage'],
         },
       },
