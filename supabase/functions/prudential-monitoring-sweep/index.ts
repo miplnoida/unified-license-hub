@@ -1,12 +1,17 @@
-// Scheduled prudential monitoring sweep.
+// Scheduled prudential monitoring sweep (canonical — PRU-CANON-001).
 //
-// Iterates supervised licensees, finds each entity's latest submitted return,
-// and re-runs the same evaluation chain used at submission — server-side
-// prudential validation, ratio recompute, breach detection, stress indicator
-// evaluation, and risk-score recompute — for ongoing supervision.
+// Iterates supervised licensees, selects each entity's latest eligible canonical
+// filing version (`return_filings` -> `return_filing_versions` ordered by the
+// reporting period), and runs the canonical detector
+// `_prudential_canonical_detect_run(version_id, trigger_kind, actor)`, which
+// owns metric evaluation, threshold warnings/breaches and EWI signals.
 //
-// Idempotent: `record_return_ratio`, `record_return_breach`, and the stress
-// RPC all upsert / dedupe on their natural keys. Writes one
+// No legacy Returns truth (`returns_filed`) and no legacy `prudential_ewi_evaluate`
+// call participate in this path; those remain only for historical compatibility
+// elsewhere.
+//
+// Idempotent: the detector dedupes on its natural keys and records one
+// `prudential_detection_runs` row per version evaluated. Writes one
 // `prudential_data_feed_logs` row (`feed_type = 'scheduled_sweep'`) per run.
 //
 // Invocation:
@@ -16,6 +21,7 @@
 // Failures per-entity never abort the whole batch; they are counted and the
 // final log row records `status = 'success'` with a `failed` count in metadata,
 // or `status = 'failed'` if the whole run crashes.
+
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireWorkerOrPrudentialUser } from "../_shared/prudentialSweepAuth.ts";
