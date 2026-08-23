@@ -257,12 +257,22 @@ GRANT EXECUTE ON FUNCTION public.cert_v2_zero_runtime(uuid[]) TO service_role;
 -- Nulls (or reassigns) every FK column pointing at auth.users / public.profiles
 -- for users that are about to be removed, so the auth delete cannot be blocked
 -- and configuration provenance columns do not dangle.
+-- IMPORTANT: only retained CONFIG / REFERENCE / SECURITY-CONFIG / HARNESS tables
+-- are touched. RUNTIME_MUST_ZERO tables are emptied by cert_v2_zero_runtime and
+-- may carry immutability triggers that would reject an UPDATE.
 CREATE OR REPLACE FUNCTION public.cert_v2_detach_users(_keep_user_ids uuid[], _reassign_to uuid)
 RETURNS TABLE(target text, action text, rows_affected integer)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
-DECLARE r record; v_n integer;
+DECLARE r record; v_n integer; v_keep text[];
 BEGIN
   PERFORM public.cert_v2_assert_allowed();
+
+  -- Only configuration/reference/security tables are detached; RUNTIME_MUST_ZERO
+  -- tables are emptied by cert_v2_zero_runtime and may carry immutability triggers.
+  SELECT array_agg(c.table_name) INTO v_keep
+    FROM public.cert_v2_table_classification() c
+   WHERE c.category <> 'RUNTIME_MUST_ZERO';
+
   FOR r IN
     SELECT src.relname::text AS tbl, a.attname::text AS col, a.attnotnull AS nn
       FROM pg_constraint c
@@ -276,7 +286,10 @@ BEGIN
        AND array_length(c.conkey,1) = 1
        AND (tgt.relname = 'profiles' OR (tn.nspname = 'auth' AND tgt.relname = 'users'))
        AND src.relname <> 'profiles'
+       AND src.relname = ANY (v_keep)
        AND NOT (src.relname = ANY (public.cert_v2_user_identity_tables()))
+     ORDER BY 1,2
+
      ORDER BY 1,2
   LOOP
     IF r.nn THEN

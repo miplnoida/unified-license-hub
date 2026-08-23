@@ -3,7 +3,8 @@
 //
 // Actions
 //   provision   create/adopt one login-capable account per certifiable role
-//   purge_auth  delete every auth user that is not a certification account
+//   classify    classify every auth identity (keep / machine / purge / unknown)
+//   purge_auth  delete ONLY identities classified OLD_HUMAN_PURGE (fail-closed)
 //   verify      per-user verification incl. real sign-in
 //   manifest    return the machine-readable certification-user manifest
 //
@@ -80,11 +81,30 @@ Deno.serve(async (req) => {
       auth: { persistSession: false },
     });
 
-    const { action = 'manifest' } = (await req.json().catch(() => ({}))) as { action?: string };
+    const {
+      action = 'manifest',
+      only = null,
+      offset = 0,
+      limit = 12,
+    } = (await req.json().catch(() => ({}))) as {
+      action?: string;
+      only?: string[] | null;
+      offset?: number;
+      limit?: number;
+    };
 
     // -------------------------------------------------------------- guard rails
-    const { data: guard } = await admin.from('cert_nonproduction_guard').select('*').limit(1).maybeSingle();
-    if (!guard) return json({ ok: false, error: 'Non-production guard row missing; refusing to run.' });
+    // Authoritative, fail-closed: the same effective condition as
+    // cert_v2_assert_allowed() -> environment = 'non_production' AND reset_enabled.
+    const { data: guardOk, error: guardErr } = await admin.rpc('cert_v2_guard_ok');
+    if (guardErr || guardOk !== true) {
+      return json({
+        ok: false,
+        error:
+          'Non-production guard not satisfied (environment must be non_production and reset_enabled true); refusing to run.',
+        guard_error: guardErr?.message ?? null,
+      });
+    }
 
     const listAllUsers = async () => {
       const all: { id: string; email: string | null }[] = [];
@@ -223,22 +243,64 @@ Deno.serve(async (req) => {
 
     // ----------------------------------------------------------------- PURGE AUTH
     if (action === 'purge_auth') {
-      const { data: manifest, error: mErr } = await admin.from('cert_certification_users').select('user_id, email');
-      if (mErr) throw mErr;
-      if (!manifest || manifest.length === 0) {
-        return json({ ok: false, error: 'Certification manifest is empty; provision first.' });
+      // Classification is authoritative and fail-closed: only OLD_HUMAN_PURGE is
+      // deleted, and any UNKNOWN_BLOCKER identity aborts the whole operation.
+      const { data: pre, error: preErr } = await admin.rpc('cert_v2_auth_purge_precheck');
+      if (preErr) throw preErr;
+      const precheck = pre as {
+        guard_ok: boolean;
+        total: number;
+        certification_keep: number;
+        machine_keep: number;
+        old_human_purge: number;
+        unknown_blocker: number;
+        purge_allowed: boolean;
+        purge_ids: { user_id: string; email: string | null }[];
+        unknown_ids: unknown[];
+      };
+
+      if (!precheck.purge_allowed) {
+        return json({
+          ok: false,
+          error:
+            precheck.unknown_blocker > 0
+              ? 'UNKNOWN_BLOCKER identities present — resolve them (whitelist as machine or confirm human) before purging.'
+              : 'Auth purge not allowed: guard not satisfied or certification manifest empty.',
+          precheck,
+        });
       }
-      const keep = new Set(manifest.map((m) => m.user_id));
+
+      // Cross-check against the live auth list so a stale classification cannot
+      // widen the deletion set.
       const all = await listAllUsers();
+      const authIds = new Set(all.map((u) => u.id));
+      const targets = precheck.purge_ids.filter((t) => authIds.has(t.user_id));
+      const emailById = new Map(all.map((u) => [u.id, u.email]));
+
       const deleted: string[] = [];
       const failed: Record<string, string>[] = [];
-      for (const u of all) {
-        if (keep.has(u.id)) continue;
-        const { error } = await admin.auth.admin.deleteUser(u.id);
-        if (error) failed.push({ user: u.email ?? u.id, error: error.message });
-        else deleted.push(u.email ?? u.id);
+      for (const t of targets) {
+        const { error } = await admin.auth.admin.deleteUser(t.user_id);
+        if (error) failed.push({ user: t.email ?? t.user_id, error: error.message });
+        else deleted.push(emailById.get(t.user_id) ?? t.user_id);
       }
-      return json({ ok: failed.length === 0, deleted_count: deleted.length, deleted, failed });
+      const { data: post } = await admin.rpc('cert_v2_auth_purge_precheck');
+      return json({
+        ok: failed.length === 0,
+        precheck,
+        deleted_count: deleted.length,
+        deleted,
+        failed,
+        post_state: post,
+      });
+    }
+
+    // ----------------------------------------------------------------- CLASSIFY
+    if (action === 'classify') {
+      const { data: rows, error } = await admin.rpc('cert_v2_auth_identity_classification');
+      if (error) throw error;
+      const { data: pre } = await admin.rpc('cert_v2_auth_purge_precheck');
+      return json({ ok: true, summary: pre, identities: rows });
     }
 
     // --------------------------------------------------------------------- VERIFY
@@ -249,8 +311,13 @@ Deno.serve(async (req) => {
         .select('user_id, email, role_key, role_id, persona_family, audience');
       if (mErr) throw mErr;
 
+      const ordered = (manifest ?? []).slice().sort((a, b) => a.email.localeCompare(b.email));
+      const batch = only && only.length
+        ? ordered.filter((m) => only.includes(m.email) || only.includes(m.role_key))
+        : ordered.slice(offset, offset + limit);
+
       const checks: Record<string, unknown>[] = [];
-      for (const m of manifest ?? []) {
+      for (const m of batch) {
         const { data: authUser } = await admin.auth.admin.getUserById(m.user_id);
         const { data: profile } = await admin.from('profiles').select('id').eq('id', m.user_id).maybeSingle();
         const { data: roleAssign } = await admin
@@ -310,7 +377,16 @@ Deno.serve(async (req) => {
           (c.effective_permissions as number) === 0 ||
           (c.unrelated_entity_access as number) !== 0,
       );
-      return json({ ok: failures.length === 0, total: checks.length, failures, checks });
+      return json({
+        ok: failures.length === 0,
+        manifest_total: ordered.length,
+        batch_offset: only && only.length ? null : offset,
+        batch_size: checks.length,
+        next_offset: only && only.length ? null : offset + checks.length,
+        failure_count: failures.length,
+        failures,
+        checks,
+      });
     }
 
     // ------------------------------------------------------------------- MANIFEST
