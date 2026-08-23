@@ -22,6 +22,11 @@ const EntityIdentification = lazy(() => import('@/pages/registration/EntityIdent
 const UserAccountStep = lazy(() => import('@/pages/registration/UserAccountStep'));
 const LegacyRegisterRedirect = lazy(() => import('@/routes/LegacyRegisterRedirect'));
 const DeclarationLanding = lazy(() => import('@/pages/public/DeclarationLanding'));
+const LicenseeServices = lazy(() => import('@/pages/public/LicenseeServices'));
+const LicenseeServiceDetail = lazy(() => import('@/pages/public/LicenseeServiceDetail'));
+const ApplicantGuidance = lazy(() => import('@/pages/public/ApplicantGuidance'));
+const PublicGuidance = lazy(() => import('@/pages/public/PublicGuidance'));
+const PublicHelp = lazy(() => import('@/pages/public/PublicHelp'));
 
 
 export const publicRoutes = (
@@ -55,6 +60,12 @@ export const publicRoutes = (
     <Route path="/registration/update/:registrationId" element={<P><PreLicenseeRegistration mode="update" /></P>} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password" element={<ResetPassword />} />
+    {/* Public licensee-facing service information (no confidential data). */}
+    <Route path="/licensee-services" element={<LicenseeServices />} />
+    <Route path="/licensee-services/:slug" element={<LicenseeServiceDetail />} />
+    <Route path="/applicants" element={<ApplicantGuidance />} />
+    <Route path="/guidance" element={<PublicGuidance />} />
+    <Route path="/help" element={<PublicHelp />} />
     <Route path="/registry" element={<PublicRegistry />} />
     <Route path="/registry/licensees" element={<PublicLicensees />} />
     <Route path="/registry/licensees/:id" element={<PublicLicenseeDetail />} />
