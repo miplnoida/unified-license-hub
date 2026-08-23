@@ -35247,9 +35247,57 @@ export type Database = {
           target: string
         }[]
       }
+      cert_v2_entity_spec: {
+        Args: never
+        Returns: {
+          code: string
+          entity_status: string
+          identity_key: string
+          license_status: string
+          licensed: boolean
+          lifecycle_key: string
+          name: string
+          periods: number
+          ret_kind: string
+          scenario: string
+          sector_name: string
+          size_factor: number
+          systemic: string
+        }[]
+      }
       cert_v2_exec_unguarded: {
         Args: { _ids: string[]; _sql: string; _table: string }
         Returns: number
+      }
+      cert_v2_filing_plan: {
+        Args: never
+        Returns: {
+          code: string
+          due_date: string
+          due_days: number
+          is_late: boolean
+          outcome: string
+          period_end: string
+          period_label: string
+          period_start: string
+          ret_kind: string
+          scenario: string
+          seq: number
+          series_idx: number
+          size_factor: number
+          submitted_at: string
+        }[]
+      }
+      cert_v2_golden_ratios: {
+        Args: never
+        Returns: {
+          actual: number
+          entity_code: string
+          expected: number
+          metric_code: string
+          period_label: string
+          status: string
+        }[]
       }
       cert_v2_guard_ok: { Args: never; Returns: boolean }
       cert_v2_integrity_gate: {
@@ -35260,6 +35308,7 @@ export type Database = {
           status: string
         }[]
       }
+      cert_v2_loss_ratio_series: { Args: { _code: string }; Returns: number[] }
       cert_v2_operational_area_matrix: {
         Args: never
         Returns: {
@@ -35272,6 +35321,20 @@ export type Database = {
       }
       cert_v2_pk_column: { Args: { _table: string }; Returns: string }
       cert_v2_protected_tables: { Args: never; Returns: string[] }
+      cert_v2_put_metric: {
+        Args: {
+          _code: string
+          _entity_id: string
+          _period_id: string
+          _value: number
+          _version_id: string
+        }
+        Returns: undefined
+      }
+      cert_v2_ratio_series: {
+        Args: { _key: string; _scenario: string }
+        Returns: number[]
+      }
       cert_v2_register_legacy_baseline: {
         Args: { _notes?: string }
         Returns: {
@@ -35307,6 +35370,20 @@ export type Database = {
           scenario_code: string
         }[]
       }
+      cert_v2_reported_inputs: {
+        Args: {
+          _code: string
+          _is_newest: boolean
+          _ret_kind: string
+          _scenario: string
+          _series_idx: number
+          _size: number
+        }
+        Returns: {
+          metric_code: string
+          value: number
+        }[]
+      }
       cert_v2_reset: {
         Args: { _dataset_key?: string }
         Returns: {
@@ -35327,6 +35404,11 @@ export type Database = {
           role_name: string
         }[]
       }
+      cert_v2_seed_calculate: { Args: { _run_id: string }; Returns: Json }
+      cert_v2_seed_entities: { Args: { _run_id: string }; Returns: Json }
+      cert_v2_seed_reference: { Args: { _run_id: string }; Returns: Json }
+      cert_v2_seed_returns: { Args: { _run_id: string }; Returns: Json }
+      cert_v2_seed_universe: { Args: { _notes?: string }; Returns: Json }
       cert_v2_table_classification: {
         Args: never
         Returns: {
@@ -35345,7 +35427,17 @@ export type Database = {
           table_name: string
         }[]
       }
+      cert_v2_universe_gate: {
+        Args: never
+        Returns: {
+          actual: string
+          check_key: string
+          expected: string
+          status: string
+        }[]
+      }
       cert_v2_user_identity_tables: { Args: never; Returns: string[] }
+      cert_v2_uuid: { Args: { _key: string }; Returns: string }
       cert_v2_verify: {
         Args: { _dataset_key?: string }
         Returns: {
