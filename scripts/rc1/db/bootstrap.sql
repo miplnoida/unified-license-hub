@@ -239,3 +239,11 @@ CREATE OR REPLACE FUNCTION storage.extension(name text) RETURNS text
 GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON storage.objects, storage.buckets
   TO anon, authenticated, service_role;
+
+-- ------------------------------------------------- realtime publication
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    CREATE PUBLICATION supabase_realtime;
+  END IF;
+END $$;

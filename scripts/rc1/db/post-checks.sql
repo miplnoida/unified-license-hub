@@ -8,6 +8,7 @@
 SELECT 'BROKEN_FUNCTION_DEFS=' || count(*)
 FROM pg_proc p
 WHERE p.pronamespace = 'public'::regnamespace
+  AND p.prokind IN ('f','p')
   AND pg_get_functiondef(p.oid) IS NULL;
 
 SELECT 'PUBLIC_FUNCTIONS=' || count(*) FROM pg_proc
