@@ -1,0 +1,1 @@
+-- generated 2026-08-23T15:47:51Z from the certified schema
