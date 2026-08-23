@@ -10,11 +10,27 @@ const SUPERVISOR = P('returns_supervisor');
 const PRIMARY = P('licensee_primary_user');
 const SECONDARY = P('licensee_secondary_user');
 
-const ENTITY = '5855bf85-9fde-4cf8-a082-7ea904d46184'; // Coral Harbour Bank Limited
-const V1 = '93712161-e11b-4dd4-a35a-1c3ebee442da';
-const FILING = 'efc5bc25-ba44-45a9-a3ed-94c06a72b1a8';
+// Target is selected at run time: the first version-1 SUBMITTED filing of an
+// entity the certification filer represents, so the journey is replayable.
+const ENTITY = process.env.P06_ENTITY_ID ?? '52112b8b-0f01-4682-a5c7-fc316797dfd8'; // Windward Trust Bank Limited
+let V1 = process.env.P06_VERSION_ID ?? '';
+let FILING = '';
+
+async function resolveTarget() {
+  if (V1) {
+    const v = await sel(OFFICER, `return_filing_versions?id=eq.${V1}&select=return_filing_id`);
+    FILING = v.body?.[0]?.return_filing_id ?? '';
+    return;
+  }
+  const res = await sel(OFFICER,
+    `return_filing_versions?status=eq.SUBMITTED&version_number=eq.1&select=id,return_filing_id,return_filings!inner(entity_id)&return_filings.entity_id=eq.${ENTITY}&limit=1`);
+  V1 = res.body?.[0]?.id ?? '';
+  FILING = res.body?.[0]?.return_filing_id ?? '';
+}
 
 async function main() {
+  await resolveTarget();
+  if (!V1) { record('P06.00 target submitted filing found', false, `no submitted V1 for entity ${ENTITY}`); return summary('P06'); }
   const v1Before = await sel(OFFICER, `return_filing_versions?id=eq.${V1}&select=id,status,version_number,is_immutable`);
   record('P06.01 submitted V1 present', v1Before.body?.[0]?.status === 'SUBMITTED', JSON.stringify(v1Before.body));
 
@@ -133,8 +149,17 @@ async function main() {
   record('P06.23 missing/upcoming obligations are visible in the calendar', cal.ok, `${calRows.length} calendar rows`);
 
   // Cross-entity security: the filer must not read another entity's filings.
+  // The authorised set is every entity the filer represents (membership) or is
+  // granted access to; anything outside it is a leak.
+  const mem = await sel(PRIMARY, 'entity_user_memberships?select=entity_id&status=eq.APPROVED');
+  const acc = await sel(PRIMARY, 'entity_user_access?select=entity_id&is_active=eq.true');
+  const allowed = new Set<string>([
+    ENTITY,
+    ...(Array.isArray(mem.body) ? mem.body : []).map((r: any) => r.entity_id),
+    ...(Array.isArray(acc.body) ? acc.body : []).map((r: any) => r.entity_id),
+  ]);
   const leak = await sel(PRIMARY, 'return_filings?select=id,entity_id&limit=200');
-  const leaked = (Array.isArray(leak.body) ? leak.body : []).filter((r: any) => r.entity_id !== ENTITY);
+  const leaked = (Array.isArray(leak.body) ? leak.body : []).filter((r: any) => !allowed.has(r.entity_id));
   record('P06.24 no cross-entity filing leak for the filer', leaked.length === 0, `leaked=${leaked.length}`);
 
   console.log(`\nSECONDARY_UNAUTHORIZED_SUBMISSIONS=${secondaryUnauthorized}`);
