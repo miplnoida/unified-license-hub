@@ -1,0 +1,12 @@
+id,name,description,is_active,created_at,updated_at,sla_days
+033f21a8-0323-4846-9fc8-14946e29009a,Service Quality,qwertyup,t,2026-03-17 12:44:27.575714+00,2026-03-17 12:44:27.575714+00,30
+29ee0b12-8b46-4c5a-8ffa-98dbf4e62a01,Return Form Issues,,t,2026-04-01 13:06:09.474146+00,2026-04-01 13:06:09.474146+00,30
+1e852a7c-d81e-4709-be06-9687d5fb7573,Data Privacy Breach,"Personal data disclosed, lost or misused",t,2026-07-10 07:37:30.362902+00,2026-07-10 07:37:30.362902+00,15
+3a77164b-faed-481e-b684-a55a1db55c73,Disclosure Failure,"Key features, risks or costs not disclosed",t,2026-07-10 07:37:30.362902+00,2026-07-10 07:37:30.362902+00,20
+1b823139-46ee-4445-a8fc-707ea2fc92be,Misleading Advertising,Marketing communications contain false or misleading claims,t,2026-07-10 07:37:30.362902+00,2026-07-10 07:37:30.362902+00,25
+f8496ba0-9c66-4414-ab35-afd728598cb5,Mis-selling,Product sold without adequate suitability assessment,t,2026-07-10 07:37:30.362902+00,2026-07-10 07:37:30.362902+00,20
+9f171d6c-85c4-454f-a95b-f0fb2ff9ff7f,Vulnerable Customer Treatment,Alleged unfair treatment of a vulnerable consumer,t,2026-07-10 07:37:30.362902+00,2026-07-10 07:37:30.362902+00,15
+6e72ac74-1601-44b6-aa25-2502c51c8d29,Fraud / Unauthorised Transaction,Suspected fraud or unauthorised account activity,t,2026-07-10 07:37:30.362902+00,2026-07-10 07:37:30.362902+00,10
+68e45c97-db36-43aa-87a4-4167807deead,Poor Service,"Delays, rudeness, or failure to respond to customer",t,2026-07-10 07:37:30.362902+00,2026-07-10 07:37:30.362902+00,30
+6c603385-8421-494c-b7c6-ff3c22ec5626,Unfair Charges,Fees or penalties applied contrary to contract terms,t,2026-07-10 07:37:30.362902+00,2026-07-10 07:37:30.362902+00,25
+4078fe76-fbea-4b01-9e57-5ebf36768fcc,Customer Support,customer support description,t,2026-07-10 20:34:34.671048+00,2026-07-10 20:34:34.671048+00,30

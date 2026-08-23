@@ -1,0 +1,4 @@
+id,scope_key,label,is_active,created_at,updated_at
+2c695127-2d77-495d-979d-9422aaa31d53,licensing,Licensing,t,2026-08-08 12:10:49.661373+00,2026-08-08 12:10:49.661373+00
+aa7af72f-888f-4596-844e-e191c0fbc1ac,fit_and_proper,Fit & Proper,t,2026-08-08 12:10:49.661373+00,2026-08-08 12:10:49.661373+00
+f03e15a9-3c80-4bf1-9e0b-e5ca20ad0155,enforcement,Enforcement / Supervisory Action,t,2026-08-08 12:10:49.661373+00,2026-08-08 12:10:49.661373+00

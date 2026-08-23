@@ -1,0 +1,9 @@
+id,scheme_id,parent_id,key,code,label,description,sort_order,effective_from,effective_to,is_system,is_active,created_at,updated_at
+9c6ea0d3-fa7f-45dd-89a7-b61e84031046,fc6d23be-3dbf-4294-979b-7f6f3b84d3d2,,company_limited_by_shares,,Company Limited by Shares,,10,,,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+3f696c7f-f10e-4bc9-bdcb-29e3a7c1b26e,fc6d23be-3dbf-4294-979b-7f6f3b84d3d2,,cooperative_society,,Co-operative Society,,20,,,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+7dc0495f-c4d3-493a-96f4-dbc8d84e65d1,fc6d23be-3dbf-4294-979b-7f6f3b84d3d2,,partnership,,Partnership,,30,,,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+268fe685-d89b-47c2-90bc-193b3ab1fedd,fc6d23be-3dbf-4294-979b-7f6f3b84d3d2,,branch_of_foreign_entity,,Branch of Foreign Entity,,40,,,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+f7696b07-da2b-4520-b8b4-793f27cf842a,fc6d23be-3dbf-4294-979b-7f6f3b84d3d2,,statutory_body,,Statutory Body,,50,,,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+6c24f9ef-2c65-4b53-92f7-ad6d0880b013,4ec6ec3c-2e32-4c66-8fea-0d16bd297951,,domestic_systemically_important,,Domestic Systemically Important,,10,,,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+4c668a7a-75b3-4c83-afc8-d0a77ae2db8d,4ec6ec3c-2e32-4c66-8fea-0d16bd297951,,significant,,Significant,,20,,,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+2030e66b-a4a4-4dc6-9635-25533163c46c,4ec6ec3c-2e32-4c66-8fea-0d16bd297951,,standard,,Standard,,30,,,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00

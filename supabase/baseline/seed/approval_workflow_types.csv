@@ -1,0 +1,7 @@
+key,display_label,description,is_active,sort_order,created_at,updated_at,bulk_intake_enabled
+registration,Registration,Approval workflow used for registration reviews.,t,10,2026-06-10 09:39:18.307109+00,2026-06-10 09:39:18.307109+00,f
+pre_application,Pre Application,Approval workflow used for pre-license applications.,t,20,2026-06-10 09:39:18.307109+00,2026-06-10 09:39:18.307109+00,f
+post_application,Post Application,Approval workflow used for post-license applications.,t,30,2026-06-10 09:39:18.307109+00,2026-06-10 09:39:18.307109+00,f
+complaint,Complaint,Approval workflow used for complaint handling.,t,40,2026-06-10 09:39:18.307109+00,2026-06-10 09:39:18.307109+00,f
+inspection,Inspection,Approval workflow used for inspection handling.,t,50,2026-06-10 09:39:18.307109+00,2026-06-10 09:39:18.307109+00,f
+return,Compliance Return,Approval workflow used for compliance returns.,t,60,2026-06-10 09:39:18.307109+00,2026-06-10 09:39:18.307109+00,f

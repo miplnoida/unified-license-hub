@@ -1,0 +1,4 @@
+id,code,name,description,condition,severity,is_active,created_at,updated_at
+a13b5b6c-0442-47c5-9b6a-8d8dc2a0f4f0,EWI-007,Two or more subsidiaries rated High risk,Fires when two or more members of the group hold a current risk band of high or critical.,"{""type"": ""member_band_count"", ""band_in"": [""high"", ""critical""], ""min_count"": 2}",high,t,2026-08-06 05:54:40.501466+00,2026-08-06 05:54:40.501466+00
+acfc93b6-912b-41f4-896d-793fe6c77097,EWI-G02,Large intra-group exposure concentration,Fires when any intra-group exposure exceeds the configured large-exposure percentage of group capital.,"{""type"": ""large_exposure""}",medium,t,2026-08-06 05:54:40.501466+00,2026-08-06 05:54:40.501466+00
+294781bc-506b-44cc-8ad1-919a65d601bd,EWI-G03,Circular intra-group exposure detected,Fires when a circular exposure chain is detected between group members.,"{""type"": ""circular_exposure""}",high,t,2026-08-06 05:54:40.501466+00,2026-08-06 05:54:40.501466+00

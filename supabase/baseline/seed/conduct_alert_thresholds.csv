@@ -1,0 +1,3 @@
+id,regulator_id,kind,window_days,threshold_count,severity,active,created_at,updated_at
+cf8cfa3c-e680-420e-b459-50764914d373,,thematic_spike,30,5,high,t,2026-07-03 08:23:56.920084+00,2026-07-03 08:23:56.920084+00
+2b63537d-0f2b-49a7-a8a9-1c6adfc0ad36,,thematic_spike,90,15,high,t,2026-07-03 08:23:56.920084+00,2026-07-03 08:23:56.920084+00

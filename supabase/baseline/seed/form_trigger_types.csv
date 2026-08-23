@@ -1,0 +1,6 @@
+id,key,label,description,sort_order,is_system,is_active,created_at,updated_at
+91c50a7f-0802-47e3-bca6-8564f950a6fd,applicant_initiated,Applicant Initiated,Submitted by the entity on demand.,10,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+3cdc294b-b779-4ecc-bf66-a7e382a48372,periodic_schedule,Periodic Schedule,Driven by a reporting calendar.,20,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+d1401c93-d9e3-4588-b15f-71737d0c0bad,event_driven,Event Driven,Triggered by a regulatory event or notification obligation.,30,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+cfcfa0c7-c0f6-4c4e-9bb3-a57054084bf1,regulator_requested,Regulator Requested,Requested ad hoc by the regulator.,40,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+06856c1a-2f25-48c3-a61b-8d9dacba1501,supervisory_process,Supervisory Process,Completed inside a supervisory process.,50,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00

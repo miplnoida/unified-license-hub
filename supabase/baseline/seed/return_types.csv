@@ -1,0 +1,5 @@
+id,name,code,description,status,created_at,updated_at
+7d9a4336-9166-4659-86e8-9ae6d4208dbe,Annual,ANNUAL,Annual regulatory return filed once per year,active,2026-04-06 12:04:27.839549+00,2026-04-06 12:04:27.839549+00
+c7634c02-b23f-4ca9-9651-8fdb867e76f4,Quarterly,QUARTERLY,Quarterly return filed every 3 months,active,2026-04-06 12:04:27.839549+00,2026-04-06 12:04:27.839549+00
+04dfc304-c82d-46d5-afaf-9f3ac91d58c6,Monthly,MONTHLY,Monthly return filed every month,active,2026-04-06 12:04:27.839549+00,2026-04-06 12:04:27.839549+00
+c4c43492-8636-4c32-ac5e-8e9969109c8f,Statutory,STATUTORY,Statutory return filed as required by regulation,active,2026-04-06 12:04:27.839549+00,2026-04-06 12:04:27.839549+00

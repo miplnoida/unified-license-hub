@@ -1,0 +1,16 @@
+CREATE SEQUENCE IF NOT EXISTS public.application_number_seq;
+CREATE SEQUENCE IF NOT EXISTS public.complaint_number_seq;
+CREATE SEQUENCE IF NOT EXISTS public.correspondence_reference_seq;
+CREATE SEQUENCE IF NOT EXISTS public.enforcement_actions_seq;
+CREATE SEQUENCE IF NOT EXISTS public.engine_rule_code_seq;
+CREATE SEQUENCE IF NOT EXISTS public.entity_identification_event_seq;
+CREATE SEQUENCE IF NOT EXISTS public.escalation_ref_seq;
+CREATE SEQUENCE IF NOT EXISTS public.invoice_number_seq;
+CREATE SEQUENCE IF NOT EXISTS public.license_decision_reference_seq;
+CREATE SEQUENCE IF NOT EXISTS public.license_matter_reference_seq;
+CREATE SEQUENCE IF NOT EXISTS public.license_number_seq;
+CREATE SEQUENCE IF NOT EXISTS public.prudential_action_ref_seq;
+CREATE SEQUENCE IF NOT EXISTS public.receipt_number_seq;
+CREATE SEQUENCE IF NOT EXISTS public.registration_journey_event_seq;
+CREATE SEQUENCE IF NOT EXISTS public.registration_reference_seq;
+CREATE SEQUENCE IF NOT EXISTS public.return_unique_id_seq;

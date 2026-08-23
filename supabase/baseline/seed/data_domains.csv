@@ -1,0 +1,10 @@
+id,key,label,description,default_authority,sort_order,is_system,is_active,created_at,updated_at
+c661c998-6e3e-406f-bbdc-01da39650b2c,entity_regulatory_status,Entity Regulatory Status,"Lifecycle stage, licences, conditions.",SUPTECH,20,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+1558ea9a-0dd6-4953-a1e4-3ca444be0372,ownership,Ownership & Control,"Shareholding, controllers, beneficial ownership.",DEPLOYMENT_CONFIGURED,30,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+a659b7aa-ae17-4962-9484-14cefdb44c7e,governance,Governance,"Board, executives and key function holders.",DEPLOYMENT_CONFIGURED,40,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+d9a1784b-2fc3-40ce-971b-0ad48e8643c8,prudential,Prudential,"Capital, liquidity, risk metrics.",SUPTECH,50,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+d423e60a-5360-4916-8792-3c5a5a604787,conduct,Market Conduct,"Complaints, conduct risk and outcomes.",SUPTECH,60,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+7fb1a7a4-de0e-4607-8204-8a76774aae49,aml_cft,AML / CFT,Financial crime supervision data.,SUPTECH,70,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+a753b539-ea26-4a16-ac0a-3548f56db2ed,entity_identity,Entity Identity,"Legal name, registration number, incorporation details. Authority is chosen per deployment (LOCAL_AUTHORITATIVE / EXTERNAL_AUTHORITATIVE / HYBRID_AUTHORITY); no external registry is required.",DEPLOYMENT_CONFIGURED,10,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:40:40.912874+00
+794f6540-a4d4-4e66-acf1-f9e76d3ac490,person_identity,Person Identity,"Canonical natural-person identity attributes (name, date of birth, nationality, identity documents).",SUPTECH,80,t,t,2026-08-20 08:58:45.733741+00,2026-08-20 08:58:45.733741+00
+2c0adfa9-11b1-4ea1-97b4-537e4c602cec,party_relationships,Party Relationships,"Relationships between parties: group structure, affiliation, control links and related-party connections.",SUPTECH,90,t,t,2026-08-20 08:58:45.733741+00,2026-08-20 08:58:45.733741+00

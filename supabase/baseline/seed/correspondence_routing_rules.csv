@@ -1,0 +1,6 @@
+id,name,is_active,match_type,match_value,assign_unit,assign_officer,priority,sla_days,allow_manual_override,sort_order,created_by,created_at,updated_at
+451e1a3b-ef85-426c-8840-a45ea9f75549,Regulatory filings to Prudential Supervision,t,category,Regulatory Filing,Prudential Supervision,,high,5,t,1,,2026-07-31 09:31:51.555489+00,2026-07-31 09:31:51.555489+00
+9902383d-305c-431e-a9fb-101a921b4322,Consumer complaints to Market Conduct,t,category,Consumer Complaint,Market Conduct,,urgent,2,t,2,,2026-07-31 09:31:51.555489+00,2026-07-31 09:31:51.555489+00
+16e12bbe-b9d7-49a4-a9c7-70db590c4732,Licensing queries to Licensing Unit,t,category,Licensing Query,Licensing,,normal,7,t,3,,2026-07-31 09:31:51.555489+00,2026-07-31 09:31:51.555489+00
+b5b1d7cc-61db-47eb-977a-6de21cbde31e,Legal notices to Legal & Compliance,t,category,Legal Notice,Legal & Compliance,,high,5,t,4,,2026-07-31 09:31:51.555489+00,2026-07-31 09:31:51.555489+00
+386e30b1-99db-4cee-bb44-72d5fdc57fff,General enquiries to Registry,t,category,General,Registry,,normal,10,t,5,,2026-07-31 09:31:51.555489+00,2026-07-31 09:31:51.555489+00

@@ -1,0 +1,11 @@
+id,version,stage,label,seq,sla_days,due_soon_days,waiting_on,description,is_terminal,is_active,created_at
+9c2391f9-dd9e-47ff-a06a-cf5aff6dfd31,1,REFERRAL,Referral,1,5,2,regulator,A source matter has been referred. Enforcement must accept or decline the referral.,f,t,2026-08-21 11:16:15.71189+00
+7f43b9ab-e463-4f2e-959f-3d1a1c6bad91,1,ASSESSMENT,Assessment,2,20,5,regulator,Enforcement assesses the referred matter and the supporting evidence.,f,t,2026-08-21 11:16:15.71189+00
+880ce16f-81d3-4210-9581-e2f0b4b078a8,1,NOTICE,Notice issued,3,10,3,entity,A formal notice has been issued to the entity.,f,t,2026-08-21 11:16:15.71189+00
+e56f1f7f-908b-45d1-96ef-eceb0adf570c,1,REPRESENTATIONS,Representations,4,21,5,entity,The entity may make representations before a decision is taken.,f,t,2026-08-21 11:16:15.71189+00
+64e6bb0d-149d-4c84-826a-1866d3db3411,1,DECISION,Decision,5,15,3,regulator,The decision maker weighs the evidence and representations.,f,t,2026-08-21 11:16:15.71189+00
+70253f50-e2d2-4fad-85a0-ae4661e7229e,1,SANCTION,Sanction / directive,6,10,3,regulator,The sanction or directive flowing from the decision is imposed.,f,t,2026-08-21 11:16:15.71189+00
+b9d3b9bf-50ea-420f-a2b4-d9eba12f6360,1,REMEDIATION_MONITORING,Remediation monitoring,7,30,7,entity,"Obligations, remediation evidence and penalty settlement are monitored.",f,t,2026-08-21 11:16:15.71189+00
+d3709226-e4c4-41f2-b2fb-ade4596aa6ee,1,APPEAL,Appeal,8,30,7,third_party,An appeal against the enforcement decision is under review.,f,t,2026-08-21 11:16:15.71189+00
+7dfcedfb-aa33-45ea-bf0f-7d49ab98bcaf,1,CLOSED,Closed,9,0,0,system,The enforcement case is closed.,t,t,2026-08-21 11:16:15.71189+00
+c6ce8423-08e7-4626-844f-8f67b5b03c04,1,WITHDRAWN,Withdrawn,10,0,0,system,The enforcement case was withdrawn.,t,t,2026-08-21 11:16:15.71189+00

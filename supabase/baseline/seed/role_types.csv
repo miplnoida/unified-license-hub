@@ -1,0 +1,12 @@
+id,key,label,description,category,is_governance,requires_fit_and_proper,sort_order,is_system,is_active,created_at,updated_at
+4a0f0d82-55ec-4c54-81b9-9a5df0ec0602,director,Director,,board,t,t,10,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+ba766e07-a8ee-4039-b9eb-1c53ada6a5ab,independent_director,Independent Director,,board,t,t,20,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+3d189454-7af9-4c35-9687-bcf7a41a1db0,chairperson,Chairperson,,board,t,t,30,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+71fb18d0-8a7c-48af-a749-82cfd146ee6a,chief_executive_officer,Chief Executive Officer,,executive,t,t,40,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+60086ccb-e16b-48d0-8033-3c83ffc9e38f,chief_financial_officer,Chief Financial Officer,,executive,t,t,50,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+efee96e2-78a0-41a2-8097-f2b7ab6927bb,chief_risk_officer,Chief Risk Officer,,key_function,t,t,60,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+c1b45b28-621b-4ed2-8032-c5c7cccbd06d,compliance_officer,Compliance Officer,,key_function,t,t,70,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+f077a5d4-97f9-4e8f-83a0-0dd2f70894fa,money_laundering_reporting_officer,Money Laundering Reporting Officer,,key_function,t,t,80,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+e2f193ca-107c-4b3c-b855-56e1761aa729,internal_auditor,Internal Auditor,,key_function,t,t,90,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+df59e636-6d01-4f46-8e7b-37fc753d64fb,company_secretary,Company Secretary,,governance,t,f,100,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+00223d54-26cd-4ec1-8f99-15fe645767a6,authorised_contact,Authorised Contact,,administrative,f,f,110,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00

@@ -1,0 +1,24 @@
+id,key,label,description,domain,is_terminal,sort_order,is_system,is_active,created_at,updated_at
+16adbbba-81b6-4427-8469-5846b4ef8f0e,prospect,Prospect,Known organisation with no regulatory case yet.,entity,f,10,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+94759371-4e04-48f3-829e-e34f0b7b37aa,applicant,Applicant,Entity with an in-flight licence application and no licence.,entity,f,20,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+49469bb4-bee2-4900-abe6-a90b205516e4,withdrawn,Withdrawn,"RETIRED as an ENTITY stage: withdrawal/refusal is an APPLICATION outcome, not a terminal entity state.",entity,f,60,t,f,2026-08-20 05:24:05.094176+00,2026-08-20 05:40:40.912874+00
+72202763-b986-405b-87f0-55e61fa44002,restricted,Restricted,RETIRED as an ENTITY stage: restriction is a LICENCE status; an entity may hold several licences with differing statuses.,entity,f,40,t,f,2026-08-20 05:24:05.094176+00,2026-08-20 05:40:40.912874+00
+f3e087e5-2694-4703-94d7-65a848eb8a15,suspended,Suspended,RETIRED as an ENTITY stage: suspension is a LICENCE status; an entity may hold several licences with differing statuses.,entity,f,50,t,f,2026-08-20 05:24:05.094176+00,2026-08-20 05:40:40.912874+00
+6903111e-d403-468c-955d-c49d0ceba7a2,authorised,Authorised,"Entity holds at least one licence in a non-terminal state. Per-licence restriction/suspension is licence status, not entity status.",entity,f,30,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:40:40.912874+00
+9e1e35e4-967e-4385-ade1-edf0bf935359,closed,Closed,"Entity exited the regulatory perimeter entirely (no live licence, no live application, no supervisory interest).",entity,t,70,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:40:40.912874+00
+3330b125-c446-4781-8127-f5f62a844376,supervised_non_licensed,Supervised (Non-Licensed),Within the regulatory perimeter without holding a licence (registered or notified organisation).,entity,f,35,t,t,2026-08-20 05:40:40.912874+00,2026-08-20 05:40:40.912874+00
+6f00ad9b-d37f-4500-8a53-a8c4961d76e8,former_licensee,Former Licensee,Held a licence in the past; no live authorisation but the record is retained for supervisory history.,entity,f,60,t,t,2026-08-20 05:40:40.912874+00,2026-08-20 05:40:40.912874+00
+3c78ae35-57bf-47c0-92c7-a69e75753a8e,license_pending,Pending,Licence approved subject to conditions precedent; not yet effective.,license,f,10,t,t,2026-08-20 05:40:40.912874+00,2026-08-20 05:40:40.912874+00
+618e1929-7ec7-465d-9f82-8cd905deb33e,license_active,Active,Licence in force.,license,f,20,t,t,2026-08-20 05:40:40.912874+00,2026-08-20 05:40:40.912874+00
+e11ebfbd-a5dc-4771-8f02-c9a6b8003f8d,license_restricted,Restricted,In force subject to restrictions or conditions.,license,f,30,t,t,2026-08-20 05:40:40.912874+00,2026-08-20 05:40:40.912874+00
+1512802f-5abb-419f-a9a6-6835e40a313c,license_suspended,Suspended,Temporarily suspended.,license,f,40,t,t,2026-08-20 05:40:40.912874+00,2026-08-20 05:40:40.912874+00
+a999fce5-616d-43e3-a019-accfe04a7bd1,license_expired,Expired,Validity period ended without renewal.,license,t,50,t,t,2026-08-20 05:40:40.912874+00,2026-08-20 05:40:40.912874+00
+bd6f1875-ec4f-4160-8aeb-3657f5ce4335,license_surrendered,Surrendered,Voluntarily surrendered by the holder.,license,t,60,t,t,2026-08-20 05:40:40.912874+00,2026-08-20 05:40:40.912874+00
+de1c5ed0-6a89-4302-aa7b-6e18b8c67863,license_revoked,Revoked,Withdrawn by the regulator.,license,t,70,t,t,2026-08-20 05:40:40.912874+00,2026-08-20 05:40:40.912874+00
+3be384d4-6e97-4ee0-9e14-1bd0a1efd07b,application_draft,Draft,Being prepared by the applicant.,application,f,10,t,t,2026-08-20 05:40:40.912874+00,2026-08-20 05:40:40.912874+00
+a1f09407-a70b-4763-b394-9779ac0b724b,application_submitted,Submitted,Received and awaiting completeness assessment.,application,f,20,t,t,2026-08-20 05:40:40.912874+00,2026-08-20 05:40:40.912874+00
+1476f2c7-f976-4a1e-9d57-bbd85dae8718,application_under_review,Under Review,In substantive assessment.,application,f,30,t,t,2026-08-20 05:40:40.912874+00,2026-08-20 05:40:40.912874+00
+aef45c11-1dd2-4adf-b0d8-1bfd12e10c9e,application_info_requested,Information Requested,Awaiting applicant response to an information request.,application,f,40,t,t,2026-08-20 05:40:40.912874+00,2026-08-20 05:40:40.912874+00
+9ee2fdfb-1b46-4778-ac27-24a2048992fa,application_approved,Approved,Decision taken to authorise.,application,t,50,t,t,2026-08-20 05:40:40.912874+00,2026-08-20 05:40:40.912874+00
+d3ec6068-6349-4803-9286-24501ff01a17,application_rejected,Rejected,Refused by the regulator.,application,t,60,t,t,2026-08-20 05:40:40.912874+00,2026-08-20 05:40:40.912874+00
+90e79c91-a039-4386-98e6-9a9f5063aeae,application_withdrawn,Withdrawn,Withdrawn by the applicant.,application,t,70,t,t,2026-08-20 05:40:40.912874+00,2026-08-20 05:40:40.912874+00

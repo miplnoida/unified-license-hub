@@ -1,0 +1,2 @@
+id,name,trigger_event,assessment_type,sector_id,screening_config_id,is_active,created_by,created_at,updated_at
+69307203-7a8e-4792-a187-df230d27ef08,Declaration Screening,declaration_received,triggered,,bb65d124-a658-4754-8935-6024d3fed380,t,6d4f5483-b81b-47bb-9e4d-265f9c1b0f25,2026-07-10 08:24:33.13565+00,2026-07-10 08:24:33.13565+00
