@@ -5,7 +5,7 @@ import { getModuleForPath, isProtectedInternalPath, PermissionModule } from '@/l
 import { INTERNAL_ROLES } from '@/types/platform';
 import { isSubmittedLifecycle } from '@/lib/returnLifecycle';
 import { useSecurityContext } from '@/hooks/useSecurityContext';
-import { toUserPermissions, matchRoute } from '@/lib/rbac/securityContext';
+import { toUserPermissions, matchRoute, resolveAudience } from '@/lib/rbac/securityContext';
 import {
   authorize,
   authorizeModule,
@@ -74,7 +74,14 @@ export function useUserDynamicPermissions() {
   // Bypass is super_admin (or a break-glass role flagged in the catalogue)
   // only. Static `admin` carries no implicit bypass.
   const isBypassRole = isSuperAdmin || !!context?.is_bypass;
-  const isInternal = !!user && INTERNAL_ROLES.includes(user.role);
+  // Canonical audience: resolved from the governed `sec_roles` catalogue via
+  // `sec_get_user_context()`. The legacy `app_role` list is only consulted when
+  // the canonical payload carries no role-type data (legacy fallback context),
+  // so internal staff never lose their surfaces if the RPC is unreachable.
+  const canonicalAudience = resolveAudience(context);
+  const isInternal = canonicalAudience !== null
+    ? canonicalAudience === 'internal'
+    : !!user && INTERNAL_ROLES.includes(user.role);
   // Legacy flag kept for callers that still branch on it; always true when
   // the user is not a bypass role since dynamic perms are the source of truth.
   const enforceDynamic = !isBypassRole;
@@ -216,7 +223,10 @@ export function useUserDynamicPermissions() {
     enforceDynamic,
     isBypassRole,
     isInternal,
+    /** `'internal' | 'external' | null` straight from the canonical context. */
+    canonicalAudience,
     isLoading,
+
   };
 }
 

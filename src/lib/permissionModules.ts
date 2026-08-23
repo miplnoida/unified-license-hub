@@ -67,7 +67,10 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/licensing/entity-resolution', 'entity_resolution'],
   ['/admin/entity-memberships', 'entity_membership'],
   ['/admin/rdm', 'regulatory_data_model'],
-  ['/entities', 'license_management'],
+  // Aligned with the canonical `sec_routes` registry, which gates /entities on
+  // `licensee_management.view` (the Entity Register is a licensee-population
+  // surface, not the licence register).
+  ['/entities', 'licensee_management'],
 
 
   // ─── Forms ─────────────────────────────────────────────────────────────

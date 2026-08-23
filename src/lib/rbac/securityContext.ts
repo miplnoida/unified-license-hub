@@ -114,6 +114,32 @@ export interface SecNavNode extends SecNavItem {
   children: SecNavNode[];
 }
 
+/**
+ * Canonical audience resolution (Wave 3B.5).
+ *
+ * The audience of a caller is derived ONLY from the governed `sec_roles`
+ * catalogue (`role_type`) delivered by `sec_get_user_context()` — never from
+ * the legacy `app_role` enum or `profiles.role`. Returns `null` when the
+ * canonical payload carries no role-type information (e.g. the legacy
+ * fallback context), so callers can degrade deliberately instead of silently
+ * treating internal staff as external.
+ */
+export function resolveAudience(ctx: SecurityContext | null | undefined): SecAudience | null {
+  if (!ctx?.authenticated) return null;
+  if (ctx.is_bypass) return 'internal';
+  const roles = ctx.roles ?? [];
+  const typed = roles.filter((r) => !!r.role_type);
+  if (!typed.length) return null;
+  return typed.some((r) => String(r.role_type).toLowerCase() === 'internal')
+    ? 'internal'
+    : 'external';
+}
+
+/** True only when the canonical context resolves the caller to internal staff. */
+export function isInternalAudience(ctx: SecurityContext | null | undefined): boolean {
+  return resolveAudience(ctx) === 'internal';
+}
+
 /** Build the nav forest, ordered by `sort_order`. */
 export function buildNavTree(items: readonly SecNavItem[] | undefined): SecNavNode[] {
   const nodes = new Map<string, SecNavNode>();

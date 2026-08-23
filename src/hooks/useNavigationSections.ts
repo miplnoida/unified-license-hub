@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { useSecurityContext } from '@/hooks/useSecurityContext';
-import { buildNavTree, type SecNavItem, type SecNavNode } from '@/lib/rbac/securityContext';
+import { buildNavTree, resolveAudience, type SecNavItem, type SecNavNode } from '@/lib/rbac/securityContext';
 import { renderNavIcon } from '@/lib/rbac/navIcons';
 import { mainNavSections, type NavItem, type NavSection } from '@/config/navigation';
 import { INTERNAL_ROLES, LICENSEE_ROLES, type AppRole } from '@/types/platform';
 import type { PermissionModule } from '@/lib/permissionModules';
+
 
 const ALL_ROLES: AppRole[] = [
   'super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst',
@@ -82,8 +83,21 @@ export function useNavigationSections(): { sections: NavSection[]; isLoading: bo
       }
       return true;
     };
-    const sidebarItems = items.filter(isSidebarVisible);
+    const sidebarItemsRaw = items.filter(isSidebarVisible);
+    // Audience convergence (Wave 3B.5): a caller resolved to the EXTERNAL
+    // audience by the canonical `sec_roles` catalogue never sees items declared
+    // for internal staff — not even as a collapsed domain heading. Route guards
+    // and RLS remain the enforcement layer; this only removes discoverability
+    // of surfaces the caller can never open.
+    const audience = resolveAudience(context);
+    const audienceItems = audience === 'external'
+      ? sidebarItemsRaw.filter((i) => String(i.audience ?? 'any').toLowerCase() !== 'internal')
+      : sidebarItemsRaw;
+    // Drop orphans whose parent was removed by the audience filter.
+    const keptKeys = new Set(audienceItems.map((i) => i.key));
+    const sidebarItems = audienceItems.filter((i) => !i.parent_key || keptKeys.has(i.parent_key));
     const roots = buildNavTree(sidebarItems);
+
     // Root domains (Licensing, Supervision, Returns, ...) render as first-class
     // level-1 accordion rows with their own icon — NOT as tiny uppercase
     // separator captions. A root that is a plain link (Home) renders directly.
