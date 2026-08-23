@@ -75,6 +75,7 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
 
   // ---------------------------------------------------------- licences / fees
   { pattern: '/licenses', label: 'Licences', parent: '/dashboard' },
+  { pattern: '/licenses/lifecycle', label: 'Lifecycle queue', parent: '/licenses' },
   { pattern: '/licenses/:id', resolver: 'license', param: 'id', parent: '/licenses' },
   { pattern: '/appeals', label: 'My appeals', parent: '/dashboard' },
   { pattern: '/payments', label: 'Payments', parent: '/dashboard' },

@@ -37,10 +37,23 @@ export const labelResolvers: Record<string, LabelResolverDescriptor> = {
   fpIndividual: { table: 'fp_individuals', idColumn: 'id', labelColumns: ['full_name'], fallback: 'Individual' },
 };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Static child segments (e.g. `/licenses/lifecycle`) can occupy the same
+ * position as an id in the route registry. Resolving them would send a
+ * non-uuid to a uuid column and produce a 400 from the data API, so the
+ * resolver only runs for real uuid keys.
+ */
+export function isResolvableId(id: string | undefined): boolean {
+  return !!id && UUID_RE.test(id);
+}
+
 /** Resolve a single business label. Returns null when nothing is readable. */
 export async function resolveLabel(resolverKey: string, id: string): Promise<string | null> {
   const descriptor = labelResolvers[resolverKey];
   if (!descriptor || !id) return null;
+  if (!isResolvableId(id)) return null;
   const { data, error } = await (supabase as any)
     .from(descriptor.table)
     .select(descriptor.labelColumns.join(', '))

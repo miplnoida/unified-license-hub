@@ -39760,6 +39760,17 @@ export type Database = {
       perform_registration_workflow_transition: {
         Args: {
           _action_type: string
+          _actor_id?: string
+          _comments?: string
+          _instance_id: string
+          _registration_id: string
+          _step_id: string
+        }
+        Returns: Json
+      }
+      perform_registration_workflow_transition_internal: {
+        Args: {
+          _action_type: string
           _actor_id: string
           _comments: string
           _instance_id: string
@@ -42661,6 +42672,7 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      workflow_resolve_actor: { Args: { _claimed: string }; Returns: string }
       write_audit: {
         Args: {
           _action: string
