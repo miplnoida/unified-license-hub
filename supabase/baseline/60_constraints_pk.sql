@@ -51,14 +51,6 @@ ALTER TABLE public.captcha_secrets ADD CONSTRAINT captcha_secrets_pkey PRIMARY K
 ALTER TABLE public.captcha_verifications ADD CONSTRAINT captcha_verifications_pkey PRIMARY KEY (id);
 ALTER TABLE public.categories ADD CONSTRAINT categories_name_sector_sub_sector_unique UNIQUE (sector_id, sub_sector_id, name);
 ALTER TABLE public.categories ADD CONSTRAINT categories_pkey PRIMARY KEY (id);
-ALTER TABLE public.cert_certification_users ADD CONSTRAINT cert_certification_users_email_key UNIQUE (email);
-ALTER TABLE public.cert_certification_users ADD CONSTRAINT cert_certification_users_pkey PRIMARY KEY (user_id);
-ALTER TABLE public.cert_fixture_object_types ADD CONSTRAINT cert_fixture_object_types_pkey PRIMARY KEY (object_type);
-ALTER TABLE public.cert_fixture_objects ADD CONSTRAINT cert_fixture_objects_pkey PRIMARY KEY (id);
-ALTER TABLE public.cert_fixture_objects ADD CONSTRAINT cert_fixture_objects_unique UNIQUE (dataset_key, object_type, object_id);
-ALTER TABLE public.cert_fixture_runs ADD CONSTRAINT cert_fixture_runs_pkey PRIMARY KEY (id);
-ALTER TABLE public.cert_machine_identities ADD CONSTRAINT cert_machine_identities_pkey PRIMARY KEY (user_id);
-ALTER TABLE public.cert_nonproduction_guard ADD CONSTRAINT cert_nonproduction_guard_pkey PRIMARY KEY (id);
 ALTER TABLE public.certification_seed_manifest ADD CONSTRAINT certification_seed_manifest_dataset_key_scenario_key_record_key UNIQUE (dataset_key, scenario_key, record_kind);
 ALTER TABLE public.certification_seed_manifest ADD CONSTRAINT certification_seed_manifest_pkey PRIMARY KEY (id);
 ALTER TABLE public.classification_schemes ADD CONSTRAINT classification_schemes_key_key UNIQUE (key);

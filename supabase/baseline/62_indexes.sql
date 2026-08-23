@@ -13,8 +13,6 @@ CREATE INDEX approval_steps_approver_role_id_idx ON public.approval_steps USING 
 CREATE UNIQUE INDEX approval_workflows_unique_scope_used_for ON public.approval_workflows USING btree (COALESCE((regulator_id)::text, '__global__'::text), COALESCE((sector_id)::text, '__all_sectors__'::text), COALESCE((sub_sector_id)::text, '__all_sub_sectors__'::text), COALESCE((category_id)::text, '__all_categories__'::text), COALESCE((service_id)::text, '__all_services__'::text), entity_type) WHERE (is_active = true);
 CREATE UNIQUE INDEX captcha_configurations_single_active ON public.captcha_configurations USING btree (is_active) WHERE is_active;
 CREATE INDEX captcha_verifications_expiry_idx ON public.captcha_verifications USING btree (expires_at);
-CREATE INDEX cert_fixture_objects_run_idx ON public.cert_fixture_objects USING btree (run_id);
-CREATE INDEX cert_fixture_objects_scenario_idx ON public.cert_fixture_objects USING btree (dataset_key, scenario_code);
 CREATE UNIQUE INDEX complaints_idempotency_creator_uidx ON public.complaints USING btree (internal_created_by, idempotency_key) WHERE ((idempotency_key IS NOT NULL) AND (internal_created_by IS NOT NULL));
 CREATE UNIQUE INDEX complaints_idempotency_email_uidx ON public.complaints USING btree (lower(email), idempotency_key) WHERE ((idempotency_key IS NOT NULL) AND (internal_created_by IS NULL) AND (email IS NOT NULL));
 CREATE INDEX conduct_closure_breaches_closure_idx ON public.conduct_closure_breaches USING btree (closure_id);

@@ -400,6 +400,30 @@ export type Database = {
         }
         Relationships: []
       }
+      app_environment_config: {
+        Row: {
+          environment: string
+          id: boolean
+          note: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          environment?: string
+          id?: boolean
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          environment?: string
+          id?: boolean
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       appeal_panel_scopes: {
         Row: {
           created_at: string
@@ -34852,6 +34876,7 @@ export type Database = {
         Args: { _rule_id: string }
         Returns: undefined
       }
+      assert_nonproduction: { Args: { _operation: string }; Returns: undefined }
       assert_role_management_action: {
         Args: { _action: string }
         Returns: undefined
@@ -38618,6 +38643,7 @@ export type Database = {
         Args: { _entity_id: string; _user_id: string }
         Returns: boolean
       }
+      is_production_environment: { Args: never; Returns: boolean }
       is_prudential_action_entity_user: {
         Args: { _action_id: string; _user: string }
         Returns: boolean

@@ -97,18 +97,6 @@ CREATE POLICY captcha_verifications_service_only ON public.captcha_verifications
 CREATE POLICY "Admins manage categories" ON public.categories AS PERMISSIVE FOR ALL TO authenticated USING ((has_role(auth.uid(), 'super_admin'::app_role) OR has_role(auth.uid(), 'admin'::app_role))) WITH CHECK ((has_role(auth.uid(), 'super_admin'::app_role) OR has_role(auth.uid(), 'admin'::app_role)));
 CREATE POLICY "Authenticated read categories" ON public.categories AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Public read categories" ON public.categories AS PERMISSIVE FOR SELECT TO PUBLIC USING (true);
-CREATE POLICY cert_users_admin_read ON public.cert_certification_users AS PERMISSIVE FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM (sec_user_roles ur
-     JOIN sec_roles r ON ((r.id = ur.role_id)))
-  WHERE ((ur.user_id = auth.uid()) AND (ur.status = 'active'::text) AND (r.is_break_glass OR (r.key = ANY (ARRAY['security_administrator'::text, 'system_administrator'::text])))))));
-CREATE POLICY "Admins read cert fixture object types" ON public.cert_fixture_object_types AS PERMISSIVE FOR SELECT TO authenticated USING ((has_role(auth.uid(), 'super_admin'::app_role) OR has_role(auth.uid(), 'admin'::app_role)));
-CREATE POLICY "Admins read cert fixture objects" ON public.cert_fixture_objects AS PERMISSIVE FOR SELECT TO authenticated USING ((has_role(auth.uid(), 'super_admin'::app_role) OR has_role(auth.uid(), 'admin'::app_role)));
-CREATE POLICY "Admins read cert fixture runs" ON public.cert_fixture_runs AS PERMISSIVE FOR SELECT TO authenticated USING ((has_role(auth.uid(), 'super_admin'::app_role) OR has_role(auth.uid(), 'admin'::app_role)));
-CREATE POLICY cert_machine_admin_read ON public.cert_machine_identities AS PERMISSIVE FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
-   FROM (sec_user_roles ur
-     JOIN sec_roles r ON ((r.id = ur.role_id)))
-  WHERE ((ur.user_id = auth.uid()) AND (ur.status = 'active'::text) AND (r.is_break_glass OR (r.key = ANY (ARRAY['security_administrator'::text, 'system_administrator'::text])))))));
-CREATE POLICY cert_guard_no_app_access ON public.cert_nonproduction_guard AS PERMISSIVE FOR SELECT TO authenticated USING (false);
 CREATE POLICY "Admins read certification seed manifest" ON public.certification_seed_manifest AS PERMISSIVE FOR SELECT TO authenticated USING ((has_role(auth.uid(), 'super_admin'::app_role) OR has_role(auth.uid(), 'admin'::app_role)));
 CREATE POLICY classification_schemes_read ON public.classification_schemes AS PERMISSIVE FOR SELECT TO authenticated USING (rdm_can_read());
 CREATE POLICY classification_values_read ON public.classification_values AS PERMISSIVE FOR SELECT TO authenticated USING (rdm_can_read());
