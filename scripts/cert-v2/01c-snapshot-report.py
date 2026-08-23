@@ -66,6 +66,9 @@ ORDER = [
 ]
 
 
+IDENT: dict = {}
+
+
 def collect():
     rows = q(
         "select table_name, category, row_count from public.cert_v2_table_classification() "
@@ -84,11 +87,11 @@ def collect():
     ]
     ident = json.loads(os.environ.get("CERT_IDENTITY_JSON", "{}"))
     identity = [
-        ("auth users", ident.get("total", "n/a")),
-        ("certification identities (manifest)", ident.get("certification_keep", "n/a")),
-        ("machine/system identities", ident.get("machine_keep", "n/a")),
-        ("old human identities", ident.get("old_human_purge", "n/a")),
-        ("unknown identities (blockers)", ident.get("unknown_blocker", "n/a")),
+        ("auth users", IDENT.get("total", "n/a")),
+        ("certification identities (manifest)", IDENT.get("certification_keep", "n/a")),
+        ("machine/system identities", IDENT.get("machine_keep", "n/a")),
+        ("old human identities", IDENT.get("old_human_purge", "n/a")),
+        ("unknown identities (blockers)", IDENT.get("unknown_blocker", "n/a")),
         ("profiles", scalar("select count(*) from public.profiles")),
         ("sec_user_roles assignments (canonical)", scalar("select count(*) from public.sec_user_roles")),
         ("user_dynamic_roles assignments (projection)", scalar("select count(*) from public.user_dynamic_roles")),
@@ -108,8 +111,23 @@ def table(out, header, rows):
     out.append("")
 
 
+def parse_identity_arg():
+    """--identity total=46,certification_keep=46,... (auth.users counts come from
+    the cert-v2-user-fixtures edge function, which alone may read auth schema)."""
+    for i, a in enumerate(sys.argv):
+        if a == "--identity" and i + 1 < len(sys.argv):
+            out = {}
+            for pair in sys.argv[i + 1].split(","):
+                if "=" in pair:
+                    k, v = pair.split("=", 1)
+                    out[k.strip()] = int(v)
+            return out
+    return {}
+
+
 def main():
     phase = (sys.argv[1] if len(sys.argv) > 1 else "pre").lower()
+    IDENT.update(parse_identity_arg())
     cats, areas, groups, identity, config = collect()
     ts = datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z"
     out = []
