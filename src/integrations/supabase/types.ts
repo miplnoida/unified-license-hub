@@ -8445,7 +8445,7 @@ export type Database = {
           file_size?: number | null
           id?: string
           mime_type?: string | null
-          uploaded_by: string
+          uploaded_by?: string
         }
         Update: {
           created_at?: string
@@ -35078,6 +35078,10 @@ export type Database = {
         Args: { _entity_id: string; _user_id: string }
         Returns: boolean
       }
+      can_read_examination_linked_action: {
+        Args: { _source_id: string; _source_type: string; _user: string }
+        Returns: boolean
+      }
       can_read_financial_group: {
         Args: { _group_id: string; _user: string }
         Returns: boolean
@@ -37428,6 +37432,10 @@ export type Database = {
         }
         Returns: Json
       }
+      examination_has_issued_report: {
+        Args: { _examination_id: string }
+        Returns: boolean
+      }
       examination_signoff_workpaper: {
         Args: { _notes?: string; _role: string; _workpaper_id: string }
         Returns: Json
@@ -37518,6 +37526,10 @@ export type Database = {
           _payment_user_id: string
           _user_id: string
         }
+        Returns: boolean
+      }
+      external_can_access_prudential_action: {
+        Args: { _action_id: string; _capability: string; _user_id: string }
         Returns: boolean
       }
       external_can_access_return_filed: {
