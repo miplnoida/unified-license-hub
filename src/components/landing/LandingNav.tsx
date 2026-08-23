@@ -1,20 +1,35 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Layers, Menu, X, HelpCircle } from 'lucide-react';
+import { Layers, Menu, X, HelpCircle, Lock } from 'lucide-react';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { PublicBreadcrumbBar } from '@/components/layout/ApplicationBreadcrumbs';
+
+/**
+ * Canonical logged-out navigation. These entries are fixed platform
+ * destinations (not editable branding links) so that public licensee-facing
+ * routes and Sign In are always reachable.
+ */
+const PUBLIC_NAV = [
+  { label: 'Home', to: '/' },
+  { label: 'Applicants', to: '/applicants' },
+  { label: 'For Licensees', to: '/licensee-services' },
+  { label: 'Public Register', to: '/registry' },
+  { label: 'Guidance', to: '/guidance' },
+  { label: 'Help / Contact', to: '/help' },
+];
 
 export function LandingNav() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const { branding, header_menu } = useSiteSettings();
+  const { branding } = useSiteSettings();
+
 
   return (
     <nav className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur-sm">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
         {/* Logo */}
-        <a href="#" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2">
           {branding.logo_url ? (
             <img src={branding.logo_url} alt={branding.site_name} className="h-10 w-auto max-w-[200px] rounded-md object-contain" />
           ) : (
@@ -25,58 +40,64 @@ export function LandingNav() {
               <span className="text-base font-bold tracking-tight text-foreground">{branding.site_name}</span>
             </>
           )}
-        </a>
+        </Link>
 
         {/* Desktop links */}
-        <div className="hidden md:flex items-center gap-6">
-          {header_menu.map((l) => (
-            <a
+        <div className="hidden lg:flex items-center gap-5">
+          {PUBLIC_NAV.map((l) => (
+            <Link
               key={l.label}
-              href={l.href}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              to={l.to}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
             >
               {l.label}
-            </a>
+            </Link>
           ))}
         </div>
 
-        {/* Desktop auth */}
+        {/* Desktop auth — Sign In must remain visible on every public page */}
         <div className="hidden md:flex items-center gap-2">
-          <a href="#footer" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mr-2">
+          <Link to="/help" className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mr-1">
             <HelpCircle className="h-3.5 w-3.5" /> Help
-          </a>
+          </Link>
           <Button variant="outline" size="sm" onClick={() => navigate('/login')}>
-            Login
+            <Lock className="mr-1.5 h-3.5 w-3.5" /> Sign In
           </Button>
           <Button size="sm" variant="secondary" onClick={() => navigate('/register')}>
-            Register
+            Apply / Register
           </Button>
         </div>
 
         {/* Mobile toggle */}
-        <button className="md:hidden p-2" onClick={() => setOpen(!open)}>
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-2 lg:hidden">
+          <Button variant="outline" size="sm" className="md:hidden" onClick={() => navigate('/login')}>
+            <Lock className="mr-1.5 h-3.5 w-3.5" /> Sign In
+          </Button>
+          <button aria-label="Toggle menu" className="p-2" onClick={() => setOpen(!open)}>
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {open && (
-        <div className="md:hidden border-t bg-card px-4 pb-4 pt-2 space-y-1 animate-fade-in">
-          {header_menu.map((l) => (
-            <a key={l.label} href={l.href} onClick={() => setOpen(false)}
+        <div className="lg:hidden border-t bg-card px-4 pb-4 pt-2 space-y-1 animate-fade-in">
+          {PUBLIC_NAV.map((l) => (
+            <Link key={l.label} to={l.to} onClick={() => setOpen(false)}
               className="block py-2 text-sm text-muted-foreground hover:text-foreground">
               {l.label}
-            </a>
+            </Link>
           ))}
           <div className="flex gap-2 pt-3">
-            <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate('/login')}>
-              Login
+            <Button variant="outline" size="sm" className="flex-1" onClick={() => { setOpen(false); navigate('/login'); }}>
+              Sign In
             </Button>
-            <Button size="sm" variant="secondary" className="flex-1" onClick={() => navigate('/register')}>
-              Register
+            <Button size="sm" variant="secondary" className="flex-1" onClick={() => { setOpen(false); navigate('/register'); }}>
+              Apply / Register
             </Button>
           </div>
         </div>
       )}
+
 
       {/*
         Public breadcrumb bar. Single integration point for every unauthenticated

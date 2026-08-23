@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { LandingNav } from './LandingNav';
 import { HeroSection } from './HeroSection';
 import { FeaturesSection } from './FeaturesSection';
+import { AlreadyRegulatedSection } from './AlreadyRegulatedSection';
 import { CapabilitiesSection } from './CapabilitiesSection';
 import { AnalyticsSection } from './AnalyticsSection';
 import { TrustSection } from './TrustSection';
@@ -23,6 +24,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background text-foreground">
       <LandingNav />
       <HeroSection />
+      <AlreadyRegulatedSection />
       <FeaturesSection />
       <CapabilitiesSection />
       <AnalyticsSection />
