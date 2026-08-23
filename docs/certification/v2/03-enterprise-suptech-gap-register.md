@@ -35,3 +35,15 @@ GAP-3A-004 and GAP-3A-005 remain open. See
 | PRU-CANON-001 | P1 | P07 Prudential | Monitoring sweep read legacy `returns_filed` and called `prudential_ewi_evaluate` | CLOSED — sweep now selects the latest eligible `return_filing_versions` row and calls `_prudential_canonical_detect_run` |
 | GAP-3E-003 | P1 | P07 RBAC | `prudential_analyst` had no qualifying legacy dynamic role, so `has_scoped_permission` denied maker actions (assessment, action) | FIXED (governed "Prudential Analyst" role with prudential maker permissions) |
 
+
+## GAP-3F-001 (P1) — Complaints officer cannot read back a complaint they just created
+- **Family**: P08 Complaints & Conduct
+- **Evidence**: `INSERT INTO complaints` as `complaints_officer` succeeds without `RETURNING`, but fails with `42501 new row violates row-level security policy` when the row is read back (the shape used by the UI and by `scripts/cert-v2/p08-complaints-conduct.ts`).
+- **Root cause**: the `Read complaints` SELECT policy relies on `has_scoped_permission(..., 'view', ...)`. For a freshly registered complaint the licensee/sector are still null and the record is unassigned, so every non-`all` scope kind returns false.
+- **Proposed fix**: extend the complaints SELECT policy so an intake user who holds `complaint_management:create` can also read unassigned/unscoped complaints (and complaints they registered), keeping scoped restrictions for assigned/licensee-linked cases.
+- **Status**: OPEN — blocks the P08 journey at step P08.03.
+
+## GAP-3F-002 (P2) — Internal certification personas also hold an external role
+- **Evidence**: `has_external_role()` returns true for `complaints_officer`, `complaints_supervisor`, `conduct_analyst`, `conduct_supervisor`, `auditor`.
+- **Impact**: internal staff only pass the external capability gates via the `is_internal_staff()` branch; any table whose gate lacks that branch would wrongly treat them as external.
+- **Status**: OPEN.
