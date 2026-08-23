@@ -99,8 +99,9 @@ async function main() {
   const auditReads = ['audit_logs?select=id&limit=1', 'compliance_audit_logs?select=id&limit=1',
     'return_filings?select=id&limit=1', 'complaints?select=id&limit=1', 'applications?select=id&limit=1'];
   let readOk = 0;
-  for (const r of auditReads) { const res = await sel(AUDIT, r); if (res.status === 200) readOk += 1; }
-  record('P15.11 auditor can read the required audit/supervisory evidence', readOk === auditReads.length, `${readOk}/${auditReads.length}`);
+  const auditReadDetail: string[] = [];
+  for (const r of auditReads) { const res = await sel(AUDIT, r); if (res.status === 200) readOk += 1; else auditReadDetail.push(`${r} -> ${res.status} ${res.text}`); }
+  record('P15.11 auditor can read the required audit/supervisory evidence', readOk === auditReads.length, `${readOk}/${auditReads.length} ${auditReadDetail.join(' ;; ')}`);
 
   const w1 = await ins(AUDIT, 'complaints', { subject: 'P15 auditor write probe', description: 'negative control' });
   if (w1.status >= 200 && w1.status < 300) auditorWrites += 1;
