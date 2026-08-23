@@ -96,7 +96,7 @@ async function main() {
   record('P15.10 maker/checker invariant holds (enforcement officer cannot decide)', enfDecide.body === false, enfDecide.text);
 
   // ---------- AUDITOR ----------
-  const auditReads = ['audit_logs?select=id&limit=1', 'compliance_audit_logs?select=id&limit=1',
+  const auditReads = ['audit_logs?select=id&limit=1', 'compliance_audit_logs?select=*&limit=1',
     'return_filings?select=id&limit=1', 'complaints?select=id&limit=1', 'applications?select=id&limit=1'];
   let readOk = 0;
   const auditReadDetail: string[] = [];
