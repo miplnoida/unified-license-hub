@@ -16,7 +16,11 @@ if [ "$(id -u)" = "0" ]; then
   chmod 1777 /tmp 2>/dev/null || true
   mkdir -p /tmp/rc1-pg /tmp/rc1-migrations
   chown -R "$UNPRIV" /tmp/rc1-pg /tmp/rc1-migrations
-  exec su "$UNPRIV" -s /bin/bash -c "cd '$(pwd)' && exec bash '${BASH_SOURCE[0]}' $*"
+  UID_N="$(id -u "$UNPRIV")"; GID_N="$(id -g "$UNPRIV")"
+  exec setpriv --reuid "$UID_N" --regid "$GID_N" --clear-groups \
+    env HOME="/tmp/rc1-pg" USER="$UNPRIV" PATH="$PATH" \
+    bash "${BASH_SOURCE[0]}" "$@"
+
 fi
 
 
