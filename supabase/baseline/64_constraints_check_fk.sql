@@ -81,8 +81,6 @@ ALTER TABLE public.captcha_secrets ADD CONSTRAINT captcha_secrets_configuration_
 ALTER TABLE public.captcha_verifications ADD CONSTRAINT captcha_verifications_configuration_id_fkey FOREIGN KEY (configuration_id) REFERENCES captcha_configurations(id) ON DELETE SET NULL;
 ALTER TABLE public.categories ADD CONSTRAINT categories_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES sectors(id) ON DELETE CASCADE;
 ALTER TABLE public.categories ADD CONSTRAINT categories_sub_sector_id_fkey FOREIGN KEY (sub_sector_id) REFERENCES sub_sectors(id) ON DELETE CASCADE;
-ALTER TABLE public.cert_fixture_objects ADD CONSTRAINT cert_fixture_objects_object_type_fkey FOREIGN KEY (object_type) REFERENCES cert_fixture_object_types(object_type);
-ALTER TABLE public.cert_fixture_objects ADD CONSTRAINT cert_fixture_objects_run_id_fkey FOREIGN KEY (run_id) REFERENCES cert_fixture_runs(id) ON DELETE CASCADE;
 ALTER TABLE public.classification_values ADD CONSTRAINT classification_values_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES classification_values(id) ON DELETE RESTRICT;
 ALTER TABLE public.classification_values ADD CONSTRAINT classification_values_scheme_id_fkey FOREIGN KEY (scheme_id) REFERENCES classification_schemes(id) ON DELETE RESTRICT;
 ALTER TABLE public.complaint_closure_reviews ADD CONSTRAINT complaint_closure_reviews_complaint_id_fkey FOREIGN KEY (complaint_id) REFERENCES complaints(id) ON DELETE CASCADE;
@@ -924,11 +922,6 @@ ALTER TABLE public.approval_workflow_versions ADD CONSTRAINT approval_workflow_v
 ALTER TABLE public.business_calendar_profiles ADD CONSTRAINT bcp_working_hours_valid CHECK ((working_start_time < working_end_time));
 ALTER TABLE public.captcha_configurations ADD CONSTRAINT captcha_configurations_environment_check CHECK ((environment = ANY (ARRAY['sandbox'::text, 'production'::text])));
 ALTER TABLE public.captcha_configurations ADD CONSTRAINT captcha_configurations_provider_check CHECK ((provider = ANY (ARRAY['recaptcha_v2'::text, 'recaptcha_v3'::text, 'turnstile'::text, 'hcaptcha'::text])));
-ALTER TABLE public.cert_certification_users ADD CONSTRAINT cert_certification_users_audience_check CHECK ((audience = ANY (ARRAY['internal'::text, 'external'::text, 'break_glass'::text])));
-ALTER TABLE public.cert_fixture_objects ADD CONSTRAINT cert_fixture_objects_cleanup_chk CHECK ((cleanup_policy = ANY (ARRAY['purge'::text, 'retain_audit'::text, 'retain_config'::text])));
-ALTER TABLE public.cert_fixture_runs ADD CONSTRAINT cert_fixture_runs_status_chk CHECK ((status = ANY (ARRAY['in_progress'::text, 'completed'::text, 'failed'::text, 'reset'::text])));
-ALTER TABLE public.cert_nonproduction_guard ADD CONSTRAINT cert_nonproduction_guard_environment_check CHECK ((environment = ANY (ARRAY['non_production'::text, 'staging'::text, 'development'::text])));
-ALTER TABLE public.cert_nonproduction_guard ADD CONSTRAINT cert_nonproduction_guard_id_check CHECK (id);
 ALTER TABLE public.complaint_correspondence ADD CONSTRAINT complaint_correspondence_direction_check CHECK ((direction = ANY (ARRAY['inbound'::text, 'outbound'::text, 'internal_note'::text])));
 ALTER TABLE public.complaint_duplicate_pairs ADD CONSTRAINT complaint_duplicate_pairs_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'linked'::text, 'merged'::text, 'dismissed'::text, 'confirmed'::text])));
 ALTER TABLE public.complaint_duplicate_pairs ADD CONSTRAINT dup_pair_distinct CHECK ((primary_complaint_id <> candidate_complaint_id));

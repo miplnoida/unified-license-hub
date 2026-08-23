@@ -43,7 +43,7 @@ SELECT 'CREATE DOMAIN public.' || quote_ident(t.typname) || ' AS ' ||
 q "
 SELECT 'CREATE SEQUENCE IF NOT EXISTS public.' || quote_ident(c.relname) || ';'
   FROM pg_class c
- WHERE c.relnamespace = 'public'::regnamespace AND c.relkind = 'S'
+ WHERE c.relnamespace = 'public'::regnamespace AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'e') AND c.relname NOT LIKE 'cert\_%' AND c.relname NOT LIKE 'rc1\_%' AND c.relname NOT LIKE '\_time\_trial%' AND c.relname <> 'tap_funky' AND c.relkind = 'S'
    AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.deptype = 'a')
  ORDER BY c.relname;
 " >"$OUT/20_sequences.sql"
@@ -64,7 +64,7 @@ WITH cols AS (
     FROM pg_class c
     JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
     LEFT JOIN pg_attrdef ad ON ad.adrelid = c.oid AND ad.adnum = a.attnum
-   WHERE c.relnamespace = 'public'::regnamespace AND c.relkind = 'r'
+   WHERE c.relnamespace = 'public'::regnamespace AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'e') AND c.relname NOT LIKE 'cert\_%' AND c.relname NOT LIKE 'rc1\_%' AND c.relname NOT LIKE '\_time\_trial%' AND c.relname <> 'tap_funky' AND c.relkind = 'r'
 )
 SELECT 'CREATE TABLE IF NOT EXISTS public.' || quote_ident(tbl) || ' (' ||
        string_agg(coldef, ', ' ORDER BY attnum) || ');'
@@ -78,7 +78,7 @@ SELECT 'CREATE TABLE IF NOT EXISTS public.' || quote_ident(tbl) || ' (' ||
   q "
   SELECT pg_get_functiondef(p.oid) || ';'
     FROM pg_proc p
-   WHERE p.pronamespace = 'public'::regnamespace AND p.prokind IN ('f','p')
+   WHERE p.pronamespace = 'public'::regnamespace AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = p.oid AND d.classid = 'pg_proc'::regclass AND d.deptype = 'e') AND p.proname NOT LIKE 'cert\_%' AND p.proname NOT LIKE 'rc1\_%' AND p.proname NOT LIKE '\_time\_trial%' AND p.prokind IN ('f','p')
    ORDER BY p.proname, p.oid;
   "
   q "
@@ -87,7 +87,7 @@ SELECT 'CREATE TABLE IF NOT EXISTS public.' || quote_ident(tbl) || ' (' ||
          a.aggtransfn::regprocedure::text || ', STYPE = ' || format_type(a.aggtranstype, NULL) ||
          coalesce(', INITCOND = ' || quote_literal(a.agginitval), '') || ');'
     FROM pg_proc p JOIN pg_aggregate a ON a.aggfnoid = p.oid
-   WHERE p.pronamespace = 'public'::regnamespace ORDER BY p.proname;
+   WHERE p.pronamespace = 'public'::regnamespace AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = p.oid AND d.classid = 'pg_proc'::regclass AND d.deptype = 'e') AND p.proname NOT LIKE 'cert\_%' AND p.proname NOT LIKE 'rc1\_%' AND p.proname NOT LIKE '\_time\_trial%' ORDER BY p.proname;
   "
 } >"$OUT/40_functions.sql"
 
@@ -99,7 +99,7 @@ SELECT c.relname || E'\t' ||
        quote_ident(c.relname) || ' AS ' ||
        replace(pg_get_viewdef(c.oid, true), E'\n', ' ')
   FROM pg_class c
- WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('v','m')
+ WHERE c.relnamespace = 'public'::regnamespace AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'e') AND c.relname NOT LIKE 'cert\_%' AND c.relname NOT LIKE 'rc1\_%' AND c.relname NOT LIKE '\_time\_trial%' AND c.relname <> 'tap_funky' AND c.relkind IN ('v','m')
  ORDER BY c.relname;
 " >"$OUT/50_views.tsv"
 
@@ -110,7 +110,7 @@ SELECT 'ALTER TABLE public.' || quote_ident(c.relname) || ' ALTER COLUMN ' ||
   FROM pg_attrdef ad
   JOIN pg_class c ON c.oid = ad.adrelid
   JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = ad.adnum
- WHERE c.relnamespace = 'public'::regnamespace AND c.relkind = 'r'
+ WHERE c.relnamespace = 'public'::regnamespace AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'e') AND c.relname NOT LIKE 'cert\_%' AND c.relname NOT LIKE 'rc1\_%' AND c.relname NOT LIKE '\_time\_trial%' AND c.relname <> 'tap_funky' AND c.relkind = 'r'
    AND a.attgenerated = '' AND a.attidentity = ''
  ORDER BY c.relname, a.attnum;
 " >"$OUT/55_defaults.sql"
@@ -120,7 +120,7 @@ q "
 SELECT 'ALTER TABLE public.' || quote_ident(c.relname) || ' ADD CONSTRAINT ' ||
        quote_ident(con.conname) || ' ' || pg_get_constraintdef(con.oid) || ';'
   FROM pg_constraint con JOIN pg_class c ON c.oid = con.conrelid
- WHERE con.connamespace = 'public'::regnamespace AND con.contype IN ('p','u')
+ WHERE con.connamespace = 'public'::regnamespace AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'e') AND c.relname NOT LIKE 'cert\_%' AND c.relname NOT LIKE 'rc1\_%' AND c.relname NOT LIKE '\_time\_trial%' AND c.relname <> 'tap_funky' AND con.contype IN ('p','u')
  ORDER BY c.relname, con.conname;
 " >"$OUT/60_constraints_pk.sql"
 
@@ -128,7 +128,7 @@ q "
 SELECT pg_get_indexdef(i.indexrelid) || ';'
   FROM pg_index i JOIN pg_class c ON c.oid = i.indrelid
   JOIN pg_class ic ON ic.oid = i.indexrelid
- WHERE c.relnamespace = 'public'::regnamespace AND c.relkind = 'r'
+ WHERE c.relnamespace = 'public'::regnamespace AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'e') AND c.relname NOT LIKE 'cert\_%' AND c.relname NOT LIKE 'rc1\_%' AND c.relname NOT LIKE '\_time\_trial%' AND c.relname <> 'tap_funky' AND c.relkind = 'r'
    AND NOT i.indisprimary
    AND NOT EXISTS (SELECT 1 FROM pg_constraint con
                     WHERE con.conindid = i.indexrelid AND con.contype IN ('p','u'))
@@ -140,7 +140,7 @@ SELECT 'ALTER TABLE public.' || quote_ident(c.relname) || ' ADD CONSTRAINT ' ||
        quote_ident(con.conname) || ' ' || pg_get_constraintdef(con.oid) ||
        CASE WHEN NOT con.convalidated THEN ' NOT VALID' ELSE '' END || ';'
   FROM pg_constraint con JOIN pg_class c ON c.oid = con.conrelid
- WHERE con.connamespace = 'public'::regnamespace AND con.contype IN ('c','f','x')
+ WHERE con.connamespace = 'public'::regnamespace AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'e') AND c.relname NOT LIKE 'cert\_%' AND c.relname NOT LIKE 'rc1\_%' AND c.relname NOT LIKE '\_time\_trial%' AND c.relname <> 'tap_funky' AND con.contype IN ('c','f','x')
    AND con.conparentid = 0
  ORDER BY con.contype DESC, c.relname, con.conname;
 " >"$OUT/64_constraints_check_fk.sql"
@@ -149,7 +149,7 @@ SELECT 'ALTER TABLE public.' || quote_ident(c.relname) || ' ADD CONSTRAINT ' ||
 q "
 SELECT pg_get_triggerdef(t.oid) || ';'
   FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
- WHERE c.relnamespace = 'public'::regnamespace AND NOT t.tgisinternal
+ WHERE c.relnamespace = 'public'::regnamespace AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'e') AND c.relname NOT LIKE 'cert\_%' AND c.relname NOT LIKE 'rc1\_%' AND c.relname NOT LIKE '\_time\_trial%' AND c.relname <> 'tap_funky' AND NOT t.tgisinternal
  ORDER BY c.relname, t.tgname;
 " >"$OUT/70_triggers.sql"
 
@@ -160,7 +160,7 @@ SELECT 'ALTER TABLE public.' || quote_ident(c.relname) || ' ENABLE ROW LEVEL SEC
             THEN ' ALTER TABLE public.' || quote_ident(c.relname) || ' FORCE ROW LEVEL SECURITY;'
             ELSE '' END
   FROM pg_class c
- WHERE c.relnamespace = 'public'::regnamespace AND c.relkind = 'r' AND c.relrowsecurity
+ WHERE c.relnamespace = 'public'::regnamespace AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'e') AND c.relname NOT LIKE 'cert\_%' AND c.relname NOT LIKE 'rc1\_%' AND c.relname NOT LIKE '\_time\_trial%' AND c.relname <> 'tap_funky' AND c.relkind = 'r' AND c.relrowsecurity
  ORDER BY c.relname;
 " >"$OUT/80_rls.sql"
 
@@ -174,7 +174,7 @@ SELECT 'CREATE POLICY ' || quote_ident(pol.polname) || ' ON public.' || quote_id
        coalesce(' USING (' || pg_get_expr(pol.polqual, pol.polrelid) || ')', '') ||
        coalesce(' WITH CHECK (' || pg_get_expr(pol.polwithcheck, pol.polrelid) || ')', '') || ';'
   FROM pg_policy pol JOIN pg_class c ON c.oid = pol.polrelid
- WHERE c.relnamespace = 'public'::regnamespace
+ WHERE c.relnamespace = 'public'::regnamespace AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'e') AND c.relname NOT LIKE 'cert\_%' AND c.relname NOT LIKE 'rc1\_%' AND c.relname NOT LIKE '\_time\_trial%' AND c.relname <> 'tap_funky'
  ORDER BY c.relname, pol.polname;
 " >"$OUT/82_policies.sql"
 
@@ -182,7 +182,7 @@ SELECT 'CREATE POLICY ' || quote_ident(pol.polname) || ' ON public.' || quote_id
 q "
 WITH t AS (
   SELECT c.relname, c.oid FROM pg_class c
-   WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r','v','m')
+   WHERE c.relnamespace = 'public'::regnamespace AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'e') AND c.relname NOT LIKE 'cert\_%' AND c.relname NOT LIKE 'rc1\_%' AND c.relname NOT LIKE '\_time\_trial%' AND c.relname <> 'tap_funky' AND c.relkind IN ('r','v','m')
 ), g AS (
   SELECT t.relname, r.rolname, p.priv
     FROM t
@@ -198,7 +198,7 @@ SELECT 'GRANT ' || string_agg(priv, ', ' ORDER BY priv) || ' ON public.' ||
 q "
 WITH s AS (
   SELECT c.relname, c.oid FROM pg_class c
-   WHERE c.relnamespace = 'public'::regnamespace AND c.relkind = 'S'
+   WHERE c.relnamespace = 'public'::regnamespace AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'e') AND c.relname NOT LIKE 'cert\_%' AND c.relname NOT LIKE 'rc1\_%' AND c.relname NOT LIKE '\_time\_trial%' AND c.relname <> 'tap_funky' AND c.relkind = 'S'
 ), g AS (
   SELECT s.relname, r.rolname, p.priv
     FROM s
@@ -214,7 +214,7 @@ SELECT 'GRANT ' || string_agg(priv, ', ' ORDER BY priv) || ' ON SEQUENCE public.
 q "
 WITH f AS (
   SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p WHERE p.pronamespace = 'public'::regnamespace AND p.prokind IN ('f','p')
+    FROM pg_proc p WHERE p.pronamespace = 'public'::regnamespace AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = p.oid AND d.classid = 'pg_proc'::regclass AND d.deptype = 'e') AND p.proname NOT LIKE 'cert\_%' AND p.proname NOT LIKE 'rc1\_%' AND p.proname NOT LIKE '\_time\_trial%' AND p.prokind IN ('f','p')
 )
 SELECT 'REVOKE ALL ON FUNCTION public.' || quote_ident(proname) || '(' || args || ') FROM PUBLIC;' ||
        coalesce((SELECT ' GRANT EXECUTE ON FUNCTION public.' || quote_ident(proname) || '(' || args ||
@@ -229,7 +229,7 @@ SELECT 'REVOKE ALL ON FUNCTION public.' || quote_ident(proname) || '(' || args |
 # certification-fixture or user data is exported.
 mapfile -t SEED_TABLES < <(q "
 SELECT c.relname FROM pg_class c
- WHERE c.relnamespace = 'public'::regnamespace AND c.relkind = 'r'
+ WHERE c.relnamespace = 'public'::regnamespace AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'e') AND c.relname NOT LIKE 'cert\_%' AND c.relname NOT LIKE 'rc1\_%' AND c.relname NOT LIKE '\_time\_trial%' AND c.relname <> 'tap_funky' AND c.relkind = 'r'
    AND (c.relname ~ '(_config|_configs|_configurations|_catalogue|_catalog|_types|_rules|_thresholds|_templates|_definitions|_registry|_scopes|_levels|_stages|_categories)$'
         OR c.relname IN ('permissions','roles','role_permissions','sec_permissions','sec_roles',
                          'sec_role_permissions','sec_route_registry','sec_navigation_nodes',
@@ -241,16 +241,18 @@ SELECT c.relname FROM pg_class c
    AND c.relname NOT LIKE 'cert_%'
  ORDER BY 1;
 ")
-: >"$OUT/95_seed.sql"
+{ echo "SET session_replication_role = replica;"; } >"$OUT/95_seed.sql"
 for t in "${SEED_TABLES[@]}"; do
   [ -n "$t" ] || continue
   n="$(q "SELECT count(*) FROM public.$t")"
   [ "$n" = "0" ] && continue
-  psql -X -q -c "\\copy (SELECT * FROM public.$t) TO '$OUT/seed/$t.csv' WITH (FORMAT csv, HEADER true)" >/dev/null
   cols="$(q "SELECT string_agg(quote_ident(attname), ', ' ORDER BY attnum) FROM pg_attribute
              WHERE attrelid='public.$t'::regclass AND attnum>0 AND NOT attisdropped AND attgenerated=''")"
+  psql -X -q -c "\\copy (SELECT $cols FROM public.$t) TO '$OUT/seed/$t.csv' WITH (FORMAT csv, HEADER true)" >/dev/null
   echo "\\copy public.$t ($cols) FROM 'seed/$t.csv' WITH (FORMAT csv, HEADER true)" >>"$OUT/95_seed.sql"
 done
+
+echo "SET session_replication_role = origin;" >>"$OUT/95_seed.sql"
 
 # ------------------------------------------------------------------ manifest
 {

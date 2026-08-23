@@ -1,3 +1,4 @@
+SET session_replication_role = replica;
 \copy public.appeal_panel_scopes (id, scope_key, label, is_active, created_at, updated_at) FROM 'seed/appeal_panel_scopes.csv' WITH (FORMAT csv, HEADER true)
 \copy public.approval_workflow_types (key, display_label, description, is_active, sort_order, created_at, updated_at, bulk_intake_enabled) FROM 'seed/approval_workflow_types.csv' WITH (FORMAT csv, HEADER true)
 \copy public.captcha_configurations (id, name, provider, site_key, environment, is_active, notes, created_by, updated_by, created_at, updated_at, score_threshold, expected_action) FROM 'seed/captcha_configurations.csv' WITH (FORMAT csv, HEADER true)
@@ -80,3 +81,4 @@
 \copy public.site_settings (id, key, value, updated_at) FROM 'seed/site_settings.csv' WITH (FORMAT csv, HEADER true)
 \copy public.sla_configurations (id, process_type, stage_name, sla_duration, sla_unit, warning_threshold_pct, pause_conditions, escalation_recipient, calendar_profile_id, active, created_by, created_at, updated_at, updated_by) FROM 'seed/sla_configurations.csv' WITH (FORMAT csv, HEADER true)
 \copy public.workflow_templates (id, name, description, entity_type, steps, created_by, created_at, updated_at) FROM 'seed/workflow_templates.csv' WITH (FORMAT csv, HEADER true)
+SET session_replication_role = origin;

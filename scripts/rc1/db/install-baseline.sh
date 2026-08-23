@@ -48,10 +48,21 @@ LOG="$LOGDIR/baseline-$DB.log"; : >"$LOG"
 psql -q -d "$DB" -v ON_ERROR_STOP=1 -f "$ROOT/scripts/rc1/db/bootstrap.sql" >>"$LOG" 2>&1 \
   || { echo "INSTALL=FAIL bootstrap"; tail -20 "$LOG"; exit 1; }
 
-for phase in 10_types 20_sequences 30_tables 40_functions 55_defaults \
+
+# 40_functions is applied twice: table DDL can reference functions (generated
+# columns / check constraints) while function bodies reference tables. Both
+# passes run with check_function_bodies = off and every statement is
+# CREATE OR REPLACE, so only the second pass is authoritative — the first
+# pass logs to a scratch file so pre-table resolution noise is not counted.
+run "$BASE/10_types.sql" "$LOG"
+run "$BASE/20_sequences.sql" "$LOG"
+run "$BASE/40_functions.sql" "$LOGDIR/baseline-functions-pass1-$DB.log"
+for phase in 30_tables 40_functions 55_defaults \
              60_constraints_pk 62_indexes 64_constraints_check_fk; do
   run "$BASE/$phase.sql" "$LOG"
 done
+
+
 
 # Views depend on each other: apply repeatedly until no further progress.
 VIEWLOG="$LOGDIR/baseline-views-$DB.log"

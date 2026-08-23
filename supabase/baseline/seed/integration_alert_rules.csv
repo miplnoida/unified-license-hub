@@ -1,2 +1,2 @@
 id,connection_id,error_count_threshold,window_minutes,recipient_user_ids,recipient_emails,enabled,last_fired_at,created_by,created_at,updated_at
-ee328919-312b-4a10-9b66-28cee2d15537,,5,15,{},{},t,2026-08-23 15:40:00.05104+00,,2026-08-04 06:51:15.988522+00,2026-08-23 15:40:00.05104+00
+ee328919-312b-4a10-9b66-28cee2d15537,,5,15,{},{},t,2026-08-23 16:20:00.104525+00,,2026-08-04 06:51:15.988522+00,2026-08-23 16:20:00.104525+00
