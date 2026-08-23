@@ -227,6 +227,7 @@ BEGIN
   DELETE FROM public.sec_user_roles     WHERE NOT (user_id = ANY (_keep_user_ids));
   DELETE FROM public.user_roles         WHERE NOT (user_id = ANY (_keep_user_ids));
   DELETE FROM public.user_dynamic_roles WHERE NOT (user_id = ANY (_keep_user_ids));
+  DELETE FROM public.profiles           WHERE NOT (id      = ANY (_keep_user_ids));
 
   -- config integrity guard
   SELECT string_agg(format('%s (%s -> %s)', b.table_name, b.row_count, a.row_count), ', ')
