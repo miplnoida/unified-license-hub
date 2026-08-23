@@ -35140,11 +35140,31 @@ export type Database = {
         Args: { _fixture_version: string; _notes?: string }
         Returns: string
       }
+      cert_v2_cascade_delete: {
+        Args: { _depth?: number; _ids: string[]; _table: string }
+        Returns: number
+      }
       cert_v2_complete_run: {
         Args: { _run_id: string; _status?: string }
         Returns: undefined
       }
       cert_v2_guard_ok: { Args: never; Returns: boolean }
+      cert_v2_integrity_gate: {
+        Args: never
+        Returns: {
+          actual_count: number
+          check_name: string
+          status: string
+        }[]
+      }
+      cert_v2_protected_tables: { Args: never; Returns: string[] }
+      cert_v2_register_legacy_baseline: {
+        Args: { _notes?: string }
+        Returns: {
+          object_type: string
+          registered: number
+        }[]
+      }
       cert_v2_register_object: {
         Args: {
           _cleanup_policy?: string
@@ -35156,6 +35176,13 @@ export type Database = {
           _scenario_code: string
         }
         Returns: string
+      }
+      cert_v2_repair_web_user_links: {
+        Args: never
+        Returns: {
+          repair: string
+          rows_affected: number
+        }[]
       }
       cert_v2_report: {
         Args: { _dataset_key?: string }
