@@ -5,7 +5,7 @@ import { getModuleForPath, isProtectedInternalPath, PermissionModule } from '@/l
 import { INTERNAL_ROLES } from '@/types/platform';
 import { isSubmittedLifecycle } from '@/lib/returnLifecycle';
 import { useSecurityContext } from '@/hooks/useSecurityContext';
-import { toUserPermissions, matchRoute } from '@/lib/rbac/securityContext';
+import { toUserPermissions, matchRoute, resolveAudience } from '@/lib/rbac/securityContext';
 import {
   authorize,
   authorizeModule,
