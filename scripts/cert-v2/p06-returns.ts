@@ -68,8 +68,11 @@ async function resolveTarget() {
   record('P06.00a amendment version opened on the accepted filing', true, `version=${draft}`);
 
   const prep = await carryForwardForms(SECONDARY, accepted.accepted_version_id, draft);
-  record('P06.00b prepare-only secondary completes the amendment forms', prep.attached > 0,
-    `attached=${prep.attached} ${prep.error}`);
+  const srcReqs = await sel(OFFICER, `return_filing_form_requirements?return_filing_version_id=eq.${accepted.accepted_version_id}&select=id`);
+  const srcCount = Array.isArray(srcReqs.body) ? srcReqs.body.length : 0;
+  record('P06.00b prepare-only secondary completes the amendment forms',
+    srcCount === 0 || prep.attached === srcCount,
+    srcCount === 0 ? 'metric-only definition: no form requirements pinned' : `attached=${prep.attached}/${srcCount} ${prep.error}`);
 
   const secSubmit = await rpc(SECONDARY, 'returns_submit_filing', { _version_id: draft, _declaration_accepted: true });
   record('P06.00c secondary cannot submit the amendment', !(secSubmit.ok && secSubmit.body?.submitted === true), secSubmit.text);
@@ -163,55 +166,55 @@ async function main() {
   const dup = await rpc(PRIMARY, 'returns_submit_filing', { _version_id: v2Id, _declaration_accepted: true });
   const versions = await sel(OFFICER, `return_filing_versions?return_filing_id=eq.${FILING}&select=id,version_number,status`);
   const vRows: any[] = Array.isArray(versions.body) ? versions.body : [];
-  record('P06.14 duplicate submission creates no extra version/effect',
+  record('P06.15 duplicate submission creates no extra version/effect',
     (!dup.ok || dup.body?.submitted === false) && vRows.length === new Set(vRows.map((v) => v.id)).size,
     `${dup.text} versions=${vRows.length}`);
   // Version history is a single unbroken chain with at most one live version.
   const numbers = vRows.map((v) => v.version_number).sort((a, b) => a - b);
   const contiguous = numbers.every((n, i) => n === i + 1) && new Set(numbers).size === numbers.length;
   const live = vRows.filter((v) => !['SUPERSEDED', 'ACCEPTED', 'REJECTED'].includes(v.status));
-  record('P06.15 version chain is contiguous with a single live version',
+  record('P06.16 version chain is contiguous with a single live version',
     contiguous && live.length <= 1 && vRows.length >= 2, JSON.stringify(vRows));
 
 
   // Calculations must have run for V2.
   const metrics = await sel(OFFICER, `return_metric_values?return_filing_version_id=eq.${v2Id}&select=id,availability&limit=200`);
   const metricCount = Array.isArray(metrics.body) ? metrics.body.length : -1;
-  record('P06.16 calculations produced metric values for V2', metricCount > 0, `metrics=${metricCount}`);
+  record('P06.17 calculations produced metric values for V2', metricCount > 0, `metrics=${metricCount}`);
 
   // Officer may review but not accept; supervisor accepts.
   const officerAccept = await rpc(OFFICER, 'returns_review_filing', { _version_id: v2Id, _action: 'ACCEPT' });
   const acceptedByOfficer = officerAccept.ok;
-  record('P06.17 officer/approver split observed', true,
+  record('P06.18 officer/approver split observed', true,
     acceptedByOfficer ? 'officer holds approve permission (single-role config)' : officerAccept.text);
 
   if (!acceptedByOfficer) {
     const supAccept = await rpc(SUPERVISOR, 'returns_review_filing', { _version_id: v2Id, _action: 'ACCEPT' });
-    record('P06.18 supervisor accepts V2', supAccept.ok, supAccept.text);
+    record('P06.19 supervisor accepts V2', supAccept.ok, supAccept.text);
   } else {
-    record('P06.18 supervisor accepts V2', true, 'accepted at officer level per current permission config');
+    record('P06.19 supervisor accepts V2', true, 'accepted at officer level per current permission config');
   }
 
   const finalState = await sel(SUPERVISOR, `return_filings?id=eq.${FILING}&select=status,current_version_number,accepted_version_id`);
-  record('P06.19 filing accepted on V2', finalState.body?.[0]?.accepted_version_id === v2Id, JSON.stringify(finalState.body));
+  record('P06.20 filing accepted on V2', finalState.body?.[0]?.accepted_version_id === v2Id, JSON.stringify(finalState.body));
 
   const v1Final = await sel(SUPERVISOR, `return_filing_versions?id=eq.${V1}&select=status,is_immutable`);
-  record('P06.20 V1 still immutable after acceptance',
+  record('P06.21 V1 still immutable after acceptance',
     v1Final.body?.[0]?.is_immutable === true && v1Final.body?.[0]?.status === 'SUPERSEDED', JSON.stringify(v1Final.body));
 
   const audit = await sel(SUPERVISOR, `audit_logs?entity_id=eq.${FILING}&select=action&order=created_at.asc`);
   const actions = (audit.body ?? []).map((a: any) => a.action);
-  record('P06.21 audit trail records review, correction, submit and accept',
+  record('P06.22 audit trail records review, correction, submit and accept',
     actions.some((a: string) => a.includes('REQUEST_CORRECTION')) && actions.includes('SUBMIT'),
     actions.join(','));
 
   // Late and missing filing scenarios (read models must classify them).
   const late = await rpc(OFFICER, 'returns_filing_queue_v2', { _overdue_only: true, _limit: 50 });
-  record('P06.22 overdue/late filings are classified', late.ok, `${Array.isArray(late.body) ? late.body.length : 0} overdue rows`);
+  record('P06.23 overdue/late filings are classified', late.ok, `${Array.isArray(late.body) ? late.body.length : 0} overdue rows`);
 
   const cal = await rpc(PRIMARY, 'returns_entity_calendar', { _entity_id: ENTITY });
   const calRows = Array.isArray(cal.body) ? cal.body : [];
-  record('P06.23 missing/upcoming obligations are visible in the calendar', cal.ok, `${calRows.length} calendar rows`);
+  record('P06.24 missing/upcoming obligations are visible in the calendar', cal.ok, `${calRows.length} calendar rows`);
 
   // Cross-entity security: the filer must not read another entity's filings.
   // The authorised set is every entity the filer represents (membership) or is
@@ -225,7 +228,7 @@ async function main() {
   ]);
   const leak = await sel(PRIMARY, 'return_filings?select=id,entity_id&limit=200');
   const leaked = (Array.isArray(leak.body) ? leak.body : []).filter((r: any) => !allowed.has(r.entity_id));
-  record('P06.24 no cross-entity filing leak for the filer', leaked.length === 0, `leaked=${leaked.length}`);
+  record('P06.25 no cross-entity filing leak for the filer', leaked.length === 0, `leaked=${leaked.length}`);
 
   console.log(`\nSECONDARY_UNAUTHORIZED_SUBMISSIONS=${secondaryUnauthorized}`);
   console.log(`CROSS_ENTITY_LEAKS=${leaked.length}`);
