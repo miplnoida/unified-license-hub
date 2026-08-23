@@ -1,6 +1,6 @@
 # Certification V2 — TRUE OPERATIONAL ZERO-STATE Certification (Wave 1.5c)
 
-Captured: 2026-08-23T08:40:30Z
+Captured: 2026-08-23T08:41:42Z
 Environment: non-production certification database (guard: environment=non_production, reset_enabled=true)
 
 No passwords or secrets are recorded in this document.
@@ -36,7 +36,7 @@ No passwords or secrets are recorded in this document.
 | Workflow runtime | 0 |
 | Supervisory intelligence runtime | 0 |
 | Payments / fees runtime | 0 |
-| Escalation runtime | 3 |
+| Escalation runtime | 0 |
 | Document runtime | 0 |
 
 ## Operational-area zero-state matrix
@@ -45,6 +45,7 @@ No passwords or secrets are recorded in this document.
 |---|---|---|---|---|
 | AI runtime insights | 2 | 0 | ZERO before Wave 2 seed | PASS |
 | Audit/Logs | 20 | 0 | ZERO before Wave 2 seed | PASS |
+| Certification identities (retained) | 5 | 46 | ONLY certification personas - zero non-certification rows | PASS |
 | Complaints | 15 | 0 | ZERO before Wave 2 seed | PASS |
 | Conduct | 23 | 0 | ZERO before Wave 2 seed | PASS |
 | Correspondence | 6 | 0 | ZERO before Wave 2 seed | PASS |
@@ -52,7 +53,7 @@ No passwords or secrets are recorded in this document.
 | Enforcement | 7 | 0 | ZERO before Wave 2 seed | PASS |
 | Entity Registry | 22 | 0 | ZERO before Wave 2 seed | PASS |
 | Entity Resolution | 4 | 0 | ZERO before Wave 2 seed | PASS |
-| Escalations | 9 | 3 | ZERO before Wave 2 seed | FAIL |
+| Escalations | 9 | 0 | ZERO before Wave 2 seed | PASS |
 | Fit & Proper | 19 | 0 | ZERO before Wave 2 seed | PASS |
 | Inspections/Examinations | 11 | 0 | ZERO before Wave 2 seed | PASS |
 | Licensing | 38 | 0 | ZERO before Wave 2 seed | PASS |
@@ -60,12 +61,12 @@ No passwords or secrets are recorded in this document.
 | Notifications | 9 | 0 | ZERO before Wave 2 seed | PASS |
 | Payments/Fees runtime | 8 | 0 | ZERO before Wave 2 seed | PASS |
 | Prudential | 20 | 0 | ZERO before Wave 2 seed | PASS |
-| Registration | 10 | 0 | ZERO before Wave 2 seed | PASS |
+| Registration | 9 | 0 | ZERO before Wave 2 seed | PASS |
 | Reports/jobs/exports | 4 | 0 | ZERO before Wave 2 seed | PASS |
 | Returns | 31 | 0 | ZERO before Wave 2 seed | PASS |
 | Supervisory Intelligence | 4 | 0 | ZERO before Wave 2 seed | PASS |
 | Thematic | 9 | 0 | ZERO before Wave 2 seed | PASS |
-| UNCLASSIFIED runtime tables | 64 | 205 | ZERO before Wave 2 seed | FAIL |
+| UNCLASSIFIED runtime tables | 60 | 0 | ZERO before Wave 2 seed | PASS |
 | Workflow Instances | 6 | 0 | ZERO before Wave 2 seed | PASS |
 
 ## Configuration preservation gate
@@ -292,7 +293,7 @@ No passwords or secrets are recorded in this document.
 | cert_nonproduction_guard | 1 |
 | certification_seed_manifest | 25 |
 
-### RUNTIME_MUST_ZERO — 330 tables, 208 rows
+### RUNTIME_MUST_ZERO — 330 tables, 205 rows
 
 | Table | Rows |
 |---|---|
@@ -414,10 +415,10 @@ No passwords or secrets are recorded in this document.
 | entity_sync_conflicts | 0 |
 | entity_user_access | 0 |
 | entity_user_memberships | 0 |
-| escalation_notification_events | 1 |
+| escalation_notification_events | 0 |
 | escalation_ownership_events | 0 |
-| escalation_tier_events | 1 |
-| escalations | 1 |
+| escalation_tier_events | 0 |
+| escalations | 0 |
 | examination_data_requests | 0 |
 | examination_events | 0 |
 | examination_exit_meetings | 0 |
