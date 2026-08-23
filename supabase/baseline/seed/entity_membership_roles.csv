@@ -1,0 +1,6 @@
+id,key,label,description,is_primary_representative,sort_order,is_system,is_active,created_at,updated_at
+7e1cbb4a-b052-4fc5-bc7c-8e479029e542,PRIMARY_REPRESENTATIVE,Primary Representative,Principal point of contact; may manage other entity users.,t,10,t,t,2026-08-20 07:44:37.485679+00,2026-08-20 07:44:37.485679+00
+916253fd-9de1-4874-83b0-0c6fe96c1b96,AUTHORIZED_REPRESENTATIVE,Authorized Representative,May act for the entity across submissions and correspondence.,f,20,t,t,2026-08-20 07:44:37.485679+00,2026-08-20 07:44:37.485679+00
+7e477191-a770-4d1d-83ec-3e7aed4f16e7,FILING_USER,Filing User,May prepare and submit filings for the entity.,f,30,t,t,2026-08-20 07:44:37.485679+00,2026-08-20 07:44:37.485679+00
+2e69639f-9054-4846-896b-2ea2173e3464,VIEWER,Viewer,Read-only visibility of the entity's regulatory record.,f,40,t,t,2026-08-20 07:44:37.485679+00,2026-08-20 07:44:37.485679+00
+50684af5-19ce-4693-81e9-9805f6c9db79,PREPARER,Preparer,"May prepare filings and respond to information requests, but may not make the final submission.",f,35,t,t,2026-08-23 13:07:59.527367+00,2026-08-23 13:07:59.527367+00

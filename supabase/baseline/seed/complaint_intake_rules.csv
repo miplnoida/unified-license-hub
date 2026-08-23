@@ -1,0 +1,5 @@
+id,regulator_id,variant,required_fields,allow_anonymous,max_attachments,notes,created_at,updated_at,default_severity
+9dea1c4d-65a1-4b88-b854-8cc4e21b6dca,,internal,"{subject,description,intake_source}",f,5,Seeded default — Phase 1,2026-07-17 06:49:24.492692+00,2026-08-11 08:13:12.873483+00,medium
+bac77100-9d2d-4399-ae75-5954076a6a73,,public,"{subject,description}",t,5,Seeded default — Phase 1,2026-07-17 06:49:24.492692+00,2026-08-11 08:13:12.873483+00,medium
+143de936-b213-479b-b6b7-9c6f9581f65a,,staff,"{subject,description,intake_source,complaint_type_id}",f,5,Seeded default — Phase 1,2026-07-17 06:49:24.492692+00,2026-08-11 08:13:12.873483+00,medium
+cf761ee8-9925-4034-bfee-23a601dff293,,licensee,"{subject,description,licensee_id,email}",f,5,Seeded default — Phase 1,2026-07-17 06:49:24.492692+00,2026-08-11 08:13:12.873483+00,medium

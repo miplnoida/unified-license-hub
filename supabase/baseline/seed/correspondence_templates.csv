@@ -1,0 +1,90 @@
+id,code,name,category,channel,subject,body,regulator_id,is_active,created_by,created_at,updated_at
+9267bccd-e6dd-434a-890b-118a6ecea2c0,DEC_LETTER_APPROVAL,Decision Letter — Approval,decision_letter,email,Approval of application {{application_number}} — {{license_type}},"Dear {{applicant_name}},
+
+RE: APPLICATION {{application_number}} — {{license_type}}
+
+We refer to your application received on {{submitted_date}} for authorisation to operate as {{license_type}}.
+
+Following assessment of your application against the applicable licensing criteria, I am pleased to advise that the application has been APPROVED with effect from {{decision_date}}.
+
+Grounds for the decision:
+{{rationale}}
+
+Your licence certificate will be issued separately and will confirm the licence number, effective date and any period of validity. You are required to commence licensed operations in accordance with the conditions of your licence and to notify the Authority of any material change to the information provided in your application.
+
+Yours sincerely,
+
+{{signatory_name}}
+{{signatory_title}}
+{{regulator_name}}",,t,,2026-08-06 14:36:52.395577+00,2026-08-06 14:36:52.395577+00
+453d46be-4610-443f-a4db-64039b157968,DEC_LETTER_CONDITIONAL,Decision Letter — Approval with Conditions,decision_letter,email,Conditional approval of application {{application_number}} — {{license_type}},"Dear {{applicant_name}},
+
+RE: APPLICATION {{application_number}} — {{license_type}}
+
+We refer to your application received on {{submitted_date}} for authorisation to operate as {{license_type}}.
+
+The application has been APPROVED SUBJECT TO CONDITIONS with effect from {{decision_date}}.
+
+Grounds for the decision:
+{{rationale}}
+
+Conditions of approval:
+{{conditions}}
+
+Failure to satisfy any condition within the timeframe stated may result in variation, suspension or revocation of the licence.
+
+Yours sincerely,
+
+{{signatory_name}}
+{{signatory_title}}
+{{regulator_name}}",,t,,2026-08-06 14:36:52.395577+00,2026-08-06 14:36:52.395577+00
+2e098fa4-dded-42de-ac61-c6cdeb284e50,DEC_LETTER_REJECTION,Decision Letter — Rejection,decision_letter,email,Determination of application {{application_number}} — {{license_type}},"Dear {{applicant_name}},
+
+RE: APPLICATION {{application_number}} — {{license_type}}
+
+We refer to your application received on {{submitted_date}} for authorisation to operate as {{license_type}}.
+
+Following assessment of your application, I regret to advise that the application has been REFUSED with effect from {{decision_date}}.
+
+Grounds for the decision:
+{{rationale}}
+
+You may lodge an appeal against this determination within the period prescribed by the governing legislation, setting out the grounds on which the determination is contested.
+
+Yours sincerely,
+
+{{signatory_name}}
+{{signatory_title}}
+{{regulator_name}}",,t,,2026-08-06 14:36:52.395577+00,2026-08-06 14:36:52.395577+00
+cfa69044-2685-4057-812d-25e2132a9a9f,DEC_LETTER_RESUBMISSION,Decision Letter — Request for Resubmission,decision_letter,email,Further information required — application {{application_number}},"Dear {{applicant_name}},
+
+RE: APPLICATION {{application_number}} — {{license_type}}
+
+We refer to your application received on {{submitted_date}}. The application cannot be determined in its current form.
+
+Matters to be addressed:
+{{rationale}}
+
+Please address the matters above and resubmit the application through the portal. The statutory assessment period is suspended until a complete resubmission is received.
+
+Yours sincerely,
+
+{{signatory_name}}
+{{signatory_title}}
+{{regulator_name}}",,t,,2026-08-06 14:36:52.395577+00,2026-08-06 14:36:52.395577+00
+d8cc53dd-f513-4640-be73-ae469b165825,DEC_LETTER_DEFERRAL,Decision Letter — Deferral,decision_letter,email,Deferral of determination — application {{application_number}},"Dear {{applicant_name}},
+
+RE: APPLICATION {{application_number}} — {{license_type}}
+
+We refer to your application received on {{submitted_date}}. Determination of the application has been DEFERRED as at {{decision_date}}.
+
+Reasons for deferral:
+{{rationale}}
+
+You will be notified once the matters above have been concluded and the assessment resumes.
+
+Yours sincerely,
+
+{{signatory_name}}
+{{signatory_title}}
+{{regulator_name}}",,t,,2026-08-06 14:36:52.395577+00,2026-08-06 14:36:52.395577+00

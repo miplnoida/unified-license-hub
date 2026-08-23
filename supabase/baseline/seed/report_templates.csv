@@ -1,0 +1,2 @@
+id,name,description,source,filters_json,selected_columns,group_by,sort_by,sort_dir,visibility,created_by,created_at,updated_at
+41a42ef9-c1a1-4e14-92fd-ae97ddc44993,Internal Staff Users Report,Testing,users,"{""dateTo"": ""2026-07-09"", ""preset"": ""custom"", ""dateFrom"": ""2026-04-01""}","{email,full_name,created_at}",,id,desc,private,6d4f5483-b81b-47bb-9e4d-265f9c1b0f25,2026-07-09 07:57:11.782727+00,2026-07-09 07:57:11.782727+00

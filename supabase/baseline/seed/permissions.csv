@@ -1,0 +1,223 @@
+id,name,module,description,created_at,action_id,enforced,deprecated
+9813f26e-a815-49d5-aa53-fbea27adcc76,view,enforcement_management,View enforcement cases and events,2026-07-21 13:55:06.94505+00,,t,f
+1d6aaad1-2028-4756-8b59-8cdc76d6578e,create,enforcement_management,Open enforcement cases,2026-07-21 13:55:06.94505+00,,t,f
+1c6c727d-6de0-4daf-b2f4-de1e0d89dccf,edit,enforcement_management,Update enforcement cases and events,2026-07-21 13:55:06.94505+00,,t,f
+b8c1eb72-2fe1-438f-bd47-3eaa814f6e8b,delete,enforcement_management,Delete enforcement cases and events,2026-07-21 13:55:06.94505+00,,t,f
+9a5562e1-7394-4ca0-a740-ad24182053fe,view_all_entities,enforcement_management,View enforcement cases for all entities,2026-07-21 13:55:06.94505+00,,t,f
+013b09ca-9754-4b3a-a04f-e88b9cc396c7,workflow_action,enforcement_management,Progress enforcement workflow,2026-07-21 13:55:06.94505+00,,t,f
+22b880a6-40a3-41d9-b441-b3b617a502e4,view,inspection_management,View inspections and findings,2026-07-21 13:55:06.94505+00,,t,f
+7f78b701-9321-4c49-9abe-052239ca973f,create,inspection_management,Schedule/create inspections and findings,2026-07-21 13:55:06.94505+00,,t,f
+f5a80298-daa9-4a01-a148-085cfda56704,edit,inspection_management,Update inspections and findings,2026-07-21 13:55:06.94505+00,,t,f
+25f25555-1d10-42d3-a672-aaaefdb60a64,delete,inspection_management,Delete inspections and findings,2026-07-21 13:55:06.94505+00,,t,f
+4173ea8c-1074-4d5a-869c-9be37e319dd2,view_all_entities,inspection_management,View inspections for all entities,2026-07-21 13:55:06.94505+00,,t,f
+6871308a-7197-4173-a11b-bb9d8680bd86,workflow_action,inspection_management,Progress inspection workflow,2026-07-21 13:55:06.94505+00,,t,f
+8f98dd16-f951-40a0-93fd-9a46cd163007,restore_versions,rule_engine,Rule Engine — restore_versions,2026-08-03 17:16:03.546496+00,c4b386e4-4389-41ea-88c4-6c8f70871ec0,t,f
+b35b8461-a993-41b4-abbf-6981c133cc2e,manage_alerts,rule_engine,Rule Engine — manage_alerts,2026-08-03 17:16:03.546496+00,68062127-29c4-49f9-93a0-4b46ec03a646,t,f
+00ad4185-a42d-4604-9633-accbcb1f76e3,view_alerts,rule_engine,Rule Engine — view_alerts,2026-08-03 17:16:03.546496+00,a6d6a9a0-49a6-4878-861a-e58219f308c1,t,f
+0f5692cb-0cf7-47d4-a557-3f97d604c7ef,view_executions,rule_engine,Rule Engine — view_executions,2026-08-03 17:16:03.546496+00,421a48b8-8be9-4500-b4f1-57c6f6f179a8,t,f
+e138b9cc-8752-4957-9b5d-60930527d078,test,rule_engine,Rule Engine — test,2026-08-03 17:16:03.546496+00,e426ee60-a10f-4309-b2d0-d201221abb03,t,f
+34b1c268-e683-427e-a29b-1ffb4aaaf79b,view_versions,rule_engine,Rule Engine — view_versions,2026-08-03 17:16:03.546496+00,54a81560-6137-4606-9b19-1d3eed4f08e5,t,f
+8c1c90ec-a45c-44fc-83f8-9060f396b0ad,view_tasks,rule_engine,Rule Engine — view_tasks,2026-08-03 17:16:03.546496+00,be33f57c-6bb3-4de0-b290-500ae5a8ef6a,t,f
+6bf76820-bd1a-4786-a33b-ebf29bc02647,export,rule_engine,Rule Engine — export,2026-08-03 17:16:03.546496+00,badcdf06-907c-4ce0-b381-9b859dab265a,t,f
+cfe9956b-d2f0-4d86-ab47-036740b72e5b,view,application_management,View applications,2026-03-18 09:30:06.948931+00,1ce610e7-dfe4-4e5e-90e3-272ae0ccc68a,t,f
+bddb65b9-a857-40c8-8ce4-a0ad153f5461,create,application_management,Create applications,2026-03-18 09:30:06.948931+00,3b9c2abb-eb75-4aac-91c6-b8cfbaf01fb9,t,f
+88fe7eb8-e439-4846-9461-c8a207ee354f,edit,application_management,Edit applications,2026-03-18 09:30:06.948931+00,444093f7-bc94-42b6-b80e-a8eeab5d7049,t,f
+df6c8fad-b030-414a-b74e-9521c0700473,approve,application_management,Approve applications,2026-03-18 09:30:06.948931+00,58be0677-3ecb-44f4-bd2c-4af18fb48066,t,f
+82107de5-e713-42c3-822f-6ea936a93b28,reject,application_management,Reject applications,2026-03-18 09:30:06.948931+00,0fd4a07d-aadb-4d2d-9e9d-9e6e8684410a,t,f
+70b4bba7-468e-4d4f-8a85-d1afcc690774,view,license_management,View licenses,2026-03-18 09:30:06.948931+00,44a0a98d-4d0b-450d-a14e-e3ca492e8403,t,f
+46c35f8c-f548-4d27-a928-cdec42aa4fb2,create,license_management,Create licenses,2026-03-18 09:30:06.948931+00,835fde0e-bebe-47c8-ba35-8b75e290cefa,t,f
+dae011eb-b9e1-4983-8fc0-9f9b7e7489be,edit,license_management,Edit licenses,2026-03-18 09:30:06.948931+00,07a0c7df-1c6c-4351-9e07-d1867bbc6c42,t,f
+fda2afca-e41f-4fcb-9b14-eb08aede86dd,approve,license_management,Approve licenses,2026-03-18 09:30:06.948931+00,32851266-fecf-423a-b7ac-3f5bccfbed1d,t,f
+f48a088e-7ee0-40a3-9f16-91c648a23014,view,returns_management,View returns,2026-03-18 09:30:06.948931+00,f9c49def-b2ee-4cee-a422-e05375d0fa18,t,f
+94c281ae-298a-4e79-a6aa-9203b988a178,create,returns_management,Create returns,2026-03-18 09:30:06.948931+00,bfe5708e-a8fc-461f-95d1-f3857f8ff498,t,f
+cb792820-ba7c-4b74-8c6b-606beede8b18,edit,returns_management,Edit returns,2026-03-18 09:30:06.948931+00,99eceba7-f5ca-41fe-8d15-c366186a43ba,t,f
+af2c3207-945b-4bc6-b43c-571c6aedb22f,approve,returns_management,Approve returns,2026-03-18 09:30:06.948931+00,90389999-8eef-4d12-9f37-9d3581221bee,t,f
+19e6c5cf-07b7-4ed4-86f9-5c83003c2f90,view,complaint_management,View complaints,2026-03-18 09:30:06.948931+00,c85a9299-90ac-4287-a6ab-1a69b3b5cf09,t,f
+e9597e26-bb19-42f4-b163-459c3fbbdad1,create,complaint_management,Create complaints,2026-03-18 09:30:06.948931+00,059559c5-d50e-4881-abe4-0c232d80c89d,t,f
+c7783a7e-7645-4642-aa72-023c5089089c,edit,complaint_management,Edit complaints,2026-03-18 09:30:06.948931+00,7d64fe32-4ae2-43fb-8b9a-777d2f029cd8,t,f
+8b633c01-1539-45f7-8571-265367da0a1c,view,user_management,View users,2026-03-18 09:30:06.948931+00,06816daa-ab73-48b4-93e1-ceefa379ac45,t,f
+629d244f-1052-4910-8e9d-ba9c29ed14e1,create,user_management,Create users,2026-03-18 09:30:06.948931+00,fc1b0736-abc2-42a7-a639-ee00ccbbc6b4,t,f
+df70fa83-18f4-48a2-9e4b-594027fd5dc2,edit,user_management,Edit users,2026-03-18 09:30:06.948931+00,da70c381-6be8-41d9-b3f5-8b025a77b8c4,t,f
+a25966b0-99ab-400b-9218-e9a103854b7e,view,role_management,View roles,2026-03-18 09:30:06.948931+00,11bbf2a6-c614-481d-a735-a2238f67fce2,t,f
+57adfdd2-1954-486a-a136-dccca6602230,create,role_management,Create roles,2026-03-18 09:30:06.948931+00,10b9857f-10ed-4a29-b1fe-e5df5344828a,t,f
+e51308de-63ab-4330-850a-fe0e76591397,edit,role_management,Edit roles,2026-03-18 09:30:06.948931+00,8e0e9e94-7bd4-48dc-90c2-ed66866113c5,t,f
+b5ac2782-21f5-4f08-a97c-d8fab047c1db,view,report_management,View reports,2026-03-18 09:30:06.948931+00,d215150c-4332-4cd3-a9c1-8d6b7819dd81,t,f
+be65eead-92e6-4952-abcf-549944d1bf91,create,report_management,Create reports,2026-03-18 09:30:06.948931+00,7e60e883-6c15-4f16-aed7-c8b244cb971a,t,f
+1d73a904-d7ec-4c7c-a7a1-148b590a68d4,view,fee_management,View fees,2026-03-18 09:30:06.948931+00,09b4ac71-e167-4439-8b28-d7fcff739d0d,t,f
+608275ca-395a-4f7d-8df1-aecfcf8da822,create,fee_management,Create fees,2026-03-18 09:30:06.948931+00,0eab14c9-9cca-4c33-8129-a9784436d9b3,t,f
+abd3f610-e990-4097-b6aa-760d01b29421,edit,fee_management,Edit fees,2026-03-18 09:30:06.948931+00,64399ff3-7a2c-44e0-9829-cc39d853c3ad,t,f
+34f16813-87b6-4413-89f9-6ebd8ac57e2b,view,form_management,View forms,2026-03-18 09:30:06.948931+00,2a303140-1ccf-4abc-b992-6ae79a3e5782,t,f
+66c25247-b7dc-4b50-8b71-fc4b703371b7,create,form_management,Create forms,2026-03-18 09:30:06.948931+00,623fd557-387c-4139-9199-cd987acb5932,t,f
+7bb13d61-fe54-4183-b227-327555c2b11d,edit,form_management,Edit forms,2026-03-18 09:30:06.948931+00,0ac4a35e-5f7c-48d1-8075-ff7fff92b935,t,f
+ae3fbe59-c43c-4a84-b0e9-c45822188b10,view,workflow_management,View workflows,2026-03-18 09:30:06.948931+00,aeecfbdb-1fc9-482c-90be-f20bb5d9fb80,t,f
+86635aea-781c-4609-bd05-7bb639c16500,create,workflow_management,Create workflows,2026-03-18 09:30:06.948931+00,c779f339-dcc7-448c-a7ba-15bd23b2f31d,t,f
+48b65b3b-a236-45f4-813f-3d67940eba44,edit,workflow_management,Edit workflows,2026-03-18 09:30:06.948931+00,33684752-d737-4d7f-94cf-fcef5384fad9,t,f
+c2b193f1-d405-42d9-9fdc-f01850a8fdda,view,settings,View system settings,2026-03-18 09:30:06.948931+00,dd4d9a25-3b80-4151-8b52-e79009eb0e3a,t,f
+24cedaa2-147d-4bd2-aa16-457e4e8512a5,edit,settings,Edit system settings,2026-03-18 09:30:06.948931+00,44d7f7fc-e810-4bae-abe2-94e97c2a1387,t,f
+9b569952-5809-4d2f-914e-e543c60bffa5,view,registration_management,,2026-06-15 10:40:01.041969+00,561907e9-fbfd-42ad-a53e-1b9bc3543f44,t,f
+ae9185e1-ebc7-4ae7-be24-4301a2f47769,reject,registration_management,,2026-06-15 10:40:01.041969+00,f05da752-4545-4aba-8d94-30e485720b25,t,f
+ac3fca8f-5d5a-44a6-aec6-244d8bce237e,create,registration_management,,2026-06-15 10:40:01.041969+00,e9d1ecaf-d031-4d1b-936d-3f6964b14f34,t,f
+6ffb70be-ad9f-4424-a09f-d9e5f6a8c000,edit,registration_management,,2026-06-15 10:40:01.041969+00,85b71751-e08e-4b99-b250-db0d0ae300ac,t,f
+eb737abd-bcdc-448e-aad0-5eb7506c70a2,approve,registration_management,,2026-06-15 10:40:01.041969+00,deb237e3-9efe-44d2-978c-c2df3c8b89f4,t,f
+2524d65d-4d65-4891-a3dd-4220e394aebb,sign_enforcement_order,licensing,,2026-06-17 10:13:49.14263+00,d92f1331-4213-40d4-b0a5-01bfd2520e3c,t,f
+09cbb0ec-66f5-4473-bc4f-8ac18c7fe635,override_ai_recommendation,licensing,,2026-06-17 10:13:49.14263+00,cf80afe9-64a1-4525-9791-50900f0a8791,t,f
+0d855538-6e9d-490a-89a6-64e9b5a68929,issue_digital_license,licensing,,2026-06-17 10:13:49.14263+00,6536bb97-c4bb-48a9-92ad-4e53f9899459,t,f
+1ddff8ad-6ada-4f09-8502-4648be787efa,reject,licensing,,2026-06-17 10:13:49.14263+00,8cbc7947-d527-414b-91fe-144075a97853,t,f
+f6723161-0eb2-4d0b-a55f-6a644625a04b,conditional_approve,licensing,,2026-06-17 10:13:49.14263+00,fcdbc042-9001-4160-9c42-a1868f55ee7b,t,f
+318552d1-87d8-457b-a2e6-3c6e6d0377e5,approve,licensing,,2026-06-17 10:13:49.14263+00,38e1950d-1369-4bf9-b543-7e16ff97488a,t,f
+b07a4ded-0159-4e9c-838f-0eb954dfb2a1,recommend_conditions,licensing,,2026-06-17 10:13:49.14263+00,12ffd469-1383-4d6e-95e7-3be8f3095a42,t,f
+39e51e4e-21b0-47c4-bd4e-3625e957db5c,flag_concern,licensing,,2026-06-17 10:13:49.14263+00,8d50a4e8-4c7f-4a26-85a1-c4900a970139,t,f
+d08882e3-538a-476f-b14a-a9e8fc5b906d,add_legal_notes,licensing,,2026-06-17 10:13:49.14263+00,00962649-0719-4608-815a-8025227ebb6f,t,f
+25ccac62-aeaa-4e53-9666-680a8707652a,view,licensing,,2026-06-17 10:13:49.14263+00,02d7f82c-997d-46c6-ac01-71acd1259999,t,f
+fa1168d6-d8e1-4de3-87c6-f10071c14f47,view,fit_and_proper,,2026-06-17 10:13:49.14263+00,224597af-ccb0-418d-9c81-6c892dd8c1da,t,f
+53ecdbe1-ec21-4e3a-b0e4-5d13b5e26fb7,conduct_onsite_examination,prudential_supervision,,2026-06-17 10:13:49.14263+00,21abe359-0613-440b-8d26-c60e43570090,t,f
+868c2dcd-cda0-4d08-9521-68f576d96c2f,manage_remediation,prudential_supervision,,2026-06-17 10:13:49.14263+00,907307f3-3fbd-4bf6-8ada-84443a8a937c,t,f
+a7770934-412a-4326-8b16-6bdcc1d910e4,set_ewi_rules,prudential_supervision,,2026-06-17 10:13:49.14263+00,19f4bd1e-c356-4903-bf8e-4cce12b8806e,t,f
+441c9982-498b-4c60-a437-e84da1f64ca3,initiate_supervisory_action,prudential_supervision,,2026-06-17 10:13:49.14263+00,f34e460a-83fb-481d-9a8f-aeb150f977b4,t,f
+d1841acd-9db5-497e-9ff8-96a5a187842c,record_camels_assessment,prudential_supervision,,2026-06-17 10:13:49.14263+00,1428faf1-a06b-4b43-a444-76a54e723b0f,t,f
+4db1a303-2e37-470c-b412-75663196da92,run_analytics,prudential_supervision,,2026-06-17 10:13:49.14263+00,79e913aa-da5b-4455-ad30-ef9990e46574,t,f
+64bf8061-490b-408c-a51e-5d7f2df55111,review_returns,prudential_supervision,,2026-06-17 10:13:49.14263+00,397db264-1408-40d7-a763-893d633b21e8,t,f
+35301441-468b-42b1-a392-200f31d45ba8,view,prudential_supervision,,2026-06-17 10:13:49.14263+00,9fbc0b77-a4c4-43b3-8dcf-4f23c0d55362,t,f
+6f32213f-b3a7-4585-9090-14bb42407be0,manage_monitoring_rules,market_conduct,,2026-06-17 10:13:49.14263+00,cca33b78-f366-4245-ac5a-b7c05000097c,t,f
+09f0da4c-5010-46a3-afad-c9ab26c72bf7,issue_enforcement_action,market_conduct,,2026-06-17 10:13:49.14263+00,ba5d9e87-dc35-4f20-85e8-ef01d43078b2,t,f
+2fbd6850-ad82-49d0-a8fe-c99374a2c00f,initiate_thematic_review,market_conduct,,2026-06-17 10:13:49.14263+00,37957133-6b04-4eb4-a9c9-e7ec49cdda58,t,f
+9cb5f308-d544-4656-8071-f0678607e3cc,run_conduct_analytics,market_conduct,,2026-06-17 10:13:49.14263+00,773750d0-1b09-4267-bfef-3b87dfd1a60c,t,f
+7eafb180-5a33-4b27-9f25-acbbd94230bc,initiate_investigation,market_conduct,,2026-06-17 10:13:49.14263+00,8cc62178-bfc9-4af6-a8fa-1df056128774,t,f
+9b919018-90c9-4e69-b899-f9c9504f9444,manage_complaints,market_conduct,,2026-06-17 10:13:49.14263+00,4d9f24ee-f533-4b93-9e4f-2d4797849ead,t,f
+6a89cfc2-ae5b-40ad-8e65-eb04fe1b59ee,view,market_conduct,,2026-06-17 10:13:49.14263+00,508f9485-5b9d-4a48-a2c8-ebd199bf2943,t,f
+7a7d8b8c-cedd-4e04-9c34-55b2e6dcf7e7,receive_ai_insights,executive_oversight,,2026-06-17 10:13:49.14263+00,6e6cbe17-bc4f-476d-b963-20f0cab124d0,t,f
+a5ce1f72-c0b0-451d-8a1c-d50bd1e7a99d,view_all_reports,executive_oversight,,2026-06-17 10:13:49.14263+00,da70cce9-1dae-4cf0-8de6-949a38dedc26,t,f
+430e53f9-d893-4837-856d-be0c7871f33d,view_cross_module_audit,executive_oversight,,2026-06-17 10:13:49.14263+00,c725563f-200c-4a9b-8813-2308e8c03a6c,t,f
+9f22ca5b-5090-40e4-92f0-d0838a5062e9,drill_into_cases,executive_oversight,,2026-06-17 10:13:49.14263+00,26ed0082-37ec-4d66-914c-dc95477392e5,t,f
+281478e7-076e-4d0c-bdc1-51c31c1de36b,view_all_dashboards,executive_oversight,,2026-06-17 10:13:49.14263+00,b50bfc69-59a6-47fc-a14e-b78482e1dc50,t,f
+a8e8e1b6-b07d-4cb7-b920-7390248267e5,manage_initiation_types,fit_and_proper_initiation,,2026-06-17 10:13:49.14263+00,d3b2c70b-0bcc-4f41-b3ee-82623de0b579,t,f
+761e3b9a-86e8-4c55-a158-ddf6b0384822,initiate_assessment,fit_and_proper_initiation,,2026-06-17 10:13:49.14263+00,03bf0ccf-b28e-403c-a348-467566e6cdb9,t,f
+b845079d-dcfb-4c5a-b5ab-76b3f1af6db2,view,fit_and_proper_initiation,,2026-06-17 10:13:49.14263+00,b99c0ae4-1ce5-4f75-89d9-c894f0c9789c,t,f
+947c2f53-d31e-4546-ad97-5f192496ab4c,manage_conditions_monitoring,fit_and_proper_screening,,2026-06-17 10:13:49.14263+00,c182f33f-7c8c-4e29-93cb-5e1f4e96b16b,t,f
+fa7b8728-0a08-4751-b2ca-0185b2d7de15,issue_determination,fit_and_proper_screening,,2026-06-17 10:13:49.14263+00,0413c04a-98d4-4af1-94e8-9badcbe4f546,t,f
+9dd1025b-6d6b-4b65-a356-e594fc40d59c,run_ai_analysis,fit_and_proper_screening,,2026-06-17 10:13:49.14263+00,cb012dc8-0238-454f-8016-e0d1ffbc42b2,t,f
+ac2ac1af-99c4-4586-b92a-e13fe1dbab74,record_adverse_findings,fit_and_proper_screening,,2026-06-17 10:13:49.14263+00,22168c96-b5ef-40af-a1d6-dbe5917719b3,t,f
+734d3925-a983-4413-8797-8b4b5c49c225,manage_screening,fit_and_proper_screening,,2026-06-17 10:13:49.14263+00,24804b8a-97d3-44d7-8dbb-64052648a190,t,f
+9ef66f1e-a274-481e-8cf1-5a01ab20352e,view,fit_and_proper_screening,,2026-06-17 10:13:49.14263+00,70b6e80f-570d-49a2-80c9-6c8e608e34c5,t,f
+65d18c0c-1f14-4507-a876-a8d76a42d0c4,provide_rationale,fit_and_proper_committee,,2026-06-17 10:13:49.14263+00,f1c19b9f-feae-48b1-a0d8-98e75d892ab2,t,f
+16b3c537-adfc-48f4-a7de-b672f5bc73b6,cast_weighted_vote,fit_and_proper_committee,,2026-06-17 10:13:49.14263+00,6513970a-72d8-4776-a36f-bfb376c12936,t,f
+273dd5d8-f2b7-4c98-8b2f-8df3c36a6c62,view,fit_and_proper_committee,,2026-06-17 10:13:49.14263+00,66de9d3e-8591-4e64-80f5-190685fc3dbc,t,f
+1d794dcc-e50f-4411-82f5-c1a95e5484be,manage_payment_workflow,prudential_payment_systems,,2026-06-17 10:13:49.14263+00,17afe758-28ad-45b9-b727-0d4895e7a1e2,t,f
+b01e6f1c-032c-4ba4-b678-f6976abb928f,oversee_msb,prudential_payment_systems,,2026-06-17 10:13:49.14263+00,1157525a-5212-4feb-ac3b-0989e095f3a2,t,f
+48996dcf-be28-4947-94d7-a5464178e851,conduct_pfmi_assessment,prudential_payment_systems,,2026-06-17 10:13:49.14263+00,2f837dea-3c8d-4864-8b05-14c7b60ebca3,t,f
+fff37f51-7784-4f2d-ba7e-0bf46315e1a8,supervise_fmi,prudential_payment_systems,,2026-06-17 10:13:49.14263+00,a8549d3c-9562-40e3-a249-10aa759cdc52,t,f
+8e443fda-ce91-457d-93de-31709cc36140,view,prudential_payment_systems,,2026-06-17 10:13:49.14263+00,b9201843-3928-4deb-81a5-60c02cd4b90d,t,f
+18af5eba-630e-4f5b-8608-acdeecc6475e,prepare_investigation_report,market_conduct_investigation,,2026-06-17 10:13:49.14263+00,de9c5308-1dc8-4648-881d-29f7b3a73c76,t,f
+19e2f43e-c099-41f6-ac8d-876925d85a18,conduct_interviews,market_conduct_investigation,,2026-06-17 10:13:49.14263+00,3f49b4d4-8356-4199-8322-59e3b492a22c,t,f
+d0213bc9-8bc0-492c-8545-6fba12ed50bd,manage_evidence_repository,market_conduct_investigation,,2026-06-17 10:13:49.14263+00,e72fafc2-510d-4d9e-88e1-53217ea394ca,t,f
+a5bcd12f-c010-4f98-aca4-2c5d21688bbb,access_investigation_workspace,market_conduct_investigation,,2026-06-17 10:13:49.14263+00,f0980cc8-ade3-41d8-80b3-a010f5e16dc7,t,f
+6bdda906-e2b3-4804-98ea-e45188b26a65,view,market_conduct_investigation,,2026-06-17 10:13:49.14263+00,63943f04-c879-4df1-bf26-aa1525b9d566,t,f
+2b96c615-5082-4e56-81f2-3a10b31cd502,view,license_appeals,View licensing appeals,2026-07-30 06:45:18.01154+00,865bb22f-7bef-4de5-8ef1-ce86db20567c,t,f
+3e19d723-f62c-4ada-95cb-6752df2baa36,create,license_appeals,Create licensing appeals,2026-07-30 06:45:18.01154+00,4990e32f-7bac-4f54-a61c-46e2b3d31be3,t,f
+a6cb027e-fdbf-4c31-88ce-dcc0a793e95b,edit,license_appeals,Edit licensing appeals,2026-07-30 06:45:18.01154+00,63b92ce6-9640-4b00-80d0-e2bcf672041a,t,f
+43fb2789-a74a-4cca-aa8d-bd5e98fed402,assign_panel,license_appeals,Assign Panel licensing appeals,2026-07-30 06:45:18.01154+00,4cc5ecf7-eb03-44ed-bf6a-3fa6aeea5a97,t,f
+d613080e-0ae1-4186-b5ec-9e629dbe1429,decide,license_appeals,Record Decision licensing appeals,2026-07-30 06:45:18.01154+00,2357eff4-02fc-4706-bba0-25b93ff44db3,t,f
+7aac8998-8df3-452b-850a-0eba0d4790df,manage_config,license_appeals,Manage Configuration licensing appeals,2026-07-30 06:45:18.01154+00,02d525de-308b-4a60-aa1a-a5bb06b73f02,t,f
+681bd565-21b2-4c1e-8979-d0aa008e1f6e,view_all_entities,license_appeals,View All Entities licensing appeals,2026-07-30 06:45:18.01154+00,795a7804-40e6-4b5b-ad2a-1f751bb1431a,t,f
+e591cf91-5d98-4e57-9c25-35d214112fc3,manage_tasks,rule_engine,Rule Engine — manage_tasks,2026-08-03 17:16:03.546496+00,3f4e1a44-2801-47ca-9fd6-9e615bb14866,t,f
+e6760db3-2703-42a1-ad98-e8c8a1a0b273,manage_payment_oversight,prudential_supervision,"Manage payment system operators, PFMI assessments and incidents",2026-08-06 08:05:20.147328+00,,t,f
+5fe963bd-fdce-4f6e-8a77-fd3218dd21e2,view,ai_management,View AI Panels (AI Management),2026-07-21 06:46:50.842273+00,c1c1660f-d982-456d-be5d-0f5c9968c0c3,t,f
+36232630-cb5b-4f47-8e4f-93809fe3a49a,submit,licensing,Submit licensing applications,2026-06-17 11:59:52.653901+00,e7f18d55-5c27-4a29-9d23-65d2215cea81,t,f
+de13c8f1-660a-42ec-b41c-5daeb539c25f,view_status,licensing,View licensing case status,2026-06-17 11:59:52.653901+00,d282ec55-de10-4d6a-9978-eb3aa11cdbc8,t,f
+15f06cab-e682-40cb-8eed-2a05db85e15f,upload_documents,licensing,Upload licensing documents,2026-06-17 11:59:52.653901+00,30096f23-9bd7-4de1-acd8-eb5c881271ed,t,f
+ecba5465-1005-4d19-abd8-c9d70b63cd8e,respond_rfi,licensing,Respond to licensing RFIs,2026-06-17 11:59:52.653901+00,b2dfa0ca-1ccd-4967-9564-b3337a8f0082,t,f
+8089952a-3b22-470d-a80d-76f0bb2e6041,submit,returns_management,Submit prudential / regulatory returns,2026-06-17 11:59:52.653901+00,c1dcc2c1-fdbb-4cc8-9d72-7873c019656b,t,f
+7df7d5cf-f36c-452b-82e9-d37d28bb3500,view_status,returns_management,View own returns status,2026-06-17 11:59:52.653901+00,0c9ec33d-1d4d-4134-be81-e9655997237b,t,f
+dcbf9742-0aa9-4b16-bcc1-ea0b60cb346f,upload_documents,returns_management,Upload return supporting documents,2026-06-17 11:59:52.653901+00,efd1db4f-689b-49c4-bcdf-3b1146fe0686,t,f
+63d9a1fc-1c69-4ce9-b48f-d1991698c5f7,respond_rfi,returns_management,Respond to return RFIs,2026-06-17 11:59:52.653901+00,ffc0bd9b-5244-4660-b17c-75ea4fea9f70,t,f
+0a8d65ed-5911-4090-ba2d-d901061a737d,submit,complaint_management,Submit complaints,2026-06-17 11:59:52.653901+00,eafce1e5-add5-4c04-8b58-694c3689220c,t,f
+cf925e64-1058-41dd-a54c-a79c0cd205f2,view_status,complaint_management,View complaint status,2026-06-17 11:59:52.653901+00,ab41d3f1-cf21-41ce-9c2b-b9fb5d2f08ab,t,f
+0ec8d3ea-f6b9-4d6c-9634-dcb92cff6303,upload_documents,complaint_management,Upload complaint attachments,2026-06-17 11:59:52.653901+00,122edb57-0177-4b4e-8dca-1886efd85e40,t,f
+16d21e24-9b25-405e-90fc-ecf0c157a682,submit,fit_and_proper,Submit F&P declarations,2026-06-17 11:59:52.653901+00,0d487071-ac95-4d5c-8679-1067a8e00155,t,f
+c9f28d82-b579-4b1c-b0af-16ca873d51c7,view_status,fit_and_proper,View F&P declaration status,2026-06-17 11:59:52.653901+00,dcb3d763-71b5-4e29-a97f-ea6d43d33af4,t,f
+5d634a81-4056-47b5-9fab-7d9cbf122006,upload_documents,fit_and_proper,Upload F&P supporting documents,2026-06-17 11:59:52.653901+00,81df0e4a-31a6-49e5-ab3f-0e55b549f903,t,f
+23264ebb-a322-407f-99ef-e8791814c569,view,complaint_type,,2026-06-18 10:57:31.200245+00,f698a23b-fbfa-4875-9563-feb2a6e9875b,t,f
+2a91ead4-f134-48fd-874c-f03dd70469df,create,complaint_type,,2026-06-18 10:57:42.935425+00,3497bf29-cf78-4ced-bb66-e2657695873d,t,f
+e98b1414-9b88-435d-a257-785881baeb84,edit,complaint_type,,2026-06-18 10:57:52.344008+00,be5fa5b0-89ce-485c-a4a0-57f2652db40c,t,f
+dd8b7382-6278-4afc-8aae-ecd1e23d624f,manage_license_actions,license_management,"Suspend, revoke, cancel, reinstate or change status of a license.",2026-06-30 15:21:49.276796+00,6ba557e3-0b37-4153-80fc-60bfbf053031,t,f
+8b68aa20-6643-4635-a7f6-6a3454743b40,view,coordination,view coordination,2026-07-03 13:43:31.564878+00,,t,f
+477952e2-f3a9-4c19-bbe4-c78b200c3351,admin,coordination,admin coordination,2026-07-03 13:43:31.564878+00,,t,f
+961b1ade-1ba6-4969-9b30-85428d3428af,update,fit_and_proper,update fit_and_proper,2026-07-03 13:43:31.564878+00,,t,f
+7ea9255e-986f-43d5-87d1-35c1a68dda16,create,coordination,create coordination,2026-07-03 13:43:31.564878+00,,t,f
+fd2cc8d0-6a2b-452b-aa85-e7ea618c59f0,admin,fit_and_proper,admin fit_and_proper,2026-07-03 13:43:31.564878+00,,t,f
+a8c901fb-a08d-4534-8c48-314352519d3c,update,coordination,update coordination,2026-07-03 13:43:31.564878+00,,t,f
+c04dca32-d664-498f-a7ea-f9222b9186f6,delete,coordination,delete coordination,2026-07-03 13:43:31.564878+00,,t,f
+f981eb8a-6851-4e3f-9d41-fa7da11d3ba6,view,admin_dashboard,View the Admin Control Panel.,2026-07-22 14:05:47.909426+00,,t,f
+7f3e9ab0-f8a0-4412-8862-80eab8cf8540,view_all_entities,returns_management,Bypass entity regulator assignment and view submitted returns for all entities.,2026-07-20 09:13:29.610495+00,94185951-b71e-4b34-bbc3-f6e160e59278,t,f
+48fb6d03-9743-4c2c-aa0e-d6bbe07f1c8f,delete,role_management,Delete non-system roles,2026-07-21 08:01:28.681458+00,,t,f
+58496df9-65ae-47a9-9f30-9253103fd1b9,reset,role_management,Reset a system role to its default permissions,2026-07-21 08:01:28.681458+00,,t,f
+1bec318b-5b4a-42b9-bf57-8765cde00c16,assign_permissions,role_management,Assign or revoke permissions on any role,2026-07-21 08:01:28.681458+00,,t,f
+ef4348e1-2c22-4d04-9c14-5a6ef15f4a30,view_coverage,role_management,View the Permission Coverage report,2026-07-21 08:01:28.681458+00,,t,f
+859002a5-f5a2-4041-988a-29bd754b8a01,view_catalog,role_management,View the permission catalog (modules and actions),2026-07-21 09:05:09.00988+00,,t,f
+415c5a62-ca54-4f4f-b737-a974d6369d3e,manage_catalog,role_management,"Create, edit, or delete permission modules and actions",2026-07-21 09:05:09.00988+00,,t,f
+06ca2af1-c056-41d2-839e-01d971995788,assign_role,role_management,Grant or revoke role assignments to users,2026-07-21 09:05:09.00988+00,,t,f
+9154bca6-17db-4dc2-a17f-2c293a93ad55,workflow_action,returns_management,Perform return workflow transitions,2026-07-21 13:01:51.288185+00,,t,f
+49598f35-9835-44b9-8e11-acb5fb98ce79,workflow_action,registration_management,,2026-07-30 07:46:57.191422+00,,t,f
+4fdc3452-27de-45a4-ab88-08b60118830c,manage_config,returns_management,,2026-07-21 13:09:17.04441+00,,t,f
+e03d5975-55d3-443b-a91b-1c9a5c6de9fb,deactivate,rule_engine,Deactivate an active rule (requires justification),2026-08-04 04:20:39.020345+00,,t,f
+3bfd84af-2990-432b-a2e6-8ee5561ab55a,approve_rfi,complaint_management,Complaints — approve information requests,2026-08-06 10:14:39.499813+00,8a140fb9-d823-4f25-84c7-054c763e1cd0,t,f
+31a47776-8de6-42e5-bc6f-0f7116b4f203,export,report_management,Export Reports (Reports),2026-07-21 06:46:50.842273+00,86dc7f90-213e-4116-a14f-c4ed2d294697,t,f
+bd08e930-500b-487a-abea-df201f6ce87f,view,audit_management,View Audit Logs (Audit Management),2026-07-21 06:46:50.842273+00,a6f57c13-741b-4772-82fd-563ee60894e6,t,f
+5ae27b01-3192-4599-8a06-d579115e7277,execute,ai_management,Run AI / Consolidated (AI Management),2026-07-21 06:46:50.842273+00,6dfff3eb-3fb4-474e-b33d-f56c97346e51,t,f
+5b685e62-9a35-434b-985f-7b7bf433f86d,dispatch,notification_management,Dispatch Notifications (Notification Management),2026-07-21 06:46:50.842273+00,1bea6af9-e817-4e99-bdb7-a0dff6edbaf1,t,f
+17128cd4-bfa2-4b24-bc79-f0ab9dcba83b,view_all_entities,application_management,,2026-07-21 13:14:22.835547+00,,t,f
+43e472f2-fc5d-4d0f-8678-9cc659c76d6d,workflow_action,application_management,,2026-07-21 13:14:22.835547+00,,t,f
+b6681f2e-1ec5-4cd4-80e9-4c3066436633,delete,application_management,,2026-07-21 13:14:22.835547+00,,t,f
+66d81260-ed4b-4a2a-bd31-7f3b9cea6905,manage_config,application_management,,2026-07-21 13:14:22.835547+00,,t,f
+f8d959d0-638a-4499-8404-16c1f501708f,view_all_entities,license_management,View licenses across all entities,2026-07-21 13:21:14.955936+00,,t,f
+6e81355b-d9a7-4d2f-9960-f677d9ca63d3,workflow_action,license_management,Perform license workflow actions (renew/suspend/revoke/reinstate),2026-07-21 13:21:14.955936+00,,t,f
+ca98913d-cd01-47ed-9b4e-b00b8385e22a,delete,license_management,Delete license records,2026-07-21 13:21:14.955936+00,,t,f
+7ad40dd7-f001-49f5-9b12-54a455eee2f2,manage_config,license_management,"Manage license configuration (types, action configs)",2026-07-21 13:21:14.955936+00,,t,f
+eab27b00-46f5-4e95-b06b-38e5aa68abcb,manage_certificates,license_management,Issue and dispatch license certificates,2026-07-21 13:21:14.955936+00,,t,f
+9fdd186e-48e0-4fad-84ae-6b7d7cb21475,manage_conditions,license_management,Create and satisfy license conditions,2026-07-21 13:21:14.955936+00,,t,f
+d2287f61-684a-4cff-aab0-385fec130018,view,licensee_management,View licensee records,2026-07-21 13:21:14.955936+00,,t,f
+5c6da9d0-fd89-480d-9ff7-4921ffe57203,create,licensee_management,Create licensee records,2026-07-21 13:21:14.955936+00,,t,f
+b52abed6-cc8d-4dcd-900c-e43cf4385dc9,delete,fit_and_proper,delete fit_and_proper,2026-07-03 13:43:31.564878+00,e527ed44-158a-4d23-b5ed-a53dafe2cd7c,t,f
+fc7b36be-953b-4546-a5f3-48492957dae8,create,fit_and_proper,create fit_and_proper,2026-07-03 13:43:31.564878+00,a29682ce-5c70-445b-b9fd-99a80bb30ca2,t,f
+c7fb2de7-80f0-4301-b5f3-1ec77dae4ce3,edit,licensee_management,Edit licensee records,2026-07-21 13:21:14.955936+00,,t,f
+afc547b8-abef-4609-96b0-9006522a7bae,delete,licensee_management,Delete licensee records,2026-07-21 13:21:14.955936+00,,t,f
+476a5bd1-b8e2-4e52-ad14-5eca8335fc54,view_all_entities,licensee_management,View licensees across all entities,2026-07-21 13:21:14.955936+00,,t,f
+8654f6bb-88b5-4daa-b2dd-6a087ec91e04,manage_products_channels,licensee_management,Manage licensee product/channel mapping,2026-07-21 13:21:14.955936+00,,t,f
+63d35b5b-0d45-4707-a2b0-6fbc2573c00b,manage_pre_license,licensee_management,Manage pre-license user records,2026-07-21 13:21:14.955936+00,,t,f
+7e10daf3-aba4-483c-8894-7a8a004f54d5,view,compliance_management,View compliance returns,2026-07-21 13:25:04.883869+00,,t,f
+a166faec-b70d-4753-b47f-3bacfe416b82,create,compliance_management,Create compliance returns,2026-07-21 13:25:04.883869+00,,t,f
+9f7b6ca4-7f1e-4a53-a15e-4ad102784e12,edit,compliance_management,Edit compliance returns,2026-07-21 13:25:04.883869+00,,t,f
+5b9d318d-30a3-409e-8f3f-f793df92ca29,delete,compliance_management,Delete compliance returns,2026-07-21 13:25:04.883869+00,,t,f
+2a83578c-eeb6-4864-83f6-2b2237566b2a,view_all_entities,compliance_management,View compliance returns across all entities,2026-07-21 13:25:04.883869+00,,t,f
+6afb3e63-8aa0-4ffc-9c15-da7298646438,workflow_action,compliance_management,Review/approve/reject compliance returns,2026-07-21 13:25:04.883869+00,,t,f
+01361ccb-75bf-4794-a0c6-aaeb01ee020e,manage_config,compliance_management,Manage compliance configuration,2026-07-21 13:25:04.883869+00,,t,f
+48aaa95b-0e61-4a59-9681-b7cdfe2d943d,respond,compliance_management,Respond to compliance queries/RFIs,2026-07-21 13:25:04.883869+00,,t,f
+3ec36278-3fb8-4318-b570-fe3ed3c6b03d,view_audit_logs,compliance_management,View compliance audit logs,2026-07-21 13:25:04.883869+00,,t,f
+af90dbb1-ae7e-4347-9f24-59734b9532e8,create,prudential_supervision,,2026-07-21 13:43:23.147625+00,326fc85f-3b0e-4cce-b562-4398ae29f238,t,f
+b7855508-eb5c-4c7d-9dc1-542bbf9fe0db,edit,prudential_supervision,,2026-07-21 13:43:23.147625+00,f1e4b74a-aa7b-4046-927f-601bd72b98f6,t,f
+b6d43363-e47a-4f75-a5da-5900bf0be0a0,delete,prudential_supervision,,2026-07-21 13:43:23.147625+00,887e7a87-103a-42a7-9dd9-1a34f0ff22f2,t,f
+7bcdd4e8-9aad-4354-90f8-93446afbfa9b,view_all_entities,prudential_supervision,,2026-07-21 13:43:23.147625+00,e89807a4-3608-4e76-af70-ed225fa7bf42,t,f
+c6a4b832-77e5-4570-aabe-718314d3a8e9,manage_config,prudential_supervision,,2026-07-21 13:43:23.147625+00,70dd32df-0a4d-4ea2-aa54-f502b3fb1bff,t,f
+a74c6729-14a9-4a7f-938d-6994ffd55099,workflow_action,prudential_supervision,,2026-07-21 13:43:23.147625+00,48843338-13ea-4f8d-9951-c172afee7b9a,t,f
+d9a4968f-8e6c-4710-a883-44612152f519,edit,fit_and_proper,,2026-07-21 13:46:25.919808+00,5248be96-4c4d-477f-beac-21df6ee03a98,t,f
+8424fa63-8181-4099-bfdf-56629149b2de,view_all_entities,fit_and_proper,,2026-07-21 13:46:25.919808+00,69ca7779-c328-404a-a301-68f4978f7f87,t,f
+5bdd2b1e-fa6a-4920-a937-14cf2ad4f3b7,manage_config,fit_and_proper,,2026-07-21 13:46:25.919808+00,1d08d3c3-af3e-40a6-9232-680e52d16df0,t,f
+1842537a-1ef9-4d6f-83bb-095bd72c2599,workflow_action,fit_and_proper,,2026-07-21 13:46:25.919808+00,3db2df1d-1925-4c24-945c-bbf74dcde278,t,f
+b6db9a79-1302-49bf-9236-24f757ef026a,publish,workflow_management,Publish a new version of an approval workflow,2026-07-23 06:22:32.149434+00,,t,f
+32de1bc3-b7e5-45db-af9e-342d3c7a3f43,view,rule_engine,Rule engine view,2026-08-03 16:30:18.602734+00,5836d590-7e4b-402b-8b04-069bfd17f3c3,t,f
+067ac444-44ff-4a11-a80e-60c8754cb36b,edit,rule_engine,Rule engine edit,2026-08-03 16:30:18.602734+00,a23c091d-3e0b-48d1-a30b-22a1971b503b,t,f
+5e8853a1-aeee-4df2-b1fb-dcabc055afc5,activate,rule_engine,Rule engine activate,2026-08-03 16:30:18.602734+00,2ae866e0-52c0-4c27-968c-0b8a161aef68,t,f
+d441d826-10d7-49e5-b384-ad3d65d093b1,signoff_workpaper,prudential_supervision,Sign off examination workpapers as reviewer,2026-08-06 07:22:10.956352+00,,t,f
+d2bfe0eb-3a76-4d0c-9acd-75248341f5b1,manage_examination,prudential_supervision,Create and edit onsite examinations,2026-08-06 07:22:10.956352+00,,t,f
+9c604e85-3760-4e78-a959-3fd8a5f694e5,override_committee,fit_and_proper,,2026-08-12 07:45:22.032245+00,66c1b7ca-93e7-442f-9a9e-670e80e89882,t,f
+4687069a-e5f3-4ed5-9228-cccfb1978a4f,view,notification_management,View Notifications (Notification Management),2026-07-21 06:46:50.842273+00,cb998362-5d85-4299-8e4f-67d03544b266,t,f
+66e04814-bff5-475b-a2f4-12a9c53c9c82,view,security_management,View Security Events (Security Management),2026-07-21 06:46:50.842273+00,b730bc03-d230-4fa1-a971-18024f9c1e48,t,f
+5765b1cf-b9ec-4e79-a494-d45e1b496250,export,audit_management,Export Audit Logs (Audit Management),2026-07-21 06:46:50.842273+00,b3d26846-ab0e-4fa9-b06a-f2c9b11a9e4a,t,f
+5bdc9c9e-435c-4876-bd70-f30a8e499e73,approve,fit_and_proper,,2026-08-17 13:48:23.322149+00,a67e3964-345b-4cf5-84f5-37a6b4a85ad2,t,f
+d6090f15-789e-4e19-af95-4fb94d35762e,configure,fit_and_proper,,2026-08-17 13:48:23.322149+00,3a74f5e1-b859-4e97-9376-82b124b365c5,t,f
+08966b60-77d6-49b8-b344-9ad363fb2f66,execute,fit_and_proper,,2026-08-17 13:48:23.322149+00,4212ba8d-3ebf-4312-85a4-3e3557dab598,t,f
+ad2387d9-01f9-446a-a768-8255cff8aab6,export,fit_and_proper,,2026-08-17 13:48:23.322149+00,9bcd5df0-d440-4703-bd6d-d76cae5f4665,t,f
+2b0f4a72-6498-4f9e-bfec-aeff23450ed1,create,fit_and_proper_committee,,2026-08-17 13:48:23.322149+00,d75fd1c9-9368-40ac-aa3e-33e117c35743,t,f
+71dddbba-f700-4a08-a833-f06c1cee6ed7,edit,fit_and_proper_committee,,2026-08-17 13:48:23.322149+00,988f42e0-9624-49c0-98dd-5111afdd2f2a,t,f
+c0313998-beda-4b65-a32a-41e99d02f8e3,create,fit_and_proper_screening,,2026-08-17 13:48:23.322149+00,daba2ef7-0451-41c8-a741-13564f497460,t,f
+21d3dd24-d18a-43ec-8483-a0b4202a480f,edit,fit_and_proper_screening,,2026-08-17 13:48:23.322149+00,bba36c55-695c-449c-9cdf-bab542a77f95,t,f

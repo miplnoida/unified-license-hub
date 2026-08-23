@@ -1,0 +1,6 @@
+id,key,label,description,applies_to,is_hierarchical,allow_multiple,sort_order,is_system,is_active,created_at,updated_at
+308a3a82-f436-4aad-9731-dd2926300546,entity_sector,Sector,Top-level regulated sector taxonomy (mirrors existing sectors master data).,entity,t,f,10,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+fc6d23be-3dbf-4294-979b-7f6f3b84d3d2,entity_type,Entity Type,Legal/organisational form of the entity.,entity,f,f,20,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+c9d44621-faf5-454b-92fd-6d961b7c64b7,regulated_activity,Regulated Activity,Activities an entity is authorised to conduct.,license,f,t,30,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+4ec6ec3c-2e32-4c66-8fea-0d16bd297951,systemic_importance,Systemic Importance,Supervisory significance classification.,entity,f,f,40,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00
+ed96c031-b3e2-4751-91d5-02e3d3cedd8b,jurisdiction,Jurisdiction,Jurisdiction of incorporation or operation.,entity,f,t,50,t,t,2026-08-20 05:24:05.094176+00,2026-08-20 05:24:05.094176+00

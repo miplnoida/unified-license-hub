@@ -1,0 +1,2 @@
+id,name,provider,site_key,environment,is_active,notes,created_by,updated_by,created_at,updated_at,score_threshold,expected_action
+ccfd7dcc-07e6-45ce-850e-9013ad69810a,reCAPTCHA,recaptcha_v2,6LfpZIwtAAAAAI55Ao2HTJkIjmrD3gAGyoM0-9G6,sandbox,t,,,6d4f5483-b81b-47bb-9e4d-265f9c1b0f25,2026-08-18 13:20:02.942815+00,2026-08-18 13:39:18.709227+00,,

@@ -1,0 +1,973 @@
+id,name,event_type,channel,subject,body,variables,is_active,regulator_id,created_by,created_at,updated_at,template_code,module,event_key,severity,status,version,published_version,updated_by,archived_at
+8fc74bd5-3ae4-4355-ba6a-f4553cb29a0e,complaint.rfi_due_reminder (in_app),complaint.rfi_due_reminder,in_app,Information request due soon: {{complaint_number}},The information request on complaint {{complaint_number}} is due on {{due_at}}. {{outstanding_count}} question(s) remain outstanding.,[],t,,,2026-08-23 13:55:44.145854+00,2026-08-23 13:55:44.145854+00,COMPLAINT_RFI_DUE_REMINDER_IN_APP,complaint,complaint.rfi_due_reminder,high,active,1,1,,
+a5b02246-9787-4c34-9d7b-5fd2f78e2bf6,complaint.rfi_due_reminder (email),complaint.rfi_due_reminder,email,Reminder: information request due for complaint {{complaint_number}},The information request on complaint {{complaint_number}} is due on {{due_at}}. {{outstanding_count}} question(s) remain outstanding.,[],t,,,2026-08-23 13:55:44.145854+00,2026-08-23 13:55:44.145854+00,COMPLAINT_RFI_DUE_REMINDER_EMAIL,complaint,complaint.rfi_due_reminder,high,active,1,1,,
+848908fe-1112-47e6-a026-d305c3829680,conduct_investigation.monitoring_review_due (in_app),conduct_investigation.monitoring_review_due,in_app,Monitoring review due: {{investigation_code}},A post-closure monitoring review for investigation {{investigation_code}} is due on {{due_date}}. Focus areas: {{focus_areas}},[],t,,,2026-08-23 13:55:44.145854+00,2026-08-23 13:55:44.145854+00,CONDUCT_INVESTIGATION_MONITORING_REVIEW_DUE_IN_APP,conduct_investigation,conduct_investigation.monitoring_review_due,medium,active,1,1,,
+9935e17f-1792-49ec-b3bc-9e81120d0646,conduct_investigation.monitoring_review_due (email),conduct_investigation.monitoring_review_due,email,Monitoring review due: {{investigation_code}},A post-closure monitoring review for investigation {{investigation_code}} is due on {{due_date}}. Focus areas: {{focus_areas}},[],t,,,2026-08-23 13:55:44.145854+00,2026-08-23 13:55:44.145854+00,CONDUCT_INVESTIGATION_MONITORING_REVIEW_DUE_EMAIL,conduct_investigation,conduct_investigation.monitoring_review_due,medium,active,1,1,,
+f53595b0-7483-446c-9a7a-98824b5786e0,Return Sent Back,return.send_back,in_app,Return {{return_name}} sent back,Return {{return_name}} was sent back at step {{step_name}}.,[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,RETURN_SEND_BACK_IN_APP_f53595,return,return.send_back,medium,active,1,1,,
+cef39bfa-bd8e-4394-b5c0-fb09421d41ad,Primary User Created,entity.primary_user_created,in_app,New Primary User Added,A primary user ({{full_name}}) was added to {{entity_name}}.,"[""full_name"", ""entity_name"", ""email""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,ENTITY_PRIMARY_USER_CREATED_IN_APP_cef39b,entity,entity.primary_user_created,medium,active,1,1,,
+ae2db0bd-08f8-490c-ac60-72ed7e43b924,Access Revoked,entity.user_access_revoked,in_app,Access revoked,Your access to {{entity_name}} has been revoked.,"[""entity_name""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,ENTITY_USER_ACCESS_REVOKED_IN_APP_ae2db0,entity,entity.user_access_revoked,medium,active,1,1,,
+48f644da-14c3-433c-9538-17471c072727,License Issued,license.created,in_app,License Issued: {{license_number}},License {{license_number}} has been issued.,"[""license_number"", ""application_number""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,LICENSE_CREATED_IN_APP_48f644,license,license.created,medium,active,1,1,,
+7ccf8191-7116-44fc-a917-4c230fe692c9,Automation/business rule activated (email),rule.activated,email,Rule activated: {{rule_name}},"The {{rule_type}} rule ""{{rule_name}}"" was activated by {{actor_name}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RULE_ACTIVATED_EMAIL,administration,rule.activated,medium,active,1,1,,
+f5094bd2-4578-4cff-8876-d94fe1c8049e,Application Submitted,application.submitted,in_app,Application Submitted,Your application {{application_number}} has been submitted and is now under review.,"[""application_number""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,APPLICATION_SUBMITTED_IN_APP_f5094b,application,application.submitted,medium,active,1,1,,
+a5d235ed-a152-47ae-9f0e-047640693ee5,Secondary User Created,entity.secondary_user_created,in_app,New Secondary User Added,A secondary user ({{full_name}}) was added to {{entity_name}}.,"[""full_name"", ""entity_name"", ""email""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,ENTITY_SECONDARY_USER_CREATED_IN_APP_a5d235,entity,entity.secondary_user_created,medium,active,1,1,,
+1a493177-f3ae-4521-b048-7d70d0269d49,Secondary User Created (Email),entity.secondary_user_created,email,New Secondary User: {{full_name}},A secondary user ({{full_name}} <{{email}}>) was added to {{entity_name}}.,"[""full_name"", ""email"", ""entity_name""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,ENTITY_SECONDARY_USER_CREATED_EMAIL_1a4931,entity,entity.secondary_user_created,medium,active,1,1,,
+d5c96ca1-60bf-41a1-9ea9-c3dd41bcf9aa,Return Escalated,return.escalated,in_app,Return {{return_name}} escalated,Return {{return_name}} was escalated.,[],t,,,2026-06-15 14:11:17.985886+00,2026-06-15 14:11:17.985886+00,RETURN_ESCALATED_IN_APP_d5c96c,return,return.escalated,medium,active,1,1,,
+a6e0c375-f1a8-4f68-8add-759597e0d9db,Application Submitted (Email),application.submitted,email,Application Submitted: {{application_number}},Your application ({{application_number}}) has been submitted and is now under review.,"[""application_number""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,APPLICATION_SUBMITTED_EMAIL_a6e0c3,application,application.submitted,medium,active,1,1,,
+68728c2a-cca2-4e9a-8dae-eaf7f2373592,Workflow Action Taken,application.workflow_action_taken,in_app,Update on application {{application_number}},"Action ""{{action_type}}"" was taken on application {{application_number}}. {{comments}}","[""application_number"", ""action_type"", ""comments"", ""actor_name""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,APPLICATION_WORKFLOW_ACTION_TAKEN_IN_APP_68728c,application,application.workflow_action_taken,medium,active,1,1,,
+d3c6f613-c177-48f4-9068-2b391b127a74,Workflow Step Approved,application.approved_step,in_app,Application {{application_number}}: step approved,"Application {{application_number}} step ""{{step_name}}"" was approved. It is now at the next stage.","[""application_number"", ""step_name""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,APPLICATION_APPROVED_STEP_IN_APP_d3c6f6,application,application.approved_step,medium,active,1,1,,
+f20a2fe8-3b14-41e0-b4ed-152818740bbf,Registration Forwarded to Next Level (Email),registration.approved_step,email,Registration {{registration_number}} approved at step {{step_name}},"Dear {{applicant_name}},
+
+Your registration {{registration_number}} has been approved at step ""{{step_name}}"" by {{actor_name}} and forwarded to the next level.
+
+Remarks: {{comments}}
+
+Portal: {{portal_url}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,REGISTRATION_APPROVED_STEP_EMAIL_f20a2f,registration,registration.approved_step,medium,active,1,1,,
+b67cf3c7-f5e7-4929-86c3-374ae7d92f9d,Registration Step Approved,registration.approved_step,in_app,Registration {{registration_number}} approved at {{step_name}},Registration {{registration_number}} approved at step {{step_name}}.,[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,REGISTRATION_APPROVED_STEP_IN_APP_b67cf3,registration,registration.approved_step,medium,active,1,1,,
+5d67ec95-76f0-4aa1-85d5-e24218eaad5d,Registration Sent Back (Email),registration.send_back,email,Registration {{registration_number}} sent back,"Dear {{applicant_name}},
+
+Your registration {{registration_number}} has been sent back by {{actor_name}} at step ""{{step_name}}"".
+
+Remarks:
+{{comments}}
+
+Portal: {{portal_url}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,REGISTRATION_SEND_BACK_EMAIL_5d67ec,registration,registration.send_back,medium,active,1,1,,
+ce7e0663-a3ee-4005-a3f1-c8f211e768c4,Registration Sent Back,registration.send_back,in_app,Registration {{registration_number}} sent back,Registration {{registration_number}} was sent back at step {{step_name}}.,[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,REGISTRATION_SEND_BACK_IN_APP_ce7e06,registration,registration.send_back,medium,active,1,1,,
+5ed62281-e901-4d60-a944-dbe4d9728c82,Resubmission Requested (Email),application.resubmission_requested,email,Resubmission Requested: {{application_number}},Your application ({{application_number}}) requires revisions. Remarks: {{comments}},"[""application_number"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,APPLICATION_RESUBMISSION_REQUESTED_EMAIL_5ed622,application,application.resubmission_requested,medium,active,1,1,,
+af9de172-2a21-497c-91d3-4e64e3b8595a,Application Rejected,application.rejected,in_app,Application Rejected: {{application_number}},Your application {{application_number}} was rejected. Remarks: {{comments}},"[""application_number"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,APPLICATION_REJECTED_IN_APP_af9de1,application,application.rejected,medium,active,1,1,,
+61e7a82f-b6b7-4ab7-9674-44de732d4f8b,Application Rejected (Email),application.rejected,email,Application Rejected: {{application_number}},Your application ({{application_number}}) has been rejected. Remarks: {{comments}},"[""application_number"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,APPLICATION_REJECTED_EMAIL_61e7a8,application,application.rejected,medium,active,1,1,,
+7151bff2-751b-4ee5-954c-2bb480895885,New Registration (Regulators Email),registration.submitted,email,New Registration: {{registration_reference}},A new registration ({{registration_reference}}) was submitted by {{applicant_name}} ({{applicant_email}}). Sector: {{sector_name}}.,"[""registration_reference"", ""applicant_name"", ""applicant_email"", ""sector_name""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:29:00.474967+00,REGISTRATION_SUBMITTED_EMAIL_7151bf,registration,registration.submitted,medium,active,1,1,,
+a60edd43-3fd9-4731-ab20-a766c9bd0f81,Primary User Created (Email),entity.primary_user_created,email,New Primary User: {{full_name}},A primary user ({{full_name}} <{{email}}>) was added to {{entity_name}}.,"[""full_name"", ""email"", ""entity_name""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,ENTITY_PRIMARY_USER_CREATED_EMAIL_a60edd,entity,entity.primary_user_created,medium,active,1,1,,
+d424f4c7-f92f-43a4-bd32-b7b68c84a34a,RFI awaiting supervisory approval (in_app),complaint.rfi_approval_requested,in_app,RFI approval needed: {{complaint_number}},An information request on complaint {{complaint_number}} is awaiting your approval. {{question_count}} question(s) drafted by {{drafter_name}}.,[],t,,,2026-08-06 10:17:12.537164+00,2026-08-06 10:17:12.537164+00,,complaint,complaint.rfi_approval_requested,high,active,1,1,,
+8a376cbd-76fa-43b1-a68a-e7800bdb0be3,RFI awaiting supervisory approval (email),complaint.rfi_approval_requested,email,Approval needed: information request on complaint {{complaint_number}},"An information request on complaint {{complaint_number}} is awaiting approval. {{question_count}} question(s) were drafted by {{drafter_name}}. Please review, modify if needed, and approve or reject the request.",[],t,,,2026-08-06 10:17:12.537164+00,2026-08-06 10:17:12.537164+00,,complaint,complaint.rfi_approval_requested,high,active,1,1,,
+f58cd35c-718b-49c3-aadb-97ffca5bf091,RFI approved and dispatched (in_app),complaint.rfi_approved,in_app,RFI approved: {{complaint_number}},The information request on complaint {{complaint_number}} was approved and dispatched to {{entity_name}}.,[],t,,,2026-08-06 10:17:12.537164+00,2026-08-06 10:17:12.537164+00,,complaint,complaint.rfi_approved,medium,active,1,1,,
+fdd81904-0550-407f-ae47-3bb16c662430,RFI returned for rework (in_app),complaint.rfi_rejected,in_app,RFI returned: {{complaint_number}},The information request drafted on complaint {{complaint_number}} was returned for rework. Reason: {{rejection_reason}},[],t,,,2026-08-06 10:17:12.537164+00,2026-08-06 10:17:12.537164+00,,complaint,complaint.rfi_rejected,high,active,1,1,,
+07ba5074-c721-457e-a176-c798bcaa94ae,RFI returned for rework (email),complaint.rfi_rejected,email,Information request returned for complaint {{complaint_number}},The information request drafted on complaint {{complaint_number}} was returned for rework. Reason: {{rejection_reason}},[],t,,,2026-08-06 10:17:12.537164+00,2026-08-06 10:17:12.537164+00,,complaint,complaint.rfi_rejected,high,active,1,1,,
+223b04f0-4667-4eb1-9664-e583fb52f873,Application Final Approved,application.final_approved,in_app,Application Approved: {{application_number}},Your application {{application_number}} has been approved. License Number: {{license_number}}.,"[""application_number"", ""license_number""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,APPLICATION_FINAL_APPROVED_IN_APP_223b04,application,application.final_approved,medium,active,1,1,,
+354bdaf3-e08a-473e-8844-c027ff05b6c9,Application Final Approved (Email),application.final_approved,email,Application Approved: {{application_number}} — License {{license_number}},Your application ({{application_number}}) has been approved. License Number: {{license_number}}.,"[""application_number"", ""license_number""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,APPLICATION_FINAL_APPROVED_EMAIL_354bda,application,application.final_approved,medium,active,1,1,,
+ff26fef7-0361-42e4-9646-72ce2d1a8f3b,Application Sent Back,application.send_back,in_app,Application {{application_number}}: sent back,"Application {{application_number}} was sent back from ""{{step_name}}"". Remarks: {{comments}}","[""application_number"", ""step_name"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,APPLICATION_SEND_BACK_IN_APP_ff26fe,application,application.send_back,medium,active,1,1,,
+9e12435f-7576-4844-8a89-66b88c414741,Application Sent Back (Email),application.send_back,email,Application {{application_number}} was sent back,"Application {{application_number}} was sent back from step ""{{step_name}}"". Remarks: {{comments}}","[""application_number"", ""step_name"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,APPLICATION_SEND_BACK_EMAIL_9e1243,application,application.send_back,medium,active,1,1,,
+101fb449-0510-4f4b-aecc-747e41021564,Resubmission Requested,application.resubmission_requested,in_app,Resubmission Requested: {{application_number}},Your application {{application_number}} requires revisions. Remarks: {{comments}},"[""application_number"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,APPLICATION_RESUBMISSION_REQUESTED_IN_APP_101fb4,application,application.resubmission_requested,medium,active,1,1,,
+c1383509-f011-4625-828b-d844934e6d82,Complaint information request dispatched (in_app),complaint.rfi_issued,in_app,Information request on complaint {{complaint_number}},The regulator has issued an information request on complaint {{complaint_number}} with {{question_count}} question(s). Responses are due {{due_at}}.,[],t,,,2026-08-06 10:27:14.083424+00,2026-08-06 10:27:14.083424+00,,complaint,complaint.rfi_issued,high,active,1,1,,
+0c6b8d60-29b8-4434-8ebe-91694c7e1991,Complaint information request dispatched (email),complaint.rfi_issued,email,Information request on complaint {{complaint_number}},The regulator has issued an information request on complaint {{complaint_number}} with {{question_count}} question(s). Please sign in to the portal to provide your response and supporting documents. Responses are due {{due_at}}.,[],t,,,2026-08-06 10:27:14.083424+00,2026-08-06 10:27:14.083424+00,,complaint,complaint.rfi_issued,high,active,1,1,,
+26fd0af5-5b73-4c2f-9104-44cf466e00e4,Application Assigned (Post-Submission),application.assigned_post_submission,email,Application {{unique_id}} assigned to you for review,"Hello {{recipient_name}},
+
+The submitted application ""{{entity_name}}"" ({{unique_id}}) has been assigned to you by {{assigned_by}} for review and action.
+
+Open it here: {{portal_link}}
+
+Regards,
+{{app_name}}","[""recipient_name"", ""entity_name"", ""unique_id"", ""assigned_by"", ""portal_link"", ""app_name""]",t,,,2026-06-19 07:36:35.898546+00,2026-06-19 07:36:35.898546+00,APPLICATION_ASSIGNED_POST_SUBMISSION_EMAIL_26fd0a,application,application.assigned_post_submission,medium,active,1,1,,
+38fe0abb-243c-4bd8-ac5d-0b178c4f429f,Return Submission Assigned,return.submission_assigned,email,Return {{unique_id}} assigned to you for review,"Hello {{recipient_name}},
+
+The return submission ""{{entity_name}}"" ({{unique_id}}) has been assigned to you by {{assigned_by}}.
+
+Please review and take the necessary action.
+
+Open it here: {{portal_link}}
+
+Regards,
+{{app_name}}","[""recipient_name"", ""entity_name"", ""unique_id"", ""assigned_by"", ""portal_link"", ""app_name""]",t,,,2026-06-19 07:36:35.898546+00,2026-06-19 07:36:35.898546+00,RETURN_SUBMISSION_ASSIGNED_EMAIL_38fe0a,return,return.submission_assigned,medium,active,1,1,,
+dd2a5f3b-315f-4222-be1f-323f4d0239f5,License Revoked (Detailed),license.revoked,email,License {{license_number}} revoked,"License {{license_number}} ({{license_type}}) has been revoked.
+
+Justification: {{reason}}
+
+Effective immediately.","[""license_number"", ""license_type"", ""reason""]",t,,,2026-06-19 07:53:14.065373+00,2026-06-19 07:53:14.065373+00,LICENSE_REVOKED_EMAIL_dd2a5f,license,license.revoked,medium,active,1,1,,
+3c7bd23a-b433-43ae-bc24-e483867cd539,Application Cancelled,application.cancelled,in_app,Application Cancelled: {{application_number}},Application {{application_number}} has been cancelled.,"[""application_number""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,APPLICATION_CANCELLED_IN_APP_3c7bd2,application,application.cancelled,medium,active,1,1,,
+89b0b722-915c-4e1b-aefe-b13cd24a107e,License Issued (Email),license.created,email,License Issued: {{license_number}},License {{license_number}} has been issued for application {{application_number}}.,"[""license_number"", ""application_number""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,LICENSE_CREATED_EMAIL_89b0b7,license,license.created,medium,active,1,1,,
+5c657f96-c7b1-4a5b-8cf1-6f31481c24c3,Licensee Created,licensee.created,in_app,Licensee Created: {{licensee_name}},Licensee {{licensee_name}} has been created.,"[""licensee_name""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,LICENSEE_CREATED_IN_APP_5c657f,licensee,licensee.created,medium,active,1,1,,
+d509186d-f97f-4de4-a8ea-e8798d87fc1f,License Status Changed,license.status_changed,in_app,License {{license_number}}: status changed,License {{license_number}} status changed from {{old_status}} to {{new_status}}. {{comments}},"[""license_number"", ""old_status"", ""new_status"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,LICENSE_STATUS_CHANGED_IN_APP_d50918,license,license.status_changed,medium,active,1,1,,
+06b45bc2-6f1e-404c-938e-1645117e3316,License Status Changed (Email),license.status_changed,email,License {{license_number}} status updated,License {{license_number}} status changed from {{old_status}} to {{new_status}}. Remarks: {{comments}},"[""license_number"", ""old_status"", ""new_status"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,LICENSE_STATUS_CHANGED_EMAIL_06b45b,license,license.status_changed,medium,active,1,1,,
+cf60c0c7-8a2a-43d7-8fd4-a182c30a3b4f,User Role Changed,entity.user_role_changed,in_app,Your role was updated,Your role on {{entity_name}} was changed to {{new_role}}.,"[""entity_name"", ""new_role""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,ENTITY_USER_ROLE_CHANGED_IN_APP_cf60c0,entity,entity.user_role_changed,medium,active,1,1,,
+b43155e7-1667-4651-898f-9b0a2ca8df68,Access Revoked (Email),entity.user_access_revoked,email,Access revoked: {{entity_name}},Your access to {{entity_name}} has been revoked.,"[""entity_name""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,ENTITY_USER_ACCESS_REVOKED_EMAIL_b43155,entity,entity.user_access_revoked,medium,active,1,1,,
+3d8780de-6b78-41e0-a156-c921a1761aa1,New Registration (Regulators),registration.submitted,in_app,New Registration Submitted,A new registration {{registration_reference}} from {{applicant_name}} has been submitted.,"[""registration_reference"", ""applicant_name"", ""sector_name""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:29:00.474967+00,REGISTRATION_SUBMITTED_IN_APP_3d8780,registration,registration.submitted,medium,active,1,1,,
+58e66735-4115-46b1-8b19-d72c0abd4cc4,Registration Received (Applicant Email),registration.received,email,Registration Received: {{registration_reference}},"Hello {{applicant_name}},
+
+We have received your registration ({{registration_reference}}). Our team will review it shortly.","[""registration_reference"", ""applicant_name""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:29:00.474967+00,REGISTRATION_RECEIVED_EMAIL_58e667,registration,registration.received,medium,active,1,1,,
+04211184-52a8-4d21-bd01-3bc2567107f6,Registration Received (Applicant),registration.received,in_app,Registration Received,Your registration {{registration_reference}} has been received and is awaiting review.,"[""registration_reference"", ""applicant_name""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:29:00.474967+00,REGISTRATION_RECEIVED_IN_APP_042111,registration,registration.received,medium,active,1,1,,
+3dfda524-a271-48af-bb32-b22970ef7ed2,Regulator Action on Application,regulator.action_taken_on_application,in_app,Regulator action on {{application_number}},A regulator took action ({{action_type}}) on application {{application_number}}.,"[""application_number"", ""action_type""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,REGULATOR_ACTION_TAKEN_ON_APPLICATION_IN_APP_3dfda5,regulator,regulator.action_taken_on_application,medium,active,1,1,,
+f07e0536-fa25-47ad-83d6-62c83c66c731,Regulator Comment / Query,regulator.comment_added_or_query_raised,in_app,New regulator comment on {{application_number}},A regulator added a comment on application {{application_number}}: {{comments}},"[""application_number"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,REGULATOR_COMMENT_ADDED_OR_QUERY_RAISED_IN_APP_f07e05,regulator,regulator.comment_added_or_query_raised,medium,active,1,1,,
+a32f4b0e-a014-40b1-9be0-ca5b53f31559,Regulator Comment / Query (Email),regulator.comment_added_or_query_raised,email,New comment on application {{application_number}},A regulator added a comment on your application {{application_number}}: {{comments}},"[""application_number"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,REGULATOR_COMMENT_ADDED_OR_QUERY_RAISED_EMAIL_a32f4b,regulator,regulator.comment_added_or_query_raised,medium,active,1,1,,
+eb5c49f3-0838-4e46-bb4a-b9dd869652e3,Regulator Assignment Changed,regulator.assignment_changed,in_app,Application {{application_number}} reassigned,Application {{application_number}} was reassigned.,"[""application_number""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,REGULATOR_ASSIGNMENT_CHANGED_IN_APP_eb5c49,regulator,regulator.assignment_changed,medium,active,1,1,,
+9b93e78c-9aa8-4f2c-a000-5eb32cfc425c,Return Due Reminder (Email),compliance.return_due,email,Return due: {{return_name}} ({{due_date}}),Your return ({{return_name}}) is due on {{due_date}}. Please file before the deadline.,"[""return_name"", ""due_date""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,COMPLIANCE_RETURN_DUE_EMAIL_9b93e7,compliance,compliance.return_due,medium,active,1,1,,
+e4cafbfc-67f8-44b3-9ba3-5a9a9e9d5580,Return Submitted,compliance.return_submitted,in_app,Return submitted: {{return_name}},Return {{return_name}} was submitted by {{actor_name}}.,"[""return_name"", ""actor_name""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,COMPLIANCE_RETURN_SUBMITTED_IN_APP_e4cafb,compliance,compliance.return_submitted,medium,active,1,1,,
+8d82e06f-d2d2-481a-a048-faaaa38eddcb,Return Reviewed,compliance.return_reviewed,in_app,Return reviewed: {{return_name}},Your return {{return_name}} has been reviewed.,"[""return_name"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,COMPLIANCE_RETURN_REVIEWED_IN_APP_8d82e0,compliance,compliance.return_reviewed,medium,active,1,1,,
+0ff14ce0-961a-4f71-91ac-fe2a9ac8843d,Return Reviewed (Email),compliance.return_reviewed,email,Return reviewed: {{return_name}},Your return ({{return_name}}) has been reviewed. Remarks: {{comments}},"[""return_name"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,COMPLIANCE_RETURN_REVIEWED_EMAIL_0ff14c,compliance,compliance.return_reviewed,medium,active,1,1,,
+6d9cbb84-d11d-4e2e-8b64-cc9521d18824,Return Changes Requested,compliance.return_rejected_or_changes_requested,in_app,Changes requested on {{return_name}},Changes were requested on your return {{return_name}}. Remarks: {{comments}},"[""return_name"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,COMPLIANCE_RETURN_REJECTED_OR_CHANGES_REQUESTED_IN_APP_6d9cbb,compliance,compliance.return_rejected_or_changes_requested,medium,active,1,1,,
+ec651aa9-99ee-446e-b11a-bf92db5362d9,Return Changes Requested (Email),compliance.return_rejected_or_changes_requested,email,Changes requested on {{return_name}},Changes were requested on your return {{return_name}}. Remarks: {{comments}},"[""return_name"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,COMPLIANCE_RETURN_REJECTED_OR_CHANGES_REQUESTED_EMAIL_ec651a,compliance,compliance.return_rejected_or_changes_requested,medium,active,1,1,,
+aa3e99d1-baff-4e19-b626-0ebbbfee6914,Payment Required,payment.required,in_app,Payment required: {{application_number}},A payment of {{amount}} {{currency}} is required for {{application_number}}.,"[""application_number"", ""amount"", ""currency""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,PAYMENT_REQUIRED_IN_APP_aa3e99,payment,payment.required,medium,active,1,1,,
+353097a4-9186-4298-bf80-f7bb31ba7e50,Payment Required (Email),payment.required,email,Payment required: {{application_number}},A payment of {{amount}} {{currency}} is required for {{application_number}} before submission can proceed.,"[""application_number"", ""amount"", ""currency""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,PAYMENT_REQUIRED_EMAIL_353097,payment,payment.required,medium,active,1,1,,
+f42c76ab-4893-463c-a844-1c3496f1d05f,Payment Received,payment.received,in_app,Payment received: {{receipt_number}},Your payment of {{amount}} {{currency}} for {{application_number}} has been received.,"[""receipt_number"", ""amount"", ""currency"", ""application_number""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,PAYMENT_RECEIVED_IN_APP_f42c76,payment,payment.received,medium,active,1,1,,
+19a261c0-0c27-40ca-a35f-932a8ff89af6,Payment Received (Email),payment.received,email,Payment receipt: {{receipt_number}},Your payment of {{amount}} {{currency}} for {{application_number}} has been received. Receipt: {{receipt_number}}.,"[""receipt_number"", ""amount"", ""currency"", ""application_number""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,PAYMENT_RECEIVED_EMAIL_19a261,payment,payment.received,medium,active,1,1,,
+7a95eeab-bd2d-40d9-bd45-df2e4b3f6a21,Payment Failed,payment.failed,in_app,Payment failed: {{application_number}},Your payment for {{application_number}} failed. Please try again. {{comments}},"[""application_number"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,PAYMENT_FAILED_IN_APP_7a95ee,payment,payment.failed,medium,active,1,1,,
+a842ea5e-7117-4743-8b25-330e8c35e6f7,Payment Failed (Email),payment.failed,email,Payment failed: {{application_number}},Your payment for {{application_number}} failed. {{comments}} Please try again.,"[""application_number"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,PAYMENT_FAILED_EMAIL_a842ea,payment,payment.failed,medium,active,1,1,,
+c75afdc1-66bb-4ec3-8544-ca1af7c59e1f,Application forwarded to next level (email),application.approved_step,email,Your application {{application_number}} has moved to the next review level,"Hello {{recipient_name}},
+
+Your application {{application_number}} has been reviewed at ""{{step_name}}"" and forwarded to the next review level.
+
+Current status: {{status}}
+Remarks from reviewer: {{comments}}
+
+We will notify you of further updates as the review progresses.
+
+Thank you.","[""application_number"", ""step_name"", ""status"", ""comments"", ""recipient_name""]",t,,,2026-06-02 10:20:05.159163+00,2026-06-02 10:20:05.159163+00,APPLICATION_APPROVED_STEP_EMAIL_c75afd,application,application.approved_step,medium,active,1,1,,
+c41f0814-0455-45f6-a2c8-ab2faac69466,Application Escalated (Email),application.escalated,email,Application {{application_number}} escalated to senior reviewer,"Dear {{applicant_name}},
+
+Your application {{application_number}} has been escalated to a senior reviewer at step ""{{step_name}}"" by {{actor_name}}.
+
+Remarks: {{comments}}
+
+You will be notified of the next update.
+
+Portal: {{portal_url}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,APPLICATION_ESCALATED_EMAIL_c41f08,application,application.escalated,medium,active,1,1,,
+672fcf39-bc39-40f1-9df9-06bf5a14112d,Application Escalated,application.escalated,in_app,Application {{application_number}} escalated,Application {{application_number}} was escalated at step {{step_name}}.,[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,APPLICATION_ESCALATED_IN_APP_672fcf,application,application.escalated,medium,active,1,1,,
+4db95e45-a130-4245-8c77-93e4d1ecc5f3,Application Returned for Correction (Email),application.returned_for_correction,email,Action required: Application {{application_number}} returned for correction,"Dear {{applicant_name}},
+
+Your application {{application_number}} has been returned for correction by {{actor_name}} at step ""{{step_name}}"".
+
+Reviewer remarks:
+{{comments}}
+
+Please log in, update the requested details, and resubmit.
+
+Portal: {{portal_url}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,APPLICATION_RETURNED_FOR_CORRECTION_EMAIL_4db95e,application,application.returned_for_correction,medium,active,1,1,,
+6ce75a5c-18ba-468c-be61-c17d3aba8ebd,Application Returned for Correction,application.returned_for_correction,in_app,Application {{application_number}} returned for correction,Reviewer requested corrections on application {{application_number}}. Please update and resubmit.,[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,APPLICATION_RETURNED_FOR_CORRECTION_IN_APP_6ce75a,application,application.returned_for_correction,medium,active,1,1,,
+e8c329fa-65b4-4c9a-96c4-427b9810162f,Application More Info Requested (Email),application.more_info_requested,email,More information needed for application {{application_number}},"Dear {{applicant_name}},
+
+The reviewer of your application {{application_number}} has requested additional information at step ""{{step_name}}"".
+
+Details requested:
+{{comments}}
+
+Please respond at your earliest convenience.
+
+Portal: {{portal_url}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,APPLICATION_MORE_INFO_REQUESTED_EMAIL_e8c329,application,application.more_info_requested,medium,active,1,1,,
+d5d0e893-582e-48df-b63b-0d78452e90f4,Complaint Assigned,complaint.assigned,in_app,Complaint {{complaint_number}} assigned,"Complaint ""{{subject}}"" assigned to you. SLA due {{sla_due_at}}.",[],t,,,2026-07-10 06:38:46.967288+00,2026-07-10 06:38:46.967288+00,COMPLAINT_ASSIGNED_IN_APP_d5d0e8,complaint,complaint.assigned,medium,active,1,1,,
+0518d1ac-940f-485b-b1e3-8c0b95a2b15a,Application More Info Requested,application.more_info_requested,in_app,More info requested on {{application_number}},Additional information requested by reviewer on application {{application_number}}.,[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,APPLICATION_MORE_INFO_REQUESTED_IN_APP_0518d1,application,application.more_info_requested,medium,active,1,1,,
+786a5dcf-0c09-4c5d-80e3-59a02f1071c3,Workflow Action Taken on Application (Email),application.workflow_action_taken,email,Update on application {{application_number}}: {{action_label}},"Dear {{applicant_name}},
+
+Action ""{{action_label}}"" was performed on your application {{application_number}} by {{actor_name}} at step ""{{step_name}}"".
+
+Remarks: {{comments}}
+
+Portal: {{portal_url}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,APPLICATION_WORKFLOW_ACTION_TAKEN_EMAIL_786a5d,application,application.workflow_action_taken,medium,active,1,1,,
+5bb6bceb-ed00-49ca-bf0d-b2f089ce480a,Registration Escalated (Email),registration.escalated,email,Registration {{registration_number}} escalated,"Dear {{applicant_name}},
+
+Your registration {{registration_number}} has been escalated to a senior reviewer at step ""{{step_name}}"" by {{actor_name}}.
+
+Remarks: {{comments}}
+
+Portal: {{portal_url}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,REGISTRATION_ESCALATED_EMAIL_5bb6bc,registration,registration.escalated,medium,active,1,1,,
+0f58519b-3fb3-43e7-9fb4-ec435b5e4b5d,Registration Escalated,registration.escalated,in_app,Registration {{registration_number}} escalated,Registration {{registration_number}} was escalated at step {{step_name}}.,[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,REGISTRATION_ESCALATED_IN_APP_0f5851,registration,registration.escalated,medium,active,1,1,,
+263d19e7-2ac3-43c5-b697-6abc0434994c,Registration Resubmission Requested,registration.resubmission_requested,in_app,Resubmit registration {{registration_number}},Reviewer requested resubmission of registration {{registration_number}}.,[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,REGISTRATION_RESUBMISSION_REQUESTED_IN_APP_263d19,registration,registration.resubmission_requested,medium,active,1,1,,
+40fe5a9c-281d-41e1-a668-520b1d9be5f0,Registration Returned for Correction,registration.returned_for_correction,in_app,Registration {{registration_number}} returned,Corrections requested on registration {{registration_number}}.,[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,REGISTRATION_RETURNED_FOR_CORRECTION_IN_APP_40fe5a,registration,registration.returned_for_correction,medium,active,1,1,,
+4c5baf50-4a67-4063-9f40-7f5f07874eb1,Registration More Info Requested,registration.more_info_requested,in_app,More info requested on {{registration_number}},Additional information requested on registration {{registration_number}}.,[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,REGISTRATION_MORE_INFO_REQUESTED_IN_APP_4c5baf,registration,registration.more_info_requested,medium,active,1,1,,
+168e7669-03ab-477c-afe9-418f88d0739e,Workflow Action Taken on Registration (Email),registration.workflow_action_taken,email,Update on registration {{registration_number}}: {{action_label}},"Dear {{applicant_name}},
+
+Action ""{{action_label}}"" was performed on your registration {{registration_number}} by {{actor_name}} at step ""{{step_name}}"".
+
+Remarks: {{comments}}
+
+Portal: {{portal_url}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,REGISTRATION_WORKFLOW_ACTION_TAKEN_EMAIL_168e76,registration,registration.workflow_action_taken,medium,active,1,1,,
+ae56205f-2248-4f04-9b32-2683961ed1f6,Workflow Action Taken on Registration,registration.workflow_action_taken,in_app,Action on registration {{registration_number}},{{action_label}} performed on registration {{registration_number}}.,[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,REGISTRATION_WORKFLOW_ACTION_TAKEN_IN_APP_ae5620,registration,registration.workflow_action_taken,medium,active,1,1,,
+e76a7079-0c47-496c-8b27-ef3ea4d8aabe,Return Approved at Step (Email),return.approved_step,email,Return {{return_name}} approved at step {{step_name}},"Dear {{entity_name}},
+
+Your return ""{{return_name}}"" ({{period}} {{year}}) was approved at step ""{{step_name}}"" by {{actor_name}} and forwarded to the next level.
+
+Remarks: {{comments}}
+
+Portal: {{portal_link}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,RETURN_APPROVED_STEP_EMAIL_e76a70,return,return.approved_step,medium,active,1,1,,
+db06a601-6de1-4efe-9a70-e1128ca966b1,Return Approved at Step,return.approved_step,in_app,Return {{return_name}} approved at {{step_name}},Return {{return_name}} approved at step {{step_name}}.,[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,RETURN_APPROVED_STEP_IN_APP_db06a6,return,return.approved_step,medium,active,1,1,,
+94ebb0b9-9bf3-45fb-981d-d1dc69a0718c,Return Fully Approved (Email),return.approved,email,Return {{return_name}} approved,"Dear {{entity_name}},
+
+Your return ""{{return_name}}"" ({{period}} {{year}}) has been fully approved.
+
+Remarks: {{comments}}
+
+Portal: {{portal_link}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,RETURN_APPROVED_EMAIL_94ebb0,return,return.approved,medium,active,1,1,,
+c6e15337-a1ca-4653-ad6b-1970de50bae7,Return Fully Approved,return.approved,in_app,Return {{return_name}} approved,Return {{return_name}} has been approved.,[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,RETURN_APPROVED_IN_APP_c6e153,return,return.approved,medium,active,1,1,,
+ad274628-aa5b-41fe-836a-77ae2f38b80a,Return Rejected (Email),return.rejected,email,Return {{return_name}} rejected,"Dear {{entity_name}},
+
+Your return ""{{return_name}}"" ({{period}} {{year}}) was rejected by {{reviewer_name}}.
+
+Remarks:
+{{comments}}
+
+Portal: {{portal_link}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,RETURN_REJECTED_EMAIL_ad2746,return,return.rejected,medium,active,1,1,,
+6ccda032-4ef9-4d0c-82ce-1cfefe06ea40,Return Rejected,return.rejected,in_app,Return {{return_name}} rejected,Return {{return_name}} was rejected.,[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,RETURN_REJECTED_IN_APP_6ccda0,return,return.rejected,medium,active,1,1,,
+1400f70c-d69f-43d1-a522-654db43f971e,Return Sent Back (Email),return.send_back,email,Return {{return_name}} sent back,"Dear {{entity_name}},
+
+Your return ""{{return_name}}"" ({{period}} {{year}}) has been sent back by {{reviewer_name}} at step ""{{step_name}}"".
+
+Remarks:
+{{comments}}
+
+Portal: {{portal_link}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,RETURN_SEND_BACK_EMAIL_1400f7,return,return.send_back,medium,active,1,1,,
+6cdfde28-6684-4f29-8b4c-e9fc241dc948,Return Edit Requested (Email),return.edit_requested,email,Edits requested on return {{return_name}},"Dear {{entity_name}},
+
+Reviewer {{reviewer_name}} has requested edits on your return ""{{return_name}}"" ({{period}} {{year}}).
+
+Remarks:
+{{comments}}
+
+Portal: {{portal_link}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,RETURN_EDIT_REQUESTED_EMAIL_6cdfde,return,return.edit_requested,medium,active,1,1,,
+90b69541-8426-4274-bfdb-3cd007b11516,Return Edit Requested,return.edit_requested,in_app,Edits requested on {{return_name}},Edits requested on return {{return_name}}.,[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,RETURN_EDIT_REQUESTED_IN_APP_90b695,return,return.edit_requested,medium,active,1,1,,
+dad2b772-3852-4080-831a-a26fb3d32809,Workflow Action Taken on Return (Email),return.workflow_action_taken,email,Update on return {{return_name}}: {{action_label}},"Dear {{entity_name}},
+
+Action ""{{action_label}}"" was performed on your return ""{{return_name}}"" ({{period}} {{year}}) by {{reviewer_name}} at step ""{{step_name}}"".
+
+Remarks: {{comments}}
+
+Portal: {{portal_link}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,RETURN_WORKFLOW_ACTION_TAKEN_EMAIL_dad2b7,return,return.workflow_action_taken,medium,active,1,1,,
+10b4f3ef-c375-40a4-abfe-771e35c32407,Workflow Action Taken on Return,return.workflow_action_taken,in_app,Action on return {{return_name}},{{action_label}} performed on return {{return_name}}.,[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,RETURN_WORKFLOW_ACTION_TAKEN_IN_APP_10b4f3,return,return.workflow_action_taken,medium,active,1,1,,
+8bcf5f69-9e8d-47e9-897c-0e56fce7804d,Return Escalated (Email),return.escalated,email,Return {{return_name}} escalated,"Dear {{entity_name}},
+
+Your return ""{{return_name}}"" ({{period}} {{year}}) was escalated by {{reviewer_name}} at step ""{{step_name}}"".
+
+Remarks:
+{{comments}}
+
+Portal: {{portal_link}}",[],t,,,2026-06-15 14:11:17.985886+00,2026-06-15 14:11:17.985886+00,RETURN_ESCALATED_EMAIL_8bcf5f,return,return.escalated,medium,active,1,1,,
+b635160a-9c8f-490f-8ab3-72967fb64c1e,Return Resubmission Requested (Email),return.resubmission_requested,email,Resubmission requested for return {{return_name}},"Dear {{entity_name}},
+
+Reviewer {{reviewer_name}} has requested resubmission of your return ""{{return_name}}"" ({{period}} {{year}}).
+
+Remarks:
+{{comments}}
+
+Portal: {{portal_link}}",[],t,,,2026-06-15 14:05:04.891952+00,2026-06-15 14:11:17.985886+00,RETURN_RESUBMISSION_REQUESTED_EMAIL_b63516,return,return.resubmission_requested,medium,active,1,1,,
+aed04941-7a1b-4e01-b0ed-3838a0a1976f,Return Resubmission Requested,return.resubmission_requested,in_app,Resubmission requested for {{return_name}},Resubmission requested for return {{return_name}}.,[],t,,,2026-06-15 14:05:04.891952+00,2026-06-15 14:11:17.985886+00,RETURN_RESUBMISSION_REQUESTED_IN_APP_aed049,return,return.resubmission_requested,medium,active,1,1,,
+d088d37b-e182-4ba7-a046-8b003dbbc212,Return Returned for Correction (Email),return.returned_for_correction,email,Corrections requested for return {{return_name}},"Dear {{entity_name}},
+
+Your return ""{{return_name}}"" ({{period}} {{year}}) was returned for correction by {{reviewer_name}}.
+
+Remarks:
+{{comments}}
+
+Portal: {{portal_link}}",[],t,,,2026-06-15 14:11:17.985886+00,2026-06-15 14:11:17.985886+00,RETURN_RETURNED_FOR_CORRECTION_EMAIL_d088d3,return,return.returned_for_correction,medium,active,1,1,,
+52c6704f-2787-4177-983a-62361f9f7400,Return Returned for Correction,return.returned_for_correction,in_app,Corrections requested for {{return_name}},Corrections requested for return {{return_name}}.,[],t,,,2026-06-15 14:11:17.985886+00,2026-06-15 14:11:17.985886+00,RETURN_RETURNED_FOR_CORRECTION_IN_APP_52c670,return,return.returned_for_correction,medium,active,1,1,,
+15e9cdf2-c3cb-42fa-a2e5-10bf975d3fb9,Return More Information Requested (Email),return.more_info_requested,email,More information requested for return {{return_name}},"Dear {{entity_name}},
+
+Reviewer {{reviewer_name}} has requested more information for your return ""{{return_name}}"" ({{period}} {{year}}).
+
+Details:
+{{comments}}
+
+Portal: {{portal_link}}",[],t,,,2026-06-15 14:11:17.985886+00,2026-06-15 14:11:17.985886+00,RETURN_MORE_INFO_REQUESTED_EMAIL_15e9cd,return,return.more_info_requested,medium,active,1,1,,
+a20ece9d-bc30-4592-91bb-37977aafbb9a,Return More Information Requested,return.more_info_requested,in_app,More information requested for {{return_name}},More information requested for return {{return_name}}.,[],t,,,2026-06-15 14:11:17.985886+00,2026-06-15 14:11:17.985886+00,RETURN_MORE_INFO_REQUESTED_IN_APP_a20ece,return,return.more_info_requested,medium,active,1,1,,
+c646dc60-da15-4a45-b3de-fba873dde323,Registration Resubmission Requested (Email),registration.resubmission_requested,email,Action required: Please resubmit registration {{registration_number}},"Dear {{applicant_name}},
+
+Your registration {{registration_number}} requires resubmission. Reviewer {{actor_name}} at step ""{{step_name}}"" left the following remarks:
+
+{{comments}}
+
+Please log in to update and resubmit.
+
+Portal: {{portal_url}}/update-registration-form?registration={{registration_id}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,REGISTRATION_RESUBMISSION_REQUESTED_EMAIL_c646dc,registration,registration.resubmission_requested,medium,active,1,1,,
+d4b68716-67fc-448c-88f3-e7dbc68c4fc9,Registration Returned for Correction (Email),registration.returned_for_correction,email,Action required: Registration {{registration_number}} returned for correction,"Dear {{applicant_name}},
+
+Your registration {{registration_number}} has been returned for correction by {{actor_name}} at step ""{{step_name}}"".
+
+Reviewer remarks:
+{{comments}}
+
+Portal: {{portal_url}}/update-registration-form?registration={{registration_id}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,REGISTRATION_RETURNED_FOR_CORRECTION_EMAIL_d4b687,registration,registration.returned_for_correction,medium,active,1,1,,
+13ca8200-67d4-4a4b-b4ae-0ebb6b51a815,Registration More Info Requested (Email),registration.more_info_requested,email,More information needed for registration {{registration_number}},"Dear {{applicant_name}},
+
+The reviewer of your registration {{registration_number}} has requested additional information at step ""{{step_name}}"".
+
+Details requested:
+{{comments}}
+
+Portal: {{portal_url}}/update-registration-form?registration={{registration_id}}",[],t,,,2026-06-15 13:50:03.270737+00,2026-06-15 13:50:03.270737+00,REGISTRATION_MORE_INFO_REQUESTED_EMAIL_13ca82,registration,registration.more_info_requested,medium,active,1,1,,
+030b4d73-247c-4321-9357-7e42ff2b9c2f,SLA Warning (Email),sla.warning,email,Action needed soon: {{step_name}} for {{entity_name}},"Hello,
+
+The approval step ""{{step_name}}"" in workflow ""{{workflow_name}}"" has reached {{elapsed_percent}}% of its {{sla_hours}}-hour SLA.
+
+Entity: {{entity_name}}
+Due in: {{remaining_hours}} hours
+
+Please take action: {{app_url}}
+
+This is an automated SLA warning.","[""workflow_name"", ""step_name"", ""entity_name"", ""sla_hours"", ""elapsed_percent"", ""remaining_hours"", ""app_url""]",t,,,2026-06-18 07:51:23.397337+00,2026-06-18 07:51:23.397337+00,SLA_WARNING_EMAIL_030b4d,sla,sla.warning,medium,active,1,1,,
+4338fa84-b631-4fc5-9ad2-506a34168936,SLA Warning,sla.warning,in_app,SLA warning: {{step_name}},"Step ""{{step_name}}"" for {{entity_name}} has used {{elapsed_percent}}% of its {{sla_hours}}h SLA.","[""step_name"", ""entity_name"", ""sla_hours"", ""elapsed_percent""]",t,,,2026-06-18 07:51:23.397337+00,2026-06-18 07:51:23.397337+00,SLA_WARNING_IN_APP_4338fa,sla,sla.warning,medium,active,1,1,,
+10d7adb9-49b1-4f59-b237-0d1e2d5938f8,SLA Breached (Email),sla.breach,email,SLA breached: {{step_name}} for {{entity_name}},"Hello,
+
+The approval step ""{{step_name}}"" in workflow ""{{workflow_name}}"" has breached its {{sla_hours}}-hour SLA.
+
+Entity: {{entity_name}}
+Overdue by: {{overdue_hours}} hours
+Escalation recipient: {{escalation_role}}
+
+Please take action immediately: {{app_url}}
+
+This is an automated SLA breach notification.","[""workflow_name"", ""step_name"", ""entity_name"", ""sla_hours"", ""overdue_hours"", ""escalation_role"", ""app_url""]",t,,,2026-06-18 07:51:23.397337+00,2026-06-18 07:51:23.397337+00,SLA_BREACH_EMAIL_10d7ad,sla,sla.breach,medium,active,1,1,,
+98aed8fc-c4e2-4612-955d-83a770ed69fa,SLA Breached,sla.breach,in_app,SLA breached: {{step_name}},"Step ""{{step_name}}"" for {{entity_name}} has breached its {{sla_hours}}h SLA (overdue by {{overdue_hours}}h).","[""step_name"", ""entity_name"", ""sla_hours"", ""overdue_hours""]",t,,,2026-06-18 07:51:23.397337+00,2026-06-18 07:51:23.397337+00,SLA_BREACH_IN_APP_98aed8,sla,sla.breach,medium,active,1,1,,
+31d6f0c3-4e33-4f7e-ae1f-3108ab84d2b7,Application Assigned (Pre-Submission),application.assigned_pre_submission,email,Application {{unique_id}} assigned to you for pre-submission review,"Hello {{recipient_name}},
+
+The application ""{{entity_name}}"" ({{unique_id}}) has been assigned to you for pre-submission review by {{assigned_by}}.
+
+Please review the draft and take the necessary action.
+
+Open it here: {{portal_link}}
+
+Regards,
+{{app_name}}","[""recipient_name"", ""entity_name"", ""unique_id"", ""assigned_by"", ""portal_link"", ""app_name""]",t,,,2026-06-19 07:36:35.898546+00,2026-06-19 07:36:35.898546+00,APPLICATION_ASSIGNED_PRE_SUBMISSION_EMAIL_31d6f0,application,application.assigned_pre_submission,medium,active,1,1,,
+a92aa157-d9b7-4241-b056-09b933f83fe8,License Renewal Requested,license.renewal_requested,email,Renewal requested: License {{license_number}},"A renewal request has been submitted for license {{license_number}} ({{license_type}}) by {{initiated_by_name}}.
+
+New proposed validity: {{new_valid_until}}.
+
+Notes: {{notes}}
+
+Please review in the portal.","[""license_number"", ""license_type"", ""initiated_by_name"", ""new_valid_until"", ""notes""]",t,,,2026-06-19 07:53:14.065373+00,2026-06-19 07:53:14.065373+00,LICENSE_RENEWAL_REQUESTED_EMAIL_a92aa1,license,license.renewal_requested,medium,active,1,1,,
+6341d290-7a83-427a-8234-fcb38f4a5291,A regulator message was sent on a communication thread (email),correspondence.external_message_sent,email,New message from the regulator,{{reference}} — {{subject}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_EXTERNAL_MESSAGE_SENT_EMAIL,communications,correspondence.external_message_sent,high,active,1,1,,
+72a8ee45-5c7f-4f12-bfae-80161247a8bb,An entity replied on a communication thread (in_app),correspondence.external_response_received,in_app,Response received on {{reference}},{{actor}} replied on: {{subject}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_EXTERNAL_RESPONSE_RECEIVED_IN_APP,communications,correspondence.external_response_received,high,active,1,1,,
+20a6d3ed-a9ca-48be-ba0b-8ebb0f591082,An entity replied on a communication thread (email),correspondence.external_response_received,email,Response received on {{reference}},{{actor}} replied on: {{subject}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_EXTERNAL_RESPONSE_RECEIVED_EMAIL,communications,correspondence.external_response_received,high,active,1,1,,
+af697367-1095-4adc-b554-ac61a4b2809b,Determination dispatched to the individual/entity (email),fp.determination_dispatched,email,Determination issued: {{individual_name}},The fit and proper determination for {{individual_name}} has been issued. Outcome: {{outcome}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_DETERMINATION_DISPATCHED_EMAIL,fit_and_proper,fp.determination_dispatched,high,active,1,1,,
+6051b4d6-5c69-41b0-8490-ec82d30fec2d,Escalation resolved with narrative (in_app),escalation.resolved,in_app,Escalation resolved: {{escalation_ref}},Escalation {{escalation_ref}} was resolved by {{actor_name}}. {{resolution_narrative}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ESCALATION_RESOLVED_IN_APP,system,escalation.resolved,medium,active,1,1,,
+824105c4-2c52-4eea-bf07-c9bf4c1d2558,A conduct investigation was assigned (in_app),conduct_investigation_assigned,in_app,Investigation assigned to you,You have been assigned to investigation {{investigation_id}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_INVESTIGATION_ASSIGNED_IN_APP,conduct_investigation_assigned,conduct_investigation_assigned,medium,active,1,1,,
+b2e4f4d0-c8d6-4090-8373-a072ef32edc7,Confirm to the submitter that a return was resubmitted successfully. (email),return.resubmitted.confirmation,email,Return Resubmitted Successfully - {{return_unique_id}},"Hello {{actor_name}},
+
+Your return {{return_unique_id}} for {{return_name}} has been resubmitted successfully.
+Previous status: {{previous_status}}
+New status: {{new_status}}
+Resubmitted at: {{resubmitted_at}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_RESUBMITTED_CONFIRMATION_EMAIL,return,return.resubmitted.confirmation,medium,active,1,1,,
+8f1ca7d6-eaa6-46dd-8f2f-eebbb651b7cb,Prudential assessment submitted for review. (email),prudential_assessment_submitted,email,[Prudential] Assessment submitted for {{entity_name}},Prudential assessment for {{entity_name}} was submitted for review. Rationale: {{rationale}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_ASSESSMENT_SUBMITTED_EMAIL,prudential_assessment_submitted,prudential_assessment_submitted,medium,active,1,1,,
+882d20ae-2015-4f93-8ceb-b66f62777e11,Notice that a scheduled form version will become effective on a future date (in_app),form_version.upcoming,in_app,Upcoming form version: {{form_name}},"A new version (v{{semantic_version}}) of ""{{form_name}}"" becomes effective on {{effective_date}}. Please review before the activation date.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FORM_VERSION_UPCOMING_IN_APP,form_version,form_version.upcoming,medium,active,1,1,,
+5befb95e-6f30-4565-9d25-77a96662e47a,Fired when an enforcement case is closed. (in_app),enforcement.case_closed,in_app,Case {{enforcement_case_number}} closed,Enforcement case {{enforcement_case_number}} has been closed.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ENFORCEMENT_CASE_CLOSED_IN_APP,enforcement,enforcement.case_closed,critical,active,1,1,,
+41bb6a31-af12-4643-bcb2-52ba81e37f69,Fired when an enforcement case is closed. (email),enforcement.case_closed,email,Enforcement case {{enforcement_case_number}} closed,"Enforcement case {{enforcement_case_number}} has been closed.
+
+Closing note:
+{{note}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ENFORCEMENT_CASE_CLOSED_EMAIL,enforcement,enforcement.case_closed,critical,active,1,1,,
+e448f0bc-84d7-4819-832f-480166351f94,Triggered when a registration is pending review (in_app),registration.pending_review,in_app,Registration {{registration_reference}} pending review,Registration {{registration_reference}} is pending review at {{step_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_PENDING_REVIEW_IN_APP,registration,registration.pending_review,medium,active,1,1,,
+e2ec9fd9-6a85-4eb3-94b2-07f43556eeab,Prudential escalation created. (in_app),prudential_escalation_created,in_app,Escalation raised: {{entity_name}},A prudential escalation has been raised for {{entity_name}}. Reason: {{reason}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_ESCALATION_CREATED_IN_APP,prudential_escalation_created,prudential_escalation_created,high,active,1,1,,
+7abc260a-3b3d-4431-820e-71e92ee971ca,Complaint Filed (Email),complaint.filed,email,We received your complaint {{complaint_number}},"Hello,
+
+We have received your complaint {{complaint_number}} — ""{{subject}}"".
+Our team will review it and respond by {{sla_due_at}}.
+
+Regards,
+Regulator",[],t,,,2026-07-10 06:38:46.967288+00,2026-07-10 06:38:46.967288+00,COMPLAINT_FILED_EMAIL_7abc26,complaint,complaint.filed,medium,active,1,1,,
+48fdeb6d-aaa8-4c17-8731-7511b6cdc4df,Complaint Filed,complaint.filed,in_app,Complaint {{complaint_number}} received,"Your complaint ""{{subject}}"" was received. SLA due {{sla_due_at}}.",[],t,,,2026-07-10 06:38:46.967288+00,2026-07-10 06:38:46.967288+00,COMPLAINT_FILED_IN_APP_48fdeb,complaint,complaint.filed,medium,active,1,1,,
+784ce4cf-dd12-466c-be45-76839bcd22cd,Complaint Assigned (Email),complaint.assigned,email,Complaint {{complaint_number}} assigned to you,"Complaint {{complaint_number}} — ""{{subject}}"" has been assigned. SLA due {{sla_due_at}}.",[],t,,,2026-07-10 06:38:46.967288+00,2026-07-10 06:38:46.967288+00,COMPLAINT_ASSIGNED_EMAIL_784ce4,complaint,complaint.assigned,medium,active,1,1,,
+d5bcd523-376c-4a1e-97af-34c9c6b98f6f,Application Comment Saved (Email),application.comment_saved,email,Comment added on application {{application_number}},"{{reviewer_name}} added a comment on application {{application_number}}:
+
+{{comments}}
+
+No action is required — this notification is informational.","[""application_number"", ""reviewer_name"", ""comments""]",t,,,2026-07-23 13:27:23.54131+00,2026-07-23 13:27:23.54131+00,APPLICATION_COMMENT_SAVED_EMAIL_d5bcd5,application,application.comment_saved,medium,active,1,1,,
+d9a98c3c-5ce7-42e0-afcc-b46b34ae2000,Registration Comment Saved (Email),registration.comment_saved,email,Comment added on registration {{registration_reference}},"{{reviewer_name}} added a comment on registration {{registration_reference}}:
+
+{{comments}}
+
+No action is required — this notification is informational.","[""registration_reference"", ""reviewer_name"", ""comments""]",t,,,2026-07-23 13:27:23.54131+00,2026-07-23 13:27:23.54131+00,REGISTRATION_COMMENT_SAVED_EMAIL_d9a98c,registration,registration.comment_saved,medium,active,1,1,,
+58ad541e-c999-4d45-8b7c-b22d99a700fd,Return Comment Saved (Email),return.comment_saved,email,Comment added on return {{return_reference}},"{{reviewer_name}} added a comment on return {{return_reference}}:
+
+{{comments}}
+
+No action is required — this notification is informational.","[""return_reference"", ""reviewer_name"", ""comments""]",t,,,2026-07-23 13:27:23.54131+00,2026-07-23 13:27:23.54131+00,RETURN_COMMENT_SAVED_EMAIL_58ad54,return,return.comment_saved,medium,active,1,1,,
+0e5d53ec-ff43-468f-a0ec-a223a7f7d0f6,An internal note was posted on a thread (in_app),correspondence.internal_message_posted,in_app,Internal note on {{reference}},{{actor}} posted an internal note on: {{subject}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_INTERNAL_MESSAGE_POSTED_IN_APP,communications,correspondence.internal_message_posted,medium,active,1,1,,
+185a0154-e101-4a17-b596-6cb910145a66,An internal note was posted on a thread (email),correspondence.internal_message_posted,email,Internal note on {{reference}},{{actor}} posted an internal note on: {{subject}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_INTERNAL_MESSAGE_POSTED_EMAIL,communications,correspondence.internal_message_posted,medium,active,1,1,,
+32028b42-72e5-4e92-a3c7-b4f0e870a7f5,An internal colleague was added to a thread (in_app),correspondence.internal_participant_added,in_app,You were added to a communication thread,{{actor}} added you to {{reference}} — {{subject}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_INTERNAL_PARTICIPANT_ADDED_IN_APP,communications,correspondence.internal_participant_added,medium,active,1,1,,
+dcb12637-7ff1-494b-8d6c-f428dfa99d2e,An internal colleague was added to a thread (email),correspondence.internal_participant_added,email,You were added to a communication thread,{{actor}} added you to {{reference}} — {{subject}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_INTERNAL_PARTICIPANT_ADDED_EMAIL,communications,correspondence.internal_participant_added,medium,active,1,1,,
+341e5352-bdb5-4a2a-a1b2-ea63ae4419ac,A regulator message was sent on a communication thread (in_app),correspondence.external_message_sent,in_app,New message from the regulator,{{reference}} — {{subject}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_EXTERNAL_MESSAGE_SENT_IN_APP,communications,correspondence.external_message_sent,high,active,1,1,,
+27a0238b-62e6-4b24-823d-f07e59e0018a,A thread is awaiting a response (in_app),correspondence.awaiting_response,in_app,Awaiting response — {{reference}},{{subject}} is awaiting a response,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_AWAITING_RESPONSE_IN_APP,communications,correspondence.awaiting_response,medium,active,1,1,,
+d368b134-d9df-4b20-a59e-547cdafad561,A thread is awaiting a response (email),correspondence.awaiting_response,email,Awaiting response — {{reference}},{{subject}} is awaiting a response,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_AWAITING_RESPONSE_EMAIL,communications,correspondence.awaiting_response,medium,active,1,1,,
+08994b56-fd4f-4900-8e31-bbba1f9a842c,A thread response deadline is approaching (in_app),correspondence.sla_near_breach,in_app,Response deadline approaching — {{reference}},{{subject}} is due by {{due_at}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_SLA_NEAR_BREACH_IN_APP,communications,correspondence.sla_near_breach,high,active,1,1,,
+75ee9e28-721c-4641-bd28-a003d9018579,A thread response deadline is approaching (email),correspondence.sla_near_breach,email,Response deadline approaching — {{reference}},{{subject}} is due by {{due_at}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_SLA_NEAR_BREACH_EMAIL,communications,correspondence.sla_near_breach,high,active,1,1,,
+83714b5a-85c8-4af0-9e4c-f0aeef2a45d1,A thread response deadline has been breached (in_app),correspondence.sla_breached,in_app,Response deadline breached — {{reference}},{{subject}} passed its response deadline on {{due_at}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_SLA_BREACHED_IN_APP,communications,correspondence.sla_breached,critical,active,1,1,,
+10e695f5-11c3-47ab-b02b-cd794a459c17,A thread response deadline has been breached (email),correspondence.sla_breached,email,Response deadline breached — {{reference}},{{subject}} passed its response deadline on {{due_at}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_SLA_BREACHED_EMAIL,communications,correspondence.sla_breached,critical,active,1,1,,
+ab6a4720-deb0-4cb5-af28-837bf6451e0a,A new complaint was created (in_app),conduct_complaint_created,in_app,New complaint: {{subject}},Complaint {{complaint_number}} created for {{entity_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_COMPLAINT_CREATED_IN_APP,conduct_complaint_created,conduct_complaint_created,medium,active,1,1,,
+2ae359fb-b61c-46dd-8785-2b9a3d144d9c,A new complaint was created (email),conduct_complaint_created,email,New complaint: {{subject}},Complaint {{complaint_number}} created for {{entity_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_COMPLAINT_CREATED_EMAIL,conduct_complaint_created,conduct_complaint_created,medium,active,1,1,,
+83931a1c-5ab6-4853-af19-0a16c3f638dc,Approval workflow version published (in_app),workflow.published,in_app,Workflow published: {{workflow_name}},"The approval workflow ""{{workflow_name}}"" version {{version}} was published by {{actor_name}} and now governs new cases.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,WORKFLOW_PUBLISHED_IN_APP,administration,workflow.published,high,active,1,1,,
+4741df7f-f0e3-4eb4-bce4-c0dcd1400e7c,Approval workflow version published (email),workflow.published,email,Workflow published: {{workflow_name}},"The approval workflow ""{{workflow_name}}"" version {{version}} was published by {{actor_name}} and now governs new cases.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,WORKFLOW_PUBLISHED_EMAIL,administration,workflow.published,high,active,1,1,,
+f5b4a261-d846-4d37-a8f3-deff80a8c680,Automation/business rule activated (in_app),rule.activated,in_app,Rule activated: {{rule_name}},"The {{rule_type}} rule ""{{rule_name}}"" was activated by {{actor_name}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RULE_ACTIVATED_IN_APP,administration,rule.activated,medium,active,1,1,,
+a4382545-3602-4a03-838f-82c4a755eeb4,Rule fired for the first time after activation (in_app),rule.first_fired,in_app,"Rule ""{{rule_name}}"" fired for the first time","The {{rule_type}} rule ""{{rule_name}}"" matched a record for the first time ({{source_reference}}). Review the outcome to confirm the configuration behaves as intended.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RULE_FIRST_FIRED_IN_APP,administration,rule.first_fired,medium,active,1,1,,
+e260e93f-5d33-4d44-8d48-97f985894c79,Rule fired for the first time after activation (email),rule.first_fired,email,"Rule ""{{rule_name}}"" fired for the first time","The {{rule_type}} rule ""{{rule_name}}"" matched a record for the first time ({{source_reference}}). Review the outcome to confirm the configuration behaves as intended.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RULE_FIRST_FIRED_EMAIL,administration,rule.first_fired,medium,active,1,1,,
+8838deee-3ad7-4660-8ff1-ee4a799a6afd,Internal user role assignment changed (in_app),user.role_changed,in_app,Role change: {{target_user_name}},Roles for {{target_user_name}} were changed ({{change_summary}}) by {{actor_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,USER_ROLE_CHANGED_IN_APP,administration,user.role_changed,high,active,1,1,,
+1554f820-f947-4727-a439-66d3a79c6908,Internal user role assignment changed (email),user.role_changed,email,Role change: {{target_user_name}},Roles for {{target_user_name}} were changed ({{change_summary}}) by {{actor_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,USER_ROLE_CHANGED_EMAIL,administration,user.role_changed,high,active,1,1,,
+ccd6e8d2-f815-4285-b562-929136bdd3bf,Notification template version published (in_app),notification_template.published,in_app,Template published: {{template_name}},"Notification template ""{{template_name}}"" version {{version}} was published by {{actor_name}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,NOTIFICATION_TEMPLATE_PUBLISHED_IN_APP,administration,notification_template.published,medium,active,1,1,,
+8899372b-95fd-4e9e-b0d4-d214a95c8cb0,"Escalation rule created, updated or deactivated (in_app)",escalation_rule.changed,in_app,Escalation rule {{change_type}}: {{rule_name}},"Escalation rule ""{{rule_name}}"" was {{change_type}} by {{actor_name}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ESCALATION_RULE_CHANGED_IN_APP,administration,escalation_rule.changed,high,active,1,1,,
+1850d5ed-058c-4075-8ebc-440d038834b0,"Escalation rule created, updated or deactivated (email)",escalation_rule.changed,email,Escalation rule {{change_type}}: {{rule_name}},"Escalation rule ""{{rule_name}}"" was {{change_type}} by {{actor_name}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ESCALATION_RULE_CHANGED_EMAIL,administration,escalation_rule.changed,high,active,1,1,,
+ff3e2d0b-cff7-4b02-a49d-e43463e5d110,Licensing officer assigned to an application (in_app),application.officer_assigned,in_app,Application {{application_number}} assigned to you,You have been assigned as licensing officer for application {{application_number}} ({{applicant_name}}).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_OFFICER_ASSIGNED_IN_APP,licensing,application.officer_assigned,medium,active,1,1,,
+31f70344-0acc-43b1-a00e-075e0fed3481,Licensing officer assigned to an application (email),application.officer_assigned,email,Application {{application_number}} assigned to you,You have been assigned as licensing officer for application {{application_number}} ({{applicant_name}}).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_OFFICER_ASSIGNED_EMAIL,licensing,application.officer_assigned,medium,active,1,1,,
+6721c747-989e-4343-be54-c103bb5c1a72,Analyst assigned to an application (in_app),application.analyst_assigned,in_app,Analyst assignment: {{application_number}},You have been assigned as analyst for application {{application_number}} ({{applicant_name}}).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_ANALYST_ASSIGNED_IN_APP,licensing,application.analyst_assigned,medium,active,1,1,,
+852e4388-339d-4b6f-81cc-e720a76c7a95,Analyst assigned to an application (email),application.analyst_assigned,email,Analyst assignment: {{application_number}},You have been assigned as analyst for application {{application_number}} ({{applicant_name}}).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_ANALYST_ASSIGNED_EMAIL,licensing,application.analyst_assigned,medium,active,1,1,,
+65bd0134-aa29-4a15-871a-3003ad9d9635,Application routed to legal review (in_app),application.routed_to_legal,in_app,Legal review required: {{application_number}},Application {{application_number}} has been routed to legal/compliance review by {{actor_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_ROUTED_TO_LEGAL_IN_APP,licensing,application.routed_to_legal,medium,active,1,1,,
+c4795acd-6cb4-43ec-856b-5a88e17e3fd7,Application routed to legal review (email),application.routed_to_legal,email,Legal review required: {{application_number}},Application {{application_number}} has been routed to legal/compliance review by {{actor_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_ROUTED_TO_LEGAL_EMAIL,licensing,application.routed_to_legal,medium,active,1,1,,
+e34d15fd-82db-4a75-980c-25553b9a6183,Legal review completed (in_app),application.legal_review_completed,in_app,Legal review completed: {{application_number}},Legal review for application {{application_number}} is complete. Outcome: {{outcome}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_LEGAL_REVIEW_COMPLETED_IN_APP,licensing,application.legal_review_completed,medium,active,1,1,,
+25c40152-589e-4eae-9583-f7e09b76065d,Legal review completed (email),application.legal_review_completed,email,Legal review completed: {{application_number}},Legal review for application {{application_number}} is complete. Outcome: {{outcome}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_LEGAL_REVIEW_COMPLETED_EMAIL,licensing,application.legal_review_completed,medium,active,1,1,,
+be930629-e802-40a3-a481-adce12198128,Application escalated to supervisor (in_app),application.escalated_to_supervisor,in_app,Escalation: {{application_number}},Application {{application_number}} has been escalated to supervisory review. Reason: {{reason}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_ESCALATED_TO_SUPERVISOR_IN_APP,licensing,application.escalated_to_supervisor,high,active,1,1,,
+0ab7d4f3-1b90-46a2-980e-ba931b20f103,Application escalated to supervisor (email),application.escalated_to_supervisor,email,Escalation: {{application_number}},Application {{application_number}} has been escalated to supervisory review. Reason: {{reason}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_ESCALATED_TO_SUPERVISOR_EMAIL,licensing,application.escalated_to_supervisor,high,active,1,1,,
+bdb241d2-e711-4e88-9ce7-5e13ced11fc5,Decision package ready for issue (in_app),application.decision_ready,in_app,Decision ready: {{application_number}},The decision package for application {{application_number}} is ready for dispatch.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_DECISION_READY_IN_APP,licensing,application.decision_ready,medium,active,1,1,,
+2426213c-d08c-453f-bf22-669c00bbfd72,Decision package ready for issue (email),application.decision_ready,email,Decision ready: {{application_number}},The decision package for application {{application_number}} is ready for dispatch.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_DECISION_READY_EMAIL,licensing,application.decision_ready,medium,active,1,1,,
+fab404e6-8c08-4bc1-9323-d9177b3995c9,Decision dispatched to applicant (in_app),application.decision_dispatched,in_app,Decision issued: {{application_number}},The decision for application {{application_number}} has been issued. Outcome: {{outcome}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_DECISION_DISPATCHED_IN_APP,licensing,application.decision_dispatched,high,active,1,1,,
+199cd816-de6d-48f8-8e11-02897c05899d,Licence certificate issued (in_app),license.certificate_issued,in_app,Licence certificate issued: {{license_number}},The licence certificate for {{license_number}} has been issued and is available in your portal.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_CERTIFICATE_ISSUED_IN_APP,licensing,license.certificate_issued,high,active,1,1,,
+880e6273-e5b0-4b9d-aa8f-338825cd4e49,Licence certificate issued (email),license.certificate_issued,email,Licence certificate issued: {{license_number}},The licence certificate for {{license_number}} has been issued and is available in your portal.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_CERTIFICATE_ISSUED_EMAIL,licensing,license.certificate_issued,high,active,1,1,,
+2931afbe-45bd-4318-b1bd-21ad24f6e996,Licence variation approved (in_app),license.varied,in_app,Licence varied: {{license_number}},Licence {{license_number}} has been varied. {{variation_summary}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_VARIED_IN_APP,licensing,license.varied,high,active,1,1,,
+c5e7b5b0-7400-4128-a61c-9ab1b87edcb5,Licence variation approved (email),license.varied,email,Licence varied: {{license_number}},Licence {{license_number}} has been varied. {{variation_summary}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_VARIED_EMAIL,licensing,license.varied,high,active,1,1,,
+76d4963a-bdfd-41f0-80d1-55126847a935,Supervisory plan created for a licensee (in_app),supervisory_plan.created,in_app,Supervisory plan created: {{entity_name}},A supervisory plan has been created for {{entity_name}} for cycle {{cycle}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SUPERVISORY_PLAN_CREATED_IN_APP,prudential,supervisory_plan.created,medium,active,1,1,,
+3a441633-d8a6-4752-b853-0e98967d4485,Supervisory plan created for a licensee (email),supervisory_plan.created,email,Supervisory plan created: {{entity_name}},A supervisory plan has been created for {{entity_name}} for cycle {{cycle}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SUPERVISORY_PLAN_CREATED_EMAIL,prudential,supervisory_plan.created,medium,active,1,1,,
+3beb607c-90a7-430a-bcf3-8534500636fd,Personal questionnaire invitation issued (in_app),fp.pq_invitation,in_app,Personal questionnaire required: {{individual_name}},A personal questionnaire has been issued for {{individual_name}} in relation to {{source_reference}}. Please complete it by {{due_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_PQ_INVITATION_IN_APP,fit_and_proper,fp.pq_invitation,high,active,1,1,,
+0a353def-f5aa-4e20-98ec-35a18f57dcb1,Personal questionnaire invitation issued (email),fp.pq_invitation,email,Personal questionnaire required: {{individual_name}},A personal questionnaire has been issued for {{individual_name}} in relation to {{source_reference}}. Please complete it by {{due_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_PQ_INVITATION_EMAIL,fit_and_proper,fp.pq_invitation,high,active,1,1,,
+e03821d0-0acb-493f-ad06-567bce6ddce7,Personal questionnaire submitted (in_app),fp.pq_submitted,in_app,Questionnaire submitted: {{individual_name}},The personal questionnaire for {{individual_name}} has been submitted and is ready for assessment.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_PQ_SUBMITTED_IN_APP,fit_and_proper,fp.pq_submitted,medium,active,1,1,,
+0054010a-80cd-43b0-9a47-aec484b639ff,Personal questionnaire submitted (email),fp.pq_submitted,email,Questionnaire submitted: {{individual_name}},The personal questionnaire for {{individual_name}} has been submitted and is ready for assessment.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_PQ_SUBMITTED_EMAIL,fit_and_proper,fp.pq_submitted,medium,active,1,1,,
+058f82df-4217-4dcf-8628-8a37af1f6939,Screening run completed with results (in_app),fp.screening_completed,in_app,Screening completed: {{individual_name}},Screening for {{individual_name}} completed with result {{screening_result}} ({{hit_count}} potential matches).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_SCREENING_COMPLETED_IN_APP,fit_and_proper,fp.screening_completed,medium,active,1,1,,
+0789f674-b1af-4ad8-b4b3-e036bc4b2cf5,Screening run completed with results (email),fp.screening_completed,email,Screening completed: {{individual_name}},Screening for {{individual_name}} completed with result {{screening_result}} ({{hit_count}} potential matches).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_SCREENING_COMPLETED_EMAIL,fit_and_proper,fp.screening_completed,medium,active,1,1,,
+d6a262b2-11f8-4aef-8eb8-68bdbc0ef77c,Fit and proper assessment assigned (in_app),fp.assessment_assigned,in_app,F&P assessment assigned: {{individual_name}},You have been assigned the fit and proper assessment for {{individual_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_ASSESSMENT_ASSIGNED_IN_APP,fit_and_proper,fp.assessment_assigned,medium,active,1,1,,
+f3c3d968-4720-49b0-91f9-5e3beac26e89,Fit and proper assessment assigned (email),fp.assessment_assigned,email,F&P assessment assigned: {{individual_name}},You have been assigned the fit and proper assessment for {{individual_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_ASSESSMENT_ASSIGNED_EMAIL,fit_and_proper,fp.assessment_assigned,medium,active,1,1,,
+0964751e-9bc8-40b9-b41f-d48a0dc0953b,Case ready for committee consideration (in_app),fp.committee_ready,in_app,Committee ready: {{individual_name}},The fit and proper case for {{individual_name}} is ready for committee consideration on {{meeting_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_COMMITTEE_READY_IN_APP,fit_and_proper,fp.committee_ready,medium,active,1,1,,
+3ce7b2d5-e81b-41f7-96b3-f24925980813,Case ready for committee consideration (email),fp.committee_ready,email,Committee ready: {{individual_name}},The fit and proper case for {{individual_name}} is ready for committee consideration on {{meeting_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_COMMITTEE_READY_EMAIL,fit_and_proper,fp.committee_ready,medium,active,1,1,,
+cd7e5566-270d-415b-92af-c6b9ace1aef4,Committee decision recorded (in_app),fp.committee_decision,in_app,Committee decision: {{individual_name}},"The committee recorded the decision ""{{decision}}"" for {{individual_name}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_COMMITTEE_DECISION_IN_APP,fit_and_proper,fp.committee_decision,high,active,1,1,,
+12f8ec63-e931-4291-b4be-6ac5949f5e08,Committee decision recorded (email),fp.committee_decision,email,Committee decision: {{individual_name}},"The committee recorded the decision ""{{decision}}"" for {{individual_name}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_COMMITTEE_DECISION_EMAIL,fit_and_proper,fp.committee_decision,high,active,1,1,,
+1138d3d7-6138-40cd-9b1d-fdf479e2c98e,Determination dispatched to the individual/entity (in_app),fp.determination_dispatched,in_app,Determination issued: {{individual_name}},The fit and proper determination for {{individual_name}} has been issued. Outcome: {{outcome}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_DETERMINATION_DISPATCHED_IN_APP,fit_and_proper,fp.determination_dispatched,high,active,1,1,,
+5b206710-57e4-4f83-910a-b68f98915f14,A Fit & Proper screening finding was assigned for manual review. (in_app),fp_finding_assigned,in_app,F&P finding assigned to you,A screening finding was assigned to you for manual review.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_FINDING_ASSIGNED_IN_APP,fp_finding_assigned,fp_finding_assigned,medium,active,1,1,,
+37d9dfd9-4186-4b51-a8a0-fe593d8b4f31,Information request raised on a return (in_app),return.rfi_raised,in_app,Information requested: {{return_name}},Additional information has been requested on return {{return_name}} ({{period}}). Response due {{due_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_RFI_RAISED_IN_APP,prudential,return.rfi_raised,high,active,1,1,,
+77f4bf5e-a610-406c-8028-e3bf2cf9fc00,Information request raised on a return (email),return.rfi_raised,email,Information requested: {{return_name}},Additional information has been requested on return {{return_name}} ({{period}}). Response due {{due_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_RFI_RAISED_EMAIL,prudential,return.rfi_raised,high,active,1,1,,
+84c7c0a3-2191-4677-b510-ee6e19d132e6,Early warning indicator triggered (in_app),prudential.early_warning_triggered,in_app,Early warning: {{entity_name}},"Early warning indicator {{indicator_name}} triggered for {{entity_name}} (value {{value}}, threshold {{threshold}}).",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_EARLY_WARNING_TRIGGERED_IN_APP,prudential,prudential.early_warning_triggered,high,active,1,1,,
+a0190041-1edc-4f40-a995-35824563bc17,Early warning indicator triggered (email),prudential.early_warning_triggered,email,Early warning: {{entity_name}},"Early warning indicator {{indicator_name}} triggered for {{entity_name}} (value {{value}}, threshold {{threshold}}).",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_EARLY_WARNING_TRIGGERED_EMAIL,prudential,prudential.early_warning_triggered,high,active,1,1,,
+085a113f-3258-4523-908e-ecca48ed090a,Examination team assignment (in_app),prudential.examination_assigned,in_app,Examination assigned: {{entity_name}},You have been assigned to the {{examination_type}} examination of {{entity_name}} starting {{start_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_EXAMINATION_ASSIGNED_IN_APP,prudential,prudential.examination_assigned,medium,active,1,1,,
+00521588-d19e-467c-9f7c-c396f9176f17,Examination team assignment (email),prudential.examination_assigned,email,Examination assigned: {{entity_name}},You have been assigned to the {{examination_type}} examination of {{entity_name}} starting {{start_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_EXAMINATION_ASSIGNED_EMAIL,prudential,prudential.examination_assigned,medium,active,1,1,,
+250ac927-0a0e-432e-9c28-a5364c37e221,Examination notice issued to entity (in_app),prudential.examination_notice_issued,in_app,Examination notice: {{entity_name}},An examination notice has been issued to {{entity_name}} for the period commencing {{start_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_EXAMINATION_NOTICE_ISSUED_IN_APP,prudential,prudential.examination_notice_issued,high,active,1,1,,
+971480d7-7d54-4a77-bcc0-fde3ef419723,Examination notice issued to entity (email),prudential.examination_notice_issued,email,Examination notice: {{entity_name}},An examination notice has been issued to {{entity_name}} for the period commencing {{start_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_EXAMINATION_NOTICE_ISSUED_EMAIL,prudential,prudential.examination_notice_issued,high,active,1,1,,
+29e0c75a-515a-4c5c-b1aa-adf2fecd2fe7,Examination finding recorded (in_app),prudential.examination_finding_recorded,in_app,Examination finding: {{entity_name}},A {{severity_label}} examination finding was recorded for {{entity_name}}: {{finding_title}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_EXAMINATION_FINDING_RECORDED_IN_APP,prudential,prudential.examination_finding_recorded,high,active,1,1,,
+f9aec361-c1ed-4c23-a4ef-761148e3c795,Examination finding recorded (email),prudential.examination_finding_recorded,email,Examination finding: {{entity_name}},A {{severity_label}} examination finding was recorded for {{entity_name}}: {{finding_title}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_EXAMINATION_FINDING_RECORDED_EMAIL,prudential,prudential.examination_finding_recorded,high,active,1,1,,
+eb478351-0748-44e1-9fd3-86230681ac61,Remediation action due soon (in_app),prudential.remediation_due,in_app,Remediation due {{due_date}}: {{entity_name}},"Remediation action ""{{action_title}}"" for {{entity_name}} is due on {{due_date}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_REMEDIATION_DUE_IN_APP,prudential,prudential.remediation_due,high,active,1,1,,
+23e6ff58-6b01-4416-9cfb-53f2223e6377,Remediation action due soon (email),prudential.remediation_due,email,Remediation due {{due_date}}: {{entity_name}},"Remediation action ""{{action_title}}"" for {{entity_name}} is due on {{due_date}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_REMEDIATION_DUE_EMAIL,prudential,prudential.remediation_due,high,active,1,1,,
+ec39c41d-a4f8-4950-ae67-a69f2688f084,Group-wide contagion risk alert (in_app),prudential.group_contagion_alert,in_app,Group contagion alert: {{group_name}},Contagion risk detected across the {{group_name}} group: {{summary}}. Affected entities: {{affected_entities}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_GROUP_CONTAGION_ALERT_IN_APP,prudential,prudential.group_contagion_alert,critical,active,1,1,,
+41ea74f9-9102-462f-9e6b-1ff3c5550ba2,Group-wide contagion risk alert (email),prudential.group_contagion_alert,email,Group contagion alert: {{group_name}},Contagion risk detected across the {{group_name}} group: {{summary}}. Affected entities: {{affected_entities}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_GROUP_CONTAGION_ALERT_EMAIL,prudential,prudential.group_contagion_alert,critical,active,1,1,,
+b36ab030-5f48-4e7b-afd2-0095a0c417d5,Complaint acknowledgement to complainant (in_app),complaint.acknowledged,in_app,Complaint {{complaint_number}} received,We have received your complaint {{complaint_number}}. It is being assessed and you will be updated as it progresses.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_ACKNOWLEDGED_IN_APP,conduct,complaint.acknowledged,medium,active,1,1,,
+cea78ff5-2f4b-4e80-a60e-6b772eda7d5e,Complaint acknowledgement to complainant (email),complaint.acknowledged,email,Complaint {{complaint_number}} received,We have received your complaint {{complaint_number}}. It is being assessed and you will be updated as it progresses.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_ACKNOWLEDGED_EMAIL,conduct,complaint.acknowledged,medium,active,1,1,,
+34b95f54-7dda-4e49-8199-91e793bc25e2,Complaint priority or severity changed (in_app),complaint.priority_changed,in_app,Priority changed: {{complaint_number}},Complaint {{complaint_number}} priority changed from {{old_priority}} to {{new_priority}} by {{actor_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_PRIORITY_CHANGED_IN_APP,conduct,complaint.priority_changed,high,active,1,1,,
+15dcb632-d1c4-491d-acdd-b7806c240bdd,Complaint priority or severity changed (email),complaint.priority_changed,email,Priority changed: {{complaint_number}},Complaint {{complaint_number}} priority changed from {{old_priority}} to {{new_priority}} by {{actor_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_PRIORITY_CHANGED_EMAIL,conduct,complaint.priority_changed,high,active,1,1,,
+d261d9bd-ffbe-41ac-9131-7d1a6a054b1e,Progress update issued to the complainant (in_app),complaint.complainant_update,in_app,Update on complaint {{complaint_number}},There is an update on your complaint {{complaint_number}}: {{update_summary}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_COMPLAINANT_UPDATE_IN_APP,conduct,complaint.complainant_update,medium,active,1,1,,
+9ba79165-2f7c-4357-8fbe-49151870429c,Progress update issued to the complainant (email),complaint.complainant_update,email,Update on complaint {{complaint_number}},There is an update on your complaint {{complaint_number}}: {{update_summary}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_COMPLAINANT_UPDATE_EMAIL,conduct,complaint.complainant_update,medium,active,1,1,,
+4f133463-04d3-485a-859d-22db194a13de,Information request issued to the entity (in_app),complaint.rfi_raised,in_app,Information requested on complaint {{complaint_number}},Information has been requested from {{entity_name}} on complaint {{complaint_number}}. Response due {{due_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_RFI_RAISED_IN_APP,conduct,complaint.rfi_raised,high,active,1,1,,
+45b17be6-9486-499e-a403-e8a6fa541735,Information request issued to the entity (email),complaint.rfi_raised,email,Information requested on complaint {{complaint_number}},Information has been requested from {{entity_name}} on complaint {{complaint_number}}. Response due {{due_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_RFI_RAISED_EMAIL,conduct,complaint.rfi_raised,high,active,1,1,,
+c6848fed-b6c4-4103-bc97-dd804565b199,Entity responded to a complaint information request (in_app),complaint.rfi_responded,in_app,Response received: complaint {{complaint_number}},{{entity_name}} responded to the information request on complaint {{complaint_number}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_RFI_RESPONDED_IN_APP,conduct,complaint.rfi_responded,medium,active,1,1,,
+19bdd5b9-be98-4f8f-bbe3-e0ee6992d3a4,Entity responded to a complaint information request (email),complaint.rfi_responded,email,Response received: complaint {{complaint_number}},{{entity_name}} responded to the information request on complaint {{complaint_number}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_RFI_RESPONDED_EMAIL,conduct,complaint.rfi_responded,medium,active,1,1,,
+06050f7d-a0d3-4259-8d23-018e79a6f4b1,Pattern detected across complaints (in_app),conduct.pattern_alert,in_app,Complaint pattern alert: {{pattern_label}},A pattern was detected across {{complaint_count}} complaints ({{pattern_label}}). Review for possible systemic issues.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_PATTERN_ALERT_IN_APP,conduct,conduct.pattern_alert,high,active,1,1,,
+c359684e-bf1c-4e49-9b8e-6ff564737470,Pattern detected across complaints (email),conduct.pattern_alert,email,Complaint pattern alert: {{pattern_label}},A pattern was detected across {{complaint_count}} complaints ({{pattern_label}}). Review for possible systemic issues.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_PATTERN_ALERT_EMAIL,conduct,conduct.pattern_alert,high,active,1,1,,
+8165cea3-32fc-49e1-829c-7444097ce10c,Complaint flagged as systemic (in_app),conduct.systemic_flag_raised,in_app,Systemic issue flagged: {{entity_name}},Complaint {{complaint_number}} for {{entity_name}} has been flagged as a systemic issue by {{actor_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_SYSTEMIC_FLAG_RAISED_IN_APP,conduct,conduct.systemic_flag_raised,critical,active,1,1,,
+87e6330c-6175-4d33-8147-e5535a7dbbac,Complaint flagged as systemic (email),conduct.systemic_flag_raised,email,Systemic issue flagged: {{entity_name}},Complaint {{complaint_number}} for {{entity_name}} has been flagged as a systemic issue by {{actor_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_SYSTEMIC_FLAG_RAISED_EMAIL,conduct,conduct.systemic_flag_raised,critical,active,1,1,,
+073f693f-c609-4b53-830e-362981883095,Complaint outcome released (in_app),complaint.outcome_released,in_app,Outcome for complaint {{complaint_number}},The outcome for complaint {{complaint_number}} is now available: {{outcome}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_OUTCOME_RELEASED_IN_APP,conduct,complaint.outcome_released,medium,active,1,1,,
+bd507c3a-3ba4-4f9e-8d28-9ebfec19d277,Complaint investigation past its SLA (in_app),complaint.investigation_overdue,in_app,Overdue investigation: {{complaint_number}},The investigation of complaint {{complaint_number}} is overdue (SLA {{sla_due_at}}).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_INVESTIGATION_OVERDUE_IN_APP,conduct,complaint.investigation_overdue,high,active,1,1,,
+0e7a3785-7d6d-4949-8e25-da90127104cb,Complaint investigation past its SLA (email),complaint.investigation_overdue,email,Overdue investigation: {{complaint_number}},The investigation of complaint {{complaint_number}} is overdue (SLA {{sla_due_at}}).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_INVESTIGATION_OVERDUE_EMAIL,conduct,complaint.investigation_overdue,high,active,1,1,,
+65f86c41-4ea7-4675-8333-875959b8d653,Scheduled report delivered (in_app),report.scheduled_delivered,in_app,Report delivered: {{report_name}},"Your scheduled report ""{{report_name}}"" for {{period}} has been delivered ({{record_count}} rows, {{export_format}}).",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REPORT_SCHEDULED_DELIVERED_IN_APP,reporting,report.scheduled_delivered,low,active,1,1,,
+7a997112-ff6c-4fc9-9da9-d9ddad1547d4,Scheduled report delivered (email),report.scheduled_delivered,email,Report delivered: {{report_name}},"Your scheduled report ""{{report_name}}"" for {{period}} has been delivered ({{record_count}} rows, {{export_format}}).",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REPORT_SCHEDULED_DELIVERED_EMAIL,reporting,report.scheduled_delivered,low,active,1,1,,
+191f933a-3262-4d52-8049-1d49b93ecd17,First successful delivery of a new schedule (in_app),report.first_delivery_success,in_app,Schedule confirmed: {{report_name}},"The schedule for ""{{report_name}}"" delivered successfully for the first time. Future runs will follow {{schedule_summary}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REPORT_FIRST_DELIVERY_SUCCESS_IN_APP,reporting,report.first_delivery_success,low,active,1,1,,
+d8c8398c-9437-46a6-bf02-ada851a0d574,First successful delivery of a new schedule (email),report.first_delivery_success,email,Schedule confirmed: {{report_name}},"The schedule for ""{{report_name}}"" delivered successfully for the first time. Future runs will follow {{schedule_summary}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REPORT_FIRST_DELIVERY_SUCCESS_EMAIL,reporting,report.first_delivery_success,low,active,1,1,,
+5662385e-d776-4a84-93e1-7dc7c8368fcf,Scheduled report delivery failed (in_app),report.delivery_failed,in_app,Report delivery failed: {{report_name}},"Delivery of the scheduled report ""{{report_name}}"" failed: {{error_message}}. The run will be retried.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REPORT_DELIVERY_FAILED_IN_APP,reporting,report.delivery_failed,high,active,1,1,,
+79757d3c-652f-4909-bcfe-77880bb36e47,Scheduled report delivery failed (email),report.delivery_failed,email,Report delivery failed: {{report_name}},"Delivery of the scheduled report ""{{report_name}}"" failed: {{error_message}}. The run will be retried.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REPORT_DELIVERY_FAILED_EMAIL,reporting,report.delivery_failed,high,active,1,1,,
+8884a5c3-5808-456a-9100-6f8f769afaed,AI insight generated (in_app),ai.insight_generated,in_app,New AI insight: {{insight_title}},A new AI insight is available: {{insight_title}}. {{insight_summary}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,AI_INSIGHT_GENERATED_IN_APP,reporting,ai.insight_generated,low,active,1,1,,
+f8655b1c-1d06-4835-bfdb-5c47bef92f50,Critical AI insight requiring review (in_app),ai.critical_insight,in_app,Critical AI insight: {{insight_title}},A critical AI insight requires supervisory review: {{insight_title}}. {{insight_summary}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,AI_CRITICAL_INSIGHT_IN_APP,reporting,ai.critical_insight,critical,active,1,1,,
+d9d0771e-d23e-49b7-83c0-a8902e16d361,Critical AI insight requiring review (email),ai.critical_insight,email,Critical AI insight: {{insight_title}},A critical AI insight requires supervisory review: {{insight_title}}. {{insight_summary}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,AI_CRITICAL_INSIGHT_EMAIL,reporting,ai.critical_insight,critical,active,1,1,,
+d78aa50d-b83e-44e0-aaa9-8d866b8b0dee,AI processing failure (in_app),ai.processing_failed,in_app,AI processing failed: {{job_label}},AI processing for {{job_label}} failed: {{error_message}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,AI_PROCESSING_FAILED_IN_APP,reporting,ai.processing_failed,high,active,1,1,,
+1ddcb543-e714-4bc6-aa0d-fd0109b48d46,AI processing failure (email),ai.processing_failed,email,AI processing failed: {{job_label}},AI processing for {{job_label}} failed: {{error_message}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,AI_PROCESSING_FAILED_EMAIL,reporting,ai.processing_failed,high,active,1,1,,
+3a51dfb7-a433-44e9-b159-c1c2488b99b9,Escalation raised on the shared spine (in_app),escalation.created,in_app,Escalation raised: {{escalation_ref}},A {{severity}} escalation ({{escalation_type}}) was raised for {{source_reference}}. Acknowledgement due {{acknowledgement_deadline}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ESCALATION_CREATED_IN_APP,system,escalation.created,high,active,1,1,,
+39e21861-81e2-4ddf-be2b-f6d88a07c1c6,Escalation raised on the shared spine (email),escalation.created,email,Escalation raised: {{escalation_ref}},A {{severity}} escalation ({{escalation_type}}) was raised for {{source_reference}}. Acknowledgement due {{acknowledgement_deadline}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ESCALATION_CREATED_EMAIL,system,escalation.created,high,active,1,1,,
+45df650b-4317-4e29-871c-3172870f9709,Escalation advanced to the next tier (in_app),escalation.tier_advanced,in_app,Escalation {{escalation_ref}} now at tier {{current_tier}},Escalation {{escalation_ref}} advanced to tier {{current_tier}} without acknowledgement. Source: {{source_reference}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ESCALATION_TIER_ADVANCED_IN_APP,system,escalation.tier_advanced,critical,active,1,1,,
+4ee1f445-355a-4431-8bee-72609f3434ce,Escalation advanced to the next tier (email),escalation.tier_advanced,email,Escalation {{escalation_ref}} now at tier {{current_tier}},Escalation {{escalation_ref}} advanced to tier {{current_tier}} without acknowledgement. Source: {{source_reference}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ESCALATION_TIER_ADVANCED_EMAIL,system,escalation.tier_advanced,critical,active,1,1,,
+77ae1483-bc52-4e43-aabb-76411d3ed9d4,Escalation ownership taken or assigned (in_app),escalation.ownership_assigned,in_app,Escalation {{escalation_ref}} assigned to you,You now own escalation {{escalation_ref}} ({{escalation_type}}). Resolution due {{resolution_deadline}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ESCALATION_OWNERSHIP_ASSIGNED_IN_APP,system,escalation.ownership_assigned,high,active,1,1,,
+4438a584-a52c-406c-8390-5f34d6fc9e1e,Escalation ownership taken or assigned (email),escalation.ownership_assigned,email,Escalation {{escalation_ref}} assigned to you,You now own escalation {{escalation_ref}} ({{escalation_type}}). Resolution due {{resolution_deadline}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ESCALATION_OWNERSHIP_ASSIGNED_EMAIL,system,escalation.ownership_assigned,high,active,1,1,,
+151b1742-2590-4193-998e-c829b27d3d57,Escalation resolved with narrative (email),escalation.resolved,email,Escalation resolved: {{escalation_ref}},Escalation {{escalation_ref}} was resolved by {{actor_name}}. {{resolution_narrative}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ESCALATION_RESOLVED_EMAIL,system,escalation.resolved,medium,active,1,1,,
+4bddb1d6-c9ce-4e3d-8379-e88d3618de42,A conduct investigation was opened (in_app),conduct_investigation_opened,in_app,Investigation opened: {{allegation}},Investigation opened for {{entity_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_INVESTIGATION_OPENED_IN_APP,conduct_investigation_opened,conduct_investigation_opened,high,active,1,1,,
+2d8b571d-818e-407c-aab0-b3930c4ac5d5,A conduct investigation was opened (email),conduct_investigation_opened,email,Investigation opened: {{allegation}},Investigation opened for {{entity_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_INVESTIGATION_OPENED_EMAIL,conduct_investigation_opened,conduct_investigation_opened,high,active,1,1,,
+3d61c92d-170a-4bda-95e0-d58edb918939,Email delivery failure threshold breached (in_app),system_health.smtp_failure_threshold,in_app,Email delivery failures: {{failure_count}} in {{window_label}},{{failure_count}} email deliveries failed in the last {{window_label}}. Latest error: {{error_message}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SYSTEM_HEALTH_SMTP_FAILURE_THRESHOLD_IN_APP,system,system_health.smtp_failure_threshold,critical,active,1,1,,
+d7fc17cd-42a6-4438-af93-df68281cad10,Email delivery failure threshold breached (email),system_health.smtp_failure_threshold,email,Email delivery failures: {{failure_count}} in {{window_label}},{{failure_count}} email deliveries failed in the last {{window_label}}. Latest error: {{error_message}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SYSTEM_HEALTH_SMTP_FAILURE_THRESHOLD_EMAIL,system,system_health.smtp_failure_threshold,critical,active,1,1,,
+1baa554f-4494-4d19-9cdc-0b3e40fb8528,Integration failure threshold breached (in_app),system_health.integration_failure,in_app,Integration failing: {{integration_key}},Integration {{integration_key}} recorded {{failure_count}} failures in {{window_label}}. Latest error: {{error_message}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SYSTEM_HEALTH_INTEGRATION_FAILURE_IN_APP,system,system_health.integration_failure,critical,active,1,1,,
+7ac14e36-3008-40e9-a4df-59600866410a,Integration failure threshold breached (email),system_health.integration_failure,email,Integration failing: {{integration_key}},Integration {{integration_key}} recorded {{failure_count}} failures in {{window_label}}. Latest error: {{error_message}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SYSTEM_HEALTH_INTEGRATION_FAILURE_EMAIL,system,system_health.integration_failure,critical,active,1,1,,
+0199896d-8043-4a2c-8e80-f970b82011f5,Scheduled job failures detected (in_app),system_health.scheduler_failure,in_app,Scheduler failures detected,{{failure_count}} scheduled jobs failed in the last {{window_label}}. Latest: {{job_label}} — {{error_message}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SYSTEM_HEALTH_SCHEDULER_FAILURE_IN_APP,system,system_health.scheduler_failure,critical,active,1,1,,
+c0e8f468-bb56-410d-b69d-3dd207f243e3,Database cron job failure (in_app),system_health.cron_failure,in_app,Cron job failed: {{job_label}},The cron job {{job_label}} failed at {{occurred_at}}: {{error_message}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SYSTEM_HEALTH_CRON_FAILURE_IN_APP,system,system_health.cron_failure,critical,active,1,1,,
+71f1ef9c-c700-4a5f-a635-dfdde607cc21,Database cron job failure (email),system_health.cron_failure,email,Cron job failed: {{job_label}},The cron job {{job_label}} failed at {{occurred_at}}: {{error_message}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SYSTEM_HEALTH_CRON_FAILURE_EMAIL,system,system_health.cron_failure,critical,active,1,1,,
+5c5ef5a9-149b-4424-8e42-b94053d8cf77,Notification queue backlog above threshold (in_app),system_health.notification_queue_backlog,in_app,Notification backlog: {{backlog_count}} pending,{{backlog_count}} notifications are pending delivery (oldest {{oldest_age}}). Investigate the delivery workers.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SYSTEM_HEALTH_NOTIFICATION_QUEUE_BACKLOG_IN_APP,system,system_health.notification_queue_backlog,critical,active,1,1,,
+2b9311f6-0aba-4558-adca-2584580e12a6,Notification queue backlog above threshold (email),system_health.notification_queue_backlog,email,Notification backlog: {{backlog_count}} pending,{{backlog_count}} notifications are pending delivery (oldest {{oldest_age}}). Investigate the delivery workers.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SYSTEM_HEALTH_NOTIFICATION_QUEUE_BACKLOG_EMAIL,system,system_health.notification_queue_backlog,critical,active,1,1,,
+06a7cefd-2ff5-4425-b1df-2d06ab0d8a2c,Repeated dispatch failure for the same event (in_app),system_health.dispatch_failure_repeated,in_app,Repeated dispatch failure: {{event_key}},Event {{event_key}} has failed to dispatch {{failure_count}} times. Latest error: {{error_message}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SYSTEM_HEALTH_DISPATCH_FAILURE_REPEATED_IN_APP,system,system_health.dispatch_failure_repeated,critical,active,1,1,,
+ef126e3f-0d87-4589-8f82-5e442d21b80b,Repeated dispatch failure for the same event (email),system_health.dispatch_failure_repeated,email,Repeated dispatch failure: {{event_key}},Event {{event_key}} has failed to dispatch {{failure_count}} times. Latest error: {{error_message}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SYSTEM_HEALTH_DISPATCH_FAILURE_REPEATED_EMAIL,system,system_health.dispatch_failure_repeated,critical,active,1,1,,
+559dcb28-95ea-4087-ab0c-d16ad0485073,Return overdue (email),return.overdue,email,Return overdue,Return {{return_id}} is overdue. Due date: {{due_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_OVERDUE_EMAIL,return,return.overdue,high,active,1,1,,
+8de492d5-e86d-44ea-97fa-57a030ef0401,Prudential warning (in_app),return.breach_warning,in_app,Prudential warning: {{metric_key}},Return {{return_id}} triggered a warning on {{metric_key}} ({{value}} vs {{threshold_value}}).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_BREACH_WARNING_IN_APP,return,return.breach_warning,critical,active,1,1,,
+56727bd8-735a-46aa-82d7-840814c51307,Prudential warning (email),return.breach_warning,email,Prudential warning: {{metric_key}},"Return {{return_id}} triggered a warning threshold on {{metric_key}}. Value: {{value}}, threshold: {{threshold_value}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_BREACH_WARNING_EMAIL,return,return.breach_warning,critical,active,1,1,,
+d95c25b7-2f2c-4094-a73d-b353536784af,Prudential breach (in_app),return.breach_critical,in_app,Prudential breach: {{metric_key}},Return {{return_id}} breached {{metric_key}} ({{value}} vs {{threshold_value}}).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_BREACH_CRITICAL_IN_APP,return,return.breach_critical,critical,active,1,1,,
+3bc49f80-ace9-43df-9c51-7c73ad18ae4a,Prudential breach (email),return.breach_critical,email,Prudential breach: {{metric_key}},"Return {{return_id}} breached {{metric_key}}. Value: {{value}}, threshold: {{threshold_value}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_BREACH_CRITICAL_EMAIL,return,return.breach_critical,critical,active,1,1,,
+760406ff-6c45-4235-90c7-3e203d1f8411,Return validation failed (in_app),return.validation_failed,in_app,Return validation failed,Your return {{return_id}} failed validation. Please review errors.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_VALIDATION_FAILED_IN_APP,return,return.validation_failed,critical,active,1,1,,
+aea72b91-1468-4ba7-a220-e5c7aaf6fc93,Return validation failed (email),return.validation_failed,email,Return validation failed,Your return {{return_id}} failed validation with {{error_count}} errors.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_VALIDATION_FAILED_EMAIL,return,return.validation_failed,critical,active,1,1,,
+c544166e-9dcb-426b-8bec-a93ec65fa35e,RFI item has passed its due date without response (in_app),application.rfi_overdue,in_app,RFI response overdue,The RFI on application {{application_reference}} was due on {{due_at}} and is now overdue.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_RFI_OVERDUE_IN_APP,application,application.rfi_overdue,high,active,1,1,,
+e68c0b87-4b81-4356-8202-c704591e67e7,RFI item has passed its due date without response (email),application.rfi_overdue,email,RFI response overdue,The RFI on application {{application_reference}} was due on {{due_at}} and is now overdue.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_RFI_OVERDUE_EMAIL,application,application.rfi_overdue,high,active,1,1,,
+c29ef2d3-f213-49ac-bf99-e356fee3de4f,An applicant submitted responses to an RFI. (in_app),application.rfi_responded,in_app,RFI response submitted,Applicant has responded to the RFI on application {{application_number}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_RFI_RESPONDED_IN_APP,application,application.rfi_responded,medium,active,1,1,,
+6f2710ef-7c61-4e48-8681-729e7206a85a,A conduct alert was acknowledged (in_app),conduct_alert_acknowledged,in_app,Alert acknowledged: {{title}},Alert {{alert_id}} acknowledged.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_ALERT_ACKNOWLEDGED_IN_APP,conduct_alert_acknowledged,conduct_alert_acknowledged,medium,active,1,1,,
+bba3d6fb-c816-4dc9-9a3e-94b656fbe823,A conduct alert was closed (in_app),conduct_alert_closed,in_app,Alert closed: {{title}},Alert {{alert_id}} closed. Reason: {{closure_reason}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_ALERT_CLOSED_IN_APP,conduct_alert_closed,conduct_alert_closed,medium,active,1,1,,
+459ebc2d-e0e1-47ce-b2ab-49c3d569551d,A conduct investigation was assigned (email),conduct_investigation_assigned,email,Investigation assigned to you,You have been assigned to investigation {{investigation_id}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_INVESTIGATION_ASSIGNED_EMAIL,conduct_investigation_assigned,conduct_investigation_assigned,medium,active,1,1,,
+3a9300fa-98d4-407a-afa9-dc2588f1963f,A conduct investigation was closed (in_app),conduct_investigation_closed,in_app,Investigation closed,Investigation {{investigation_id}} closed. Outcome: {{outcome}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_INVESTIGATION_CLOSED_IN_APP,conduct_investigation_closed,conduct_investigation_closed,medium,active,1,1,,
+5701607c-a39c-4a15-8de7-e226e7bb2cc7,Evidence was uploaded (in_app),conduct_evidence_uploaded,in_app,Evidence uploaded: {{title}},Evidence uploaded to {{context}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_EVIDENCE_UPLOADED_IN_APP,conduct_evidence_uploaded,conduct_evidence_uploaded,medium,active,1,1,,
+34af6307-5419-4037-8f44-05cbb41752ab,A thematic review was created (in_app),conduct_thematic_review_created,in_app,Thematic review created: {{title}},Thematic review {{title}} created.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_THEMATIC_REVIEW_CREATED_IN_APP,conduct_thematic_review_created,conduct_thematic_review_created,medium,active,1,1,,
+ed943039-9a70-4e36-8337-f2165e17839d,A thematic review was assigned (in_app),conduct_thematic_review_assigned,in_app,Thematic review assigned to you,You are the lead officer on thematic review {{title}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_THEMATIC_REVIEW_ASSIGNED_IN_APP,conduct_thematic_review_assigned,conduct_thematic_review_assigned,medium,active,1,1,,
+c69fa5aa-421d-4650-800d-1a7a383a4441,A thematic review was assigned (email),conduct_thematic_review_assigned,email,Thematic review assigned to you,You are the lead officer on thematic review {{title}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_THEMATIC_REVIEW_ASSIGNED_EMAIL,conduct_thematic_review_assigned,conduct_thematic_review_assigned,medium,active,1,1,,
+8886a944-3c21-436b-be85-069cdd74eb81,A thematic review was closed (in_app),conduct_thematic_review_closed,in_app,Thematic review closed: {{title}},Thematic review {{title}} closed.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_THEMATIC_REVIEW_CLOSED_IN_APP,conduct_thematic_review_closed,conduct_thematic_review_closed,medium,active,1,1,,
+623bcb6e-700f-430e-9016-781e2ad9eba1,A complaint completed triage (in_app),conduct_complaint_triaged,in_app,Complaint triaged: {{complaint_number}},Complaint {{complaint_number}} triaged with severity {{severity}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_COMPLAINT_TRIAGED_IN_APP,conduct_complaint_triaged,conduct_complaint_triaged,medium,active,1,1,,
+8a072649-4cea-4d47-9624-af4b20218d2a,License has been renewed (in_app),license.renewed,in_app,License {{license_number}} renewed,Your license {{license_number}} has been renewed. New validity until {{valid_until}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_RENEWED_IN_APP,license,license.renewed,low,active,1,1,,
+f114e508-e31c-4241-b75a-bee5d373e2fb,License has been renewed (email),license.renewed,email,License {{license_number}} renewed,"Hello,
+
+Good news — license {{license_number}} ({{license_type}}) has been renewed.
+Valid until: {{valid_until}}
+
+View: {{app_url}}/licenses/{{license_id}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_RENEWED_EMAIL,license,license.renewed,low,active,1,1,,
+5e31b4e5-f0b7-40ce-b302-8bd76f6e3648,License has been reinstated (in_app),license.reinstated,in_app,License {{license_number}} reinstated,Your license {{license_number}} has been reinstated and is now active.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_REINSTATED_IN_APP,license,license.reinstated,low,active,1,1,,
+bd36be97-54ca-40e6-8ccd-27de9ae61b31,License has been reinstated (email),license.reinstated,email,License {{license_number}} reinstated,"Hello,
+
+License {{license_number}} ({{license_type}}) has been reinstated and is now active.
+
+View: {{app_url}}/licenses/{{license_id}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_REINSTATED_EMAIL,license,license.reinstated,low,active,1,1,,
+df9e1716-4eb7-4c09-a6b1-5d6b1f45f0e8,A high-severity Fit & Proper screening finding was raised. (in_app),fp_high_severity_finding,in_app,High-severity F&P finding,{{high_count}} high-severity finding(s) raised for {{individual_name}}. Review in the Manual Review Queue.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_HIGH_SEVERITY_FINDING_IN_APP,fp_high_severity_finding,fp_high_severity_finding,medium,active,1,1,,
+f74a45f2-c91f-4f47-aa00-bf013e7aa1e6,Ongoing-monitoring recheck produced a medium/high severity finding. (in_app),fp_monitoring_alert,in_app,F&P monitoring alert,A monitoring recheck raised a new finding requiring review.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_MONITORING_ALERT_IN_APP,fp_monitoring_alert,fp_monitoring_alert,medium,active,1,1,,
+41bf2e82-8e06-48d0-8b4d-40feeddfbc9c,A Fit & Proper determination condition is due soon. (in_app),fp_condition_reminder,in_app,F&P condition due soon,A condition is due on {{due_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_CONDITION_REMINDER_IN_APP,fp_condition_reminder,fp_condition_reminder,medium,active,1,1,,
+3772a9d5-6def-4be8-9d3b-197bcc7421df,The cycle scheduler opened a new Fit & Proper reassessment. (in_app),fp_cycle_assessment_opened,in_app,Cycle reassessment opened,A new cycle-based reassessment was opened automatically.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_CYCLE_ASSESSMENT_OPENED_IN_APP,fp_cycle_assessment_opened,fp_cycle_assessment_opened,medium,active,1,1,,
+8232cf98-2e24-4806-a540-a60116fb54e2,A Fit & Proper determination condition is overdue. (in_app),fp_condition_overdue,in_app,F&P condition overdue,A condition is {{days_overdue}} day(s) overdue.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_CONDITION_OVERDUE_IN_APP,fp_condition_overdue,fp_condition_overdue,high,active,1,1,,
+a837fd3f-f926-4936-a3a7-3c9cfaf97720,Notification to workflow reviewers when a new application is assigned for review. (in_app),application.submitted.reviewer,in_app,New Application Assigned for Review,"New application {{application_number}} from {{applicant_name}} is awaiting review at step ""{{current_workflow_step}}"".",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_SUBMITTED_REVIEWER_IN_APP,application,application.submitted.reviewer,medium,active,1,1,,
+449368e8-8c0a-4932-83a0-f371b9bee306,Notification to workflow reviewers when a new application is assigned for review. (email),application.submitted.reviewer,email,New Application Assigned for Review - {{application_number}},"A new application has been submitted and assigned to your queue for review.
+
+Application Number: {{application_number}}
+Applicant: {{applicant_name}} ({{applicant_email}})
+License Type: {{license_type}}
+Sector: {{sector_name}}
+Sub-Sector: {{sub_sector_name}}
+Category: {{category_name}}
+Submitted On: {{submitted_at}}
+Current Step: {{current_workflow_step}}
+
+Please open the portal to review the submitted forms, supporting documents and take action.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_SUBMITTED_REVIEWER_EMAIL,application,application.submitted.reviewer,medium,active,1,1,,
+b25fc8dd-00ec-45be-9b03-22bc58a28460,Sent to the applicant after a resubmission is accepted by the server. (in_app),application.resubmitted.applicant,in_app,Application Resubmitted - {{application_number}},Your application {{application_number}} has been resubmitted successfully and is back under review.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_RESUBMITTED_APPLICANT_IN_APP,application,application.resubmitted.applicant,medium,active,1,1,,
+730d7381-e508-465f-8ee3-9447f43f0ccc,Sent to the applicant after a resubmission is accepted by the server. (email),application.resubmitted.applicant,email,Application Resubmitted Successfully - {{application_number}},"Hi {{applicant_name}},
+
+Your application has been resubmitted successfully and is back under review by the regulator.
+
+Application Number: {{application_number}}
+License Type: {{license_type}}
+Sector: {{sector_name}}
+Sub-Sector: {{sub_sector_name}}
+Category: {{category_name}}
+Resubmitted At: {{resubmitted_at}}
+Current Step: {{current_workflow_step}}
+
+We will notify you once the review progresses. You can track the latest status from your dashboard.
+
+Thank you,
+{{company_name}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_RESUBMITTED_APPLICANT_EMAIL,application,application.resubmitted.applicant,medium,active,1,1,,
+a6f88ea1-06a7-41fa-9e5a-d61ddeaefcab,Sent to assigned workflow reviewers / sector regulators when an applicant resubmits. (in_app),application.resubmitted.reviewer,in_app,Application Resubmitted for Review - {{application_number}},"{{applicant_name}} has resubmitted application {{application_number}}. It is awaiting your review at step ""{{current_workflow_step}}"".",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_RESUBMITTED_REVIEWER_IN_APP,application,application.resubmitted.reviewer,medium,active,1,1,,
+48f1754c-91a5-4601-9ce9-e4c4f260206b,Sent to assigned workflow reviewers / sector regulators when an applicant resubmits. (email),application.resubmitted.reviewer,email,Application Resubmitted for Review - {{application_number}},"Hello {{reviewer_name}},
+
+The applicant has resubmitted an application that requires your review.
+
+Applicant: {{applicant_name}} ({{applicant_email}})
+Application Number: {{application_number}}
+License Type: {{license_type}}
+Sector: {{sector_name}}
+Sub-Sector: {{sub_sector_name}}
+Category: {{category_name}}
+Resubmitted At: {{resubmitted_at}}
+Current Step: {{current_workflow_step}}
+Previous Status: {{previous_status}}
+
+Applicant Comments: {{resubmission_comments}}
+
+Please open the application to continue the review.
+
+Regards,
+{{company_name}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_RESUBMITTED_REVIEWER_EMAIL,application,application.resubmitted.reviewer,medium,active,1,1,,
+9d1f999c-e287-4dc1-b30b-8ddd209679cf,conduct_action_cancelled (in_app),conduct_action_cancelled,in_app,Action cancelled: {{title}},Action {{title}} has been cancelled. Reason: {{cancellation_reason}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_ACTION_CANCELLED_IN_APP,conduct_action_cancelled,conduct_action_cancelled,medium,active,1,1,,
+25fefc7b-2e75-41bf-b9e7-5128ae63e993,conduct_action_cancelled (email),conduct_action_cancelled,email,[Market Conduct] Action cancelled — {{title}},"Hello,
+
+A supervisory action has been cancelled.
+
+Action: {{title}}
+
+Cancellation reason:
+{{cancellation_reason}}
+
+Open: {{app_url}}/conduct/actions
+
+Regards,
+Market Conduct Supervision",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_ACTION_CANCELLED_EMAIL,conduct_action_cancelled,conduct_action_cancelled,medium,active,1,1,,
+8474400d-f277-4565-8d13-95c8d0aa9a68,Fired when a complaint enters investigation. (in_app),complaint.investigation_started,in_app,Complaint {{complaint_number}} — investigation started,The regulator has started investigating your complaint {{complaint_number}}. You will be notified as it progresses.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_INVESTIGATION_STARTED_IN_APP,complaint,complaint.investigation_started,medium,active,1,1,,
+b0f56cb4-2a21-40bf-9116-a87e1c24c867,Fired when a complaint enters investigation. (email),complaint.investigation_started,email,Investigation started — Complaint {{complaint_number}},"Dear user,
+
+The regulator has started investigating complaint {{complaint_number}}.
+
+We will keep you updated as the case progresses.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_INVESTIGATION_STARTED_EMAIL,complaint,complaint.investigation_started,medium,active,1,1,,
+688a27fa-fb56-4fb8-aac9-2f35a76e58cb,Licensing appeal lodged (in_app),license_appeal.filed,in_app,Appeal lodged: {{appeal_reference}},An appeal has been lodged against refused application {{application_number}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_APPEAL_FILED_IN_APP,license_appeal,license_appeal.filed,medium,active,1,1,,
+c653c34b-18d8-4979-8706-2a486e53b994,Licensing appeal lodged (email),license_appeal.filed,email,Appeal lodged: {{appeal_reference}},An appeal ({{appeal_reference}}) has been lodged against refused application {{application_number}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_APPEAL_FILED_EMAIL,license_appeal,license_appeal.filed,medium,active,1,1,,
+1aee58cf-d38c-48de-b7b2-962a029ce13c,Notify reviewers and admins when a return is submitted for review. (email),return.submitted,email,Return Submitted for Review - {{return_unique_id}},"Return ID: {{return_unique_id}}
+Return: {{return_name}}
+Period: {{return_period}} {{return_year}}
+Entity: {{entity_name}}
+Submitted by: {{submitted_by_name}} ({{submitted_by_email}})
+Status: {{new_status}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_SUBMITTED_EMAIL,return,return.submitted,medium,active,1,1,,
+472239a9-4123-4673-98a0-2cb099ad3330,Notify reviewers and admins when a return is submitted for review. (in_app),return.submitted,in_app,Return submitted for review: {{return_unique_id}},Return {{return_unique_id}} for {{entity_name}} ({{return_name}} {{return_period}} {{return_year}}) was submitted by {{submitted_by_name}} and is awaiting review.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_SUBMITTED_IN_APP,return,return.submitted,medium,active,1,1,,
+d4d61b5a-b189-4036-8bc9-d1685aa3044c,Confirm to the submitter that a return was submitted successfully. (email),return.submitted.confirmation,email,Return Submitted Successfully - {{return_unique_id}},"Hello {{submitted_by_name}},
+
+Your return {{return_unique_id}} for {{return_name}} ({{return_period}} {{return_year}}) has been submitted successfully.
+Entity: {{entity_name}}
+Current status: {{new_status}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_SUBMITTED_CONFIRMATION_EMAIL,return,return.submitted.confirmation,medium,active,1,1,,
+48243db2-5f19-4d83-b37a-8b7720089337,Confirm to the submitter that a return was submitted successfully. (in_app),return.submitted.confirmation,in_app,Return submitted successfully: {{return_unique_id}},Your return {{return_unique_id}} for {{return_name}} has been submitted successfully and is now under review.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_SUBMITTED_CONFIRMATION_IN_APP,return,return.submitted.confirmation,medium,active,1,1,,
+1860d584-1bd5-42b1-b8d2-57ea20fca161,Notify reviewers and admins when a return is resubmitted after edits. (email),return.resubmitted,email,Return Resubmitted for Review - {{return_unique_id}},"Return ID: {{return_unique_id}}
+Return: {{return_name}}
+Entity: {{entity_name}}
+Resubmitted by: {{actor_name}} ({{actor_email}})
+Previous status: {{previous_status}}
+New status: {{new_status}}
+Edit reason: {{edit_reason}}
+Resubmitted at: {{resubmitted_at}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_RESUBMITTED_EMAIL,return,return.resubmitted,medium,active,1,1,,
+8285598a-a094-4265-ade7-91a1079c07e5,Notify reviewers and admins when a return is resubmitted after edits. (in_app),return.resubmitted,in_app,Return resubmitted: {{return_unique_id}},Return {{return_unique_id}} was resubmitted by {{actor_name}} after edits and is ready for review again.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_RESUBMITTED_IN_APP,return,return.resubmitted,medium,active,1,1,,
+5f998e71-f058-4971-8779-359156a9cbcc,Triggered when a registration is finally approved (in_app),registration.final_approved,in_app,Registration {{registration_reference}} approved,Registration {{registration_reference}} has been approved.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_FINAL_APPROVED_IN_APP,registration,registration.final_approved,low,active,1,1,,
+3fe6b842-70ed-4cd8-8235-1adafb55983f,Triggered when a registration is finally approved (email),registration.final_approved,email,Your registration {{registration_reference}} has been approved,"Congratulations {{applicant_name}},
+
+Your registration {{registration_reference}} has been approved.
+You can now access the portal at {{portal_url}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_FINAL_APPROVED_EMAIL,registration,registration.final_approved,low,active,1,1,,
+43985ea7-b5bc-4788-98a5-c88a82688fb8,Triggered when any workflow action is taken on a registration (in_app),registration.action_taken,in_app,Action {{action_name}} on registration {{registration_reference}},{{reviewer_name}} performed {{action_name}} on registration {{registration_reference}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_ACTION_TAKEN_IN_APP,registration,registration.action_taken,medium,active,1,1,,
+d3b46eee-6ed1-49a8-ae5b-d34b6f79d901,Notify the opposite party when a new return comment is added. (email),return.comment_added,email,New Comment on Return {{return_unique_id}},"Return ID: {{return_unique_id}}
+Return: {{return_name}}
+Comment by: {{actor_name}} ({{actor_email}})
+Comment: {{action_comments}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_COMMENT_ADDED_EMAIL,return,return.comment_added,medium,active,1,1,,
+f80de2cb-05ff-4b2b-ae9f-0746162ec8a5,Notify the opposite party when a new return comment is added. (in_app),return.comment_added,in_app,New comment on return {{return_unique_id}},A new comment was added to return {{return_unique_id}} by {{actor_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_COMMENT_ADDED_IN_APP,return,return.comment_added,medium,active,1,1,,
+29df7b32-ac5d-488e-beba-e92ff6aee012,A high or critical severity complaint was recorded (in_app),conduct_high_severity_complaint,in_app,High-severity complaint: {{complaint_number}},Complaint {{complaint_number}} was classified as {{severity}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_HIGH_SEVERITY_COMPLAINT_IN_APP,conduct_high_severity_complaint,conduct_high_severity_complaint,high,active,1,1,,
+2cb4d30e-5c8a-4f56-934b-cf6c9c204afb,A high or critical severity complaint was recorded (email),conduct_high_severity_complaint,email,High-severity complaint: {{complaint_number}},Complaint {{complaint_number}} was classified as {{severity}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_HIGH_SEVERITY_COMPLAINT_EMAIL,conduct_high_severity_complaint,conduct_high_severity_complaint,high,active,1,1,,
+d009f830-8890-43f0-866b-7c97df65cea9,Analyst has overridden or escalated an AI assessment recommendation (in_app),application.ai_overridden,in_app,AI recommendation {{decision}},Analyst {{decision}} the AI recommendation on application {{application_reference}}. Justification: {{justification}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_AI_OVERRIDDEN_IN_APP,application,application.ai_overridden,medium,active,1,1,,
+25572a65-6952-4de6-826f-e17ed855b800,Analyst has overridden or escalated an AI assessment recommendation (email),application.ai_overridden,email,AI recommendation {{decision}},Analyst {{decision}} the AI recommendation on application {{application_reference}}. Justification: {{justification}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_AI_OVERRIDDEN_EMAIL,application,application.ai_overridden,medium,active,1,1,,
+a406b190-7b52-447a-9bff-944765c950a5,Fired when a complaint is marked resolved. (in_app),complaint.resolved,in_app,Complaint {{complaint_number}} resolved,Complaint {{complaint_number}} has been marked resolved. {{note}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_RESOLVED_IN_APP,complaint,complaint.resolved,low,active,1,1,,
+a6538060-def1-4eca-8335-544c2e3ad728,Fired when a complaint is marked resolved. (email),complaint.resolved,email,Complaint {{complaint_number}} resolved,"Dear user,
+
+Complaint {{complaint_number}} has been marked resolved by the regulator.
+
+Resolution notes:
+{{note}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_RESOLVED_EMAIL,complaint,complaint.resolved,low,active,1,1,,
+c730790b-df56-4147-899f-a80b388d6fbe,Fired when a complaint is closed. (in_app),complaint.closed,in_app,Complaint {{complaint_number}} closed,Complaint {{complaint_number}} has been closed. Reason: {{note}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_CLOSED_IN_APP,complaint,complaint.closed,medium,active,1,1,,
+0c8ce55c-0622-43d5-a0a1-d32f6703c243,Fired when a complaint is closed. (email),complaint.closed,email,Complaint {{complaint_number}} closed,"Dear user,
+
+Complaint {{complaint_number}} has been closed by the regulator.
+
+Reason:
+{{note}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_CLOSED_EMAIL,complaint,complaint.closed,medium,active,1,1,,
+27fde0ba-4fad-4356-b44f-85870a97b66b,Notifies admins of a new registration submission (in_app),registration.new_submission,in_app,New registration submitted: {{registration_reference}},A new registration {{registration_reference}} was submitted by {{applicant_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_NEW_SUBMISSION_IN_APP,registration,registration.new_submission,medium,active,1,1,,
+ddf4bd16-c414-46dc-9d09-f0b2b51b59b8,Notifies admins of a new registration submission (email),registration.new_submission,email,New registration submitted: {{registration_reference}},A new registration {{registration_reference}} was submitted by {{applicant_name}} ({{email}}) on {{submitted_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_NEW_SUBMISSION_EMAIL,registration,registration.new_submission,medium,active,1,1,,
+063fbf24-0021-4f10-bbed-34e1fc962d8a,Reviewer saved a comment on a compliance return without changing workflow state. (in_app),return.comment_saved,in_app,Comment added on return {{return_reference}},{{reviewer_name}} added a comment on return {{return_reference}}: {{comments}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_COMMENT_SAVED_IN_APP,return,return.comment_saved,medium,active,1,1,,
+5740d5e9-3140-497d-af04-4c95b8c8fb55,Prudential assessment submitted for review. (in_app),prudential_assessment_submitted,in_app,Assessment submitted: {{entity_name}},A prudential assessment for {{entity_name}} has been submitted for review.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_ASSESSMENT_SUBMITTED_IN_APP,prudential_assessment_submitted,prudential_assessment_submitted,medium,active,1,1,,
+e74f1bd3-33e4-471c-9b11-35a8de56a7e0,A conduct action was assigned (in_app),conduct_action_assigned,in_app,Action assigned: {{title}},You have been assigned a supervisory action: {{title}} (due {{due_date}}).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_ACTION_ASSIGNED_IN_APP,conduct_action_assigned,conduct_action_assigned,medium,active,1,1,,
+ab27c324-11f3-4c01-a2c0-3f73d66366ed,Prudential assessment reviewed. (in_app),prudential_assessment_reviewed,in_app,Assessment reviewed: {{entity_name}},Assessment for {{entity_name}} has been reviewed. Notes: {{review_notes}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_ASSESSMENT_REVIEWED_IN_APP,prudential_assessment_reviewed,prudential_assessment_reviewed,medium,active,1,1,,
+c6e97708-4aa8-4afc-bade-4c858df59061,Prudential assessment reviewed. (email),prudential_assessment_reviewed,email,[Prudential] Assessment reviewed for {{entity_name}},Assessment for {{entity_name}} has been reviewed. Notes: {{review_notes}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_ASSESSMENT_REVIEWED_EMAIL,prudential_assessment_reviewed,prudential_assessment_reviewed,medium,active,1,1,,
+55333a56-5236-40d0-a81a-b9df80bed0ab,Prudential assessment approved. (in_app),prudential_assessment_approved,in_app,Assessment approved: {{entity_name}} · {{overall_rating}},Assessment for {{entity_name}} approved with rating {{overall_rating}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_ASSESSMENT_APPROVED_IN_APP,prudential_assessment_approved,prudential_assessment_approved,low,active,1,1,,
+20286196-395a-4f58-89da-5d229c740dab,Prudential assessment approved. (email),prudential_assessment_approved,email,[Prudential] Assessment approved for {{entity_name}},Prudential assessment for {{entity_name}} was approved with overall rating {{overall_rating}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_ASSESSMENT_APPROVED_EMAIL,prudential_assessment_approved,prudential_assessment_approved,low,active,1,1,,
+4c8c8429-2fc3-450b-b355-79c1a9a205f6,A conduct alert was raised (in_app),conduct_alert_created,in_app,New conduct alert: {{title}},Conduct alert raised for {{entity_name}}: {{title}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_ALERT_CREATED_IN_APP,conduct_alert_created,conduct_alert_created,high,active,1,1,,
+2f7cf850-986a-41ad-bc39-27fc7afe3304,A conduct alert was raised (email),conduct_alert_created,email,New conduct alert: {{title}},Conduct alert raised for {{entity_name}}: {{title}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_ALERT_CREATED_EMAIL,conduct_alert_created,conduct_alert_created,high,active,1,1,,
+28006e5a-f1da-463f-85fc-0051734058be,A conduct action is overdue (in_app),conduct_action_overdue,in_app,Action overdue: {{title}},Action {{title}} is overdue since {{due_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_ACTION_OVERDUE_IN_APP,conduct_action_overdue,conduct_action_overdue,high,active,1,1,,
+16899368-1263-4c3d-bffa-868b901410a9,A conduct action is overdue (email),conduct_action_overdue,email,Action overdue: {{title}},Action {{title}} is overdue since {{due_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_ACTION_OVERDUE_EMAIL,conduct_action_overdue,conduct_action_overdue,high,active,1,1,,
+0d62c322-999d-4327-a7c3-95b271ed4e82,A prudential remediation action has been assigned. (in_app),prudential_action_assigned,in_app,Action assigned: {{action_title}},"You have been assigned prudential action ""{{action_title}}"" for {{entity_name}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_ACTION_ASSIGNED_IN_APP,prudential_action_assigned,prudential_action_assigned,medium,active,1,1,,
+480bcb96-8201-41b4-af60-e825da2e9b4f,A prudential remediation action has been assigned. (email),prudential_action_assigned,email,[Prudential] Action assigned: {{action_title}},"You have been assigned prudential action ""{{action_title}}"" for {{entity_name}}. Severity: {{severity}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_ACTION_ASSIGNED_EMAIL,prudential_action_assigned,prudential_action_assigned,medium,active,1,1,,
+c2962e2a-47e2-456b-8c14-6f624c858b37,Notice that a scheduled form version will become effective on a future date (email),form_version.upcoming,email,Upcoming form version: {{form_name}} (v{{semantic_version}}),"Hello,
+
+A new version (v{{semantic_version}}) of the form ""{{form_name}}"" becomes effective on {{effective_date}}.
+
+Please review the changes before the activation date: {{app_url}}
+
+Regards,
+Regulatory Portal",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FORM_VERSION_UPCOMING_EMAIL,form_version,form_version.upcoming,medium,active,1,1,,
+9fc7f21b-3f30-488c-8520-eba46513f013,A monitoring rule fired (in_app),conduct_monitoring_rule_triggered,in_app,Monitoring rule triggered: {{rule_name}},Monitoring rule {{rule_name}} triggered for {{entity_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_MONITORING_RULE_TRIGGERED_IN_APP,conduct_monitoring_rule_triggered,conduct_monitoring_rule_triggered,high,active,1,1,,
+e609b3f9-66b2-48c1-90d6-549c407e408c,A monitoring rule fired (email),conduct_monitoring_rule_triggered,email,Monitoring rule triggered: {{rule_name}},Monitoring rule {{rule_name}} triggered for {{entity_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_MONITORING_RULE_TRIGGERED_EMAIL,conduct_monitoring_rule_triggered,conduct_monitoring_rule_triggered,high,active,1,1,,
+29258641-2055-4bfc-b50f-0df151aaa69b,License has been suspended (in_app),license.suspended,in_app,License {{license_number}} suspended,Your license {{license_number}} has been suspended. Reason: {{reason}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_SUSPENDED_IN_APP,license,license.suspended,critical,active,1,1,,
+2423d3ff-ad98-4178-9beb-082f629fa465,License has been suspended (email),license.suspended,email,License {{license_number}} suspended,"Hello,
+
+License {{license_number}} ({{license_type}}) has been suspended.
+Reason: {{reason}}
+
+Please log in to {{app_url}}/licenses/{{license_id}} for details.
+
+If you have questions, contact support.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_SUSPENDED_EMAIL,license,license.suspended,critical,active,1,1,,
+6eed056d-c208-406e-b83c-790d8e3b595d,License has been revoked (in_app),license.revoked,in_app,License {{license_number}} revoked,License {{license_number}} has been revoked. Reason: {{reason}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_REVOKED_IN_APP,license,license.revoked,critical,active,1,1,,
+4fc1843a-e67b-4ff6-ad23-a692a2abd425,A prudential remediation action is overdue. (in_app),prudential_action_overdue,in_app,Action overdue: {{action_title}},"Prudential action ""{{action_title}}"" for {{entity_name}} is overdue.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_ACTION_OVERDUE_IN_APP,prudential_action_overdue,prudential_action_overdue,high,active,1,1,,
+713f5c7f-ede7-46a3-942f-cf04b1ab7c55,A prudential remediation action is overdue. (email),prudential_action_overdue,email,[Prudential] Overdue action: {{action_title}},"Prudential action ""{{action_title}}"" for {{entity_name}} is overdue.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_ACTION_OVERDUE_EMAIL,prudential_action_overdue,prudential_action_overdue,high,active,1,1,,
+c4884c8c-259c-4b45-91d7-2311771696ef,License has been cancelled (in_app),license.cancelled,in_app,License {{license_number}} cancelled,License {{license_number}} has been cancelled. Reason: {{reason}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_CANCELLED_IN_APP,license,license.cancelled,high,active,1,1,,
+98784736-2971-4c52-b085-c41a326e0013,License has been cancelled (email),license.cancelled,email,License {{license_number}} cancelled,"Hello,
+
+License {{license_number}} ({{license_type}}) has been cancelled.
+Reason: {{reason}}
+
+View: {{app_url}}/licenses/{{license_id}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_CANCELLED_EMAIL,license,license.cancelled,high,active,1,1,,
+1ace7d1c-a6b5-4a8a-901e-1f75377679e3,License expiring soon reminder (in_app),license.expiring_soon,in_app,License {{license_number}} expires in {{days_until_expiry}} day(s),Your license {{license_number}} expires on {{valid_until}} ({{days_until_expiry}} days remaining). Please initiate renewal.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_EXPIRING_SOON_IN_APP,license,license.expiring_soon,high,active,1,1,,
+df646f80-0c21-47a4-b6fd-bfcd5aab51c1,License expiring soon reminder (email),license.expiring_soon,email,Reminder: License {{license_number}} expires in {{days_until_expiry}} day(s),"Hello,
+
+This is a reminder that license {{license_number}} ({{license_type}}) will expire on {{valid_until}} — {{days_until_expiry}} day(s) from now.
+
+Please log in to {{app_url}}/licenses/{{license_id}} to initiate renewal.
+
+If you have already renewed, you can ignore this message.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_EXPIRING_SOON_EMAIL,license,license.expiring_soon,high,active,1,1,,
+e68c25d6-31b9-4484-8359-5b24b69315d1,License has expired (email),license.expired,email,License {{license_number}} has expired,"Hello,
+
+License {{license_number}} ({{license_type}}) expired on {{valid_until}}.
+
+Please contact the regulator or log in to {{app_url}}/licenses/{{license_id}} for next steps.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_EXPIRED_EMAIL,license,license.expired,critical,active,1,1,,
+6e791d73-e8fd-4c3d-8e3c-94bccc04c39c,Repeated email delivery failures (in_app),notification.admin_failure_alert,in_app,⚠ Email delivery failures detected,{{failure_count}} email notifications have failed in the last hour. Latest event: {{latest_event_key}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,NOTIFICATION_ADMIN_FAILURE_ALERT_IN_APP,notification,notification.admin_failure_alert,critical,active,1,1,,
+c8a51962-eebe-4331-bfb3-f70ebf03540f,Repeated email delivery failures (email),notification.admin_failure_alert,email,⚠ Email delivery failures detected on {{app_name}},"Multiple email notifications have failed to deliver in the last hour.
+
+Failure count: {{failure_count}}
+Latest event: {{latest_event_key}}
+Latest error: {{latest_error}}
+
+Review the notification log at {{app_url}}/admin/notification-logs",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,NOTIFICATION_ADMIN_FAILURE_ALERT_EMAIL,notification,notification.admin_failure_alert,critical,active,1,1,,
+448565ee-27cb-463a-b692-b2366a460253,Triggered when a registration is finally rejected (in_app),registration.final_rejected,in_app,Registration {{registration_reference}} rejected,Registration {{registration_reference}} has been rejected.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_FINAL_REJECTED_IN_APP,registration,registration.final_rejected,high,active,1,1,,
+3e1663b7-fa98-4454-b029-955cc7faeec8,Triggered when a registration is finally rejected (email),registration.final_rejected,email,Your registration {{registration_reference}} was rejected,"Dear {{applicant_name}},
+
+Your registration {{registration_reference}} has been rejected.
+Reason: {{reviewer_comments}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_FINAL_REJECTED_EMAIL,registration,registration.final_rejected,high,active,1,1,,
+2a16a060-8f89-48b8-bc88-58553124c853,Fired when a complaint is escalated to an enforcement case. (in_app),complaint.escalated_to_enforcement,in_app,Complaint {{complaint_number}} escalated to enforcement,Complaint {{complaint_number}} has been escalated to enforcement case {{enforcement_case_number}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_ESCALATED_TO_ENFORCEMENT_IN_APP,complaint,complaint.escalated_to_enforcement,critical,active,1,1,,
+bc29400f-e6e1-43f2-94f3-3ed60decbe64,Fired when a complaint is escalated to an enforcement case. (email),complaint.escalated_to_enforcement,email,Complaint {{complaint_number}} escalated — Case {{enforcement_case_number}},"Dear user,
+
+Complaint {{complaint_number}} has been escalated to enforcement case {{enforcement_case_number}}.
+
+Findings:
+{{note}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_ESCALATED_TO_ENFORCEMENT_EMAIL,complaint,complaint.escalated_to_enforcement,critical,active,1,1,,
+56b76918-261f-489b-8ab2-368c7696fa30,Fired when a formal notice is issued on an enforcement case. (in_app),enforcement.notice_issued,in_app,Notice issued — Case {{enforcement_case_number}},A formal notice has been issued on enforcement case {{enforcement_case_number}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ENFORCEMENT_NOTICE_ISSUED_IN_APP,enforcement,enforcement.notice_issued,critical,active,1,1,,
+a9041f9b-a5ae-4439-8ed5-38d814a33981,Registration Approved,registration.approved,in_app,Registration Approved,Your registration {{registration_reference}} has been approved. You can now sign in at {{login_url}}.,"[""registration_reference""]",t,,,2026-05-11 04:58:51.693507+00,2026-08-22 10:00:22.17545+00,REGISTRATION_APPROVED_IN_APP_a9041f,registration,registration.approved,medium,active,1,1,,
+b104c3d2-6755-4449-bd81-ff05db698de7,Registration Rejected,registration.rejected,in_app,Registration Rejected,Your registration {{registration_reference}} has been rejected. {{comments}},"[""registration_reference"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,REGISTRATION_REJECTED_IN_APP_b104c3,registration,registration.rejected,medium,active,1,1,,
+ed5d3483-fa10-4538-a19c-aed821d9facf,Registration Rejected (Email),registration.rejected,email,Registration Rejected: {{registration_reference}},Your registration ({{registration_reference}}) has been rejected. Remarks: {{comments}},"[""registration_reference"", ""comments""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,REGISTRATION_REJECTED_EMAIL_ed5d34,registration,registration.rejected,medium,active,1,1,,
+5b988c5f-01e4-4a16-a0fd-eb1530c4e154,Registration Approved (Email),registration.approved,email,Your registration {{registration_reference}} has been approved,"Dear {{applicant_name}},
+
+Your registration {{registration_reference}} has been approved.
+
+You can now sign in to the portal using the link below:
+{{login_url}}
+
+Please sign in with the email address used during registration.
+
+Regards,
+Regulatory Licensing Portal","[""registration_reference"", ""applicant_name"", ""login_url""]",t,,,2026-05-11 04:58:51.693507+00,2026-08-14 09:56:29.341531+00,REGISTRATION_APPROVED_EMAIL_5b988c,registration,registration.approved,medium,active,1,1,,
+39a53136-df6b-4de7-869f-44f381f1004b,Fired when a formal notice is issued on an enforcement case. (email),enforcement.notice_issued,email,Enforcement notice — Case {{enforcement_case_number}},"A formal notice has been issued on enforcement case {{enforcement_case_number}}.
+
+Details:
+{{note}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ENFORCEMENT_NOTICE_ISSUED_EMAIL,enforcement,enforcement.notice_issued,critical,active,1,1,,
+66d1a9c7-06b5-4893-8232-5a2342b60490,Fired when a licensee response is recorded on an enforcement case. (in_app),enforcement.response_received,in_app,Response recorded — Case {{enforcement_case_number}},A licensee response has been recorded on enforcement case {{enforcement_case_number}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ENFORCEMENT_RESPONSE_RECEIVED_IN_APP,enforcement,enforcement.response_received,critical,active,1,1,,
+e75f3412-9ee6-49e2-87b8-f1d23ea948a8,Fired when a licensee response is recorded on an enforcement case. (email),enforcement.response_received,email,Response recorded — Case {{enforcement_case_number}},"A licensee response has been recorded on enforcement case {{enforcement_case_number}}.
+
+Summary:
+{{note}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ENFORCEMENT_RESPONSE_RECEIVED_EMAIL,enforcement,enforcement.response_received,critical,active,1,1,,
+016437fa-746b-4d5c-a56b-2bf698f73069,Fired when a decision is recorded on an enforcement case. (in_app),enforcement.decision_recorded,in_app,Decision recorded — Case {{enforcement_case_number}},A decision has been recorded on enforcement case {{enforcement_case_number}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ENFORCEMENT_DECISION_RECORDED_IN_APP,enforcement,enforcement.decision_recorded,critical,active,1,1,,
+7e9ccae5-dfd4-4c67-991d-cc172a157c37,Fired when a decision is recorded on an enforcement case. (email),enforcement.decision_recorded,email,Enforcement decision — Case {{enforcement_case_number}},"A decision has been recorded on enforcement case {{enforcement_case_number}}.
+
+Rationale:
+{{note}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ENFORCEMENT_DECISION_RECORDED_EMAIL,enforcement,enforcement.decision_recorded,critical,active,1,1,,
+72152c69-5b57-4db9-9fa4-baefc15744f8,Fired when an enforcement case is withdrawn. (in_app),enforcement.case_withdrawn,in_app,Case {{enforcement_case_number}} withdrawn,Enforcement case {{enforcement_case_number}} has been withdrawn.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ENFORCEMENT_CASE_WITHDRAWN_IN_APP,enforcement,enforcement.case_withdrawn,critical,active,1,1,,
+da58bad0-16ad-4a75-98d4-f0ef40553170,Fired when an enforcement case is withdrawn. (email),enforcement.case_withdrawn,email,Enforcement case {{enforcement_case_number}} withdrawn,"Enforcement case {{enforcement_case_number}} has been withdrawn.
+
+Reason:
+{{note}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,ENFORCEMENT_CASE_WITHDRAWN_EMAIL,enforcement,enforcement.case_withdrawn,critical,active,1,1,,
+28841d8e-4b76-4f13-b210-9c2587afea54,Sent to the applicant when correction is required (in_app),registration.correction_required,in_app,Correction required for registration {{registration_reference}},Please update your registration {{registration_reference}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_CORRECTION_REQUIRED_IN_APP,registration,registration.correction_required,high,active,1,1,,
+eb1d5987-a251-437b-bbed-f3eb6c9016dc,Sent to the applicant when correction is required (email),registration.correction_required,email,Action required: update registration {{registration_reference}},"Dear {{applicant_name}},
+
+Your registration {{registration_reference}} requires updates.
+Remarks: {{reviewer_comments}}
+
+Please update and resubmit your registration here: {{portal_url}}/registration/update/{{registration_id}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_CORRECTION_REQUIRED_EMAIL,registration,registration.correction_required,high,active,1,1,,
+4fbb2a68-a9c6-4a97-b782-2cdd92b507d5,SLA / escalation configuration changed — notifies only team leads mapped to the affected process_type. (in_app),sla.configuration_updated,in_app,SLA updated: {{process_type}},"SLA for ""{{process_type}}"" was updated by {{updated_by_email}}. {{change_summary}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SLA_CONFIGURATION_UPDATED_IN_APP,sla,sla.configuration_updated,high,active,1,1,,
+f79407a9-bf39-4ce9-822e-23787b4c19d0,SLA / escalation configuration changed — notifies only team leads mapped to the affected process_type. (email),sla.configuration_updated,email,SLA updated: {{process_type}},"Hi,
+
+The SLA configuration for ""{{process_type}}"" was updated by {{updated_by_email}}.
+
+Change: {{change_summary}}
+
+Note: New SLA values apply only to new cases or newly entered workflow stages. In-progress timers are not recalculated.
+
+Open the SLA Manager to review: {{app_url}}/admin/sla-manager",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SLA_CONFIGURATION_UPDATED_EMAIL,sla,sla.configuration_updated,high,active,1,1,,
+708e4d08-4065-4b21-bbba-2c933d369382,A Fit & Proper screening finding was resolved (cleared or confirmed adverse). (in_app),fp_finding_resolved,in_app,F&P finding resolved,A screening finding was resolved: {{outcome}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_FINDING_RESOLVED_IN_APP,fp_finding_resolved,fp_finding_resolved,medium,active,1,1,,
+4c50883b-a55e-4e0c-aab0-cd69c912b00d,Licensing appeal decided (in_app),license_appeal.decided,in_app,Decision on appeal {{appeal_reference}},A decision has been made on your appeal {{appeal_reference}}: {{decision_label}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_APPEAL_DECIDED_IN_APP,license_appeal,license_appeal.decided,medium,active,1,1,,
+831a8a94-0728-420a-8578-7ec6e8911f82,Licensing appeal decided (email),license_appeal.decided,email,Decision on appeal {{appeal_reference}},A decision has been made on your appeal {{appeal_reference}}: {{decision_label}}. {{decision_rationale}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_APPEAL_DECIDED_EMAIL,license_appeal,license_appeal.decided,medium,active,1,1,,
+2b15efca-e977-4719-a1f3-3eef4784f405,Licensing appeal panel assigned (email),license_appeal.panel_assigned,email,Appeal {{appeal_reference}} referred to panel,Your appeal {{appeal_reference}} has been referred to an appeal panel. {{hearing_line}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_APPEAL_PANEL_ASSIGNED_EMAIL,license_appeal,license_appeal.panel_assigned,medium,active,1,1,,
+34ab68d6-5995-47bd-823e-08726c91f45c,Critical prudential risks detected — supervisor attention required (in_app),return.supervisor_escalation,in_app,ESCALATION: {{return_name}} — {{risk_level}},{{return_name}} for {{entity_name}} has triggered a supervisor escalation. Reason: {{escalation_reason}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_SUPERVISOR_ESCALATION_IN_APP,return,return.supervisor_escalation,high,active,1,1,,
+bea3f056-4c87-4241-ac44-42a51f0d2ac4,Critical prudential risks detected — supervisor attention required (email),return.supervisor_escalation,email,[ESCALATION] {{return_name}} — {{risk_level}} risk,"<p>Dear {{user_name}},</p><p>An escalation has been raised for <b>{{return_name}}</b> filed by <b>{{entity_name}}</b>.</p><p><b>Health score:</b> {{health_score}}<br/><b>Risk level:</b> {{risk_level}}<br/><b>Reason:</b> {{escalation_reason}}</p><p>Please review immediately in the supervisor console.</p>",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_SUPERVISOR_ESCALATION_EMAIL,return,return.supervisor_escalation,high,active,1,1,,
+96f9e15d-5948-4f9c-883c-7440566385b4,Fired by the SLA escalation sweep when a workflow instance passes its SLA deadline and a new escalation tier becomes due. (in_app),workflow.sla_escalation,in_app,SLA Escalation — Tier {{tier}} ({{process_type}}),Workflow {{workflow_instance_id}} is {{overdue_days}} day(s) past its SLA deadline. Escalation tier {{tier}} has been triggered.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,WORKFLOW_SLA_ESCALATION_IN_APP,workflow,workflow.sla_escalation,high,active,1,1,,
+4e9aa7da-48c0-472a-8751-cda1ca752dd7,Fired by the SLA escalation sweep when a workflow instance passes its SLA deadline and a new escalation tier becomes due. (email),workflow.sla_escalation,email,[SLA Escalation Tier {{tier}}] {{process_type}} overdue by {{overdue_days}} day(s),<p>An open workflow instance is past its SLA deadline.</p><ul><li><strong>Process:</strong> {{process_type}}</li><li><strong>Tier:</strong> {{tier}}</li><li><strong>Overdue by:</strong> {{overdue_days}} day(s)</li><li><strong>SLA deadline:</strong> {{sla_deadline}}</li></ul>,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,WORKFLOW_SLA_ESCALATION_EMAIL,workflow,workflow.sla_escalation,high,active,1,1,,
+3d8eac18-ba55-4db0-a44a-492b8cc90166,RFI response is due within 48 hours. (in_app),application.rfi_near_due,in_app,RFI response due soon,Your response to the RFI on application {{application_number}} is due on {{due_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_RFI_NEAR_DUE_IN_APP,application,application.rfi_near_due,high,active,1,1,,
+caf71d50-5197-406b-982a-f54b207497cc,RFI response is due within 48 hours. (email),application.rfi_near_due,email,RFI response due soon,Your response to the RFI on application {{application_number}} is due on {{due_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_RFI_NEAR_DUE_EMAIL,application,application.rfi_near_due,high,active,1,1,,
+b3ffea84-3117-4e1a-a03d-8c3bc859c241,A conduct action was assigned (email),conduct_action_assigned,email,[Market Conduct] Action assigned — {{title}},"Hello,
+
+You have been assigned a supervisory action.
+
+Action: {{title}}
+Type: {{action_type}}
+Due date: {{due_date}}
+
+Open: {{app_url}}/conduct/actions
+
+Regards,
+Market Conduct Supervision",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_ACTION_ASSIGNED_EMAIL,conduct_action_assigned,conduct_action_assigned,medium,active,1,1,,
+db388263-a7c1-4193-a0ff-0c09f66f2bbd,A conduct action was completed (in_app),conduct_action_completed,in_app,Action completed: {{title}},Action {{title}} completed. Outcome: {{outcome}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_ACTION_COMPLETED_IN_APP,conduct_action_completed,conduct_action_completed,medium,active,1,1,,
+16e39cfc-1a9b-4d0d-b0ac-7fdae2b99954,A conduct action was completed (email),conduct_action_completed,email,[Market Conduct] Action completed — {{title}},"Hello,
+
+A supervisory action has been marked completed.
+
+Action: {{title}}
+Outcome: {{outcome}}
+
+Completion notes:
+{{completion_notes}}
+
+Open: {{app_url}}/conduct/actions
+
+Regards,
+Market Conduct Supervision",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_ACTION_COMPLETED_EMAIL,conduct_action_completed,conduct_action_completed,medium,active,1,1,,
+bab9a950-e6b8-4209-8c6c-4b20de1af7ce,conduct_action_created (in_app),conduct_action_created,in_app,Supervisory action issued: {{title}},A {{action_type}} has been issued: {{title}}. Rationale: {{rationale}}. Due: {{due_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_ACTION_CREATED_IN_APP,conduct_action_created,conduct_action_created,medium,active,1,1,,
+d771a2b8-8355-4b67-b6a4-0baf5ca2b34c,conduct_action_created (email),conduct_action_created,email,[Market Conduct] Supervisory action issued — {{title}},"Hello,
+
+A new supervisory action has been issued.
+
+Action: {{title}}
+Type: {{action_type}}
+Due date: {{due_date}}
+
+Rationale:
+{{rationale}}
+
+Description:
+{{description}}
+
+Open the ledger: {{app_url}}/conduct/actions
+
+Regards,
+Market Conduct Supervision",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_ACTION_CREATED_EMAIL,conduct_action_created,conduct_action_created,medium,active,1,1,,
+e8c014b7-7dcb-4359-9018-4f5d341b5676,Licensing appeal acknowledged (in_app),license_appeal.acknowledged,in_app,Appeal {{appeal_reference}} acknowledged,Your appeal {{appeal_reference}} has been acknowledged and is under review.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_APPEAL_ACKNOWLEDGED_IN_APP,license_appeal,license_appeal.acknowledged,medium,active,1,1,,
+ec790545-2127-4744-8d5d-f44af9fcb5ba,Licensing appeal acknowledged (email),license_appeal.acknowledged,email,Appeal {{appeal_reference}} acknowledged,Your appeal {{appeal_reference}} has been acknowledged and is now under review.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_APPEAL_ACKNOWLEDGED_EMAIL,license_appeal,license_appeal.acknowledged,medium,active,1,1,,
+2c2837e2-bb1d-4bf3-a8dc-d94f412e92e4,A new user was invited (in_app),user.invited,in_app,Welcome to {{app_name}},You have been invited to {{app_name}}. Use {{invite_link}} to set your password.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,USER_INVITED_IN_APP,user,user.invited,medium,active,1,1,,
+a499e138-a6bd-4502-a022-f0906e925ff3,A new user was invited (email),user.invited,email,You have been invited to {{app_name}},"Hello {{full_name}},
+
+You have been invited to {{app_name}}.
+
+Click the link below to set your password and sign in:
+{{invite_link}}
+
+If you did not expect this email, please ignore it.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,USER_INVITED_EMAIL,user,user.invited,medium,active,1,1,,
+3e38203d-0665-4230-944e-33b14d6296e8,Confirmation email to the applicant after successful application submission. (in_app),application.submitted.applicant,in_app,Application Submitted Successfully,Your application {{application_number}} has been submitted successfully and is now under review.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_SUBMITTED_APPLICANT_IN_APP,application,application.submitted.applicant,medium,active,1,1,,
+37c57fa6-3e05-4778-9303-ce3c7514cc9d,Confirmation email to the applicant after successful application submission. (email),application.submitted.applicant,email,Application Submitted Successfully - {{application_number}},"Hi {{applicant_name}},
+
+Your application has been submitted successfully and is now under review by the regulator.
+
+Application Number: {{application_number}}
+License Type: {{license_type}}
+Sector: {{sector_name}}
+Sub-Sector: {{sub_sector_name}}
+Category: {{category_name}}
+Submitted On: {{submitted_at}}
+
+You will be notified by email as your application moves through the review workflow. You can track its status any time from your portal dashboard.
+
+Thank you for using {{company_name}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_SUBMITTED_APPLICANT_EMAIL,application,application.submitted.applicant,medium,active,1,1,,
+e387d393-bc21-472d-9491-d7759d5b77d1,conduct_action_waived (in_app),conduct_action_waived,in_app,Action waived: {{title}},Action {{title}} has been waived. Reason: {{waiver_reason}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_ACTION_WAIVED_IN_APP,conduct_action_waived,conduct_action_waived,medium,active,1,1,,
+8d1f5911-ac73-470e-83b7-485f53c118b2,conduct_action_waived (email),conduct_action_waived,email,[Market Conduct] Action waived — {{title}},"Hello,
+
+A supervisory action has been waived.
+
+Action: {{title}}
+
+Waiver reason:
+{{waiver_reason}}
+
+Open: {{app_url}}/conduct/actions
+
+Regards,
+Market Conduct Supervision",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_ACTION_WAIVED_EMAIL,conduct_action_waived,conduct_action_waived,medium,active,1,1,,
+45e9b555-eaeb-47d6-b081-6efc8e38c1b9,Triggered when a registration workflow completes (in_app),registration.workflow_completed,in_app,Registration workflow completed: {{registration_reference}},Workflow {{workflow_name}} (v{{workflow_version}}) completed for registration {{registration_reference}} with status {{status}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_WORKFLOW_COMPLETED_IN_APP,registration,registration.workflow_completed,medium,active,1,1,,
+4ca335bf-4dbf-458a-b0c0-babb84c6f893,Triggered when a registration workflow completes (email),registration.workflow_completed,email,Registration workflow completed: {{registration_reference}},Workflow {{workflow_name}} v{{workflow_version}} for registration {{registration_reference}} completed with status {{status}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_WORKFLOW_COMPLETED_EMAIL,registration,registration.workflow_completed,medium,active,1,1,,
+bfe2c4ef-6ae1-40a2-9c3f-4659b1f4e822,Triggered when a registration workflow starts (in_app),registration.workflow_started,in_app,Registration {{registration_reference}} workflow started,Workflow {{workflow_name}} (v{{workflow_version}}) started for registration {{registration_reference}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_WORKFLOW_STARTED_IN_APP,registration,registration.workflow_started,medium,active,1,1,,
+2e47882b-452a-492e-b9c1-6ff0491a9235,Triggered when a registration workflow starts (email),registration.workflow_started,email,Registration {{registration_reference}} — workflow started,"Hello,
+
+Workflow {{workflow_name}} (v{{workflow_version}}) has been started for registration {{registration_reference}}.
+
+Applicant: {{applicant_name}}
+Current step: {{step_name}}
+",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_WORKFLOW_STARTED_EMAIL,registration,registration.workflow_started,medium,active,1,1,,
+5b87a1a6-03d5-4295-a0da-7c95042a57f5,A regulator response was sent on a correspondence thread (in_app),correspondence.response_sent,in_app,Response on {{reference}},A response has been sent on correspondence {{reference}} — {{subject}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_RESPONSE_SENT_IN_APP,correspondence,correspondence.response_sent,medium,active,1,1,,
+6e27738e-8ab5-413d-b60f-e98c4a4553cf,A regulator response was sent on a correspondence thread (email),correspondence.response_sent,email,Response to your correspondence {{reference}},"Hello,
+
+A response has been issued on correspondence {{reference}} (""{{subject}}"").
+
+{{body}}
+
+You can view the full thread here: {{app_url}}
+
+Regards,
+Regulatory Portal",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_RESPONSE_SENT_EMAIL,correspondence,correspondence.response_sent,medium,active,1,1,,
+d7962c7c-7402-42e2-abb0-f9e8192a5486,A licensee replied on a correspondence thread (email),correspondence.reply_received,email,New reply on correspondence {{reference}},"Hello,
+
+{{sender_name}} has replied on correspondence {{reference}} (""{{subject}}"").
+
+{{body}}
+
+Open the thread here: {{app_url}}
+
+Regards,
+Regulatory Portal",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_REPLY_RECEIVED_EMAIL,correspondence,correspondence.reply_received,medium,active,1,1,,
+e3a5a2fe-d8b5-4ec6-a308-e3615a0fa850,Triggered when a registration step is assigned to a reviewer (in_app),registration.step_assigned,in_app,New registration assigned: {{registration_reference}},You have a new registration {{registration_reference}} pending at step {{step_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_STEP_ASSIGNED_IN_APP,registration,registration.step_assigned,medium,active,1,1,,
+13b83e9e-4ca8-4de7-8bba-0f8fbc5132c5,Triggered when a registration step is assigned to a reviewer (email),registration.step_assigned,email,New registration assigned: {{registration_reference}},You have been assigned to review registration {{registration_reference}} at step {{step_name}} (workflow {{workflow_name}} v{{workflow_version}}).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_STEP_ASSIGNED_EMAIL,registration,registration.step_assigned,medium,active,1,1,,
+0e377272-fdea-4ce1-8f5a-a5aa41916578,Triggered when a registration enters a new workflow step (in_app),registration.step_entered,in_app,Registration {{registration_reference}} reached step {{step_name}},Registration {{registration_reference}} is now at step {{step_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_STEP_ENTERED_IN_APP,registration,registration.step_entered,medium,active,1,1,,
+6656416b-0fea-40f9-80a7-6b915a0654d7,Triggered when a registration enters a new workflow step (email),registration.step_entered,email,Registration {{registration_reference}} — step {{step_name}},Registration {{registration_reference}} entered step {{step_name}} of workflow {{workflow_name}} (v{{workflow_version}}).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_STEP_ENTERED_EMAIL,registration,registration.step_entered,medium,active,1,1,,
+387938f6-c612-4d4b-ba0c-43d793838098,Triggered when a registration is resubmitted (in_app),registration.resubmitted,in_app,Registration {{registration_reference}} resubmitted,Registration {{registration_reference}} was resubmitted by {{applicant_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_RESUBMITTED_IN_APP,registration,registration.resubmitted,medium,active,1,1,,
+ab094387-ec14-43c3-9afc-6bff5b276280,Triggered when a registration is resubmitted (email),registration.resubmitted,email,Registration {{registration_reference}} resubmitted,Registration {{registration_reference}} was resubmitted by {{applicant_name}} on {{submitted_date}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_RESUBMITTED_EMAIL,registration,registration.resubmitted,medium,active,1,1,,
+c20c14c7-49cd-4793-93bd-b014f7e58bf9,Consolidated prudential analysis has been generated for a return (in_app),return.analysis_complete,in_app,Analysis ready for {{return_name}} ({{period}}),Consolidated analysis for {{return_name}} for period {{period}} is now available. Health score: {{health_score}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_ANALYSIS_COMPLETE_IN_APP,return,return.analysis_complete,medium,active,1,1,,
+bc91038b-68a5-427f-bf9e-8dd0e4a81252,Consolidated prudential analysis has been generated for a return (email),return.analysis_complete,email,Consolidated analysis ready — {{return_name}} ({{period}}),"<p>Dear {{user_name}},</p><p>The consolidated prudential analysis for <b>{{return_name}}</b> (period {{period}}) has been generated.</p><p>Health score: <b>{{health_score}}</b><br/>Risk classification: <b>{{risk_level}}</b></p><p>Review it in the supervisor console.</p>",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_ANALYSIS_COMPLETE_EMAIL,return,return.analysis_complete,medium,active,1,1,,
+8ee138b5-41aa-4bdd-b452-acfc3377404c,A reviewer requested more information on an application. (in_app),application.rfi_raised,in_app,Information requested on {{application_number}},A reviewer has requested {{item_count}} clarification(s) on your application {{application_number}}. Please respond{{#due_at}} by {{due_at}}{{/due_at}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_RFI_RAISED_IN_APP,application,application.rfi_raised,medium,active,1,1,,
+9fc29a83-0cb3-4382-b70d-d16ce4df0ea6,A reviewer requested more information on an application. (email),application.rfi_raised,email,Information requested on your application {{application_number}},"Hello,
+
+A reviewer has requested {{item_count}} clarification(s) on your application {{application_number}}.
+
+{{#summary}}Summary: {{summary}}
+
+{{/summary}}{{#due_at}}Please respond by {{due_at}}.
+
+{{/due_at}}Open the RFI here: {{deep_link}}
+
+Thank you.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_RFI_RAISED_EMAIL,application,application.rfi_raised,medium,active,1,1,,
+bd565169-db57-464c-9ca6-ad420387e384,Reviewer saved a comment on an application without changing workflow state. (in_app),application.comment_saved,in_app,Comment added on application {{application_number}},{{reviewer_name}} added a comment on application {{application_number}}: {{comments}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_COMMENT_SAVED_IN_APP,application,application.comment_saved,medium,active,1,1,,
+23659bef-689c-4aff-8324-9be3a2456c00,Reviewer saved a comment on a registration without changing workflow state. (in_app),registration.comment_saved,in_app,Comment added on registration {{registration_reference}},{{reviewer_name}} added a comment on registration {{registration_reference}}: {{comments}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_COMMENT_SAVED_IN_APP,registration,registration.comment_saved,medium,active,1,1,,
+507b5281-4920-4b0e-b41a-7dd9902cb0bc,Prudential action completed. (in_app),prudential_action_completed,in_app,Action completed: {{action_title}},"Prudential action ""{{action_title}}"" for {{entity_name}} has been completed.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_ACTION_COMPLETED_IN_APP,prudential_action_completed,prudential_action_completed,low,active,1,1,,
+8eaaf1b8-3c69-4934-ae1b-8681e24d1c65,Admin-triggered notice that a new form version is available to licensees/PPOC users (in_app),form_version.published,in_app,Form version update: {{form_name}},"Version v{{semantic_version}} of ""{{form_name}}"" is now available.{{effective_line}}",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FORM_VERSION_PUBLISHED_IN_APP,form_version,form_version.published,medium,active,1,1,,
+2836167c-0e72-42d3-ba59-c1f85f830a26,Admin-triggered notice that a new form version is available to licensees/PPOC users (email),form_version.published,email,Form version update: {{form_name}} (v{{semantic_version}}),"Hello,
+
+Version v{{semantic_version}} of the form ""{{form_name}}"" is now available.{{effective_line}}
+
+Please sign in to review the updated form: {{app_url}}
+
+Regards,
+Regulatory Portal",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FORM_VERSION_PUBLISHED_EMAIL,form_version,form_version.published,medium,active,1,1,,
+b8d51f39-11a6-4a1f-a9bf-f85e4c3b778e,Return validation failed during prudential evaluation. (in_app),prudential_return_validation_failed,in_app,Return validation failed: {{entity_name}},Return {{return_id}} failed validation ({{error_count}} errors).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_RETURN_VALIDATION_FAILED_IN_APP,prudential_return_validation_failed,prudential_return_validation_failed,critical,active,1,1,,
+354ab6d8-51d9-4b3e-93a9-50fbd7965edc,Return validation failed during prudential evaluation. (email),prudential_return_validation_failed,email,[Prudential] Return validation failed for {{entity_name}},Return {{return_id}} for {{entity_name}} failed prudential validation with {{error_count}} error(s) and {{warning_count}} warning(s).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_RETURN_VALIDATION_FAILED_EMAIL,prudential_return_validation_failed,prudential_return_validation_failed,critical,active,1,1,,
+fdbf86fc-3160-4870-9f8a-635af23748f2,Prudential threshold breach detected. (in_app),prudential_breach_detected,in_app,Threshold breach: {{entity_name}} · {{metric_key}},{{severity}} breach on {{metric_key}} (value {{value}} vs {{threshold_value}}).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_BREACH_DETECTED_IN_APP,prudential_breach_detected,prudential_breach_detected,critical,active,1,1,,
+0dde150c-d275-4774-bb1b-46f4c6919281,Prudential threshold breach detected. (email),prudential_breach_detected,email,[Prudential] {{severity}} threshold breach for {{entity_name}},A {{severity}} prudential breach on metric {{metric_key}} was detected for {{entity_name}} (value {{value}} vs threshold {{threshold_value}}).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_BREACH_DETECTED_EMAIL,prudential_breach_detected,prudential_breach_detected,critical,active,1,1,,
+17cde4b4-8293-410f-971b-80cc18dfb6d1,License Renewal Requested (In-App),license.renewal_requested,in_app,Renewal requested for {{license_number}},{{initiated_by_name}} requested renewal of {{license_number}} until {{new_valid_until}}.,"[""license_number"", ""initiated_by_name"", ""new_valid_until""]",t,,,2026-06-19 07:53:14.065373+00,2026-06-19 07:53:14.065373+00,LICENSE_RENEWAL_REQUESTED_IN_APP_17cde4,license,license.renewal_requested,medium,active,1,1,,
+0694756f-368e-4469-81ba-164781fae241,License Renewal Approved,license.renewal_approved,email,License {{license_number}} renewed,"Your license {{license_number}} has been renewed.
+
+New validity: {{new_valid_until}}.
+
+A fresh signed certificate is available in the portal.","[""license_number"", ""new_valid_until""]",t,,,2026-06-19 07:53:14.065373+00,2026-06-19 07:53:14.065373+00,LICENSE_RENEWAL_APPROVED_EMAIL_069475,license,license.renewal_approved,medium,active,1,1,,
+e90efe3e-b884-4fcd-94f7-ea9d0257f871,License Expiring (Officer In-App),license.expiring_soon_officer,in_app,License {{license_number}} expiring soon,License {{license_number}} for {{entity_name}} expires in {{days_until_expiry}} days.,"[""license_number"", ""entity_name"", ""days_until_expiry""]",t,,,2026-06-19 07:53:14.065373+00,2026-06-19 07:53:14.065373+00,LICENSE_EXPIRING_SOON_OFFICER_IN_APP_e90efe,license,license.expiring_soon_officer,medium,active,1,1,,
+c39a3ec2-ceaf-4421-a3ad-f7bdbb5bb884,License Expiring (Officer),license.expiring_soon_officer,email,License {{license_number}} expiring in {{days_until_expiry}} days,"Dear Officer,
+
+License {{license_number}} ({{license_type}}) for {{entity_name}} is expiring on {{valid_until}} ({{days_until_expiry}} days remaining).
+
+Please coordinate renewal proceedings if applicable.
+
+Regards,
+{{app_name}}","[""license_number"", ""license_type"", ""entity_name"", ""valid_until"", ""days_until_expiry"", ""app_name""]",t,,,2026-06-19 07:53:14.065373+00,2026-06-19 07:53:14.065373+00,LICENSE_EXPIRING_SOON_OFFICER_EMAIL_c39a3e,license,license.expiring_soon_officer,medium,active,1,1,,
+6f9a5bed-4c71-43a7-9f55-9dfe3b79f577,Return Due Reminder,compliance.return_due,in_app,Compliance return due,Your return {{return_name}} is due on {{due_date}}.,"[""return_name"", ""due_date""]",t,,,2026-05-11 04:58:51.693507+00,2026-05-11 06:14:50.160872+00,COMPLIANCE_RETURN_DUE_IN_APP_6f9a5b,compliance,compliance.return_due,medium,active,1,1,,
+76acf213-1e74-4132-91a0-f49cd7bc610f,Decision dispatched to applicant (email),application.decision_dispatched,email,Decision issued: {{application_number}},The decision for application {{application_number}} has been issued. Outcome: {{outcome}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,APPLICATION_DECISION_DISPATCHED_EMAIL,licensing,application.decision_dispatched,high,active,1,1,,
+15050c44-d0b6-41cd-b80a-cbc19226d44a,Complaint outcome released (email),complaint.outcome_released,email,Outcome for complaint {{complaint_number}},The outcome for complaint {{complaint_number}} is now available: {{outcome}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,COMPLAINT_OUTCOME_RELEASED_EMAIL,conduct,complaint.outcome_released,medium,active,1,1,,
+a793024b-1459-4357-ac4a-0ad8524d7a52,SMS provider unavailable or failing (in_app),system_health.sms_provider_failure,in_app,SMS provider failure,SMS delivery is failing ({{failure_count}} failures in {{window_label}}). Latest error: {{error_message}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SYSTEM_HEALTH_SMS_PROVIDER_FAILURE_IN_APP,system,system_health.sms_provider_failure,critical,active,1,1,,
+e287b194-7338-4a62-afef-bb62daab3f7f,SMS provider unavailable or failing (email),system_health.sms_provider_failure,email,SMS provider failure,SMS delivery is failing ({{failure_count}} failures in {{window_label}}). Latest error: {{error_message}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SYSTEM_HEALTH_SMS_PROVIDER_FAILURE_EMAIL,system,system_health.sms_provider_failure,critical,active,1,1,,
+ca3f1448-616f-47b0-81b5-d346bf7ed08a,Scheduled job failures detected (email),system_health.scheduler_failure,email,Scheduler failures detected,{{failure_count}} scheduled jobs failed in the last {{window_label}}. Latest: {{job_label}} — {{error_message}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,SYSTEM_HEALTH_SCHEDULER_FAILURE_EMAIL,system,system_health.scheduler_failure,critical,active,1,1,,
+097b994d-607c-42a4-ac1b-c2d830a62a24,Return overdue (in_app),return.overdue,in_app,Return overdue,Return {{return_id}} is overdue (due {{due_date}}).,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_OVERDUE_IN_APP,return,return.overdue,high,active,1,1,,
+d91ebfd0-d53c-439f-b9f3-d2991e8589b1,Return validation passed (in_app),return.validation_passed,in_app,Return validation passed,Your return {{return_id}} passed validation.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_VALIDATION_PASSED_IN_APP,return,return.validation_passed,medium,active,1,1,,
+3519e82a-1f02-4841-8aef-b3df7176365e,Confirm to the submitter that a return was resubmitted successfully. (in_app),return.resubmitted.confirmation,in_app,Return resubmitted successfully: {{return_unique_id}},Your return {{return_unique_id}} has been resubmitted successfully and is back under review.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,RETURN_RESUBMITTED_CONFIRMATION_IN_APP,return,return.resubmitted.confirmation,medium,active,1,1,,
+a693d102-1d84-4850-956b-cd618b1484df,Restricted evidence access was denied (in_app),conduct_evidence_access_denied,in_app,Access denied to restricted evidence,Access to restricted evidence {{evidence_id}} was denied.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CONDUCT_EVIDENCE_ACCESS_DENIED_IN_APP,conduct_evidence_access_denied,conduct_evidence_access_denied,high,active,1,1,,
+98cfcbce-f897-4241-9cf4-a184ac7f1acf,License has expired (in_app),license.expired,in_app,License {{license_number}} expired,Your license {{license_number}} expired on {{valid_until}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_EXPIRED_IN_APP,license,license.expired,critical,active,1,1,,
+c5713c4c-af8b-44eb-a56f-69273f16eaf2,Licensing appeal panel assigned (in_app),license_appeal.panel_assigned,in_app,Appeal {{appeal_reference}} referred to panel,Your appeal {{appeal_reference}} has been referred to an appeal panel.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_APPEAL_PANEL_ASSIGNED_IN_APP,license_appeal,license_appeal.panel_assigned,medium,active,1,1,,
+e9b16b31-c711-443b-885b-cf8e94f33e8e,A Fit & Proper appeal decision was recorded. (in_app),fp_appeal_decided,in_app,F&P appeal decided,Decision recorded on your appeal: {{decision}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,FP_APPEAL_DECIDED_IN_APP,fp_appeal_decided,fp_appeal_decided,medium,active,1,1,,
+c7b344f8-20c7-4754-9adb-2f02181f6730,A licensee replied on a correspondence thread (in_app),correspondence.reply_received,in_app,New reply on {{reference}},{{sender_name}} replied on correspondence {{reference}} — {{subject}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,CORRESPONDENCE_REPLY_RECEIVED_IN_APP,correspondence,correspondence.reply_received,medium,active,1,1,,
+82d60578-0a0f-4734-9e68-172f43fbbd14,Triggered when a registration is pending review (email),registration.pending_review,email,Registration {{registration_reference}} pending your review,Registration {{registration_reference}} from {{applicant_name}} is pending your review at step {{step_name}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,REGISTRATION_PENDING_REVIEW_EMAIL,registration,registration.pending_review,medium,active,1,1,,
+c38ae0ad-df02-4c96-ac2f-f2dd09f29413,License renewal approved (in_app),license.renewal_approved,in_app,License {{license_number}} renewed,License {{license_number}} renewed until {{new_valid_until}}.,[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,LICENSE_RENEWAL_APPROVED_IN_APP,license,license.renewal_approved,low,active,1,1,,
+22a8abae-d5e7-454c-ac7c-abc3e2a01abc,Prudential escalation created. (email),prudential_escalation_created,email,[Prudential] Escalation raised for {{entity_name}},A prudential escalation has been raised for {{entity_name}}. Reason: {{reason}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_ESCALATION_CREATED_EMAIL,prudential_escalation_created,prudential_escalation_created,high,active,1,1,,
+88e7b331-ed3e-4aa7-9dcc-08aa816c2f6d,Prudential escalation resolved. (in_app),prudential_escalation_resolved,in_app,Escalation resolved: {{entity_name}},Prudential escalation for {{entity_name}} resolved. Decision: {{decision}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_ESCALATION_RESOLVED_IN_APP,prudential_escalation_resolved,prudential_escalation_resolved,high,active,1,1,,
+6ace3917-a745-4374-bdb2-903cd2b559d7,Prudential escalation resolved. (email),prudential_escalation_resolved,email,[Prudential] Escalation resolved for {{entity_name}},Prudential escalation for {{entity_name}} resolved. Decision: {{decision}},[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_ESCALATION_RESOLVED_EMAIL,prudential_escalation_resolved,prudential_escalation_resolved,high,active,1,1,,
+48aa58bf-05ca-47a2-a0fc-c453ade94750,A prudential stress indicator has been triggered. (in_app),prudential_stress_indicator_triggered,in_app,Stress indicator triggered: {{label}},"Stress indicator ""{{label}}"" ({{severity}}) triggered for {{entity_name}} at value {{observed_value}} (threshold {{threshold_value}}).",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_STRESS_INDICATOR_TRIGGERED_IN_APP,prudential_stress_indicator_triggered,prudential_stress_indicator_triggered,high,active,1,1,,
+4c854a71-2540-4c93-a6aa-48f1fe8b27a8,A prudential stress indicator has been triggered. (email),prudential_stress_indicator_triggered,email,[Prudential] Stress indicator {{label}} triggered for {{entity_name}},"Stress indicator ""{{label}}"" ({{severity}}) was triggered for {{entity_name}}. Observed value {{observed_value}} vs threshold {{threshold_value}} on metric {{metric_key}}.",[],t,,,2026-08-03 08:09:48.697675+00,2026-08-03 08:09:48.697675+00,PRUDENTIAL_STRESS_INDICATOR_TRIGGERED_EMAIL,prudential_stress_indicator_triggered,prudential_stress_indicator_triggered,high,active,1,1,,

@@ -181,20 +181,35 @@ SELECT 'CREATE POLICY ' || quote_ident(pol.polname) || ' ON public.' || quote_id
 # ----------------------------------------------------------------- 90 grants
 q "
 WITH t AS (
-  SELECT c.relname, c.relkind, c.oid FROM pg_class c
-   WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r','v','m','S')
+  SELECT c.relname, c.oid FROM pg_class c
+   WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r','v','m')
 ), g AS (
-  SELECT t.relname, t.relkind, r.rolname, p.priv
+  SELECT t.relname, r.rolname, p.priv
     FROM t
     CROSS JOIN (VALUES ('anon'),('authenticated'),('service_role')) AS r(rolname)
-    CROSS JOIN (VALUES ('SELECT'),('INSERT'),('UPDATE'),('DELETE'),('REFERENCES'),('TRIGGER'),('USAGE')) AS p(priv)
-   WHERE (t.relkind = 'S') = (p.priv IN ('USAGE','SELECT','UPDATE'))
-     AND has_table_privilege(r.rolname, t.oid, p.priv)
+    CROSS JOIN (VALUES ('SELECT'),('INSERT'),('UPDATE'),('DELETE'),('REFERENCES'),('TRIGGER')) AS p(priv)
+   WHERE has_table_privilege(r.rolname, t.oid, p.priv)
 )
 SELECT 'GRANT ' || string_agg(priv, ', ' ORDER BY priv) || ' ON public.' ||
        quote_ident(relname) || ' TO ' || quote_ident(rolname) || ';'
   FROM g GROUP BY relname, rolname ORDER BY relname, rolname;
 " >"$OUT/90_grants_tables.sql"
+
+q "
+WITH s AS (
+  SELECT c.relname, c.oid FROM pg_class c
+   WHERE c.relnamespace = 'public'::regnamespace AND c.relkind = 'S'
+), g AS (
+  SELECT s.relname, r.rolname, p.priv
+    FROM s
+    CROSS JOIN (VALUES ('anon'),('authenticated'),('service_role')) AS r(rolname)
+    CROSS JOIN (VALUES ('USAGE'),('SELECT'),('UPDATE')) AS p(priv)
+   WHERE has_sequence_privilege(r.rolname, s.oid, p.priv)
+)
+SELECT 'GRANT ' || string_agg(priv, ', ' ORDER BY priv) || ' ON SEQUENCE public.' ||
+       quote_ident(relname) || ' TO ' || quote_ident(rolname) || ';'
+  FROM g GROUP BY relname, rolname ORDER BY relname, rolname;
+" >>"$OUT/90_grants_tables.sql"
 
 q "
 WITH f AS (

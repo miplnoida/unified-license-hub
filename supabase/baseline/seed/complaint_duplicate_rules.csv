@@ -1,0 +1,9 @@
+id,code,name,description,category,weight,enabled,created_at,updated_at
+5c00ddbb-e393-4202-aaf3-059b2042a20d,exact_email,Exact email match,Same complainant email,identity,90,t,2026-07-16 07:48:42.798672+00,2026-07-16 07:48:42.798672+00
+22ef5238-e0a6-4ff0-8d67-582aa2b938f3,exact_phone,Exact phone match,Same complainant phone,identity,85,t,2026-07-16 07:48:42.798672+00,2026-07-16 07:48:42.798672+00
+5f22cf0f-4f04-46a9-a20a-9bd97ad4f4ab,fuzzy_name,Fuzzy name match,Complainant name similarity,identity,60,t,2026-07-16 07:48:42.798672+00,2026-07-16 07:48:42.798672+00
+422e6bfb-9132-493b-8171-b395225d653b,same_institution_product,Same institution + product,Same regulated entity and product,context,55,t,2026-07-16 07:48:42.798672+00,2026-07-16 07:48:42.798672+00
+71552af4-0bbb-4ef7-9701-e30a02ab1dc9,same_intermediary,Same intermediary,Shared broker or agent reference,context,50,t,2026-07-16 07:48:42.798672+00,2026-07-16 07:48:42.798672+00
+130c34e6-8edc-4b7a-91b9-4a027fab1498,keyword_overlap,Description keyword overlap,Shared distinctive keywords,content,40,t,2026-07-16 07:48:42.798672+00,2026-07-16 07:48:42.798672+00
+f68221e4-f786-46e6-aeda-984ac704fd41,time_window,Time-window proximity,Filed within configured window,context,25,t,2026-07-16 07:48:42.798672+00,2026-07-16 07:48:42.798672+00
+66b9efe6-3b46-4466-b5fb-7b55104edc36,same_issue,Same issue category,Same complaint type,content,35,f,2026-07-16 07:48:42.798672+00,2026-07-16 07:48:42.798672+00

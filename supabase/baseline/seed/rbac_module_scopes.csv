@@ -1,0 +1,66 @@
+module,scope,selector,label,help,created_at
+returns_management,all,,All records,See every record in this module.,2026-07-21 17:02:51.263288+00
+returns_management,assigned,,Assigned only,Only records assigned to this user.,2026-07-21 17:02:51.263288+00
+returns_management,institution,licensees,Selected institutions,Records for a specific list of licensees.,2026-07-21 17:02:51.263288+00
+returns_management,sector,sectors,Selected sectors,Records whose licensee belongs to selected sectors.,2026-07-21 17:02:51.263288+00
+complaint_management,all,,All records,,2026-07-21 17:02:51.263288+00
+complaint_management,assigned,,Assigned only,,2026-07-21 17:02:51.263288+00
+market_conduct,all,,All records,,2026-07-21 17:02:51.263288+00
+market_conduct,assigned,,Assigned only,,2026-07-21 17:02:51.263288+00
+market_conduct,sector,sectors,Selected sectors,,2026-07-21 17:02:51.263288+00
+application_management,all,,All records,,2026-07-21 17:02:51.263288+00
+application_management,assigned,,Assigned only,,2026-07-21 17:02:51.263288+00
+licensee_management,all,,All records,,2026-07-21 17:02:51.263288+00
+licensee_management,assigned,,Assigned only,,2026-07-21 17:02:51.263288+00
+licensee_management,institution,licensees,Selected institutions,,2026-07-21 17:02:51.263288+00
+licensee_management,sector,sectors,Selected sectors,,2026-07-21 17:02:51.263288+00
+license_management,all,,All records,,2026-07-21 17:02:51.263288+00
+license_management,assigned,,Assigned only,,2026-07-21 17:02:51.263288+00
+license_management,institution,licensees,Selected institutions,,2026-07-21 17:02:51.263288+00
+registration_management,all,,All records,,2026-07-21 17:02:51.263288+00
+registration_management,assigned,,Assigned only,,2026-07-21 17:02:51.263288+00
+prudential_supervision,all,,All records,,2026-07-21 17:02:51.263288+00
+prudential_supervision,assigned,,Assigned only,,2026-07-21 17:02:51.263288+00
+prudential_supervision,institution,licensees,Selected institutions,,2026-07-21 17:02:51.263288+00
+prudential_supervision,sector,sectors,Selected sectors,,2026-07-21 17:02:51.263288+00
+fit_and_proper,all,,All records,,2026-07-21 17:02:51.263288+00
+fit_and_proper,assigned,,Assigned only,,2026-07-21 17:02:51.263288+00
+fit_and_proper,institution,licensees,Selected institutions,,2026-07-21 17:02:51.263288+00
+enforcement,all,,All records,,2026-07-21 17:02:51.263288+00
+enforcement,assigned,,Assigned only,,2026-07-21 17:02:51.263288+00
+inspection_management,all,,All records,,2026-07-21 17:02:51.263288+00
+inspection_management,assigned,,Assigned only,,2026-07-21 17:02:51.263288+00
+inspection_management,institution,licensees,Selected institutions,,2026-07-21 17:02:51.263288+00
+compliance_returns,all,,All records,,2026-07-21 17:02:51.263288+00
+compliance_returns,assigned,,Assigned only,,2026-07-21 17:02:51.263288+00
+compliance_returns,institution,licensees,Selected institutions,,2026-07-21 17:02:51.263288+00
+fee_management,all,,All records,,2026-07-21 17:02:51.263288+00
+fee_management,assigned,,Assigned only,,2026-07-21 17:02:51.263288+00
+form_management,all,,All records,,2026-07-21 17:02:51.263288+00
+form_management,own,,Own records only,,2026-07-21 17:02:51.263288+00
+audit_management,all,,All records,,2026-07-21 17:02:51.263288+00
+settings,all,,All records,,2026-07-21 17:02:51.263288+00
+role_management,all,,All records,,2026-07-21 17:02:51.263288+00
+notification_management,all,,All records,,2026-07-21 17:02:51.263288+00
+reports_management,all,,All records,,2026-07-21 17:02:51.263288+00
+reports_management,assigned,,Assigned only,,2026-07-21 17:02:51.263288+00
+reports_management,sector,sectors,Selected sectors,,2026-07-21 17:02:51.263288+00
+complaint_type,all,,All records,,2026-07-23 05:48:14.370161+00
+executive_oversight,all,,All records,,2026-07-23 05:48:14.370161+00
+fit_and_proper_committee,all,,All records,,2026-07-23 05:48:14.370161+00
+fit_and_proper_screening,all,,All records,,2026-07-23 05:48:14.370161+00
+ai_management,all,,All records,,2026-07-23 05:48:14.370161+00
+report_management,all,,All records,,2026-07-23 05:48:14.370161+00
+market_conduct_investigation,all,,All records,,2026-07-23 05:48:14.370161+00
+admin_dashboard,all,,All records,,2026-07-23 05:48:14.370161+00
+prudential_payment_systems,all,,All records,,2026-07-23 05:48:14.370161+00
+fit_and_proper_initiation,all,,All records,,2026-07-23 05:48:14.370161+00
+enforcement_management,all,,All records,,2026-07-23 05:48:14.370161+00
+coordination,all,,All records,,2026-07-23 05:48:14.370161+00
+security_management,all,,All records,,2026-07-23 05:48:14.370161+00
+workflow_management,all,,All records,,2026-07-23 05:48:14.370161+00
+licensing,all,,All records,,2026-07-23 05:48:14.370161+00
+user_management,all,,All records,,2026-07-23 05:48:14.370161+00
+compliance_management,all,,All records,,2026-07-23 05:48:14.370161+00
+license_appeals,all,,All records,,2026-07-30 06:45:18.01154+00
+rule_engine,all,,All records,,2026-08-03 16:30:18.602734+00

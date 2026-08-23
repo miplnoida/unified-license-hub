@@ -1,0 +1,7 @@
+code,label,description,public_label,public_description,is_terminal,is_open,sort_order,variant,created_at,updated_at
+submitted,Submitted,"Complaint received, awaiting triage.",Received,Your complaint has been received and is awaiting review.,f,t,10,default,2026-07-17 08:01:24.038261+00,2026-07-17 08:01:24.038261+00
+under_investigation,Under Investigation,Complaint is being actively investigated.,Under review,Your complaint is being reviewed by the regulator.,f,t,20,outline,2026-07-17 08:01:24.038261+00,2026-07-17 08:01:24.038261+00
+resolved,Resolved,A resolution has been reached.,Resolved,A resolution has been reached for your complaint.,f,f,30,default,2026-07-17 08:01:24.038261+00,2026-07-17 08:01:24.038261+00
+closed,Closed,Complaint file is closed.,Closed,Your complaint file has been closed.,t,f,40,secondary,2026-07-17 08:01:24.038261+00,2026-07-17 08:01:24.038261+00
+rejected,Rejected,Complaint was rejected during triage or review.,Not accepted,Your complaint was not accepted for investigation.,t,f,50,destructive,2026-07-17 08:01:24.038261+00,2026-07-17 08:01:24.038261+00
+duplicate,Duplicate,Complaint merged with an existing case.,Merged with earlier case,Your complaint has been linked to an earlier case.,t,f,60,secondary,2026-07-17 08:01:24.038261+00,2026-07-17 08:01:24.038261+00

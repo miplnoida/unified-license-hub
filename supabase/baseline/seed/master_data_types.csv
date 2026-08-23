@@ -1,0 +1,7 @@
+id,name,code,description,status,sort_order,created_at,updated_at
+7113fb82-6088-4499-9d0e-a406cdca8daf,Country,COUNTRY,List of countries,active,1,2026-04-14 14:46:56.285575+00,2026-04-14 14:46:56.285575+00
+a2361ffa-1699-4c4e-904c-58d6cf3225de,State,STATE,States/provinces (parent: Country),active,2,2026-04-14 14:46:56.285575+00,2026-04-14 14:46:56.285575+00
+85db5ff0-f1ef-454f-85c1-277b14e149ca,City,CITY,Cities (parent: State),active,3,2026-04-14 14:46:56.285575+00,2026-04-14 14:46:56.285575+00
+eb2354f3-971f-4265-9846-6d9e26c1c75e,Document Type,DOC_TYPE,Types of documents for upload,active,4,2026-04-14 14:46:56.285575+00,2026-04-14 14:46:56.285575+00
+1f968757-2e26-4106-a92d-48c6c9e26849,Currency,CURRENCY,Currency codes,active,5,2026-04-14 14:46:56.285575+00,2026-04-14 14:46:56.285575+00
+e1580749-babe-4f75-a880-4c9b66d6f139,Business Type,BIZ_TYPE,Types of business entities,active,6,2026-04-14 14:46:56.285575+00,2026-04-14 14:46:56.285575+00

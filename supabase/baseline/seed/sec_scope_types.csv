@@ -1,0 +1,6 @@
+id,key,label,description,requires_values,value_kind,is_enforced,sort_order,is_system,is_active,created_at,updated_at
+a4f21631-a2c2-474d-b902-522c0e23fb33,all,All records,No data restriction within the module.,f,,t,10,t,t,2026-08-19 14:11:29.054368+00,2026-08-19 14:11:29.054368+00
+f5c05a72-7f0f-46e7-9003-93910d6fc5b3,assigned,Assigned records,Only records assigned to the user.,f,,t,20,t,t,2026-08-19 14:11:29.054368+00,2026-08-19 14:11:29.054368+00
+1387c85c-1728-4ce9-a83c-0f6f6b6ce702,sector,Selected sectors,Only records in the selected sectors.,t,sector,t,30,t,t,2026-08-19 14:11:29.054368+00,2026-08-19 14:11:29.054368+00
+fdb734c2-25a8-4617-8fe6-9c95186cc83d,institution,Selected licensees,Only records for the selected institutions.,t,licensee,t,40,t,t,2026-08-19 14:11:29.054368+00,2026-08-19 14:11:29.054368+00
+9b06c95e-e814-467d-a4e0-f5c35a7ee47c,own,Own records,Only records the user owns/created.,f,,t,50,t,t,2026-08-19 14:11:29.054368+00,2026-08-19 14:11:29.054368+00

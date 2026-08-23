@@ -1,0 +1,6 @@
+id,key,label,description,is_direct_default,confers_control,sort_order,is_system,is_active,created_at,updated_at
+dca687d0-4b0b-4432-aa74-33b1a7b3f279,DIRECT_SHAREHOLDING,Direct shareholding,Legal shareholding held directly in the entity,t,f,10,t,t,2026-08-20 08:25:16.052841+00,2026-08-20 08:25:16.052841+00
+9822299d-4fc8-4c43-8350-d7fe49a453cd,INDIRECT_SHAREHOLDING,Indirect shareholding,Shareholding held through one or more intermediaries,f,f,20,t,t,2026-08-20 08:25:16.052841+00,2026-08-20 08:25:16.052841+00
+184d9b38-8477-4816-8e05-0d8bbb811244,BENEFICIAL_INTEREST,Beneficial interest,Ultimate economic benefit irrespective of legal title,f,t,30,t,t,2026-08-20 08:25:16.052841+00,2026-08-20 08:25:16.052841+00
+23dcdcf7-77d1-4cb2-b17a-ec2efc076e92,VOTING_CONTROL,Voting control,"Control of voting rights, including by agreement",t,t,40,t,t,2026-08-20 08:25:16.052841+00,2026-08-20 08:25:16.052841+00
+f904ae0c-ffe0-4fc2-82d6-b406e8aea7c7,TRUST_INTEREST,Trust interest,Interest held via a trust arrangement,f,t,50,t,t,2026-08-20 08:25:16.052841+00,2026-08-20 08:25:16.052841+00

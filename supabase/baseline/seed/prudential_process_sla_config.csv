@@ -1,0 +1,9 @@
+work_item_type,label,sla_days,due_soon_days,updated_at
+BREACH,Threshold breach acknowledgement / response,5,2,2026-08-21 10:25:15.630579+00
+EWI,Early warning indicator review,10,3,2026-08-21 10:25:15.630579+00
+ASSESSMENT,Prudential assessment completion,15,5,2026-08-21 10:25:15.630579+00
+SUPERVISORY_ACTION,Supervisory action follow-up,7,3,2026-08-21 10:25:15.630579+00
+ESCALATION,Escalation decision,7,2,2026-08-21 10:25:15.630579+00
+STRESS_EVENT,Stress event review,7,2,2026-08-21 10:25:15.630579+00
+PLAN_ACTION,Supervisory plan action,14,5,2026-08-21 10:25:15.630579+00
+EXAMINATION,Examination stage progression,30,7,2026-08-21 10:25:15.630579+00

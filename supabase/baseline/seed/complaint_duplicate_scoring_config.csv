@@ -1,0 +1,2 @@
+id,active,weight_email,weight_licensee,weight_subject_trgm,weight_description_trgm,time_window_days,min_score,created_at,updated_at
+a01b4bb2-a34e-4348-bf9d-90f8e87f0c23,t,40,20,20,20,30,50,2026-07-17 08:56:39.709929+00,2026-07-17 08:56:39.709929+00

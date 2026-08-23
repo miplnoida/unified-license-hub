@@ -1,0 +1,9 @@
+key,value,description,updated_at
+reports.maxPreviewRows,100,Max rows returned in preview mode,2026-06-09 12:32:01.836518+00
+reports.maxGenerateRows,10000,Max rows returned/saved in generate mode,2026-06-09 12:32:01.836518+00
+reports.enablePdfExport,true,Allow PDF export in UI,2026-06-09 12:32:01.836518+00
+reports.enableScheduling,true,Allow scheduling features,2026-06-09 12:32:01.836518+00
+reports.enableTemplates,true,Allow saving ad-hoc templates,2026-06-09 12:32:01.836518+00
+reports.enableFavorites,true,Allow report favorites,2026-06-09 12:32:01.836518+00
+reports.enableDrilldowns,true,Allow Overview drilldowns,2026-06-09 12:32:01.836518+00
+reports.useDatabaseDefinitions,true,Prefer DB report_definitions over frontend fallback,2026-06-09 12:32:01.836518+00

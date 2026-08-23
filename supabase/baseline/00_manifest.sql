@@ -1,1 +1,18 @@
--- generated 2026-08-23T15:47:51Z from the certified schema
+-- RC1 install baseline manifest
+-- generated: 2026-08-23T15:49:01Z
+-- source: certified schema (catalog introspection only)
+-- 10_types.sql                 22 statements
+-- 20_sequences.sql             16 statements
+-- 30_tables.sql                507 statements
+-- 40_functions.sql             19951 statements
+-- 55_defaults.sql              2900 statements
+-- 60_constraints_pk.sql        711 statements
+-- 62_indexes.sql               658 statements
+-- 64_constraints_check_fk.sql  1279 statements
+-- 70_triggers.sql              551 statements
+-- 80_rls.sql                   506 statements
+-- 82_policies.sql              1033 statements
+-- 90_grants_tables.sql         1524 statements
+-- 92_grants_functions.sql      2509 statements
+-- 50_views.tsv                 27 views
+-- 95_seed.sql                  82 tables

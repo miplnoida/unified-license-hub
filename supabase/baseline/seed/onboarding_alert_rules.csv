@@ -1,0 +1,7 @@
+id,rule_key,label,description,condition_type,threshold_count,window_minutes,severity,is_active,created_at
+7395cf92-e30a-44b6-a8a8-fba41a4c1124,MANY_SEARCHES_NEW_ACCOUNT,Many entity searches by one new account,A single recently created account performed an unusual number of entity identification attempts.,SEARCH_VOLUME_PER_USER,10,60,medium,t,2026-08-21 18:56:56.953692+00
+8932e2a4-6d67-4b3a-892c-94bce2c4fc3d,MANY_ACCOUNTS_SAME_ENTITY,Many accounts searching the same entity,Several different accounts searched the same organisation in a short window.,DISTINCT_USERS_PER_NAME,5,1440,high,t,2026-08-21 18:56:56.953692+00
+32edccb9-be31-48ee-9e0b-8b90fd846195,REPEATED_IDENTIFIER_FAILURE,Repeated failed identifier attempts,Repeated NO_MATCH or validation failures with supplied identifiers.,REPEATED_FAILURE,5,60,medium,t,2026-08-21 18:56:56.953692+00
+3e4d8859-f26a-453f-b386-a5a04a10beb2,REPEATED_POSSIBLE_MATCH,Repeated possible-match attempts,The same account repeatedly triggers possible-match resolution.,REPEATED_POSSIBLE_MATCH,3,1440,medium,t,2026-08-21 18:56:56.953692+00
+fe8ad566-d498-47a1-b2bc-ba9a7d6e8ac9,PRIMARY_REPRESENTATIVE_REQUEST,High-privilege representative request,A request for PRIMARY_REPRESENTATIVE authority was made.,PRIMARY_REPRESENTATIVE_REQUEST,1,,high,t,2026-08-21 18:56:56.953692+00
+fe6c58d3-ac8e-436d-a660-6718a7c581fd,CONTRADICTORY_ENTITY_INFO,Search followed by contradictory entity information,Subsequent submitted entity information contradicts the matched entity.,CONTRADICTORY_INFORMATION,1,,high,t,2026-08-21 18:56:56.953692+00

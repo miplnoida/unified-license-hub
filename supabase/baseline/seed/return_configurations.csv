@@ -1,0 +1,5 @@
+id,name,form_id,sector_id,sub_sector_id,frequency,due_day,is_active,created_at,updated_at,regulator_id,return_template_id
+4b9686a4-ee4d-4038-a49c-b3d0432b621e,IFRS 17 Quarterly,,,,quarterly,30,t,2026-04-02 11:55:29.64011+00,2026-04-02 11:55:29.64011+00,8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3,4d9ccab8-3766-4f85-b0be-ab33c7b64893
+1a8e9f9f-6bfa-40cd-afe8-73d2bea98eed,IFRS 17 Annual,d1a2b3c4-0001-4000-8000-000000000001,1ea22781-fee7-4a26-b382-09f0477485d5,0f9ffb4e-2f4d-4083-af42-3cd09fd6624b,yearly,31,t,2026-03-23 06:26:24.022877+00,2026-03-23 06:26:24.022877+00,8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3,b00ad4c7-6549-4f32-9a82-31052173cbc6
+c804167d-986d-4578-9692-d68b02ed962d,Balance Sheet Return,,,,monthly,15,t,2026-07-01 13:20:54.691071+00,2026-07-01 13:20:54.691071+00,8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3,
+b5d22673-48f4-4cd0-8962-25cf3ed28d9e,Commercial Bank Quarterly Prudential (Balance Sheet),,d90ffa53-709b-41e8-a6d9-efd1bbac69bc,,quarterly,30,t,2026-07-08 16:55:06.521727+00,2026-07-08 16:55:06.521727+00,,
