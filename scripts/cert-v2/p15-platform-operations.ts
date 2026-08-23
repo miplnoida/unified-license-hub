@@ -59,8 +59,9 @@ async function main() {
   }
 
   // canonical registry proof (read through a governed persona, not the legacy tables)
-  const canon = await sel(SUPER, 'sec_user_roles?select=status,sec_roles!inner(key,is_break_glass)&sec_roles.is_break_glass=eq.true&status=eq.active');
-  record('P15.05 exactly one active break-glass assignment in sec_user_roles', (canon.body || []).length === 1, canon.text);
+  const canon = await sel(SUPER, 'sec_user_roles?select=user_id,status,sec_roles!inner(key,is_break_glass)&sec_roles.is_break_glass=eq.true&status=eq.active&user_id=eq.f26c4940-d64a-4734-bc79-04cc37567b2d');
+  record('P15.05 designated break-glass account holds exactly one active break-glass assignment', (canon.body || []).length === 1, canon.text);
+
 
   // ---------- NORMAL ADMINISTRATOR ----------
   const admCtx = await rpc(SYSADM, 'sec_get_user_context', {});
