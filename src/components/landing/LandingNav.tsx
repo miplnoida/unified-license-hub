@@ -69,8 +69,8 @@ export function LandingNav() {
         </div>
 
         {/* Mobile toggle */}
-        <div className="flex items-center gap-2 md:hidden">
-          <Button variant="outline" size="sm" onClick={() => navigate('/login')}>
+        <div className="flex items-center gap-2 lg:hidden">
+          <Button variant="outline" size="sm" className="md:hidden" onClick={() => navigate('/login')}>
             <Lock className="mr-1.5 h-3.5 w-3.5" /> Sign In
           </Button>
           <button aria-label="Toggle menu" className="p-2" onClick={() => setOpen(!open)}>
