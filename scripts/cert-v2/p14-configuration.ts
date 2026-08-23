@@ -71,7 +71,12 @@ async function main() {
 
   // 5. immutability of the superseded published record
   const mutate = await patch(SYSADM, `form_versions?id=eq.${draftId}`, { schema_snapshot: { tampered: true }, version: 999 });
-  record('P14.09 published version is immutable to direct mutation', denied(mutate) || mutate.status >= 400, `HTTP ${mutate.status} ${mutate.text}`);
+  const recheck = await sel(SYSADM, `form_versions?id=eq.${draftId}&select=id,version,schema_snapshot`);
+  const untouched = recheck.body?.[0]?.version !== 999 && !recheck.body?.[0]?.schema_snapshot?.tampered;
+  record('P14.09 published version is immutable to direct mutation',
+    (denied(mutate) || mutate.status >= 400 || (mutate.body || []).length === 0) && untouched,
+    `HTTP ${mutate.status} rows=${(mutate.body || []).length} untouched=${untouched} ${mutate.text}`);
+
 
   // 6. no silent migration of Case A
   const reA = await rpc(APPLICANT, 'resolve_application_form_version', { _application_id: caseA.id, _template_id: TEMPLATE });
