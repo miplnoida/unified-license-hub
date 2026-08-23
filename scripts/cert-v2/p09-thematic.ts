@@ -8,27 +8,26 @@ const stamp = Date.now().toString().slice(-8);
 
 async function main() {
   // --- Trigger / create review (draft) --------------------------------
-  const created = await ins(SUPERVISOR, 'thematic_reviews', {
-    title: `Cert P09 Thematic Review ${stamp}`,
-    description: 'Certification thematic review on consumer disclosure practices.',
-    methodology: { sampling: 'risk_based', channels: ['website', 'call_centre'] },
-    hypothesis: 'Some licensees may not be providing adequate pre-contract disclosure.',
+  const created = await rpc(SUPERVISOR, 'thematic_review_create', {
+    _payload: {
+      title: `Cert P09 Thematic Review ${stamp}`,
+      description: 'Certification thematic review on consumer disclosure practices.',
+      hypothesis: 'Some licensees may not be providing adequate pre-contract disclosure.',
+    },
   });
-  const review = created.body?.[0];
+  const review = created.body;
   record('P09.01 supervisor triggers/creates thematic review', created.ok && !!review?.id, created.text);
   if (!review?.id) return summary('P09');
   const reviewId: string = review.id;
 
   // Analyst cannot create reviews (write policy is supervisor/admin/super_admin only)
-  const analystCreate = await ins(ANALYST, 'thematic_reviews', {
-    title: `Cert P09 Analyst Attempt ${stamp}`, methodology: {},
+  const analystCreate = await rpc(ANALYST, 'thematic_review_create', {
+    _payload: { title: `Cert P09 Analyst Attempt ${stamp}` },
   });
   record('P09.02 analyst cannot create a thematic review (RLS write restricted)', denied(analystCreate) || !analystCreate.ok, analystCreate.text);
 
   // --- Scope: move draft -> scoped -------------------------------------
-  const scoped = await patch(SUPERVISOR, `thematic_reviews?id=eq.${reviewId}`, {
-    status: 'scoped', scope_start: '2025-01-01', scope_end: '2025-06-30',
-  });
+  const scoped = await rpc(SUPERVISOR, 'thematic_review_set_status', { _review_id: reviewId, _status: 'scoped', _reason: 'Certification journey transition' });
   record('P09.03 review scoped (draft -> scoped, status guard enforced)', scoped.ok, scoped.text);
 
   // --- Entity selection --------------------------------------------------
@@ -47,7 +46,7 @@ async function main() {
   }
 
   // --- Move to evidence_collection ---------------------------------------
-  const toEvidence = await patch(SUPERVISOR, `thematic_reviews?id=eq.${reviewId}`, { status: 'evidence_collection' });
+  const toEvidence = await rpc(SUPERVISOR, 'thematic_review_set_status', { _review_id: reviewId, _status: 'evidence_collection', _reason: 'Certification journey transition' });
   record('P09.06 review moves to evidence_collection', toEvidence.ok, toEvidence.text);
 
   // --- Evidence ------------------------------------------------------------
@@ -59,36 +58,40 @@ async function main() {
   record('P09.07 evidence collected against the review', evidence.ok && !!evidenceId, evidence.text);
 
   // --- Move to analysis, then findings_issued -----------------------------
-  const toAnalysis = await patch(SUPERVISOR, `thematic_reviews?id=eq.${reviewId}`, { status: 'analysis' });
+  const toAnalysis = await rpc(SUPERVISOR, 'thematic_review_set_status', { _review_id: reviewId, _status: 'analysis', _reason: 'Certification journey transition' });
   record('P09.08 review moves to analysis', toAnalysis.ok, toAnalysis.text);
 
-  const finding = await ins(SUPERVISOR, 'thematic_review_findings', {
-    review_id: reviewId, licensee_id: licenseeId ?? null, severity: 'medium',
-    title: 'Inadequate pre-contract disclosure', detail: 'Sampled disclosure documents omitted mandatory fee disclosures.',
-    status: 'draft',
+  const finding = await rpc(SUPERVISOR, 'thematic_review_finding_save', {
+    _payload: {
+      review_id: reviewId, licensee_id: licenseeId ?? null, severity: 'medium',
+      title: 'Inadequate pre-contract disclosure',
+      detail: 'Sampled disclosure documents omitted mandatory fee disclosures.',
+    },
   });
-  const findingId = finding.body?.[0]?.id;
+  const findingId = finding.body?.id;
   record('P09.09 finding recorded', finding.ok && !!findingId, finding.text);
 
-  const issueFinding = await patch(SUPERVISOR, `thematic_review_findings?id=eq.${findingId}`, {
-    status: 'issued', issued_at: new Date().toISOString(), issued_by: undefined,
+  const issueFinding = await rpc(SUPERVISOR, 'thematic_review_finding_issue', {
+    _finding_id: findingId, _rationale: 'Finding confirmed against sampled evidence.',
   });
   record('P09.10 finding issued', issueFinding.ok, issueFinding.text);
 
-  const toFindingsIssued = await patch(SUPERVISOR, `thematic_reviews?id=eq.${reviewId}`, { status: 'findings_issued' });
+  const toFindingsIssued = await rpc(SUPERVISOR, 'thematic_review_set_status', { _review_id: reviewId, _status: 'findings_issued', _reason: 'Certification journey transition' });
   record('P09.11 review moves to findings_issued', toFindingsIssued.ok, toFindingsIssued.text);
 
   // --- Action ----------------------------------------------------------
-  const action = await ins(SUPERVISOR, 'thematic_review_actions', {
-    review_id: reviewId, finding_id: findingId, licensee_id: licenseeId ?? null,
-    action_type: 'remediation', title: 'Update disclosure documents',
-    description: 'Update pre-contract disclosure templates to include mandatory fee disclosures.',
-    due_date: '2025-09-30',
+  const action = await rpc(SUPERVISOR, 'thematic_review_action_save', {
+    _payload: {
+      review_id: reviewId, finding_id: findingId, licensee_id: licenseeId ?? null,
+      action_type: 'remediation', title: 'Update disclosure documents',
+      description: 'Update pre-contract disclosure templates to include mandatory fee disclosures.',
+      due_date: '2026-09-30',
+    },
   });
-  const actionId = action.body?.[0]?.id;
+  const actionId = action.body?.id;
   record('P09.12 remediation action issued from finding', action.ok && !!actionId, action.text);
 
-  const toActionsRequired = await patch(SUPERVISOR, `thematic_reviews?id=eq.${reviewId}`, { status: 'actions_required' });
+  const toActionsRequired = await rpc(SUPERVISOR, 'thematic_review_set_status', { _review_id: reviewId, _status: 'actions_required', _reason: 'Certification journey transition' });
   record('P09.13 review moves to actions_required', toActionsRequired.ok, toActionsRequired.text);
 
   // Verify the action (follow-up) so closure readiness is satisfied
@@ -99,7 +102,7 @@ async function main() {
   });
   record('P09.14 remediation action verified', verify.ok, verify.text);
 
-  const toMonitoring = await patch(SUPERVISOR, `thematic_reviews?id=eq.${reviewId}`, { status: 'monitoring' });
+  const toMonitoring = await rpc(SUPERVISOR, 'thematic_review_set_status', { _review_id: reviewId, _status: 'monitoring', _reason: 'Certification journey transition' });
   record('P09.15 review moves to monitoring', toMonitoring.ok, toMonitoring.text);
 
   // --- Report -> approve -> publish (closure gate requires a published report)
@@ -109,7 +112,7 @@ async function main() {
     _key_findings: 'Inadequate pre-contract disclosure identified in sampled licensee.',
     _required_actions: 'Update disclosure documents (completed and verified).',
   });
-  const reportId = draftReport.body;
+  const reportId = draftReport.body?.id ?? draftReport.body;
   record('P09.16 report drafted', draftReport.ok && !!reportId, draftReport.text);
 
   const submitReport = await rpc(SUPERVISOR, 'thematic_report_submit_for_approval', { _report_id: reportId });
