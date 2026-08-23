@@ -90,7 +90,7 @@ async function main() {
     record('P07.09 assessment case exposes server-owned next actions', caseView.ok, actions.join(',') || caseView.text);
 
     const submit = await rpc(ANALYST, 'prudential_assessment_transition', {
-      _assessment_id: assessmentId, _to_status: actions.includes('submit_for_review') ? 'in_review' : 'in_review',
+      _assessment_id: assessmentId, _to_status: 'submitted',
       _reason: 'Assessment prepared and submitted for supervisory review.',
     });
     record('P07.10 analyst submits the assessment for review', submit.ok, submit.text);
@@ -115,7 +115,7 @@ async function main() {
     _title: 'Submit a capital remediation plan',
     _description: 'Breach of the capital adequacy threshold detected on the accepted canonical filing. Submit a remediation plan.',
     _severity: 'high',
-    _source_type: openBreach ? 'breach' : 'manual',
+    _source_type: openBreach ? 'return_breach' : 'manual',
     _source_id: openBreach?.id ?? null,
     _evidence_required: true,
   });
@@ -137,7 +137,7 @@ async function main() {
     _priority: 'high',
   });
   record('P07.15 escalation raised for supervisory decision', esc.ok, esc.text);
-  const escId = esc.body?.escalation_id ?? esc.body?.id ?? esc.body;
+  const escId = esc.body?.id ?? esc.body?.escalation_id ?? esc.body;
   if (typeof escId === 'string') {
     const decide = await rpc(SUPERVISOR, 'prudential_escalation_decide', {
       _escalation_id: escId, _status: 'in_progress', _decision: 'accept',
