@@ -123,20 +123,30 @@ Deno.serve(async (req) => {
         // Latest eligible canonical filing version for this entity. Eligibility
         // follows the canonical detector's own rule set (ACCEPTED, SUBMITTED,
         // UNDER_REVIEW); ordering is by reporting period, then version.
+        const { data: filings, error: fErr } = await admin
+          .from("return_filings")
+          .select("id, reporting_period_id, reporting_periods(period_end)")
+          .eq("entity_id", l.id)
+          .limit(500);
+        if (fErr) throw fErr;
+        const filingRows = (filings as any[]) ?? [];
+        if (!filingRows.length) continue;
+        const periodEndByFiling = new Map<string, string | null>(
+          filingRows.map((f) => [f.id as string, f.reporting_periods?.period_end ?? null]),
+        );
+
         const { data: versions, error: vErr } = await admin
           .from("return_filing_versions")
-          .select(
-            "id, version_number, status, created_at, return_filings!inner(id, entity_id, reporting_periods(period_end))",
-          )
-          .eq("return_filings.entity_id", l.id)
+          .select("id, return_filing_id, version_number, status, created_at")
+          .in("return_filing_id", filingRows.map((f) => f.id))
           .in("status", ["ACCEPTED", "SUBMITTED", "UNDER_REVIEW"])
-          .limit(200);
+          .limit(500);
         if (vErr) throw vErr;
 
         const rows = ((versions as any[]) ?? []).map((v) => ({
           id: v.id as string,
           version_number: v.version_number as number,
-          period_end: v.return_filings?.reporting_periods?.period_end ?? null,
+          period_end: periodEndByFiling.get(v.return_filing_id as string) ?? null,
           created_at: v.created_at as string,
         }));
         rows.sort((a, b) => {
@@ -148,6 +158,7 @@ Deno.serve(async (req) => {
         });
         const latest = rows[0];
         if (!latest) continue;
+
 
         const { data: run, error: detErr } = await admin.rpc("_prudential_canonical_detect_run", {
           _return_filing_version_id: latest.id,
