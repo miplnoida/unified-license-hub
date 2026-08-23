@@ -28,13 +28,41 @@ export default function ResetPassword() {
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Recovery links reach this page in three shapes depending on the auth flow:
+    //  1. implicit  — tokens in the URL hash (handled automatically by the client)
+    //  2. PKCE      — `?code=...`
+    //  3. verify    — `?token_hash=...&type=recovery`
+    // Establish the recovery session explicitly for (2) and (3), and surface
+    // provider errors instead of silently showing "invalid link".
+    (async () => {
+      const query = new URLSearchParams(window.location.search);
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const errorDescription = query.get('error_description') ?? hash.get('error_description');
+      const code = query.get('code');
+      const tokenHash = query.get('token_hash') ?? hash.get('token_hash');
+
+      if (errorDescription) {
+        console.warn('[ResetPassword] recovery link error:', errorDescription);
+        setChecking(false);
+        return;
+      }
+
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) console.warn('[ResetPassword] code exchange failed:', error.message);
+      } else if (tokenHash) {
+        const { error } = await supabase.auth.verifyOtp({ type: 'recovery', token_hash: tokenHash });
+        if (error) console.warn('[ResetPassword] token verification failed:', error.message);
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) setRecoveryReady(true);
       setChecking(false);
-    });
+    })();
 
     return () => subscription.unsubscribe();
   }, []);
+
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
