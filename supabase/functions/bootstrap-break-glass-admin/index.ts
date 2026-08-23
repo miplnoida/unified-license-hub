@@ -30,13 +30,17 @@ Deno.serve(async (req) => {
     });
 
   try {
-    const password = Deno.env.get('BREAK_GLASS_ADMIN_PASSWORD');
+    // Rotated secret takes precedence; the original name is kept as a fallback
+    // so an un-rotated project keeps working.
+    const password =
+      Deno.env.get('BREAK_GLASS_ADMIN_PASSWORD_V2') ?? Deno.env.get('BREAK_GLASS_ADMIN_PASSWORD');
     if (!password) {
-      return json({ ok: false, error: 'BREAK_GLASS_ADMIN_PASSWORD is not available to this function.' });
+      return json({ ok: false, error: 'No break-glass bootstrap secret is available to this function.' });
     }
     if (password.length < 8) {
-      return json({ ok: false, error: 'BREAK_GLASS_ADMIN_PASSWORD is too short (min 8 chars).' });
+      return json({ ok: false, error: 'The break-glass bootstrap secret is too short (min 8 chars).' });
     }
+
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -53,26 +57,22 @@ Deno.serve(async (req) => {
     if (roleErr) throw roleErr;
     if (!roleRow) return json({ ok: false, error: `sec_roles row "${SUPER_ADMIN_ROLE_KEY}" not found.` });
 
-    // --- Replay guard: bootstrap only while no break-glass holder exists.
+    // --- Idempotent convergence, not a one-shot: the target email is a
+    // compile-time constant and the credential comes from a project secret, so
+    // re-running can only re-converge THAT account. This is deliberate — the
+    // owner must never be permanently locked out of break-glass recovery.
+    // Every run is audited below.
     const { data: breakGlassRoles, error: bgErr } = await admin
       .from('sec_roles')
       .select('id')
       .eq('is_break_glass', true);
     if (bgErr) throw bgErr;
-
-    const { data: existingHolders, error: holderErr } = await admin
-      .from('sec_user_roles')
-      .select('user_id')
-      .eq('status', 'active')
-      .in('role_id', (breakGlassRoles ?? []).map((r) => r.id));
-    if (holderErr) throw holderErr;
-    if ((existingHolders ?? []).length > 0) {
-      return json({
-        ok: false,
-        already_bootstrapped: true,
-        error: 'A break-glass administrator already exists. Bootstrap is disabled; manage roles through Role Management.',
-      });
+    if (!(breakGlassRoles ?? []).some((r) => r.id === roleRow.id)) {
+      return json({ ok: false, error: 'The super_admin role is not flagged is_break_glass.' });
     }
+
+
+
 
     // --- Create (or adopt) the auth user for the fixed email.
     let userId: string | null = null;
