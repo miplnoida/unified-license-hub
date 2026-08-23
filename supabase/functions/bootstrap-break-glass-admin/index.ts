@@ -30,13 +30,17 @@ Deno.serve(async (req) => {
     });
 
   try {
-    const password = Deno.env.get('BREAK_GLASS_ADMIN_PASSWORD');
+    // Rotated secret takes precedence; the original name is kept as a fallback
+    // so an un-rotated project keeps working.
+    const password =
+      Deno.env.get('BREAK_GLASS_ADMIN_PASSWORD_V2') ?? Deno.env.get('BREAK_GLASS_ADMIN_PASSWORD');
     if (!password) {
-      return json({ ok: false, error: 'BREAK_GLASS_ADMIN_PASSWORD is not available to this function.' });
+      return json({ ok: false, error: 'No break-glass bootstrap secret is available to this function.' });
     }
     if (password.length < 8) {
-      return json({ ok: false, error: 'BREAK_GLASS_ADMIN_PASSWORD is too short (min 8 chars).' });
+      return json({ ok: false, error: 'The break-glass bootstrap secret is too short (min 8 chars).' });
     }
+
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
