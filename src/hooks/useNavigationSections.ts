@@ -83,6 +83,7 @@ export function useNavigationSections(): { sections: NavSection[]; isLoading: bo
       }
       return true;
     };
+    const sidebarItemsRaw = items.filter(isSidebarVisible);
     // Audience convergence (Wave 3B.5): a caller resolved to the EXTERNAL
     // audience by the canonical `sec_roles` catalogue never sees items declared
     // for internal staff — not even as a collapsed domain heading. Route guards
