@@ -15,9 +15,11 @@ async function main() {
   // --- Source: a real examination finding produced by P10 -----------------
   const findings = await sel(
     P('inspection_supervisor'),
-    'examination_findings?select=id,title,examination_id&order=created_at.desc&limit=1',
+    'examination_findings?select=id,title,examination_id&order=created_at.desc&limit=20',
   );
-  const findingId: string | undefined = findings.body?.[0]?.id;
+  const openCases = await sel(SUPERVISOR, 'enforcement_actions?stage=neq.CLOSED&select=source_id');
+  const taken = new Set((openCases.body || []).map((c: any) => c.source_id).filter(Boolean));
+  const findingId: string | undefined = (findings.body || []).find((f: any) => !taken.has(f.id))?.id;
   record('P11.01 real examination finding available as enforcement source', !!findingId, findings.text);
   if (!findingId) return summary('P11');
 
