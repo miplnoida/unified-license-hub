@@ -46,7 +46,8 @@ async function main() {
     breachRows.length + ewiRows.length > 0, `breaches=${breachRows.length} ewi=${ewiRows.length}`);
 
   // --- Analyst work queue ---------------------------------------------------
-  const queue = await rpc(ANALYST, 'prudential_work_queue', { _limit: 50 });
+  // Entity-scoped queue call (unfiltered queue is slow — GAP-3E-002, P2).
+  const queue = await rpc(ANALYST, 'prudential_work_queue', { _entity_id: ENTITY, _limit: 50 });
   const queueRows: any[] = Array.isArray(queue.body) ? queue.body : [];
   record('P07.06 signals surface on the prudential work queue', queue.ok && queueRows.length > 0,
     `${queueRows.length} queue items`);

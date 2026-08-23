@@ -25,3 +25,13 @@ GAP-3A-004 and GAP-3A-005 remain open. See
 | GAP-3C-002 | P1 | P01/P03 Workflow | Caller-supplied `_actor_id` was trusted in `perform_workflow_transition` / `perform_registration_workflow_transition` (actor spoofing) | FIXED — `workflow_resolve_actor()` forces `auth.uid()` for end-user calls, accepts verified actor only from service_role edge wrappers |
 | GAP-3C-003 | P1 | P03 Licensing issuance | Final approval fails with `organizations_legal_name_authority_check` — licensee organisation is inserted without `legal_name_authority`; no licence is created | OPEN (blocks licence issuance and therefore P04 lifecycle execution) |
 | GAP-3C-004 | P2 | P03 Licensing | Seeded licensing workflow steps all carry `approver_role = super_admin`, so cross-role maker/checker cannot be proven from configuration alone (actor separation is enforced, role separation is not) | OPEN (configuration) |
+
+## Batch 2 (Wave 3 fast mode) — P07 Prudential
+
+| ID | Sev | Process | Finding | Status |
+|----|-----|---------|---------|--------|
+| GAP-3E-001 | P1 | P07 Prudential | `prudential_action_issue` passed an explicit NULL for `breach_after_days`, defeating the column default and violating NOT NULL — no supervisory action could be issued | FIXED (`COALESCE(_breach_after_days, 7)`) |
+| GAP-3E-002 | P2 | P07 Prudential | Unfiltered `prudential_work_queue` exceeds the API statement timeout (~18s server-side); entity-scoped calls return in ~4s. Row enrichment/blocker subqueries over all supervised entities are the cost | OPEN (indexes added on the five source tables; enrichment needs rework) |
+| PRU-CANON-001 | P1 | P07 Prudential | Monitoring sweep read legacy `returns_filed` and called `prudential_ewi_evaluate` | CLOSED — sweep now selects the latest eligible `return_filing_versions` row and calls `_prudential_canonical_detect_run` |
+| GAP-3E-003 | P1 | P07 RBAC | `prudential_analyst` had no qualifying legacy dynamic role, so `has_scoped_permission` denied maker actions (assessment, action) | FIXED (governed "Prudential Analyst" role with prudential maker permissions) |
+
