@@ -9,6 +9,17 @@
 # certification project is never touched (all PG* env vars are overridden).
 set -uo pipefail
 
+# PostgreSQL refuses to run as root: re-exec the whole harness as the sandbox's
+# unprivileged user so initdb/pg_ctl and psql share one owner.
+UNPRIV="${RC1_PG_USER:-lovable}"
+if [ "$(id -u)" = "0" ]; then
+  chmod 1777 /tmp 2>/dev/null || true
+  mkdir -p /tmp/rc1-pg /tmp/rc1-migrations
+  chown -R "$UNPRIV" /tmp/rc1-pg /tmp/rc1-migrations
+  exec su "$UNPRIV" -s /bin/bash -c "cd '$(pwd)' && exec bash '${BASH_SOURCE[0]}' $*"
+fi
+
+
 MODE="${1:-fresh}"
 CUTOFF="${2:-}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
