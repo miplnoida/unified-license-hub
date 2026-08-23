@@ -14,13 +14,13 @@ async function main() {
   record('P13.01 canonical entity population readable', !!entityId, ent.text);
   if (!entityId) return summary('P13');
 
-  const e360 = await sel(ADMIN, `licensees?id=eq.${entityId}&select=id,name,license_number,status`);
+  const e360 = await sel(ADMIN, `licensees?id=eq.${entityId}&select=id,name,status`);
   record('P13.02 Entity 360 anchor record readable', !!e360.body?.[0]?.id, e360.text);
 
-  const returns = await sel(ADMIN, `return_filings?select=id,status,licensee_id&licensee_id=eq.${entityId}&limit=5`);
+  const returns = await sel(ADMIN, `return_filings?select=id,status,entity_id&entity_id=eq.${entityId}&limit=5`);
   record('P13.03 Returns data present for the entity', Array.isArray(returns.body), returns.text);
 
-  const pru = await sel(ADMIN, `return_metric_values?select=id,licensee_id&licensee_id=eq.${entityId}&limit=5`);
+  const pru = await sel(ADMIN, `return_metric_values?select=id,entity_id&entity_id=eq.${entityId}&limit=5`);
   record('P13.04 Return metric values present', Array.isArray(pru.body), pru.text);
 
   const comp = await sel(ADMIN, `complaints?select=id,status&licensee_id=eq.${entityId}&limit=5`);
