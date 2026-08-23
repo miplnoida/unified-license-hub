@@ -38,6 +38,12 @@ Deno.serve(async (req) => {
       const { data: monitoring } = await admin.from("conduct_post_closure_monitoring")
         .select("id, investigation_id, licensee_id, owner_id, focus_areas").eq("id", rev.monitoring_id).maybeSingle();
 
+      // `investigation_code` is referenced by the notification templates, so it
+      // must be part of the payload — not just the raw investigation id.
+      const { data: investigation } = monitoring?.investigation_id
+        ? await admin.from("conduct_investigations").select("id, code").eq("id", monitoring.investigation_id).maybeSingle()
+        : { data: null };
+
       const suffix = `${win.label}:${today.toISOString().slice(0, 10)}`;
       const { data: eventId, error: enqErr } = await admin.rpc("notification_enqueue_event", {
         _event_key: "conduct_investigation.monitoring_review_due",
@@ -47,6 +53,7 @@ Deno.serve(async (req) => {
           review_id: rev.id,
           monitoring_id: rev.monitoring_id,
           investigation_id: monitoring?.investigation_id,
+          investigation_code: investigation?.code,
           licensee_id: monitoring?.licensee_id,
           owner_id: monitoring?.owner_id,
           focus_areas: monitoring?.focus_areas,
