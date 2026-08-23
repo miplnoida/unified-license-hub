@@ -140,7 +140,7 @@ async function main() {
   const escId = esc.body?.id ?? esc.body?.escalation_id ?? esc.body;
   if (typeof escId === 'string') {
     const decide = await rpc(SUPERVISOR, 'prudential_escalation_decide', {
-      _escalation_id: escId, _status: 'in_progress', _decision: 'accept',
+      _escalation_id: escId, _status: 'under_review', _decision: 'Escalation accepted for supervisory decision.',
       _outcome: 'Escalation accepted; entity placed under intensified monitoring pending remediation evidence.',
     });
     record('P07.16 supervisor decides the escalation', decide.ok, decide.text);
