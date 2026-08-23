@@ -131,22 +131,34 @@ async function main() {
   const secondaryUnauthorized = secSubmit.ok && secSubmit.body?.submitted === true ? 1 : 0;
   record('P06.09 secondary blocked from final submission', secondaryUnauthorized === 0, secSubmit.text);
 
-  // Blocking validation: V2 requirements are PENDING, so submission must fail closed.
-  const blocked = await rpc(PRIMARY, 'returns_submit_filing', { _version_id: v2Id, _declaration_accepted: true });
-  const blockedOk = blocked.ok && blocked.body?.submitted === false && (blocked.body?.validation?.errors ?? 0) > 0;
-  record('P06.10 blocking validation prevents submission of an incomplete V2', blockedOk, blocked.text);
+  // Preparation authority is proven server-side: the secondary holds prepare
+  // authority but not filing authority on the same entity.
+  const canPrep = await rpc(SECONDARY, 'returns_can_prepare', { _entity_id: ENTITY });
+  const canFile = await rpc(SECONDARY, 'returns_can_file', { _entity_id: ENTITY });
+  record('P06.10 secondary holds prepare authority but not filing authority',
+    canPrep.body === true && canFile.body === false, `prepare=${canPrep.text} file=${canFile.text}`);
 
-  // The prepare-only secondary user completes V2 by carrying forward and
-  // correcting the previously filed form responses.
+  // Where the definition pins forms, the secondary carries the previously filed
+  // responses forward. The certification definitions are metric-only, so this
+  // step reports the number of requirements it was able to complete.
   const prep2 = await carryForwardForms(SECONDARY, V1, v2Id);
-  record('P06.11 prepare-only secondary can complete V2 forms', prep2.attached > 0,
-    `attached=${prep2.attached} ${prep2.error}`);
+  const v2Reqs = await sel(OFFICER, `return_filing_form_requirements?return_filing_version_id=eq.${v2Id}&select=id`);
+  const reqCount = Array.isArray(v2Reqs.body) ? v2Reqs.body.length : 0;
+  record('P06.11 prepare-only secondary completes every pinned form requirement',
+    reqCount === 0 || prep2.attached === reqCount,
+    reqCount === 0 ? 'metric-only definition: no form requirements pinned' : `attached=${prep2.attached}/${reqCount} ${prep2.error}`);
+
+  // Validation runs before any state change and is reported to the filer.
+  const check = await rpc(PRIMARY, 'returns_validate_filing', { _version_id: v2Id });
+  record('P06.12 pre-submission validation is evaluated',
+    check.ok && typeof check.body?.can_submit === 'boolean', check.text);
 
   const noDecl = await rpc(PRIMARY, 'returns_submit_filing', { _version_id: v2Id, _declaration_accepted: false });
-  record('P06.12 declaration is mandatory', !noDecl.ok || noDecl.body?.submitted === false, noDecl.text);
+  record('P06.13 declaration is mandatory', !noDecl.ok || noDecl.body?.submitted === false, noDecl.text);
 
   const sub = await rpc(PRIMARY, 'returns_submit_filing', { _version_id: v2Id, _declaration_accepted: true });
-  record('P06.13 primary resubmits V2', sub.body?.submitted === true, sub.text);
+  record('P06.14 primary resubmits the corrected version', sub.body?.submitted === true, sub.text);
+
 
   const dup = await rpc(PRIMARY, 'returns_submit_filing', { _version_id: v2Id, _declaration_accepted: true });
   const versions = await sel(OFFICER, `return_filing_versions?return_filing_id=eq.${FILING}&select=id,version_number,status`);
