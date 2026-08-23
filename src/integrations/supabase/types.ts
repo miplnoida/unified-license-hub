@@ -41347,6 +41347,7 @@ export type Database = {
         Returns: number
       }
       returns_can_file: { Args: { _entity_id: string }; Returns: boolean }
+      returns_can_prepare: { Args: { _entity_id: string }; Returns: boolean }
       returns_can_view_filing_scope: {
         Args: { _entity_id: string }
         Returns: boolean
