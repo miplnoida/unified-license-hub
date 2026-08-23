@@ -1,4 +1,22 @@
 import { defineConfig, devices } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
+
+/**
+ * Resolve the Chromium already present in the environment. The bundled
+ * browser revision expected by @playwright/test may not match the preinstalled
+ * one, so we bind to whatever full Chromium build exists.
+ */
+function resolveChromium(): string | undefined {
+  if (process.env.E2E_CHROMIUM_PATH) return process.env.E2E_CHROMIUM_PATH;
+  const root = '/opt/ms-playwright';
+  if (!fs.existsSync(root)) return undefined;
+  const dir = fs.readdirSync(root).filter(d => /^chromium-\d+$/.test(d)).sort().pop();
+  if (!dir) return undefined;
+  const bin = path.join(root, dir, 'chrome-linux', 'chrome');
+  return fs.existsSync(bin) ? bin : undefined;
+}
+
 
 /**
  * Enterprise SupTech certification browser E2E configuration.
