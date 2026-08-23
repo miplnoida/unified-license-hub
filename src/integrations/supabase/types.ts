@@ -35716,20 +35716,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      close_complaint:
-        | {
-            Args: { _category?: string; _id: string; _reason: string }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              _category?: string
-              _expected_updated_at?: string
-              _id: string
-              _reason: string
-            }
-            Returns: undefined
-          }
+      close_complaint: {
+        Args: {
+          _category?: string
+          _expected_updated_at?: string
+          _id: string
+          _reason: string
+        }
+        Returns: undefined
+      }
       close_correspondence: {
         Args: { _notes?: string; _thread_id: string }
         Returns: undefined

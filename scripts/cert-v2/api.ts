@@ -63,7 +63,7 @@ export const fn = async (email: string, name: string, payload: unknown) =>
 
 export const denied = (r: Res) =>
   r.status === 401 || r.status === 403 ||
-  /permission denied|not authoris|not authoriz|row-level security|insufficient|maker-checker|violation/i.test(r.text);
+  /permission denied|not[ _]author(is|iz)|row-level security|insufficient|maker[-_]checker|violation|denied/i.test(r.text);
 
 const results: Array<{ step: string; ok: boolean; detail: string }> = [];
 
