@@ -315,7 +315,7 @@ BEGIN
   GET DIAGNOSTICS v_n = ROW_COUNT;
   RETURN QUERY SELECT 'profiles.licensee_id cleared (entity missing)', v_n;
 
-  UPDATE public.profiles p SET entity_name = NULL, updated_at = now()
+  UPDATE public.profiles p SET entity_name = '', updated_at = now()
    WHERE p.user_type IN ('primary','secondary')
      AND coalesce(btrim(p.entity_name),'') <> ''
      AND NOT EXISTS (SELECT 1 FROM public.licensees l
