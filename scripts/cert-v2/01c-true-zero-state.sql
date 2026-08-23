@@ -93,7 +93,7 @@ BEGIN
       'lifecycle_stages','enforcement_workflow_stages','enforcement_workflow_transitions',
       'enforcement_case_number_counters',
       -- forms
-      'forms','form_templates','form_versions','form_fields','form_purposes',
+      'forms','form_templates','form_versions','form_fields','form_purposes','form_packages',
       'form_trigger_types','form_field_definitions','form_field_dependencies',
       'form_applicability_rules','form_data_domains','registration_form_configs',
       'registration_journey_types','license_action_form_configs',
@@ -107,7 +107,7 @@ BEGIN
       'prudential_ratio_versions','prudential_thresholds','prudential_threshold_versions',
       'prudential_ewi_rules','prudential_stress_indicators','prudential_risk_taxonomy',
       'prudential_process_sla_config','pfmi_principles','pfmi_principle_applicability',
-      'group_ewi_rules','group_consolidation_methods','risk_score_weights',
+      'group_ewi_rules','risk_score_weights',
       'payment_oversight_config','payment_system_operators',
       -- conduct / complaints configuration
       'complaint_types','complaint_status_catalogue','complaint_intake_rules',
@@ -146,7 +146,7 @@ BEGIN
       'integration_connections','integration_credentials','integration_alert_rules',
       'captcha_configurations','captcha_secrets','site_settings','engine_rules',
       'engine_rule_versions','rule_overrides','onboarding_alert_rules',
-      'onboarding_alert_signals','onboarding_retention_policies','rbac_module_scopes'
+      'onboarding_retention_policies','rbac_module_scopes'
     ]) AS t
   ), keep_reference AS (
     SELECT unnest(ARRAY[
