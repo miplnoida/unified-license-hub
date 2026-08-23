@@ -2636,6 +2636,123 @@ export type Database = {
           },
         ]
       }
+      cert_fixture_object_types: {
+        Row: {
+          created_at: string
+          delete_order: number
+          description: string | null
+          object_type: string
+          table_name: string
+        }
+        Insert: {
+          created_at?: string
+          delete_order: number
+          description?: string | null
+          object_type: string
+          table_name: string
+        }
+        Update: {
+          created_at?: string
+          delete_order?: number
+          description?: string | null
+          object_type?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
+      cert_fixture_objects: {
+        Row: {
+          cleanup_policy: string
+          created_at: string
+          dataset_key: string
+          id: string
+          metadata: Json
+          object_id: string
+          object_reference: string | null
+          object_type: string
+          run_id: string
+          scenario_code: string
+        }
+        Insert: {
+          cleanup_policy?: string
+          created_at?: string
+          dataset_key?: string
+          id?: string
+          metadata?: Json
+          object_id: string
+          object_reference?: string | null
+          object_type: string
+          run_id: string
+          scenario_code: string
+        }
+        Update: {
+          cleanup_policy?: string
+          created_at?: string
+          dataset_key?: string
+          id?: string
+          metadata?: Json
+          object_id?: string
+          object_reference?: string | null
+          object_type?: string
+          run_id?: string
+          scenario_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cert_fixture_objects_object_type_fkey"
+            columns: ["object_type"]
+            isOneToOne: false
+            referencedRelation: "cert_fixture_object_types"
+            referencedColumns: ["object_type"]
+          },
+          {
+            foreignKeyName: "cert_fixture_objects_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "cert_fixture_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cert_fixture_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          dataset_key: string
+          fixture_version: string
+          id: string
+          notes: string | null
+          started_at: string
+          started_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          dataset_key?: string
+          fixture_version: string
+          id?: string
+          notes?: string | null
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          dataset_key?: string
+          fixture_version?: string
+          id?: string
+          notes?: string | null
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cert_nonproduction_guard: {
         Row: {
           environment: string
@@ -35018,6 +35135,53 @@ export type Database = {
       cert_seed_structure_v1: { Args: never; Returns: undefined }
       cert_seed_wave_d_v1: { Args: never; Returns: Json }
       cert_uuid: { Args: { _key: string }; Returns: string }
+      cert_v2_assert_allowed: { Args: never; Returns: undefined }
+      cert_v2_begin_run: {
+        Args: { _fixture_version: string; _notes?: string }
+        Returns: string
+      }
+      cert_v2_complete_run: {
+        Args: { _run_id: string; _status?: string }
+        Returns: undefined
+      }
+      cert_v2_guard_ok: { Args: never; Returns: boolean }
+      cert_v2_register_object: {
+        Args: {
+          _cleanup_policy?: string
+          _metadata?: Json
+          _object_id: string
+          _object_reference?: string
+          _object_type: string
+          _run_id: string
+          _scenario_code: string
+        }
+        Returns: string
+      }
+      cert_v2_report: {
+        Args: { _dataset_key?: string }
+        Returns: {
+          object_count: number
+          object_type: string
+          run_ids: string[]
+          scenario_code: string
+        }[]
+      }
+      cert_v2_reset: {
+        Args: { _dataset_key?: string }
+        Returns: {
+          deleted_count: number
+          object_type: string
+          table_name: string
+        }[]
+      }
+      cert_v2_verify: {
+        Args: { _dataset_key?: string }
+        Returns: {
+          check_key: string
+          detail: string
+          status: string
+        }[]
+      }
       cert_verify_dataset_v1: { Args: never; Returns: Json }
       check_applicant_name_exists: {
         Args: { p_name: string }
