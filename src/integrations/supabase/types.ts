@@ -35052,6 +35052,10 @@ export type Database = {
         Args: { _entity_id: string; _user_id: string }
         Returns: boolean
       }
+      can_read_entity_returns: {
+        Args: { _entity_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_read_examination: {
         Args: { _entity_id: string; _user_id: string }
         Returns: boolean
@@ -37074,6 +37078,10 @@ export type Database = {
           _sector_id?: string
         }
         Returns: string
+      }
+      entity_external_read_access: {
+        Args: { _entity_id: string; _user_id: string }
+        Returns: boolean
       }
       entity_follow_merge: { Args: { _entity_id: string }; Returns: string }
       entity_for_license: {
@@ -41756,6 +41764,7 @@ export type Database = {
         Args: { p_action: string; p_module: string; p_user_id: string }
         Returns: boolean
       }
+      sec_is_internal_user: { Args: { _user_id: string }; Returns: boolean }
       sec_route_for_path: {
         Args: { p_path: string }
         Returns: {

@@ -17,7 +17,7 @@ Error: P12-CORRESPONDENCE surface defects
 expect(received).toEqual(expected) // deep equality
 
 - Expected  -   1
-+ Received  + 455
++ Received  + 464
 
 - Array []
 + Array [
@@ -416,11 +416,20 @@ expect(received).toEqual(expected) // deep equality
 +   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
 +
 + Check the render method of `Sidebar`. 
++     at NavLeaf (http://localhost:8080/src/components/layout/Sideb",
++   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
++
++ Check the render method of `Sidebar`. 
 +     at CollapsibleNavItem (http://localhost:8080/src/components/l",
 +   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
 +
 + Check the render method of `CollapsibleNavItem`. 
 +     at NavLeaf (http://localhost:8080/src/components/l",
++   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
++
++ Check the render method of `ModuleRoute`. 
++     at AuthLoadingScreen
++     at ModuleRoute (http://localhost",
 +   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
 +
 + Check the render method of `CollapsibleNavItem`. 

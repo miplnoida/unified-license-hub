@@ -11,5 +11,8 @@ P2 = degraded UX, P3 = cosmetic.
 | GAP-3A-004 | P2 | P04 Licence | `GET /rest/v1/licenses` returns HTTP 400 on `/licenses` for `licensing_supervisor` | `04-process-surfaces.spec.ts` | Fix column/embed selection in the licence list query and add grant coverage |
 | GAP-3A-005 | P3 | Platform | React `Function components cannot be given refs` warnings on multiple queues | console capture | Wrap offending components in `forwardRef` |
 
-Discovery is complete for authentication, audience boundaries, multi-entity
-scoping and server enforcement. Remediation deferred to Wave 3B by design.
+Wave 3B remediation status: GAP-3A-002 FIXED (audience-aware returns RLS),
+GAP-3A-003 FIXED (internal app_role mapping), GAP-3A-001 NOT REPRODUCED.
+GAP-3A-004 and GAP-3A-005 remain open. See
+`03b-remediation-certification.md` for root causes and evidence.
+

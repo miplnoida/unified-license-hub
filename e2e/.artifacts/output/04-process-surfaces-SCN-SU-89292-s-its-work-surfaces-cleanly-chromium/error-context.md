@@ -17,7 +17,7 @@ Error: P03-LICENSING surface defects
 expect(received).toEqual(expected) // deep equality
 
 - Expected  -   1
-+ Received  + 458
++ Received  + 506
 
 - Array []
 + Array [
@@ -206,6 +206,30 @@ expect(received).toEqual(expected) // deep equality
 +
 + Check the render method of `AppShell`. 
 +     at RouteContentSkeleton (http://localhost:8080/src/component",
++   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
++
++ Check the render method of `RouteContentSkeleton`. 
++     at Skeleton (http://localhost:8080/src/component",
++   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
++
++ Check the render method of `RouteContentSkeleton`. 
++     at Skeleton (http://localhost:8080/src/component",
++   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
++
++ Check the render method of `RouteContentSkeleton`. 
++     at Skeleton (http://localhost:8080/src/component",
++   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
++
++ Check the render method of `RouteContentSkeleton`. 
++     at Skeleton (http://localhost:8080/src/component",
++   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
++
++ Check the render method of `RouteContentSkeleton`. 
++     at Skeleton (http://localhost:8080/src/component",
++   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
++
++ Check the render method of `RouteContentSkeleton`. 
++     at Skeleton (http://localhost:8080/src/component",
 +   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
 +
 + Check the render method of `ApplicationQueue`. 
@@ -428,6 +452,30 @@ expect(received).toEqual(expected) // deep equality
 +
 + Check the render method of `AppShell`. 
 +     at RouteContentSkeleton (http://localhost:8080/src/component",
++   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
++
++ Check the render method of `RouteContentSkeleton`. 
++     at Skeleton (http://localhost:8080/src/component",
++   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
++
++ Check the render method of `RouteContentSkeleton`. 
++     at Skeleton (http://localhost:8080/src/component",
++   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
++
++ Check the render method of `RouteContentSkeleton`. 
++     at Skeleton (http://localhost:8080/src/component",
++   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
++
++ Check the render method of `RouteContentSkeleton`. 
++     at Skeleton (http://localhost:8080/src/component",
++   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
++
++ Check the render method of `RouteContentSkeleton`. 
++     at Skeleton (http://localhost:8080/src/component",
++   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
++
++ Check the render method of `RouteContentSkeleton`. 
++     at Skeleton (http://localhost:8080/src/component",
 +   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
 +
 + Check the render method of `OnboardingWorkspace`. 

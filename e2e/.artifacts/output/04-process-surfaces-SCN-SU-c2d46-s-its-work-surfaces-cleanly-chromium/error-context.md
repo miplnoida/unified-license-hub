@@ -17,7 +17,7 @@ Error: P09-COMPLAINTS surface defects
 expect(received).toEqual(expected) // deep equality
 
 - Expected  -   1
-+ Received  + 442
++ Received  + 409
 
 - Array []
 + Array [
@@ -192,15 +192,6 @@ expect(received).toEqual(expected) // deep equality
 +   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
 +
 + Check the render method of `Sidebar`. 
-+     at NavLeaf (http://localhost:8080/src/components/layout/Sideb",
-+   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
-+
-+ Check the render method of `PortalRoute`. 
-+     at AuthLoadingScreen
-+     at PortalRoute (http://localhost",
-+   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
-+
-+ Check the render method of `Sidebar`. 
 +     at CollapsibleNavItem (http://localhost:8080/src/components/l",
 +   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
 +
@@ -214,30 +205,6 @@ expect(received).toEqual(expected) // deep equality
 +
 + Check the render method of `AppShell`. 
 +     at RouteContentSkeleton (http://localhost:8080/src/component",
-+   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
-+
-+ Check the render method of `RouteContentSkeleton`. 
-+     at Skeleton (http://localhost:8080/src/component",
-+   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
-+
-+ Check the render method of `RouteContentSkeleton`. 
-+     at Skeleton (http://localhost:8080/src/component",
-+   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
-+
-+ Check the render method of `RouteContentSkeleton`. 
-+     at Skeleton (http://localhost:8080/src/component",
-+   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
-+
-+ Check the render method of `RouteContentSkeleton`. 
-+     at Skeleton (http://localhost:8080/src/component",
-+   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
-+
-+ Check the render method of `RouteContentSkeleton`. 
-+     at Skeleton (http://localhost:8080/src/component",
-+   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
-+
-+ Check the render method of `RouteContentSkeleton`. 
-+     at Skeleton (http://localhost:8080/src/component",
 +   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
 +
 + Check the render method of `ComplaintsList`. 

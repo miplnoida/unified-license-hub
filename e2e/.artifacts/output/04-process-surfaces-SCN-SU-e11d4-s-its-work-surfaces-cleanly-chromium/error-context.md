@@ -188,15 +188,6 @@ expect(received).toEqual(expected) // deep equality
 +   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
 +
 + Check the render method of `Sidebar`. 
-+     at NavLeaf (http://localhost:8080/src/components/layout/Sideb",
-+   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
-+
-+ Check the render method of `ModuleRoute`. 
-+     at AuthLoadingScreen
-+     at ModuleRoute (http://localhost",
-+   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
-+
-+ Check the render method of `Sidebar`. 
 +     at CollapsibleNavItem (http://localhost:8080/src/components/l",
 +   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
 +
@@ -379,6 +370,15 @@ expect(received).toEqual(expected) // deep equality
 +
 + Check the render method of `DropdownMenuContent`. 
 +     at DropdownMenuPortal (http://localhost:8080/node",
++   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
++
++ Check the render method of `Sidebar`. 
++     at NavLeaf (http://localhost:8080/src/components/layout/Sideb",
++   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
++
++ Check the render method of `ModuleRoute`. 
++     at AuthLoadingScreen
++     at ModuleRoute (http://localhost",
 +   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
 +
 + Check the render method of `Sidebar`. 

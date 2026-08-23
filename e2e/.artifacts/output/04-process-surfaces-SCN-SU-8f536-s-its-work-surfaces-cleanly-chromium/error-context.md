@@ -17,7 +17,7 @@ Error: P07-PRUDENTIAL surface defects
 expect(received).toEqual(expected) // deep equality
 
 - Expected  -   1
-+ Received  + 584
++ Received  + 575
 
 - Array []
 + Array [
@@ -573,15 +573,6 @@ expect(received).toEqual(expected) // deep equality
 +
 + Check the render method of `DropdownMenuContent`. 
 +     at DropdownMenuPortal (http://localhost:8080/node",
-+   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
-+
-+ Check the render method of `Sidebar`. 
-+     at NavLeaf (http://localhost:8080/src/components/layout/Sideb",
-+   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
-+
-+ Check the render method of `ModuleRoute`. 
-+     at AuthLoadingScreen
-+     at ModuleRoute (http://localhost",
 +   "console: Warning: Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s%s 
 +
 + Check the render method of `Sidebar`. 
