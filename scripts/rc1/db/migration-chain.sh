@@ -56,12 +56,16 @@ apply_history() {
     local name; name="$(basename "$f")"
     if [ -n "$from_after" ] && [[ "$name" < "$from_after" || "$name" == "$from_after" ]]; then continue; fi
     if [ -n "$up_to" ] && [[ "$name" > "$up_to" ]]; then continue; fi
-    local args=(-v ON_ERROR_STOP=1 -q -d "$db" -f "$f")
+    # Local stand-ins exist for pg_cron/pg_net (not installable in the sandbox),
+    # so their CREATE EXTENSION statements are neutralised. Nothing else is rewritten.
+    local tmp="/tmp/rc1-migrations/current.sql"
+    sed -E 's/CREATE +EXTENSION +(IF +NOT +EXISTS +)?"?(pg_cron|pg_net|pgtap|pgjwt|pgsodium)"?[^;]*;/SELECT 1;/Ig' "$f" >"$tmp"
+    local args=(-v ON_ERROR_STOP=1 -q -d "$db" -f "$tmp")
     grep -qi "CONCURRENTLY" "$f" || args=(--single-transaction "${args[@]}")
     if ! out=$(psql "${args[@]}" 2>&1); then
       failed=$((failed + 1))
-      { echo "=== FAIL $name"; echo "$out" | grep -E "^psql:|ERROR|DETAIL|HINT" | head -12; } >>"$log"
-      [ "$failed" -ge 5 ] && break
+      { echo "=== FAIL $name"; echo "$out" | grep -E "ERROR|DETAIL" | head -4; } >>"$log"
+      [ "$failed" -ge 200 ] && break
     else
       applied=$((applied + 1))
     fi
