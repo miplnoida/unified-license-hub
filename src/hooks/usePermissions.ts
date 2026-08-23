@@ -223,7 +223,10 @@ export function useUserDynamicPermissions() {
     enforceDynamic,
     isBypassRole,
     isInternal,
+    /** `'internal' | 'external' | null` straight from the canonical context. */
+    canonicalAudience,
     isLoading,
+
   };
 }
 
