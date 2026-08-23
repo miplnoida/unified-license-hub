@@ -39760,8 +39760,8 @@ export type Database = {
       perform_registration_workflow_transition: {
         Args: {
           _action_type: string
-          _actor_id: string
-          _comments: string
+          _actor_id?: string
+          _comments?: string
           _instance_id: string
           _registration_id: string
           _step_id: string
