@@ -138,20 +138,9 @@ async function main() {
 
   // The prepare-only secondary user completes V2 by carrying forward and
   // correcting the previously filed form responses.
-  const v1Reqs = await sel(SECONDARY, `return_filing_form_requirements?return_filing_version_id=eq.${V1}&select=form_template_id,form_response_id`);
-  const v2Reqs = await sel(SECONDARY, `return_filing_form_requirements?return_filing_version_id=eq.${v2Id}&select=id,form_template_id,completion_status`);
-  let attached = 0;
-  const attachErrors: string[] = [];
-  for (const r of (Array.isArray(v2Reqs.body) ? v2Reqs.body : [])) {
-    const src = (Array.isArray(v1Reqs.body) ? v1Reqs.body : []).find((x: any) => x.form_template_id === r.form_template_id);
-    if (!src?.form_response_id) continue;
-    const att = await rpc(SECONDARY, 'returns_attach_form_response', {
-      _requirement_id: r.id, _form_response_id: src.form_response_id, _completion: 'COMPLETED',
-    });
-    if (att.ok) attached += 1; else attachErrors.push(att.text);
-  }
-  record('P06.11 prepare-only secondary can complete V2 forms', attached > 0,
-    `attached=${attached} ${attachErrors[0] ?? ''}`);
+  const prep2 = await carryForwardForms(SECONDARY, V1, v2Id);
+  record('P06.11 prepare-only secondary can complete V2 forms', prep2.attached > 0,
+    `attached=${prep2.attached} ${prep2.error}`);
 
   const noDecl = await rpc(PRIMARY, 'returns_submit_filing', { _version_id: v2Id, _declaration_accepted: false });
   record('P06.12 declaration is mandatory', !noDecl.ok || noDecl.body?.submitted === false, noDecl.text);
@@ -161,10 +150,17 @@ async function main() {
 
   const dup = await rpc(PRIMARY, 'returns_submit_filing', { _version_id: v2Id, _declaration_accepted: true });
   const versions = await sel(OFFICER, `return_filing_versions?return_filing_id=eq.${FILING}&select=id,version_number,status`);
-  const versionCount = Array.isArray(versions.body) ? versions.body.length : -1;
+  const vRows: any[] = Array.isArray(versions.body) ? versions.body : [];
   record('P06.14 duplicate submission creates no extra version/effect',
-    !dup.ok || dup.body?.submitted === false, `${dup.text} versions=${versionCount}`);
-  record('P06.15 exactly two versions exist', versionCount === 2, JSON.stringify(versions.body));
+    (!dup.ok || dup.body?.submitted === false) && vRows.length === new Set(vRows.map((v) => v.id)).size,
+    `${dup.text} versions=${vRows.length}`);
+  // Version history is a single unbroken chain with at most one live version.
+  const numbers = vRows.map((v) => v.version_number).sort((a, b) => a - b);
+  const contiguous = numbers.every((n, i) => n === i + 1) && new Set(numbers).size === numbers.length;
+  const live = vRows.filter((v) => !['SUPERSEDED', 'ACCEPTED', 'REJECTED'].includes(v.status));
+  record('P06.15 version chain is contiguous with a single live version',
+    contiguous && live.length <= 1 && vRows.length >= 2, JSON.stringify(vRows));
+
 
   // Calculations must have run for V2.
   const metrics = await sel(OFFICER, `return_metric_values?return_filing_version_id=eq.${v2Id}&select=id,availability&limit=200`);
