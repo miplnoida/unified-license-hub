@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { useSecurityContext } from '@/hooks/useSecurityContext';
-import { buildNavTree, type SecNavItem, type SecNavNode } from '@/lib/rbac/securityContext';
+import { buildNavTree, resolveAudience, type SecNavItem, type SecNavNode } from '@/lib/rbac/securityContext';
 import { renderNavIcon } from '@/lib/rbac/navIcons';
 import { mainNavSections, type NavItem, type NavSection } from '@/config/navigation';
 import { INTERNAL_ROLES, LICENSEE_ROLES, type AppRole } from '@/types/platform';
 import type { PermissionModule } from '@/lib/permissionModules';
+
 
 const ALL_ROLES: AppRole[] = [
   'super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst',
