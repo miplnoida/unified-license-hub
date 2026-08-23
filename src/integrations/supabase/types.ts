@@ -2843,6 +2843,24 @@ export type Database = {
         }
         Relationships: []
       }
+      cert_v2_diag: {
+        Row: {
+          at: string | null
+          k: string | null
+          v: string | null
+        }
+        Insert: {
+          at?: string | null
+          k?: string | null
+          v?: string | null
+        }
+        Update: {
+          at?: string | null
+          k?: string | null
+          v?: string | null
+        }
+        Relationships: []
+      }
       certification_seed_manifest: {
         Row: {
           created_at: string
