@@ -2636,6 +2636,45 @@ export type Database = {
           },
         ]
       }
+      cert_certification_users: {
+        Row: {
+          audience: string
+          created_at: string
+          email: string
+          expected_modules: Json
+          is_machine: boolean
+          persona_family: string
+          role_display_name: string | null
+          role_id: string | null
+          role_key: string
+          user_id: string
+        }
+        Insert: {
+          audience: string
+          created_at?: string
+          email: string
+          expected_modules?: Json
+          is_machine?: boolean
+          persona_family: string
+          role_display_name?: string | null
+          role_id?: string | null
+          role_key: string
+          user_id: string
+        }
+        Update: {
+          audience?: string
+          created_at?: string
+          email?: string
+          expected_modules?: Json
+          is_machine?: boolean
+          persona_family?: string
+          role_display_name?: string | null
+          role_id?: string | null
+          role_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cert_fixture_object_types: {
         Row: {
           created_at: string
@@ -35144,9 +35183,33 @@ export type Database = {
         Args: { _depth?: number; _ids: string[]; _table: string }
         Returns: number
       }
+      cert_v2_clean_message_runtime: {
+        Args: never
+        Returns: {
+          rows_deleted: number
+          table_name: string
+        }[]
+      }
       cert_v2_complete_run: {
         Args: { _run_id: string; _status?: string }
         Returns: undefined
+      }
+      cert_v2_config_integrity_gate: {
+        Args: never
+        Returns: {
+          actual_count: number
+          area: string
+          expected_min: number
+          status: string
+        }[]
+      }
+      cert_v2_detach_users: {
+        Args: { _keep_user_ids: string[]; _reassign_to: string }
+        Returns: {
+          action: string
+          rows_affected: number
+          target: string
+        }[]
       }
       cert_v2_exec_unguarded: {
         Args: { _ids: string[]; _sql: string; _table: string }
@@ -35206,11 +35269,49 @@ export type Database = {
           table_name: string
         }[]
       }
+      cert_v2_role_catalogue: {
+        Args: never
+        Returns: {
+          audience: string
+          certify: boolean
+          legacy_class: string
+          role_class: string
+          role_id: string
+          role_key: string
+          role_name: string
+        }[]
+      }
+      cert_v2_table_classification: {
+        Args: never
+        Returns: {
+          category: string
+          reason: string
+          row_count: number
+          table_name: string
+        }[]
+      }
+      cert_v2_user_identity_tables: { Args: never; Returns: string[] }
       cert_v2_verify: {
         Args: { _dataset_key?: string }
         Returns: {
           check_key: string
           detail: string
+          status: string
+        }[]
+      }
+      cert_v2_zero_runtime: {
+        Args: { _keep_user_ids?: string[] }
+        Returns: {
+          rows_after: number
+          rows_before: number
+          table_name: string
+        }[]
+      }
+      cert_v2_zero_state_gate: {
+        Args: never
+        Returns: {
+          actual_count: number
+          metric: string
           status: string
         }[]
       }
