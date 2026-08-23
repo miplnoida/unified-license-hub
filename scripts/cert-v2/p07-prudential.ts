@@ -27,7 +27,7 @@ async function main() {
   record('P07.02 canonical sweep evaluates the entity\'s latest canonical version',
     sweep.body?.ok === true && evaluated > 0, sweep.text);
 
-  const runs = await sel(ANALYST, `prudential_detection_runs?entity_id=eq.${ENTITY}&select=id,return_filing_version_id,trigger_kind,status,period_end&order=created_at.desc&limit=3`);
+  const runs = await sel(ANALYST, `prudential_detection_runs?entity_id=eq.${ENTITY}&select=id,return_filing_version_id,trigger_kind,status,period_end&order=started_at.desc&limit=3`);
   const run = runs.body?.[0];
   record('P07.03 detection run is bound to a canonical filing version',
     !!run?.return_filing_version_id, runs.text);
@@ -140,8 +140,8 @@ async function main() {
   const escId = esc.body?.escalation_id ?? esc.body?.id ?? esc.body;
   if (typeof escId === 'string') {
     const decide = await rpc(SUPERVISOR, 'prudential_escalation_decide', {
-      _escalation_id: escId, _decision: 'accept',
-      _reason: 'Escalation accepted; entity placed under intensified monitoring pending remediation evidence.',
+      _escalation_id: escId, _status: 'in_progress', _decision: 'accept',
+      _outcome: 'Escalation accepted; entity placed under intensified monitoring pending remediation evidence.',
     });
     record('P07.16 supervisor decides the escalation', decide.ok, decide.text);
   }
