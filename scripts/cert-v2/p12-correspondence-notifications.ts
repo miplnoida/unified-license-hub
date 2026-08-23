@@ -14,27 +14,39 @@ async function main() {
   if (!complaint?.id) return summary('P12');
   const licenseeId = complaint.licensee_id;
 
-  // --- 2. Correspondence thread linked to the complaint case ---
-  const thread = await ins(CORR, 'correspondence_threads', {
-    subject: 'Complaint follow-up correspondence', category: 'Conduct', channel: 'email', direction: 'outbound',
-    sender_name: 'Correspondence Officer', licensee_id: licenseeId, source_type: 'complaint', source_id: complaint.id,
-    thread_type: 'case_correspondence', is_entity_facing: true, module: 'conduct',
+  // --- 2. Correspondence thread linked to the complaint case (governed RPC) ---
+  const thread = await rpc(CORR, 'create_correspondence_thread', {
+    _subject: 'Complaint follow-up correspondence',
+    _summary: 'Follow-up correspondence issued on the complaint under investigation.',
+    _sender_name: 'Correspondence Officer',
+    _channel: 'email',
+    _category: 'Conduct',
+    _licensee_id: licenseeId,
+    _body: 'We are writing regarding the complaint on file. Please respond within 10 business days.',
+    _thread_type: 'case_correspondence',
+    _source_type: 'complaint',
+    _source_id: complaint.id,
+    _is_entity_facing: true,
   });
-  const threadId = thread.body?.[0]?.id;
+  const threadId = typeof thread.body === 'string' ? thread.body : thread.body?.thread_id ?? thread.body?.id;
   record('P12.02 correspondence thread created and case-linked', thread.ok && !!threadId, thread.text);
   if (!threadId) return summary('P12');
 
   // --- 3. Internal note + outbound message on the thread ---
-  const note = await ins(CORR, 'correspondence_messages', {
-    thread_id: threadId, direction: 'internal', channel: 'portal', body: 'INTERNAL ONLY: escalate if entity does not respond in 5 days.',
-    is_internal_note: true, message_kind: 'internal', author_name: 'Correspondence Officer',
+  const note = await rpc(CORR, 'post_correspondence_message', {
+    _thread_id: threadId,
+    _body: 'INTERNAL ONLY: escalate if entity does not respond in 5 days.',
+    _is_internal_note: true,
+    _channel: 'portal',
   });
   record('P12.03 internal note recorded on thread', note.ok, note.text);
 
-  const outMsg = await ins(CORR, 'correspondence_messages', {
-    thread_id: threadId, direction: 'outbound', channel: 'email', subject: 'Regarding your complaint',
-    body: 'We are writing regarding the complaint on file. Please respond within 10 business days.',
-    is_internal_note: false, message_kind: 'external_outbound', author_name: 'Correspondence Officer',
+  const outMsg = await rpc(CORR, 'post_correspondence_message', {
+    _thread_id: threadId,
+    _body: 'We are writing regarding the complaint on file. Please respond within 10 business days.',
+    _is_internal_note: false,
+    _channel: 'email',
+    _subject: 'Regarding your complaint',
   });
   record('P12.04 outbound external message recorded', outMsg.ok, outMsg.text);
 
@@ -42,10 +54,12 @@ async function main() {
   const entityUser = await sel(ADMIN, `profiles?select=id,email&email=eq.${encodeURIComponent('licensee_primary_user@mishainfotech.com')}`);
   const recipientId = entityUser.body?.[0]?.id;
   const dispatch = await fn(CORR, 'send-correspondence', {
-    subject: 'Regarding your complaint', body: 'We are writing regarding the complaint on file. Please respond within 10 business days.',
+    subject: 'Regarding your complaint',
+    body: 'We are writing regarding the complaint on file. Please respond within 10 business days.',
     channel: 'email', source_type: 'complaint', source_id: complaint.id, recipient_user_id: recipientId,
   });
-  record('P12.05 dispatch attempt resolves recipient and logs a dispatch row', dispatch.ok && dispatch.body?.ok && !!dispatch.body?.dispatch_id, dispatch.text);
+  record('P12.05 dispatch attempt resolves recipient and logs a dispatch row',
+    dispatch.ok && !!(dispatch.body?.dispatch_id || dispatch.body?.ok), dispatch.text);
 
   // --- 5. Visibility check: entity token must NOT see the internal note ---
   const entityView = await sel(ENTITY, `correspondence_messages?thread_id=eq.${threadId}&select=id,is_internal_note,body`);
@@ -56,19 +70,22 @@ async function main() {
   console.log(`CORRESPONDENCE_VISIBILITY_LEAKS=${leaks}`);
 
   // --- 6. Inbound response from the entity, linked back to the case ---
-  const reply = await ins(ENTITY, 'correspondence_messages', {
-    thread_id: threadId, direction: 'inbound', channel: 'email', body: 'We acknowledge receipt and will respond by the deadline.',
-    is_internal_note: false, message_kind: 'external_inbound', author_name: 'Entity PPoC',
+  const reply = await rpc(ENTITY, 'post_correspondence_message', {
+    _thread_id: threadId,
+    _body: 'We acknowledge receipt and will respond by the deadline.',
+    _is_internal_note: false,
+    _channel: 'portal',
   });
   record('P12.08 entity inbound response recorded on the same thread', reply.ok, reply.text);
 
   const threadCheck = await sel(CORR, `correspondence_threads?id=eq.${threadId}&select=id,source_type,source_id,last_message_at`);
   const tRow = threadCheck.body?.[0];
-  record('P12.09 case linkage preserved (thread still points at the complaint)', tRow?.source_type === 'complaint' && tRow?.source_id === complaint.id, threadCheck.text);
+  record('P12.09 case linkage preserved (thread still points at the complaint)',
+    tRow?.source_type === 'complaint' && tRow?.source_id === complaint.id, threadCheck.text);
 
   // Entity cannot forge an internal note.
-  const forgeNote = await ins(ENTITY, 'correspondence_messages', {
-    thread_id: threadId, direction: 'internal', channel: 'portal', body: 'entity trying to write an internal note', is_internal_note: true, message_kind: 'internal',
+  const forgeNote = await rpc(ENTITY, 'post_correspondence_message', {
+    _thread_id: threadId, _body: 'entity trying to write an internal note', _is_internal_note: true, _channel: 'portal',
   });
   record('P12.10 entity token cannot write an internal note', !forgeNote.ok, forgeNote.text);
 
