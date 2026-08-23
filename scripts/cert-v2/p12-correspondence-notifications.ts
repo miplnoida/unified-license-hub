@@ -87,7 +87,10 @@ async function main() {
   const forgeNote = await rpc(ENTITY, 'post_correspondence_message', {
     _thread_id: threadId, _body: 'entity trying to write an internal note', _is_internal_note: true, _channel: 'portal',
   });
-  record('P12.10 entity token cannot write an internal note', !forgeNote.ok, forgeNote.text);
+  const forged = await sel(CORR, `correspondence_messages?id=eq.${forgeNote.body}&select=is_internal_note,message_kind`);
+  record('P12.10 entity token cannot create an internal note (coerced to external inbound)',
+    forged.body?.[0]?.is_internal_note === false && forged.body?.[0]?.message_kind === 'external_inbound',
+    forged.text || forgeNote.text);
 
   // --- 7. Notifications: event -> durable queue row -> recipient + template ---
   const officerA = 'b27db069-d6be-4789-b024-ff78a71e75cc'; // complaints_officer
