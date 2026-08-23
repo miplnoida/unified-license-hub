@@ -1,41 +1,95 @@
 /**
  * WAVE 3 BATCH 2 — P06 Returns correction journey.
  * submitted filing -> officer review -> correction request -> filer response
- * -> Version 2 edit -> declaration -> resubmit -> supervisor accept.
+ * -> next version prepared by the secondary -> declaration -> resubmit by the
+ * primary -> supervisor accept.
+ *
+ * The journey is self-bootstrapping and therefore replayable: if the filer's
+ * entities hold no version awaiting review (the normal steady state once a
+ * previous run has been accepted), it opens a fresh amendment version on an
+ * accepted filing, has the prepare-only secondary carry the previously filed
+ * form responses forward, and has the primary submit it. That produces the
+ * SUBMITTED version the review journey needs without weakening any product
+ * validation.
  */
-import { P, rpc, sel, denied, record, summary } from './api';
+import { P, rpc, sel, patch, record, summary } from './api';
 
 const OFFICER = P('returns_officer');
 const SUPERVISOR = P('returns_supervisor');
 const PRIMARY = P('licensee_primary_user');
 const SECONDARY = P('licensee_secondary_user');
 
-// Target is selected at run time: the first version-1 SUBMITTED filing of an
-// entity the certification filer represents, so the journey is replayable.
-const ENTITY = process.env.P06_ENTITY_ID ?? '52112b8b-0f01-4682-a5c7-fc316797dfd8'; // Windward Trust Bank Limited
+const ENTITY = process.env.P06_ENTITY_ID ?? '5855bf85-9fde-4cf8-a082-7ea904d46184'; // Coral Harbour Bank Limited
 let V1 = process.env.P06_VERSION_ID ?? '';
 let FILING = '';
+
+/** Copies the form responses of `fromVersion` onto the requirements of `toVersion` as the given persona. */
+async function carryForwardForms(email: string, fromVersion: string, toVersion: string) {
+  const src = await sel(email, `return_filing_form_requirements?return_filing_version_id=eq.${fromVersion}&select=form_template_id,form_response_id`);
+  const dst = await sel(email, `return_filing_form_requirements?return_filing_version_id=eq.${toVersion}&select=id,form_template_id,completion_status`);
+  let attached = 0;
+  let error = '';
+  for (const r of (Array.isArray(dst.body) ? dst.body : [])) {
+    const from = (Array.isArray(src.body) ? src.body : []).find((x: any) => x.form_template_id === r.form_template_id);
+    if (!from?.form_response_id) continue;
+    const att = await rpc(email, 'returns_attach_form_response', {
+      _requirement_id: r.id, _form_response_id: from.form_response_id, _completion: 'COMPLETED',
+    });
+    if (att.ok) attached += 1; else if (!error) error = att.text;
+  }
+  return { attached, error };
+}
 
 async function resolveTarget() {
   if (V1) {
     const v = await sel(OFFICER, `return_filing_versions?id=eq.${V1}&select=return_filing_id`);
     FILING = v.body?.[0]?.return_filing_id ?? '';
-    return;
+    return 'provided';
   }
-  const filings = await sel(OFFICER, `return_filings?entity_id=eq.${ENTITY}&select=id`);
-  const ids = (Array.isArray(filings.body) ? filings.body : []).map((r: any) => r.id);
-  if (!ids.length) return;
-  const res = await sel(OFFICER,
-    `return_filing_versions?status=eq.SUBMITTED&version_number=eq.1&return_filing_id=in.(${ids.join(',')})&select=id,return_filing_id&limit=1`);
-  V1 = res.body?.[0]?.id ?? '';
-  FILING = res.body?.[0]?.return_filing_id ?? '';
+  const filings = await sel(OFFICER, `return_filings?entity_id=eq.${ENTITY}&select=id,reporting_period_id,accepted_version_id,status`);
+  const rows = Array.isArray(filings.body) ? filings.body : [];
+  if (!rows.length) return 'none';
+
+  // Steady state 1: a version is already awaiting review.
+  const pending = await sel(OFFICER,
+    `return_filing_versions?status=in.(SUBMITTED,UNDER_REVIEW)&return_filing_id=in.(${rows.map((r: any) => r.id).join(',')})&select=id,return_filing_id&order=created_at.desc&limit=1`);
+  if (pending.body?.[0]?.id) {
+    V1 = pending.body[0].id;
+    FILING = pending.body[0].return_filing_id;
+    return 'existing';
+  }
+
+  // Steady state 2: everything is accepted — open a real amendment version and submit it.
+  const accepted = rows.find((r: any) => r.accepted_version_id && r.reporting_period_id);
+  if (!accepted) return 'none';
+  const opened = await rpc(PRIMARY, 'returns_open_filing', { _period_id: accepted.reporting_period_id });
+  const draft = opened.body?.version_id ?? opened.body?.return_filing_version_id;
+  if (!draft) { record('P06.00a amendment version opened', false, opened.text); return 'none'; }
+  record('P06.00a amendment version opened on the accepted filing', true, `version=${draft}`);
+
+  const prep = await carryForwardForms(SECONDARY, accepted.accepted_version_id, draft);
+  record('P06.00b prepare-only secondary completes the amendment forms', prep.attached > 0,
+    `attached=${prep.attached} ${prep.error}`);
+
+  const secSubmit = await rpc(SECONDARY, 'returns_submit_filing', { _version_id: draft, _declaration_accepted: true });
+  record('P06.00c secondary cannot submit the amendment', !(secSubmit.ok && secSubmit.body?.submitted === true), secSubmit.text);
+
+  const primSubmit = await rpc(PRIMARY, 'returns_submit_filing', { _version_id: draft, _declaration_accepted: true });
+  if (primSubmit.body?.submitted !== true) { record('P06.00d primary submits the amendment', false, primSubmit.text); return 'none'; }
+  record('P06.00d primary submits the amendment', true, primSubmit.text);
+  V1 = draft;
+  FILING = accepted.id;
+  return 'bootstrapped';
 }
 
 async function main() {
-  await resolveTarget();
-  if (!V1) { record('P06.00 target submitted filing found', false, `no submitted V1 for entity ${ENTITY}`); return summary('P06'); }
+  const how = await resolveTarget();
+  if (!V1) { record('P06.00 target submitted filing found', false, `no reviewable filing for entity ${ENTITY}`); return summary('P06'); }
+  record('P06.00 target submitted filing found', true, `${how} version=${V1}`);
   const v1Before = await sel(OFFICER, `return_filing_versions?id=eq.${V1}&select=id,status,version_number,is_immutable`);
-  record('P06.01 submitted V1 present', v1Before.body?.[0]?.status === 'SUBMITTED', JSON.stringify(v1Before.body));
+  record('P06.01 submitted version present for review',
+    ['SUBMITTED', 'UNDER_REVIEW'].includes(v1Before.body?.[0]?.status), JSON.stringify(v1Before.body));
+
 
   const start = await rpc(OFFICER, 'returns_review_filing', { _version_id: V1, _action: 'START_REVIEW' });
   record('P06.02 officer starts review', start.ok, start.text);
