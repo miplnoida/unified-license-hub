@@ -35226,6 +35226,13 @@ export type Database = {
           table_name: string
         }[]
       }
+      cert_v2_clear_message_runtime: {
+        Args: never
+        Returns: {
+          rows_deleted: number
+          table_name: string
+        }[]
+      }
       cert_v2_complete_run: {
         Args: { _run_id: string; _status?: string }
         Returns: undefined

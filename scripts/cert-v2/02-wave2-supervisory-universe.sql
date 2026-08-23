@@ -12,7 +12,7 @@
 --     children (reporting periods, metric values, breaches, detection runs)
 --     are reached through the FK-aware cascade deleter.
 --   * Configuration rows created for certification purposes are registered
---     with cleanup_policy = 'retain' and labelled [CERTIFICATION].
+--     with cleanup_policy = 'retain_config' and labelled [CERTIFICATION].
 --   * No product/business logic is duplicated here: ratios, threshold
 --     evaluation and early-warning detection are produced by the SERVER
 --     functions (returns_calculate_metrics, _prudential_canonical_detect_run).
@@ -156,10 +156,10 @@ BEGIN
   GET DIAGNOSTICS v_added = ROW_COUNT;
 
   PERFORM public.cert_v2_register_object(_run_id, 'CONFIG', 'prudential_threshold',
-            public.cert_v2_uuid('threshold:LIQUIDITY_RATIO'), 'LIQUIDITY_RATIO', 'retain',
+            public.cert_v2_uuid('threshold:LIQUIDITY_RATIO'), 'LIQUIDITY_RATIO', 'retain_config',
             jsonb_build_object('reason', 'canonical grading of liquidity ratio'));
   PERFORM public.cert_v2_register_object(_run_id, 'CONFIG', 'prudential_threshold',
-            public.cert_v2_uuid('threshold:COST_INCOME_RATIO'), 'COST_INCOME_RATIO', 'retain',
+            public.cert_v2_uuid('threshold:COST_INCOME_RATIO'), 'COST_INCOME_RATIO', 'retain_config',
             jsonb_build_object('reason', 'canonical grading of cost/income ratio'));
 
   RETURN jsonb_build_object('thresholds_added', v_added);
@@ -389,7 +389,7 @@ BEGIN
             'REN-CV2-' || substr(e.code, 2), 'RENCV2' || substr(e.code, 2), 'REGULATOR',
             v_regulator, true,
             CASE WHEN e.identity_key = 'verified' THEN 'VERIFIED' ELSE 'UNVERIFIED' END,
-            DATE '2024-01-01', 'CERTIFICATION', 'CERT-SUPTECH-V2')
+            DATE '2024-01-01', 'MANUAL', 'CERT-SUPTECH-V2')
     ON CONFLICT (id) DO NOTHING;
 
     INSERT INTO public.entity_identifiers(
@@ -397,7 +397,7 @@ BEGIN
       jurisdiction_id, is_primary, verification_status, effective_from, source_type, source_reference)
     VALUES (public.cert_v2_uuid('ident:crn:' || e.code), v_entity, v_crn,
             'CRN-CV2-' || substr(e.code, 2), 'CRNCV2' || substr(e.code, 2), 'JURISDICTION',
-            v_country, false, 'UNVERIFIED', DATE '2024-01-01', 'CERTIFICATION', 'CERT-SUPTECH-V2')
+            v_country, false, 'UNVERIFIED', DATE '2024-01-01', 'MANUAL', 'CERT-SUPTECH-V2')
     ON CONFLICT (id) DO NOTHING;
     v_ids := v_ids + 2;
 
@@ -488,7 +488,7 @@ BEGIN
   v_parent_member := public.cert_v2_uuid('gmember:E18');
   INSERT INTO public.financial_group_members(id, group_id, licensee_id, member_role,
                                              ownership_percentage, consolidation_treatment, effective_date)
-  VALUES (v_parent_member, v_group, public.cert_v2_uuid('entity:E18'), 'parent', 100, 'full', DATE '2024-01-01')
+  VALUES (v_parent_member, v_group, public.cert_v2_uuid('entity:E18'), 'ultimate_holding', 100, 'full', DATE '2024-01-01')
   ON CONFLICT (id) DO NOTHING;
 
   v_member := public.cert_v2_uuid('gmember:E19');
@@ -555,7 +555,7 @@ BEGIN
     INSERT INTO public.entity_reporting_obligations(
       id, entity_id, return_definition_id, origin, frequency,
       due_days_after_period_end, effective_from, status)
-    VALUES (v_ob, v_entity, v_def, 'CERTIFICATION', p.freq, p.due_days, DATE '2024-01-01', 'ACTIVE')
+    VALUES (v_ob, v_entity, v_def, 'RULE', p.freq, p.due_days, DATE '2024-01-01', 'ACTIVE')
     ON CONFLICT (id) DO NOTHING;
     PERFORM public.cert_v2_register_object(_run_id, p.scenario, 'entity_reporting_obligation',
               v_ob, p.code || ':' || p.def_code);
@@ -667,9 +667,38 @@ BEGIN
 END $$;
 
 -- ==================================================================== orchestrator
+-- Message runtime must be empty after seeding so notification E2E waves start
+-- from a clean delivery baseline. Configuration (templates, event configs,
+-- routing rules, preferences) is retained.
+CREATE OR REPLACE FUNCTION public.cert_v2_clear_message_runtime()
+RETURNS TABLE(table_name text, rows_deleted bigint)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+DECLARE
+  t text;
+  n bigint;
+  v_tables text[] := ARRAY[
+    'notification_digest_items','notification_digest_log','notification_digest_runs',
+    'notification_dispatch_log','notification_event_queue','notification_outbox','notifications',
+    'correspondence_attachments','correspondence_events','correspondence_dispatches',
+    'correspondence_messages','correspondence_thread_participants','correspondence_threads'
+  ];
+BEGIN
+  PERFORM public.cert_v2_assert_allowed();
+  FOREACH t IN ARRAY v_tables LOOP
+    IF EXISTS (SELECT 1 FROM information_schema.tables it
+                WHERE it.table_schema = 'public' AND it.table_name = t) THEN
+      n := public.cert_v2_exec_unguarded(
+             t,
+             format('DELETE FROM public.%I WHERE ($1 IS NULL OR id = ANY($1))', t),
+             NULL::uuid[]);
+      RETURN QUERY SELECT t, n;
+    END IF;
+  END LOOP;
+END $$;
+
 CREATE OR REPLACE FUNCTION public.cert_v2_seed_universe(_notes text DEFAULT NULL)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
-DECLARE v_run uuid; v_ref jsonb; v_ent jsonb; v_ret jsonb; v_calc jsonb;
+DECLARE v_run uuid; v_ref jsonb; v_ent jsonb; v_ret jsonb; v_calc jsonb; v_msg bigint;
 BEGIN
   PERFORM public.cert_v2_assert_allowed();
   v_run := public.cert_v2_begin_run('WAVE2-UNIVERSE-1.0',
@@ -678,9 +707,11 @@ BEGIN
   v_ent  := public.cert_v2_seed_entities(v_run);
   v_ret  := public.cert_v2_seed_returns(v_run);
   v_calc := public.cert_v2_seed_calculate(v_run);
-  PERFORM public.cert_v2_complete_run(v_run, 'COMPLETED');
+  SELECT coalesce(sum(rows_deleted),0) INTO v_msg FROM public.cert_v2_clear_message_runtime();
+  PERFORM public.cert_v2_complete_run(v_run, 'completed');
   RETURN jsonb_build_object('run_id', v_run, 'reference', v_ref, 'entities', v_ent,
-                            'returns', v_ret, 'calculation', v_calc);
+                            'returns', v_ret, 'calculation', v_calc,
+                            'message_runtime_rows_cleared', v_msg);
 END $$;
 
 -- ======================================================== golden verification
@@ -733,13 +764,13 @@ BEGIN
       (SELECT count(*) FROM public.entity_reporting_obligations) AS obligations,
       (SELECT count(*) FROM public.reporting_periods) AS periods,
       (SELECT count(*) FROM public.return_filings) AS filings,
-      (SELECT count(*) FROM public.return_filings WHERE status = 'ACCEPTED') AS accepted,
-      (SELECT count(*) FROM public.return_metric_values WHERE source_kind = 'CALCULATED'
-                                                          AND availability = 'AVAILABLE') AS calculated,
-      (SELECT count(*) FROM public.prudential_detection_runs WHERE status = 'FAILED') AS failed_runs,
+      (SELECT count(*) FROM public.return_filings rf WHERE rf.status = 'ACCEPTED') AS accepted,
+      (SELECT count(*) FROM public.return_metric_values rmv WHERE rmv.source_kind = 'CALCULATED'
+                                                          AND rmv.availability = 'AVAILABLE') AS calculated,
+      (SELECT count(*) FROM public.prudential_detection_runs pdr WHERE pdr.status = 'FAILED') AS failed_runs,
       (SELECT count(*) FROM public.prudential_detection_runs) AS runs,
       (SELECT count(*) FROM public.return_threshold_breaches) AS breaches,
-      (SELECT count(*) FROM public.cert_v2_golden_ratios() WHERE status <> 'PASS') AS golden_fail,
+      (SELECT count(*) FROM public.cert_v2_golden_ratios() g WHERE g.status <> 'PASS') AS golden_fail,
       (SELECT count(*) FROM public.cert_fixture_objects) AS ledger
   )
   SELECT * FROM (VALUES
@@ -765,6 +796,8 @@ REVOKE ALL ON FUNCTION public.cert_v2_seed_calculate(uuid) FROM PUBLIC, anon, au
 REVOKE ALL ON FUNCTION public.cert_v2_seed_universe(text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.cert_v2_seed_reference(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.cert_v2_put_metric(uuid,uuid,uuid,text,numeric) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.cert_v2_clear_message_runtime() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.cert_v2_clear_message_runtime() TO service_role;
 GRANT EXECUTE ON FUNCTION public.cert_v2_seed_universe(text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.cert_v2_golden_ratios() TO service_role;
 GRANT EXECUTE ON FUNCTION public.cert_v2_universe_gate() TO service_role;
