@@ -1,0 +1,1 @@
+ALTER TABLE public.documents ALTER COLUMN uploaded_by SET DEFAULT auth.uid();

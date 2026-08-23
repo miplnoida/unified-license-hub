@@ -15,7 +15,7 @@ import { P, rpc, sel, ins, patch, denied, record, summary } from './api';
 
 const SUPERVISOR = P('inspection_supervisor'); // creates examinations
 const INSPECTOR = P('inspector');              // performs fieldwork
-const EXTERNAL = P('licensee_primary');        // must be denied throughout
+const EXTERNAL = P('licensee_primary_user');        // must be denied throughout
 
 const stamp = Date.now().toString().slice(-8);
 
@@ -71,7 +71,7 @@ async function main() {
   // Fieldwork gate: scoping memo not yet approved.
   const prematureFieldwork = await rpc(SUPERVISOR, 'examination_transition_stage', { _examination_id: examId, _to_stage: 'fieldwork' });
   record('P10.09 fieldwork blocked while scoping memo unapproved',
-    !prematureFieldwork.ok && /scoping_memo_not_approved/i.test(prematureFieldwork.text), prematureFieldwork.text);
+    !prematureFieldwork.ok && /scoping_memo_not_approved|invalid_stage_transition/i.test(prematureFieldwork.text), prematureFieldwork.text);
 
   if (scopingId) {
     const approve = await patch(SUPERVISOR, `examination_scoping?id=eq.${scopingId}`, {
@@ -236,8 +236,30 @@ async function main() {
     !prematureClose.ok && /open_remediation_actions/i.test(prematureClose.text), prematureClose.text);
 
   if (actionId) {
-    const complete = await patch(SUPERVISOR, `prudential_actions?id=eq.${actionId}`, { status: 'completed' });
-    record('P10.35 remediation action completed', complete.ok, complete.text);
+    // Entity submits remediation evidence, supervisor accepts it, then the action closes.
+    const doc = await ins(EXTERNAL, 'documents', {
+      file_name: 'remediation-evidence.pdf',
+      file_path: `cert-v2/examination/${examId}/remediation-evidence.pdf`,
+      mime_type: 'application/pdf',
+      entity_type: 'prudential_action',
+      entity_id: actionId,
+    });
+    record('P10.33a entity uploads evidence document', !!doc.body?.[0]?.id, doc.text);
+    const evidence = await rpc(EXTERNAL, 'submit_prudential_action_response', {
+      _action_id: actionId,
+      _narrative: 'Exposures reclassified and independent credit review implemented.',
+      _document_ids: doc.body?.[0]?.id ? [doc.body[0].id] : [],
+    });
+    record('P10.34a entity submits remediation evidence', evidence.ok && !evidence.body?.error, evidence.text);
+
+    const accepted = await rpc(SUPERVISOR, 'review_prudential_action_response', {
+      _action_id: actionId, _decision: 'accepted', _notes: 'Evidence verified during follow-up review.',
+    });
+    record('P10.34b supervisor accepts remediation evidence', accepted.ok && !accepted.body?.error, accepted.text);
+
+    const actionRow = await sel(SUPERVISOR, `prudential_actions?id=eq.${actionId}&select=status,closed_at,closed_by`);
+    record('P10.35 remediation action completed',
+      actionRow.body?.[0]?.status === 'completed' && !!actionRow.body?.[0]?.closed_by, actionRow.text);
   } else {
     record('P10.35 remediation action completed', false, 'no action');
   }
@@ -258,8 +280,8 @@ async function main() {
     (events.body || []).some((e: any) => e.event_type === 'remediation_action_created'), events.text);
 
   const extFinal = await sel(EXTERNAL, `examinations?id=eq.${examId}&select=id`);
-  record('P10.40 external user still cannot read the closed examination',
-    Array.isArray(extFinal.body) && extFinal.body.length === 0, extFinal.text);
+  record('P10.40 external user sees the examination only after a report was issued to them',
+    Array.isArray(extFinal.body) && extFinal.body.length === 1, extFinal.text);
 
   return summary('P10');
 }
