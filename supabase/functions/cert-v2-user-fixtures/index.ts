@@ -120,6 +120,14 @@ Deno.serve(async (req) => {
         modulesByRole.get(row.role_id)!.add(key);
       }
 
+      // profiles.role_id references the LEGACY roles table (compatibility column);
+      // the canonical authority is sec_user_roles. Map by display name when present.
+      const { data: legacyRoles, error: lrErr } = await admin.from('roles').select('id, name');
+      if (lrErr) throw lrErr;
+      const legacyRoleByName = new Map(
+        (legacyRoles ?? []).map((r) => [String(r.name).trim().toLowerCase(), r.id]),
+      );
+
       const existing = await listAllUsers();
       const byEmail = new Map(existing.map((u) => [(u.email ?? '').toLowerCase(), u.id]));
 
@@ -165,7 +173,7 @@ Deno.serve(async (req) => {
             entity_name: role.audience === 'external' ? '' : 'Regulator',
             role: role.role_key,
             status: 'active',
-            role_id: role.role_id,
+            role_id: legacyRoleByName.get(role.role_name.trim().toLowerCase()) ?? null,
             force_password_change: false,
           },
           { onConflict: 'id' },
