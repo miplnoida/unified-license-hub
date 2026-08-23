@@ -58,6 +58,7 @@ export function ModuleRoute({
     isBypassRole,
     hasAssignmentReturnQueueAccess,
     isAssignmentAllowedReturnsPath,
+    isInternal,
     isLoading: permsLoading,
   } = useUserDynamicPermissions();
 
@@ -77,7 +78,9 @@ export function ModuleRoute({
   // Internal-audience routes remain internal-only.
   const audienceIsInternalOnly = allowedRoles.length > 0
     && allowedRoles.every((r) => INTERNAL_ROLES.includes(r));
-  if (audienceIsInternalOnly && !INTERNAL_ROLES.includes(user.role)) {
+  // Audience authority is canonical (`sec_get_user_context()` role types),
+  // not the legacy `app_role` projection.
+  if (audienceIsInternalOnly && !isInternal) {
     return <AccessDenied />;
   }
 
@@ -117,7 +120,7 @@ export function PermissionRoute({
   allowedRoles?: AppRole[];
 }) {
   const { user, session, loading, isFullyAuthenticated, mfaStatus } = useAuth();
-  const { hasPermission, isBypassRole, isLoading: permsLoading } = useUserDynamicPermissions();
+  const { hasPermission, isBypassRole, isInternal, isLoading: permsLoading } = useUserDynamicPermissions();
 
   if (loading) return <AuthLoadingScreen />;
   if (!session) return <Navigate to="/" replace />;
@@ -133,7 +136,9 @@ export function PermissionRoute({
 
   const audienceIsInternalOnly = allowedRoles.length > 0
     && allowedRoles.every((r) => INTERNAL_ROLES.includes(r));
-  if (audienceIsInternalOnly && !INTERNAL_ROLES.includes(user.role)) {
+  // Audience authority is canonical (`sec_get_user_context()` role types),
+  // not the legacy `app_role` projection.
+  if (audienceIsInternalOnly && !isInternal) {
     return <AccessDenied />;
   }
 
