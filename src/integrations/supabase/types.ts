@@ -42672,6 +42672,7 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      workflow_resolve_actor: { Args: { _claimed: string }; Returns: string }
       write_audit: {
         Args: {
           _action: string
