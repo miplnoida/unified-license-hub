@@ -330,58 +330,50 @@ GRANT EXECUTE ON FUNCTION public.cert_v2_clean_message_runtime() TO service_role
 -- ----------------------------------------------------------- zero-state gate
 CREATE OR REPLACE FUNCTION public.cert_v2_zero_state_gate()
 RETURNS TABLE(metric text, actual_count bigint, status text)
-LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$
-DECLARE
-  v_cls_notify bigint; v_cls_corr bigint; v_cls_wf bigint;
-  v_cls_sup bigint; v_cls_all bigint;
-BEGIN
-  CREATE TEMP TABLE IF NOT EXISTS _zsg (t text, c text, n bigint) ON COMMIT DROP;
-  DELETE FROM _zsg;
-  INSERT INTO _zsg SELECT k.table_name, k.category, k.row_count
-    FROM public.cert_v2_table_classification() k;
-
-  SELECT coalesce(sum(n),0) INTO v_cls_notify FROM _zsg
-   WHERE c='RUNTIME_MUST_ZERO' AND (t LIKE '%notification%' OR t='notifications');
-  SELECT coalesce(sum(n),0) INTO v_cls_corr FROM _zsg
-   WHERE c='RUNTIME_MUST_ZERO' AND t LIKE 'correspondence%';
-  SELECT coalesce(sum(n),0) INTO v_cls_wf FROM _zsg
-   WHERE c='RUNTIME_MUST_ZERO' AND (t LIKE 'workflow%' OR t LIKE 'approval_action%'
-         OR t LIKE 'sla_stage%' OR t LIKE 'escalation%' OR t='escalations');
-  SELECT coalesce(sum(n),0) INTO v_cls_sup FROM _zsg
-   WHERE c='RUNTIME_MUST_ZERO' AND (t LIKE 'prudential%' OR t LIKE 'conduct%' OR t LIKE 'complaint%'
-         OR t LIKE 'examination%' OR t LIKE 'enforcement%' OR t LIKE 'fp\_%' OR t LIKE 'thematic%'
-         OR t LIKE 'entity%' OR t LIKE 'return%' OR t LIKE 'application%' OR t LIKE 'licen%'
-         OR t LIKE 'group\_%' OR t LIKE 'ai\_%');
-  SELECT coalesce(sum(n),0) INTO v_cls_all FROM _zsg
-   WHERE c='RUNTIME_MUST_ZERO' AND NOT (t = ANY (public.cert_v2_user_identity_tables()));
-
-  RETURN QUERY
-  WITH m AS (
-    SELECT 'OLD_BUSINESS_RUNTIME_ROWS' AS k, v_cls_all AS n
-    UNION ALL SELECT 'OLD_NOTIFICATION_RUNTIME_ROWS', v_cls_notify
-    UNION ALL SELECT 'OLD_CORRESPONDENCE_RUNTIME_ROWS', v_cls_corr
-    UNION ALL SELECT 'OLD_WORKFLOW_RUNTIME_ROWS', v_cls_wf
-    UNION ALL SELECT 'OLD_SUPERVISORY_RUNTIME_ROWS', v_cls_sup
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$
+  WITH cls AS (
+    SELECT k.table_name AS t, k.category AS c, k.row_count AS n
+      FROM public.cert_v2_table_classification() k
+     WHERE k.category = 'RUNTIME_MUST_ZERO'
+  ), m AS (
+    SELECT 'OLD_BUSINESS_RUNTIME_ROWS' AS k,
+           (SELECT coalesce(sum(n),0) FROM cls
+             WHERE NOT (t = ANY (public.cert_v2_user_identity_tables()))) AS n
+    UNION ALL SELECT 'OLD_NOTIFICATION_RUNTIME_ROWS',
+           (SELECT coalesce(sum(n),0) FROM cls WHERE t LIKE '%notification%' OR t = 'notifications')
+    UNION ALL SELECT 'OLD_CORRESPONDENCE_RUNTIME_ROWS',
+           (SELECT coalesce(sum(n),0) FROM cls WHERE t LIKE 'correspondence%')
+    UNION ALL SELECT 'OLD_WORKFLOW_RUNTIME_ROWS',
+           (SELECT coalesce(sum(n),0) FROM cls
+             WHERE t LIKE 'workflow%' OR t LIKE 'approval_action%'
+                OR t LIKE 'sla_stage%' OR t LIKE 'escalation%' OR t = 'escalations')
+    UNION ALL SELECT 'OLD_SUPERVISORY_RUNTIME_ROWS',
+           (SELECT coalesce(sum(n),0) FROM cls
+             WHERE t LIKE 'prudential%' OR t LIKE 'conduct%' OR t LIKE 'complaint%'
+                OR t LIKE 'examination%' OR t LIKE 'enforcement%' OR t LIKE 'fp\_%'
+                OR t LIKE 'thematic%' OR t LIKE 'entity%' OR t LIKE 'return%'
+                OR t LIKE 'application%' OR t LIKE 'licen%' OR t LIKE 'group\_%'
+                OR t LIKE 'ai\_%')
     UNION ALL SELECT 'OLD_EXTERNAL_USER_RELATIONSHIPS',
-      (SELECT count(*) FROM public.entity_user_access)
-      + (SELECT count(*) FROM public.entity_user_memberships)
-      + (SELECT count(*) FROM public.ppoc_entity_mappings)
+           (SELECT count(*) FROM public.entity_user_access)
+         + (SELECT count(*) FROM public.entity_user_memberships)
+         + (SELECT count(*) FROM public.ppoc_entity_mappings)
     UNION ALL SELECT 'STALE_WEB_USER_LINKS',
-      (SELECT count(*) FROM public.profiles p
-        WHERE p.licensee_id IS NOT NULL
-           OR coalesce(btrim(p.entity_name),'') NOT IN ('','Regulator'))
+           (SELECT count(*) FROM public.profiles p
+             WHERE p.licensee_id IS NOT NULL
+                OR coalesce(btrim(p.entity_name),'') NOT IN ('','Regulator'))
     UNION ALL SELECT 'NON_CERTIFICATION_PROFILES',
-      (SELECT count(*) FROM public.profiles p
-        WHERE NOT EXISTS (SELECT 1 FROM public.cert_certification_users u WHERE u.user_id = p.id))
+           (SELECT count(*) FROM public.profiles p
+             WHERE NOT EXISTS (SELECT 1 FROM public.cert_certification_users u WHERE u.user_id = p.id))
     UNION ALL SELECT 'CERTIFICATION_USERS_WITHOUT_ACTIVE_ROLE',
-      (SELECT count(*) FROM public.cert_certification_users u
-        WHERE NOT EXISTS (SELECT 1 FROM public.sec_user_roles ur
-                           WHERE ur.user_id = u.user_id AND ur.status='active'))
+           (SELECT count(*) FROM public.cert_certification_users u
+             WHERE NOT EXISTS (SELECT 1 FROM public.sec_user_roles ur
+                                WHERE ur.user_id = u.user_id AND ur.status = 'active'))
   )
   SELECT m.k, m.n, CASE WHEN m.n = 0 THEN 'PASS' ELSE 'FAIL' END FROM m ORDER BY 1;
-END;
 $$;
 GRANT EXECUTE ON FUNCTION public.cert_v2_zero_state_gate() TO authenticated, service_role;
+
 
 -- --------------------------------------------- configuration integrity gate
 CREATE OR REPLACE FUNCTION public.cert_v2_config_integrity_gate()
