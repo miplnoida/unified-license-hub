@@ -1,6 +1,6 @@
 # Certification V2 — TRUE OPERATIONAL ZERO-STATE Certification (Wave 1.5c)
 
-Captured: 2026-08-23T08:39:41Z
+Captured: 2026-08-23T08:40:30Z
 Environment: non-production certification database (guard: environment=non_production, reset_enabled=true)
 
 No passwords or secrets are recorded in this document.
@@ -9,11 +9,11 @@ No passwords or secrets are recorded in this document.
 
 | Metric | Count |
 |---|---|
-| auth users | n/a |
-| certification identities (manifest) | n/a |
-| machine/system identities | n/a |
-| old human identities | n/a |
-| unknown identities (blockers) | n/a |
+| auth users | 46 |
+| certification identities (manifest) | 46 |
+| machine/system identities | 0 |
+| old human identities | 0 |
+| unknown identities (blockers) | 0 |
 | profiles | 46 |
 | sec_user_roles assignments (canonical) | 46 |
 | user_dynamic_roles assignments (projection) | 55 |
@@ -23,9 +23,9 @@ No passwords or secrets are recorded in this document.
 
 | Domain group | Rows |
 |---|---|
-| Notification runtime | 51 |
+| Notification runtime | 0 |
 | Correspondence runtime | 0 |
-| Audit / log runtime | 145 |
+| Audit / log runtime | 0 |
 | Entity / licensing runtime | 0 |
 | Returns runtime | 0 |
 | Prudential runtime | 0 |
@@ -36,7 +36,7 @@ No passwords or secrets are recorded in this document.
 | Workflow runtime | 0 |
 | Supervisory intelligence runtime | 0 |
 | Payments / fees runtime | 0 |
-| Escalation runtime | 0 |
+| Escalation runtime | 3 |
 | Document runtime | 0 |
 
 ## Operational-area zero-state matrix
@@ -44,7 +44,7 @@ No passwords or secrets are recorded in this document.
 | Area | Runtime tables | Rows | Expectation | Status |
 |---|---|---|---|---|
 | AI runtime insights | 2 | 0 | ZERO before Wave 2 seed | PASS |
-| Audit/Logs | 20 | 137 | ZERO before Wave 2 seed | FAIL |
+| Audit/Logs | 20 | 0 | ZERO before Wave 2 seed | PASS |
 | Complaints | 15 | 0 | ZERO before Wave 2 seed | PASS |
 | Conduct | 23 | 0 | ZERO before Wave 2 seed | PASS |
 | Correspondence | 6 | 0 | ZERO before Wave 2 seed | PASS |
@@ -52,12 +52,12 @@ No passwords or secrets are recorded in this document.
 | Enforcement | 7 | 0 | ZERO before Wave 2 seed | PASS |
 | Entity Registry | 22 | 0 | ZERO before Wave 2 seed | PASS |
 | Entity Resolution | 4 | 0 | ZERO before Wave 2 seed | PASS |
-| Escalations | 9 | 0 | ZERO before Wave 2 seed | PASS |
+| Escalations | 9 | 3 | ZERO before Wave 2 seed | FAIL |
 | Fit & Proper | 19 | 0 | ZERO before Wave 2 seed | PASS |
 | Inspections/Examinations | 11 | 0 | ZERO before Wave 2 seed | PASS |
 | Licensing | 38 | 0 | ZERO before Wave 2 seed | PASS |
 | Membership/User Access | 5 | 0 | ZERO before Wave 2 seed | PASS |
-| Notifications | 9 | 51 | ZERO before Wave 2 seed | FAIL |
+| Notifications | 9 | 0 | ZERO before Wave 2 seed | PASS |
 | Payments/Fees runtime | 8 | 0 | ZERO before Wave 2 seed | PASS |
 | Prudential | 20 | 0 | ZERO before Wave 2 seed | PASS |
 | Registration | 10 | 0 | ZERO before Wave 2 seed | PASS |
@@ -292,7 +292,7 @@ No passwords or secrets are recorded in this document.
 | cert_nonproduction_guard | 1 |
 | certification_seed_manifest | 25 |
 
-### RUNTIME_MUST_ZERO — 330 tables, 359 rows
+### RUNTIME_MUST_ZERO — 330 tables, 208 rows
 
 | Table | Rows |
 |---|---|
@@ -316,7 +316,7 @@ No passwords or secrets are recorded in this document.
 | approval_actions | 0 |
 | audit_export_downloads | 0 |
 | audit_export_jobs | 0 |
-| audit_logs | 24 |
+| audit_logs | 0 |
 | captcha_verifications | 0 |
 | complaint_closure_reviews | 0 |
 | complaint_correspondence | 0 |
@@ -333,7 +333,7 @@ No passwords or secrets are recorded in this document.
 | complaint_rfis | 0 |
 | complaint_storage_cleanup_deadletter | 0 |
 | complaints | 0 |
-| compliance_audit_logs | 69 |
+| compliance_audit_logs | 0 |
 | compliance_returns | 0 |
 | conduct_actions | 0 |
 | conduct_alerts | 0 |
@@ -414,10 +414,10 @@ No passwords or secrets are recorded in this document.
 | entity_sync_conflicts | 0 |
 | entity_user_access | 0 |
 | entity_user_memberships | 0 |
-| escalation_notification_events | 0 |
+| escalation_notification_events | 1 |
 | escalation_ownership_events | 0 |
-| escalation_tier_events | 0 |
-| escalations | 0 |
+| escalation_tier_events | 1 |
+| escalations | 1 |
 | examination_data_requests | 0 |
 | examination_events | 0 |
 | examination_exit_meetings | 0 |
@@ -460,7 +460,7 @@ No passwords or secrets are recorded in this document.
 | inspections | 0 |
 | integration_dead_letter | 0 |
 | integration_fallback_events | 0 |
-| integration_logs | 13 |
+| integration_logs | 0 |
 | integration_retry_queue | 0 |
 | intragroup_exposures | 0 |
 | job_queue | 0 |
@@ -498,12 +498,12 @@ No passwords or secrets are recorded in this document.
 | notification_digest_items | 0 |
 | notification_digest_log | 0 |
 | notification_digest_runs | 0 |
-| notification_dispatch_log | 24 |
+| notification_dispatch_log | 0 |
 | notification_event_queue | 0 |
 | notification_outbox | 0 |
 | notification_preferences | 0 |
 | notification_user_event_preferences | 0 |
-| notifications | 24 |
+| notifications | 0 |
 | onboarding_alert_signals | 0 |
 | onboarding_journey_state | 0 |
 | onboarding_resolution_tokens | 0 |
