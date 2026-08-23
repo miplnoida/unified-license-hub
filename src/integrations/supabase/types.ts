@@ -19070,7 +19070,7 @@ export type Database = {
           id: string
           initiated_by: string
           license_id: string
-          new_valid_until: string
+          new_valid_until: string | null
           notes: string | null
           previous_valid_until: string | null
           reviewed_at: string | null
@@ -19085,7 +19085,7 @@ export type Database = {
           id?: string
           initiated_by: string
           license_id: string
-          new_valid_until: string
+          new_valid_until?: string | null
           notes?: string | null
           previous_valid_until?: string | null
           reviewed_at?: string | null
@@ -19100,7 +19100,7 @@ export type Database = {
           id?: string
           initiated_by?: string
           license_id?: string
-          new_valid_until?: string
+          new_valid_until?: string | null
           notes?: string | null
           previous_valid_until?: string | null
           reviewed_at?: string | null
