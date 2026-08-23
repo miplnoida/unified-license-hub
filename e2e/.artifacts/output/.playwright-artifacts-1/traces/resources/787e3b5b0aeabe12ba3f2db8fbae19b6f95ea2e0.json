@@ -1,0 +1,12 @@
+[{"id":"641bdf7f-005a-47b8-83f5-8894fdc6c073","name":"Building Society","status":"active","created_at":"2026-06-17T07:40:15.536457+00:00","regulator_id":"8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3"}, 
+ {"id":"d90ffa53-709b-41e8-a6d9-efd1bbac69bc","name":"Commercial Bank","status":"active","created_at":"2026-06-17T07:40:00.464972+00:00","regulator_id":"8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3"}, 
+ {"id":"4446f087-15d9-4c31-824d-b28177517d24","name":"Financial Group","status":"active","created_at":"2026-07-07T14:31:43.567344+00:00","regulator_id":"8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3"}, 
+ {"id":"86935244-95e5-49e2-b772-de509fce7e82","name":"Financial Holding Company","status":"active","created_at":"2026-06-17T07:44:00.618487+00:00","regulator_id":"8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3"}, 
+ {"id":"1ea22781-fee7-4a26-b382-09f0477485d5","name":"General Insurance","status":"active","created_at":"2026-03-05T13:06:39.262705+00:00","regulator_id":"8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3"}, 
+ {"id":"a9698ca9-655d-46ff-afee-d5bfb978eb01","name":"Life Insurance","status":"active","created_at":"2026-06-17T07:41:00.830106+00:00","regulator_id":"8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3"}, 
+ {"id":"87ecc596-e045-4001-ab95-853cc71a9d4b","name":"Merchant Bank","status":"active","created_at":"2026-06-17T07:40:36.527613+00:00","regulator_id":"8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3"}, 
+ {"id":"7bc82eb6-357b-474d-9d91-b9bbad6b6753","name":"Micro-credit Institution","status":"active","created_at":"2026-06-17T07:41:16.198768+00:00","regulator_id":"8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3"}, 
+ {"id":"79bdf821-4ba0-4b59-9b46-0c1c6f1373e9","name":"Money Service Business","status":"active","created_at":"2026-06-24T14:11:15.653614+00:00","regulator_id":"8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3"}, 
+ {"id":"b1000000-0000-4000-8000-000000000001","name":"Payment Service Provider","status":"active","created_at":"2026-08-17T13:20:28.602036+00:00","regulator_id":"8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3"}, 
+ {"id":"b2000000-0000-4000-8000-000000000001","name":"Pension Fund Administrator","status":"active","created_at":"2026-08-17T13:20:28.701782+00:00","regulator_id":"8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3"}, 
+ {"id":"7171f40e-19cd-4a0c-be3d-6f13e7cd9213","name":"Securities Dealer","status":"active","created_at":"2026-06-17T07:41:07.934293+00:00","regulator_id":"8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3"}]
