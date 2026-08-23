@@ -308,7 +308,7 @@ export const dashboardRoutes = (
     <Route path="/entity/supervisory-actions" element={<MySupervisoryActions />} />
 
     {/* RDM-ENTITY-001 Wave A — entity registry, resolution and membership */}
-    <Route path="/entities" element={<M module="license_management"><EntityDirectory /></M>} />
+    <Route path="/entities" element={<M module="licensee_management"><EntityDirectory /></M>} />
     {/* Canonical regulated-entity profile = Enterprise Entity 360. */}
     <Route path="/entities/:entityId" element={<M module="license_management"><Entity360Detail /></M>} />
     {/* Structural mutation workspace (Wave B) lives inside the entity profile. */}
