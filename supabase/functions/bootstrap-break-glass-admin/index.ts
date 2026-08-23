@@ -53,7 +53,10 @@ Deno.serve(async (req) => {
     if (roleErr) throw roleErr;
     if (!roleRow) return json({ ok: false, error: `sec_roles row "${SUPER_ADMIN_ROLE_KEY}" not found.` });
 
-    // --- Replay guard: bootstrap only while no break-glass holder exists.
+    // --- Replay guard: inert once the fixed TARGET_EMAIL itself holds an active
+    // break-glass role. A break-glass role held by some *other* account (e.g. a
+    // non-production certification fixture) must not permanently lock the owner
+    // out, so bootstrap still repairs the constant target in that case.
     const { data: breakGlassRoles, error: bgErr } = await admin
       .from('sec_roles')
       .select('id')
@@ -66,13 +69,22 @@ Deno.serve(async (req) => {
       .eq('status', 'active')
       .in('role_id', (breakGlassRoles ?? []).map((r) => r.id));
     if (holderErr) throw holderErr;
-    if ((existingHolders ?? []).length > 0) {
+
+    const { data: holderProfiles } = await admin
+      .from('profiles')
+      .select('id, email')
+      .in('id', (existingHolders ?? []).map((h) => h.user_id));
+    const targetAlreadyHolds = (holderProfiles ?? []).some(
+      (p) => (p.email ?? '').toLowerCase() === TARGET_EMAIL,
+    );
+    if (targetAlreadyHolds) {
       return json({
         ok: false,
         already_bootstrapped: true,
-        error: 'A break-glass administrator already exists. Bootstrap is disabled; manage roles through Role Management.',
+        error: 'The break-glass administrator already exists. Bootstrap is disabled; manage roles through Role Management.',
       });
     }
+
 
     // --- Create (or adopt) the auth user for the fixed email.
     let userId: string | null = null;
