@@ -43,7 +43,7 @@ async function main() {
   samples.push(await measure('unfiltered/supervisor/limit200', supervisor, { _limit: 200 }));
   samples.push(await measure('page2/supervisor/limit50', supervisor, { _limit: 50, _offset: 50 }));
   if (entityId) samples.push(await measure('entity-filtered/supervisor', supervisor, { _entity_id: entityId }));
-  samples.push(await measure('counts/supervisor', supervisor, {}));
+  samples.push(await measureCounts(supervisor));
 
   let timeouts = 0;
   let errors = 0;
@@ -59,7 +59,7 @@ async function main() {
   const p1 = await rpc(supervisor, 'prudential_work_queue', { _limit: 50 });
   const p2 = await rpc(supervisor, 'prudential_work_queue', { _limit: 50, _offset: 50 });
   const full = await rpc(supervisor, 'prudential_work_queue', { _limit: 200 });
-  const key = (r: any) => `${r.item_type}:${r.item_id}`;
+  const key = (r: any) => `${r.work_item_type}:${r.work_item_id}`;
   const ids1 = (p1.body as any[]).map(key);
   const ids2 = (p2.body as any[]).map(key);
   const idsF = (full.body as any[]).map(key);
