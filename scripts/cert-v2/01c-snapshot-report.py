@@ -127,6 +127,7 @@ def parse_identity_arg():
 
 def main():
     phase = (sys.argv[1] if len(sys.argv) > 1 else "pre").lower()
+    IDENT.update(json.loads(os.environ.get("CERT_IDENTITY_JSON", "{}")))
     IDENT.update(parse_identity_arg())
     cats, areas, groups, identity, config = collect()
     ts = datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z"
