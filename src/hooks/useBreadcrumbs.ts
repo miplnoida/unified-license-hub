@@ -5,7 +5,7 @@ import { useSecurityContext } from '@/hooks/useSecurityContext';
 import { buildBreadcrumbs } from '@/lib/breadcrumbs/buildBreadcrumbs';
 import { breadcrumbRouteRegistry } from '@/lib/breadcrumbs/breadcrumbRouteRegistry';
 import { navigationSnapshot } from '@/lib/breadcrumbs/navigationSnapshot';
-import { resolveLabel, resolverFallback } from '@/lib/breadcrumbs/dynamicLabelResolvers';
+import { resolveLabel, resolverFallback, isResolvableId } from '@/lib/breadcrumbs/dynamicLabelResolvers';
 import type { BreadcrumbCrumb, NavSnapshotItem } from '@/lib/breadcrumbs/types';
 import type { SecNavItem } from '@/lib/rbac/securityContext';
 
@@ -55,7 +55,10 @@ export function useBreadcrumbs(options: UseBreadcrumbsOptions = {}): { crumbs: B
   );
 
   const dynamic = useMemo(
-    () => base.filter((c) => c.resolver && c.paramValue).map((c) => ({ resolver: c.resolver!, id: c.paramValue! })),
+    () =>
+      base
+        .filter((c) => c.resolver && isResolvableId(c.paramValue ?? undefined))
+        .map((c) => ({ resolver: c.resolver!, id: c.paramValue! })),
     [base],
   );
 
