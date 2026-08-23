@@ -35157,6 +35157,7 @@ export type Database = {
           status: string
         }[]
       }
+      cert_v2_pk_column: { Args: { _table: string }; Returns: string }
       cert_v2_protected_tables: { Args: never; Returns: string[] }
       cert_v2_register_legacy_baseline: {
         Args: { _notes?: string }
