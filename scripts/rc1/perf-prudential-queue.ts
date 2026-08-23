@@ -25,6 +25,20 @@ async function measure(label: string, persona: string, args: Record<string, unkn
   return { label, persona, status, rows, ms };
 }
 
+async function measureCounts(persona: string): Promise<Sample> {
+  const ms: number[] = [];
+  let status = 0;
+  for (let i = 0; i < REPS; i++) {
+    const t = Date.now();
+    const res = await rpc(persona, 'prudential_work_queue_counts', {});
+    ms.push(Date.now() - t);
+    status = res.status;
+    if (!res.ok) break;
+  }
+  return { label: 'counts/supervisor', persona, status, rows: 0, ms };
+}
+
+
 const pct = (a: number[], p: number) => {
   const s = [...a].sort((x, y) => x - y);
   return s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))];
