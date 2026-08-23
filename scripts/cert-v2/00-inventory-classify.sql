@@ -84,10 +84,10 @@ WITH v1_entities AS (
     FROM public.enforcement_actions e GROUP BY 1,2,3
   UNION ALL
   SELECT 'conduct_investigations',
-         CASE WHEN i.entity_id IN (SELECT entity_id FROM v1_entities) THEN 'PURGE_OLD_FIXTURE'
-              WHEN i.entity_id IS NULL THEN 'PURGE_ORPHAN'
+         CASE WHEN i.licensee_id IN (SELECT entity_id FROM v1_entities) THEN 'PURGE_OLD_FIXTURE'
+              WHEN i.licensee_id IS NULL THEN 'PURGE_ORPHAN'
               ELSE 'MANUAL_REVIEW' END,
-         'classified via entity linkage', count(*)
+         'classified via licensee linkage', count(*)
     FROM public.conduct_investigations i GROUP BY 1,2,3
   UNION ALL
   SELECT 'licenses',
