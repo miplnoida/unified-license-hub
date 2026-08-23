@@ -155,13 +155,26 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Internal staff route guard. Restricts to all INTERNAL_ROLES. */
+/**
+ * Internal staff route guard. Audience is resolved from the canonical security
+ * context (`sec_roles.role_type`); the legacy `app_role` list is only used as a
+ * fallback when the canonical context is unavailable.
+ */
 export function InternalRoute({ children }: { children: React.ReactNode }) {
-  return (
-    <RoleGuard allowedRoles={INTERNAL_ROLES}>
-      {children}
-    </RoleGuard>
-  );
+  const { user, session, loading, isFullyAuthenticated, mfaStatus } = useAuth();
+  const { isInternal, isBypassRole, isLoading: permsLoading } = useUserDynamicPermissions();
+
+  if (loading) return <AuthLoadingScreen />;
+  if (!session) return <Navigate to="/" replace />;
+  if (!user) return <AuthLoadingScreen />;
+  if (!isFullyAuthenticated) {
+    return mfaStatus === 'pending'
+      ? <Navigate to="/login?mfa=required" replace />
+      : <AuthLoadingScreen />;
+  }
+  if (permsLoading) return <AuthLoadingScreen />;
+  if (!isBypassRole && !isInternal) return <AccessDenied />;
+  return <>{children}</>;
 }
 
 /** Settings route guard. Only super_admin and admin can access settings. */
