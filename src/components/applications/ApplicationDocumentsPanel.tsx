@@ -60,13 +60,24 @@ export function ApplicationDocumentsPanel({
         return;
       }
       if (download) {
+        // Signed URLs are cross-origin, so `a.download` alone would navigate
+        // instead of downloading. Fetch the bytes and save them as a blob.
+        const res = await fetch(url);
+        if (!res.ok) {
+          toast.error('Download failed. Please try again.');
+          return;
+        }
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
+        a.href = objectUrl;
         a.download = doc.fileName;
         a.click();
+        URL.revokeObjectURL(objectUrl);
       } else {
         window.open(url, '_blank', 'noopener,noreferrer');
       }
+
     } finally {
       setBusyKey(null);
     }
