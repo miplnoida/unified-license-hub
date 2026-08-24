@@ -25365,6 +25365,83 @@ export type Database = {
         }
         Relationships: []
       }
+      regulator_mandates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          notes: string | null
+          regulator_id: string
+          regulatory_function_id: string
+          responsibility_type: string
+          sector_id: string | null
+          status: string
+          sub_sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          notes?: string | null
+          regulator_id: string
+          regulatory_function_id: string
+          responsibility_type?: string
+          sector_id?: string | null
+          status?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          notes?: string | null
+          regulator_id?: string
+          regulatory_function_id?: string
+          responsibility_type?: string
+          sector_id?: string | null
+          status?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulator_mandates_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulator_mandates_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulator_mandates_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulator_mandates_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regulators: {
         Row: {
           code: string
@@ -25396,6 +25473,48 @@ export type Database = {
           logo_url?: string | null
           name?: string
           settings?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      regulatory_functions: {
+        Row: {
+          coverage_level: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          key: string
+          module_key: string | null
+          name: string
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          coverage_level?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          key: string
+          module_key?: string | null
+          name: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          coverage_level?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          key?: string
+          module_key?: string | null
+          name?: string
+          sort_order?: number
           status?: string
           updated_at?: string
         }
@@ -25744,6 +25863,164 @@ export type Database = {
             columns: ["request_type_id"]
             isOneToOne: false
             referencedRelation: "regulatory_request_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regulatory_team_mandates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_primary: boolean
+          regulator_mandate_id: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_primary?: boolean
+          regulator_mandate_id: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_primary?: boolean
+          regulator_mandate_id?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_team_mandates_regulator_mandate_id_fkey"
+            columns: ["regulator_mandate_id"]
+            isOneToOne: false
+            referencedRelation: "regulator_mandates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_team_mandates_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regulatory_team_members: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          member_role: string
+          status: string
+          team_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          member_role?: string
+          status?: string
+          team_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          member_role?: string
+          status?: string
+          team_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regulatory_teams: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          name: string
+          regulator_id: string
+          regulatory_function_id: string | null
+          status: string
+          team_type: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          name: string
+          regulator_id: string
+          regulatory_function_id?: string | null
+          status?: string
+          team_type?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          name?: string
+          regulator_id?: string
+          regulatory_function_id?: string | null
+          status?: string
+          team_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_teams_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_teams_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
             referencedColumns: ["id"]
           },
         ]
@@ -31514,6 +31791,145 @@ export type Database = {
             columns: ["sla_config_id"]
             isOneToOne: false
             referencedRelation: "sla_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_portfolio_scopes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          entity_id: string | null
+          id: string
+          portfolio_id: string
+          scope_kind: string
+          sector_id: string | null
+          sub_sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string | null
+          id?: string
+          portfolio_id: string
+          scope_kind: string
+          sector_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string | null
+          id?: string
+          portfolio_id?: string
+          scope_kind?: string
+          sector_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_portfolio_scopes_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_portfolio_scopes_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "staff_portfolio_scopes_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "staff_portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_portfolio_scopes_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_portfolio_scopes_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_portfolios: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          notes: string | null
+          regulator_id: string
+          regulatory_function_id: string | null
+          status: string
+          team_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          notes?: string | null
+          regulator_id: string
+          regulatory_function_id?: string | null
+          status?: string
+          team_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          notes?: string | null
+          regulator_id?: string
+          regulatory_function_id?: string | null
+          status?: string
+          team_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_portfolios_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_portfolios_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_portfolios_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_teams"
             referencedColumns: ["id"]
           },
         ]
@@ -40996,6 +41412,14 @@ export type Database = {
           user_id: string
         }[]
       }
+      regulator_mandate_supports: {
+        Args: {
+          _regulator_id: string
+          _sector_id: string
+          _sub_sector_id: string
+        }
+        Returns: boolean
+      }
       regulatory_request_available_types: {
         Args: { _entity_id: string }
         Returns: {
@@ -41022,6 +41446,19 @@ export type Database = {
           _request_id: string
         }
         Returns: Json
+      }
+      regulatory_scope_allows: {
+        Args: {
+          _action: string
+          _entity_id?: string
+          _module: string
+          _owner_id?: string
+          _regulator_id?: string
+          _sector_id?: string
+          _sub_sector_id?: string
+          _user_id: string
+        }
+        Returns: boolean
       }
       reinstate_application_after_appeal: {
         Args: { _appeal_id: string; _remarks?: string }
@@ -42015,6 +42452,16 @@ export type Database = {
         }
         Returns: string
       }
+      staff_portfolio_allows: {
+        Args: {
+          _entity_id: string
+          _regulator_id: string
+          _sector_id: string
+          _sub_sector_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       start_complaint_investigation:
         | {
             Args: { _id: string }
@@ -42692,6 +43139,14 @@ export type Database = {
       user_scope_for: {
         Args: { _action: string; _module: string; _user_id: string }
         Returns: Json
+      }
+      user_scope_grants_for: {
+        Args: { _action: string; _module: string; _user_id: string }
+        Returns: Json
+      }
+      user_team_covers_entity: {
+        Args: { _entity_id: string; _user_id: string }
+        Returns: boolean
       }
       user_workflow_role_slugs: { Args: { _user: string }; Returns: string[] }
       validate_notification_recipient_config: {
