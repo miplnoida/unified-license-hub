@@ -384,7 +384,7 @@ export function EntitySupervisionTab() {
                     <td className="p-2">
                       {a.status === 'active' && (
                         <div className="flex gap-1">
-                          <Button size="sm" variant="outline" onClick={() => transferAssignment(a.id)}>Transfer</Button>
+                          <Button size="sm" variant="outline" onClick={() => openTransfer(a)}>Transfer</Button>
                           <Button size="sm" variant="ghost" onClick={() => closeAssignment(a.id)}>End</Button>
                         </div>
                       )}
