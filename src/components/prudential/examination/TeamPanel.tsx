@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertTriangle, ChevronDown, Loader2, Plus, Trash2, UserRound } from 'lucide-react';
 import { TEAM_ROLES, useExaminationTeam, useTeamMutations } from '@/hooks/useExaminations';
+import { useStaffProfiles } from '@/hooks/useOperatingStructure';
 import { StageActions, type StageActionsMode } from './ExaminationStageActions';
 
 const roleLabel = (r: string) => TEAM_ROLES.find(t => t.value === r)?.label ?? r.replace('_', ' ');
@@ -17,10 +18,11 @@ const roleLabel = (r: string) => TEAM_ROLES.find(t => t.value === r)?.label ?? r
 export function TeamPanel({ examinationId, readOnly, mode = 'supporting' }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
   const { data: rows = [], isLoading } = useExaminationTeam(examinationId);
   const { save, remove } = useTeamMutations(examinationId);
+  const staff = useStaffProfiles();
   const [showForm, setShowForm] = useState(false);
   const [details, setDetails] = useState(false);
   const [form, setForm] = useState({
-    member_name: '',
+    user_id: '',
     team_role: 'examiner',
     allocated_days: '',
     specialisation: '',
@@ -28,18 +30,25 @@ export function TeamPanel({ examinationId, readOnly, mode = 'supporting' }: { ex
     conflict_notes: '',
   });
 
+  /** Staff not already on this examination. Other duties never disqualify anyone. */
+  const available = useMemo(() => {
+    const taken = new Set((rows as any[]).map(r => r.user_id).filter(Boolean));
+    return (staff.data || []).filter(s => !taken.has(s.id));
+  }, [rows, staff.data]);
+
   const add = async () => {
     await save.mutateAsync({
-      member_name: form.member_name,
+      user_id: form.user_id,
       team_role: form.team_role,
       allocated_days: form.allocated_days ? Number(form.allocated_days) : null,
       specialisation: form.specialisation || null,
       conflict_declared: form.conflict_declared,
       conflict_notes: form.conflict_notes || null,
     });
-    setForm({ member_name: '', team_role: 'examiner', allocated_days: '', specialisation: '', conflict_declared: false, conflict_notes: '' });
+    setForm({ user_id: '', team_role: 'examiner', allocated_days: '', specialisation: '', conflict_declared: false, conflict_notes: '' });
     setShowForm(false);
   };
+
 
   const lead = rows.find((r: any) => r.team_role === 'lead_examiner') as any;
   const others = rows.filter((r: any) => r.team_role !== 'lead_examiner');
@@ -158,20 +167,35 @@ export function TeamPanel({ examinationId, readOnly, mode = 'supporting' }: { ex
           <div className="rounded-md border p-3 space-y-3 bg-muted/20">
             <div className="grid gap-3 md:grid-cols-2">
               <div>
-                <Label htmlFor="member_name">Name</Label>
-                <Input id="member_name" value={form.member_name}
-                  onChange={e => setForm(f => ({ ...f, member_name: e.target.value }))} />
+                <Label htmlFor="member_user">Staff member</Label>
+                <Select value={form.user_id} onValueChange={v => setForm(f => ({ ...f, user_id: v }))}>
+                  <SelectTrigger id="member_user">
+                    <SelectValue placeholder={staff.isLoading ? 'Loading staff…' : 'Select a staff member'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {available.map(s => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Only active internal staff can join a case team; people already on this examination are not listed.
+                </p>
               </div>
               <div>
                 <Label htmlFor="team_role">Role on this examination</Label>
                 <Select value={form.team_role} onValueChange={v => setForm(f => ({ ...f, team_role: v }))}>
                   <SelectTrigger id="team_role"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {TEAM_ROLES.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                    {TEAM_ROLES.map(r => (
+                      <SelectItem key={r.value} value={r.value}
+                        disabled={r.value === 'lead_examiner' && !!lead}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
 
             <Collapsible open={details} onOpenChange={setDetails}>
               <CollapsibleTrigger asChild>
@@ -206,7 +230,7 @@ export function TeamPanel({ examinationId, readOnly, mode = 'supporting' }: { ex
             </Collapsible>
 
             <div className="flex gap-2">
-              <Button data-rbac="prudential_supervision.edit" size="sm" disabled={!form.member_name || save.isPending} onClick={add}>
+              <Button data-rbac="prudential_supervision.edit" size="sm" disabled={!form.user_id || save.isPending} onClick={add}>
                 <Plus className="h-4 w-4 mr-1" />Add to team
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>

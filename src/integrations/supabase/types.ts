@@ -35397,6 +35397,76 @@ export type Database = {
         Args: { _appeal_id: string; _user_id: string }
         Returns: Json
       }
+      appeal_panel_assert_config: {
+        Args: { _actor: string }
+        Returns: undefined
+      }
+      appeal_panel_create: {
+        Args: {
+          _appeal_scope: string
+          _decision_rule: string
+          _default_hearing_format?: string
+          _description?: string
+          _effective_from?: string
+          _effective_to?: string
+          _is_active?: boolean
+          _name: string
+          _notes?: string
+          _quorum: number
+          _regulator_id?: string
+        }
+        Returns: Json
+      }
+      appeal_panel_member_add: {
+        Args: {
+          _effective_from?: string
+          _effective_to?: string
+          _is_voting?: boolean
+          _member_role: string
+          _panel_id: string
+          _user_id: string
+          _vote_weight?: number
+        }
+        Returns: Json
+      }
+      appeal_panel_member_end: {
+        Args: { _effective_to?: string; _member_id: string }
+        Returns: Json
+      }
+      appeal_panel_member_update: {
+        Args: {
+          _effective_from?: string
+          _effective_to?: string
+          _is_active?: boolean
+          _is_voting?: boolean
+          _member_id: string
+          _member_role?: string
+          _vote_weight?: number
+        }
+        Returns: Json
+      }
+      appeal_panel_quorum_feasibility: {
+        Args: { _panel_id: string }
+        Returns: Json
+      }
+      appeal_panel_update: {
+        Args: {
+          _appeal_scope?: string
+          _clear_regulator?: boolean
+          _decision_rule?: string
+          _default_hearing_format?: string
+          _description?: string
+          _effective_from?: string
+          _effective_to?: string
+          _is_active?: boolean
+          _name?: string
+          _notes?: string
+          _panel_id: string
+          _quorum?: number
+          _regulator_id?: string
+        }
+        Returns: Json
+      }
       appeal_participation_status: {
         Args: { _appeal_id: string }
         Returns: Json
@@ -38263,6 +38333,33 @@ export type Database = {
       }
       examination_signoff_workpaper: {
         Args: { _notes?: string; _role: string; _workpaper_id: string }
+        Returns: Json
+      }
+      examination_team_member_add: {
+        Args: {
+          _allocated_days?: number
+          _conflict_declared?: boolean
+          _conflict_notes?: string
+          _examination_id: string
+          _specialisation?: string
+          _team_role: string
+          _user_id: string
+        }
+        Returns: Json
+      }
+      examination_team_member_end: {
+        Args: { _member_id: string }
+        Returns: Json
+      }
+      examination_team_member_update: {
+        Args: {
+          _allocated_days?: number
+          _conflict_declared?: boolean
+          _conflict_notes?: string
+          _member_id: string
+          _specialisation?: string
+          _team_role?: string
+        }
         Returns: Json
       }
       examination_transition_stage: {
