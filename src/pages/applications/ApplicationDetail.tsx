@@ -27,7 +27,6 @@ import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { BatchDocumentUpload } from '@/components/shared/BatchDocumentUpload';
-import { AttachmentList } from '@/components/shared/AttachmentList';
 import { StatusTimeline } from '@/components/applications/StatusTimeline';
 import { FeeComponentsPanel } from '@/components/applications/FeeComponentsPanel';
 import { LicenseePaymentPanel } from '@/components/applications/LicenseePaymentPanel';
