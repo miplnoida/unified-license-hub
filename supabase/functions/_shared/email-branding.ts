@@ -71,17 +71,25 @@ export function defaultEmailBranding(): EmailBranding {
 const DETAIL_KEYS: Array<{ key: string; label: string }> = [
   { key: "application_number", label: "Application number" },
   { key: "registration_reference", label: "Registration reference" },
+  { key: "unique_id", label: "Reference" },
   { key: "complaint_reference", label: "Complaint reference" },
+  { key: "complaint_number", label: "Complaint reference" },
+  { key: "enforcement_case_number", label: "Enforcement case" },
+  { key: "investigation_code", label: "Investigation reference" },
   { key: "return_reference", label: "Return reference" },
+  { key: "period", label: "Reporting period" },
   { key: "invoice_number", label: "Invoice number" },
   { key: "license_number", label: "License number" },
   { key: "entity_name", label: "Entity" },
   { key: "applicant_name", label: "Applicant" },
+  { key: "individual_name", label: "Individual" },
   { key: "status", label: "Status" },
   { key: "amount", label: "Amount" },
   { key: "due_date", label: "Due date" },
+  { key: "due_at", label: "Response due" },
   { key: "submitted_at", label: "Submitted at" },
 ];
+
 
 export function detailsFromVars(vars: Record<string, unknown> | null | undefined): Array<{ label: string; value: string }> {
   const out: Array<{ label: string; value: string }> = [];
