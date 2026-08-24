@@ -95,6 +95,7 @@ export default function OperatingStructure() {
   });
 
   const p = profile.data || {};
+  const drift = useRoleRegistryDrift();
 
   return (
     <div className="space-y-4">
