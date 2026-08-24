@@ -35802,6 +35802,7 @@ export type Database = {
             }
             Returns: string
           }
+      comms_content_refresh_apply: { Args: { _payload: Json }; Returns: Json }
       communication_timeline: {
         Args: { _object_id: string; _object_type: string }
         Returns: {
