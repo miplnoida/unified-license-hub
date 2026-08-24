@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   usePortfolioMutations, useRegulatoryFunctions, useRegulatoryTeams,
   SECTOR_GROUP_LABELS, SECTOR_GROUP_ORDER, useActiveSectors, useActiveSubSectors,
@@ -33,12 +34,21 @@ export interface ResponsibilityDialogProps {
   userId: string | null;
   /** Existing responsibility to edit, or null to add new ones. */
   portfolioId?: string | null;
-  /** Pre-selected area of work and place, used when assigning from Coverage. */
-  preset?: { functionId?: string; sectorId?: string; subSectorId?: string; teamId?: string };
+  /** Pre-selected areas of work and place, used when assigning from Coverage. */
+  preset?: {
+    functionId?: string;
+    functionIds?: string[];
+    sectorId?: string;
+    subSectorId?: string;
+    teamId?: string;
+  };
+  /** Optional heading override, e.g. "Assign sector lead". */
+  title?: string;
   onSaved?: () => void;
 }
 
 const blank = (): AreaConfig => ({ appliesTo: 'all', sectorId: '', picked: [], teamId: NONE });
+
 
 /**
  * Recording WHAT a person is responsible for and WHERE it applies.
@@ -49,8 +59,9 @@ const blank = (): AreaConfig => ({ appliesTo: 'all', sectorId: '', picked: [], t
  * permission; it only narrows where existing permissions apply.
  */
 export function ResponsibilityDialog({
-  open, onOpenChange, userId, portfolioId, preset, onSaved,
+  open, onOpenChange, userId, portfolioId, preset, title, onSaved,
 }: ResponsibilityDialogProps) {
+
   const functions = useRegulatoryFunctions();
   const teams = useRegulatoryTeams();
   const subSectors = useSubSectors();
@@ -81,6 +92,7 @@ export function ResponsibilityDialog({
   const [to, setTo] = useState('');
   const [notes, setNotes] = useState('');
   const [resolved, setResolved] = useState<Record<string, Resolved>>({});
+  const [advanced, setAdvanced] = useState(false);
 
   const targetUser = userId || existing?.user_id || personId;
 
@@ -102,7 +114,9 @@ export function ResponsibilityDialog({
     setSameForAll(true);
 
     const first = existing?.regulatory_function_id || preset?.functionId || '';
-    setAreas(first ? [first] : []);
+    const many = !existing && !preset?.functionId ? preset?.functionIds || [] : [];
+    setAreas(many.length ? many : first ? [first] : []);
+
 
     const cfg = blank();
     cfg.teamId = existing?.team_id || preset?.teamId || NONE;
@@ -125,7 +139,7 @@ export function ResponsibilityDialog({
       cfg.sectorId = preset.sectorId;
     }
     setShared(cfg);
-  }, [open, portfolioId, existingScopes.length, preset?.functionId, preset?.sectorId, preset?.subSectorId]);
+  }, [open, portfolioId, existingScopes.length, preset?.functionId, preset?.functionIds?.join(','), preset?.sectorId, preset?.subSectorId]);
 
   const configFor = (fid: string): AreaConfig => (customize ? perArea[fid] || shared : shared);
   const setAreaConfig = (fid: string, patch: Partial<AreaConfig>) =>
@@ -247,7 +261,7 @@ export function ResponsibilityDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{editing ? 'Edit responsibility' : 'Add responsibilities'}</DialogTitle>
+          <DialogTitle>{title || (editing ? 'Edit responsibility' : 'Add responsibilities')}</DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-3">
@@ -346,6 +360,7 @@ export function ResponsibilityDialog({
             />
           )}
 
+
           {/* ---------- Per-area rows ---------- */}
           {areas.length > 0 && (
             <div className="space-y-2">
@@ -380,25 +395,53 @@ export function ResponsibilityDialog({
           {!editing && areas.some((fid) => already.has(fid)) && (
             <label className="flex items-center gap-2 rounded-md border p-2 text-sm">
               <Checkbox checked={updateExisting} onCheckedChange={(v) => setUpdateExisting(!!v)} />
-              Update existing responsibilities with this coverage and team
+              Update existing responsibilities with this coverage
             </label>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs">Effective from</Label>
-              <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-xs">Effective to (optional)</Label>
-              <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-            </div>
-          </div>
+          {/* Advanced — organisational unit, dates and notes. Ordinary
+              administration does not need any of this; the unit stays optional. */}
+          <Collapsible open={advanced} onOpenChange={setAdvanced}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-fit px-0 text-xs">
+                {advanced ? 'Hide advanced options' : 'Advanced options (organisational unit, dates, notes)'}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2 grid gap-3 rounded-md border p-3">
+              {!customize && (
+                <div>
+                  <Label className="text-xs">Organisational unit (optional)</Label>
+                  <Select value={shared.teamId} onValueChange={(v) => setShared((c) => ({ ...c, teamId: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>No unit</SelectItem>
+                      {(teams.data || []).filter((t: any) => t.status === 'active').map((t: any) => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    A unit only groups staff — it never grants a permission and never replaces the area of work.
+                  </p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Effective from</Label>
+                  <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Effective to (optional)</Label>
+                  <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Notes</Label>
+                <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
-          <div>
-            <Label className="text-xs">Notes</Label>
-            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
 
           {!editing && areas.length > 0 && (
             <p className="text-xs text-muted-foreground">
@@ -420,12 +463,13 @@ export function ResponsibilityDialog({
 
 /** Coverage + team selector for one configuration block. */
 function AreaCoverage({
-  config, onChange, teams, compact,
+  config, onChange, teams, compact, showTeam,
 }: {
   config: AreaConfig;
   onChange: (patch: Partial<AreaConfig>) => void;
   teams: any[];
   compact?: boolean;
+  showTeam?: boolean;
 }) {
   const activeSectors = useActiveSectors();
   const activeSubSectors = useActiveSubSectors();
@@ -510,18 +554,20 @@ function AreaCoverage({
         </div>
       )}
 
+      {showTeam && (
       <div>
-        <Label className="text-xs">Team (optional)</Label>
+        <Label className="text-xs">Organisational unit (optional)</Label>
         <Select value={config.teamId} onValueChange={(v) => onChange({ teamId: v })}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value={NONE}>No team</SelectItem>
+            <SelectItem value={NONE}>No unit</SelectItem>
             {teams.filter((t: any) => t.status === 'active').map((t: any) => (
               <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
+      )}
     </div>
   );
 }
@@ -582,7 +628,7 @@ function AreaRow({
 
       {customise && (
         <div className="mt-3">
-          <AreaCoverage config={config} onChange={onChange} teams={teams} compact />
+          <AreaCoverage config={config} onChange={onChange} teams={teams} compact showTeam />
         </div>
       )}
     </div>

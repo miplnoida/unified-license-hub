@@ -113,7 +113,7 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
         userId: selected,
         memberRole: teamRole,
       }),
-      teamDialog.membershipId ? 'Team membership updated' : 'Added to team',
+      teamDialog.membershipId ? 'Unit membership updated' : 'Added to unit',
     );
     if (ok) setTeamDialog({ open: false, membershipId: null });
   };
@@ -138,7 +138,7 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
                 <div className="font-medium">{u.full_name}</div>
                 <div className="text-xs text-muted-foreground">
                   {u.functions} {Number(u.functions) === 1 ? 'responsibility' : 'responsibilities'} ·{' '}
-                  {u.teams} {Number(u.teams) === 1 ? 'team' : 'teams'}
+                  {u.teams} {Number(u.teams) === 1 ? 'unit' : 'units'}
                 </div>
               </button>
             ))}
@@ -160,7 +160,7 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
                     {p?.user?.regulator_name ? ` · Home regulator: ${p.user.regulator_name}` : ''}
                     <span>
                       · {myPortfolios.length} {myPortfolios.length === 1 ? 'area of work' : 'areas of work'} ·{' '}
-                      {myMemberships.length} {myMemberships.length === 1 ? 'team' : 'teams'}
+                      {myMemberships.length} {myMemberships.length === 1 ? 'unit' : 'units'}
                     </span>
                   </p>
                 )}
@@ -201,7 +201,7 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
                       </ul>
                       {x.team_id && (
                         <>
-                          <p className="mt-2 text-xs uppercase text-muted-foreground">Team</p>
+                          <p className="mt-2 text-xs uppercase text-muted-foreground">Organisational unit</p>
                           <p className="text-sm">{teamName(x.team_id)}</p>
                         </>
                       )}
@@ -232,8 +232,8 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
 
               <Card>
                 <CardHeader className="flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-base">Teams</CardTitle>
-                  <Button size="sm" onClick={() => openTeamDialog()}>Add team membership</Button>
+                  <CardTitle className="text-base">Organisational units</CardTitle>
+                  <Button size="sm" onClick={() => openTeamDialog()}>Add unit membership</Button>
                 </CardHeader>
                 <CardContent className="space-y-1">
                   {myMemberships.map((m: any) => (
@@ -257,7 +257,11 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
                       </span>
                     </div>
                   ))}
-                  {myMemberships.length === 0 && <p className="text-sm text-muted-foreground">No team memberships.</p>}
+                  {myMemberships.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      No unit memberships. A unit only groups staff — it never grants a permission.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -306,13 +310,13 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
       <Dialog open={teamDialog.open} onOpenChange={(v) => setTeamDialog({ open: v, membershipId: null })}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{teamDialog.membershipId ? 'Change team role' : 'Add team membership'}</DialogTitle>
+            <DialogTitle>{teamDialog.membershipId ? 'Change unit role' : 'Add unit membership'}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
             <div>
-              <Label className="text-xs">Team</Label>
+              <Label className="text-xs">Organisational unit</Label>
               <Select value={teamPick} onValueChange={setTeamPick} disabled={!!teamDialog.membershipId}>
-                <SelectTrigger><SelectValue placeholder="Select team" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select unit" /></SelectTrigger>
                 <SelectContent>
                   {(teams.data || []).filter((t: any) => t.status === 'active').map((t: any) => (
                     <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
@@ -321,7 +325,7 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Team role</Label>
+              <Label className="text-xs">Role in unit</Label>
               <Select value={teamRole} onValueChange={setTeamRole}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>

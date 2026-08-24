@@ -158,9 +158,14 @@ export function PanelsCommitteesTab() {
                 <span className="font-medium">{p.name}</span>
                 <Badge variant="outline">{p.appeal_scope}</Badge>
                 <Badge variant="outline">{regName(p.regulator_id)}</Badge>
-                <Badge variant={p.is_active ? 'default' : 'secondary'}>{p.is_active ? 'active' : 'inactive'}</Badge>
-                <Badge variant={ready ? 'default' : 'destructive'}>
-                  {ready ? 'Can sit' : 'Cannot sit'}
+                <Badge variant={p.is_active ? 'default' : 'secondary'}>
+                  {p.is_active ? 'ACTIVE' : 'INACTIVE'}
+                </Badge>
+                <Badge variant={ready ? 'default' : 'outline'}>
+                  {ready ? 'Composition ready' : 'Composition not ready'}
+                </Badge>
+                <Badge variant={policyMissing ? 'outline' : 'default'}>
+                  {policyMissing ? 'Policy not configured' : 'Policy configured'}
                 </Badge>
                 <Button
                   size="sm"
@@ -198,8 +203,9 @@ export function PanelsCommitteesTab() {
               </div>
               {!ready && (
                 <p className="mt-2 text-xs text-amber-700">
-                  This panel cannot sit yet — it needs a chair and at least {p.quorum} voting members.
-                  Quorum is never lowered and no permission is granted to clear it.
+                  Composition is not complete yet — this panel needs a chair and at least {p.quorum}
+                  voting members. Quorum is never lowered and no permission is granted to clear it.
+                  Whether a panel may hear a specific matter is always decided case by case.
                 </p>
               )}
             </div>
@@ -279,8 +285,11 @@ export function PanelsCommitteesTab() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{c.name}</span>
                   <Badge variant="outline">{regName(c.regulator_id)}</Badge>
-                  <Badge variant={c.is_active ? 'default' : 'secondary'}>{c.is_active ? 'active' : 'inactive'}</Badge>
-                  {voters.length < c.quorum && <Badge variant="destructive">Cannot sit</Badge>}
+                  <Badge variant={c.is_active ? 'default' : 'secondary'}>{c.is_active ? 'ACTIVE' : 'INACTIVE'}</Badge>
+                  <Badge variant={voters.length >= c.quorum ? 'default' : 'outline'}>
+                    {voters.length >= c.quorum ? 'Composition ready' : 'Composition not ready'}
+                  </Badge>
+
                   <Button
                     size="sm"
                     variant="outline"

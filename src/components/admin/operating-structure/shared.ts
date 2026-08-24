@@ -33,8 +33,8 @@ export const act = async (fn: () => Promise<unknown>, ok: string) => {
  */
 const WARNING_COPY: Record<string, { title: string; action?: string }> = {
   ENTITY_WITHOUT_PRIMARY_SUPERVISOR: { title: 'No supervisor has been assigned to this entity.', action: 'entity' },
-  TEAM_WITHOUT_LEAD: { title: 'This team has no lead.', action: 'team' },
-  EXPIRED_TEAM_MEMBERSHIP: { title: 'A team membership has passed its end date.', action: 'team' },
+  TEAM_WITHOUT_LEAD: { title: 'This organisational unit has no lead.', action: 'team' },
+  EXPIRED_TEAM_MEMBERSHIP: { title: 'A unit membership has passed its end date.', action: 'team' },
   EXPIRED_ASSIGNMENT: { title: 'An entity assignment has passed its end date.', action: 'entity' },
   SINGLE_PERSON_FUNCTION: { title: 'Only one person covers this area of work.', action: 'coverage' },
   NO_BACKUP_AVAILABLE: { title: 'There is no backup for this area of work.', action: 'coverage' },
@@ -43,7 +43,7 @@ const WARNING_COPY: Record<string, { title: string; action?: string }> = {
   PANEL_BELOW_QUORUM: { title: 'This panel cannot sit — it is below quorum.', action: 'panel' },
   COMMITTEE_BELOW_QUORUM: { title: 'This committee cannot sit — it is below quorum.', action: 'panel' },
   PORTFOLIO_CONFIGURATION_REQUIRED: { title: 'No staff coverage has been assigned.', action: 'coverage' },
-  MANDATE_COVERAGE_INCOMPLETE: { title: 'Some areas of work have no responsible team.', action: 'coverage' },
+  MANDATE_COVERAGE_INCOMPLETE: { title: 'Some areas of work have no responsible unit.', action: 'coverage' },
 };
 
 export type WarningAction = 'coverage' | 'team' | 'entity' | 'panel' | 'people';
@@ -58,7 +58,7 @@ export function humaniseWarning(code: string): { title: string; action: WarningA
 
 export const ACTION_LABEL: Record<WarningAction, string> = {
   coverage: 'View coverage',
-  team: 'Open team',
+  team: 'Open organisational units',
   entity: 'Open entity ownership',
   panel: 'Open panel',
   people: 'Assign responsibility',
