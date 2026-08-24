@@ -78,18 +78,25 @@ function renderInline(line: string): string {
   return html;
 }
 
-function isHeadingLine(line: string, blockHasMoreLines: boolean): boolean {
-  const raw = line.trim().replace(/:$/, "");
+const BULLET = /^\s*(?:[-*•]|\u2022)\s+(.*)$/;
+const NUMBERED = /^\s*\d+[.)]\s+(.*)$/;
+
+function isHeadingLine(line: string, nextLine: string | undefined): boolean {
+  const trimmed = line.trim();
+  const raw = trimmed.replace(/:$/, "");
   if (!raw || raw.length > 64) return false;
   if (/\{\{/.test(raw)) return false;
   if (SECTION_LABELS.has(raw.toLowerCase())) return true;
+  if (!nextLine) return false;
+  // Colon-terminated lead-ins ("Please sign in and:") and list introductions are
+  // sentences, not labels.
+  if (trimmed.endsWith(":")) return false;
+  if (BULLET.test(nextLine) || NUMBERED.test(nextLine)) return false;
   // A short, un-punctuated opening line that introduces further lines in the
   // same block is a label (e.g. "Remark" above the remark text).
-  return blockHasMoreLines && !/[.,;!?]$/.test(raw) && raw.split(/\s+/).length <= 8;
+  return !/[.,;!?]$/.test(raw) && raw.split(/\s+/).length <= 5;
 }
 
-const BULLET = /^\s*(?:[-*•]|\u2022)\s+(.*)$/;
-const NUMBERED = /^\s*\d+[.)]\s+(.*)$/;
 
 /**
  * Converts the plain-text body stored on a notification template into the
