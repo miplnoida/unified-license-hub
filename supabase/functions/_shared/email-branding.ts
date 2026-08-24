@@ -93,12 +93,14 @@ const DETAIL_KEYS: Array<{ key: string; label: string }> = [
 
 export function detailsFromVars(vars: Record<string, unknown> | null | undefined): Array<{ label: string; value: string }> {
   const out: Array<{ label: string; value: string }> = [];
+  const seen = new Set<string>();
   if (!vars) return out;
   for (const { key, label } of DETAIL_KEYS) {
     const raw = vars[key];
     if (raw === null || raw === undefined) continue;
     const value = String(raw).trim();
-    if (!value) continue;
+    if (!value || seen.has(label)) continue;
+    seen.add(label);
     out.push({ label, value });
   }
   return out.slice(0, 8);
