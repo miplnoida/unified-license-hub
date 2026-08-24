@@ -29,6 +29,8 @@ export function jsonResponse(body: unknown, status = 200): Response {
 export interface AuthzSuccess {
   ok: true;
   userId: string;
+  /** Email claim from the verified token, when present. */
+  email: string | null;
   authClient: SupabaseClient;
   adminClient: SupabaseClient;
 }
