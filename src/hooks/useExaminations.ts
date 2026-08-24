@@ -260,9 +260,58 @@ export function useSaveScoping(examinationId?: string) {
 export function useExaminationTeam(examinationId?: string) {
   return useQuery(childQuery('examination_team_members', 'examination-team', examinationId));
 }
+/**
+ * Case-team administration is governed: direct DML on examination_team_members is
+ * revoked, so members are added, re-roled and ended through the checked routines
+ * (examination authority, entity scope, real staff account, one lead examiner,
+ * no duplicate membership). A member may always declare their own conflict.
+ */
 export function useTeamMutations(examinationId?: string) {
-  return useChildMutations('examination_team_members', ['examination-team'], examinationId);
+  const qc = useQueryClient();
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['examination-team', examinationId] });
+    qc.invalidateQueries({ queryKey: ['examination-events', examinationId] });
+  };
+  const save = useMutation({
+    mutationFn: async ({ id, ...v }: Record<string, any>) => {
+      if (id) {
+        const { data, error } = await sb.rpc('examination_team_member_update', {
+          _member_id: id,
+          _team_role: v.team_role ?? null,
+          _allocated_days: v.allocated_days ?? null,
+          _specialisation: v.specialisation ?? null,
+          _conflict_declared: v.conflict_declared ?? null,
+          _conflict_notes: v.conflict_notes ?? null,
+        } as never);
+        if (error) throw error;
+        return data;
+      }
+      const { data, error } = await sb.rpc('examination_team_member_add', {
+        _examination_id: examinationId as string,
+        _user_id: v.user_id,
+        _team_role: v.team_role,
+        _allocated_days: v.allocated_days ?? null,
+        _specialisation: v.specialisation ?? null,
+        _conflict_declared: v.conflict_declared ?? false,
+        _conflict_notes: v.conflict_notes ?? null,
+      } as never);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => { invalidate(); toast.success('Saved'); },
+    onError: (e: any) => toast.error(examinationErrorMessage(e)),
+  });
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await sb.rpc('examination_team_member_end', { _member_id: id } as never);
+      if (error) throw error;
+    },
+    onSuccess: () => { invalidate(); toast.success('Removed'); },
+    onError: (e: any) => toast.error(examinationErrorMessage(e)),
+  });
+  return { save, remove };
 }
+
 
 // Data requests
 export function useDataRequests(examinationId?: string) {
