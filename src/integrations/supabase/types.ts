@@ -424,6 +424,42 @@ export type Database = {
         }
         Relationships: []
       }
+      appeal_independence_policies: {
+        Row: {
+          appeal_scope: string
+          created_at: string
+          created_by: string | null
+          id: string
+          legal_adviser_votes: boolean
+          notes: string | null
+          prior_decision_maker_may_sit: boolean
+          regulator_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          appeal_scope: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          legal_adviser_votes?: boolean
+          notes?: string | null
+          prior_decision_maker_may_sit?: boolean
+          regulator_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          appeal_scope?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          legal_adviser_votes?: boolean
+          notes?: string | null
+          prior_decision_maker_may_sit?: boolean
+          regulator_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       appeal_panel_scopes: {
         Row: {
           created_at: string
@@ -17718,6 +17754,75 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      license_appeal_participation: {
+        Row: {
+          appeal_id: string
+          attendance: string
+          conflict_declared: boolean
+          conflict_note: string | null
+          created_at: string
+          id: string
+          is_voting: boolean
+          member_role: string | null
+          recorded_by: string | null
+          snapshot_id: string
+          updated_at: string
+          user_id: string
+          vote: string | null
+          vote_rationale: string | null
+          voted_at: string | null
+        }
+        Insert: {
+          appeal_id: string
+          attendance?: string
+          conflict_declared?: boolean
+          conflict_note?: string | null
+          created_at?: string
+          id?: string
+          is_voting?: boolean
+          member_role?: string | null
+          recorded_by?: string | null
+          snapshot_id: string
+          updated_at?: string
+          user_id: string
+          vote?: string | null
+          vote_rationale?: string | null
+          voted_at?: string | null
+        }
+        Update: {
+          appeal_id?: string
+          attendance?: string
+          conflict_declared?: boolean
+          conflict_note?: string | null
+          created_at?: string
+          id?: string
+          is_voting?: boolean
+          member_role?: string | null
+          recorded_by?: string | null
+          snapshot_id?: string
+          updated_at?: string
+          user_id?: string
+          vote?: string | null
+          vote_rationale?: string | null
+          voted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_appeal_participation_appeal_id_fkey"
+            columns: ["appeal_id"]
+            isOneToOne: false
+            referencedRelation: "license_appeals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_appeal_participation_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "license_appeal_panel_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       license_appeals: {
         Row: {
@@ -35247,6 +35352,53 @@ export type Database = {
         Returns: undefined
       }
       appeal_case_file_status: { Args: { _appeal_id: string }; Returns: Json }
+      appeal_cast_vote: {
+        Args: { _appeal_id: string; _rationale?: string; _vote: string }
+        Returns: Json
+      }
+      appeal_declare_conflict: {
+        Args: { _appeal_id: string; _note: string }
+        Returns: Json
+      }
+      appeal_latest_snapshot: {
+        Args: { _appeal_id: string }
+        Returns: {
+          appeal_id: string
+          appeal_scope: string
+          created_at: string
+          decision_rule: string
+          hearing_format: string | null
+          id: string
+          member_roster: Json
+          panel_id: string
+          panel_name: string
+          quorum: number
+          snapshot_at: string
+          snapshot_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "license_appeal_panel_snapshots"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      appeal_member_may_vote: {
+        Args: { _appeal_id: string; _user_id: string }
+        Returns: Json
+      }
+      appeal_participation_status: {
+        Args: { _appeal_id: string }
+        Returns: Json
+      }
+      appeal_record_participation: {
+        Args: { _appeal_id: string; _attendance: string; _note?: string }
+        Returns: Json
+      }
+      appeal_snapshot_member: {
+        Args: { _appeal_id: string; _user_id: string }
+        Returns: Json
+      }
       application_blockers: { Args: { _application_id: string }; Returns: Json }
       application_case: {
         Args: { _application_id: string; _audience?: string }
@@ -38067,6 +38219,19 @@ export type Database = {
         Args: { _return_id: string }
         Returns: Json
       }
+      examination_action_allowed: {
+        Args: {
+          _action: string
+          _examination_id: string
+          _require_case_team?: boolean
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      examination_case_team_role: {
+        Args: { _examination_id: string; _user_id: string }
+        Returns: string
+      }
       examination_create: { Args: { _payload: Json }; Returns: Json }
       examination_create_remediation_action: {
         Args: {
@@ -38081,6 +38246,10 @@ export type Database = {
       examination_has_issued_report: {
         Args: { _examination_id: string }
         Returns: boolean
+      }
+      examination_report_signoff: {
+        Args: { _notes?: string; _report_id: string; _role: string }
+        Returns: Json
       }
       examination_signoff_workpaper: {
         Args: { _notes?: string; _role: string; _workpaper_id: string }
@@ -41646,6 +41815,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      regulatory_coverage_warnings: { Args: never; Returns: Json }
       regulatory_function_for_module: {
         Args: { _module: string }
         Returns: string
@@ -42728,6 +42898,11 @@ export type Database = {
             }
             Returns: boolean
           }
+      staff_responsibility_directory: { Args: never; Returns: Json }
+      staff_responsibility_profile: {
+        Args: { _user_id: string }
+        Returns: Json
+      }
       start_complaint_investigation:
         | {
             Args: { _id: string }
