@@ -10,3 +10,4 @@
 - [Registration Journeys](mem://features/registration/two-route-public-journeys) — FORM_FIRST vs ENTITY_FIRST public routes and governed resolution
 - [Environment Safety](mem://security/environment-safety-guard) — Production classification, fail-closed destructive tooling guard, cutover drops
 - [Small Regulator Demo Seed](mem://features/small-regulator-demo-seed) — Non-production multi-function staffing demo data and its cleanup script
+- [Operating Structure IA](mem://features/operating-structure/simplified-ia) — 5 admin tabs, plain-language wording, mandates behind advanced settings

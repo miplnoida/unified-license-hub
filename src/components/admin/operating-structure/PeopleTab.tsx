@@ -137,7 +137,8 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
               >
                 <div className="font-medium">{u.full_name}</div>
                 <div className="text-xs text-muted-foreground">
-                  {u.functions} responsibilities · {u.teams} teams
+                  {u.functions} {Number(u.functions) === 1 ? 'responsibility' : 'responsibilities'} ·{' '}
+                  {u.teams} {Number(u.teams) === 1 ? 'team' : 'teams'}
                 </div>
               </button>
             ))}
