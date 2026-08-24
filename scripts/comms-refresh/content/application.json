@@ -83,12 +83,6 @@
     "email_subject": "Decision issued | {{application_number}}",
     "email_body": "We are writing regarding application {{application_number}}.\n\nThe Authority has concluded its assessment and a formal decision has now been issued in respect of the application. The outcome recorded is: {{outcome}}.\n\nAction required\nPlease sign in to the Regulatory Portal to review the formal decision communication and any accompanying documents, together with any conditions or further steps stated in it.\n\nWhat happens next\nAny requirement, condition or timeframe applying to you is set out in the formal decision. Where a right of review or appeal is available, the decision communication explains how it may be exercised.\n\nRegards,\n{{app_name}}"
   },
-  "application.escalated": {
-    "in_app_title": "Application escalated | {{application_number}}",
-    "in_app_message": "Application {{application_number}} has been escalated to a senior reviewer for attention.",
-    "email_subject": "Application escalated for senior review | {{application_number}}",
-    "email_body": "Application {{application_number}} has been escalated to a senior reviewer.\n\nAction required\nPlease review the application file in the Regulatory Portal and progress the matter in accordance with the applicable assessment procedure.\n\nRegards,\n{{app_name}}"
-  },
   "regulator.action_taken_on_application": {
     "in_app_title": "Assessment update | {{application_number}}",
     "in_app_message": "The Authority has recorded the action \"{{action_type}}\" on application {{application_number}}. Please sign in to the Regulatory Portal for details."
@@ -98,5 +92,11 @@
     "in_app_message": "The Authority has raised a query on application {{application_number}}. Please sign in to the Regulatory Portal to review and respond.",
     "email_subject": "Query raised | {{application_number}}",
     "email_body": "We are writing regarding application {{application_number}}, which is currently under review by the Authority.\n\nA query has been raised by the reviewing officer in the course of the assessment.\n\nQuery\n{{comments}}\n\nAction required\nPlease sign in to the Regulatory Portal to review the query in full and to provide the clarification or documents requested.\n\nWhat happens next\nOnce your response is received, the Authority will continue its assessment of the application.\n\nRegards,\n{{app_name}}"
+  },
+  "application.escalated_to_supervisor": {
+    "in_app_title": "Application escalated | {{application_number}}",
+    "in_app_message": "Application {{application_number}} has been escalated to a senior reviewer for attention.",
+    "email_subject": "Application escalated for senior review | {{application_number}}",
+    "email_body": "Application {{application_number}} has been escalated to a senior reviewer.\n\nAction required\nPlease review the application file in the Regulatory Portal and progress the matter in accordance with the applicable assessment procedure.\n\nRegards,\n{{app_name}}"
   }
 }
