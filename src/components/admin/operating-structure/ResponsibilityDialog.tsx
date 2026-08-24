@@ -7,10 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  usePortfolioMutations, useRegulators, useRegulatoryFunctions, useRegulatoryTeams,
+  usePortfolioMutations, useRegulatoryFunctions, useRegulatoryTeams,
   useSectors, useStaffDirectory, useStaffPortfolios, useSubSectors, useSupervisedEntities,
 } from '@/hooks/useOperatingStructure';
 import { act, NONE } from './shared';
+import { useRegulatorResolution } from './regulatorResolution';
+
 
 type AppliesTo = 'all' | 'sector' | 'sub_sector' | 'entity';
 
@@ -34,7 +36,6 @@ export interface ResponsibilityDialogProps {
 export function ResponsibilityDialog({
   open, onOpenChange, userId, portfolioId, preset, onSaved,
 }: ResponsibilityDialogProps) {
-  const regulators = useRegulators();
   const functions = useRegulatoryFunctions();
   const teams = useRegulatoryTeams();
   const sectors = useSectors();
@@ -42,6 +43,7 @@ export function ResponsibilityDialog({
   const entities = useSupervisedEntities();
   const portfolios = useStaffPortfolios();
   const { savePortfolio, addScope, removeScope } = usePortfolioMutations();
+
 
   const existing = useMemo(
     () => (portfolios.data?.portfolios || []).find((p: any) => p.id === portfolioId) || null,
@@ -54,7 +56,9 @@ export function ResponsibilityDialog({
 
   const staff = useStaffDirectory();
   const [personId, setPersonId] = useState('');
-  const [regulatorId, setRegulatorId] = useState('');
+  // Never defaulted to the first regulator record: this only ever holds an
+  // existing saved value or the regulator derived from the chosen coverage.
+  const [chosenRegulatorId, setChosenRegulatorId] = useState('');
   const [functionId, setFunctionId] = useState('');
   const [appliesTo, setAppliesTo] = useState<AppliesTo>('all');
   const [sectorId, setSectorId] = useState('');
@@ -67,8 +71,8 @@ export function ResponsibilityDialog({
 
   useEffect(() => {
     if (!open) return;
-    const defReg = existing?.regulator_id || (regulators.data || [])[0]?.id || '';
-    setRegulatorId(defReg);
+    setChosenRegulatorId(existing?.regulator_id || '');
+
     setFunctionId(existing?.regulatory_function_id || preset?.functionId || '');
     setTeamId(existing?.team_id || preset?.teamId || NONE);
     setFrom(existing?.effective_from ? String(existing.effective_from).slice(0, 10) : '');
@@ -97,7 +101,26 @@ export function ResponsibilityDialog({
       setPicked([]);
       setSectorId('');
     }
-  }, [open, portfolioId, existingScopes.length, regulators.data, preset?.functionId]);
+  }, [open, portfolioId, existingScopes.length, preset?.functionId]);
+
+  // Regulator is derived from coverage + area of work, never picked from a list
+  // of every regulator record.
+  const resolution = useRegulatorResolution({
+    functionId: functionId || undefined,
+    appliesTo,
+    values: picked,
+  });
+  const regulatorId = useMemo(() => {
+    if (resolution.resolved) return resolution.resolved.id;
+    if (chosenRegulatorId && resolution.candidates.some((c) => c.id === chosenRegulatorId))
+      return chosenRegulatorId;
+    return '';
+  }, [resolution.resolved, resolution.candidates, chosenRegulatorId]);
+  const derivedName =
+    resolution.resolved?.name ||
+    resolution.candidates.find((c) => c.id === regulatorId)?.name ||
+    '';
+
 
   const options = useMemo(() => {
     if (appliesTo === 'sector') return (sectors.data || []).map((s: any) => ({ id: s.id, name: s.name }));
@@ -181,19 +204,47 @@ export function ResponsibilityDialog({
             </div>
           )}
 
-          {(regulators.data || []).length > 1 && (
+          {resolution.singleRegulatorDeployment ? (
+            derivedName ? (
+              <p className="text-xs text-muted-foreground">
+                Regulator: <span className="font-medium text-foreground">{derivedName}</span>
+              </p>
+            ) : null
+          ) : (
             <div>
               <Label className="text-xs">Regulator</Label>
-              <Select value={regulatorId} onValueChange={setRegulatorId}>
-                <SelectTrigger><SelectValue placeholder="Select regulator" /></SelectTrigger>
-                <SelectContent>
-                  {(regulators.data || []).map((r: any) => (
-                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {resolution.candidates.length > 1 ? (
+                <>
+                  <Select value={regulatorId} onValueChange={setChosenRegulatorId}>
+                    <SelectTrigger><SelectValue placeholder="Select the responsible regulator" /></SelectTrigger>
+                    <SelectContent>
+                      {resolution.candidates.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-1 text-xs text-muted-foreground">{resolution.reason}</p>
+                </>
+              ) : (
+                <>
+                  <Input readOnly value={derivedName} placeholder="Derived from the selected coverage" />
+                  <p className="mt-1 text-xs text-muted-foreground">{resolution.reason}</p>
+                </>
+              )}
             </div>
           )}
+
+          {resolution.notConfigured && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3">
+              <p className="text-sm font-medium text-destructive">REGULATOR COVERAGE NOT CONFIGURED</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                No active regulator mandate covers this area of work and coverage, so this
+                responsibility cannot be recorded. Configure the mandate in Advanced authority
+                settings on the Operating Structure page, then try again.
+              </p>
+            </div>
+          )}
+
 
           <div>
             <Label className="text-xs">Area of work</Label>

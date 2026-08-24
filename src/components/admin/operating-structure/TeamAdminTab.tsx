@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatDateTime } from '@/lib/datetime';
 import {
-  useRegulators, useRegulatoryFunctions, useRegulatoryTeams, useRegulatorMandates,
+  useActiveRegulators, useRegulatoryFunctions, useRegulatoryTeams, useRegulatorMandates,
   useStaffDirectory, useTeamMandateLinks, useTeamMembers, useTeamMutations,
 } from '@/hooks/useOperatingStructure';
 
@@ -28,7 +28,7 @@ const errText = (e: unknown) => {
  * the client holds no DML grant on any operating-structure table.
  */
 export function TeamAdminTab() {
-  const regulators = useRegulators();
+  const regulators = useActiveRegulators();
   const functions = useRegulatoryFunctions();
   const teams = useRegulatoryTeams();
   const members = useTeamMembers();
@@ -64,7 +64,8 @@ export function TeamAdminTab() {
   const openCreate = () => {
     setEditing(null);
     setForm({
-      regulatorId: (regulators.data || [])[0]?.id || '', code: '', name: '',
+      regulatorId: (regulators.data || []).length === 1 ? (regulators.data as any[])[0].id : '',
+      code: '', name: '',
       teamType: 'permanent', functionId: NONE, effectiveTo: '',
     });
     setTeamDialog(true);
@@ -316,7 +317,7 @@ export function TeamAdminTab() {
             <DialogTitle>{editing ? 'Edit team' : 'New team'}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
-            <div>
+            <div className={(regulators.data || []).length === 1 ? 'hidden' : undefined}>
               <Label className="text-xs">Regulator</Label>
               <Select value={form.regulatorId} onValueChange={(v) => setForm({ ...form, regulatorId: v })}>
                 <SelectTrigger><SelectValue placeholder="Select regulator" /></SelectTrigger>
