@@ -425,13 +425,85 @@ export function PanelsCommitteesTab() {
             );
           })}
           <p className="text-xs text-muted-foreground">
-            Committee composition is administered through the governed F&amp;P routines. Members may
-            also hold F&amp;P operational, licensing, prudential or legal duties; independence is
-            enforced per assessment by the existing maker/checker and conflict rules. Quorum and
-            threshold values are existing configuration and are never invented here.
+            Members may also hold F&amp;P operational, licensing, prudential or legal duties;
+            independence is enforced per assessment by the existing maker/checker and conflict rules.
+            Quorum and approval threshold changes are written through the governed F&amp;P routines.
           </p>
         </CardContent>
       </Card>
+
+      {/* Decision rule — quorum and approval threshold, in plain language. */}
+      <Dialog open={!!ruleDialog} onOpenChange={(v) => !v && setRuleDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Decision rule — {ruleDialog?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <Label>Quorum — how many voting members must attend</Label>
+              <Input
+                type="number"
+                min={1}
+                value={ruleDialog?.quorum ?? ''}
+                onChange={(e) => setRuleDialog((s) => (s ? { ...s, quorum: e.target.value } : s))}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                A sitting with fewer voting members present cannot decide a fit &amp; proper matter.
+              </p>
+            </div>
+            <div>
+              <Label>Approval threshold — share of those present who must vote yes</Label>
+              <Input
+                type="number"
+                min={1}
+                max={100}
+                value={ruleDialog?.pct ?? ''}
+                onChange={(e) => setRuleDialog((s) => (s ? { ...s, pct: e.target.value } : s))}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                50 = simple majority, 67 = two-thirds, 100 = unanimous.
+                {ruleDialog && Number(ruleDialog.quorum) > 0 && Number(ruleDialog.pct) > 0 && (
+                  <>
+                    {' '}With {Number(ruleDialog.quorum)} present that means{' '}
+                    {Math.ceil((Number(ruleDialog.quorum) * Number(ruleDialog.pct)) / 100)} approval(s).
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRuleDialog(null)}>Cancel</Button>
+            <Button
+              disabled={committeeMut.updateCommittee.isPending}
+              onClick={async () => {
+                if (!ruleDialog) return;
+                const quorum = Number(ruleDialog.quorum);
+                const pct = Number(ruleDialog.pct);
+                if (!Number.isInteger(quorum) || quorum < 1) {
+                  toast.error('Quorum must be a whole number of at least 1');
+                  return;
+                }
+                if (!(pct > 0 && pct <= 100)) {
+                  toast.error('Approval threshold must be between 1 and 100 percent');
+                  return;
+                }
+                const ok = await act(
+                  () => committeeMut.updateCommittee.mutateAsync({
+                    committeeId: ruleDialog.id,
+                    quorum,
+                    approvalThresholdPct: pct,
+                  }),
+                  'Decision rule updated',
+                );
+                if (ok) setRuleDialog(null);
+              }}
+            >
+              Save decision rule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Add member — three selections, nothing else. */}
       <Dialog open={!!memberDialog} onOpenChange={(v) => !v && setMemberDialog(null)}>
