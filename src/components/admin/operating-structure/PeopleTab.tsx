@@ -14,8 +14,11 @@ import {
   useSubSectors, useSupervisedEntities, useTeamMembers, useTeamMutations,
 } from '@/hooks/useOperatingStructure';
 import { ResponsibilityDialog } from './ResponsibilityDialog';
+import { PersonSectorResponsibilityDialog } from './SectorAssignDialogs';
+import { AccessStatusNote } from './AccessStatusNote';
 import { act, effectiveRange, TEAM_ROLES } from './shared';
 import { usePortfolioMutations } from '@/hooks/useOperatingStructure';
+
 
 /**
  * WHO works here and WHAT they are responsible for.
@@ -27,7 +30,10 @@ import { usePortfolioMutations } from '@/hooks/useOperatingStructure';
 export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) {
   const [selected, setSelected] = useState<string | null>(initialUserId || null);
   const [search, setSearch] = useState('');
+  const [choice, setChoice] = useState(false);
+  const [sectorResp, setSectorResp] = useState(false);
   const [respDialog, setRespDialog] = useState<{ open: boolean; portfolioId: string | null }>({
+
     open: false, portfolioId: null,
   });
   const [teamDialog, setTeamDialog] = useState<{ open: boolean; membershipId: string | null }>({
@@ -187,9 +193,10 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
               <Card>
                 <CardHeader className="flex-row items-center justify-between space-y-0">
                   <CardTitle className="text-base">Responsibilities</CardTitle>
-                  <Button size="sm" onClick={() => setRespDialog({ open: true, portfolioId: null })}>
+                  <Button size="sm" onClick={() => setChoice(true)}>
                     Add responsibility
                   </Button>
+
                 </CardHeader>
                 <CardContent className="grid gap-3 sm:grid-cols-2">
                   {myPortfolios.map((x: any) => (
@@ -300,12 +307,50 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
         </div>
       </div>
 
+      <Dialog open={choice} onOpenChange={setChoice}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>What is this person responsible for?</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Button
+              variant="outline"
+              className="h-auto flex-col items-start gap-1 py-3 text-left"
+              onClick={() => { setChoice(false); setSectorResp(true); }}
+            >
+              <span className="font-medium">A sector</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                Full sector responsibility, or selected areas of work within one sector.
+              </span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto flex-col items-start gap-1 py-3 text-left"
+              onClick={() => { setChoice(false); setRespDialog({ open: true, portfolioId: null }); }}
+            >
+              <span className="font-medium">Specific work</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                Named sub-sectors or individual entities, across one or more areas of work.
+              </span>
+            </Button>
+          </div>
+          <AccessStatusNote userId={selected} />
+        </DialogContent>
+      </Dialog>
+
+      <PersonSectorResponsibilityDialog
+        open={sectorResp}
+        onOpenChange={setSectorResp}
+        userId={selected}
+      />
+
       <ResponsibilityDialog
         open={respDialog.open}
         onOpenChange={(v) => setRespDialog({ open: v, portfolioId: v ? respDialog.portfolioId : null })}
         userId={selected}
         portfolioId={respDialog.portfolioId}
       />
+
 
       <Dialog open={teamDialog.open} onOpenChange={(v) => setTeamDialog({ open: v, membershipId: null })}>
         <DialogContent className="sm:max-w-md">
