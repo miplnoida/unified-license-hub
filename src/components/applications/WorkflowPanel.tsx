@@ -193,10 +193,30 @@ const ACTION_LABELS: Record<string, string> = {
   return_for_correction: 'Returned for correction',
   request_more_info: 'Requested more information',
   remark: 'Remark added',
+  save_comment: 'Comment added',
+  comment: 'Comment added',
+  reassign: 'Reassigned',
+  delegate: 'Delegated',
+  withdraw: 'Withdrawn',
+  acknowledge: 'Acknowledged',
 };
 
+/**
+ * Last-resort humaniser. No raw technical key (e.g. `save_comment`) may ever
+ * reach the UI — unknown keys are rendered as sentence-case words.
+ */
+export function humanizeActionKey(key: string): string {
+  const words = String(key || '')
+    .replace(/[_\-.]+/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .trim()
+    .toLowerCase();
+  if (!words) return 'Action';
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 function actionLabel(actionType: string) {
-  return ACTION_LABELS[actionType] || actionType.replace(/_/g, ' ');
+  return ACTION_LABELS[actionType] || humanizeActionKey(actionType);
 }
 
 function actionSuccessMessage(actionType: WorkflowActionType, isFinalApprove: boolean, entityNoun: string): string {
