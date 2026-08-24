@@ -261,8 +261,9 @@ export function renderBrandedEmail({
     : "";
 
   const calloutHtml = callout
-    ? `<div style="margin:0 0 18px;padding:12px 14px;border-left:4px solid ${brand};background:#f8fafc;border-radius:8px;color:#334155;font-size:13px;line-height:1.6;">${escapeHtml(callout)}</div>`
+    ? `<div style="margin:0 0 18px;padding:12px 14px;border-left:4px solid ${brand};background:#f8fafc;border-radius:8px;color:#334155;font-size:13px;line-height:1.6;">${renderInline(callout).replace(/\n/g, "<br/>")}</div>`
     : "";
+
 
   const safeCtaUrl = ctaUrl ? escapeHtml(ctaUrl) : "";
   const safeCtaLabel = escapeHtml(ctaLabel || "Open Portal");
