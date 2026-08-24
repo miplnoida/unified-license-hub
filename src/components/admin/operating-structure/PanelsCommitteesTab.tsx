@@ -339,7 +339,11 @@ export function PanelsCommitteesTab() {
                   </Badge>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Quorum {c.quorum} · approval threshold {c.approval_threshold_pct}% · voting members {voters.length}
+                  At least <strong>{c.quorum}</strong> voting member(s) must take part in a sitting,
+                  and at least <strong>{c.approval_threshold_pct}%</strong> of those present must vote
+                  yes for a fit &amp; proper decision to pass — with {c.quorum} present that is{' '}
+                  <strong>{Math.ceil((c.quorum * Number(c.approval_threshold_pct || 0)) / 100)}</strong>{' '}
+                  approval(s). Currently {voters.length} voting member(s) appointed.
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-2 border-t pt-2">
                   <Button
@@ -362,12 +366,27 @@ export function PanelsCommitteesTab() {
                   >
                     + Add member
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setRuleDialog({
+                        id: c.id,
+                        name: c.name,
+                        quorum: String(c.quorum),
+                        pct: String(c.approval_threshold_pct ?? ''),
+                      })
+                    }
+                  >
+                    Decision rule
+                  </Button>
                   <span className="text-xs text-muted-foreground">
                     {c.is_active
                       ? 'This committee may be selected for fit & proper decisions.'
                       : 'While inactive this committee cannot be selected for fit & proper decisions.'}
                   </span>
                 </div>
+
 
                 <div className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
                   <div>
