@@ -285,8 +285,11 @@ export function PanelsCommitteesTab() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{c.name}</span>
                   <Badge variant="outline">{regName(c.regulator_id)}</Badge>
-                  <Badge variant={c.is_active ? 'default' : 'secondary'}>{c.is_active ? 'active' : 'inactive'}</Badge>
-                  {voters.length < c.quorum && <Badge variant="destructive">Cannot sit</Badge>}
+                  <Badge variant={c.is_active ? 'default' : 'secondary'}>{c.is_active ? 'ACTIVE' : 'INACTIVE'}</Badge>
+                  <Badge variant={voters.length >= c.quorum ? 'default' : 'outline'}>
+                    {voters.length >= c.quorum ? 'Composition ready' : 'Composition not ready'}
+                  </Badge>
+
                   <Button
                     size="sm"
                     variant="outline"
