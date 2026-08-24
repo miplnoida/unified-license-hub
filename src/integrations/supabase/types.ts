@@ -41893,6 +41893,19 @@ export type Database = {
         Args: { _function_id: string; _regulator_id: string }
         Returns: boolean
       }
+      regulator_mandate_enforcement_set: {
+        Args: {
+          _enforcement_status: string
+          _notes?: string
+          _regulator_id: string
+          _regulatory_function_id: string
+        }
+        Returns: Json
+      }
+      regulator_mandate_set_status: {
+        Args: { _mandate_id: string; _status: string }
+        Returns: Json
+      }
       regulator_mandate_supports:
         | {
             Args: {
@@ -41911,6 +41924,21 @@ export type Database = {
             }
             Returns: boolean
           }
+      regulator_mandate_upsert: {
+        Args: {
+          _effective_from?: string
+          _effective_to?: string
+          _id?: string
+          _notes?: string
+          _regulator_id: string
+          _regulatory_function_id: string
+          _responsibility_type?: string
+          _sector_id?: string
+          _status?: string
+          _sub_sector_id?: string
+        }
+        Returns: Json
+      }
       regulatory_assignment_scope_allows: {
         Args: {
           _actor_user_id: string
@@ -41987,9 +42015,72 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      regulatory_structure_assert_admin: {
+        Args: { _actor: string }
+        Returns: undefined
+      }
+      regulatory_structure_assert_staff: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
+      regulatory_structure_audit: {
+        Args: {
+          _action: string
+          _entity_id: string
+          _entity_type: string
+          _new: Json
+          _old: Json
+        }
+        Returns: undefined
+      }
+      regulatory_team_mandate_add: {
+        Args: {
+          _is_primary?: boolean
+          _regulator_mandate_id: string
+          _team_id: string
+        }
+        Returns: Json
+      }
+      regulatory_team_mandate_end: {
+        Args: { _effective_to?: string; _id: string }
+        Returns: Json
+      }
+      regulatory_team_member_end: {
+        Args: { _effective_to?: string; _membership_id: string }
+        Returns: Json
+      }
+      regulatory_team_member_set: {
+        Args: {
+          _effective_from?: string
+          _effective_to?: string
+          _id?: string
+          _member_role?: string
+          _team_id: string
+          _user_id: string
+        }
+        Returns: Json
+      }
       regulatory_team_membership_active: {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
+      }
+      regulatory_team_set_status: {
+        Args: { _status: string; _team_id: string }
+        Returns: Json
+      }
+      regulatory_team_upsert: {
+        Args: {
+          _code: string
+          _effective_from?: string
+          _effective_to?: string
+          _id?: string
+          _name: string
+          _regulator_id: string
+          _regulatory_function_id?: string
+          _status?: string
+          _team_type?: string
+        }
+        Returns: Json
       }
       reinstate_application_after_appeal: {
         Args: { _appeal_id: string; _remarks?: string }
@@ -43005,6 +43096,38 @@ export type Database = {
             }
             Returns: boolean
           }
+      staff_portfolio_end: {
+        Args: { _effective_to?: string; _portfolio_id: string }
+        Returns: Json
+      }
+      staff_portfolio_scope_add: {
+        Args: {
+          _entity_id?: string
+          _portfolio_id: string
+          _scope_kind: string
+          _sector_id?: string
+          _sub_sector_id?: string
+        }
+        Returns: Json
+      }
+      staff_portfolio_scope_remove: {
+        Args: { _scope_id: string }
+        Returns: Json
+      }
+      staff_portfolio_upsert: {
+        Args: {
+          _effective_from?: string
+          _effective_to?: string
+          _id?: string
+          _notes?: string
+          _regulator_id: string
+          _regulatory_function_id: string
+          _status?: string
+          _team_id?: string
+          _user_id: string
+        }
+        Returns: Json
+      }
       staff_responsibility_directory: { Args: never; Returns: Json }
       staff_responsibility_profile: {
         Args: { _user_id: string }
