@@ -134,13 +134,21 @@ SELECT ok(NOT public.regulatory_scope_allows('11111111-0000-4000-8000-0000000000
   'missing RBAC permission + team membership = DENIED');
 
 -- ------------------------------------------------------------------
--- 4..5 · cross-function leaks
+-- 4..5 · cross-function leaks · documented mandate semantics
+--
+-- MANDATE_INERT_BEFORE_ACTIVATION: while the regulator + function mandate set
+-- is not activated the mandate LAYER is inert and returns true. That is not a
+-- grant: authority still requires the canonical RBAC permission (proved above),
+-- so an inert mandate can never widen authority.
+-- MANDATE_ENFORCED_AFTER_ACTIVATION: once activated for that function, the
+-- absence of a covering mandate denies, and a mandate belonging to another
+-- regulatory function never satisfies it.
 -- ------------------------------------------------------------------
-SELECT ok(NOT public.regulator_mandate_supports(
+SELECT ok(public.regulator_mandate_supports(
             'a0000000-0000-4000-8000-000000000001',
             public.regulatory_function_for_module('license_management'),
             'b0000000-0000-4000-8000-000000000001', NULL),
-  'a prudential mandate does not satisfy a licensing action (enforcement inert => no false narrow, no false grant)');
+  'MANDATE_INERT_BEFORE_ACTIVATION: the Licensing mandate layer is inert (never a grant, never a false narrow)');
 
 -- an ACTIVE licensing enforcement set with no licensing mandate must deny
 INSERT INTO public.regulator_mandate_enforcement (regulator_id, regulatory_function_id, enforcement_status, activated_at)
@@ -150,7 +158,8 @@ SELECT ok(NOT public.regulator_mandate_supports(
             'a0000000-0000-4000-8000-000000000001',
             public.regulatory_function_for_module('license_management'),
             'b0000000-0000-4000-8000-000000000001', NULL),
-  'Licensing mandate set active with no licensing mandate = DENIED (prudential mandate does not leak)');
+  'MANDATE_ENFORCED_AFTER_ACTIVATION: no licensing mandate = DENIED (CROSS_FUNCTION_MANDATE_LEAK = 0)');
+
 
 -- A portfolio is scoped to its own regulatory function. It is NEVER a source of
 -- authority: a prudential portfolio authorises nothing under Licensing, and for

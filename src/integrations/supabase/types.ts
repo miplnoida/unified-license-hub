@@ -25590,6 +25590,56 @@ export type Database = {
         }
         Relationships: []
       }
+      regulatory_function_assignment_requirements: {
+        Row: {
+          assignment_role_type: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          notes: string | null
+          regulatory_function_id: string
+          required_module_key: string | null
+          required_permission_key: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assignment_role_type: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          notes?: string | null
+          regulatory_function_id: string
+          required_module_key?: string | null
+          required_permission_key?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assignment_role_type?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          notes?: string | null
+          regulatory_function_id?: string
+          required_module_key?: string | null
+          required_permission_key?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_function_assignment_requ_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regulatory_functions: {
         Row: {
           coverage_level: string
@@ -41585,6 +41635,17 @@ export type Database = {
             }
             Returns: boolean
           }
+      regulatory_assignment_scope_allows: {
+        Args: {
+          _actor_user_id: string
+          _entity_id: string
+          _management_action: string
+          _management_module: string
+          _regulator_id: string
+          _target_regulatory_function_id: string
+        }
+        Returns: boolean
+      }
       regulatory_function_for_module: {
         Args: { _module: string }
         Returns: string
@@ -41617,17 +41678,40 @@ export type Database = {
         }
         Returns: Json
       }
-      regulatory_scope_allows: {
-        Args: {
-          _action: string
-          _entity_id?: string
-          _module: string
-          _owner_id?: string
-          _regulator_id?: string
-          _sector_id?: string
-          _sub_sector_id?: string
-          _user_id: string
-        }
+      regulatory_scope_allows:
+        | {
+            Args: {
+              _action: string
+              _entity_id?: string
+              _module: string
+              _owner_id?: string
+              _regulator_id?: string
+              _sector_id?: string
+              _sub_sector_id?: string
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              _action: string
+              _entity_id: string
+              _function_override: string
+              _module: string
+              _owner_id: string
+              _regulator_id: string
+              _sector_id: string
+              _sub_sector_id: string
+              _user_id: string
+            }
+            Returns: boolean
+          }
+      regulatory_staff_identity_ok: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
+      regulatory_team_membership_active: {
+        Args: { _team_id: string; _user_id: string }
         Returns: boolean
       }
       reinstate_application_after_appeal: {
@@ -43320,15 +43404,25 @@ export type Database = {
         Args: { _object_name: string }
         Returns: boolean
       }
-      user_has_entity_assignment: {
-        Args: { _licensee_id: string; _user_id: string }
-        Returns: boolean
-      }
+      user_has_entity_assignment:
+        | { Args: { _licensee_id: string; _user_id: string }; Returns: boolean }
+        | {
+            Args: {
+              _licensee_id: string
+              _regulatory_function_id: string
+              _user_id: string
+            }
+            Returns: boolean
+          }
       user_has_permission: {
         Args: { _action: string; _module: string; _user_id: string }
         Returns: boolean
       }
       user_licensee_id: { Args: { _user_id: string }; Returns: string }
+      user_meets_assignment_eligibility: {
+        Args: { _function_id: string; _role_type: string; _user_id: string }
+        Returns: boolean
+      }
       user_scope_for: {
         Args: { _action: string; _module: string; _user_id: string }
         Returns: Json
