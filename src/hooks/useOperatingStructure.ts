@@ -32,8 +32,25 @@ const table = async (name: string, cols: string, order?: string) => {
 };
 
 export function useRegulators() {
-  return useQuery({ queryKey: ['os-regulators'], queryFn: () => table('regulators', 'id, code, name', 'name') });
+  return useQuery({
+    queryKey: ['os-regulators'],
+    queryFn: () => table('regulators', 'id, code, name, description, status', 'name'),
+  });
 }
+
+/**
+ * Regulators that may be linked to NEW structure. Inactive / retired regulators
+ * remain readable for history but are never offered for a new responsibility,
+ * team or assignment.
+ */
+export function useActiveRegulators() {
+  const all = useRegulators();
+  return {
+    ...all,
+    data: (all.data || []).filter((r: any) => String(r.status || '').toLowerCase() === 'active'),
+  };
+}
+
 
 export function useRegulatoryFunctions() {
   return useQuery({
