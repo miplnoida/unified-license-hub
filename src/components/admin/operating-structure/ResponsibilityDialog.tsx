@@ -113,11 +113,11 @@ export function ResponsibilityDialog({
     setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const submit = async () => {
-    if (!userId || !functionId || !regulatorId) return;
+    if (!targetUser || !functionId || !regulatorId) return;
     const ok = await act(async () => {
       const saved: any = await savePortfolio.mutateAsync({
         id: portfolioId || null,
-        userId,
+        userId: targetUser,
         regulatorId,
         functionId,
         teamId: teamId === NONE ? null : teamId,
@@ -167,6 +167,20 @@ export function ResponsibilityDialog({
         </DialogHeader>
 
         <div className="grid gap-3">
+          {!userId && !portfolioId && (
+            <div>
+              <Label className="text-xs">Person</Label>
+              <Select value={personId} onValueChange={setPersonId}>
+                <SelectTrigger><SelectValue placeholder="Select a person" /></SelectTrigger>
+                <SelectContent>
+                  {(staff.data || []).map((s: any) => (
+                    <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {(regulators.data || []).length > 1 && (
             <div>
               <Label className="text-xs">Regulator</Label>
@@ -269,7 +283,7 @@ export function ResponsibilityDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button
             onClick={submit}
-            disabled={!userId || !functionId || !regulatorId || (appliesTo !== 'all' && picked.length === 0)}
+            disabled={!targetUser || !functionId || !regulatorId || (appliesTo !== 'all' && picked.length === 0)}
           >
             Save
           </Button>
