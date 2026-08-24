@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle } from 'lucide-react';
@@ -57,6 +58,9 @@ export function PanelsCommitteesTab() {
   const [newMember, setNewMember] = useState('');
   const [newRole, setNewRole] = useState('member');
   const [newVoting, setNewVoting] = useState('yes');
+  const [ruleDialog, setRuleDialog] = useState<
+    { id: string; name: string; quorum: string; pct: string } | null
+  >(null);
 
   const currentRoster = () => {
     if (!memberDialog) return [] as any[];
@@ -339,7 +343,11 @@ export function PanelsCommitteesTab() {
                   </Badge>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Quorum {c.quorum} · approval threshold {c.approval_threshold_pct}% · voting members {voters.length}
+                  At least <strong>{c.quorum}</strong> voting member(s) must take part in a sitting,
+                  and at least <strong>{c.approval_threshold_pct}%</strong> of those present must vote
+                  yes for a fit &amp; proper decision to pass — with {c.quorum} present that is{' '}
+                  <strong>{Math.ceil((c.quorum * Number(c.approval_threshold_pct || 0)) / 100)}</strong>{' '}
+                  approval(s). Currently {voters.length} voting member(s) appointed.
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-2 border-t pt-2">
                   <Button
@@ -362,12 +370,27 @@ export function PanelsCommitteesTab() {
                   >
                     + Add member
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setRuleDialog({
+                        id: c.id,
+                        name: c.name,
+                        quorum: String(c.quorum),
+                        pct: String(c.approval_threshold_pct ?? ''),
+                      })
+                    }
+                  >
+                    Decision rule
+                  </Button>
                   <span className="text-xs text-muted-foreground">
                     {c.is_active
                       ? 'This committee may be selected for fit & proper decisions.'
                       : 'While inactive this committee cannot be selected for fit & proper decisions.'}
                   </span>
                 </div>
+
 
                 <div className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
                   <div>
@@ -402,13 +425,85 @@ export function PanelsCommitteesTab() {
             );
           })}
           <p className="text-xs text-muted-foreground">
-            Committee composition is administered through the governed F&amp;P routines. Members may
-            also hold F&amp;P operational, licensing, prudential or legal duties; independence is
-            enforced per assessment by the existing maker/checker and conflict rules. Quorum and
-            threshold values are existing configuration and are never invented here.
+            Members may also hold F&amp;P operational, licensing, prudential or legal duties;
+            independence is enforced per assessment by the existing maker/checker and conflict rules.
+            Quorum and approval threshold changes are written through the governed F&amp;P routines.
           </p>
         </CardContent>
       </Card>
+
+      {/* Decision rule — quorum and approval threshold, in plain language. */}
+      <Dialog open={!!ruleDialog} onOpenChange={(v) => !v && setRuleDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Decision rule — {ruleDialog?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <Label>Quorum — how many voting members must attend</Label>
+              <Input
+                type="number"
+                min={1}
+                value={ruleDialog?.quorum ?? ''}
+                onChange={(e) => setRuleDialog((s) => (s ? { ...s, quorum: e.target.value } : s))}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                A sitting with fewer voting members present cannot decide a fit &amp; proper matter.
+              </p>
+            </div>
+            <div>
+              <Label>Approval threshold — share of those present who must vote yes</Label>
+              <Input
+                type="number"
+                min={1}
+                max={100}
+                value={ruleDialog?.pct ?? ''}
+                onChange={(e) => setRuleDialog((s) => (s ? { ...s, pct: e.target.value } : s))}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                50 = simple majority, 67 = two-thirds, 100 = unanimous.
+                {ruleDialog && Number(ruleDialog.quorum) > 0 && Number(ruleDialog.pct) > 0 && (
+                  <>
+                    {' '}With {Number(ruleDialog.quorum)} present that means{' '}
+                    {Math.ceil((Number(ruleDialog.quorum) * Number(ruleDialog.pct)) / 100)} approval(s).
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRuleDialog(null)}>Cancel</Button>
+            <Button
+              disabled={committeeMut.updateCommittee.isPending}
+              onClick={async () => {
+                if (!ruleDialog) return;
+                const quorum = Number(ruleDialog.quorum);
+                const pct = Number(ruleDialog.pct);
+                if (!Number.isInteger(quorum) || quorum < 1) {
+                  toast.error('Quorum must be a whole number of at least 1');
+                  return;
+                }
+                if (!(pct > 0 && pct <= 100)) {
+                  toast.error('Approval threshold must be between 1 and 100 percent');
+                  return;
+                }
+                const ok = await act(
+                  () => committeeMut.updateCommittee.mutateAsync({
+                    committeeId: ruleDialog.id,
+                    quorum,
+                    approvalThresholdPct: pct,
+                  }),
+                  'Decision rule updated',
+                );
+                if (ok) setRuleDialog(null);
+              }}
+            >
+              Save decision rule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Add member — three selections, nothing else. */}
       <Dialog open={!!memberDialog} onOpenChange={(v) => !v && setMemberDialog(null)}>
