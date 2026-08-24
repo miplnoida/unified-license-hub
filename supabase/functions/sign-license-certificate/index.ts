@@ -66,8 +66,10 @@ Deno.serve(async (req) => {
   }
 
   const admin = __authzGate.adminClient;
-  const { data: userData } = await __authzGate.authClient.auth.getUser();
-  const user = { id: __authzGate.userId, email: userData?.user?.email ?? null };
+  // Identity comes from the gate's verified token claims. A second
+  // auth.getUser() round-trip can fail with "session not found" after a
+  // refresh-token rotation and would surface as a bogus 401.
+  const user = { id: __authzGate.userId, email: __authzGate.email };
 
 
   // -- body
