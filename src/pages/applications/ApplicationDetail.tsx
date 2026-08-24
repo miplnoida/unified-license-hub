@@ -935,6 +935,8 @@ export default function ApplicationDetail() {
                 {isInternal && app.status !== 'draft' && <TabsTrigger value="decision" className={TAB_TRIGGER_CLASS}>Decision</TabsTrigger>}
                 {isInternal && <TabsTrigger value="consolidated" className={TAB_TRIGGER_CLASS}>Consolidated Case</TabsTrigger>}
                 {app.status === 'approved' && <TabsTrigger value="conditions" className={TAB_TRIGGER_CLASS}>Conditions</TabsTrigger>}
+                {showRequestEditTab && <TabsTrigger value="request-edit" className={TAB_TRIGGER_CLASS}>Request Edit</TabsTrigger>}
+
 
               </TabsList>
 
