@@ -2415,6 +2415,174 @@ export type Database = {
         }
         Relationships: []
       }
+      authorization_class_activities: {
+        Row: {
+          activity_code: string
+          class_id: string
+          created_at: string
+        }
+        Insert: {
+          activity_code: string
+          class_id: string
+          created_at?: string
+        }
+        Update: {
+          activity_code?: string
+          class_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "authorization_class_activities_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "authorization_classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "authorization_class_activities_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "v_available_authorization_classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      authorization_classes: {
+        Row: {
+          created_at: string
+          customer_restriction: string | null
+          description: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          local_class_code: string
+          market_scope: string | null
+          name: string
+          scheme_id: string
+          sort_order: number
+          status: string
+          subject_form_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_restriction?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          local_class_code: string
+          market_scope?: string | null
+          name: string
+          scheme_id: string
+          sort_order?: number
+          status?: string
+          subject_form_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_restriction?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          local_class_code?: string
+          market_scope?: string | null
+          name?: string
+          scheme_id?: string
+          sort_order?: number
+          status?: string
+          subject_form_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "authorization_classes_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "authorization_schemes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      authorization_schemes: {
+        Row: {
+          authorization_method: string
+          business_type_id: string
+          code: string
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          legal_basis: string | null
+          local_legal_name: string | null
+          market_scope: string
+          name: string
+          profile_id: string | null
+          status: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          authorization_method?: string
+          business_type_id: string
+          code: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          legal_basis?: string | null
+          local_legal_name?: string | null
+          market_scope?: string
+          name: string
+          profile_id?: string | null
+          status?: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          authorization_method?: string
+          business_type_id?: string
+          code?: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          legal_basis?: string | null
+          local_legal_name?: string | null
+          market_scope?: string
+          name?: string
+          profile_id?: string | null
+          status?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "authorization_schemes_business_type_id_fkey"
+            columns: ["business_type_id"]
+            isOneToOne: false
+            referencedRelation: "classification_business_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "authorization_schemes_business_type_id_fkey"
+            columns: ["business_type_id"]
+            isOneToOne: false
+            referencedRelation: "v_available_business_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "authorization_schemes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_calendar_holidays: {
         Row: {
           created_at: string
@@ -2972,6 +3140,163 @@ export type Database = {
         }
         Relationships: []
       }
+      classification_aliases: {
+        Row: {
+          alias_code: string | null
+          alias_name: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          source: string | null
+        }
+        Insert: {
+          alias_code?: string | null
+          alias_name?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          source?: string | null
+        }
+        Update: {
+          alias_code?: string | null
+          alias_name?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          source?: string | null
+        }
+        Relationships: []
+      }
+      classification_business_types: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          legal_basis: string | null
+          local_legal_name: string | null
+          market_scope: string | null
+          name: string
+          profile_id: string | null
+          sector_id: string
+          sort_order: number
+          status: string
+          sub_sector_id: string | null
+          subject_form_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          legal_basis?: string | null
+          local_legal_name?: string | null
+          market_scope?: string | null
+          name: string
+          profile_id?: string | null
+          sector_id: string
+          sort_order?: number
+          status?: string
+          sub_sector_id?: string | null
+          subject_form_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          legal_basis?: string | null
+          local_legal_name?: string | null
+          market_scope?: string | null
+          name?: string
+          profile_id?: string | null
+          sector_id?: string
+          sort_order?: number
+          status?: string
+          sub_sector_id?: string | null
+          subject_form_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classification_business_types_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_business_types_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_business_types_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classification_change_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string
+          from_status: string | null
+          id: string
+          impact: Json | null
+          payload: Json | null
+          reason: string | null
+          to_status: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type: string
+          from_status?: string | null
+          id?: string
+          impact?: Json | null
+          payload?: Json | null
+          reason?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string
+          from_status?: string | null
+          id?: string
+          impact?: Json | null
+          payload?: Json | null
+          reason?: string | null
+          to_status?: string | null
+        }
+        Relationships: []
+      }
       classification_schemes: {
         Row: {
           allow_multiple: boolean
@@ -3082,6 +3407,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      common_sector_families: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       complaint_closure_reviews: {
         Row: {
@@ -25531,6 +25889,42 @@ export type Database = {
         }
         Relationships: []
       }
+      regulated_activity_catalogue: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          family_code: string | null
+          id: string
+          label: string
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          family_code?: string | null
+          id?: string
+          label: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          family_code?: string | null
+          id?: string
+          label?: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       regulator_mandate_enforcement: {
         Row: {
           activated_at: string | null
@@ -25857,6 +26251,56 @@ export type Database = {
             columns: ["data_domain_id"]
             isOneToOne: false
             referencedRelation: "data_domains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regulatory_profiles: {
+        Row: {
+          classification_pack: string
+          created_at: string
+          id: string
+          is_current: boolean
+          jurisdiction_code: string
+          jurisdiction_name: string
+          notes: string | null
+          regulator_id: string | null
+          regulator_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          classification_pack: string
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          jurisdiction_code: string
+          jurisdiction_name: string
+          notes?: string | null
+          regulator_id?: string | null
+          regulator_name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          classification_pack?: string
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          jurisdiction_code?: string
+          jurisdiction_name?: string
+          notes?: string | null
+          regulator_id?: string | null
+          regulator_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_profiles_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
             referencedColumns: ["id"]
           },
         ]
@@ -31560,9 +32004,13 @@ export type Database = {
           code: string | null
           created_at: string
           display_group: string | null
+          effective_from: string | null
+          effective_to: string | null
           external_regulator: string | null
+          family_code: string | null
           id: string
           name: string
+          profile_id: string | null
           regulator_id: string | null
           scope_note: string | null
           status: string
@@ -31571,9 +32019,13 @@ export type Database = {
           code?: string | null
           created_at?: string
           display_group?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           external_regulator?: string | null
+          family_code?: string | null
           id?: string
           name: string
+          profile_id?: string | null
           regulator_id?: string | null
           scope_note?: string | null
           status?: string
@@ -31582,14 +32034,25 @@ export type Database = {
           code?: string | null
           created_at?: string
           display_group?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           external_regulator?: string | null
+          family_code?: string | null
           id?: string
           name?: string
+          profile_id?: string | null
           regulator_id?: string | null
           scope_note?: string | null
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sectors_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sectors_regulator_id_fkey"
             columns: ["regulator_id"]
@@ -32253,6 +32716,7 @@ export type Database = {
           name: string
           sector_id: string
           status: string
+          status_note: string | null
         }
         Insert: {
           code?: string | null
@@ -32261,6 +32725,7 @@ export type Database = {
           name: string
           sector_id: string
           status?: string
+          status_note?: string | null
         }
         Update: {
           code?: string | null
@@ -32269,6 +32734,7 @@ export type Database = {
           name?: string
           sector_id?: string
           status?: string
+          status_note?: string | null
         }
         Relationships: [
           {
@@ -32279,6 +32745,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subject_forms: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       sufficiency_determinations: {
         Row: {
@@ -34484,6 +34983,92 @@ export type Database = {
           },
         ]
       }
+      v_available_authorization_classes: {
+        Row: {
+          authorization_method: string | null
+          business_type_name: string | null
+          created_at: string | null
+          customer_restriction: string | null
+          description: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string | null
+          local_class_code: string | null
+          market_scope: string | null
+          name: string | null
+          scheme_code: string | null
+          scheme_id: string | null
+          scheme_market_scope: string | null
+          scheme_name: string | null
+          sector_id: string | null
+          sort_order: number | null
+          status: string | null
+          subject_form_code: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "authorization_classes_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "authorization_schemes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_business_types_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_available_business_types: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          description: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string | null
+          legal_basis: string | null
+          local_legal_name: string | null
+          market_scope: string | null
+          name: string | null
+          profile_id: string | null
+          sector_code: string | null
+          sector_id: string | null
+          sector_name: string | null
+          sort_order: number | null
+          status: string | null
+          sub_sector_id: string | null
+          subject_form_code: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classification_business_types_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_business_types_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classification_business_types_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_conduct_action_state: {
         Row: {
           action_reference: string | null
@@ -35830,12 +36415,78 @@ export type Database = {
         Returns: string
       }
       audit_step_assignee_label: { Args: { _step_id: string }; Returns: string }
+      authorization_class_set_status: {
+        Args: { _id: string; _reason: string; _status: string }
+        Returns: undefined
+      }
+      authorization_class_upsert: {
+        Args: {
+          _activity_codes?: string[]
+          _customer_restriction: string
+          _description: string
+          _effective_from: string
+          _effective_to: string
+          _id: string
+          _local_class_code: string
+          _market_scope: string
+          _name: string
+          _reason?: string
+          _scheme_id: string
+          _status?: string
+          _subject_form_code: string
+        }
+        Returns: string
+      }
+      authorization_scheme_set_status: {
+        Args: { _id: string; _reason: string; _status: string }
+        Returns: undefined
+      }
+      authorization_scheme_upsert: {
+        Args: {
+          _authorization_method: string
+          _business_type_id: string
+          _code: string
+          _effective_from: string
+          _effective_to: string
+          _id: string
+          _legal_basis: string
+          _local_legal_name: string
+          _market_scope: string
+          _name: string
+          _reason?: string
+          _status?: string
+          _version: string
+        }
+        Returns: string
+      }
       bootstrap_supervisory_profile: {
         Args: { _license_id: string }
         Returns: string
       }
       branch_form_version: { Args: { _version_id: string }; Returns: Json }
       build_workflow_snapshot: { Args: { _workflow_id: string }; Returns: Json }
+      business_type_set_status: {
+        Args: { _id: string; _reason: string; _status: string }
+        Returns: undefined
+      }
+      business_type_upsert: {
+        Args: {
+          _code: string
+          _description: string
+          _effective_from: string
+          _effective_to: string
+          _id: string
+          _legal_basis: string
+          _local_legal_name: string
+          _market_scope: string
+          _name: string
+          _reason?: string
+          _sector_id: string
+          _status?: string
+          _subject_form_code: string
+        }
+        Returns: string
+      }
       can_access_review_entity: {
         Args: { _entity_id: string; _entity_type: string; _user_id: string }
         Returns: boolean
@@ -36510,6 +37161,59 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      classification_delete_draft: {
+        Args: { _entity_type: string; _id: string; _reason: string }
+        Returns: undefined
+      }
+      classification_dependency_impact: {
+        Args: { _entity_id: string; _entity_type: string }
+        Returns: Json
+      }
+      classification_duplicate_scan: {
+        Args: never
+        Returns: {
+          detail: string
+          entity_type: string
+          finding: string
+          occurrences: number
+        }[]
+      }
+      classification_import_dry_run: {
+        Args: { _kind: string; _rows: Json }
+        Returns: Json
+      }
+      classification_log: {
+        Args: {
+          _action: string
+          _entity_id: string
+          _entity_label: string
+          _entity_type: string
+          _from: string
+          _impact: Json
+          _payload: Json
+          _reason: string
+          _to: string
+        }
+        Returns: undefined
+      }
+      classification_norm: { Args: { _v: string }; Returns: string }
+      classification_sector_set_status: {
+        Args: { _id: string; _reason: string; _status: string }
+        Returns: undefined
+      }
+      classification_sector_upsert: {
+        Args: {
+          _code: string
+          _display_group: string
+          _family_code: string
+          _id: string
+          _name: string
+          _reason?: string
+          _scope_note: string
+          _status?: string
+        }
+        Returns: string
       }
       classify_complaint: {
         Args: { _id: string; _payload: Json }
@@ -37634,6 +38338,28 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "review_suggestions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      current_regulatory_profile: {
+        Args: never
+        Returns: {
+          classification_pack: string
+          created_at: string
+          id: string
+          is_current: boolean
+          jurisdiction_code: string
+          jurisdiction_name: string
+          notes: string | null
+          regulator_id: string | null
+          regulator_name: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "regulatory_profiles"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -41904,6 +42630,22 @@ export type Database = {
           user_id: string
         }[]
       }
+      regulated_activity_set_status: {
+        Args: { _id: string; _reason: string; _status: string }
+        Returns: undefined
+      }
+      regulated_activity_upsert: {
+        Args: {
+          _code: string
+          _description: string
+          _family_code: string
+          _id: string
+          _label: string
+          _reason?: string
+          _status?: string
+        }
+        Returns: string
+      }
       regulator_mandate_enforcement_active: {
         Args: { _function_id: string; _regulator_id: string }
         Returns: boolean
@@ -41971,6 +42713,10 @@ export type Database = {
         Returns: string
       }
       regulatory_function_mapping_report: { Args: never; Returns: Json }
+      regulatory_profile_set_current: {
+        Args: { _id: string; _reason: string }
+        Returns: undefined
+      }
       regulatory_request_available_types: {
         Args: { _entity_id: string }
         Returns: {
@@ -43284,6 +44030,21 @@ export type Database = {
         Returns: string
       }
       start_return_workflow: { Args: { _return_id: string }; Returns: Json }
+      subject_form_set_status: {
+        Args: { _id: string; _reason: string; _status: string }
+        Returns: undefined
+      }
+      subject_form_upsert: {
+        Args: {
+          _code: string
+          _description: string
+          _id: string
+          _label: string
+          _reason?: string
+          _status?: string
+        }
+        Returns: string
+      }
       submit_application: {
         Args: { _ack_text?: string; _application_id: string }
         Returns: Json
