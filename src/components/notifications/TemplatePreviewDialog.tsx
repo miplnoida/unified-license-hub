@@ -13,6 +13,8 @@ import {
   CHANNEL_LABELS,
   type NotificationTemplateRow,
 } from '@/hooks/useNotificationAdmin';
+import { formatEmailBodyHtml } from '@/lib/emailBodyFormat';
+
 
 interface Props {
   template: NotificationTemplateRow | null;
