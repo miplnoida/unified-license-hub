@@ -95,14 +95,14 @@ Deno.serve(async (req) => {
     if (channel === "email") {
       try {
         const purposeLabels: Record<string, string> = {
-          registration: 'Registration Verification',
-          login_2fa: 'Login Verification',
-          enable_2fa: 'Enable Two-Factor Authentication',
-          disable_2fa: 'Disable Two-Factor Authentication',
+          registration: 'Registration verification',
+          login_2fa: 'Sign-in verification',
+          enable_2fa: 'Two-factor authentication setup',
+          disable_2fa: 'Two-factor authentication removal',
         };
         const label = purposeLabels[purpose] || 'Verification';
-        const subject = `Your ${label} Code`;
-        const text = `Your verification code is: ${otp}\n\nThis code expires in 10 minutes. Do not share this code with anyone.`;
+        const subject = `Verification code | ${label}`;
+        const text = `Verification code: ${otp}\n\nThis code is required to complete ${label.toLowerCase()} and is valid for 10 minutes.\n\nDo not share this code with any person. The Authority will never ask you to disclose it. If you did not request this code, no action is required.`;
         const branding = await loadEmailBranding(supabaseAdmin);
         const html = renderBrandedEmail({
           appName: branding.appName,
@@ -110,14 +110,15 @@ Deno.serve(async (req) => {
           tagline: branding.tagline,
           brandColor: branding.brandColor,
           eyebrow: label,
-          heading: "Verify your email address",
-          intro: "Use the one-time code below to continue. For your security it expires in 10 minutes.",
+          heading: "Verification code",
+          intro: `Please enter the code below to complete ${label.toLowerCase()}. The code is valid for 10 minutes from the time of this message.`,
           code: otp,
-          codeCaption: "Expires in 10 minutes",
+          codeCaption: "Valid for 10 minutes",
           paragraphs: [
-            "Never share this code with anyone. Our team will never ask you for it.",
-            "If you did not request this code, you can safely ignore this email.",
+            "Do not share this code with any person. The Authority and its officers will never ask you to disclose it.",
+            "If you did not request this code, no action is required and the code will expire automatically.",
           ],
+
           supportEmail: branding.supportEmail,
           supportPhone: branding.supportPhone,
           footerText: branding.footerText || undefined,
