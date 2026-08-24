@@ -35187,6 +35187,10 @@ export type Database = {
         Args: { _source: string }
         Returns: boolean
       }
+      can_view_any_workflow_entity: {
+        Args: { _user: string }
+        Returns: boolean
+      }
       can_view_application_legal_notes: {
         Args: { _application_id: string; _user_id: string }
         Returns: boolean
@@ -38653,6 +38657,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_workflow_step_participant: {
+        Args: { _user: string }
+        Returns: boolean
+      }
       isnt_empty: { Args: { "": string }; Returns: string }
       issue_decision_artifact: {
         Args: {
