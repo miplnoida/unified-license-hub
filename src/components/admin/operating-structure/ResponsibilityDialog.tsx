@@ -112,7 +112,9 @@ export function ResponsibilityDialog({
     setSameForAll(true);
 
     const first = existing?.regulatory_function_id || preset?.functionId || '';
-    setAreas(first ? [first] : []);
+    const many = !existing && !preset?.functionId ? preset?.functionIds || [] : [];
+    setAreas(many.length ? many : first ? [first] : []);
+
 
     const cfg = blank();
     cfg.teamId = existing?.team_id || preset?.teamId || NONE;
