@@ -7,10 +7,26 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle } from 'lucide-react';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
-  useAppealIndependenceMutation, useAppealIndependencePolicies, useAppealPanelsWithMembers,
-  useFpCommittees, useRegulators, useStaffDirectory,
+  useAppealIndependenceMutation, useAppealIndependencePolicies, useAppealPanelMutations,
+  useAppealPanelsWithMembers, useFpCommitteeMutations, useFpCommittees, useRegulators, useStaffDirectory,
 } from '@/hooks/useOperatingStructure';
+import { act } from './shared';
+
+const PANEL_ROLES = [
+  { value: 'chair', label: 'Chair' },
+  { value: 'member', label: 'Member' },
+  { value: 'legal_adviser', label: 'Legal adviser' },
+  { value: 'observer', label: 'Observer' },
+];
+
+const COMMITTEE_ROLES = [
+  { value: 'chair', label: 'Chair' },
+  { value: 'member', label: 'Member' },
+  { value: 'adviser', label: 'Adviser' },
+  { value: 'observer', label: 'Observer' },
+];
 
 const UNSET = 'unset';
 
@@ -32,6 +48,51 @@ export function PanelsCommitteesTab() {
   const [prior, setPrior] = useState(UNSET);
   const [adviser, setAdviser] = useState(UNSET);
   const [notes, setNotes] = useState('');
+
+  const panelMut = useAppealPanelMutations();
+  const committeeMut = useFpCommitteeMutations();
+  const [memberDialog, setMemberDialog] = useState<
+    { open: boolean; kind: 'panel' | 'committee'; id: string; name: string } | null
+  >(null);
+  const [newMember, setNewMember] = useState('');
+  const [newRole, setNewRole] = useState('member');
+  const [newVoting, setNewVoting] = useState('yes');
+
+  const currentRoster = () => {
+    if (!memberDialog) return [] as any[];
+    if (memberDialog.kind === 'panel')
+      return (panelData?.members || []).filter((m: any) => m.panel_id === memberDialog.id && m.is_active);
+    return (committeeData?.members || []).filter((m: any) => m.committee_id === memberDialog.id && m.is_active);
+  };
+
+  const addMember = async () => {
+    if (!memberDialog || !newMember) return;
+    const ok =
+      memberDialog.kind === 'panel'
+        ? await act(
+            () => panelMut.addMember.mutateAsync({
+              panelId: memberDialog.id,
+              userId: newMember,
+              memberRole: newRole,
+              isVoting: newVoting === 'yes',
+            }),
+            'Member added to the panel',
+          )
+        : await act(
+            () => committeeMut.addMember.mutateAsync({
+              committeeId: memberDialog.id,
+              userId: newMember,
+              memberRole: newRole,
+            }),
+            'Member added to the committee',
+          );
+    if (ok) setNewMember('');
+  };
+
+  const removeMember = (memberId: string) =>
+    memberDialog?.kind === 'panel'
+      ? act(() => panelMut.endMember.mutateAsync({ memberId }), 'Member removed')
+      : act(() => committeeMut.setMemberActive.mutateAsync({ memberId, isActive: false }), 'Member removed');
 
   const staffName = (id: string) => (staff.data || []).find((s) => s.id === id)?.full_name || id.slice(0, 8);
   const regName = (id: string | null) => (id && (regulators.data || []).find((r) => r.id === id)?.name) || 'All regulators';
@@ -98,7 +159,17 @@ export function PanelsCommitteesTab() {
                 <Badge variant="outline">{p.appeal_scope}</Badge>
                 <Badge variant="outline">{regName(p.regulator_id)}</Badge>
                 <Badge variant={p.is_active ? 'default' : 'secondary'}>{p.is_active ? 'active' : 'inactive'}</Badge>
-                <Badge variant={ready ? 'default' : 'destructive'}>{ready ? 'READY' : 'NOT READY'}</Badge>
+                <Badge variant={ready ? 'default' : 'destructive'}>
+                  {ready ? 'Can sit' : 'Cannot sit'}
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="ml-auto"
+                  onClick={() => setMemberDialog({ open: true, kind: 'panel', id: p.id, name: p.name })}
+                >
+                  Manage members
+                </Button>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 Quorum {p.quorum} · decision rule {p.decision_rule} · current voting members {voting.length}
@@ -127,15 +198,15 @@ export function PanelsCommitteesTab() {
               </div>
               {!ready && (
                 <p className="mt-2 text-xs text-amber-700">
-                  PANEL_BELOW_QUORUM — staffing/governance warning. Quorum is not lowered and no
-                  permission is granted to clear it.
+                  This panel cannot sit yet — it needs a chair and at least {p.quorum} voting members.
+                  Quorum is never lowered and no permission is granted to clear it.
                 </p>
               )}
             </div>
           ))}
           <p className="text-xs text-muted-foreground">
-            Composition is managed in Admin → Appeal Panels. The same eligible person may sit on
-            several panels; only actual case conflict or configured independence policy restricts them.
+            The same eligible person may sit on several panels; only an actual case conflict or the
+            configured independence policy restricts them.
           </p>
         </CardContent>
       </Card>
@@ -209,7 +280,15 @@ export function PanelsCommitteesTab() {
                   <span className="font-medium">{c.name}</span>
                   <Badge variant="outline">{regName(c.regulator_id)}</Badge>
                   <Badge variant={c.is_active ? 'default' : 'secondary'}>{c.is_active ? 'active' : 'inactive'}</Badge>
-                  {voters.length < c.quorum && <Badge variant="destructive">COMMITTEE_BELOW_QUORUM</Badge>}
+                  {voters.length < c.quorum && <Badge variant="destructive">Cannot sit</Badge>}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="ml-auto"
+                    onClick={() => setMemberDialog({ open: true, kind: 'committee', id: c.id, name: c.name })}
+                  >
+                    Manage members
+                  </Button>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Quorum {c.quorum} · approval threshold {c.approval_threshold_pct}% · voting members {voters.length}
@@ -244,6 +323,74 @@ export function PanelsCommitteesTab() {
           </p>
         </CardContent>
       </Card>
+
+      <Dialog open={!!memberDialog} onOpenChange={(v) => !v && setMemberDialog(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Members — {memberDialog?.name}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-1">
+            {currentRoster().map((m: any) => (
+              <div key={m.id} className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
+                <span>
+                  {staffName(m.user_id)}
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {m.member_role}
+                    {memberDialog?.kind === 'panel' ? (m.is_voting ? ' · voting' : ' · non-voting') : ''}
+                  </span>
+                </span>
+                <Button size="sm" variant="ghost" onClick={() => removeMember(m.id)}>Remove</Button>
+              </div>
+            ))}
+            {currentRoster().length === 0 && <p className="text-sm text-muted-foreground">No members yet.</p>}
+          </div>
+
+          <div className="grid gap-3 border-t pt-3">
+            <div>
+              <Label className="text-xs">Person</Label>
+              <Select value={newMember} onValueChange={setNewMember}>
+                <SelectTrigger><SelectValue placeholder="Select a person" /></SelectTrigger>
+                <SelectContent>
+                  {(staff.data || []).map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Role</Label>
+                <Select value={newRole} onValueChange={setNewRole}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(memberDialog?.kind === 'panel' ? PANEL_ROLES : COMMITTEE_ROLES).map((r) => (
+                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {memberDialog?.kind === 'panel' && (
+                <div>
+                  <Label className="text-xs">Votes on decisions</Label>
+                  <Select value={newVoting} onValueChange={setNewVoting}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMemberDialog(null)}>Close</Button>
+            <Button onClick={addMember} disabled={!newMember}>Add member</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
