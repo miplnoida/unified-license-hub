@@ -17,10 +17,11 @@ const roleLabel = (r: string) => TEAM_ROLES.find(t => t.value === r)?.label ?? r
 export function TeamPanel({ examinationId, readOnly, mode = 'supporting' }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
   const { data: rows = [], isLoading } = useExaminationTeam(examinationId);
   const { save, remove } = useTeamMutations(examinationId);
+  const staff = useStaffProfiles();
   const [showForm, setShowForm] = useState(false);
   const [details, setDetails] = useState(false);
   const [form, setForm] = useState({
-    member_name: '',
+    user_id: '',
     team_role: 'examiner',
     allocated_days: '',
     specialisation: '',
@@ -28,18 +29,25 @@ export function TeamPanel({ examinationId, readOnly, mode = 'supporting' }: { ex
     conflict_notes: '',
   });
 
+  /** Staff not already on this examination. Other duties never disqualify anyone. */
+  const available = useMemo(() => {
+    const taken = new Set((rows as any[]).map(r => r.user_id).filter(Boolean));
+    return (staff.data || []).filter(s => !taken.has(s.id));
+  }, [rows, staff.data]);
+
   const add = async () => {
     await save.mutateAsync({
-      member_name: form.member_name,
+      user_id: form.user_id,
       team_role: form.team_role,
       allocated_days: form.allocated_days ? Number(form.allocated_days) : null,
       specialisation: form.specialisation || null,
       conflict_declared: form.conflict_declared,
       conflict_notes: form.conflict_notes || null,
     });
-    setForm({ member_name: '', team_role: 'examiner', allocated_days: '', specialisation: '', conflict_declared: false, conflict_notes: '' });
+    setForm({ user_id: '', team_role: 'examiner', allocated_days: '', specialisation: '', conflict_declared: false, conflict_notes: '' });
     setShowForm(false);
   };
+
 
   const lead = rows.find((r: any) => r.team_role === 'lead_examiner') as any;
   const others = rows.filter((r: any) => r.team_role !== 'lead_examiner');
