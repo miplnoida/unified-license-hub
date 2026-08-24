@@ -13,8 +13,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { formatDateTime } from '@/lib/datetime';
 import {
   usePortfolioMutations, useRegulators, useRegulatoryFunctions, useRegulatoryTeams,
-  useSectors, useStaffPortfolios, useSubSectors, useSupervisedEntities, useTeamMembers,
-  useTeamMutations,
+  useSectors, useStaffDirectory, useStaffPortfolios, useSubSectors, useSupervisedEntities,
+  useTeamMembers, useTeamMutations,
 } from '@/hooks/useOperatingStructure';
 
 const NONE = 'none';
@@ -35,13 +35,14 @@ export function StaffResponsibilityTab() {
   const [drawer, setDrawer] = useState(false);
 
   const directory = useQuery({
-    queryKey: ['staff-responsibility-directory'],
+    queryKey: ['staff-responsibility-directory-detail'],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)('staff_responsibility_directory');
       if (error) throw error;
       return (Array.isArray(data) ? data : []) as any[];
     },
   });
+  useStaffDirectory();
 
   const profile = useQuery({
     queryKey: ['staff-responsibility-profile', selected],

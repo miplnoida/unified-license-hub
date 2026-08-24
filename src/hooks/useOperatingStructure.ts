@@ -488,3 +488,22 @@ export function useMandateMutations() {
 
   return { saveMandate, setMandateStatus, setEnforcement };
 }
+
+/**
+ * Internal-staff directory via the governed read model. Preferred over a direct
+ * `profiles` read because row-level security narrows `profiles` for most staff,
+ * which would otherwise show colleagues as "Unknown user".
+ */
+export function useStaffDirectory() {
+  return useQuery({
+    queryKey: ['staff-responsibility-directory'],
+    queryFn: async () => {
+      const rows = await rpc<any[]>('staff_responsibility_directory');
+      return (Array.isArray(rows) ? rows : []).map((r) => ({
+        id: r.user_id as string,
+        full_name: (r.full_name || r.email || 'Unknown user') as string,
+        email: (r.email || null) as string | null,
+      }));
+    },
+  });
+}

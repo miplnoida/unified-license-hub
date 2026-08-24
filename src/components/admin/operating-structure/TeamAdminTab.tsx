@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { formatDateTime } from '@/lib/datetime';
 import {
   useRegulators, useRegulatoryFunctions, useRegulatoryTeams, useRegulatorMandates,
-  useStaffProfiles, useTeamMandateLinks, useTeamMembers, useTeamMutations,
+  useStaffDirectory, useTeamMandateLinks, useTeamMembers, useTeamMutations,
 } from '@/hooks/useOperatingStructure';
 
 const NONE = 'none';
@@ -32,7 +32,7 @@ export function TeamAdminTab() {
   const functions = useRegulatoryFunctions();
   const teams = useRegulatoryTeams();
   const members = useTeamMembers();
-  const staff = useStaffProfiles();
+  const staff = useStaffDirectory();
   const mandates = useRegulatorMandates();
   const teamMandates = useTeamMandateLinks();
   const { saveTeam, setTeamStatus, saveMember, endMember, addTeamMandate, endTeamMandate } = useTeamMutations();
