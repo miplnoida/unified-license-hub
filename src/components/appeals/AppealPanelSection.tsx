@@ -404,6 +404,9 @@ export function AppealPanelSection({ appeal }: Props) {
           )}
         </div>
       )}
+
+      {/* Participation, conflict/recusal, voting and quorum — backend authoritative */}
+      <AppealParticipationPanel appealId={appeal.id} />
     </div>
   );
 }
