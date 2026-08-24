@@ -1044,6 +1044,8 @@ export default function ApplicationDetail() {
 
 
                         {isInternal && <CaseSnapshotFields application={app as any} />}
+                        {isInternal && <ApplicantLicenseeIdentity application={app as any} />}
+
 
                         <div>
                           <p className="text-sm text-muted-foreground">Created</p>
