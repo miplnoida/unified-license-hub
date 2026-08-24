@@ -166,8 +166,13 @@ Deno.serve(async (req) => {
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) return json(req, 401, { error: "Invalid or expired token" });
+    // Verify the bearer locally against the project JWKS instead of calling
+    // auth.getUser(): that session round-trip fails with "session not found"
+    // after a refresh-token rotation and surfaced as a bogus 401.
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const { data: claimsData, error: authError } = await userClient.auth.getClaims(token);
+    if (authError || !claimsData?.claims?.sub) return json(req, 401, { error: "Invalid or expired token" });
+    const user = { id: String(claimsData.claims.sub) };
 
     const admin = createClient(supabaseUrl, serviceKey);
 
