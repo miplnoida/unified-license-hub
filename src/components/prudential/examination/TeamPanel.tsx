@@ -158,20 +158,35 @@ export function TeamPanel({ examinationId, readOnly, mode = 'supporting' }: { ex
           <div className="rounded-md border p-3 space-y-3 bg-muted/20">
             <div className="grid gap-3 md:grid-cols-2">
               <div>
-                <Label htmlFor="member_name">Name</Label>
-                <Input id="member_name" value={form.member_name}
-                  onChange={e => setForm(f => ({ ...f, member_name: e.target.value }))} />
+                <Label htmlFor="member_user">Staff member</Label>
+                <Select value={form.user_id} onValueChange={v => setForm(f => ({ ...f, user_id: v }))}>
+                  <SelectTrigger id="member_user">
+                    <SelectValue placeholder={staff.isLoading ? 'Loading staff…' : 'Select a staff member'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {available.map(s => <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Only active internal staff can join a case team; people already on this examination are not listed.
+                </p>
               </div>
               <div>
                 <Label htmlFor="team_role">Role on this examination</Label>
                 <Select value={form.team_role} onValueChange={v => setForm(f => ({ ...f, team_role: v }))}>
                   <SelectTrigger id="team_role"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {TEAM_ROLES.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                    {TEAM_ROLES.map(r => (
+                      <SelectItem key={r.value} value={r.value}
+                        disabled={r.value === 'lead_examiner' && !!lead}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
 
             <Collapsible open={details} onOpenChange={setDetails}>
               <CollapsibleTrigger asChild>
