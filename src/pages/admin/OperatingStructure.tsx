@@ -58,21 +58,26 @@ export default function OperatingStructure() {
       <div>
         <h1 className="text-2xl font-semibold">Regulatory Operating Structure</h1>
         <p className="text-sm text-muted-foreground">
-          Functional responsibility groups, staff responsibilities and coverage warnings. The same
-          employee may legitimately appear in several teams and functions — organisational overlap is
-          allowed; conflicting actions on the same matter are blocked by the backend.
+          Configure who works here, what they are responsible for, where those responsibilities apply
+          and which entities they own. The same employee may legitimately appear in several teams and
+          functions — organisational overlap is allowed; conflicting actions on the same matter are
+          blocked by the backend. Structure never grants a permission.
         </p>
       </div>
 
       <Card>
         <CardContent className="grid gap-1 py-4 text-xs text-muted-foreground sm:grid-cols-3">
           <p>
-            <span className="font-semibold text-foreground">Mandates:</span> Configured — Not Enforced
-            (regulator mandate enforcement remains inactive until sector coverage is reviewed).
+            <span className="font-semibold text-foreground">Mandate enforcement:</span>{' '}
+            {enforcedFunctions > 0
+              ? `${enforcedFunctions} function(s) enforced — a covering mandate is required.`
+              : 'Draft everywhere — mandates place no restriction yet.'}
           </p>
           <p>
-            <span className="font-semibold text-foreground">Portfolios:</span>{' '}
-            PORTFOLIO_CONFIGURATION_REQUIRED — no applicable portfolio means no additional restriction.
+            <span className="font-semibold text-foreground">Functional responsibilities:</span>{' '}
+            {activePortfolios > 0
+              ? `${activePortfolios} active — staff without one are not restricted by portfolios.`
+              : 'None recorded — portfolios place no restriction.'}
           </p>
           <p>
             <span className="font-semibold text-foreground">Role registry:</span>{' '}
@@ -83,15 +88,27 @@ export default function OperatingStructure() {
         </CardContent>
       </Card>
 
-
       <Tabs defaultValue="staff">
-        <TabsList>
-          <TabsTrigger value="teams">Teams</TabsTrigger>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="staff">Staff Responsibilities</TabsTrigger>
+          <TabsTrigger value="teams">Teams</TabsTrigger>
+          <TabsTrigger value="mandates">Mandates &amp; Enforcement</TabsTrigger>
           <TabsTrigger value="supervision">Entity Supervision</TabsTrigger>
           <TabsTrigger value="bodies">Panels &amp; Committees</TabsTrigger>
           <TabsTrigger value="warnings">Coverage Warnings</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="staff" className="mt-4">
+          <StaffResponsibilityTab />
+        </TabsContent>
+
+        <TabsContent value="teams" className="mt-4">
+          <TeamAdminTab />
+        </TabsContent>
+
+        <TabsContent value="mandates" className="mt-4">
+          <MandateAdminTab />
+        </TabsContent>
 
         <TabsContent value="supervision" className="mt-4">
           <EntitySupervisionTab />
@@ -102,91 +119,6 @@ export default function OperatingStructure() {
         </TabsContent>
 
 
-        <TabsContent value="teams" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Functional responsibility groups</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {(teams.data || []).map((t) => (
-                <div key={t.id} className="rounded-md border p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{t.name}</span>
-                    <Badge variant={t.status === 'active' ? 'default' : 'secondary'}>{t.status}</Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{t.code}</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="staff" className="mt-4">
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Card className="lg:col-span-1">
-              <CardHeader>
-                <CardTitle>Internal staff</CardTitle>
-              </CardHeader>
-              <CardContent className="max-h-[540px] space-y-1 overflow-auto">
-                {(directory.data || []).map((u) => (
-                  <button
-                    key={u.user_id}
-                    onClick={() => setSelected(u.user_id)}
-                    className={`w-full rounded-md border p-2 text-left text-sm hover:bg-accent/40 ${
-                      selected === u.user_id ? 'border-primary bg-accent/30' : ''
-                    }`}
-                  >
-                    <div className="font-medium">{u.full_name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {u.roles} roles · {u.teams} teams · {u.functions} functions · {u.entities} entities
-                    </div>
-                  </button>
-                ))}
-                {(directory.data || []).length === 0 && (
-                  <p className="text-sm text-muted-foreground">No internal staff visible.</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>{p?.user?.full_name || 'Select a member of staff'}</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2">
-                <List title="Roles" items={(p.roles || []).map((r: any) => r.name)} />
-                <List
-                  title="Teams"
-                  items={(p.teams || []).map(
-                    (t: any) => `${t.name} — ${t.member_role}${t.expired ? ' (expired)' : ''}`,
-                  )}
-                />
-                <List
-                  title="Functions / Portfolios"
-                  items={(p.portfolios || []).map((x: any) => `${x.function || 'Function'} — ${x.regulator || 'All'}`)}
-                />
-                <List
-                  title="Entity responsibilities"
-                  items={(p.entity_assignments || []).map(
-                    (e: any) => `${e.entity_name || 'Entity'} — ${e.function || 'Function'} ${e.role}`,
-                  )}
-                />
-                <List
-                  title="Examination roles"
-                  items={(p.examinations || []).map((x: any) => `${x.reference || x.title} — ${x.team_role || 'member'}`)}
-                />
-                <List
-                  title="Decision bodies"
-                  items={[
-                    ...(p.appeal_panels || []).map(
-                      (x: any) => `${x.name} — ${x.is_voting ? 'Voting Member' : x.member_role}`,
-                    ),
-                    ...(p.committees || []).map((x: any) => `${x.name} — ${x.member_role}`),
-                  ]}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
 
         <TabsContent value="warnings" className="mt-4">
           <Card>
