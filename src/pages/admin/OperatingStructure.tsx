@@ -10,6 +10,8 @@ import { TeamAdminTab } from '@/components/admin/operating-structure/TeamAdminTa
 import { CoverageTab } from '@/components/admin/operating-structure/CoverageTab';
 import { PanelsCommitteesTab } from '@/components/admin/operating-structure/PanelsCommitteesTab';
 import { MandateAdminTab } from '@/components/admin/operating-structure/MandateAdminTab';
+import { RegulatorsAdminTab } from '@/components/admin/operating-structure/RegulatorsAdminTab';
+
 import { WarningAction } from '@/components/admin/operating-structure/shared';
 import { useRegulatorMandates, useRoleRegistryDrift, useStaffPortfolios } from '@/hooks/useOperatingStructure';
 
