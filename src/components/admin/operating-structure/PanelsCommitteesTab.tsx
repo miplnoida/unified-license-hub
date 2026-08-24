@@ -170,11 +170,10 @@ export function PanelsCommitteesTab() {
                 </Badge>
                 <Button
                   size="sm"
-                  variant="outline"
                   className="ml-auto"
                   onClick={() => setMemberDialog({ open: true, kind: 'panel', id: p.id, name: p.name })}
                 >
-                  Manage members
+                  + Add member
                 </Button>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -183,25 +182,37 @@ export function PanelsCommitteesTab() {
               <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <p className="text-xs uppercase text-muted-foreground">Chair</p>
-                  <p>{chair ? staffName(chair.user_id) : '—'}</p>
+                  {chair ? (
+                    <MemberLine label={staffName(chair.user_id)} onRemove={() => removeMember('panel', chair.id)} />
+                  ) : <p>—</p>}
                 </div>
                 <div>
                   <p className="text-xs uppercase text-muted-foreground">Voting members</p>
-                  {voting.length ? voting.map((m) => <p key={m.id}>{staffName(m.user_id)}</p>) : <p>—</p>}
+                  {voting.length ? voting.map((m) => (
+                    <MemberLine key={m.id} label={staffName(m.user_id)} onRemove={() => removeMember('panel', m.id)} />
+                  )) : <p>—</p>}
                 </div>
                 <div>
                   <p className="text-xs uppercase text-muted-foreground">Legal adviser</p>
                   {roster.filter((m) => m.member_role === 'legal_adviser').map((m) => (
-                    <p key={m.id}>{staffName(m.user_id)} <span className="text-xs text-muted-foreground">(non-voting unless configured)</span></p>
+                    <MemberLine
+                      key={m.id}
+                      label={staffName(m.user_id)}
+                      hint="(non-voting unless configured)"
+                      onRemove={() => removeMember('panel', m.id)}
+                    />
                   ))}
                   {roster.every((m) => m.member_role !== 'legal_adviser') && <p>—</p>}
                 </div>
                 <div>
                   <p className="text-xs uppercase text-muted-foreground">Observers</p>
-                  {roster.filter((m) => m.member_role === 'observer').map((m) => <p key={m.id}>{staffName(m.user_id)}</p>)}
+                  {roster.filter((m) => m.member_role === 'observer').map((m) => (
+                    <MemberLine key={m.id} label={staffName(m.user_id)} onRemove={() => removeMember('panel', m.id)} />
+                  ))}
                   {roster.every((m) => m.member_role !== 'observer') && <p>—</p>}
                 </div>
               </div>
+
               {!ready && (
                 <p className="mt-2 text-xs text-amber-700">
                   Composition is not complete yet — this panel needs a chair and at least {p.quorum}
