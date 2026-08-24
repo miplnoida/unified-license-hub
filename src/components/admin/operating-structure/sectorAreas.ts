@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
-import { useRegulatorMandates, useRegulatoryFunctions } from '@/hooks/useOperatingStructure';
+import {
+  useActiveRegulators, useRegulatorMandates, useRegulatoryFunctions, useSectors,
+} from '@/hooks/useOperatingStructure';
 
 export type SectorArea = { id: string; name: string };
 
@@ -50,4 +52,19 @@ export function useApplicableSectorAreas() {
   }, [sectorCapable, activeMandates]);
 
   return { areasFor, sectorCapable, isLoading };
+}
+
+/**
+ * Regulator for a sector, derived — never picked from a list. Falls back to the
+ * deployment's single active regulator when the sector has no explicit owner.
+ */
+export function useSectorRegulatorId(sectorId?: string | null) {
+  const sectors = useSectors();
+  const regulators = useActiveRegulators();
+  return useMemo(() => {
+    const active = regulators.data || [];
+    const owner = (sectors.data || []).find((s: any) => s.id === sectorId)?.regulator_id || null;
+    if (owner && active.some((r: any) => r.id === owner)) return owner as string;
+    return active.length === 1 ? (active[0] as any).id as string : null;
+  }, [sectors.data, regulators.data, sectorId]);
 }
