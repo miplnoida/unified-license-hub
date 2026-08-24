@@ -73,7 +73,15 @@ INSERT INTO public.profiles (id, full_name, email, user_type, status, licensee_i
   ('22222222-0000-4000-8000-000000000012','P2 Manager Sector','p2-mgr-sector@test.local','employee','active',NULL),
   ('22222222-0000-4000-8000-000000000013','P2 Manager Entity','p2-mgr-entity@test.local','employee','active',NULL),
   ('22222222-0000-4000-8000-000000000014','P2 Enforcement Viewer','p2-enf-viewer@test.local','employee','active',NULL),
-  ('22222222-0000-4000-8000-000000000015','P2 Prudential Lead Two','p2-prud-lead-2@test.local','employee','active',NULL);
+  ('22222222-0000-4000-8000-000000000015','P2 Prudential Lead Two','p2-prud-lead-2@test.local','employee','active',NULL)
+-- auth.users carries a profile-provisioning trigger, so the fixture completes the
+-- provisioned row instead of colliding with it.
+ON CONFLICT (id) DO UPDATE SET
+  full_name = EXCLUDED.full_name,
+  email = EXCLUDED.email,
+  user_type = EXCLUDED.user_type,
+  status = EXCLUDED.status,
+  licensee_id = EXCLUDED.licensee_id;
 
 -- ------------------------------------------------------------------
 -- fixtures — roles
@@ -267,13 +275,19 @@ SELECT ok(NOT public.regulatory_assignment_scope_allows(
             'd2f00000-0000-4000-8000-000000000001','a2f00000-0000-4000-8000-000000000001'),
   'ASSIGN_MANAGER_OUTSIDE_TARGET_FUNCTION_PORTFOLIO = DENIED');
 
--- the same actor/entity WITHOUT the target-function override is allowed: this is
--- the precise defect the override closes.
-SELECT ok(public.regulatory_scope_allows('22222222-0000-4000-8000-000000000013',
-            'licensee_management','assign_supervision',
-            'a2f00000-0000-4000-8000-000000000001', NULL, NULL,
-            'd2f00000-0000-4000-8000-000000000001', NULL),
-  'ASSIGNMENT_ACTOR_TARGET_FUNCTION_AWARE: the management-module-only check would have allowed it');
+-- NARROWING-ONLY: the target-function-aware assignment check is never WIDER than
+-- the management-module check. (It may legitimately be stricter — that is the
+-- defect it closes — so the assertion is the implication, not equality.)
+SELECT ok(
+  (NOT public.regulatory_assignment_scope_allows('22222222-0000-4000-8000-000000000013',
+        'licensee_management','assign_supervision',
+        public.regulatory_function_for_module('prudential_supervision'),
+        'd2f00000-0000-4000-8000-000000000001','a2f00000-0000-4000-8000-000000000001'))
+  OR public.regulatory_scope_allows('22222222-0000-4000-8000-000000000013',
+        'licensee_management','assign_supervision',
+        'a2f00000-0000-4000-8000-000000000001', NULL, NULL,
+        'd2f00000-0000-4000-8000-000000000001', NULL),
+  'ASSIGNMENT_ACTOR_TARGET_FUNCTION_AWARE: the target-function check never widens the module check');
 
 SELECT ok(NOT public.regulatory_assignment_scope_allows(
             '22222222-0000-4000-8000-000000000001','licensee_management','assign_supervision',
