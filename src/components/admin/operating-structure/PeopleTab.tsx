@@ -30,7 +30,10 @@ import { usePortfolioMutations } from '@/hooks/useOperatingStructure';
 export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) {
   const [selected, setSelected] = useState<string | null>(initialUserId || null);
   const [search, setSearch] = useState('');
+  const [choice, setChoice] = useState(false);
+  const [sectorResp, setSectorResp] = useState(false);
   const [respDialog, setRespDialog] = useState<{ open: boolean; portfolioId: string | null }>({
+
     open: false, portfolioId: null,
   });
   const [teamDialog, setTeamDialog] = useState<{ open: boolean; membershipId: string | null }>({
