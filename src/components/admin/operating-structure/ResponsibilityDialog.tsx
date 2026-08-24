@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   usePortfolioMutations, useRegulators, useRegulatoryFunctions, useRegulatoryTeams,
-  useSectors, useStaffPortfolios, useSubSectors, useSupervisedEntities,
+  useSectors, useStaffDirectory, useStaffPortfolios, useSubSectors, useSupervisedEntities,
 } from '@/hooks/useOperatingStructure';
 import { act, NONE } from './shared';
 
