@@ -175,31 +175,38 @@ export function PanelsCommitteesTab() {
                 <Badge variant={policyMissing ? 'outline' : 'default'}>
                   {policyMissing ? 'Policy not configured' : 'Policy configured'}
                 </Badge>
-                <div className="ml-auto flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant={p.is_active ? 'ghost' : 'outline'}
-                    disabled={panelMut.updatePanel.isPending}
-                    onClick={() =>
-                      act(
-                        () => panelMut.updatePanel.mutateAsync({ panelId: p.id, isActive: !p.is_active }),
-                        p.is_active ? 'Panel deactivated' : 'Panel activated',
-                      )
-                    }
-                  >
-                    {p.is_active ? 'Deactivate' : 'Activate panel'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => setMemberDialog({ open: true, kind: 'panel', id: p.id, name: p.name })}
-                  >
-                    + Add member
-                  </Button>
-                </div>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 Quorum {p.quorum} · decision rule {p.decision_rule} · current voting members {voting.length}
               </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2 border-t pt-2">
+                <Button
+                  size="sm"
+                  variant={p.is_active ? 'destructive' : 'default'}
+                  disabled={panelMut.updatePanel.isPending}
+                  onClick={() =>
+                    act(
+                      () => panelMut.updatePanel.mutateAsync({ panelId: p.id, isActive: !p.is_active }),
+                      p.is_active ? 'Panel deactivated' : 'Panel activated',
+                    )
+                  }
+                >
+                  {p.is_active ? 'Deactivate panel' : 'Activate panel'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setMemberDialog({ open: true, kind: 'panel', id: p.id, name: p.name })}
+                >
+                  + Add member
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  {p.is_active
+                    ? 'This panel may be selected for appeal matters.'
+                    : 'While inactive this panel cannot be selected for appeal matters.'}
+                </span>
+              </div>
+
 
               <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
                 <div>
