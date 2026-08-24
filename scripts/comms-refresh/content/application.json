@@ -1,0 +1,102 @@
+{
+  "application.submitted": {
+    "in_app_title": "Application submitted | {{application_number}}",
+    "in_app_message": "Application {{application_number}} has been submitted successfully and is now queued for review. No action is required from you at this time.",
+    "email_subject": "Application received | {{application_number}}",
+    "email_body": "We are writing to confirm that your application {{application_number}} has been received by the Authority and has been entered into the licensing assessment process.\n\nYour submission is now queued for an initial completeness review. Should any information be missing or require clarification, we will contact you through the Regulatory Portal with a formal request.\n\nNo action is required from you at this time. Please retain the application number above; it is the reference for all correspondence relating to this matter.\n\nWhat happens next\nOnce the completeness review is concluded, the application will be allocated for assessment and you will be notified of any further requirements or of the determination in due course.\n\nRegards,\n{{app_name}}"
+  },
+  "application.submitted.applicant": {
+    "in_app_title": "Application submitted | {{application_number}}",
+    "in_app_message": "Your {{license_type}} application {{application_number}} was submitted on {{submitted_at}} and is now under review. No action is required at this time.",
+    "email_subject": "Application received | {{application_number}}",
+    "email_body": "Dear {{applicant_name}},\n\nWe are writing to confirm receipt of the application submitted on behalf of {{company_name}} for authorisation as {{license_type}}. The application was submitted on {{submitted_at}} and has been recorded under reference {{application_number}}.\n\nApplication particulars\nSector: {{sector_name}}{{#sub_sector_name}}\nSub-sector: {{sub_sector_name}}{{/sub_sector_name}}{{#category_name}}\nCategory: {{category_name}}{{/category_name}}\n\nThe application will first be reviewed for completeness against the applicable licensing requirements. If any document or particular is outstanding, the Authority will issue a formal information request through the Regulatory Portal.\n\nNo action is required from you at this time. Please quote {{application_number}} in any communication with the Authority concerning this matter.\n\nWhat happens next\nFollowing the completeness review, the application will be allocated for assessment. You will be notified of any further requirements, and of the determination, through the Regulatory Portal and by email.\n\nRegards,\n{{app_name}}"
+  },
+  "application.approved_step": {
+    "in_app_title": "Assessment progressed | {{application_number}}",
+    "in_app_message": "Application {{application_number}} has completed the {{step_name}} stage and has progressed to the next stage of assessment. No action is required from you at this time."
+  },
+  "application.cancelled": {
+    "in_app_title": "Application cancelled | {{application_number}}",
+    "in_app_message": "Application {{application_number}} has been cancelled and is no longer under assessment. Please sign in to the Regulatory Portal if you wish to review the record."
+  },
+  "application.workflow_action_taken": {
+    "in_app_title": "Assessment update | {{application_number}}",
+    "in_app_message": "{{actor_name}} recorded the action \"{{action_type}}\" on application {{application_number}}.{{#comments}} Remarks: {{comments}}{{/comments}}"
+  },
+  "application.comment_saved": {
+    "in_app_title": "Query raised | {{application_number}}",
+    "in_app_message": "A reviewer has added a query or remark to application {{application_number}}. Please sign in to the Regulatory Portal to review it.",
+    "email_subject": "Reviewer query recorded | {{application_number}}",
+    "email_body": "We are writing regarding application {{application_number}}, which is currently under review by the Authority.\n\nA remark has been recorded on the application file by {{reviewer_name}} as part of the assessment.\n\nRemark\n{{comments}}\n\nAction required\nPlease sign in to the Regulatory Portal to review the remark in full and to provide any clarification requested. Where a formal information request accompanies the remark, the required response and supporting documents should be submitted through the portal.\n\nWhat happens next\nThe Authority will continue its assessment once any clarification requested has been received.\n\nRegards,\n{{app_name}}"
+  },
+  "application.rfi_raised": {
+    "in_app_title": "Information required | {{application_number}}",
+    "in_app_message": "Additional information is required to continue the assessment of application {{application_number}}.{{#item_count}} Items outstanding: {{item_count}}.{{/item_count}}{{#due_at}} Please respond by {{due_at}}.{{/due_at}}",
+    "email_subject": "Information required | {{application_number}}",
+    "email_body": "We are writing regarding application {{application_number}}, which is currently under assessment by the Authority.\n\nAs part of our review, additional information is required before the assessment can continue.{{#item_count}} A total of {{item_count}} item(s) have been raised for your attention.{{/item_count}}\n\n{{#summary}}Summary of the request\n{{summary}}\n\n{{/summary}}Action required\nPlease sign in to the Regulatory Portal, open the information request recorded against application {{application_number}}, and provide a response to each item together with any supporting documents.\n\n{{#due_at}}Deadline\nPlease provide your response by {{due_at}}. If you are unable to respond by that date, please advise the Authority through the portal, stating the reason.\n\n{{/due_at}}What happens next\nOnce your response is received it will be reviewed and, where the information provided is sufficient, the assessment of your application will continue.\n\nRegards,\n{{app_name}}"
+  },
+  "application.rfi_near_due": {
+    "in_app_title": "Information request due shortly | {{application_number}}",
+    "in_app_message": "The information request on application {{application_number}} is due by {{due_date}}. Please submit your response through the Regulatory Portal.",
+    "email_subject": "Reminder: information required | {{application_number}}",
+    "email_body": "We are writing further to the information request issued in connection with application {{application_number}}.\n\nOur records indicate that a response to the outstanding items has not yet been received.\n\nAction required\nPlease sign in to the Regulatory Portal and provide the requested information and supporting documents against each outstanding item.\n\nDeadline\nA response is required by {{due_date}}.\n\nWhat happens next\nOnce your response is received, the Authority will continue its assessment. If a response is not received by the date stated, the application may be delayed or determined on the information currently available.\n\nIf you have already responded, please disregard this reminder.\n\nRegards,\n{{app_name}}"
+  },
+  "application.rfi_overdue": {
+    "in_app_title": "Information request overdue | {{application_reference}}",
+    "in_app_message": "The information request on application {{application_reference}} was due by {{due_at}} and remains outstanding. Please respond through the Regulatory Portal without further delay.",
+    "email_subject": "Overdue: information required | {{application_reference}}",
+    "email_body": "We are writing regarding application {{application_reference}}.\n\nOur records indicate that the information requested by the Authority was due by {{due_at}} and has not yet been received. The assessment of the application cannot continue while these items remain outstanding.\n\nAction required\nPlease sign in to the Regulatory Portal and provide the outstanding information and supporting documents without further delay. If there is a reason for the delay, please record it against the request so that it can be taken into account.\n\nWhat happens next\nOnce your response is received the assessment will resume. Where information remains outstanding, the Authority may proceed to determine the application on the information available to it, or close the application in accordance with its procedures.\n\nRegards,\n{{app_name}}"
+  },
+  "application.send_back": {
+    "in_app_title": "Application returned for correction | {{application_number}}",
+    "in_app_message": "Application {{application_number}} has been returned to you for correction at the {{step_name}} stage. Please review the reviewer's remarks in the Regulatory Portal and resubmit.",
+    "email_subject": "Application returned for correction | {{application_number}}",
+    "email_body": "We are writing regarding application {{application_number}}, which has been reviewed by the Authority at the {{step_name}} stage.\n\nThe application cannot proceed in its current form and has been returned to you so that the matters identified during review may be addressed.\n\n{{#comments}}Matters to be addressed\n{{comments}}\n\n{{/comments}}Action required\nPlease sign in to the Regulatory Portal, address each of the matters identified, and resubmit the application together with any revised or additional supporting documents.\n\nWhat happens next\nOnce your resubmission is received, the Authority will resume its assessment from the point at which the application was returned.\n\nRegards,\n{{app_name}}"
+  },
+  "application.resubmission_requested": {
+    "in_app_title": "Resubmission required | {{application_number}}",
+    "in_app_message": "Application {{application_number}} requires resubmission. Please review the matters raised in the Regulatory Portal, correct the application and resubmit it.",
+    "email_subject": "Resubmission required | {{application_number}}",
+    "email_body": "We are writing regarding application {{application_number}}, which has been considered by the Authority.\n\nThe application cannot be determined in its current form. It has therefore been made available to you again so that the matters identified may be addressed and the application resubmitted.\n\n{{#comments}}Matters to be addressed\n{{comments}}\n\n{{/comments}}Action required\nPlease sign in to the Regulatory Portal, revise the application to address each matter identified, attach any further supporting documents required, and resubmit the application.\n\nWhat happens next\nAssessment of the application will resume once a complete resubmission has been received.\n\nRegards,\n{{app_name}}"
+  },
+  "application.resubmitted.applicant": {
+    "in_app_title": "Resubmission received | {{application_number}}",
+    "in_app_message": "Your resubmission of application {{application_number}} was received on {{resubmitted_at}} and is now under review. No action is required at this time.",
+    "email_subject": "Resubmission received | {{application_number}}",
+    "email_body": "Dear {{applicant_name}},\n\nWe are writing to confirm that your resubmission of application {{application_number}}, submitted on behalf of {{company_name}} for authorisation as {{license_type}}, was received on {{resubmitted_at}}.\n\nApplication particulars\nSector: {{sector_name}}{{#sub_sector_name}}\nSub-sector: {{sub_sector_name}}{{/sub_sector_name}}{{#category_name}}\nCategory: {{category_name}}{{/category_name}}{{#current_workflow_step}}\nCurrent assessment stage: {{current_workflow_step}}{{/current_workflow_step}}\n\nThe resubmitted application will be reviewed to confirm that the matters previously raised have been addressed. Should any item remain outstanding, a further request will be issued through the Regulatory Portal.\n\nNo action is required from you at this time.\n\nWhat happens next\nThe Authority will resume its assessment and will notify you of any further requirements, or of the determination, in due course.\n\nRegards,\n{{app_name}}"
+  },
+  "application.rejected": {
+    "in_app_title": "Determination issued | {{application_number}}",
+    "in_app_message": "A determination has been issued on application {{application_number}}: the application has not been approved. Please sign in to the Regulatory Portal to review the formal communication.",
+    "email_subject": "Determination issued | {{application_number}}",
+    "email_body": "We are writing regarding application {{application_number}}.\n\nThe Authority has completed its assessment of the application. Following that assessment, the application has not been approved.\n\n{{#comments}}Reasons recorded by the Authority\n{{comments}}\n\n{{/comments}}Action required\nPlease sign in to the Regulatory Portal to review the formal determination and any accompanying documentation in full.\n\nWhat happens next\nWhere the governing legislation provides a right of review or appeal, the formal determination sets out how and within what period such a request may be made. A fresh application may also be submitted where the matters that led to this outcome have been addressed.\n\nRegards,\n{{app_name}}"
+  },
+  "application.final_approved": {
+    "in_app_title": "Application approved | {{application_number}}",
+    "in_app_message": "Application {{application_number}} has been approved and licence {{license_number}} has been issued. Please sign in to the Regulatory Portal to review your licence details.",
+    "email_subject": "Application approved | {{application_number}}",
+    "email_body": "We are writing regarding application {{application_number}}.\n\nThe Authority has completed its assessment of the application and the application has been approved. Licence number {{license_number}} has been issued in consequence of that decision.\n\nAction required\nPlease sign in to the Regulatory Portal to review the licence record, the licence certificate once available, and any conditions or ongoing obligations attaching to the licence.\n\nWhat happens next\nYou are required to conduct licensed activities in accordance with the terms and conditions of the licence and the applicable regulatory requirements, including any periodic reporting obligations. Any material change to the information provided in your application must be notified to the Authority.\n\nRegards,\n{{app_name}}"
+  },
+  "application.decision_dispatched": {
+    "in_app_title": "Decision issued | {{application_number}}",
+    "in_app_message": "The decision on application {{application_number}} has been issued. Outcome: {{outcome}}. Please sign in to the Regulatory Portal to review the formal decision.",
+    "email_subject": "Decision issued | {{application_number}}",
+    "email_body": "We are writing regarding application {{application_number}}.\n\nThe Authority has concluded its assessment and a formal decision has now been issued in respect of the application. The outcome recorded is: {{outcome}}.\n\nAction required\nPlease sign in to the Regulatory Portal to review the formal decision communication and any accompanying documents, together with any conditions or further steps stated in it.\n\nWhat happens next\nAny requirement, condition or timeframe applying to you is set out in the formal decision. Where a right of review or appeal is available, the decision communication explains how it may be exercised.\n\nRegards,\n{{app_name}}"
+  },
+  "application.escalated": {
+    "in_app_title": "Application escalated | {{application_number}}",
+    "in_app_message": "Application {{application_number}} has been escalated to a senior reviewer for attention.",
+    "email_subject": "Application escalated for senior review | {{application_number}}",
+    "email_body": "Application {{application_number}} has been escalated to a senior reviewer.\n\nAction required\nPlease review the application file in the Regulatory Portal and progress the matter in accordance with the applicable assessment procedure.\n\nRegards,\n{{app_name}}"
+  },
+  "regulator.action_taken_on_application": {
+    "in_app_title": "Assessment update | {{application_number}}",
+    "in_app_message": "The Authority has recorded the action \"{{action_type}}\" on application {{application_number}}. Please sign in to the Regulatory Portal for details."
+  },
+  "regulator.comment_added_or_query_raised": {
+    "in_app_title": "Query raised | {{application_number}}",
+    "in_app_message": "The Authority has raised a query on application {{application_number}}. Please sign in to the Regulatory Portal to review and respond.",
+    "email_subject": "Query raised | {{application_number}}",
+    "email_body": "We are writing regarding application {{application_number}}, which is currently under review by the Authority.\n\nA query has been raised by the reviewing officer in the course of the assessment.\n\nQuery\n{{comments}}\n\nAction required\nPlease sign in to the Regulatory Portal to review the query in full and to provide the clarification or documents requested.\n\nWhat happens next\nOnce your response is received, the Authority will continue its assessment of the application.\n\nRegards,\n{{app_name}}"
+  }
+}
