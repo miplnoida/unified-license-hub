@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { EntitySupervisionTab } from './EntitySupervisionTab';
-import { ResponsibilityDialog } from './ResponsibilityDialog';
-import { SECTOR_GROUP_LABELS, SECTOR_GROUP_ORDER, useRegulatoryFunctions } from '@/hooks/useOperatingStructure';
+import { SECTOR_GROUP_LABELS, SECTOR_GROUP_ORDER } from '@/hooks/useOperatingStructure';
 import { STATUS_LABEL, useSectorCoverage, type CoverageStatus, type SectorCoverage } from './sectorCoverage';
+import { SectorCoverageSheet } from './SectorCoverageSheet';
+import { SectorLeadDialog } from './SectorAssignDialogs';
 
 const STATUS_VARIANT: Record<CoverageStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   COMPLETE: 'default',
@@ -20,20 +20,15 @@ const STATUS_VARIANT: Record<CoverageStatus, 'default' | 'secondary' | 'destruct
 /**
  * Sector coverage — the main administration view.
  *
- * People are grouped: someone holding ten responsibilities in a sector appears
- * once with ten areas of work. Organisational units are never counted as sector
- * coverage; only recorded responsibilities are.
+ * Each card answers WHO runs the sector and WHERE the gaps are. Every action is
+ * a task-specific dialog; nothing here asks the administrator about portfolios,
+ * scopes, mandates or regulators.
  */
 export function SectorCoverageTab({ initialView = 'sectors' }: { initialView?: 'sectors' | 'entities' }) {
   const { data: coverage } = useSectorCoverage();
-  const functions = useRegulatoryFunctions();
   const [search, setSearch] = useState('');
-  const [dialog, setDialog] = useState<{ open: boolean; sectorId?: string; lead?: boolean }>({ open: false });
-
-  const allFunctionIds = useMemo(
-    () => (functions.data || []).filter((f: any) => f.status === 'active').map((f: any) => f.id),
-    [functions.data],
-  );
+  const [manageId, setManageId] = useState<string | null>(null);
+  const [leadFor, setLeadFor] = useState<SectorCoverage | null>(null);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -46,6 +41,8 @@ export function SectorCoverageTab({ initialView = 'sectors' }: { initialView?: '
           a.name.localeCompare(b.name),
       );
   }, [coverage, search]);
+
+  const managed = coverage.find((s) => s.id === manageId) || null;
 
   return (
     <>
@@ -71,8 +68,8 @@ export function SectorCoverageTab({ initialView = 'sectors' }: { initialView?: '
               )}
               <SectorCard
                 sector={sec}
-                onManage={() => setDialog({ open: true, sectorId: sec.id })}
-                onAssignLead={() => setDialog({ open: true, sectorId: sec.id, lead: true })}
+                onManage={() => setManageId(sec.id)}
+                onLead={() => setLeadFor(sec)}
               />
             </div>
           ))}
@@ -84,26 +81,30 @@ export function SectorCoverageTab({ initialView = 'sectors' }: { initialView?: '
         </TabsContent>
       </Tabs>
 
-      <ResponsibilityDialog
-        open={dialog.open}
-        onOpenChange={(v) => setDialog({ open: v })}
-        userId={null}
-        title={dialog.lead ? 'Assign sector lead' : undefined}
-        preset={{
-          sectorId: dialog.sectorId,
-          functionIds: dialog.lead ? allFunctionIds : undefined,
-        }}
+      <SectorCoverageSheet
+        sector={managed}
+        open={!!managed}
+        onOpenChange={(v) => setManageId(v ? manageId : null)}
       />
+
+      {leadFor && (
+        <SectorLeadDialog
+          open={!!leadFor}
+          onOpenChange={(v) => setLeadFor(v ? leadFor : null)}
+          sectorId={leadFor.id}
+          sectorName={leadFor.name}
+        />
+      )}
     </>
   );
 }
 
 function SectorCard({
-  sector, onManage, onAssignLead,
+  sector, onManage, onLead,
 }: {
   sector: SectorCoverage;
   onManage: () => void;
-  onAssignLead: () => void;
+  onLead: () => void;
 }) {
   return (
     <Card>
@@ -111,60 +112,22 @@ function SectorCard({
         <div>
           <CardTitle className="text-base">{sector.name}</CardTitle>
           <p className="mt-1 text-xs text-muted-foreground">
-            Areas {sector.areasCovered} / {sector.totalAreas} · {sector.entityCount}{' '}
-            {sector.entityCount === 1 ? 'entity' : 'entities'} · {sector.people.length}{' '}
-            {sector.people.length === 1 ? 'person' : 'people'}
+            Areas covered {sector.areasCovered} / {sector.totalAreas} · {sector.supporting.length}{' '}
+            supporting {sector.supporting.length === 1 ? 'person' : 'staff'} · {sector.entityCount}{' '}
+            {sector.entityCount === 1 ? 'entity' : 'entities'}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={STATUS_VARIANT[sector.status]}>{STATUS_LABEL[sector.status]}</Badge>
-          <Button size="sm" variant="outline" onClick={onAssignLead}>Assign sector lead</Button>
-          <Button size="sm" variant="ghost" onClick={onManage}>Manage coverage</Button>
+          <Button size="sm" variant="outline" onClick={onLead}>
+            {sector.lead ? 'Change lead' : 'Set lead'}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={onManage}>Manage</Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 text-sm">
-        <div>
-          <p className="text-xs uppercase text-muted-foreground">Sector lead</p>
-          {sector.lead ? (
-            <p>
-              {sector.lead.name}
-              <span className="ml-2 text-xs text-muted-foreground">
-                {sector.lead.areas.length} of {sector.totalAreas} areas
-              </span>
-            </p>
-          ) : (
-            <p className="text-muted-foreground">Nobody covers every area of work for this sector.</p>
-          )}
-        </div>
-
-        <div>
-          <p className="text-xs uppercase text-muted-foreground">Supporting staff</p>
-          {sector.supporting.length === 0 ? (
-            <p className="text-muted-foreground">None recorded.</p>
-          ) : (
-            <div className="space-y-1">
-              {sector.supporting.map((p) => (
-                <Collapsible key={p.userId}>
-                  <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 rounded-md border p-2 text-left hover:bg-accent/40">
-                    <span>
-                      {p.name}
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        {p.areas.map((a) => a.name).join(', ')}
-                        {p.wide ? ' (all sectors)' : ''}
-                      </span>
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {p.areas.length} {p.areas.length === 1 ? 'area' : 'areas'}
-                    </span>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-1 px-3 py-2 text-xs text-muted-foreground">
-                    {p.areas.map((a) => <p key={a.id}>{a.name}</p>)}
-                  </CollapsibleContent>
-                </Collapsible>
-              ))}
-            </div>
-          )}
-        </div>
+      <CardContent className="text-sm">
+        <p className="text-xs uppercase text-muted-foreground">Sector lead</p>
+        <p>{sector.lead ? sector.lead.name : <span className="text-muted-foreground">Not assigned</span>}</p>
       </CardContent>
     </Card>
   );

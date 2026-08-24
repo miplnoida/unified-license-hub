@@ -1,15 +1,16 @@
 import { useMemo } from 'react';
 import {
-  useActiveSectors, useRegulatoryFunctions, useStaffDirectory, useStaffPortfolios,
+  useActiveSectors, useStaffDirectory, useStaffPortfolios,
   useSubSectors, useSupervisedEntities,
 } from '@/hooks/useOperatingStructure';
+import { useApplicableSectorAreas } from './sectorAreas';
 
 export type CoverageStatus = 'COMPLETE' | 'PARTIAL' | 'NO_LEAD' | 'NO_COVERAGE';
 
 export type PersonCoverage = {
   userId: string;
   name: string;
-  areas: { id: string; name: string }[];
+  areas: { id: string; name: string; portfolioId: string }[];
   /** True when the responsibility is not narrowed to any sector. */
   wide: boolean;
 };
@@ -39,8 +40,11 @@ export const STATUS_LABEL: Record<CoverageStatus, string> = {
  *
  * A person holding ten separate responsibilities appears once with ten areas of
  * work — the underlying portfolios stay separate. Team/organisational-unit
- * membership is deliberately NOT treated as sector coverage: a unit groups
- * staff, it never covers a sector by itself.
+ * membership is deliberately NOT treated as sector coverage.
+ *
+ * The denominator, the sector-lead test and the coverage status all come from
+ * ONE resolver (`useApplicableSectorAreas`), so global-only areas of work are
+ * never reported as missing sector coverage.
  */
 export function useSectorCoverage() {
   const sectors = useActiveSectors();
@@ -48,16 +52,11 @@ export function useSectorCoverage() {
   const entities = useSupervisedEntities();
   const portfolios = useStaffPortfolios();
   const staff = useStaffDirectory();
-  const functions = useRegulatoryFunctions();
+  const { areasFor, isLoading: areasLoading } = useApplicableSectorAreas();
 
-  const isLoading =
-    sectors.isLoading || portfolios.isLoading || staff.isLoading || functions.isLoading;
+  const isLoading = sectors.isLoading || portfolios.isLoading || staff.isLoading || areasLoading;
 
   const data = useMemo<SectorCoverage[]>(() => {
-    const activeFunctions = (functions.data || []).filter((f: any) => f.status === 'active');
-    const totalAreas = activeFunctions.length;
-    const fnName = (id: string | null) =>
-      (functions.data || []).find((f: any) => f.id === id)?.name || 'Area of work';
     const staffName = (id: string) =>
       (staff.data || []).find((s: any) => s.id === id)?.full_name || 'Staff member';
 
@@ -65,8 +64,13 @@ export function useSectorCoverage() {
     const scopes = portfolios.data?.scopes || [];
 
     return (sectors.data || []).map((sec: any) => {
+      const applicable = areasFor(sec.id);
+      const applicableIds = new Set(applicable.map((a) => a.id));
+      const totalAreas = applicable.length;
+
       const byPerson = new Map<string, PersonCoverage>();
       for (const p of active) {
+        if (!applicableIds.has(p.regulatory_function_id)) continue;
         const mine = scopes.filter((s: any) => s.portfolio_id === p.id);
         const wide = mine.length === 0;
         const match =
@@ -81,7 +85,11 @@ export function useSectorCoverage() {
           });
         if (!match) continue;
         const existing = byPerson.get(p.user_id);
-        const area = { id: p.regulatory_function_id, name: fnName(p.regulatory_function_id) };
+        const area = {
+          id: p.regulatory_function_id,
+          name: applicable.find((a) => a.id === p.regulatory_function_id)?.name || 'Area of work',
+          portfolioId: p.id,
+        };
         if (existing) {
           if (!existing.areas.some((a) => a.id === area.id)) existing.areas.push(area);
           existing.wide = existing.wide && wide;
@@ -96,8 +104,7 @@ export function useSectorCoverage() {
       people.forEach((p) => p.areas.sort((a, b) => a.name.localeCompare(b.name)));
 
       const areasCovered = new Set(people.flatMap((p) => p.areas.map((a) => a.id))).size;
-      // The sector lead is the person carrying every area of work for the
-      // sector. Nobody carrying the full set means the sector has no lead.
+      // The sector lead is the person carrying every applicable area of work.
       const lead = people.find((p) => totalAreas > 0 && p.areas.length >= totalAreas) || null;
       const supporting = people.filter((p) => p !== lead);
       const entityCount = (entities.data || []).filter((e: any) => e.sector_id === sec.id).length;
@@ -124,7 +131,7 @@ export function useSectorCoverage() {
         status,
       };
     });
-  }, [sectors.data, subSectors.data, entities.data, portfolios.data, staff.data, functions.data]);
+  }, [sectors.data, subSectors.data, entities.data, portfolios.data, staff.data, areasFor]);
 
   return { data, isLoading };
 }
