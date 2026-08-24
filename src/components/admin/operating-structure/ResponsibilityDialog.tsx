@@ -58,8 +58,9 @@ const blank = (): AreaConfig => ({ appliesTo: 'all', sectorId: '', picked: [], t
  * permission; it only narrows where existing permissions apply.
  */
 export function ResponsibilityDialog({
-  open, onOpenChange, userId, portfolioId, preset, onSaved,
+  open, onOpenChange, userId, portfolioId, preset, title, onSaved,
 }: ResponsibilityDialogProps) {
+
   const functions = useRegulatoryFunctions();
   const teams = useRegulatoryTeams();
   const subSectors = useSubSectors();
