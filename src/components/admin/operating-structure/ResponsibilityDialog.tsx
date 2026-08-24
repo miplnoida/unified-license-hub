@@ -101,7 +101,26 @@ export function ResponsibilityDialog({
       setPicked([]);
       setSectorId('');
     }
-  }, [open, portfolioId, existingScopes.length, regulators.data, preset?.functionId]);
+  }, [open, portfolioId, existingScopes.length, preset?.functionId]);
+
+  // Regulator is derived from coverage + area of work, never picked from a list
+  // of every regulator record.
+  const resolution = useRegulatorResolution({
+    functionId: functionId || undefined,
+    appliesTo,
+    values: picked,
+  });
+  const regulatorId = useMemo(() => {
+    if (resolution.resolved) return resolution.resolved.id;
+    if (chosenRegulatorId && resolution.candidates.some((c) => c.id === chosenRegulatorId))
+      return chosenRegulatorId;
+    return '';
+  }, [resolution.resolved, resolution.candidates, chosenRegulatorId]);
+  const derivedName =
+    resolution.resolved?.name ||
+    resolution.candidates.find((c) => c.id === regulatorId)?.name ||
+    '';
+
 
   const options = useMemo(() => {
     if (appliesTo === 'sector') return (sectors.data || []).map((s: any) => ({ id: s.id, name: s.name }));
