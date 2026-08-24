@@ -440,15 +440,26 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       'request_resubmission', 'return_for_correction', 'request_more_info',
     ]);
     const instanceStart = (liveInstance as any)?.started_at ?? (liveInstance as any)?.created_at ?? null;
+    // Last time the instance advanced. Used as the fallback for step N so a
+    // later step's clock is NEVER measured from the original submission time.
+    const lastAdvanceAt = (liveInstance as any)?.updated_at ?? instanceStart;
     const firstStepStart = applicationSubmittedAt || applicationCreatedAt || instanceStart;
     return steps.map((s, idx) => {
       const status = stepStatuses[idx];
       if (status === 'upcoming') return null;
       if (idx === 0) return firstStepStart;
-      const prev = steps[idx - 1];
-      const prevHistory = actionsByStep.get(prev.id) || [];
-      const prevDecisive = [...prevHistory].reverse().find(a => decisiveSet.has(a.action_type));
-      return prevDecisive?.created_at ?? instanceStart;
+      // Most recent decisive action across ALL preceding steps.
+      let latestPrior: string | null = null;
+      for (let i = 0; i < idx; i += 1) {
+        const history = actionsByStep.get(steps[i].id) || [];
+        history.forEach((a) => {
+          if (!decisiveSet.has(a.action_type) || !a.created_at) return;
+          if (!latestPrior || new Date(a.created_at).getTime() > new Date(latestPrior).getTime()) {
+            latestPrior = a.created_at;
+          }
+        });
+      }
+      return latestPrior ?? lastAdvanceAt;
     });
   }, [steps, stepStatuses, actionsByStep, liveInstance, applicationSubmittedAt, applicationCreatedAt]);
 
