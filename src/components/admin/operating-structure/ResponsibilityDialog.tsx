@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   usePortfolioMutations, useRegulatoryFunctions, useRegulatoryTeams,
-  SECTOR_GROUP_LABELS, SECTOR_GROUP_ORDER, useActiveSectors, useActiveSubSectors, useSectors,
+  SECTOR_GROUP_LABELS, SECTOR_GROUP_ORDER, useActiveSectors, useActiveSubSectors,
   useStaffDirectory, useStaffPortfolios, useSubSectors, useSupervisedEntities,
 } from '@/hooks/useOperatingStructure';
 import { act, NONE } from './shared';
@@ -354,6 +354,7 @@ export function ResponsibilityDialog({
                 return (
                   <AreaRow
                     key={fid}
+                    functionId={fid}
                     name={fn?.name || 'Area of work'}
                     config={configFor(fid)}
                     customise={customize}
@@ -531,8 +532,9 @@ function AreaCoverage({
  * first regulator row.
  */
 function AreaRow({
-  name, config, customise, showRegulator, state, teams, onChange, onResolved,
+  functionId, name, config, customise, showRegulator, state, teams, onChange, onResolved,
 }: {
+  functionId: string;
   name: string;
   config: AreaConfig;
   customise: boolean;
@@ -543,6 +545,7 @@ function AreaRow({
   onResolved: (r: Resolved) => void;
 }) {
   const resolution = useRegulatorResolution({
+    functionId,
     appliesTo: config.appliesTo,
     values: config.picked,
   });
