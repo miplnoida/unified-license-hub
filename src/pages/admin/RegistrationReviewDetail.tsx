@@ -52,7 +52,10 @@ interface RegistrationRow {
 
 interface WorkflowInfo {
   workflow_id: string | null;
+  /** Present when the workflow lookup itself failed (never treated as "none"). */
+  error?: string;
 }
+
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
