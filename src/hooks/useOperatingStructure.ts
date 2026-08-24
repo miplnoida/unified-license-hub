@@ -507,3 +507,151 @@ export function useStaffDirectory() {
     },
   });
 }
+
+/* ------------------------- coverage / decision bodies ---------------------- */
+
+export interface CoverageWarning {
+  code: string;
+  severity: string;
+  subject_type: string;
+  subject_id: string | null;
+  subject: string;
+  detail: string;
+}
+
+export function useCoverageWarnings() {
+  return useQuery({
+    queryKey: ['regulatory-coverage-warnings'],
+    queryFn: async () => {
+      const rows = await rpc<CoverageWarning[]>('regulatory_coverage_warnings');
+      return (Array.isArray(rows) ? rows : []) as CoverageWarning[];
+    },
+  });
+}
+
+const invalidateBodies = (qc: ReturnType<typeof useQueryClient>) => {
+  ['os-appeal-panels', 'os-fp-committees', 'regulatory-coverage-warnings',
+   'staff-responsibility-profile'].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
+};
+
+/** Appeal panels and their membership — governed routines only. */
+export function useAppealPanelMutations() {
+  const qc = useQueryClient();
+  const done = () => invalidateBodies(qc);
+
+  const createPanel = useMutation({
+    mutationFn: (v: {
+      name: string; appealScope: string; quorum: number; decisionRule: string;
+      regulatorId?: string | null; description?: string | null;
+    }) =>
+      rpc('appeal_panel_create', {
+        _name: v.name,
+        _appeal_scope: v.appealScope,
+        _quorum: v.quorum,
+        _decision_rule: v.decisionRule,
+        _regulator_id: v.regulatorId || null,
+        _description: v.description || null,
+      }),
+    onSuccess: done,
+  });
+
+  const updatePanel = useMutation({
+    mutationFn: (v: {
+      panelId: string; name?: string | null; appealScope?: string | null; quorum?: number | null;
+      decisionRule?: string | null; description?: string | null; isActive?: boolean | null;
+    }) =>
+      rpc('appeal_panel_update', {
+        _panel_id: v.panelId,
+        _name: v.name ?? null,
+        _appeal_scope: v.appealScope ?? null,
+        _quorum: v.quorum ?? null,
+        _decision_rule: v.decisionRule ?? null,
+        _description: v.description ?? null,
+        _is_active: v.isActive ?? null,
+      }),
+    onSuccess: done,
+  });
+
+  const addMember = useMutation({
+    mutationFn: (v: { panelId: string; userId: string; memberRole: string; isVoting: boolean }) =>
+      rpc('appeal_panel_member_add', {
+        _panel_id: v.panelId,
+        _user_id: v.userId,
+        _member_role: v.memberRole,
+        _is_voting: v.isVoting,
+      }),
+    onSuccess: done,
+  });
+
+  const updateMember = useMutation({
+    mutationFn: (v: { memberId: string; memberRole?: string | null; isVoting?: boolean | null }) =>
+      rpc('appeal_panel_member_update', {
+        _member_id: v.memberId,
+        _member_role: v.memberRole ?? null,
+        _is_voting: v.isVoting ?? null,
+      }),
+    onSuccess: done,
+  });
+
+  const endMember = useMutation({
+    mutationFn: (v: { memberId: string }) => rpc('appeal_panel_member_end', { _member_id: v.memberId }),
+    onSuccess: done,
+  });
+
+  return { createPanel, updatePanel, addMember, updateMember, endMember };
+}
+
+/** Fit & Proper committees and their membership — governed routines only. */
+export function useFpCommitteeMutations() {
+  const qc = useQueryClient();
+  const done = () => invalidateBodies(qc);
+
+  const createCommittee = useMutation({
+    mutationFn: (v: {
+      name: string; quorum: number; approvalThresholdPct: number;
+      description?: string | null; regulatorId?: string | null;
+    }) =>
+      rpc('fp_committee_create', {
+        _name: v.name,
+        _quorum: v.quorum,
+        _approval_threshold_pct: v.approvalThresholdPct,
+        _description: v.description || null,
+        _regulator_id: v.regulatorId || null,
+      }),
+    onSuccess: done,
+  });
+
+  const updateCommittee = useMutation({
+    mutationFn: (v: {
+      committeeId: string; name?: string | null; quorum?: number | null;
+      approvalThresholdPct?: number | null; isActive?: boolean | null; description?: string | null;
+    }) =>
+      rpc('fp_committee_update', {
+        _committee_id: v.committeeId,
+        _name: v.name ?? null,
+        _quorum: v.quorum ?? null,
+        _approval_threshold_pct: v.approvalThresholdPct ?? null,
+        _description: v.description ?? null,
+        _is_active: v.isActive ?? null,
+      }),
+    onSuccess: done,
+  });
+
+  const addMember = useMutation({
+    mutationFn: (v: { committeeId: string; userId: string; memberRole: string }) =>
+      rpc('fp_committee_member_add', {
+        _committee_id: v.committeeId,
+        _user_id: v.userId,
+        _member_role: v.memberRole,
+      }),
+    onSuccess: done,
+  });
+
+  const setMemberActive = useMutation({
+    mutationFn: (v: { memberId: string; isActive: boolean }) =>
+      rpc('fp_committee_member_set_active', { _member_id: v.memberId, _is_active: v.isActive }),
+    onSuccess: done,
+  });
+
+  return { createCommittee, updateCommittee, addMember, setMemberActive };
+}
