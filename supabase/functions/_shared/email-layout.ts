@@ -145,7 +145,7 @@ export function renderRichBody(text: string): string {
         continue;
       }
 
-      if (paragraph.length === 0 && isHeadingLine(line, lines.length > i + 1)) {
+      if (paragraph.length === 0 && isHeadingLine(line, lines[i + 1])) {
         flush();
         out.push(`<p ${HEADING_STYLE}>${renderInline(line.trim().replace(/:$/, ""))}</p>`);
         i += 1;
