@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   usePortfolioMutations, useRegulatoryFunctions, useRegulatoryTeams,
-  SECTOR_GROUP_LABELS, useActiveSectors, useActiveSubSectors, useSectors, useStaffDirectory, useStaffPortfolios, useSubSectors, useSupervisedEntities,
+  SECTOR_GROUP_LABELS, SECTOR_GROUP_ORDER, useActiveSectors, useActiveSubSectors, useSectors, useStaffDirectory, useStaffPortfolios, useSubSectors, useSupervisedEntities,
 } from '@/hooks/useOperatingStructure';
 import { act, NONE } from './shared';
 import { useRegulatorResolution } from './regulatorResolution';
@@ -126,11 +126,18 @@ export function ResponsibilityDialog({
 
   const options = useMemo<{ id: string; name: string; group?: string }[]>(() => {
     if (appliesTo === 'sector')
-      return (activeSectors.data || []).map((s: any) => ({
-        id: s.id,
-        name: s.name,
-        group: SECTOR_GROUP_LABELS[s.display_group || 'UNGROUPED'],
-      }));
+      return (activeSectors.data || [])
+        .slice()
+        .sort(
+          (a: any, b: any) =>
+            SECTOR_GROUP_ORDER.indexOf(a.display_group) - SECTOR_GROUP_ORDER.indexOf(b.display_group) ||
+            String(a.name).localeCompare(String(b.name)),
+        )
+        .map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          group: SECTOR_GROUP_LABELS[s.display_group || 'UNGROUPED'],
+        }));
     if (appliesTo === 'sub_sector')
       return (activeSubSectors.data || [])
         .filter((s: any) => !sectorId || s.sector_id === sectorId)

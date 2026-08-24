@@ -312,11 +312,11 @@ export function useSubSectors() {
 }
 
 /** Display order for the regulator's operating universe. Grouping is presentational only. */
-export const SECTOR_GROUP_ORDER = [
+export const SECTOR_GROUP_ORDER: string[] = [
   'DOMESTIC_FINANCIAL_SECTOR',
   'INTERNATIONAL_FINANCIAL_SECTOR',
   'OTHER_NEW_REGULATED_SECTOR',
-] as const;
+];
 
 export const SECTOR_GROUP_LABELS: Record<string, string> = {
   DOMESTIC_FINANCIAL_SECTOR: 'Domestic Financial Sector',
