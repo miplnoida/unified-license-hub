@@ -175,7 +175,9 @@ export function CoverageTab({ initialView = 'sectors' }: { initialView?: 'sector
                   )}
                 </CardContent>
               </Card>
+              </div>
             );
+
           })}
           {visibleSectors.length === 0 && <p className="text-sm text-muted-foreground">No sectors found.</p>}
         </TabsContent>
