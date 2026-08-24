@@ -396,21 +396,49 @@ export function ResponsibilityDialog({
             </label>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs">Effective from</Label>
-              <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-xs">Effective to (optional)</Label>
-              <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-            </div>
-          </div>
+          {/* Advanced — organisational unit, dates and notes. Ordinary
+              administration does not need any of this; the unit stays optional. */}
+          <Collapsible open={advanced} onOpenChange={setAdvanced}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-fit px-0 text-xs">
+                {advanced ? 'Hide advanced options' : 'Advanced options (organisational unit, dates, notes)'}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2 grid gap-3 rounded-md border p-3">
+              {!customize && (
+                <div>
+                  <Label className="text-xs">Organisational unit (optional)</Label>
+                  <Select value={shared.teamId} onValueChange={(v) => setShared((c) => ({ ...c, teamId: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>No unit</SelectItem>
+                      {(teams.data || []).filter((t: any) => t.status === 'active').map((t: any) => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    A unit only groups staff — it never grants a permission and never replaces the area of work.
+                  </p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Effective from</Label>
+                  <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Effective to (optional)</Label>
+                  <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Notes</Label>
+                <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
-          <div>
-            <Label className="text-xs">Notes</Label>
-            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
 
           {!editing && areas.length > 0 && (
             <p className="text-xs text-muted-foreground">
