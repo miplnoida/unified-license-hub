@@ -123,14 +123,23 @@ export default function RegistrationReviewDetail() {
     }
     setReg(data as unknown as RegistrationRow);
 
-    const { data: inst } = await supabase
+    // Read the newest instance for this registration. `limit(1)` (not
+    // `maybeSingle()`) so multiple historical instances never error, and the
+    // error is surfaced explicitly instead of degrading to "no workflow".
+    const { data: inst, error: wfError } = await supabase
       .from('workflow_instances')
-      .select('workflow_id')
+      .select('workflow_id, created_at')
       .eq('entity_type', 'registration')
       .eq('entity_id', registrationId)
-      .maybeSingle();
-    setWf({ workflow_id: (inst as any)?.workflow_id ?? null });
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (wfError) {
+      setWf({ workflow_id: null, error: wfError.message || 'Unable to load workflow' });
+    } else {
+      setWf({ workflow_id: ((inst || [])[0] as any)?.workflow_id ?? null });
+    }
     setLoading(false);
+
   }, [registrationId]);
 
   useEffect(() => { load(); }, [load]);
