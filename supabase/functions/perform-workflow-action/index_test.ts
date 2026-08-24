@@ -39,10 +39,9 @@ Deno.test("perform-workflow-action: missing Authorization → 401 UNAUTHORIZED",
   assertEquals(body.code, "UNAUTHORIZED");
 });
 
-// The remaining 400-paths require the auth check to pass first, which calls
-// supabase.auth.getUser() against the stub URL — that will fail with network
-// error, yielding 401. So we cannot directly exercise BAD_REQUEST paths here
-// without a live Supabase. Instead we assert the action allowlist constant
+// The remaining 400-paths require the auth check to pass first, which verifies
+// the bearer token against the stub project's signing keys. That fails in this
+// isolated test, yielding 401. So we assert the action allowlist constant
 // directly to lock in the exact set of accepted actions and prevent reintroducing
 // the removed synthetic actions (request_info / delegate).
 Deno.test("perform-workflow-action: action allowlist excludes synthetic actions", async () => {
@@ -56,7 +55,7 @@ Deno.test("perform-workflow-action: action allowlist excludes synthetic actions"
     .map((s) => s.replace(/['"\s]/g, ""))
     .filter(Boolean)
     .sort();
-  assertEquals(list, ["approve", "escalate", "reject", "request_more_info", "request_resubmission", "return_for_correction", "send_back"]);
+  assertEquals(list, ["approve", "escalate", "reject", "request_more_info", "request_resubmission", "return_for_correction", "save_comment", "send_back"]);
   // Defense in depth — the removed synthetic actions must NOT be in the source.
   if (list.includes("request_info")) throw new Error("request_info must not be in ACCEPTED_ACTIONS");
   if (list.includes("delegate")) throw new Error("delegate must not be in ACCEPTED_ACTIONS");
