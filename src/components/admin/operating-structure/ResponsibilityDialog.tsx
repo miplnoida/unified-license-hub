@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   usePortfolioMutations, useRegulatoryFunctions, useRegulatoryTeams,
-  useActiveSectors, useActiveSubSectors, useSectors, useStaffDirectory, useStaffPortfolios, useSubSectors, useSupervisedEntities,
+  SECTOR_GROUP_LABELS, useActiveSectors, useActiveSubSectors, useSectors, useStaffDirectory, useStaffPortfolios, useSubSectors, useSupervisedEntities,
 } from '@/hooks/useOperatingStructure';
 import { act, NONE } from './shared';
 import { useRegulatorResolution } from './regulatorResolution';
@@ -124,7 +124,7 @@ export function ResponsibilityDialog({
     '';
 
 
-  const options = useMemo(() => {
+  const options = useMemo<{ id: string; name: string; group?: string }[]>(() => {
     if (appliesTo === 'sector')
       return (activeSectors.data || []).map((s: any) => ({
         id: s.id,
@@ -307,6 +307,7 @@ export function ResponsibilityDialog({
                     <Checkbox checked={picked.includes(o.id)} onCheckedChange={() => toggle(o.id)} />
                     {o.name}
                   </label>
+                  </div>
                 ))}
                 {options.length === 0 && <p className="text-xs text-muted-foreground">Nothing to select.</p>}
               </div>
