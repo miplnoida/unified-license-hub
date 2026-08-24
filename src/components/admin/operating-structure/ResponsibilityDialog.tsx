@@ -52,6 +52,8 @@ export function ResponsibilityDialog({
     [portfolios.data, portfolioId],
   );
 
+  const staff = useStaffDirectory();
+  const [personId, setPersonId] = useState('');
   const [regulatorId, setRegulatorId] = useState('');
   const [functionId, setFunctionId] = useState('');
   const [appliesTo, setAppliesTo] = useState<AppliesTo>('all');
@@ -61,6 +63,7 @@ export function ResponsibilityDialog({
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [notes, setNotes] = useState('');
+  const targetUser = userId || existing?.user_id || personId;
 
   useEffect(() => {
     if (!open) return;
