@@ -25365,6 +25365,57 @@ export type Database = {
         }
         Relationships: []
       }
+      regulator_mandate_enforcement: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          created_at: string
+          enforcement_status: string
+          id: string
+          notes: string | null
+          regulator_id: string
+          regulatory_function_id: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          created_at?: string
+          enforcement_status?: string
+          id?: string
+          notes?: string | null
+          regulator_id: string
+          regulatory_function_id: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          created_at?: string
+          enforcement_status?: string
+          id?: string
+          notes?: string | null
+          regulator_id?: string
+          regulatory_function_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulator_mandate_enforcement_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulator_mandate_enforcement_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regulator_mandates: {
         Row: {
           created_at: string
@@ -37607,6 +37658,7 @@ export type Database = {
         Returns: Json
       }
       entity_registry_search: { Args: { _criteria: Json }; Returns: Json }
+      entity_regulatory_scope: { Args: { _entity_id: string }; Returns: Json }
       entity_relationship_delete: {
         Args: { _reason?: string; _relationship_id: string }
         Returns: undefined
@@ -41412,14 +41464,33 @@ export type Database = {
           user_id: string
         }[]
       }
-      regulator_mandate_supports: {
-        Args: {
-          _regulator_id: string
-          _sector_id: string
-          _sub_sector_id: string
-        }
+      regulator_mandate_enforcement_active: {
+        Args: { _function_id: string; _regulator_id: string }
         Returns: boolean
       }
+      regulator_mandate_supports:
+        | {
+            Args: {
+              _function_id: string
+              _regulator_id: string
+              _sector_id: string
+              _sub_sector_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              _regulator_id: string
+              _sector_id: string
+              _sub_sector_id: string
+            }
+            Returns: boolean
+          }
+      regulatory_function_for_module: {
+        Args: { _module: string }
+        Returns: string
+      }
+      regulatory_function_mapping_report: { Args: never; Returns: Json }
       regulatory_request_available_types: {
         Args: { _entity_id: string }
         Returns: {
@@ -42452,16 +42523,28 @@ export type Database = {
         }
         Returns: string
       }
-      staff_portfolio_allows: {
-        Args: {
-          _entity_id: string
-          _regulator_id: string
-          _sector_id: string
-          _sub_sector_id: string
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      staff_portfolio_allows:
+        | {
+            Args: {
+              _entity_id: string
+              _function_id: string
+              _regulator_id: string
+              _sector_id: string
+              _sub_sector_id: string
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              _entity_id: string
+              _regulator_id: string
+              _sector_id: string
+              _sub_sector_id: string
+              _user_id: string
+            }
+            Returns: boolean
+          }
       start_complaint_investigation:
         | {
             Args: { _id: string }
@@ -43144,10 +43227,12 @@ export type Database = {
         Args: { _action: string; _module: string; _user_id: string }
         Returns: Json
       }
-      user_team_covers_entity: {
-        Args: { _entity_id: string; _user_id: string }
-        Returns: boolean
-      }
+      user_team_covers_entity:
+        | { Args: { _entity_id: string; _user_id: string }; Returns: boolean }
+        | {
+            Args: { _entity_id: string; _function_id: string; _user_id: string }
+            Returns: boolean
+          }
       user_workflow_role_slugs: { Args: { _user: string }; Returns: string[] }
       validate_notification_recipient_config: {
         Args: { _recipient_config: Json; _recipient_type: string }
