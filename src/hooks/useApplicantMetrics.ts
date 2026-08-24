@@ -74,7 +74,7 @@ export function useApplicantMetrics(userId: string | undefined, scope: Applicant
       ]);
 
       const recentAppsQuery = scopeApps(
-        supabase.from('applications').select('id, application_number, status, created_at, updated_at, data').eq('applicant_id', userId!),
+        supabase.from('applications').select('id, application_number, status, created_at, updated_at, submitted_at, data').eq('applicant_id', userId!),
         scope,
       ).order('created_at', { ascending: false }).limit(8);
 
