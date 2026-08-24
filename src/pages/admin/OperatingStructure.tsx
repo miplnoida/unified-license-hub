@@ -107,8 +107,19 @@ export default function OperatingStructure() {
         <TabsList>
           <TabsTrigger value="teams">Teams</TabsTrigger>
           <TabsTrigger value="staff">Staff Responsibilities</TabsTrigger>
+          <TabsTrigger value="supervision">Entity Supervision</TabsTrigger>
+          <TabsTrigger value="bodies">Panels &amp; Committees</TabsTrigger>
           <TabsTrigger value="warnings">Coverage Warnings</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="supervision" className="mt-4">
+          <EntitySupervisionTab />
+        </TabsContent>
+
+        <TabsContent value="bodies" className="mt-4">
+          <PanelsCommitteesTab />
+        </TabsContent>
+
 
         <TabsContent value="teams" className="mt-4">
           <Card>
