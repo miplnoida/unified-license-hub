@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { formatDateTime } from '@/lib/datetime';
 import {
-  useRegulators, useRegulatoryFunctions, useRegulatoryTeams, useStaffDirectory,
+  useActiveRegulators, useRegulators, useRegulatoryFunctions, useRegulatoryTeams, useStaffDirectory,
   useSupervisedEntities, useSupervisionAssignments, useSupervisionMutations, useTeamMembers,
 } from '@/hooks/useOperatingStructure';
 
@@ -29,6 +29,7 @@ const NONE = 'none';
  */
 export function EntitySupervisionTab() {
   const regulators = useRegulators();
+  const activeRegulators = useActiveRegulators();
   const functions = useRegulatoryFunctions();
   const teams = useRegulatoryTeams();
   const staff = useStaffDirectory();
@@ -256,7 +257,7 @@ export function EntitySupervisionTab() {
                   <Select value={regulatorId} onValueChange={(v) => { setRegulatorId(v); setTeamId(''); }}>
                     <SelectTrigger><SelectValue placeholder="Select the regulator" /></SelectTrigger>
                     <SelectContent>
-                      {(regulators.data || []).map((r) => (
+                      {(activeRegulators.data || []).map((r: any) => (
                         <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                       ))}
                     </SelectContent>

@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { formatDateTime } from '@/lib/datetime';
 import {
-  usePortfolioMutations, useRegulators, useRegulatoryFunctions, useRegulatoryTeams,
+  usePortfolioMutations, useActiveRegulators, useRegulators, useRegulatoryFunctions, useRegulatoryTeams,
   useSectors, useStaffPortfolios, useSubSectors, useSupervisedEntities,
   useTeamMembers, useTeamMutations,
 } from '@/hooks/useOperatingStructure';
@@ -54,6 +54,7 @@ export function StaffResponsibilityTab() {
   });
 
   const regulators = useRegulators();
+  const activeRegulators = useActiveRegulators();
   const functions = useRegulatoryFunctions();
   const teams = useRegulatoryTeams();
   const members = useTeamMembers();
@@ -100,7 +101,7 @@ export function StaffResponsibilityTab() {
   };
 
   const openDrawer = () => {
-    setPf({ regulatorId: (regulators.data || [])[0]?.id || '', functionId: '', teamId: NONE, notes: '' });
+    setPf({ regulatorId: (activeRegulators.data || []).length === 1 ? (activeRegulators.data as any[])[0].id : '', functionId: '', teamId: NONE, notes: '' });
     setDrawer(true);
   };
 
@@ -280,7 +281,7 @@ export function StaffResponsibilityTab() {
                   <Select value={pf.regulatorId} onValueChange={(v) => setPf({ ...pf, regulatorId: v })}>
                     <SelectTrigger><SelectValue placeholder="Regulator" /></SelectTrigger>
                     <SelectContent>
-                      {(regulators.data || []).map((r: any) => (
+                      {(activeRegulators.data || []).map((r: any) => (
                         <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                       ))}
                     </SelectContent>
