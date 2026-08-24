@@ -358,6 +358,7 @@ export function ResponsibilityDialog({
             />
           )}
 
+
           {/* ---------- Per-area rows ---------- */}
           {areas.length > 0 && (
             <div className="space-y-2">
