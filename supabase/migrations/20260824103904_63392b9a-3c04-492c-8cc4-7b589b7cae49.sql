@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.comms_content_refresh_apply(jsonb);
