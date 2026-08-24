@@ -278,7 +278,13 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
   const moduleKey = entityType === 'registration' ? 'registration_management' : 'application_management';
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess(moduleKey as any) : INTERNAL_ROLES.includes(user.role));
-  const { data: instances = [] } = useWorkflowInstances(entityType, applicationId);
+  const {
+    data: instances = [],
+    isLoading: instancesLoading,
+    error: instancesError,
+    refetch: refetchInstances,
+  } = useWorkflowInstances(entityType, applicationId);
+
   const { data: actions = [] } = useEntityActions(entityType, applicationId);
   // Source of truth: the workflow_id pinned on the active/paused workflow_instance,
   // falling back to the application's workflow_id. This ensures the UI renders
@@ -565,7 +571,27 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       </CardContent></Card>
     );
   }
+  // Never present "loading" or "failed to read" as "no workflow".
+  if (instancesLoading) {
+    return (
+      <Card><CardContent className="py-6 flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Loading workflow…
+      </CardContent></Card>
+    );
+  }
+  if (instancesError) {
+    return (
+      <Card><CardContent className="py-6 space-y-3 text-sm">
+        <p className="font-medium text-destructive">Unable to load workflow</p>
+        <p className="text-xs text-muted-foreground">
+          {(instancesError as any)?.message || 'The workflow could not be read.'}
+        </p>
+        <Button variant="outline" size="sm" onClick={() => refetchInstances()}>Retry</Button>
+      </CardContent></Card>
+    );
+  }
   if (!liveInstance) {
+
     if (instances.length === 0 && ['submitted', 'in_progress', 'pending', 'pending_review', 'under_review', 'in_review'].includes(applicationStatus)) {
       return (
         <Card><CardContent className="py-6 text-sm text-muted-foreground">

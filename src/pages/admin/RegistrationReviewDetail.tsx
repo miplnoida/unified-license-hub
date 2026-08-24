@@ -6,6 +6,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
@@ -52,7 +54,10 @@ interface RegistrationRow {
 
 interface WorkflowInfo {
   workflow_id: string | null;
+  /** Present when the workflow lookup itself failed (never treated as "none"). */
+  error?: string;
 }
+
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -123,14 +128,23 @@ export default function RegistrationReviewDetail() {
     }
     setReg(data as unknown as RegistrationRow);
 
-    const { data: inst } = await supabase
+    // Read the newest instance for this registration. `limit(1)` (not
+    // `maybeSingle()`) so multiple historical instances never error, and the
+    // error is surfaced explicitly instead of degrading to "no workflow".
+    const { data: inst, error: wfError } = await supabase
       .from('workflow_instances')
-      .select('workflow_id')
+      .select('workflow_id, created_at')
       .eq('entity_type', 'registration')
       .eq('entity_id', registrationId)
-      .maybeSingle();
-    setWf({ workflow_id: (inst as any)?.workflow_id ?? null });
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (wfError) {
+      setWf({ workflow_id: null, error: wfError.message || 'Unable to load workflow' });
+    } else {
+      setWf({ workflow_id: ((inst || [])[0] as any)?.workflow_id ?? null });
+    }
     setLoading(false);
+
   }, [registrationId]);
 
   useEffect(() => { load(); }, [load]);
@@ -360,6 +374,12 @@ export default function RegistrationReviewDetail() {
                     onStatusChange={load}
                   />
                 </ErrorBoundary>
+              ) : wf.error ? (
+                <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
+                  <p className="font-medium text-destructive">Unable to load workflow</p>
+                  <p className="text-xs text-muted-foreground mt-1">{wf.error}</p>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={load}>Retry</Button>
+                </div>
               ) : (
                 <div className="rounded-md border border-warning/40 bg-warning/5 p-4 text-sm">
                   <p className="font-medium">No Registration workflow attached</p>
@@ -368,6 +388,7 @@ export default function RegistrationReviewDetail() {
                   </p>
                 </div>
               )}
+
             </CardContent>
           </Card>
         </div>
