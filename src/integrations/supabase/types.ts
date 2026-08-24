@@ -35360,6 +35360,16 @@ export type Database = {
         Args: { _appeal_id: string; _note: string }
         Returns: Json
       }
+      appeal_independence_policy_set: {
+        Args: {
+          _appeal_scope: string
+          _legal_adviser_votes: boolean
+          _notes?: string
+          _prior_decision_maker_may_sit: boolean
+          _regulator_id?: string
+        }
+        Returns: Json
+      }
       appeal_latest_snapshot: {
         Args: { _appeal_id: string }
         Returns: {
