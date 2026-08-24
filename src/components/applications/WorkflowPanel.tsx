@@ -965,7 +965,8 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       case 'request_resubmission': return 'Request Resubmission';
       case 'return_for_correction': return 'Return for Correction';
       case 'request_more_info': return 'Request More Information';
-      default: return type;
+      case 'save_comment': return 'Add Comment';
+      default: return humanizeActionKey(type);
     }
   };
   const iconFor = (type: WorkflowActionType): React.ReactNode => {
