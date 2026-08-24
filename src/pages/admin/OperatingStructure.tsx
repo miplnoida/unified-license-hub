@@ -127,9 +127,11 @@ export default function OperatingStructure() {
               from acting — normal staffing and coverage work does not need this screen.
             </SheetDescription>
           </SheetHeader>
-          <div className="mt-4">
+          <div className="mt-4 space-y-4">
+            <RegulatorsAdminTab />
             <MandateAdminTab />
           </div>
+
         </SheetContent>
       </Sheet>
     </div>
