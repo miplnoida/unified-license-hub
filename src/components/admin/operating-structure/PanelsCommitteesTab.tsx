@@ -237,11 +237,18 @@ export function PanelsCommitteesTab() {
 
               {!ready && (
                 <p className="mt-2 text-xs text-amber-700">
-                  Composition is not complete yet — this panel needs a chair and at least {p.quorum}
-                  voting members. Quorum is never lowered and no permission is granted to clear it.
-                  Whether a panel may hear a specific matter is always decided case by case.
+                  Composition still needs {missing.join(' and ')}. Quorum is never lowered and no
+                  permission is granted to clear it. Whether a panel may hear a specific matter is
+                  always decided case by case.
                 </p>
               )}
+              {ready && !p.is_active && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Composition is complete. This panel is switched off — use Activate panel to make it
+                  available for appeals.
+                </p>
+              )}
+
             </div>
           ))}
           <p className="text-xs text-muted-foreground">
