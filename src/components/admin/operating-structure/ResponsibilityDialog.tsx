@@ -33,12 +33,21 @@ export interface ResponsibilityDialogProps {
   userId: string | null;
   /** Existing responsibility to edit, or null to add new ones. */
   portfolioId?: string | null;
-  /** Pre-selected area of work and place, used when assigning from Coverage. */
-  preset?: { functionId?: string; sectorId?: string; subSectorId?: string; teamId?: string };
+  /** Pre-selected areas of work and place, used when assigning from Coverage. */
+  preset?: {
+    functionId?: string;
+    functionIds?: string[];
+    sectorId?: string;
+    subSectorId?: string;
+    teamId?: string;
+  };
+  /** Optional heading override, e.g. "Assign sector lead". */
+  title?: string;
   onSaved?: () => void;
 }
 
 const blank = (): AreaConfig => ({ appliesTo: 'all', sectorId: '', picked: [], teamId: NONE });
+
 
 /**
  * Recording WHAT a person is responsible for and WHERE it applies.
