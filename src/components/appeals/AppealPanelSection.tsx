@@ -21,6 +21,7 @@ import {
 } from '@/lib/licenseAppeals';
 import { formatDateTime } from '@/lib/datetime';
 import { useCan } from '@/hooks/useCan';
+import { AppealParticipationPanel } from '@/components/appeals/AppealParticipationPanel';
 
 interface Props {
   appeal: LicenseAppeal;
