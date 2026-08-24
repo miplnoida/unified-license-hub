@@ -92,6 +92,12 @@ def main() -> None:
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
+    prior_snapshot = OUT_DIR / "before-snapshot.json"
+    prior_baseline: dict[str, dict] = {}
+    if prior_snapshot.exists():
+        for row in json.loads(prior_snapshot.read_text()):
+            prior_baseline[row["event_key"]] = row["before"]
+
     pack = load_pack()
     keys = sorted(pack)
     keys_sql = ",".join("'" + k.replace("'", "''") + "'" for k in keys)
@@ -137,6 +143,11 @@ def main() -> None:
         for b in bindings:
             if b["event_key"] == key:
                 allowed |= tokens(b["subject"], b["body"])
+        # tokens present in the original (pre-refresh) copy remain valid even after a
+        # previous refresh pass has already rewritten the live rows.
+        baseline = prior_baseline.get(key)
+        if baseline:
+            allowed |= tokens(*baseline.values())
 
         new_tokens = tokens(
             entry.get("in_app_title"), entry.get("in_app_message"),
