@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
-  usePortfolioMutations, useRegulatoryTeams, useStaffDirectory, useStaffPortfolios,
+  useActiveSectors, usePortfolioMutations, useRegulatoryTeams, useStaffDirectory, useStaffPortfolios,
 } from '@/hooks/useOperatingStructure';
 import { act, NONE } from './shared';
 import { useApplicableSectorAreas, useSectorRegulatorId } from './sectorAreas';
@@ -388,6 +388,120 @@ export function SupportingStaffDialog({
           <Button onClick={submit} disabled={!person || picked.length === 0 || saving}>
             {userId ? 'Save' : 'Add'}
           </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * "Responsibility for a sector" — the simple path from People & Responsibilities.
+ * Person is already known: choose the sector, then full or selected areas.
+ */
+export function PersonSectorResponsibilityDialog({
+  open, onOpenChange, userId, onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  userId: string | null;
+  onSaved?: () => void;
+}) {
+  const sectors = useActiveSectors();
+  const [sectorId, setSectorId] = useState('');
+  const [mode, setMode] = useState<'full' | 'specific'>('full');
+  const [picked, setPicked] = useState<string[]>([]);
+  const [teamId, setTeamId] = useState(NONE);
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const { areasFor } = useApplicableSectorAreas();
+  const areas = useMemo(() => (sectorId ? areasFor(sectorId) : []), [areasFor, sectorId]);
+  const { save } = useSectorSave(sectorId);
+
+  useEffect(() => {
+    if (!open) return;
+    setSectorId(''); setMode('full'); setPicked([]); setTeamId(NONE);
+    setFrom(''); setTo(''); setNotes('');
+  }, [open]);
+
+  const selected = mode === 'full' ? areas.map((a) => a.id) : picked;
+  const sectorName = (sectors.data || []).find((s: any) => s.id === sectorId)?.name || '';
+
+  const submit = async () => {
+    if (!userId) return;
+    setSaving(true);
+    const ok = await save({
+      userId, functionIds: selected, teamId, from, to, notes,
+      okMessage: `Responsibility recorded for ${sectorName}`,
+    });
+    setSaving(false);
+    if (ok) { onOpenChange(false); onSaved?.(); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader><DialogTitle>Responsibility for a sector</DialogTitle></DialogHeader>
+
+        <div className="grid gap-3">
+          <div>
+            <Label className="text-xs">Sector</Label>
+            <Select value={sectorId} onValueChange={(v) => { setSectorId(v); setPicked([]); }}>
+              <SelectTrigger><SelectValue placeholder="Select a sector" /></SelectTrigger>
+              <SelectContent>
+                {(sectors.data || []).map((s: any) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {sectorId && (
+            <>
+              <div>
+                <Label className="text-xs">Responsibility</Label>
+                <RadioGroup value={mode} onValueChange={(v) => setMode(v as any)} className="mt-1 gap-2">
+                  <label className="flex items-center gap-2 text-sm">
+                    <RadioGroupItem value="full" /> Full responsibility for this sector ({areas.length} areas)
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <RadioGroupItem value="specific" /> Selected areas of work
+                  </label>
+                </RadioGroup>
+              </div>
+
+              {mode === 'specific' && (
+                <div className="max-h-52 space-y-1 overflow-auto rounded-md border p-2">
+                  {areas.map((a) => (
+                    <label key={a.id} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={picked.includes(a.id)}
+                        onCheckedChange={() =>
+                          setPicked((p) => (p.includes(a.id) ? p.filter((x) => x !== a.id) : [...p, a.id]))
+                        }
+                      />
+                      {a.name}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          <AccessStatusNote userId={userId} />
+
+          <AdvancedBlock
+            teamId={teamId} setTeamId={setTeamId}
+            from={from} setFrom={setFrom} to={to} setTo={setTo}
+            notes={notes} setNotes={setNotes}
+          />
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={submit} disabled={!sectorId || selected.length === 0 || saving}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
