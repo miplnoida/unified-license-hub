@@ -11708,6 +11708,10 @@ export type Database = {
       }
       entity_supervision_assignments: {
         Row: {
+          alternate_supervisor_user_id: string | null
+          assigned_by: string | null
+          assignment_reason: string | null
+          closure_reason: string | null
           created_at: string
           created_by: string | null
           cycle_end: string | null
@@ -11716,15 +11720,26 @@ export type Database = {
           effective_to: string | null
           entity_id: string
           id: string
+          is_primary: boolean
+          lead_supervisor_user_id: string | null
           notes: string | null
+          previous_assignment_id: string | null
+          regulator_id: string | null
+          regulatory_function_id: string | null
+          requires_admin_review: boolean
           status: string
           supervisor_id: string | null
           supervisor_name: string | null
           supervisory_cycle: string | null
           team: string | null
+          team_id: string | null
           updated_at: string
         }
         Insert: {
+          alternate_supervisor_user_id?: string | null
+          assigned_by?: string | null
+          assignment_reason?: string | null
+          closure_reason?: string | null
           created_at?: string
           created_by?: string | null
           cycle_end?: string | null
@@ -11733,15 +11748,26 @@ export type Database = {
           effective_to?: string | null
           entity_id: string
           id?: string
+          is_primary?: boolean
+          lead_supervisor_user_id?: string | null
           notes?: string | null
+          previous_assignment_id?: string | null
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          requires_admin_review?: boolean
           status?: string
           supervisor_id?: string | null
           supervisor_name?: string | null
           supervisory_cycle?: string | null
           team?: string | null
+          team_id?: string | null
           updated_at?: string
         }
         Update: {
+          alternate_supervisor_user_id?: string | null
+          assigned_by?: string | null
+          assignment_reason?: string | null
+          closure_reason?: string | null
           created_at?: string
           created_by?: string | null
           cycle_end?: string | null
@@ -11750,12 +11776,19 @@ export type Database = {
           effective_to?: string | null
           entity_id?: string
           id?: string
+          is_primary?: boolean
+          lead_supervisor_user_id?: string | null
           notes?: string | null
+          previous_assignment_id?: string | null
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          requires_admin_review?: boolean
           status?: string
           supervisor_id?: string | null
           supervisor_name?: string | null
           supervisory_cycle?: string | null
           team?: string | null
+          team_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -11772,6 +11805,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_prudential_early_warnings"
             referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_supervision_assignments_previous_assignment_id_fkey"
+            columns: ["previous_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "entity_supervision_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_supervision_assignments_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_supervision_assignments_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_supervision_assignments_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_teams"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -25365,6 +25426,57 @@ export type Database = {
         }
         Relationships: []
       }
+      regulator_mandate_enforcement: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          created_at: string
+          enforcement_status: string
+          id: string
+          notes: string | null
+          regulator_id: string
+          regulatory_function_id: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          created_at?: string
+          enforcement_status?: string
+          id?: string
+          notes?: string | null
+          regulator_id: string
+          regulatory_function_id: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          created_at?: string
+          enforcement_status?: string
+          id?: string
+          notes?: string | null
+          regulator_id?: string
+          regulatory_function_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulator_mandate_enforcement_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulator_mandate_enforcement_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regulator_mandates: {
         Row: {
           created_at: string
@@ -35395,6 +35507,22 @@ export type Database = {
         }
         Returns: undefined
       }
+      assign_entity_supervision: {
+        Args: {
+          _alternate_supervisor_user_id?: string
+          _assignment_reason?: string
+          _effective_from?: string
+          _effective_to?: string
+          _entity_id: string
+          _lead_supervisor_user_id?: string
+          _notes?: string
+          _regulator_id: string
+          _regulatory_function_id: string
+          _supervisory_cycle?: string
+          _team_id?: string
+        }
+        Returns: string
+      }
       assign_primary_user: {
         Args: { _entity_id: string; _user_id: string }
         Returns: Json
@@ -37286,6 +37414,14 @@ export type Database = {
         Args: { _section: string; _user: string }
         Returns: boolean
       }
+      end_entity_supervision_assignment: {
+        Args: {
+          _assignment_id: string
+          _closure_reason: string
+          _effective_to?: string
+        }
+        Returns: string
+      }
       enforce_action: {
         Args: { _action: string; _meta?: Json; _module: string }
         Returns: undefined
@@ -37607,6 +37743,7 @@ export type Database = {
         Returns: Json
       }
       entity_registry_search: { Args: { _criteria: Json }; Returns: Json }
+      entity_regulatory_scope: { Args: { _entity_id: string }; Returns: Json }
       entity_relationship_delete: {
         Args: { _reason?: string; _relationship_id: string }
         Returns: undefined
@@ -37686,6 +37823,20 @@ export type Database = {
           _to?: string
         }
         Returns: Json
+      }
+      esa_assert_assignment_authority: {
+        Args: {
+          _actor: string
+          _alternate: string
+          _effective_from: string
+          _effective_to: string
+          _entity_id: string
+          _function_id: string
+          _lead: string
+          _regulator_id: string
+          _team_id: string
+        }
+        Returns: undefined
       }
       escalate_application: {
         Args: { _application_id: string; _reason?: string }
@@ -41412,14 +41563,33 @@ export type Database = {
           user_id: string
         }[]
       }
-      regulator_mandate_supports: {
-        Args: {
-          _regulator_id: string
-          _sector_id: string
-          _sub_sector_id: string
-        }
+      regulator_mandate_enforcement_active: {
+        Args: { _function_id: string; _regulator_id: string }
         Returns: boolean
       }
+      regulator_mandate_supports:
+        | {
+            Args: {
+              _function_id: string
+              _regulator_id: string
+              _sector_id: string
+              _sub_sector_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              _regulator_id: string
+              _sector_id: string
+              _sub_sector_id: string
+            }
+            Returns: boolean
+          }
+      regulatory_function_for_module: {
+        Args: { _module: string }
+        Returns: string
+      }
+      regulatory_function_mapping_report: { Args: never; Returns: Json }
       regulatory_request_available_types: {
         Args: { _entity_id: string }
         Returns: {
@@ -42452,16 +42622,28 @@ export type Database = {
         }
         Returns: string
       }
-      staff_portfolio_allows: {
-        Args: {
-          _entity_id: string
-          _regulator_id: string
-          _sector_id: string
-          _sub_sector_id: string
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      staff_portfolio_allows:
+        | {
+            Args: {
+              _entity_id: string
+              _function_id: string
+              _regulator_id: string
+              _sector_id: string
+              _sub_sector_id: string
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              _entity_id: string
+              _regulator_id: string
+              _sector_id: string
+              _sub_sector_id: string
+              _user_id: string
+            }
+            Returns: boolean
+          }
       start_complaint_investigation:
         | {
             Args: { _id: string }
@@ -43074,6 +43256,17 @@ export type Database = {
         Args: { _is_active: boolean; _mapping_id: string }
         Returns: Json
       }
+      transfer_entity_supervision: {
+        Args: {
+          _alternate_supervisor_user_id?: string
+          _assignment_id: string
+          _effective_from?: string
+          _lead_supervisor_user_id?: string
+          _team_id?: string
+          _transfer_reason?: string
+        }
+        Returns: string
+      }
       transition_complaint_status: {
         Args: {
           _expected_updated_at?: string
@@ -43144,10 +43337,12 @@ export type Database = {
         Args: { _action: string; _module: string; _user_id: string }
         Returns: Json
       }
-      user_team_covers_entity: {
-        Args: { _entity_id: string; _user_id: string }
-        Returns: boolean
-      }
+      user_team_covers_entity:
+        | { Args: { _entity_id: string; _user_id: string }; Returns: boolean }
+        | {
+            Args: { _entity_id: string; _function_id: string; _user_id: string }
+            Returns: boolean
+          }
       user_workflow_role_slugs: { Args: { _user: string }; Returns: string[] }
       validate_notification_recipient_config: {
         Args: { _recipient_config: Json; _recipient_type: string }
