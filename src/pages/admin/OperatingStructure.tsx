@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,14 +5,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { EntitySupervisionTab } from '@/components/admin/operating-structure/EntitySupervisionTab';
 import { PanelsCommitteesTab } from '@/components/admin/operating-structure/PanelsCommitteesTab';
-import { useRoleRegistryDrift } from '@/hooks/useOperatingStructure';
+import { TeamAdminTab } from '@/components/admin/operating-structure/TeamAdminTab';
+import { StaffResponsibilityTab } from '@/components/admin/operating-structure/StaffResponsibilityTab';
+import { MandateAdminTab } from '@/components/admin/operating-structure/MandateAdminTab';
+import { useRegulatorMandates, useRoleRegistryDrift, useStaffPortfolios } from '@/hooks/useOperatingStructure';
 
 /**
  * Administration → Regulatory Operating Structure.
  *
- * Read-only management view proving that ONE person may legitimately hold many
- * duties (roles, teams, functions, portfolios, entities, examinations, panels,
- * committees) while independence is enforced per record in the backend.
+ * The single configuration console for WHO works here, WHAT organisational
+ * responsibilities they hold, WHERE those responsibilities apply, WHICH teams
+ * they belong to and WHICH entities / functions they own.
+ *
+ * Every write is performed by a governed SECURITY DEFINER routine — the client
+ * holds no DML grant on any operating-structure table, and recording structure
+ * can only narrow authority, never widen it.
  */
 type Warning = {
   code: string;
@@ -23,17 +29,6 @@ type Warning = {
   subject: string;
   detail: string;
 };
-
-function useDirectory() {
-  return useQuery({
-    queryKey: ['staff-responsibility-directory'],
-    queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)('staff_responsibility_directory');
-      if (error) throw error;
-      return (Array.isArray(data) ? data : []) as any[];
-    },
-  });
-}
 
 function useWarnings() {
   return useQuery({
@@ -46,56 +41,17 @@ function useWarnings() {
   });
 }
 
-function useProfile(userId: string | null) {
-  return useQuery({
-    queryKey: ['staff-responsibility-profile', userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)('staff_responsibility_profile', {
-        _user_id: userId,
-      });
-      if (error) throw error;
-      return data as any;
-    },
-  });
-}
-
-function List({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
-      {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">None</p>
-      ) : (
-        <ul className="mt-1 space-y-1 text-sm">
-          {items.map((i, idx) => (
-            <li key={idx}>{i}</li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 export default function OperatingStructure() {
-  const [selected, setSelected] = useState<string | null>(null);
-  const directory = useDirectory();
   const warnings = useWarnings();
-  const profile = useProfile(selected);
-
-  const teams = useQuery({
-    queryKey: ['reg-teams-admin'],
-    queryFn: async () => {
-      const { data, error } = await (supabase.from('regulatory_teams' as any) as any)
-        .select('id, code, name, team_type, status')
-        .order('name');
-      if (error) throw error;
-      return (data || []) as any[];
-    },
-  });
-
-  const p = profile.data || {};
   const drift = useRoleRegistryDrift();
+  const mandates = useRegulatorMandates();
+  const portfolios = useStaffPortfolios();
+
+  const enforcedFunctions = (mandates.data?.enforcement || []).filter(
+    (e: any) => e.enforcement_status === 'ACTIVE',
+  ).length;
+  const activePortfolios = (portfolios.data?.portfolios || []).filter((p: any) => p.status === 'active').length;
+
 
   return (
     <div className="space-y-4">
