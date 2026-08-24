@@ -31557,24 +31557,36 @@ export type Database = {
       }
       sectors: {
         Row: {
+          code: string | null
           created_at: string
+          display_group: string | null
+          external_regulator: string | null
           id: string
           name: string
           regulator_id: string | null
+          scope_note: string | null
           status: string
         }
         Insert: {
+          code?: string | null
           created_at?: string
+          display_group?: string | null
+          external_regulator?: string | null
           id?: string
           name: string
           regulator_id?: string | null
+          scope_note?: string | null
           status?: string
         }
         Update: {
+          code?: string | null
           created_at?: string
+          display_group?: string | null
+          external_regulator?: string | null
           id?: string
           name?: string
           regulator_id?: string | null
+          scope_note?: string | null
           status?: string
         }
         Relationships: [
@@ -32235,6 +32247,7 @@ export type Database = {
       }
       sub_sectors: {
         Row: {
+          code: string | null
           created_at: string
           id: string
           name: string
@@ -32242,6 +32255,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          code?: string | null
           created_at?: string
           id?: string
           name: string
@@ -32249,6 +32263,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          code?: string | null
           created_at?: string
           id?: string
           name?: string
