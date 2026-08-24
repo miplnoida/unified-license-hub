@@ -89,10 +89,11 @@ export function PanelsCommitteesTab() {
     if (ok) setNewMember('');
   };
 
-  const removeMember = (memberId: string) =>
-    memberDialog?.kind === 'panel'
+  const removeMember = (kind: 'panel' | 'committee', memberId: string) =>
+    kind === 'panel'
       ? act(() => panelMut.endMember.mutateAsync({ memberId }), 'Member removed')
       : act(() => committeeMut.setMemberActive.mutateAsync({ memberId, isActive: false }), 'Member removed');
+
 
   const staffName = (id: string) => (staff.data || []).find((s) => s.id === id)?.full_name || id.slice(0, 8);
   const regName = (id: string | null) => (id && (regulators.data || []).find((r) => r.id === id)?.name) || 'All regulators';
