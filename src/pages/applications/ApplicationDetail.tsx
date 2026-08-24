@@ -1195,16 +1195,14 @@ export default function ApplicationDetail() {
                           />
                         </div>
                       )}
-                      <div key={docRefresh} className="space-y-4">
-                        <AttachmentList
-                          entityType="application"
-                          entityId={app.id}
-                          includeFormFields
-                          showHeader
-                          title="All Application Documents"
-                          emptyText="No documents uploaded yet"
+                      <div className="space-y-4">
+                        <ApplicationDocumentsPanel
+                          applicationId={app.id}
+                          formsData={formsData}
+                          refreshKey={docRefresh}
                         />
                       </div>
+
                     </CardContent>
                   </Card>
                 )}
