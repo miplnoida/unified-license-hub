@@ -29,6 +29,11 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
+    // User-scoped client for RLS-respecting RPC calls / function invokes.
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
     // Identity comes from the gate's verified token claims. A second
     // auth.getUser() round-trip can fail with "session not found" after a
     // refresh-token rotation and would surface as a bogus 401.

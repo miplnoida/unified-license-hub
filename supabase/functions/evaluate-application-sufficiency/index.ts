@@ -21,9 +21,7 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization') ?? '';
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const anon = Deno.env.get('SUPABASE_ANON_KEY')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const asUser = createClient(supabaseUrl, anon, { global: { headers: { Authorization: authHeader } } });
     const svc = createClient(supabaseUrl, serviceKey);
 
     // Identity comes from the gate's verified token claims. A second
