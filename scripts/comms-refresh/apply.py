@@ -203,10 +203,6 @@ def main() -> None:
                 continue
             stats[f"{channel}_templates"] = stats.get(f"{channel}_templates", 0) + 1
             stmts.append(f"""
-do $refresh_tpl${{
-}}$refresh_tpl$;""".strip().replace("{\n}", ""))
-            stmts.pop()  # placeholder removed; real statement below
-            stmts.append(f"""
 with nextv as (
   select coalesce(max(version), 0) + 1 as v
   from public.notification_template_versions where template_id = '{b['template_id']}'
