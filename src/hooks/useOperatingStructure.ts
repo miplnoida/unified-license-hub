@@ -297,12 +297,63 @@ export function useRoleRegistryDrift() {
 /* ------------------------- configuration console data ---------------------- */
 
 export function useSectors() {
-  return useQuery({ queryKey: ['os-sectors'], queryFn: () => table('sectors', 'id, name, regulator_id, status', 'name') });
+  return useQuery({
+    queryKey: ['os-sectors'],
+    queryFn: () =>
+      table('sectors', 'id, name, code, display_group, scope_note, external_regulator, regulator_id, status', 'name'),
+  });
 }
 
 export function useSubSectors() {
-  return useQuery({ queryKey: ['os-sub-sectors'], queryFn: () => table('sub_sectors', 'id, name, sector_id, status', 'name') });
+  return useQuery({
+    queryKey: ['os-sub-sectors'],
+    queryFn: () => table('sub_sectors', 'id, name, code, sector_id, status', 'name'),
+  });
 }
+
+/** Display order for the regulator's operating universe. Grouping is presentational only. */
+export const SECTOR_GROUP_ORDER = [
+  'DOMESTIC_FINANCIAL_SECTOR',
+  'INTERNATIONAL_FINANCIAL_SECTOR',
+  'OTHER_NEW_REGULATED_SECTOR',
+] as const;
+
+export const SECTOR_GROUP_LABELS: Record<string, string> = {
+  DOMESTIC_FINANCIAL_SECTOR: 'Domestic Financial Sector',
+  INTERNATIONAL_FINANCIAL_SECTOR: 'International Financial Sector',
+  OTHER_NEW_REGULATED_SECTOR: 'Other / New Regulated Sector',
+  UNGROUPED: 'Other regulated sectors',
+};
+
+const isActive = (row: any) => String(row?.status || '').toLowerCase() === 'active';
+
+/** Sectors offered in normal coverage / responsibility flows — active only. */
+export function useActiveSectors() {
+  const all = useSectors();
+  return { ...all, data: (all.data || []).filter(isActive) };
+}
+
+/** Sub-sectors offered in normal flows — active, and only under an active sector. */
+export function useActiveSubSectors() {
+  const all = useSubSectors();
+  const sectors = useActiveSectors();
+  const ids = new Set((sectors.data || []).map((s: any) => s.id));
+  return { ...all, data: (all.data || []).filter((s: any) => isActive(s) && ids.has(s.sector_id)) };
+}
+
+/** Active sectors arranged into the regulator's display groups. */
+export function useGroupedActiveSectors() {
+  const sectors = useActiveSectors();
+  const groups = [...SECTOR_GROUP_ORDER, 'UNGROUPED'].map((key) => ({
+    key,
+    label: SECTOR_GROUP_LABELS[key],
+    sectors: (sectors.data || []).filter(
+      (s: any) => (s.display_group || 'UNGROUPED') === key,
+    ),
+  }));
+  return { ...sectors, groups: groups.filter((g) => g.sectors.length > 0) };
+}
+
 
 export function useStaffPortfolios() {
   return useQuery({
