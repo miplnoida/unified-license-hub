@@ -1,0 +1,130 @@
+{
+  "compliance.return_due": {
+    "in_app_title": "Regulatory return due | {{return_name}}",
+    "in_app_message": "The regulatory return {{return_name}} is due by {{due_date}}. Please complete and submit it through the portal.",
+    "email_subject": "Regulatory return due | {{return_name}}",
+    "email_body": "We are writing to remind you of a regulatory reporting obligation falling due.\n\nThe return {{return_name}} is required to be submitted to the Authority by {{due_date}}.\n\nAction required\nPlease sign in to the Regulatory Portal, complete each schedule of the return and submit it together with any supporting documents required. Please ensure that the figures reported are complete, reconciled and consistent with your accounting records before submission.\n\nDeadline\nThe return must be submitted by {{due_date}}.\n\nWhat happens next\nOnce submitted, the return will be validated and reviewed by the Authority. You will be notified if any correction or clarification is required. Late submission may attract the consequences provided for under the applicable reporting requirements.\n\nRegards,\n{{app_name}}"
+  },
+  "compliance.return_submitted": {
+    "in_app_title": "Return submitted | {{return_name}}",
+    "in_app_message": "{{actor_name}} submitted the regulatory return {{return_name}}. The return is now awaiting review by the Authority."
+  },
+  "compliance.return_reviewed": {
+    "in_app_title": "Return reviewed | {{return_name}}",
+    "in_app_message": "The Authority has completed its review of the return {{return_name}}. Please sign in to review the outcome and any remarks recorded.",
+    "email_subject": "Return review completed | {{return_name}}",
+    "email_body": "We are writing regarding the regulatory return {{return_name}} submitted to the Authority.\n\nThe Authority has completed its review of the return.\n\n{{#comments}}Remarks recorded by the reviewer\n{{comments}}\n\n{{/comments}}Action required\nPlease sign in to the Regulatory Portal to review the outcome recorded against the return, together with any remarks and any follow-up requirement noted by the reviewer.\n\nWhat happens next\nWhere the return has been accepted, no further action is required in respect of this reporting period. Where a correction or clarification is required, a separate request will be issued to you through the portal.\n\nRegards,\n{{app_name}}"
+  },
+  "compliance.return_rejected_or_changes_requested": {
+    "in_app_title": "Correction required | {{return_name}}",
+    "in_app_message": "Corrections are required to the regulatory return {{return_name}}. Please sign in, address the matters raised and resubmit the return.",
+    "email_subject": "Correction required | {{return_name}}",
+    "email_body": "We are writing regarding the regulatory return {{return_name}} submitted to the Authority.\n\nFollowing review, the return cannot be accepted in its current form and corrections are required before it can be processed further.\n\n{{#comments}}Matters to be addressed\n{{comments}}\n\n{{/comments}}Action required\nPlease sign in to the Regulatory Portal, address each of the matters identified, ensure that the reported figures are reconciled and resubmit the return with any supporting documents required.\n\nWhat happens next\nThe Authority will resume its review once the corrected return has been received. The reporting obligation for the period remains outstanding until a return has been accepted.\n\nRegards,\n{{app_name}}"
+  },
+  "return.submitted.confirmation": {
+    "in_app_title": "Return submitted | {{return_unique_id}}",
+    "in_app_message": "Return {{return_name}} for {{return_period}} {{return_year}} was submitted as {{return_unique_id}} and is now awaiting review. No action is required at this time.",
+    "email_subject": "Return received | {{return_unique_id}}",
+    "email_body": "We are writing to confirm that the regulatory return {{return_name}} for the reporting period {{return_period}} {{return_year}}, submitted by {{entity_name}}, has been received by the Authority under reference {{return_unique_id}}.\n\n{{#submitted_by_name}}The return was submitted by {{submitted_by_name}}.\n{{/submitted_by_name}}{{#new_status}}The return is currently recorded as awaiting review by the Authority.\n{{/new_status}}\nAction required\nNo action is required from you at this time. Please retain reference {{return_unique_id}} for any correspondence concerning this filing.\n\nWhat happens next\nThe return will be validated and reviewed by the Authority. Should any figure require correction or clarification, a request will be issued to you through the Regulatory Portal.\n\nRegards,\n{{app_name}}"
+  },
+  "return.resubmitted.confirmation": {
+    "in_app_title": "Return resubmitted | {{return_unique_id}}",
+    "in_app_message": "Return {{return_name}} ({{return_unique_id}}) was resubmitted on {{resubmitted_at}} and is now awaiting review.",
+    "email_subject": "Resubmitted return received | {{return_unique_id}}",
+    "email_body": "We are writing to confirm that the resubmitted regulatory return {{return_name}}, reference {{return_unique_id}}, was received by the Authority on {{resubmitted_at}}{{#actor_name}} following submission by {{actor_name}}{{/actor_name}}.\n\nThe return will be reviewed to confirm that the matters previously raised have been addressed.\n\nAction required\nNo action is required from you at this time.\n\nWhat happens next\nThe Authority will resume its review of the return and will notify you if any further correction or clarification is required.\n\nRegards,\n{{app_name}}"
+  },
+  "return.approved": {
+    "in_app_title": "Return accepted | {{return_unique_id}}",
+    "in_app_message": "Return {{return_name}} ({{return_unique_id}}) has been accepted by the Authority. No further action is required for this reporting period.",
+    "email_subject": "Return accepted | {{return_unique_id}}",
+    "email_body": "We are writing regarding the regulatory return {{return_name}}, reference {{return_unique_id}}, submitted by {{entity_name}}.\n\nThe Authority has completed its review and the return has been accepted{{#approved_at}} with effect from {{approved_at}}{{/approved_at}}.\n\n{{#action_comments}}Remarks recorded by the reviewer\n{{action_comments}}\n\n{{/action_comments}}Action required\nNo further action is required from you in respect of this reporting period. Please retain this confirmation for your records.\n\nWhat happens next\nThe accepted return forms part of the Authority's supervisory record for {{entity_name}}. Subsequent reporting obligations continue to apply in accordance with your reporting calendar.\n\nRegards,\n{{app_name}}"
+  },
+  "return.rejected": {
+    "in_app_title": "Return not accepted | {{return_unique_id}}",
+    "in_app_message": "Return {{return_name}} ({{return_unique_id}}) has not been accepted. Please sign in to review the reasons recorded and to file a corrected return.",
+    "email_subject": "Return not accepted | {{return_unique_id}}",
+    "email_body": "We are writing regarding the regulatory return {{return_name}}, reference {{return_unique_id}}, submitted by {{entity_name}}.\n\nFollowing review, the return has not been accepted{{#rejected_at}} as at {{rejected_at}}{{/rejected_at}}. The reporting obligation for the period therefore remains outstanding.\n\n{{#action_comments}}Reasons recorded by the reviewer\n{{action_comments}}\n\n{{/action_comments}}Action required\nPlease sign in to the Regulatory Portal, address each of the matters recorded and file a corrected return for the period.\n\nWhat happens next\nThe corrected return will be reviewed on receipt. Where the reporting obligation remains unmet, the consequences provided for under the applicable reporting requirements may apply.\n\nRegards,\n{{app_name}}"
+  },
+  "return.send_back": {
+    "in_app_title": "Return returned for correction | {{return_unique_id}}",
+    "in_app_message": "Return {{return_name}} ({{return_unique_id}}) has been returned for correction at the {{workflow_step_name}} stage. Please sign in to review the remarks and resubmit.",
+    "email_subject": "Return returned for correction | {{return_unique_id}}",
+    "email_body": "We are writing regarding the regulatory return {{return_name}}, reference {{return_unique_id}}, submitted by {{entity_name}}.\n\nThe return has been returned to you for correction at the {{workflow_step_name}} stage so that the matters identified during review may be addressed.\n\n{{#action_comments}}Matters to be addressed\n{{action_comments}}\n\n{{/action_comments}}Action required\nPlease sign in to the Regulatory Portal, correct the return as indicated, ensure the reported figures reconcile and resubmit the return.\n\nWhat happens next\nOnce your resubmission is received, the review will resume from the stage at which the return was returned.\n\nRegards,\n{{app_name}}"
+  },
+  "return.edit_requested": {
+    "in_app_title": "Return reopened for editing | {{return_unique_id}}",
+    "in_app_message": "Return {{return_name}} ({{return_unique_id}}) has been reopened for editing. Please sign in to make the required amendments and resubmit.",
+    "email_subject": "Return reopened for amendment | {{return_unique_id}}",
+    "email_body": "We are writing regarding the regulatory return {{return_name}}, reference {{return_unique_id}}, submitted by {{entity_name}}.\n\nThe return has been reopened so that amendments may be made. Its status has changed from {{previous_status}} to {{new_status}}.\n\n{{#edit_reason}}Reason recorded\n{{edit_reason}}\n\n{{/edit_reason}}Action required\nPlease sign in to the Regulatory Portal, make the necessary amendments to the return and resubmit it so that the review may continue.\n\nWhat happens next\nThe amended return will be reviewed on receipt and you will be notified of the outcome or of any further requirement.\n\nRegards,\n{{app_name}}"
+  },
+  "return.resubmission_requested": {
+    "in_app_title": "Resubmission required | {{unique_id}}",
+    "in_app_message": "Resubmission of return {{unique_id}} is required. Please sign in to review the matters raised and file the corrected return.",
+    "email_subject": "Resubmission required | {{unique_id}}",
+    "email_body": "We are writing regarding the regulatory return recorded under reference {{unique_id}}.\n\nFollowing review, a resubmission of the return is required before it can be accepted by the Authority.\n\n{{#reason}}Matters to be addressed\n{{reason}}\n\n{{/reason}}Action required\nPlease sign in to the Regulatory Portal, address the matters identified and resubmit the return for the period.\n\nWhat happens next\nThe resubmitted return will be reviewed on receipt. The reporting obligation for the period remains outstanding until a return has been accepted.\n\nRegards,\n{{app_name}}"
+  },
+  "return.comment_added": {
+    "in_app_title": "Remark recorded | {{return_unique_id}}",
+    "in_app_message": "{{actor_name}} recorded a remark on return {{return_name}} ({{return_unique_id}}). Please sign in to review it.",
+    "email_subject": "Remark recorded on return | {{return_unique_id}}",
+    "email_body": "We are writing regarding the regulatory return {{return_name}}, reference {{return_unique_id}}.\n\nA remark has been recorded on the return file by {{actor_name}} in the course of review.\n\n{{#action_comments}}Remark\n{{action_comments}}\n\n{{/action_comments}}Action required\nPlease sign in to the Regulatory Portal to review the remark and to provide any clarification requested.\n\nWhat happens next\nThe Authority will continue its review of the return once any clarification requested has been received.\n\nRegards,\n{{app_name}}"
+  },
+  "return.comment_saved": {
+    "in_app_title": "Remark recorded | {{return_reference}}",
+    "in_app_message": "{{reviewer_name}} recorded a remark on return {{return_reference}}. Please sign in to review it.",
+    "email_subject": "Remark recorded on return | {{return_reference}}",
+    "email_body": "We are writing regarding the regulatory return recorded under reference {{return_reference}}.\n\nA remark has been recorded on the return file by {{reviewer_name}} in the course of review.\n\nRemark\n{{comments}}\n\nAction required\nPlease sign in to the Regulatory Portal to review the remark and to provide any clarification requested.\n\nWhat happens next\nThe Authority will continue its review once any clarification requested has been received.\n\nRegards,\n{{app_name}}"
+  },
+  "return.overdue": {
+    "in_app_title": "Return overdue | {{return_name}}",
+    "in_app_message": "The return {{return_name}} for {{return_period}} {{return_year}} was due by {{due_date}} and has not been received. Please file it without further delay.",
+    "email_subject": "Overdue regulatory return | {{return_name}}",
+    "email_body": "We are writing regarding the regulatory reporting obligations of {{entity_name}}.\n\nOur records indicate that the return {{return_name}} for the reporting period {{return_period}} {{return_year}} has not been received by the applicable due date of {{due_date}}.\n\nAction required\nPlease sign in to the Regulatory Portal and file the outstanding return without further delay. If the return has already been filed, or if there is a reason for the delay, please advise the Authority through the portal so that the position can be reconciled.\n\nWhat happens next\nThe return will be reviewed on receipt. Continued failure to file may attract the consequences provided for under the applicable reporting requirements, including late filing charges or supervisory follow-up.\n\nRegards,\n{{app_name}}"
+  },
+  "return.rfi_raised": {
+    "in_app_title": "Information required | {{return_name}}",
+    "in_app_message": "Additional information is required in respect of the return {{return_name}} for {{period}}. Please respond by {{due_date}}.",
+    "email_subject": "Information required | {{return_name}} ({{period}})",
+    "email_body": "We are writing regarding the regulatory return {{return_name}} for the reporting period {{period}}.\n\nAs part of its review, the Authority requires additional information before the return can be concluded.\n\nAction required\nPlease sign in to the Regulatory Portal, open the information request recorded against the return and provide a response to each item together with any supporting analysis or documents.\n\nDeadline\nPlease provide your response by {{due_date}}. If you are unable to respond by that date, please advise the Authority through the portal, stating the reason.\n\nWhat happens next\nOnce your response is received, the Authority will continue its review of the return and will advise you of the outcome or of any further requirement.\n\nRegards,\n{{app_name}}"
+  },
+  "return.validation_failed": {
+    "in_app_title": "Validation issues found | Return {{return_id}}",
+    "in_app_message": "The submitted return did not pass validation: {{error_count}} issue(s) require attention. Please sign in to review and correct the entries concerned.",
+    "email_subject": "Validation issues identified on your return",
+    "email_body": "We are writing regarding a regulatory return submitted through the Regulatory Portal.\n\nAutomated validation of the return identified {{error_count}} issue(s) that require attention before the return can be processed further.\n\nAction required\nPlease sign in to the Regulatory Portal, open the return and review the validation messages recorded against the affected entries. Please correct the entries concerned, confirm that the reported figures reconcile, and resubmit the return.\n\nWhat happens next\nOnce the corrected return is submitted, validation will run again and the return will proceed to review where no further issues are identified.\n\nRegards,\n{{app_name}}"
+  },
+  "return.validation_passed": {
+    "in_app_title": "Return validation passed",
+    "in_app_message": "The submitted return has passed automated validation and is now awaiting review by the Authority. No action is required at this time."
+  },
+  "return.breach_warning": {
+    "in_app_title": "Prudential indicator outside expected range",
+    "in_app_message": "A reported indicator ({{metric_key}}) is outside the expected range: reported {{value}} against a threshold of {{threshold_value}}. Please sign in to review the position.",
+    "email_subject": "Supervisory review of a reported indicator",
+    "email_body": "We are writing in connection with a regulatory return recently submitted to the Authority.\n\nOn review of the reported data, the indicator {{metric_key}} has been recorded at {{value}}, against an applicable threshold of {{threshold_value}}. This has been noted for supervisory attention.\n\nAction required\nPlease sign in to the Regulatory Portal to review the position recorded and to confirm the accuracy of the reported figures. Where the reported position is accurate, please be prepared to explain the circumstances and any measures being taken.\n\nWhat happens next\nThe Authority may issue a further information request or supervisory communication in respect of this matter. Detailed supervisory analysis is not reproduced in this email and is available securely in the portal where applicable.\n\nRegards,\n{{app_name}}"
+  },
+  "return.breach_critical": {
+    "in_app_title": "Prudential threshold breach recorded",
+    "in_app_message": "A reported indicator ({{metric_key}}) has breached its applicable threshold: reported {{value}} against {{threshold_value}}. Please sign in to review the position; a supervisory communication may follow.",
+    "email_subject": "Supervisory attention: reported indicator outside threshold",
+    "email_body": "We are writing in connection with a regulatory return recently submitted to the Authority.\n\nOn review of the reported data, the indicator {{metric_key}} has been recorded at {{value}}, which is outside the applicable threshold of {{threshold_value}}. The matter has been recorded for supervisory attention.\n\nAction required\nPlease sign in to the Regulatory Portal to review the position recorded, confirm the accuracy of the reported figures and record any explanation available to you.\n\nWhat happens next\nThe Authority will consider the matter and may issue a formal information request, a supervisory communication or a remediation requirement. Detailed supervisory analysis is not reproduced in this email and, where applicable, is made available securely in the portal.\n\nRegards,\n{{app_name}}"
+  },
+  "prudential.examination_notice_issued": {
+    "in_app_title": "Examination notice issued | {{entity_name}}",
+    "in_app_message": "The Authority has issued an examination notice for {{entity_name}}, commencing {{start_date}}. Please sign in to review the notice and the information requested.",
+    "email_subject": "Examination notice issued | {{entity_name}}",
+    "email_body": "We are writing to advise that the Authority has issued a notice of examination in respect of {{entity_name}}. The examination is scheduled to commence on {{start_date}}.\n\nThe purpose of the examination, its scope and the information required from the entity are set out in the formal notice available to you in the Regulatory Portal.\n\nAction required\nPlease sign in to the Regulatory Portal to review the examination notice, note the information and documents requested, and confirm the arrangements proposed. Where a nominated contact is required, please record those details in the portal.\n\nWhat happens next\nThe Authority's examination team will engage with your nominated contact on the arrangements for the examination. Findings arising from the examination, if any, will be communicated to the entity for response in accordance with the Authority's procedures.\n\nRegards,\n{{app_name}}"
+  },
+  "prudential.examination_finding_recorded": {
+    "in_app_title": "Examination finding recorded | {{entity_name}}",
+    "in_app_message": "A {{severity_label}} examination finding has been recorded for {{entity_name}}: {{finding_title}}. Please sign in to review the finding and provide your response.",
+    "email_subject": "Examination finding recorded | {{entity_name}}",
+    "email_body": "We are writing in connection with the examination undertaken by the Authority in respect of {{entity_name}}.\n\nA finding has been recorded and made available to the entity for response. The finding is titled \"{{finding_title}}\" and has been assessed as {{severity_label}}.\n\nAction required\nPlease sign in to the Regulatory Portal to review the finding in full and to provide the entity's response, including any remedial action taken or proposed and the timeframe for its completion.\n\nWhat happens next\nThe Authority will consider the entity's response and will advise whether further action, including a remediation requirement, is necessary. The supporting examination material is not reproduced in this email and remains available securely in the portal.\n\nRegards,\n{{app_name}}"
+  },
+  "prudential.remediation_due": {
+    "in_app_title": "Remediation action due | {{entity_name}}",
+    "in_app_message": "The remediation action \"{{action_title}}\" for {{entity_name}} is due by {{due_date}}. Please sign in to record progress or completion.",
+    "email_subject": "Remediation action due | {{entity_name}}",
+    "email_body": "We are writing in connection with the remediation actions agreed or required in respect of {{entity_name}}.\n\nThe action \"{{action_title}}\" falls due on {{due_date}}.\n\nAction required\nPlease sign in to the Regulatory Portal, record the progress made on the action and upload the evidence of completion required. Where the action cannot be completed by the date stated, please record the reason and the revised timeframe proposed.\n\nDeadline\nA response is required by {{due_date}}.\n\nWhat happens next\nThe Authority will review the evidence submitted and will confirm whether the action can be closed. Outstanding remediation actions remain subject to supervisory follow-up.\n\nRegards,\n{{app_name}}"
+  }
+}

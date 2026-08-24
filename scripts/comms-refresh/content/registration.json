@@ -1,0 +1,70 @@
+{
+  "registration.received": {
+    "in_app_title": "Registration received | {{registration_reference}}",
+    "in_app_message": "Your registration request {{registration_reference}} has been received and is awaiting review. No action is required at this time.",
+    "email_subject": "Registration received | {{registration_reference}}",
+    "email_body": "Dear {{applicant_name}},\n\nWe are writing to confirm that your registration request has been received by the Authority and recorded under reference {{registration_reference}}.\n\nYour request will be reviewed to confirm that the particulars and supporting documents provided are complete and consistent with the Authority's requirements. Should anything further be required, we will contact you with a formal request.\n\nNo action is required from you at this time. Please quote {{registration_reference}} in any communication with the Authority concerning this request.\n\nWhat happens next\nOnce the review is concluded you will be notified of the outcome, or of any further information required, by email and through the portal.\n\nRegards,\n{{app_name}}"
+  },
+  "registration.action_taken": {
+    "in_app_title": "Registration update | {{registration_reference}}",
+    "in_app_message": "{{reviewer_name}} recorded the action \"{{action_name}}\" on registration {{registration_reference}} at the {{step_name}} stage.{{#reviewer_comments}} Remarks: {{reviewer_comments}}{{/reviewer_comments}}"
+  },
+  "registration.comment_saved": {
+    "in_app_title": "Reviewer remark | {{registration_reference}}",
+    "in_app_message": "A reviewer has recorded a remark on registration {{registration_reference}}. Please sign in to review it.",
+    "email_subject": "Reviewer remark recorded | {{registration_reference}}",
+    "email_body": "We are writing regarding your registration request {{registration_reference}}, which is currently under review by the Authority.\n\nA remark has been recorded on the registration file by {{reviewer_name}} in the course of that review.\n\nRemark\n{{comments}}\n\nAction required\nPlease sign in to the portal to review the remark in full and to provide any clarification requested.\n\nWhat happens next\nThe Authority will continue its review once any clarification requested has been received.\n\nRegards,\n{{app_name}}"
+  },
+  "registration.more_info_requested": {
+    "in_app_title": "Information required | {{registration_reference}}",
+    "in_app_message": "Additional information is required to continue the review of registration {{registration_reference}}. Please sign in to respond.",
+    "email_subject": "Information required | {{registration_reference}}",
+    "email_body": "Dear {{applicant_name}},\n\nWe are writing regarding your registration request {{registration_reference}}, which is currently under review by the Authority.\n\nAs part of that review, additional information is required before the request can be progressed.\n\n{{#reviewer_comments}}Information required\n{{reviewer_comments}}\n\n{{/reviewer_comments}}Action required\nPlease sign in to the portal and provide the information and supporting documents requested{{#reviewer_name}}, as set out by {{reviewer_name}}{{/reviewer_name}}.\n\nWhat happens next\nOnce your response is received, the Authority will continue its review of your registration request.\n\nRegards,\n{{app_name}}"
+  },
+  "registration.correction_required": {
+    "in_app_title": "Correction required | {{registration_reference}}",
+    "in_app_message": "Registration {{registration_reference}} requires correction before it can proceed. Please sign in, address the matters raised and resubmit.",
+    "email_subject": "Correction required | {{registration_reference}}",
+    "email_body": "Dear {{applicant_name}},\n\nWe are writing regarding your registration request {{registration_reference}}.\n\nThe request cannot proceed in its current form. It has been made available to you again so that the matters identified during review may be corrected.\n\n{{#reviewer_comments}}Matters to be corrected\n{{reviewer_comments}}\n\n{{/reviewer_comments}}Action required\nPlease sign in to the portal, correct each of the matters identified and resubmit the registration request together with any revised supporting documents.\n\nWhat happens next\nReview of your registration request will resume once a corrected submission has been received.\n\nRegards,\n{{app_name}}"
+  },
+  "registration.returned_for_correction": {
+    "in_app_title": "Registration returned for correction | {{registration_reference}}",
+    "in_app_message": "Registration {{registration_reference}} has been returned to you for correction at the {{step_name}} stage. Please review the remarks and resubmit.",
+    "email_subject": "Registration returned for correction | {{registration_reference}}",
+    "email_body": "Dear {{applicant_name}},\n\nWe are writing regarding your registration request {{registration_reference}}, which has been considered by the Authority at the {{step_name}} stage.\n\nThe request has been returned to you so that the matters identified during review may be addressed.\n\n{{#reviewer_comments}}Matters to be addressed\n{{reviewer_comments}}\n\n{{/reviewer_comments}}Action required\nPlease sign in to the portal, address each of the matters identified{{#reviewer_name}} raised by {{reviewer_name}}{{/reviewer_name}}, and resubmit the registration request.\n\nWhat happens next\nOnce your resubmission is received, the review will resume from the stage at which the request was returned.\n\nRegards,\n{{app_name}}"
+  },
+  "registration.resubmission_requested": {
+    "in_app_title": "Resubmission required | {{registration_reference}}",
+    "in_app_message": "Registration {{registration_reference}} requires resubmission. Please review the matters raised and resubmit through the portal.",
+    "email_subject": "Resubmission required | {{registration_reference}}",
+    "email_body": "Dear {{applicant_name}},\n\nWe are writing regarding your registration request {{registration_reference}}.\n\nFollowing review, the request cannot be determined in its current form and a resubmission is required.\n\n{{#reviewer_comments}}Matters to be addressed\n{{reviewer_comments}}\n\n{{/reviewer_comments}}Action required\nPlease sign in to the portal, revise the registration request to address each matter identified{{#reviewer_name}} by {{reviewer_name}}{{/reviewer_name}}, and resubmit it with any further documents required.\n\nWhat happens next\nThe Authority will resume its review once a complete resubmission has been received.\n\nRegards,\n{{app_name}}"
+  },
+  "registration.send_back": {
+    "in_app_title": "Registration returned | {{registration_reference}}",
+    "in_app_message": "Registration {{registration_reference}} has been returned at the {{step_name}} stage for further action. Please sign in to review the remarks recorded.",
+    "email_subject": "Registration returned for further action | {{registration_reference}}",
+    "email_body": "We are writing regarding registration request {{registration_reference}}, which has been returned at the {{step_name}} stage{{#reviewer_name}} by {{reviewer_name}}{{/reviewer_name}}.\n\n{{#reviewer_comments}}Remarks recorded\n{{reviewer_comments}}\n\n{{/reviewer_comments}}Action required\nPlease sign in to the portal to review the remarks recorded and to take the action indicated.\n\nWhat happens next\nThe review of the registration request will continue once the matters identified have been addressed.\n\nRegards,\n{{app_name}}"
+  },
+  "registration.rejected": {
+    "in_app_title": "Registration not approved | {{registration_reference}}",
+    "in_app_message": "Registration {{registration_reference}} has not been approved. Please sign in to review the reasons recorded by the Authority.",
+    "email_subject": "Registration outcome | {{registration_reference}}",
+    "email_body": "We are writing regarding registration request {{registration_reference}}.\n\nThe Authority has completed its review of the request. Following that review, the registration request has not been approved.\n\n{{#comments}}Reasons recorded by the Authority\n{{comments}}\n\n{{/comments}}Action required\nPlease sign in to the portal to review the outcome in full. No further action is required in respect of this request unless you wish to submit a fresh request.\n\nWhat happens next\nA new registration request may be submitted once the matters that led to this outcome have been addressed.\n\nRegards,\n{{app_name}}"
+  },
+  "registration.final_rejected": {
+    "in_app_title": "Registration not approved | {{registration_reference}}",
+    "in_app_message": "The Authority has concluded its review of registration {{registration_reference}}. The request has not been approved. Please sign in to review the reasons recorded.",
+    "email_subject": "Registration outcome | {{registration_reference}}",
+    "email_body": "Dear {{applicant_name}},\n\nWe are writing regarding registration request {{registration_reference}}.\n\nThe Authority has concluded its review of the request and the registration has not been approved.\n\n{{#reviewer_comments}}Reasons recorded by the Authority\n{{reviewer_comments}}\n\n{{/reviewer_comments}}Action required\nNo action is required from you in respect of this request. You may submit a fresh registration request once the matters recorded above have been addressed.\n\nWhat happens next\nWhere you consider that the outcome should be reconsidered, please contact the Authority quoting reference {{registration_reference}}.\n\nRegards,\n{{app_name}}"
+  },
+  "registration.approved": {
+    "in_app_title": "Registration approved | {{registration_reference}}",
+    "in_app_message": "Registration {{registration_reference}} has been approved. You may now sign in to the portal to continue.",
+    "email_subject": "Registration approved | {{registration_reference}}",
+    "email_body": "Dear {{applicant_name}},\n\nWe are pleased to confirm that your registration request {{registration_reference}} has been approved by the Authority.\n\nYour portal account is now active. You may sign in using the email address provided during registration. Where a temporary password was issued to you, you will be required to set a new password when you first sign in.\n\nAction required\nPlease sign in to the Regulatory Portal to complete your profile and to proceed with the regulatory service you require.\n\n{{#login_url}}Sign in at: {{login_url}}\n\n{{/login_url}}What happens next\nFrom the portal you can submit applications, respond to requests from the Authority, file regulatory returns where applicable and track the progress of each matter under its reference number.\n\nRegards,\n{{app_name}}"
+  },
+  "registration.final_approved": {
+    "in_app_title": "Registration approved | {{registration_reference}}",
+    "in_app_message": "Registration {{registration_reference}} has been approved and your portal access is now active. Please sign in to continue."
+  }
+}

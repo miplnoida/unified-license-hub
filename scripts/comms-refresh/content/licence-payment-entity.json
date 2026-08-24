@@ -1,0 +1,104 @@
+{
+  "license.created": {
+    "in_app_title": "Licence issued | {{license_number}}",
+    "in_app_message": "Licence {{license_number}} has been issued following approval of application {{application_number}}. Please sign in to review the licence record and its conditions.",
+    "email_subject": "Licence issued | {{license_number}}",
+    "email_body": "We are writing to confirm that, following approval of application {{application_number}}, licence number {{license_number}} has been issued by the Authority.\n\nAction required\nPlease sign in to the Regulatory Portal to review the licence record, including its effective date, period of validity and any conditions attaching to it.\n\nWhat happens next\nThe licence certificate will be made available in the portal. You are required to conduct licensed activities in accordance with the terms and conditions of the licence and the applicable regulatory requirements, including any periodic reporting obligations, and to notify the Authority of any material change to the particulars provided in your application.\n\nRegards,\n{{app_name}}"
+  },
+  "license.certificate_issued": {
+    "in_app_title": "Licence certificate available | {{license_number}}",
+    "in_app_message": "The certificate for licence {{license_number}} is now available in the Regulatory Portal for download.",
+    "email_subject": "Licence certificate available | {{license_number}}",
+    "email_body": "We are writing to advise that the licence certificate for licence number {{license_number}} has been issued and is now available to you.\n\nAction required\nPlease sign in to the Regulatory Portal to download and retain a copy of the certificate for your records.\n\nWhat happens next\nThe certificate confirms the licence number, its effective date and its period of validity. Where the licence is subject to renewal, the Authority will notify you in advance of the applicable renewal date. Please continue to observe the conditions of the licence and the applicable reporting obligations.\n\nRegards,\n{{app_name}}"
+  },
+  "license.renewal_approved": {
+    "in_app_title": "Licence renewal approved | {{license_number}}",
+    "in_app_message": "The renewal of licence {{license_number}} has been approved. The licence is now valid until {{new_valid_until}}.",
+    "email_subject": "Licence renewal approved | {{license_number}}",
+    "email_body": "We are writing regarding licence number {{license_number}}.\n\nThe Authority has considered your renewal request and the renewal has been approved. The licence is now valid until {{new_valid_until}}.\n\nAction required\nPlease sign in to the Regulatory Portal to review the updated licence record and to download the renewed certificate once it is available.\n\nWhat happens next\nThe conditions attaching to the licence continue to apply. Please continue to meet the applicable reporting obligations and to notify the Authority of any material change to your particulars. A further renewal reminder will be issued in advance of the next renewal date.\n\nRegards,\n{{app_name}}"
+  },
+  "license.varied": {
+    "in_app_title": "Licence varied | {{license_number}}",
+    "in_app_message": "A variation has been recorded on licence {{license_number}}. Please sign in to review the amended licence particulars.",
+    "email_subject": "Licence variation recorded | {{license_number}}",
+    "email_body": "We are writing regarding licence number {{license_number}}.\n\nThe Authority has recorded a variation to the licence. The variation takes effect as recorded in the licence record.\n\nSummary of the variation\n{{variation_summary}}\n\nAction required\nPlease sign in to the Regulatory Portal to review the amended licence particulars, the formal communication and any conditions arising from the variation.\n\nWhat happens next\nThe licence, as varied, continues in force subject to its conditions. Please ensure that your operations, records and reporting reflect the variation, and contact the Authority if any aspect requires clarification.\n\nRegards,\n{{app_name}}"
+  },
+  "license.status_changed": {
+    "in_app_title": "Licence status updated | {{license_number}}",
+    "in_app_message": "The status of licence {{license_number}} has changed from {{old_status}} to {{new_status}}. Please sign in to review the formal communication and any action required.",
+    "email_subject": "Regulatory decision concerning licence {{license_number}}",
+    "email_body": "We are writing regarding licence number {{license_number}}.\n\nA regulatory decision concerning the licence has been issued and recorded by the Authority. The status of the licence has changed from {{old_status}} to {{new_status}}.\n\n{{#comments}}Remarks recorded by the Authority\n{{comments}}\n\n{{/comments}}Action required\nPlease sign in to the Regulatory Portal to review the formal communication in full, together with any requirement, condition or timeframe applying to you as a result of the decision.\n\nWhat happens next\nThe obligations arising from the decision, and any right of review or appeal available under the governing legislation, are set out in the formal communication. Please quote licence number {{license_number}} in any correspondence concerning this matter.\n\nRegards,\n{{app_name}}"
+  },
+  "payment.required": {
+    "in_app_title": "Payment required | {{application_number}}",
+    "in_app_message": "A payment of {{currency}} {{amount}} is required before application {{application_number}} can be submitted for assessment.",
+    "email_subject": "Payment required | {{application_number}}",
+    "email_body": "We are writing regarding application {{application_number}}.\n\nA prescribed fee of {{currency}} {{amount}} is payable in connection with this application. The application cannot proceed to assessment until the fee has been paid and the payment recorded.\n\nAction required\nPlease sign in to the Regulatory Portal, open application {{application_number}} and complete the payment using one of the methods available to you. Where payment is made outside the portal, please upload the payment evidence against the application so that it can be verified.\n\nWhat happens next\nOnce the payment has been received and verified by the Authority, the application will proceed to assessment and you will be notified of any further requirements.\n\nRegards,\n{{app_name}}"
+  },
+  "payment.received": {
+    "in_app_title": "Payment received | {{application_number}}",
+    "in_app_message": "A payment of {{currency}} {{amount}} has been received for application {{application_number}}{{#receipt_number}} under receipt {{receipt_number}}{{/receipt_number}}. Verification by the Authority is pending.",
+    "email_subject": "Payment received | {{application_number}}",
+    "email_body": "We are writing to confirm that a payment of {{currency}} {{amount}} has been received in connection with application {{application_number}}{{#receipt_number}} and recorded under receipt number {{receipt_number}}{{/receipt_number}}.\n\nPlease note that receipt of the payment is recorded; verification and reconciliation by the Authority may follow separately. You will be notified once the payment has been verified.\n\nAction required\nNo action is required from you at this time. Please retain this confirmation and the receipt number for your records.\n\nWhat happens next\nOnce the payment is verified, the application will continue through the assessment process and you will be notified of any further requirements.\n\nRegards,\n{{app_name}}"
+  },
+  "payment.failed": {
+    "in_app_title": "Payment not accepted | {{application_number}}",
+    "in_app_message": "A payment recorded against application {{application_number}} was not accepted. Please sign in to review the reason and to complete the payment.",
+    "email_subject": "Payment not accepted | {{application_number}}",
+    "email_body": "We are writing regarding the payment recorded against application {{application_number}}.\n\nThe payment has not been accepted and the prescribed fee therefore remains outstanding. The application cannot proceed until a valid payment has been received and verified.\n\n{{#comments}}Reason recorded\n{{comments}}\n\n{{/comments}}Action required\nPlease sign in to the Regulatory Portal, open application {{application_number}} and complete the payment again, or upload valid payment evidence where payment was made outside the portal.\n\nWhat happens next\nOnce a valid payment has been received and verified, the application will proceed to assessment. If you believe the payment was made correctly, please contact the Authority quoting application number {{application_number}}.\n\nRegards,\n{{app_name}}"
+  },
+  "entity.primary_user_created": {
+    "in_app_title": "Portal access granted | {{entity_name}}",
+    "in_app_message": "{{full_name}} has been granted primary portal access for {{entity_name}}. Sign-in details have been issued to {{email}}.",
+    "email_subject": "Portal access granted | {{entity_name}}",
+    "email_body": "Dear {{full_name}},\n\nWe are writing to confirm that you have been granted primary portal access for {{entity_name}} on the Regulatory Portal. Your account is registered against the email address {{email}}.\n\nAs the primary user, you are able to submit and manage regulatory filings for the entity, respond to requests from the Authority and administer access for additional users of your organisation.\n\nAction required\nPlease sign in to the Regulatory Portal using the email address above. Where a temporary password was issued to you, you will be required to set a new password on first sign-in. Please do not share your credentials with any other person.\n\nWhat happens next\nOnce signed in, please review the entity particulars held by the Authority and confirm that the contact details recorded are correct.\n\nIf you were not expecting this notification, please contact the Authority without delay.\n\nRegards,\n{{app_name}}"
+  },
+  "entity.secondary_user_created": {
+    "in_app_title": "Portal access granted | {{entity_name}}",
+    "in_app_message": "{{full_name}} has been granted portal access for {{entity_name}}. Sign-in details have been issued to {{email}}.",
+    "email_subject": "Portal access granted | {{entity_name}}",
+    "email_body": "Dear {{full_name}},\n\nWe are writing to confirm that you have been granted portal access for {{entity_name}} on the Regulatory Portal. Your account is registered against the email address {{email}}.\n\nYour access permits you to work on regulatory filings and correspondence for the entity in accordance with the permissions assigned to you by the entity's primary user.\n\nAction required\nPlease sign in to the Regulatory Portal using the email address above. Where a temporary password was issued to you, you will be required to set a new password on first sign-in. Please do not share your credentials with any other person.\n\nIf you were not expecting this notification, please contact the Authority or the primary user of your organisation without delay.\n\nRegards,\n{{app_name}}"
+  },
+  "entity.user_access_revoked": {
+    "in_app_title": "Portal access withdrawn | {{entity_name}}",
+    "in_app_message": "Your portal access for {{entity_name}} has been withdrawn. Please contact the primary user of your organisation if this was unexpected.",
+    "email_subject": "Portal access withdrawn | {{entity_name}}",
+    "email_body": "We are writing to advise that your portal access in respect of {{entity_name}} has been withdrawn. You will no longer be able to sign in to the Regulatory Portal on behalf of that entity.\n\nAction required\nNo action is required from you if this change was expected. If the change was not expected, please contact the primary user of your organisation, or the Authority, without delay so that the position can be confirmed.\n\nWhat happens next\nAny filings or correspondence you had in progress remain available to the other authorised users of the entity. Access may be restored by the entity's primary user where appropriate.\n\nRegards,\n{{app_name}}"
+  },
+  "entity.user_role_changed": {
+    "in_app_title": "Portal permissions updated | {{entity_name}}",
+    "in_app_message": "Your portal role for {{entity_name}} has been updated to {{new_role}}. Please sign in to review the actions now available to you."
+  },
+  "correspondence.external_message_sent": {
+    "in_app_title": "New correspondence | {{reference}}",
+    "in_app_message": "The Authority has sent you a communication regarding {{subject}} under reference {{reference}}. Please sign in to read it.",
+    "email_subject": "Correspondence issued | {{reference}}",
+    "email_body": "We are writing to advise that the Authority has issued a communication to you under reference {{reference}}.\n\nSubject: {{subject}}\n\nFor reasons of confidentiality, the content of the communication is available securely in the Regulatory Portal rather than in this email.\n\nAction required\nPlease sign in to the Regulatory Portal and open the correspondence thread bearing reference {{reference}} to read the communication in full and to note any action or deadline stated in it.\n\nWhat happens next\nWhere a response is required, it should be submitted through the same correspondence thread so that the Authority's records remain complete.\n\nRegards,\n{{app_name}}"
+  },
+  "correspondence.awaiting_response": {
+    "in_app_title": "Response required | {{reference}}",
+    "in_app_message": "A response is awaited on correspondence {{reference}} regarding {{subject}}. Please sign in to reply.",
+    "email_subject": "Response required | {{reference}}",
+    "email_body": "We are writing further to the Authority's communication issued under reference {{reference}}.\n\nSubject: {{subject}}\n\nOur records indicate that a response has not yet been received.\n\nAction required\nPlease sign in to the Regulatory Portal, open the correspondence thread bearing reference {{reference}} and provide your response together with any documents requested.\n\nWhat happens next\nOnce your response is received the Authority will consider it and will advise you of any further steps. If you have already responded, please disregard this reminder.\n\nRegards,\n{{app_name}}"
+  },
+  "fp.pq_invitation": {
+    "in_app_title": "Fit and proper questionnaire required | {{source_reference}}",
+    "in_app_message": "A fit and proper questionnaire is required for {{individual_name}} in connection with {{source_reference}}. Please complete it by {{due_date}}.",
+    "email_subject": "Fit and proper questionnaire required | {{source_reference}}",
+    "email_body": "We are writing in connection with the fit and proper assessment of {{individual_name}}, undertaken by the Authority in relation to reference {{source_reference}}.\n\nTo enable the assessment to proceed, a personal questionnaire and the accompanying declarations are required.\n\nAction required\nPlease sign in to the Regulatory Portal, complete each section of the fit and proper questionnaire and upload the supporting documents requested. The information provided must be complete and accurate, and any matter that may be relevant to the assessment should be disclosed.\n\nDeadline\nPlease submit the completed questionnaire by {{due_date}}. If you are unable to meet that date, please advise the Authority through the portal, stating the reason.\n\nWhat happens next\nOnce the questionnaire and supporting documents are received, the Authority will carry out its assessment and will contact you if any clarification is required. The determination will be communicated to you in due course.\n\nRegards,\n{{app_name}}"
+  },
+  "fp.determination_dispatched": {
+    "in_app_title": "Fit and proper determination issued | {{individual_name}}",
+    "in_app_message": "The Authority has issued its fit and proper determination in respect of {{individual_name}}. Outcome: {{outcome}}. Please sign in to review the formal communication securely.",
+    "email_subject": "Fit and proper determination issued | {{individual_name}}",
+    "email_body": "We are writing in connection with the fit and proper assessment undertaken by the Authority in respect of {{individual_name}}.\n\nThe Authority has concluded its assessment and a formal determination has been issued. The outcome recorded is: {{outcome}}.\n\nFor reasons of confidentiality, the determination and the material considered by the Authority are not reproduced in this email.\n\nAction required\nPlease sign in to the Regulatory Portal to review the determination securely, together with any conditions, requirements or timeframes stated in it.\n\nWhat happens next\nAny obligation arising from the determination, and any right of review or representation available, are set out in the formal communication. Please quote reference {{individual_name}} and the associated case reference in any correspondence with the Authority on this matter.\n\nRegards,\n{{app_name}}"
+  },
+  "fp_condition_reminder": {
+    "in_app_title": "Fit and proper condition due shortly",
+    "in_app_message": "A condition arising from a fit and proper determination is due by {{due_date}}. Please sign in to review the requirement and record your evidence of compliance."
+  },
+  "fp_condition_overdue": {
+    "in_app_title": "Fit and proper condition overdue",
+    "in_app_message": "A condition arising from a fit and proper determination is overdue by {{days_overdue}} day(s). Please sign in to record compliance or advise the Authority without further delay."
+  }
+}
