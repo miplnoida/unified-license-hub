@@ -1,0 +1,104 @@
+{
+  "complaint.acknowledged": {
+    "in_app_title": "Complaint acknowledged | {{complaint_number}}",
+    "in_app_message": "Your complaint has been received and registered under reference {{complaint_number}}. No action is required at this time.",
+    "email_subject": "Complaint acknowledged | {{complaint_number}}",
+    "email_body": "We are writing to acknowledge receipt of your complaint, which has been registered by the Authority under reference {{complaint_number}}.\n\nYour complaint will be assessed to determine the appropriate course of action, which may include seeking further information from you or from the regulated entity concerned.\n\nAction required\nNo action is required from you at this time. Please quote reference {{complaint_number}} in any communication with the Authority concerning this matter.\n\nWhat happens next\nWe will contact you if further information is required in order to progress the matter, and will advise you of the outcome once the assessment has been concluded. Please note that the Authority may be limited in the information it can disclose about a regulated entity while a matter remains under consideration.\n\nRegards,\n{{app_name}}"
+  },
+  "complaint.investigation_started": {
+    "in_app_title": "Complaint under investigation | {{complaint_number}}",
+    "in_app_message": "Complaint {{complaint_number}} is now under investigation by the Authority. No action is required from you at this time.",
+    "email_subject": "Complaint under investigation | {{complaint_number}}",
+    "email_body": "We are writing regarding complaint reference {{complaint_number}}.\n\nFollowing its initial assessment, the Authority has commenced an investigation into the matters raised.\n\nAction required\nNo action is required from you at this time. Should any further information or document be required in order to progress the investigation, we will contact you with a specific request.\n\nWhat happens next\nThe investigation will consider the matters raised together with any information obtained from the parties concerned. You will be advised of the outcome once the investigation has been concluded. The Authority may be limited in the detail it can disclose while the matter remains under investigation.\n\nRegards,\n{{app_name}}"
+  },
+  "complaint.rfi_issued": {
+    "in_app_title": "Information required | {{complaint_number}}",
+    "in_app_message": "Additional information is required in respect of complaint {{complaint_number}}{{#question_count}} ({{question_count}} item(s)){{/question_count}}. Please respond by {{due_at}}.",
+    "email_subject": "Information required | {{complaint_number}}",
+    "email_body": "We are writing regarding complaint reference {{complaint_number}}, which is currently under consideration by the Authority.\n\nIn order to progress the matter, the Authority requires further information.{{#question_count}} A total of {{question_count}} item(s) have been raised for response.{{/question_count}}\n\nAction required\nPlease sign in to the Regulatory Portal, open the information request recorded against complaint {{complaint_number}} and provide a response to each item together with any supporting documents.\n\nDeadline\nPlease provide your response by {{due_at}}. If you are unable to respond by that date, please advise the Authority through the portal, stating the reason.\n\nWhat happens next\nOnce your response is received, the Authority will continue its consideration of the matter and will advise you of the outcome or of any further requirement.\n\nRegards,\n{{app_name}}"
+  },
+  "complaint.rfi_due_reminder": {
+    "in_app_title": "Information request due | {{complaint_number}}",
+    "in_app_message": "{{outstanding_count}} item(s) remain outstanding on complaint {{complaint_number}}, due by {{due_at}}. Please respond through the portal.",
+    "email_subject": "Reminder: information required | {{complaint_number}}",
+    "email_body": "We are writing further to the information request issued in connection with complaint reference {{complaint_number}}.\n\nOur records indicate that {{outstanding_count}} item(s) remain outstanding.\n\nAction required\nPlease sign in to the Regulatory Portal and provide a response to each outstanding item, together with any supporting documents.\n\nDeadline\nA response is required by {{due_at}}.\n\nWhat happens next\nOnce your response is received, the Authority will continue its consideration of the matter. Where information remains outstanding, the Authority may proceed on the basis of the information available to it. If you have already responded, please disregard this reminder.\n\nRegards,\n{{app_name}}"
+  },
+  "complaint.complainant_update": {
+    "in_app_title": "Complaint update | {{complaint_number}}",
+    "in_app_message": "There is an update on complaint {{complaint_number}}: {{update_summary}}",
+    "email_subject": "Complaint update | {{complaint_number}}",
+    "email_body": "We are writing to provide an update on complaint reference {{complaint_number}}.\n\nUpdate\n{{update_summary}}\n\nAction required\nNo action is required from you unless specifically requested above. Where a response is required, please provide it through the Regulatory Portal.\n\nWhat happens next\nThe Authority will continue its consideration of the matter and will advise you of any further development or of the outcome in due course. Please quote reference {{complaint_number}} in any communication concerning this matter.\n\nRegards,\n{{app_name}}"
+  },
+  "complaint.resolved": {
+    "in_app_title": "Complaint resolved | {{complaint_number}}",
+    "in_app_message": "Complaint {{complaint_number}} has been resolved. Please sign in to review the outcome recorded by the Authority.",
+    "email_subject": "Complaint resolved | {{complaint_number}}",
+    "email_body": "We are writing regarding complaint reference {{complaint_number}}.\n\nThe Authority has concluded its consideration of the matters raised and the complaint has been recorded as resolved.\n\n{{#note}}Outcome recorded\n{{note}}\n\n{{/note}}Action required\nPlease sign in to the Regulatory Portal to review the outcome recorded in full. No further action is required from you at this time.\n\nWhat happens next\nWhere you consider that material information was not taken into account, you may contact the Authority quoting reference {{complaint_number}}. Please note that the Authority may be limited in the information it can disclose concerning a regulated entity.\n\nRegards,\n{{app_name}}"
+  },
+  "complaint.closed": {
+    "in_app_title": "Complaint closed | {{complaint_number}}",
+    "in_app_message": "Complaint {{complaint_number}} has been closed. Please sign in to review the outcome recorded by the Authority.",
+    "email_subject": "Complaint closed | {{complaint_number}}",
+    "email_body": "We are writing regarding complaint reference {{complaint_number}}.\n\nThe Authority has completed its handling of this matter and the complaint has now been closed.\n\n{{#note}}Basis for closure\n{{note}}\n\n{{/note}}Action required\nNo action is required from you. Please sign in to the Regulatory Portal if you wish to review the record of the matter.\n\nWhat happens next\nThe matter will remain on the Authority's records and may inform its ongoing supervision of the entity concerned. Should you wish to raise a new matter, a fresh complaint may be submitted through the portal.\n\nRegards,\n{{app_name}}"
+  },
+  "complaint.outcome_released": {
+    "in_app_title": "Complaint outcome issued | {{complaint_number}}",
+    "in_app_message": "The outcome of complaint {{complaint_number}} has been issued: {{outcome}}. Please sign in to review the communication in full.",
+    "email_subject": "Complaint outcome issued | {{complaint_number}}",
+    "email_body": "We are writing regarding complaint reference {{complaint_number}}.\n\nThe Authority has concluded its consideration of the matters raised and the outcome recorded is: {{outcome}}.\n\nAction required\nPlease sign in to the Regulatory Portal to review the outcome communication in full, together with any explanation of the basis on which the Authority reached its conclusion.\n\nWhat happens next\nWhere further steps are available to you, these are set out in the outcome communication. The Authority may be limited in the information it can disclose concerning a regulated entity. Please quote reference {{complaint_number}} in any further communication on this matter.\n\nRegards,\n{{app_name}}"
+  },
+  "complaint.escalated_to_enforcement": {
+    "in_app_title": "Complaint referred to enforcement | {{complaint_number}}",
+    "in_app_message": "Complaint {{complaint_number}} has been referred for enforcement consideration under case {{enforcement_case_number}}. Please sign in for details.",
+    "email_subject": "Complaint referred for enforcement consideration | {{complaint_number}}",
+    "email_body": "We are writing regarding complaint reference {{complaint_number}}.\n\nFollowing its consideration of the matters raised, the Authority has referred the matter for enforcement consideration. The matter is now recorded under enforcement case {{enforcement_case_number}}.\n\n{{#note}}Basis for referral\n{{note}}\n\n{{/note}}Action required\nNo action is required from you at this stage unless the Authority issues a specific request. Any such request will be made through the Regulatory Portal.\n\nWhat happens next\nThe enforcement process will be conducted in accordance with the Authority's procedures and the governing legislation. You will be advised of any development that concerns you. Please quote enforcement case {{enforcement_case_number}} in future correspondence on this matter.\n\nRegards,\n{{app_name}}"
+  },
+  "enforcement.notice_issued": {
+    "in_app_title": "Enforcement notice issued | {{enforcement_case_number}}",
+    "in_app_message": "A formal notice has been issued under enforcement case {{enforcement_case_number}}. Please sign in to review the notice and the action required of you.",
+    "email_subject": "Formal notice issued | {{enforcement_case_number}}",
+    "email_body": "We are writing to advise that the Authority has issued a formal notice in connection with enforcement case {{enforcement_case_number}}.\n\nThe notice sets out the matters of concern to the Authority, the basis on which it is issued and the action or representations required of you. For reasons of confidentiality, the notice itself is not reproduced in this email.\n\n{{#note}}Summary recorded by the Authority\n{{note}}\n\n{{/note}}Action required\nPlease sign in to the Regulatory Portal to review the notice in full and to comply with the requirements and timeframes stated in it. You are advised to consider whether you wish to obtain independent professional advice.\n\nWhat happens next\nThe Authority will consider any response or representations received within the period stated in the notice before determining the matter. Please quote enforcement case {{enforcement_case_number}} in all correspondence concerning this matter.\n\nRegards,\n{{app_name}}"
+  },
+  "enforcement.response_received": {
+    "in_app_title": "Response received | {{enforcement_case_number}}",
+    "in_app_message": "Your response in enforcement case {{enforcement_case_number}} has been received and recorded. No action is required at this time.",
+    "email_subject": "Response received | {{enforcement_case_number}}",
+    "email_body": "We are writing to confirm that your response in connection with enforcement case {{enforcement_case_number}} has been received and recorded by the Authority.\n\n{{#note}}Recorded particulars\n{{note}}\n\n{{/note}}Action required\nNo action is required from you at this time. Should any clarification or further document be required, the Authority will issue a specific request through the Regulatory Portal.\n\nWhat happens next\nThe Authority will consider the response and any accompanying material before determining the matter, and will communicate its decision in accordance with its procedures. Please quote enforcement case {{enforcement_case_number}} in all correspondence concerning this matter.\n\nRegards,\n{{app_name}}"
+  },
+  "enforcement.decision_recorded": {
+    "in_app_title": "Enforcement decision issued | {{enforcement_case_number}}",
+    "in_app_message": "A decision has been issued in enforcement case {{enforcement_case_number}}. Please sign in to review the decision and any obligation arising from it.",
+    "email_subject": "Decision issued | {{enforcement_case_number}}",
+    "email_body": "We are writing to advise that the Authority has issued its decision in connection with enforcement case {{enforcement_case_number}}.\n\nThe decision sets out the Authority's determination, the reasons for it and any sanction, obligation or requirement imposed. For reasons of confidentiality, the decision is not reproduced in this email.\n\n{{#note}}Summary recorded by the Authority\n{{note}}\n\n{{/note}}Action required\nPlease sign in to the Regulatory Portal to review the decision in full and to comply with any requirement and timeframe stated in it.\n\nWhat happens next\nAny right of review or appeal available under the governing legislation, and the period within which it may be exercised, are set out in the decision. Please quote enforcement case {{enforcement_case_number}} in all correspondence concerning this matter.\n\nRegards,\n{{app_name}}"
+  },
+  "enforcement.case_closed": {
+    "in_app_title": "Enforcement case closed | {{enforcement_case_number}}",
+    "in_app_message": "Enforcement case {{enforcement_case_number}} has been closed. Please sign in to review the record and any continuing obligation.",
+    "email_subject": "Enforcement case closed | {{enforcement_case_number}}",
+    "email_body": "We are writing to advise that enforcement case {{enforcement_case_number}} has been closed by the Authority.\n\n{{#note}}Basis for closure\n{{note}}\n\n{{/note}}Action required\nNo further action is required from you in respect of this case, save for any continuing obligation previously imposed on you and recorded in the Regulatory Portal.\n\nWhat happens next\nThe matter and its outcome will remain on the Authority's records and may inform its ongoing supervision. Please quote enforcement case {{enforcement_case_number}} in any further correspondence concerning this matter.\n\nRegards,\n{{app_name}}"
+  },
+  "enforcement.case_withdrawn": {
+    "in_app_title": "Enforcement case withdrawn | {{enforcement_case_number}}",
+    "in_app_message": "Enforcement case {{enforcement_case_number}} has been withdrawn. No further action is required from you in respect of this case.",
+    "email_subject": "Enforcement case withdrawn | {{enforcement_case_number}}",
+    "email_body": "We are writing to advise that enforcement case {{enforcement_case_number}} has been withdrawn by the Authority.\n\n{{#note}}Basis recorded by the Authority\n{{note}}\n\n{{/note}}Action required\nNo further action is required from you in respect of this case.\n\nWhat happens next\nThe withdrawal concludes the enforcement process in relation to this case. The Authority's ordinary supervisory engagement continues, and any separate matter previously notified to you is unaffected. Please quote enforcement case {{enforcement_case_number}} in any correspondence concerning this matter.\n\nRegards,\n{{app_name}}"
+  },
+  "conduct_investigation.monitoring_activated": {
+    "in_app_title": "Monitoring activated | {{investigation_code}}",
+    "in_app_message": "Post-investigation monitoring has been activated under {{investigation_code}} on a {{frequency}} basis. Focus areas: {{focus_areas}}.",
+    "email_subject": "Monitoring arrangements activated | {{investigation_code}}",
+    "email_body": "We are writing in connection with investigation reference {{investigation_code}}.\n\nThe Authority has activated monitoring arrangements in respect of this matter. Reviews will be carried out on a {{frequency}} basis.\n\nFocus areas\n{{focus_areas}}\n\nAction required\nPlease sign in to the Regulatory Portal to review the monitoring requirements and the information you are required to provide at each review point.\n\nWhat happens next\nThe Authority will conduct each scheduled review and will advise you of any matter arising. Monitoring will remain in place until the Authority is satisfied that it may be discontinued.\n\nRegards,\n{{app_name}}"
+  },
+  "conduct_investigation.monitoring_review_due": {
+    "in_app_title": "Monitoring review due | {{investigation_code}}",
+    "in_app_message": "A monitoring review under {{investigation_code}} is due by {{due_date}}. Focus areas: {{focus_areas}}. Please sign in to provide the required information.",
+    "email_subject": "Monitoring review due | {{investigation_code}}",
+    "email_body": "We are writing in connection with the monitoring arrangements in place under investigation reference {{investigation_code}}.\n\nA scheduled monitoring review falls due on {{due_date}}.\n\nFocus areas\n{{focus_areas}}\n\nAction required\nPlease sign in to the Regulatory Portal and provide the information and evidence required for the review in respect of each focus area stated above.\n\nDeadline\nThe information is required by {{due_date}}. If you are unable to provide it by that date, please advise the Authority through the portal, stating the reason.\n\nWhat happens next\nThe Authority will consider the information provided and will advise you of any matter arising or of any change to the monitoring arrangements.\n\nRegards,\n{{app_name}}"
+  },
+  "conduct_intelligence_report_published": {
+    "in_app_title": "Conduct intelligence report published | {{period}}",
+    "in_app_message": "The report \"{{report_title}}\" for {{period}} has been published. Please sign in to review it.",
+    "email_subject": "Report published | {{report_title}} ({{period}})",
+    "email_body": "We are writing to advise that the report \"{{report_title}}\" covering the period {{period}} has been published by the Authority.\n\nAction required\nPlease sign in to the Regulatory Portal to review the report and to consider its relevance to your operations and conduct arrangements.\n\nWhat happens next\nNo response to the report is required unless the Authority issues a specific request. Where the report identifies matters relevant to your business, you are encouraged to consider them as part of your ongoing conduct governance.\n\nRegards,\n{{app_name}}"
+  }
+}
