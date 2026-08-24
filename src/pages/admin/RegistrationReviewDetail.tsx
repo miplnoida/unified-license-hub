@@ -372,6 +372,12 @@ export default function RegistrationReviewDetail() {
                     onStatusChange={load}
                   />
                 </ErrorBoundary>
+              ) : wf.error ? (
+                <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
+                  <p className="font-medium text-destructive">Unable to load workflow</p>
+                  <p className="text-xs text-muted-foreground mt-1">{wf.error}</p>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={load}>Retry</Button>
+                </div>
               ) : (
                 <div className="rounded-md border border-warning/40 bg-warning/5 p-4 text-sm">
                   <p className="font-medium">No Registration workflow attached</p>
@@ -380,6 +386,7 @@ export default function RegistrationReviewDetail() {
                   </p>
                 </div>
               )}
+
             </CardContent>
           </Card>
         </div>
