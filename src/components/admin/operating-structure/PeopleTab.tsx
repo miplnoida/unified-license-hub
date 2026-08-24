@@ -190,9 +190,10 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
               <Card>
                 <CardHeader className="flex-row items-center justify-between space-y-0">
                   <CardTitle className="text-base">Responsibilities</CardTitle>
-                  <Button size="sm" onClick={() => setRespDialog({ open: true, portfolioId: null })}>
+                  <Button size="sm" onClick={() => setChoice(true)}>
                     Add responsibility
                   </Button>
+
                 </CardHeader>
                 <CardContent className="grid gap-3 sm:grid-cols-2">
                   {myPortfolios.map((x: any) => (
