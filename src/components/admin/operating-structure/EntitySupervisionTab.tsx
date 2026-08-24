@@ -139,17 +139,79 @@ export function EntitySupervisionTab() {
     }
   };
 
-  const transferAssignment = async (id: string) => {
-    const lead = window.prompt('New lead supervisor — paste the staff user id (leave blank to keep)');
-    const why = window.prompt('Transfer reason');
-    if (!why) return;
+  /**
+   * Transfers are performed through a picker dialog: a raw user id is never typed.
+   * The backend still re-checks team eligibility, scope and lead/alternate identity.
+   */
+  const [transferFor, setTransferFor] = useState<any | null>(null);
+  const [tTeam, setTTeam] = useState(KEEP);
+  const [tLead, setTLead] = useState(KEEP);
+  const [tAlt, setTAlt] = useState(KEEP);
+  const [tReason, setTReason] = useState('');
+  const [tFrom, setTFrom] = useState('');
+
+  const openTransfer = (a: any) => {
+    setTransferFor(a);
+    setTTeam(KEEP); setTLead(KEEP); setTAlt(KEEP); setTReason(''); setTFrom('');
+  };
+
+  /** Candidate supervisors for the transfer: members of the target team, else all staff. */
+  const transferTeamId = tTeam !== KEEP ? tTeam : transferFor?.team_id || '';
+  const transferStaff = useMemo(() => {
+    const now = Date.now();
+    if (!transferTeamId) return staff.data || [];
+    const ids = new Set(
+      (members.data || [])
+        .filter(
+          (m) =>
+            m.team_id === transferTeamId &&
+            m.status === 'active' &&
+            (!m.effective_to || new Date(m.effective_to).getTime() > now),
+        )
+        .map((m) => m.user_id),
+    );
+    return (staff.data || []).filter((s) => ids.has(s.id));
+  }, [transferTeamId, members.data, staff.data]);
+
+  const transferTeams = useMemo(
+    () =>
+      (teams.data || []).filter(
+        (t) =>
+          t.status === 'active' &&
+          (!transferFor?.regulatory_function_id || t.regulatory_function_id === transferFor.regulatory_function_id) &&
+          (!transferFor?.regulator_id || !t.regulator_id || t.regulator_id === transferFor.regulator_id),
+      ),
+    [teams.data, transferFor],
+  );
+
+  const submitTransfer = async () => {
+    if (!transferFor) return;
+    if (!tReason.trim()) {
+      toast.error('A transfer reason is required');
+      return;
+    }
+    const lead = tLead === KEEP ? null : tLead;
+    const alt = tAlt === KEEP ? null : tAlt === NONE ? null : tAlt;
+    if (lead && alt && lead === alt) {
+      toast.error('The lead and alternate supervisor must be different people');
+      return;
+    }
     try {
-      await transfer.mutateAsync({ assignmentId: id, leadUserId: lead || null, reason: why });
+      await transfer.mutateAsync({
+        assignmentId: transferFor.id,
+        teamId: tTeam === KEEP ? null : tTeam,
+        leadUserId: lead,
+        alternateUserId: tAlt === KEEP ? null : alt,
+        reason: tReason.trim(),
+        effectiveFrom: tFrom ? new Date(tFrom).toISOString() : null,
+      });
       toast.success('Supervision transferred');
+      setTransferFor(null);
     } catch (e) {
       toast.error((e as Error).message || 'The transfer was rejected');
     }
   };
+
 
   return (
     <div className="space-y-4">
