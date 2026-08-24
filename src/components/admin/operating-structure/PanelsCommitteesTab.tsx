@@ -337,18 +337,38 @@ export function PanelsCommitteesTab() {
                   <Badge variant={voters.length >= c.quorum ? 'default' : 'outline'}>
                     {voters.length >= c.quorum ? 'Composition ready' : 'Composition not ready'}
                   </Badge>
-
-                  <Button
-                    size="sm"
-                    className="ml-auto"
-                    onClick={() => setMemberDialog({ open: true, kind: 'committee', id: c.id, name: c.name })}
-                  >
-                    + Add member
-                  </Button>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Quorum {c.quorum} · approval threshold {c.approval_threshold_pct}% · voting members {voters.length}
                 </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2 border-t pt-2">
+                  <Button
+                    size="sm"
+                    variant={c.is_active ? 'destructive' : 'default'}
+                    disabled={committeeMut.updateCommittee.isPending}
+                    onClick={() =>
+                      act(
+                        () => committeeMut.updateCommittee.mutateAsync({ committeeId: c.id, isActive: !c.is_active }),
+                        c.is_active ? 'Committee deactivated' : 'Committee activated',
+                      )
+                    }
+                  >
+                    {c.is_active ? 'Deactivate committee' : 'Activate committee'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setMemberDialog({ open: true, kind: 'committee', id: c.id, name: c.name })}
+                  >
+                    + Add member
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    {c.is_active
+                      ? 'This committee may be selected for fit & proper decisions.'
+                      : 'While inactive this committee cannot be selected for fit & proper decisions.'}
+                  </span>
+                </div>
+
                 <div className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
                   <div>
                     <p className="text-xs uppercase text-muted-foreground">Chair</p>
