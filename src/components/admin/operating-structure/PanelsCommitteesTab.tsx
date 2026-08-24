@@ -58,6 +58,9 @@ export function PanelsCommitteesTab() {
   const [newMember, setNewMember] = useState('');
   const [newRole, setNewRole] = useState('member');
   const [newVoting, setNewVoting] = useState('yes');
+  const [ruleDialog, setRuleDialog] = useState<
+    { id: string; name: string; quorum: string; pct: string } | null
+  >(null);
 
   const currentRoster = () => {
     if (!memberDialog) return [] as any[];
