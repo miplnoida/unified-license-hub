@@ -193,10 +193,30 @@ const ACTION_LABELS: Record<string, string> = {
   return_for_correction: 'Returned for correction',
   request_more_info: 'Requested more information',
   remark: 'Remark added',
+  save_comment: 'Comment added',
+  comment: 'Comment added',
+  reassign: 'Reassigned',
+  delegate: 'Delegated',
+  withdraw: 'Withdrawn',
+  acknowledge: 'Acknowledged',
 };
 
+/**
+ * Last-resort humaniser. No raw technical key (e.g. `save_comment`) may ever
+ * reach the UI — unknown keys are rendered as sentence-case words.
+ */
+export function humanizeActionKey(key: string): string {
+  const words = String(key || '')
+    .replace(/[_\-.]+/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .trim()
+    .toLowerCase();
+  if (!words) return 'Action';
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 function actionLabel(actionType: string) {
-  return ACTION_LABELS[actionType] || actionType.replace(/_/g, ' ');
+  return ACTION_LABELS[actionType] || humanizeActionKey(actionType);
 }
 
 function actionSuccessMessage(actionType: WorkflowActionType, isFinalApprove: boolean, entityNoun: string): string {
@@ -420,15 +440,26 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       'request_resubmission', 'return_for_correction', 'request_more_info',
     ]);
     const instanceStart = (liveInstance as any)?.started_at ?? (liveInstance as any)?.created_at ?? null;
+    // Last time the instance advanced. Used as the fallback for step N so a
+    // later step's clock is NEVER measured from the original submission time.
+    const lastAdvanceAt = (liveInstance as any)?.updated_at ?? instanceStart;
     const firstStepStart = applicationSubmittedAt || applicationCreatedAt || instanceStart;
     return steps.map((s, idx) => {
       const status = stepStatuses[idx];
       if (status === 'upcoming') return null;
       if (idx === 0) return firstStepStart;
-      const prev = steps[idx - 1];
-      const prevHistory = actionsByStep.get(prev.id) || [];
-      const prevDecisive = [...prevHistory].reverse().find(a => decisiveSet.has(a.action_type));
-      return prevDecisive?.created_at ?? instanceStart;
+      // Most recent decisive action across ALL preceding steps.
+      let latestPrior: string | null = null;
+      for (let i = 0; i < idx; i += 1) {
+        const history = actionsByStep.get(steps[i].id) || [];
+        history.forEach((a) => {
+          if (!decisiveSet.has(a.action_type) || !a.created_at) return;
+          if (!latestPrior || new Date(a.created_at).getTime() > new Date(latestPrior).getTime()) {
+            latestPrior = a.created_at;
+          }
+        });
+      }
+      return latestPrior ?? lastAdvanceAt;
     });
   }, [steps, stepStatuses, actionsByStep, liveInstance, applicationSubmittedAt, applicationCreatedAt]);
 
@@ -945,7 +976,8 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       case 'request_resubmission': return 'Request Resubmission';
       case 'return_for_correction': return 'Return for Correction';
       case 'request_more_info': return 'Request More Information';
-      default: return type;
+      case 'save_comment': return 'Add Comment';
+      default: return humanizeActionKey(type);
     }
   };
   const iconFor = (type: WorkflowActionType): React.ReactNode => {

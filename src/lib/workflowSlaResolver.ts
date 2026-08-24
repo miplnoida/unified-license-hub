@@ -178,12 +178,14 @@ export function resolveSlaInputFromInstance(
   options: ResolveSlaOptions = {},
 ): UseWorkflowSLAInput {
   const step = getWorkflowSlaStepConfig(wi, options.currentStep);
+  const isFirst = isFirstWorkflowStep(step);
+  // Step 1 clocks from submission; every later step clocks from the instance's
+  // last advance (`updated_at`) so its SLA is never measured from submission.
   const startedAt =
     options.currentStepStartedAt ||
-    (isFirstWorkflowStep(step) ? (options.firstStepStartedAt || null) : null) ||
-    wi.updated_at ||
-    wi.started_at ||
-    wi.created_at ||
+    (isFirst
+      ? options.firstStepStartedAt || wi.started_at || wi.created_at || null
+      : wi.updated_at || wi.started_at || wi.created_at || null) ||
     null;
   const paused = wi.status === 'paused' || (!!wi.paused_at && !wi.resumed_at);
 

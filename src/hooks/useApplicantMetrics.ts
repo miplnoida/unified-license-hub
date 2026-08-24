@@ -25,7 +25,7 @@ export interface ApplicantMetrics {
   payments: { pending: number; paid: number; outstanding_amount: number };
   notifications: { unread: number };
   priority_lists: {
-    recent_applications: Array<{ id: string; application_number: string | null; status: string; created_at: string; updated_at?: string | null; data?: any }>;
+    recent_applications: Array<{ id: string; application_number: string | null; status: string; created_at: string; updated_at?: string | null; submitted_at?: string | null; data?: any }>;
     pending_payments: Array<{ id: string; amount: number; status: string; created_at: string }>;
     action_required: Array<{ id: string; application_number: string | null; status: string; updated_at: string; application_id?: string; rfi_id?: string; item_count?: number }>;
   };
@@ -74,7 +74,7 @@ export function useApplicantMetrics(userId: string | undefined, scope: Applicant
       ]);
 
       const recentAppsQuery = scopeApps(
-        supabase.from('applications').select('id, application_number, status, created_at, updated_at, data').eq('applicant_id', userId!),
+        supabase.from('applications').select('id, application_number, status, created_at, updated_at, submitted_at, data').eq('applicant_id', userId!),
         scope,
       ).order('created_at', { ascending: false }).limit(8);
 

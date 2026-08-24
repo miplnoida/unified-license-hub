@@ -12,6 +12,8 @@ export interface RequiredFormRow {
   status: string;
   created_at: string;
   updated_at?: string | null;
+  /** Set once the application has been submitted; drives the View CTA. */
+  submitted_at?: string | null;
   // Optional metadata available from the recent_applications row's `data` payload.
   // Falls back to defaults when missing — no extra fetch is made.
   name?: string | null;
@@ -25,22 +27,32 @@ interface Props {
   emptyHint?: string;
 }
 
-function ctaFor(status: string): 'Start' | 'Continue' | 'Resume' | 'View' {
-  const s = status?.toLowerCase();
-  if (s === 'draft') return 'Continue';
-  if (s === 'in_progress') return 'Resume';
-  if (['query_raised', 'info_requested', 'resubmission_requested', 'resubmission_required', 'returned_for_correction'].includes(s)) {
-    return 'Resume';
-  }
-  return 'View';
+const ACTION_REQUIRED_STATUSES = [
+  'query_raised',
+  'info_requested',
+  'resubmission_requested',
+  'resubmission_required',
+  'returned_for_correction',
+];
+
+type Cta = 'Continue' | 'Resume' | 'View Application';
+
+/**
+ * CTA is derived from the canonical application state, not from data presence.
+ * A submitted application (even one whose status still reads `in_progress`
+ * because the workflow advanced it) must never offer a draft-editing CTA.
+ */
+function ctaFor(row: RequiredFormRow): Cta {
+  const s = (row.status || '').toLowerCase();
+  if (ACTION_REQUIRED_STATUSES.includes(s)) return 'Resume';
+  if (row.submitted_at) return 'View Application';
+  if (s === 'draft' || s === 'in_progress') return 'Continue';
+  return 'View Application';
 }
 
 function hrefFor(row: RequiredFormRow): string {
-  const s = row.status?.toLowerCase();
-  if (s === 'draft' || s === 'in_progress') {
-    return `/applications/${row.id}/continue?draft=${row.id}&mode=continue`;
-  }
-  return `/applications/${row.id}`;
+  if (ctaFor(row) === 'View Application') return `/applications/${row.id}`;
+  return `/applications/${row.id}/continue?draft=${row.id}&mode=continue`;
 }
 
 export function RequiredFormsList({ rows, newApplicationPath = '/applications/new', emptyHint }: Props) {
@@ -66,7 +78,11 @@ export function RequiredFormsList({ rows, newApplicationPath = '/applications/ne
         ) : (
           <div className="grid grid-cols-1 gap-2">
             {rows.map((r) => {
-              const label = ctaFor(r.status);
+              const label = ctaFor(r);
+              const statusLabel =
+                r.submitted_at && ['draft', 'in_progress'].includes((r.status || '').toLowerCase())
+                  ? 'Submitted'
+                  : getApplicationStatusLabel(r.status);
               const progress = r.progress && r.progress.total > 0
                 ? `${r.progress.completed}/${r.progress.total} steps`
                 : null;
@@ -79,7 +95,7 @@ export function RequiredFormsList({ rows, newApplicationPath = '/applications/ne
                         {r.name || r.application_number || r.id.slice(0, 8)}
                       </p>
                       <Badge variant="outline" className="text-[10px]">
-                        {getApplicationStatusLabel(r.status)}
+                        {statusLabel}
                       </Badge>
                     </div>
                     {r.description && (
@@ -90,7 +106,7 @@ export function RequiredFormsList({ rows, newApplicationPath = '/applications/ne
                       Updated {updated ? formatDistanceToNow(new Date(updated), { addSuffix: true }) : '—'}
                     </p>
                   </div>
-                  <Button asChild size="sm" variant={label === 'View' ? 'outline' : 'default'}>
+                  <Button asChild size="sm" variant={label === 'View Application' ? 'outline' : 'default'}>
                     <Link to={hrefFor(r)}>{label}</Link>
                   </Button>
                 </div>

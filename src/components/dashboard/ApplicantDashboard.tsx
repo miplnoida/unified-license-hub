@@ -72,6 +72,7 @@ export function ApplicantDashboard() {
       status: a.status,
       created_at: a.created_at,
       updated_at: a.updated_at,
+      submitted_at: a.submitted_at ?? null,
       name: a.data?.entity_name || a.data?.applicant_name || a.application_number || null,
       description: a.data?.license_type || a.data?.sector_name || null,
       progress: null,
