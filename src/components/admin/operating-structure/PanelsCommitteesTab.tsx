@@ -304,11 +304,10 @@ export function PanelsCommitteesTab() {
 
                   <Button
                     size="sm"
-                    variant="outline"
                     className="ml-auto"
                     onClick={() => setMemberDialog({ open: true, kind: 'committee', id: c.id, name: c.name })}
                   >
-                    Manage members
+                    + Add member
                   </Button>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -317,22 +316,32 @@ export function PanelsCommitteesTab() {
                 <div className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
                   <div>
                     <p className="text-xs uppercase text-muted-foreground">Chair</p>
-                    {roster.filter((m) => m.member_role === 'chair').map((m) => <p key={m.id}>{staffName(m.user_id)}</p>)}
+                    {roster.filter((m) => m.member_role === 'chair').map((m) => (
+                      <MemberLine key={m.id} label={staffName(m.user_id)} onRemove={() => removeMember('committee', m.id)} />
+                    ))}
                     {roster.every((m) => m.member_role !== 'chair') && <p>—</p>}
                   </div>
                   <div>
                     <p className="text-xs uppercase text-muted-foreground">Members</p>
-                    {roster.filter((m) => m.member_role === 'member').map((m) => <p key={m.id}>{staffName(m.user_id)}</p>)}
+                    {roster.filter((m) => m.member_role === 'member').map((m) => (
+                      <MemberLine key={m.id} label={staffName(m.user_id)} onRemove={() => removeMember('committee', m.id)} />
+                    ))}
                     {roster.every((m) => m.member_role !== 'member') && <p>—</p>}
                   </div>
                   <div>
                     <p className="text-xs uppercase text-muted-foreground">Observers / advisers</p>
                     {roster.filter((m) => !['chair', 'member'].includes(m.member_role)).map((m) => (
-                      <p key={m.id}>{staffName(m.user_id)} <span className="text-xs text-muted-foreground">({m.member_role})</span></p>
+                      <MemberLine
+                        key={m.id}
+                        label={staffName(m.user_id)}
+                        hint={`(${m.member_role})`}
+                        onRemove={() => removeMember('committee', m.id)}
+                      />
                     ))}
                     {roster.every((m) => ['chair', 'member'].includes(m.member_role)) && <p>—</p>}
                   </div>
                 </div>
+
               </div>
             );
           })}
