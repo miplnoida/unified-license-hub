@@ -12,7 +12,7 @@
 --     (twin peaks preserved) with zero cross-function authority leaks;
 --   * history is never destroyed and direct DML stays closed.
 BEGIN;
-SELECT plan(52);
+SELECT plan(59);
 
 -- ------------------------------------------------------------------
 -- fixtures — organisation
