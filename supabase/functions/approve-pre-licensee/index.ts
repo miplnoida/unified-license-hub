@@ -43,11 +43,6 @@ export async function handler(req: Request): Promise<Response> {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
     // Identity comes from the gate's cryptographically verified token claims.
     // Never re-derive it via auth.getUser(): that round-trip fails with
     // "session not found" after a refresh-token rotation even though the
