@@ -106,10 +106,17 @@ export function PanelsCommitteesTab() {
       );
       const voting = roster.filter((m) => m.is_voting);
       const chair = roster.find((m) => m.is_chair);
-      const ready = p.is_active && !!chair && voting.length >= p.quorum;
-      return { p, roster, voting, chair, ready };
+      // Composition readiness is about PEOPLE only. Whether the panel is switched
+      // on is a separate administrative decision and is never mixed in here.
+      const ready = !!chair && voting.length >= p.quorum;
+      const missing = [
+        !chair ? 'a chair' : null,
+        voting.length < p.quorum ? `${p.quorum - voting.length} more voting member(s)` : null,
+      ].filter(Boolean) as string[];
+      return { p, roster, voting, chair, ready, missing };
     });
   }, [panelData]);
+
 
   const policyMissing = (policies.data || []).length === 0;
 
@@ -153,7 +160,7 @@ export function PanelsCommitteesTab() {
       <Card>
         <CardHeader><CardTitle>Appeal panels</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          {panels.map(({ p, roster, voting, chair, ready }) => (
+          {panels.map(({ p, roster, voting, chair, ready, missing }) => (
             <div key={p.id} className="rounded-md border p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{p.name}</span>
@@ -168,17 +175,32 @@ export function PanelsCommitteesTab() {
                 <Badge variant={policyMissing ? 'outline' : 'default'}>
                   {policyMissing ? 'Policy not configured' : 'Policy configured'}
                 </Badge>
-                <Button
-                  size="sm"
-                  className="ml-auto"
-                  onClick={() => setMemberDialog({ open: true, kind: 'panel', id: p.id, name: p.name })}
-                >
-                  + Add member
-                </Button>
+                <div className="ml-auto flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={p.is_active ? 'ghost' : 'outline'}
+                    disabled={panelMut.updatePanel.isPending}
+                    onClick={() =>
+                      act(
+                        () => panelMut.updatePanel.mutateAsync({ panelId: p.id, isActive: !p.is_active }),
+                        p.is_active ? 'Panel deactivated' : 'Panel activated',
+                      )
+                    }
+                  >
+                    {p.is_active ? 'Deactivate' : 'Activate panel'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setMemberDialog({ open: true, kind: 'panel', id: p.id, name: p.name })}
+                  >
+                    + Add member
+                  </Button>
+                </div>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 Quorum {p.quorum} · decision rule {p.decision_rule} · current voting members {voting.length}
               </p>
+
               <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <p className="text-xs uppercase text-muted-foreground">Chair</p>
@@ -215,11 +237,18 @@ export function PanelsCommitteesTab() {
 
               {!ready && (
                 <p className="mt-2 text-xs text-amber-700">
-                  Composition is not complete yet — this panel needs a chair and at least {p.quorum}
-                  voting members. Quorum is never lowered and no permission is granted to clear it.
-                  Whether a panel may hear a specific matter is always decided case by case.
+                  Composition still needs {missing.join(' and ')}. Quorum is never lowered and no
+                  permission is granted to clear it. Whether a panel may hear a specific matter is
+                  always decided case by case.
                 </p>
               )}
+              {ready && !p.is_active && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Composition is complete. This panel is switched off — use Activate panel to make it
+                  available for appeals.
+                </p>
+              )}
+
             </div>
           ))}
           <p className="text-xs text-muted-foreground">
