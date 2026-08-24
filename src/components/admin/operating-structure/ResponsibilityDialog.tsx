@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   usePortfolioMutations, useRegulatoryFunctions, useRegulatoryTeams,
   SECTOR_GROUP_LABELS, SECTOR_GROUP_ORDER, useActiveSectors, useActiveSubSectors,
@@ -91,6 +92,7 @@ export function ResponsibilityDialog({
   const [to, setTo] = useState('');
   const [notes, setNotes] = useState('');
   const [resolved, setResolved] = useState<Record<string, Resolved>>({});
+  const [advanced, setAdvanced] = useState(false);
 
   const targetUser = userId || existing?.user_id || personId;
 
@@ -259,7 +261,7 @@ export function ResponsibilityDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{editing ? 'Edit responsibility' : 'Add responsibilities'}</DialogTitle>
+          <DialogTitle>{title || (editing ? 'Edit responsibility' : 'Add responsibilities')}</DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-3">
@@ -393,7 +395,7 @@ export function ResponsibilityDialog({
           {!editing && areas.some((fid) => already.has(fid)) && (
             <label className="flex items-center gap-2 rounded-md border p-2 text-sm">
               <Checkbox checked={updateExisting} onCheckedChange={(v) => setUpdateExisting(!!v)} />
-              Update existing responsibilities with this coverage and team
+              Update existing responsibilities with this coverage
             </label>
           )}
 
@@ -461,12 +463,13 @@ export function ResponsibilityDialog({
 
 /** Coverage + team selector for one configuration block. */
 function AreaCoverage({
-  config, onChange, teams, compact,
+  config, onChange, teams, compact, showTeam,
 }: {
   config: AreaConfig;
   onChange: (patch: Partial<AreaConfig>) => void;
   teams: any[];
   compact?: boolean;
+  showTeam?: boolean;
 }) {
   const activeSectors = useActiveSectors();
   const activeSubSectors = useActiveSubSectors();
@@ -551,18 +554,20 @@ function AreaCoverage({
         </div>
       )}
 
+      {showTeam && (
       <div>
-        <Label className="text-xs">Team (optional)</Label>
+        <Label className="text-xs">Organisational unit (optional)</Label>
         <Select value={config.teamId} onValueChange={(v) => onChange({ teamId: v })}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value={NONE}>No team</SelectItem>
+            <SelectItem value={NONE}>No unit</SelectItem>
             {teams.filter((t: any) => t.status === 'active').map((t: any) => (
               <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
+      )}
     </div>
   );
 }
@@ -623,7 +628,7 @@ function AreaRow({
 
       {customise && (
         <div className="mt-3">
-          <AreaCoverage config={config} onChange={onChange} teams={teams} compact />
+          <AreaCoverage config={config} onChange={onChange} teams={teams} compact showTeam />
         </div>
       )}
     </div>
