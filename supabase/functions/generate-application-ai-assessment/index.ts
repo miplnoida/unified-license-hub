@@ -209,14 +209,17 @@ Deno.serve(async (req) => {
     if (bearer && bearer === serviceKey) {
       callerIsServiceRole = true;
     } else if (authHeader) {
+      // Verify the bearer locally against the project JWKS. auth.getUser()
+      // would add a session round-trip that fails with "session not found"
+      // after a refresh-token rotation and surface as a bogus 401.
       const userClient = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      const { data: userData, error: userErr } = await userClient.auth.getUser();
-      if (userErr || !userData?.user) {
+      const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(bearer);
+      if (claimsErr || !claimsData?.claims?.sub) {
         return jsonResponse({ error: "Unauthorized" }, 401);
       }
-      callerUserId = userData.user.id;
+      callerUserId = String(claimsData.claims.sub);
 
       // Require the application-management view permission for non-service-role
       // callers (falls back to the internal-role check below).
