@@ -1218,6 +1218,71 @@ export default function ApplicationDetail() {
                 )}
               </TabsContent>
 
+              {showRequestEditTab && (
+                <TabsContent value="request-edit" className="mt-4">
+                  {activeTab === 'request-edit' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          {hasPendingEditRequest ? (
+                            <>
+                              <Clock className="h-4 w-4 text-warning" />
+                              Edit Request Pending
+                            </>
+                          ) : (
+                            <>
+                              <Edit className="h-4 w-4 text-primary" />
+                              Request to Edit Application
+                            </>
+                          )}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {hasPendingEditRequest ? (
+                          <p className="text-sm text-muted-foreground">
+                            Your request to edit this application is awaiting administrator review. You'll be
+                            notified once it's approved or denied.
+                          </p>
+                        ) : (
+                          <>
+                            <div className="space-y-2">
+                              <Label className="text-sm">Reason for edit request</Label>
+                              <Textarea
+                                value={actionComment}
+                                onChange={e => setActionComment(e.target.value)}
+                                placeholder="Explain why you need to edit your application..."
+                                rows={4}
+                              />
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:justify-end gap-2 pt-2">
+                              <Button
+                                variant="destructive"
+                                onClick={handleCancel}
+                                disabled={processing}
+                                className="w-full sm:w-auto"
+                              >
+                                <Ban className="h-4 w-4 mr-2" />Cancel Application
+                              </Button>
+                              <Button
+                                data-rbac="application_management.edit"
+                                variant="outline"
+                                onClick={handleRequestEdit}
+                                disabled={processing}
+                                className="w-full sm:w-auto"
+                              >
+                                <Edit className="h-4 w-4 mr-2" />Request Edit
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+              )}
+
+
+
               <TabsContent value="fees" className="mt-4 space-y-4">
                 {activeTab === 'fees' && (isInternal ? (
                   <>
