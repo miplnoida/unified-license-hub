@@ -1554,53 +1554,8 @@ export default function ApplicationDetail() {
                 </>
               );
             })()}
+            {/* Request Edit now lives in its own applicant tab (see "Request Edit"). */}
 
-
-            {/* Applicant request edit (before approval, while submitted/in_progress) */}
-            {isOwner && EDIT_REQUEST_ALLOWED_STATUSES.includes(app.status) && (() => {
-
-              if (hasPendingEditRequest) {
-                return (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-warning" />
-                        Edit Request Pending
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">
-                        Your request to edit this application is awaiting administrator review. You'll be notified once it's approved or denied.
-                      </p>
-                    </CardContent>
-                  </Card>
-                );
-              }
-
-              return (
-                <Card>
-                  <CardContent className="pt-6 space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm">Request to Edit Application</Label>
-                      <Textarea
-                        value={actionComment}
-                        onChange={e => setActionComment(e.target.value)}
-                        placeholder="Explain why you need to edit your application..."
-                        rows={2}
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button data-rbac="application_management.edit" variant="outline" onClick={handleRequestEdit} disabled={processing} className="flex-1">
-                        <Edit className="h-4 w-4 mr-2" />Request Edit
-                      </Button>
-                      <Button variant="destructive" onClick={handleCancel} disabled={processing}>
-                        <Ban className="h-4 w-4 mr-2" />Cancel
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })()}
           </div>
 
           {/* Activity trail lives solely in the "Activity" tab above. */}
