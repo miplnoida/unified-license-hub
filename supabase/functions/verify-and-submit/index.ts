@@ -29,17 +29,15 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Create user-scoped client to get the authenticated user
+    // User-scoped client for RLS-respecting RPC calls / function invokes.
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Invalid or expired token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+
+    // Identity comes from the gate's verified token claims. A second
+    // auth.getUser() round-trip can fail with "session not found" after a
+    // refresh-token rotation and would surface as a bogus 401.
+    const user = { id: __authzGate.userId, email: __authzGate.email };
 
     // Parse request body
     const { application_id, ack_text } = await req.json();

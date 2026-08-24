@@ -40,14 +40,10 @@ Deno.serve(async (req) => {
     if (!authHeader) {
       return json({ error: "Unauthorized" }, 401);
     }
-    const userClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-    const { data: userData } = await userClient.auth.getUser();
-    const originatorId = userData?.user?.id;
-    if (!originatorId) return json({ error: "Unauthorized" }, 401);
+    // Identity comes from the gate's verified token claims. A second
+    // auth.getUser() round-trip can fail with "session not found" after a
+    // refresh-token rotation and would surface as a bogus 401.
+    const originatorId = __authzGate.userId;
 
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action || "validate");

@@ -946,8 +946,9 @@ Deno.serve(async (req) => {
           Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "",
           { global: { headers: { Authorization: authHeader } } },
         );
-        const { data, error } = await userClient.auth.getUser();
-        authorizedUser = !error && !!data?.user?.id;
+        const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+        const { data, error } = await userClient.auth.getClaims(token);
+        authorizedUser = !error && !!data?.claims?.sub;
       } catch {
         authorizedUser = false;
       }

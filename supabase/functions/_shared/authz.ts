@@ -29,6 +29,8 @@ export function jsonResponse(body: unknown, status = 200): Response {
 export interface AuthzSuccess {
   ok: true;
   userId: string;
+  /** Email claim from the verified token, when present. */
+  email: string | null;
   authClient: SupabaseClient;
   adminClient: SupabaseClient;
 }
@@ -90,6 +92,7 @@ export async function requireUserPermission(
     return { ok: false, response: jsonResponse({ error: 'Unauthorized' }, 401) };
   }
   const userId = String(claimsData.claims.sub);
+  const email = (claimsData.claims as Record<string, unknown>)?.email as string | undefined ?? null;
   const adminClient = admin();
 
   if (module && action) {
@@ -117,7 +120,7 @@ export async function requireUserPermission(
     if (!scopeCheck.ok) return { ok: false, response: scopeCheck.response };
   }
 
-  return { ok: true, userId, authClient, adminClient };
+  return { ok: true, userId, email, authClient, adminClient };
 }
 
 /**
@@ -165,7 +168,7 @@ async function enforceScope(
   } catch {
     return { ok: false, response: jsonResponse({ error: 'Forbidden' }, 403) };
   }
-  return { ok: true, userId, authClient: adminClient, adminClient };
+  return { ok: true, userId, email: null, authClient: adminClient, adminClient };
 }
 
 /**

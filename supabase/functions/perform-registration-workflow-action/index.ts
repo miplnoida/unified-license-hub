@@ -51,14 +51,11 @@ export async function handler(req: Request): Promise<Response> {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userRes, error: authErr } = await userClient.auth.getUser();
-    const caller = userRes?.user;
-    if (authErr || !caller) return errorResponse(req, 401, "Invalid or expired token", "UNAUTHORIZED");
+    // Identity comes from the gate's cryptographically verified token claims.
+    // Never re-derive it via auth.getUser(): that round-trip fails with
+    // "session not found" after a refresh-token rotation even though the
+    // bearer token is valid, which surfaced as a bogus 401 on approvals.
+    const caller = { id: __authzGate.userId, email: __authzGate.email };
 
     let body: any;
     try { body = await req.json(); } catch { body = {}; }
