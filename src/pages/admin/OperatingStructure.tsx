@@ -102,9 +102,30 @@ export default function OperatingStructure() {
         <h1 className="text-2xl font-semibold">Regulatory Operating Structure</h1>
         <p className="text-sm text-muted-foreground">
           Functional responsibility groups, staff responsibilities and coverage warnings. The same
-          employee may legitimately appear in several teams and functions.
+          employee may legitimately appear in several teams and functions — organisational overlap is
+          allowed; conflicting actions on the same matter are blocked by the backend.
         </p>
       </div>
+
+      <Card>
+        <CardContent className="grid gap-1 py-4 text-xs text-muted-foreground sm:grid-cols-3">
+          <p>
+            <span className="font-semibold text-foreground">Mandates:</span> Configured — Not Enforced
+            (regulator mandate enforcement remains inactive until sector coverage is reviewed).
+          </p>
+          <p>
+            <span className="font-semibold text-foreground">Portfolios:</span>{' '}
+            PORTFOLIO_CONFIGURATION_REQUIRED — no applicable portfolio means no additional restriction.
+          </p>
+          <p>
+            <span className="font-semibold text-foreground">Role registry:</span>{' '}
+            {drift.data?.missing?.length
+              ? `ROLE_REGISTRY_RECONCILIATION_REQUIRED — missing: ${drift.data.missing.join(', ')}`
+              : 'No expected role keys missing.'}
+          </p>
+        </CardContent>
+      </Card>
+
 
       <Tabs defaultValue="staff">
         <TabsList>
