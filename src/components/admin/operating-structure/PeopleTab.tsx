@@ -158,6 +158,10 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
                     </Badge>
                     {p?.user?.email}
                     {p?.user?.regulator_name ? ` · Home regulator: ${p.user.regulator_name}` : ''}
+                    <span>
+                      · {myPortfolios.length} {myPortfolios.length === 1 ? 'area of work' : 'areas of work'} ·{' '}
+                      {myMemberships.length} {myMemberships.length === 1 ? 'team' : 'teams'}
+                    </span>
                   </p>
                 )}
               </div>

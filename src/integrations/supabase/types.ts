@@ -43889,7 +43889,15 @@ export type Database = {
         }
         Returns: Json
       }
+      staff_responsibilities_batch_save: {
+        Args: { _dry_run?: boolean; _items: Json; _user_id: string }
+        Returns: Json
+      }
       staff_responsibility_directory: { Args: never; Returns: Json }
+      staff_responsibility_plan_preview: {
+        Args: { _function_ids: string[]; _user_id: string }
+        Returns: Json
+      }
       staff_responsibility_profile: {
         Args: { _user_id: string }
         Returns: Json

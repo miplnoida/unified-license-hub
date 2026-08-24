@@ -508,7 +508,22 @@ export function usePortfolioMutations() {
     onSuccess: done,
   });
 
-  return { savePortfolio, endPortfolio, addScope, removeScope };
+  /**
+   * Atomic multi-area save. One governed portfolio per selected regulatory
+   * function — never an array of functions inside one portfolio. Either every
+   * requested responsibility is written or none is.
+   */
+  const batchSaveResponsibilities = useMutation({
+    mutationFn: (v: { userId: string; items: Record<string, unknown>[]; dryRun?: boolean }) =>
+      rpc('staff_responsibilities_batch_save', {
+        _user_id: v.userId,
+        _items: v.items,
+        _dry_run: !!v.dryRun,
+      }),
+    onSuccess: done,
+  });
+
+  return { savePortfolio, endPortfolio, addScope, removeScope, batchSaveResponsibilities };
 }
 
 /** Regulator mandates: what this regulator is responsible for, and where it is enforced. */
