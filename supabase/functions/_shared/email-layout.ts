@@ -234,8 +234,9 @@ export function renderBrandedEmail({
     : "";
 
   const introHtml = intro
-    ? `<p style="color:#475569;margin:0 0 16px;line-height:1.65;font-size:15px;">${escapeHtml(intro)}</p>`
+    ? `<p style="color:#475569;margin:0 0 16px;line-height:1.65;font-size:15px;">${renderInline(intro)}</p>`
     : "";
+
 
   const paragraphHtml = bodyHtml || renderRichBody(paragraphs.filter(Boolean).join("\n\n"));
 
