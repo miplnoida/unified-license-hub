@@ -21,6 +21,7 @@ import {
 } from '@/lib/licenseAppeals';
 import { formatDateTime } from '@/lib/datetime';
 import { useCan } from '@/hooks/useCan';
+import { AppealParticipationPanel } from '@/components/appeals/AppealParticipationPanel';
 
 interface Props {
   appeal: LicenseAppeal;
@@ -404,6 +405,9 @@ export function AppealPanelSection({ appeal }: Props) {
           )}
         </div>
       )}
+
+      {/* Participation, conflict/recusal, voting and quorum — backend authoritative */}
+      <AppealParticipationPanel appealId={appeal.id} />
     </div>
   );
 }

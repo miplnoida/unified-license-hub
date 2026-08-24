@@ -4,6 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { EntitySupervisionTab } from '@/components/admin/operating-structure/EntitySupervisionTab';
+import { PanelsCommitteesTab } from '@/components/admin/operating-structure/PanelsCommitteesTab';
+import { useRoleRegistryDrift } from '@/hooks/useOperatingStructure';
 
 /**
  * Administration → Regulatory Operating Structure.
@@ -92,6 +95,7 @@ export default function OperatingStructure() {
   });
 
   const p = profile.data || {};
+  const drift = useRoleRegistryDrift();
 
   return (
     <div className="space-y-4">
@@ -99,16 +103,48 @@ export default function OperatingStructure() {
         <h1 className="text-2xl font-semibold">Regulatory Operating Structure</h1>
         <p className="text-sm text-muted-foreground">
           Functional responsibility groups, staff responsibilities and coverage warnings. The same
-          employee may legitimately appear in several teams and functions.
+          employee may legitimately appear in several teams and functions — organisational overlap is
+          allowed; conflicting actions on the same matter are blocked by the backend.
         </p>
       </div>
+
+      <Card>
+        <CardContent className="grid gap-1 py-4 text-xs text-muted-foreground sm:grid-cols-3">
+          <p>
+            <span className="font-semibold text-foreground">Mandates:</span> Configured — Not Enforced
+            (regulator mandate enforcement remains inactive until sector coverage is reviewed).
+          </p>
+          <p>
+            <span className="font-semibold text-foreground">Portfolios:</span>{' '}
+            PORTFOLIO_CONFIGURATION_REQUIRED — no applicable portfolio means no additional restriction.
+          </p>
+          <p>
+            <span className="font-semibold text-foreground">Role registry:</span>{' '}
+            {drift.data?.missing?.length
+              ? `ROLE_REGISTRY_RECONCILIATION_REQUIRED — missing: ${drift.data.missing.join(', ')}`
+              : 'No expected role keys missing.'}
+          </p>
+        </CardContent>
+      </Card>
+
 
       <Tabs defaultValue="staff">
         <TabsList>
           <TabsTrigger value="teams">Teams</TabsTrigger>
           <TabsTrigger value="staff">Staff Responsibilities</TabsTrigger>
+          <TabsTrigger value="supervision">Entity Supervision</TabsTrigger>
+          <TabsTrigger value="bodies">Panels &amp; Committees</TabsTrigger>
           <TabsTrigger value="warnings">Coverage Warnings</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="supervision" className="mt-4">
+          <EntitySupervisionTab />
+        </TabsContent>
+
+        <TabsContent value="bodies" className="mt-4">
+          <PanelsCommitteesTab />
+        </TabsContent>
+
 
         <TabsContent value="teams" className="mt-4">
           <Card>
