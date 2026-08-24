@@ -137,7 +137,7 @@ export function ResponsibilityDialog({
       cfg.sectorId = preset.sectorId;
     }
     setShared(cfg);
-  }, [open, portfolioId, existingScopes.length, preset?.functionId, preset?.sectorId, preset?.subSectorId]);
+  }, [open, portfolioId, existingScopes.length, preset?.functionId, preset?.functionIds?.join(','), preset?.sectorId, preset?.subSectorId]);
 
   const configFor = (fid: string): AreaConfig => (customize ? perArea[fid] || shared : shared);
   const setAreaConfig = (fid: string, patch: Partial<AreaConfig>) =>
