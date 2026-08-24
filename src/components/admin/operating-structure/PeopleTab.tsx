@@ -14,8 +14,11 @@ import {
   useSubSectors, useSupervisedEntities, useTeamMembers, useTeamMutations,
 } from '@/hooks/useOperatingStructure';
 import { ResponsibilityDialog } from './ResponsibilityDialog';
+import { PersonSectorResponsibilityDialog } from './SectorAssignDialogs';
+import { AccessStatusNote } from './AccessStatusNote';
 import { act, effectiveRange, TEAM_ROLES } from './shared';
 import { usePortfolioMutations } from '@/hooks/useOperatingStructure';
+
 
 /**
  * WHO works here and WHAT they are responsible for.
