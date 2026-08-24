@@ -89,6 +89,7 @@ export const mainNavSections: NavSection[] = [
       // `role_management.view_coverage` action so a role that can view Role
       // Management does not implicitly get access to the coverage matrix.
       { label: 'Permission Coverage', href: '/admin/permission-coverage', icon: <Shield className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'role_management', requiredAction: 'view_coverage', adminOnly: true },
+      { label: 'Operating Structure', href: '/admin/operating-structure', icon: <Shield className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'user_management', adminOnly: true },
     ],
   },
   {
