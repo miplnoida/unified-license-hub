@@ -15,6 +15,10 @@ import {
 } from '@/hooks/useOperatingStructure';
 
 const ANY = 'any';
+/** Sentinel values: shadcn Select cannot hold an empty string. */
+const KEEP = 'keep';
+const NONE = 'none';
+
 
 /**
  * Canonical entity supervision, operated exclusively through the governed RPCs.
