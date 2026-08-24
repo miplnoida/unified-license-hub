@@ -40,14 +40,14 @@ export function RegulatorsAdminTab() {
         sectorList.length +
         count(teams.data, r.id) +
         count(portfolios.data?.portfolios, r.id) +
-        count(assignments.data?.assignments, r.id) +
+        count(assignments.data as any[], r.id) +
         functions.size;
       return {
         ...r,
         sectors: sectorList,
         teams: count(teams.data, r.id),
         people: count(portfolios.data?.portfolios, r.id),
-        entities: count(assignments.data?.assignments, r.id),
+        entities: count(assignments.data as any[], r.id),
         functions: functions.size,
         used,
         active: String(r.status || '').toLowerCase() === 'active',
