@@ -34,7 +34,6 @@ export interface ResponsibilityDialogProps {
 export function ResponsibilityDialog({
   open, onOpenChange, userId, portfolioId, preset, onSaved,
 }: ResponsibilityDialogProps) {
-  const regulators = useRegulators();
   const functions = useRegulatoryFunctions();
   const teams = useRegulatoryTeams();
   const sectors = useSectors();
@@ -42,6 +41,7 @@ export function ResponsibilityDialog({
   const entities = useSupervisedEntities();
   const portfolios = useStaffPortfolios();
   const { savePortfolio, addScope, removeScope } = usePortfolioMutations();
+
 
   const existing = useMemo(
     () => (portfolios.data?.portfolios || []).find((p: any) => p.id === portfolioId) || null,
