@@ -4,6 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { EntitySupervisionTab } from '@/components/admin/operating-structure/EntitySupervisionTab';
+import { PanelsCommitteesTab } from '@/components/admin/operating-structure/PanelsCommitteesTab';
+import { useRoleRegistryDrift } from '@/hooks/useOperatingStructure';
 
 /**
  * Administration → Regulatory Operating Structure.
