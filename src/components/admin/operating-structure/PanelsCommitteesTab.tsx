@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertTriangle } from 'lucide-react';
 import {
   useAppealIndependenceMutation, useAppealIndependencePolicies, useAppealPanelsWithMembers,
-  useFpCommittees, useRegulators, useStaffProfiles,
+  useFpCommittees, useRegulators, useStaffDirectory,
 } from '@/hooks/useOperatingStructure';
 
 const UNSET = 'unset';
@@ -24,7 +24,7 @@ export function PanelsCommitteesTab() {
   const { data: panelData } = useAppealPanelsWithMembers();
   const { data: committeeData } = useFpCommittees();
   const regulators = useRegulators();
-  const staff = useStaffProfiles();
+  const staff = useStaffDirectory();
   const policies = useAppealIndependencePolicies();
   const setPolicy = useAppealIndependenceMutation();
 

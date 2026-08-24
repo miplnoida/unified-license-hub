@@ -13,7 +13,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { formatDateTime } from '@/lib/datetime';
 import {
   usePortfolioMutations, useRegulators, useRegulatoryFunctions, useRegulatoryTeams,
-  useSectors, useStaffDirectory, useStaffPortfolios, useSubSectors, useSupervisedEntities,
+  useSectors, useStaffPortfolios, useSubSectors, useSupervisedEntities,
   useTeamMembers, useTeamMutations,
 } from '@/hooks/useOperatingStructure';
 
@@ -42,7 +42,6 @@ export function StaffResponsibilityTab() {
       return (Array.isArray(data) ? data : []) as any[];
     },
   });
-  useStaffDirectory();
 
   const profile = useQuery({
     queryKey: ['staff-responsibility-profile', selected],

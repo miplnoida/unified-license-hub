@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { formatDateTime } from '@/lib/datetime';
 import {
-  useRegulators, useRegulatoryFunctions, useRegulatoryTeams, useStaffProfiles,
+  useRegulators, useRegulatoryFunctions, useRegulatoryTeams, useStaffDirectory,
   useSupervisedEntities, useSupervisionAssignments, useSupervisionMutations, useTeamMembers,
 } from '@/hooks/useOperatingStructure';
 
@@ -31,7 +31,7 @@ export function EntitySupervisionTab() {
   const regulators = useRegulators();
   const functions = useRegulatoryFunctions();
   const teams = useRegulatoryTeams();
-  const staff = useStaffProfiles();
+  const staff = useStaffDirectory();
   const entities = useSupervisedEntities();
   const assignments = useSupervisionAssignments();
   const members = useTeamMembers();
