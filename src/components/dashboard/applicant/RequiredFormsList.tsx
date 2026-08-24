@@ -95,7 +95,7 @@ export function RequiredFormsList({ rows, newApplicationPath = '/applications/ne
                         {r.name || r.application_number || r.id.slice(0, 8)}
                       </p>
                       <Badge variant="outline" className="text-[10px]">
-                        {getApplicationStatusLabel(r.status)}
+                        {statusLabel}
                       </Badge>
                     </div>
                     {r.description && (
@@ -106,7 +106,7 @@ export function RequiredFormsList({ rows, newApplicationPath = '/applications/ne
                       Updated {updated ? formatDistanceToNow(new Date(updated), { addSuffix: true }) : '—'}
                     </p>
                   </div>
-                  <Button asChild size="sm" variant={label === 'View' ? 'outline' : 'default'}>
+                  <Button asChild size="sm" variant={label === 'View Application' ? 'outline' : 'default'}>
                     <Link to={hrefFor(r)}>{label}</Link>
                   </Button>
                 </div>
