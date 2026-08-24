@@ -7,6 +7,156 @@ function escapeHtml(input: unknown): string {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * Section labels used by the enterprise communication content standard. When a
+ * block of copy opens with one of these, it is rendered as a bold sub-heading
+ * rather than as an ordinary sentence.
+ */
+const SECTION_LABELS = new Set(
+  [
+    "action required",
+    "no action required",
+    "action taken",
+    "deadline",
+    "due date",
+    "what happens next",
+    "next steps",
+    "reason",
+    "reasons",
+    "grounds",
+    "remark",
+    "remarks",
+    "comments",
+    "summary",
+    "summary of the request",
+    "information required",
+    "documents required",
+    "requirements",
+    "outstanding items",
+    "decision",
+    "determination",
+    "outcome",
+    "conditions",
+    "payment details",
+    "amount payable",
+    "right of review",
+    "right of appeal",
+    "review and appeal",
+    "consequence of non-compliance",
+    "consequences of non-compliance",
+    "effective date",
+    "period",
+    "reporting period",
+    "reference",
+    "details",
+    "your login details",
+    "how to respond",
+    "security",
+    "important",
+  ].map((s) => s),
+);
+
+const HEADING_STYLE =
+  'style="color:#0f172a;margin:18px 0 6px;line-height:1.5;font-size:14px;font-weight:700;"';
+const TEXT_STYLE =
+  'style="color:#475569;margin:0 0 14px;line-height:1.65;font-size:14px;"';
+const LIST_STYLE =
+  'style="color:#475569;margin:0 0 14px;padding-left:20px;line-height:1.65;font-size:14px;"';
+
+/** Inline formatting: **bold**, *italic*, `code` and bare URLs. */
+function renderInline(line: string): string {
+  let html = escapeHtml(line);
+  html = html.replace(/`([^`]+)`/g, (_m, t) =>
+    `<code style="font-family:'Courier New',Courier,monospace;background:#f1f5f9;padding:1px 4px;border-radius:4px;">${t}</code>`);
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong style="color:#0f172a;">$1</strong>');
+  html = html.replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s).,;:!?]|$)/g, '$1<em>$2</em>');
+  html = html.replace(/(^|[\s(])_([^_\n]+)_(?=[\s).,;:!?]|$)/g, '$1<em>$2</em>');
+  html = html.replace(
+    /(https?:\/\/[^\s<]+[^\s<.,;:!?)])/g,
+    '<a href="$1" style="color:#1E3A8A;text-decoration:underline;word-break:break-all;">$1</a>',
+  );
+  return html;
+}
+
+function isHeadingLine(line: string, blockHasMoreLines: boolean): boolean {
+  const raw = line.trim().replace(/:$/, "");
+  if (!raw || raw.length > 64) return false;
+  if (/\{\{/.test(raw)) return false;
+  if (SECTION_LABELS.has(raw.toLowerCase())) return true;
+  // A short, un-punctuated opening line that introduces further lines in the
+  // same block is a label (e.g. "Remark" above the remark text).
+  return blockHasMoreLines && !/[.,;!?]$/.test(raw) && raw.split(/\s+/).length <= 8;
+}
+
+const BULLET = /^\s*(?:[-*•]|\u2022)\s+(.*)$/;
+const NUMBERED = /^\s*\d+[.)]\s+(.*)$/;
+
+/**
+ * Converts the plain-text body stored on a notification template into the
+ * HTML used by the branded shell: bold section headings, bulleted and numbered
+ * lists, inline emphasis and clickable links. Escaping happens before any
+ * markup is introduced, so template content can never inject HTML.
+ */
+export function renderRichBody(text: string): string {
+  const blocks = String(text || "")
+    .replace(/\r\n/g, "\n")
+    .split(/\n{2,}/)
+    .map((b) => b.replace(/\s+$/g, ""))
+    .filter((b) => b.trim().length > 0);
+
+  const out: string[] = [];
+
+  for (const block of blocks) {
+    const lines = block.split("\n").filter((l) => l.trim().length > 0);
+    let i = 0;
+    const paragraph: string[] = [];
+
+    const flush = () => {
+      if (paragraph.length) {
+        out.push(`<p ${TEXT_STYLE}>${paragraph.join("<br/>")}</p>`);
+        paragraph.length = 0;
+      }
+    };
+
+    while (i < lines.length) {
+      const line = lines[i];
+      const bullet = BULLET.exec(line);
+      const numbered = !bullet ? NUMBERED.exec(line) : null;
+
+      if (bullet || numbered) {
+        flush();
+        const ordered = Boolean(numbered);
+        const items: string[] = [];
+        while (i < lines.length) {
+          const m = ordered ? NUMBERED.exec(lines[i]) : BULLET.exec(lines[i]);
+          if (!m) break;
+          items.push(`<li style="margin:0 0 6px;">${renderInline(m[1])}</li>`);
+          i += 1;
+        }
+        const tag = ordered ? "ol" : "ul";
+        out.push(`<${tag} ${LIST_STYLE}>${items.join("")}</${tag}>`);
+        continue;
+      }
+
+      if (paragraph.length === 0 && isHeadingLine(line, lines.length > i + 1)) {
+        flush();
+        out.push(`<p ${HEADING_STYLE}>${renderInline(line.trim().replace(/:$/, ""))}</p>`);
+        i += 1;
+        continue;
+      }
+
+      paragraph.push(renderInline(line));
+      i += 1;
+    }
+
+    flush();
+  }
+
+  return out.join("");
+}
+
+
+
 export interface EmailDetailRow {
   label: string;
   value: string;
