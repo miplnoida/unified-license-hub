@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertTriangle, ChevronDown, Loader2, Plus, Trash2, UserRound } from 'lucide-react';
 import { TEAM_ROLES, useExaminationTeam, useTeamMutations } from '@/hooks/useExaminations';
+import { useStaffProfiles } from '@/hooks/useOperatingStructure';
 import { StageActions, type StageActionsMode } from './ExaminationStageActions';
 
 const roleLabel = (r: string) => TEAM_ROLES.find(t => t.value === r)?.label ?? r.replace('_', ' ');
@@ -229,7 +230,7 @@ export function TeamPanel({ examinationId, readOnly, mode = 'supporting' }: { ex
             </Collapsible>
 
             <div className="flex gap-2">
-              <Button data-rbac="prudential_supervision.edit" size="sm" disabled={!form.member_name || save.isPending} onClick={add}>
+              <Button data-rbac="prudential_supervision.edit" size="sm" disabled={!form.user_id || save.isPending} onClick={add}>
                 <Plus className="h-4 w-4 mr-1" />Add to team
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
