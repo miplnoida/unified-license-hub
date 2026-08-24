@@ -106,10 +106,17 @@ export function PanelsCommitteesTab() {
       );
       const voting = roster.filter((m) => m.is_voting);
       const chair = roster.find((m) => m.is_chair);
-      const ready = p.is_active && !!chair && voting.length >= p.quorum;
-      return { p, roster, voting, chair, ready };
+      // Composition readiness is about PEOPLE only. Whether the panel is switched
+      // on is a separate administrative decision and is never mixed in here.
+      const ready = !!chair && voting.length >= p.quorum;
+      const missing = [
+        !chair ? 'a chair' : null,
+        voting.length < p.quorum ? `${p.quorum - voting.length} more voting member(s)` : null,
+      ].filter(Boolean) as string[];
+      return { p, roster, voting, chair, ready, missing };
     });
   }, [panelData]);
+
 
   const policyMissing = (policies.data || []).length === 0;
 
