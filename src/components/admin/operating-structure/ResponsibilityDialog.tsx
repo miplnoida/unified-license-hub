@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   usePortfolioMutations, useRegulatoryFunctions, useRegulatoryTeams,
-  useSectors, useStaffDirectory, useStaffPortfolios, useSubSectors, useSupervisedEntities,
+  SECTOR_GROUP_LABELS, SECTOR_GROUP_ORDER, useActiveSectors, useActiveSubSectors, useSectors, useStaffDirectory, useStaffPortfolios, useSubSectors, useSupervisedEntities,
 } from '@/hooks/useOperatingStructure';
 import { act, NONE } from './shared';
 import { useRegulatorResolution } from './regulatorResolution';
@@ -40,6 +40,8 @@ export function ResponsibilityDialog({
   const teams = useRegulatoryTeams();
   const sectors = useSectors();
   const subSectors = useSubSectors();
+  const activeSectors = useActiveSectors();
+  const activeSubSectors = useActiveSubSectors();
   const entities = useSupervisedEntities();
   const portfolios = useStaffPortfolios();
   const { savePortfolio, addScope, removeScope } = usePortfolioMutations();
@@ -122,15 +124,27 @@ export function ResponsibilityDialog({
     '';
 
 
-  const options = useMemo(() => {
-    if (appliesTo === 'sector') return (sectors.data || []).map((s: any) => ({ id: s.id, name: s.name }));
+  const options = useMemo<{ id: string; name: string; group?: string }[]>(() => {
+    if (appliesTo === 'sector')
+      return (activeSectors.data || [])
+        .slice()
+        .sort(
+          (a: any, b: any) =>
+            SECTOR_GROUP_ORDER.indexOf(a.display_group) - SECTOR_GROUP_ORDER.indexOf(b.display_group) ||
+            String(a.name).localeCompare(String(b.name)),
+        )
+        .map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          group: SECTOR_GROUP_LABELS[s.display_group || 'UNGROUPED'],
+        }));
     if (appliesTo === 'sub_sector')
-      return (subSectors.data || [])
+      return (activeSubSectors.data || [])
         .filter((s: any) => !sectorId || s.sector_id === sectorId)
         .map((s: any) => ({ id: s.id, name: s.name }));
     if (appliesTo === 'entity') return (entities.data || []).map((s: any) => ({ id: s.id, name: s.name }));
     return [];
-  }, [appliesTo, sectorId, sectors.data, subSectors.data, entities.data]);
+  }, [appliesTo, sectorId, activeSectors.data, activeSubSectors.data, entities.data]);
 
   const toggle = (id: string) =>
     setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -277,7 +291,7 @@ export function ResponsibilityDialog({
               <Select value={sectorId} onValueChange={(v) => { setSectorId(v); setPicked([]); }}>
                 <SelectTrigger><SelectValue placeholder="Select sector" /></SelectTrigger>
                 <SelectContent>
-                  {(sectors.data || []).map((s: any) => (
+                  {(activeSectors.data || []).map((s: any) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -289,11 +303,18 @@ export function ResponsibilityDialog({
             <div>
               <Label className="text-xs">Coverage</Label>
               <div className="max-h-48 space-y-1 overflow-auto rounded-md border p-2">
-                {options.map((o) => (
-                  <label key={o.id} className="flex items-center gap-2 text-sm">
+                {options.map((o, i) => (
+                  <div key={o.id}>
+                  {o.group && o.group !== options[i - 1]?.group && (
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground first:mt-0">
+                      {o.group}
+                    </p>
+                  )}
+                  <label className="flex items-center gap-2 text-sm">
                     <Checkbox checked={picked.includes(o.id)} onCheckedChange={() => toggle(o.id)} />
                     {o.name}
                   </label>
+                  </div>
                 ))}
                 {options.length === 0 && <p className="text-xs text-muted-foreground">Nothing to select.</p>}
               </div>

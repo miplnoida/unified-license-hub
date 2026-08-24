@@ -13,7 +13,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { formatDateTime } from '@/lib/datetime';
 import {
   usePortfolioMutations, useActiveRegulators, useRegulators, useRegulatoryFunctions, useRegulatoryTeams,
-  useSectors, useStaffPortfolios, useSubSectors, useSupervisedEntities,
+  useActiveSectors, useActiveSubSectors, useSectors, useStaffPortfolios, useSubSectors, useSupervisedEntities,
   useTeamMembers, useTeamMutations,
 } from '@/hooks/useOperatingStructure';
 
@@ -59,6 +59,8 @@ export function StaffResponsibilityTab() {
   const teams = useRegulatoryTeams();
   const members = useTeamMembers();
   const sectors = useSectors();
+  const activeSectors = useActiveSectors();
+  const activeSubSectors = useActiveSubSectors();
   const subSectors = useSubSectors();
   const entities = useSupervisedEntities();
   const portfolios = useStaffPortfolios();
@@ -133,8 +135,8 @@ export function StaffResponsibilityTab() {
   };
 
   const scopeOptions = (kind: string) => {
-    if (kind === 'sector') return (sectors.data || []).map((s: any) => ({ id: s.id, name: s.name }));
-    if (kind === 'sub_sector') return (subSectors.data || []).map((s: any) => ({ id: s.id, name: s.name }));
+    if (kind === 'sector') return (activeSectors.data || []).map((s: any) => ({ id: s.id, name: s.name }));
+    if (kind === 'sub_sector') return (activeSubSectors.data || []).map((s: any) => ({ id: s.id, name: s.name }));
     return (entities.data || []).map((s: any) => ({ id: s.id, name: s.name }));
   };
 

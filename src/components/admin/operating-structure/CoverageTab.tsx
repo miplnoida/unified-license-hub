@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EntitySupervisionTab } from './EntitySupervisionTab';
 import { ResponsibilityDialog } from './ResponsibilityDialog';
 import {
-  useRegulatoryFunctions, useRegulatoryTeams, useSectors, useStaffDirectory, useStaffPortfolios,
+  SECTOR_GROUP_LABELS, useActiveSectors, useRegulatoryFunctions, useRegulatoryTeams, useSectors,
+  useStaffDirectory, useStaffPortfolios,
   useSubSectors, useSupervisedEntities, useSupervisionAssignments,
 } from '@/hooks/useOperatingStructure';
 
@@ -18,6 +19,7 @@ import {
  */
 export function CoverageTab({ initialView = 'sectors' }: { initialView?: 'sectors' | 'entities' }) {
   const sectors = useSectors();
+  const activeSectors = useActiveSectors();
   const subSectors = useSubSectors();
   const entities = useSupervisedEntities();
   const portfolios = useStaffPortfolios();
@@ -71,8 +73,16 @@ export function CoverageTab({ initialView = 'sectors' }: { initialView?: 'sector
 
   const visibleSectors = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return (sectors.data || []).filter((s: any) => !q || String(s.name).toLowerCase().includes(q));
-  }, [sectors.data, search]);
+    const order = ['DOMESTIC_FINANCIAL_SECTOR', 'INTERNATIONAL_FINANCIAL_SECTOR', 'OTHER_NEW_REGULATED_SECTOR', 'UNGROUPED'];
+    return (activeSectors.data || [])
+      .filter((s: any) => !q || String(s.name).toLowerCase().includes(q))
+      .slice()
+      .sort(
+        (a: any, b: any) =>
+          order.indexOf(a.display_group || 'UNGROUPED') - order.indexOf(b.display_group || 'UNGROUPED') ||
+          String(a.name).localeCompare(String(b.name)),
+      );
+  }, [activeSectors.data, search]);
 
   return (
     <>
@@ -89,12 +99,22 @@ export function CoverageTab({ initialView = 'sectors' }: { initialView?: 'sector
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          {visibleSectors.map((sec: any) => {
-            const subs = (subSectors.data || []).filter((s: any) => s.sector_id === sec.id);
+          {visibleSectors.map((sec: any, idx: number) => {
+            const groupKey = sec.display_group || 'UNGROUPED';
+            const showGroup = groupKey !== (visibleSectors[idx - 1]?.display_group || (idx === 0 ? null : 'UNGROUPED'));
+            const subs = (subSectors.data || []).filter(
+              (s: any) => s.sector_id === sec.id && String(s.status || '').toLowerCase() === 'active',
+            );
             const secPeople = peopleFor(sec.id);
             const secEntities = (entities.data || []).filter((e: any) => e.sector_id === sec.id);
             return (
-              <Card key={sec.id}>
+              <div key={sec.id} className="space-y-3">
+              {showGroup && (
+                <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {SECTOR_GROUP_LABELS[groupKey]}
+                </p>
+              )}
+              <Card>
                 <CardHeader className="flex-row items-start justify-between space-y-0">
                   <div>
                     <CardTitle className="text-base">{sec.name}</CardTitle>
@@ -155,7 +175,9 @@ export function CoverageTab({ initialView = 'sectors' }: { initialView?: 'sector
                   )}
                 </CardContent>
               </Card>
+              </div>
             );
+
           })}
           {visibleSectors.length === 0 && <p className="text-sm text-muted-foreground">No sectors found.</p>}
         </TabsContent>
