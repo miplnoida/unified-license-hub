@@ -7,10 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  usePortfolioMutations, useRegulators, useRegulatoryFunctions, useRegulatoryTeams,
+  usePortfolioMutations, useRegulatoryFunctions, useRegulatoryTeams,
   useSectors, useStaffDirectory, useStaffPortfolios, useSubSectors, useSupervisedEntities,
 } from '@/hooks/useOperatingStructure';
 import { act, NONE } from './shared';
+import { useRegulatorResolution } from './regulatorResolution';
+
 
 type AppliesTo = 'all' | 'sector' | 'sub_sector' | 'entity';
 
