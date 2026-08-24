@@ -13,6 +13,8 @@ import {
   CHANNEL_LABELS,
   type NotificationTemplateRow,
 } from '@/hooks/useNotificationAdmin';
+import { formatEmailBodyHtml } from '@/lib/emailBodyFormat';
+
 
 interface Props {
   template: NotificationTemplateRow | null;
@@ -109,10 +111,19 @@ export function TemplatePreviewDialog({ template, open, onOpenChange }: Props) {
             ) : null}
             <div>
               <p className="text-xs font-medium text-muted-foreground">Body</p>
-              <pre className="mt-1 max-h-72 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/40 p-3 text-sm">
-                {rendered?.body || '—'}
-              </pre>
+              {channel === 'email' ? (
+                <div
+                  className="mt-1 max-h-72 overflow-auto rounded-md border bg-background p-4 text-sm text-muted-foreground"
+                  // Content is escaped before formatting in formatEmailBodyHtml.
+                  dangerouslySetInnerHTML={{ __html: formatEmailBodyHtml(rendered?.body || '—') }}
+                />
+              ) : (
+                <pre className="mt-1 max-h-72 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/40 p-3 text-sm">
+                  {rendered?.body || '—'}
+                </pre>
+              )}
             </div>
+
           </div>
         )}
 

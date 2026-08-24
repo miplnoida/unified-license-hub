@@ -92,3 +92,31 @@ templates are bound. This is a configuration gap, outside content scope.
 
 Any future wording change should be made in the content pack and re-applied through
 the same validator, so token parity is enforced and a rollback baseline exists.
+
+## 6. Formatting contract (how stored copy becomes formatted email)
+
+Template bodies are stored as plain text. The shared email shell
+(`supabase/functions/_shared/email-layout.ts`, `renderRichBody`) converts them to
+HTML at dispatch time, after HTML-escaping, so copy can never inject markup:
+
+| Stored copy | Rendered as |
+| --- | --- |
+| Blank-line separated blocks | Separate paragraphs |
+| A standard section label on its own line (`Action required`, `Deadline`, `What happens next`, `Remark`, `Reason`, `Decision`, `Right of appeal`, …) | Bold sub-heading |
+| A short (≤5 words), un-punctuated opening line introducing further lines | Bold sub-heading |
+| Lines beginning `- `, `* ` or `• ` | Bulleted list |
+| Lines beginning `1. ` / `1) ` | Numbered list |
+| `**text**` | Bold |
+| `*text*` / `_text_` | Italic |
+| `` `text` `` | Monospaced inline code |
+| Bare `http(s)://…` | Clickable link |
+| Single newlines inside a paragraph (e.g. `Regards,` + `{{app_name}}`) | Line break |
+
+Colon-terminated lead-ins (`Please sign in and:`) and lines immediately preceding a
+list are treated as sentences, not labels, so list introductions stay in body style.
+The same rules are mirrored client-side in `src/lib/emailBodyFormat.ts` so the admin
+template preview shows the dispatched formatting rather than raw text.
+
+No template content was changed to add markup: the existing section-label structure
+of the applied content pack is what drives the bold headings, so this is a
+presentation-layer upgrade with no token or recipient impact.
