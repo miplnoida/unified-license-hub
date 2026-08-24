@@ -278,7 +278,13 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
   const moduleKey = entityType === 'registration' ? 'registration_management' : 'application_management';
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess(moduleKey as any) : INTERNAL_ROLES.includes(user.role));
-  const { data: instances = [] } = useWorkflowInstances(entityType, applicationId);
+  const {
+    data: instances = [],
+    isLoading: instancesLoading,
+    error: instancesError,
+    refetch: refetchInstances,
+  } = useWorkflowInstances(entityType, applicationId);
+
   const { data: actions = [] } = useEntityActions(entityType, applicationId);
   // Source of truth: the workflow_id pinned on the active/paused workflow_instance,
   // falling back to the application's workflow_id. This ensures the UI renders
