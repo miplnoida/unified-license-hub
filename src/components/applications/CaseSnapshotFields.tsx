@@ -96,9 +96,9 @@ export function CaseSnapshotFields({ application }: Props) {
           '—'
         }
       />
-      <Field label="Applicant" value={applicantLabel} />
-      <Field label="Applicant Email" value={applicantEmail || '—'} />
-      {entityName && <Field label="Entity" value={entityName} />}
+      {/* Applicant / entity identity is rendered by ApplicantLicenseeIdentity
+          on the Details tab, so it is not repeated here. */}
+
       <Field label="Current Step" value={currentStepName || '—'} />
     </>
   );

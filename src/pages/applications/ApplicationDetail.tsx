@@ -13,6 +13,9 @@ import { ActivityTab } from '@/components/applications/ActivityTab';
 import { ApplicationRfiTab } from '@/components/applications/ApplicationRfiTab';
 import { ConsolidatedCaseTab } from '@/components/applications/ConsolidatedCaseTab';
 import { CaseSnapshotFields } from '@/components/applications/CaseSnapshotFields';
+import { ApplicantLicenseeIdentity } from '@/components/applications/ApplicantLicenseeIdentity';
+import { ApplicationDocumentsPanel } from '@/components/applications/ApplicationDocumentsPanel';
+
 import { ApplicationConditionsTab } from '@/components/applications/ApplicationConditionsTab';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 
@@ -24,7 +27,6 @@ import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { BatchDocumentUpload } from '@/components/shared/BatchDocumentUpload';
-import { AttachmentList } from '@/components/shared/AttachmentList';
 import { StatusTimeline } from '@/components/applications/StatusTimeline';
 import { FeeComponentsPanel } from '@/components/applications/FeeComponentsPanel';
 import { LicenseePaymentPanel } from '@/components/applications/LicenseePaymentPanel';
@@ -788,6 +790,12 @@ export default function ApplicationDetail() {
   const showWorkflowTab =
     showWorkflowPanel || showManualActions || showEditRequestAdminPanel || showResubmissionPendingNotice;
 
+  // Applicant-only "Request Edit" tab. Same eligibility rules as before —
+  // owner, submitted-for-review status, and not a read-only view.
+  const showRequestEditTab =
+    isOwner && !forceReadOnlyView && EDIT_REQUEST_ALLOWED_STATUSES.includes(app.status);
+
+
 
 
   // Admin allows the applicant's edit request → pause workflow and move app to
@@ -929,6 +937,8 @@ export default function ApplicationDetail() {
                 {isInternal && app.status !== 'draft' && <TabsTrigger value="decision" className={TAB_TRIGGER_CLASS}>Decision</TabsTrigger>}
                 {isInternal && <TabsTrigger value="consolidated" className={TAB_TRIGGER_CLASS}>Consolidated Case</TabsTrigger>}
                 {app.status === 'approved' && <TabsTrigger value="conditions" className={TAB_TRIGGER_CLASS}>Conditions</TabsTrigger>}
+                {showRequestEditTab && <TabsTrigger value="request-edit" className={TAB_TRIGGER_CLASS}>Request Edit</TabsTrigger>}
+
 
               </TabsList>
 
@@ -1044,6 +1054,8 @@ export default function ApplicationDetail() {
 
 
                         {isInternal && <CaseSnapshotFields application={app as any} />}
+                        {isInternal && <ApplicantLicenseeIdentity application={app as any} />}
+
 
                         <div>
                           <p className="text-sm text-muted-foreground">Created</p>
@@ -1195,20 +1207,83 @@ export default function ApplicationDetail() {
                           />
                         </div>
                       )}
-                      <div key={docRefresh} className="space-y-4">
-                        <AttachmentList
-                          entityType="application"
-                          entityId={app.id}
-                          includeFormFields
-                          showHeader
-                          title="All Application Documents"
-                          emptyText="No documents uploaded yet"
+                      <div className="space-y-4">
+                        <ApplicationDocumentsPanel
+                          applicationId={app.id}
+                          formsData={formsData}
+                          refreshKey={docRefresh}
                         />
                       </div>
+
                     </CardContent>
                   </Card>
                 )}
               </TabsContent>
+
+              {showRequestEditTab && (
+                <TabsContent value="request-edit" className="mt-4">
+                  {activeTab === 'request-edit' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          {hasPendingEditRequest ? (
+                            <>
+                              <Clock className="h-4 w-4 text-warning" />
+                              Edit Request Pending
+                            </>
+                          ) : (
+                            <>
+                              <Edit className="h-4 w-4 text-primary" />
+                              Request to Edit Application
+                            </>
+                          )}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {hasPendingEditRequest ? (
+                          <p className="text-sm text-muted-foreground">
+                            Your request to edit this application is awaiting administrator review. You'll be
+                            notified once it's approved or denied.
+                          </p>
+                        ) : (
+                          <>
+                            <div className="space-y-2">
+                              <Label className="text-sm">Reason for edit request</Label>
+                              <Textarea
+                                value={actionComment}
+                                onChange={e => setActionComment(e.target.value)}
+                                placeholder="Explain why you need to edit your application..."
+                                rows={4}
+                              />
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:justify-end gap-2 pt-2">
+                              <Button
+                                variant="destructive"
+                                onClick={handleCancel}
+                                disabled={processing}
+                                className="w-full sm:w-auto"
+                              >
+                                <Ban className="h-4 w-4 mr-2" />Cancel Application
+                              </Button>
+                              <Button
+                                data-rbac="application_management.edit"
+                                variant="outline"
+                                onClick={handleRequestEdit}
+                                disabled={processing}
+                                className="w-full sm:w-auto"
+                              >
+                                <Edit className="h-4 w-4 mr-2" />Request Edit
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+              )}
+
+
 
               <TabsContent value="fees" className="mt-4 space-y-4">
                 {activeTab === 'fees' && (isInternal ? (
@@ -1546,53 +1621,8 @@ export default function ApplicationDetail() {
                 </>
               );
             })()}
+            {/* Request Edit now lives in its own applicant tab (see "Request Edit"). */}
 
-
-            {/* Applicant request edit (before approval, while submitted/in_progress) */}
-            {isOwner && EDIT_REQUEST_ALLOWED_STATUSES.includes(app.status) && (() => {
-
-              if (hasPendingEditRequest) {
-                return (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-warning" />
-                        Edit Request Pending
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">
-                        Your request to edit this application is awaiting administrator review. You'll be notified once it's approved or denied.
-                      </p>
-                    </CardContent>
-                  </Card>
-                );
-              }
-
-              return (
-                <Card>
-                  <CardContent className="pt-6 space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm">Request to Edit Application</Label>
-                      <Textarea
-                        value={actionComment}
-                        onChange={e => setActionComment(e.target.value)}
-                        placeholder="Explain why you need to edit your application..."
-                        rows={2}
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button data-rbac="application_management.edit" variant="outline" onClick={handleRequestEdit} disabled={processing} className="flex-1">
-                        <Edit className="h-4 w-4 mr-2" />Request Edit
-                      </Button>
-                      <Button variant="destructive" onClick={handleCancel} disabled={processing}>
-                        <Ban className="h-4 w-4 mr-2" />Cancel
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })()}
           </div>
 
           {/* Activity trail lives solely in the "Activity" tab above. */}
