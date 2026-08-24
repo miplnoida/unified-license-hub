@@ -77,7 +77,10 @@ export async function requireUserPermission(
 ): Promise<AuthzResult> {
   const authHeader = req.headers.get('Authorization') || '';
   if (!authHeader.startsWith('Bearer ')) {
-    return { ok: false, response: jsonResponse({ error: 'Unauthorized' }, 401) };
+    return {
+      ok: false,
+      response: jsonResponse({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401),
+    };
   }
   const token = authHeader.slice('Bearer '.length);
 
@@ -89,7 +92,10 @@ export async function requireUserPermission(
 
   const { data: claimsData, error: claimsErr } = await authClient.auth.getClaims(token);
   if (claimsErr || !claimsData?.claims?.sub) {
-    return { ok: false, response: jsonResponse({ error: 'Unauthorized' }, 401) };
+    return {
+      ok: false,
+      response: jsonResponse({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401),
+    };
   }
   const userId = String(claimsData.claims.sub);
   const email = (claimsData.claims as Record<string, unknown>)?.email as string | undefined ?? null;
