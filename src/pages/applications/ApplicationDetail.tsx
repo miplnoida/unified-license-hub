@@ -13,6 +13,9 @@ import { ActivityTab } from '@/components/applications/ActivityTab';
 import { ApplicationRfiTab } from '@/components/applications/ApplicationRfiTab';
 import { ConsolidatedCaseTab } from '@/components/applications/ConsolidatedCaseTab';
 import { CaseSnapshotFields } from '@/components/applications/CaseSnapshotFields';
+import { ApplicantLicenseeIdentity } from '@/components/applications/ApplicantLicenseeIdentity';
+import { ApplicationDocumentsPanel } from '@/components/applications/ApplicationDocumentsPanel';
+
 import { ApplicationConditionsTab } from '@/components/applications/ApplicationConditionsTab';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 
