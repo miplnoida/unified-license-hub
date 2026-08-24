@@ -239,7 +239,9 @@ update public.notification_event_channel_templates b
  where b.id = '{b['binding_id']}';""".strip())
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    (OUT_DIR / "before-snapshot.json").write_text(json.dumps(snapshot, indent=2))
+    snap_path = OUT_DIR / "before-snapshot.json"
+    if not snap_path.exists() or args.apply:
+        snap_path.write_text(json.dumps(snapshot, indent=2))
     (OUT_DIR / "rejected-tokens.json").write_text(json.dumps(rejected, indent=2))
     (OUT_DIR / "missing-events.json").write_text(json.dumps(missing, indent=2))
 
