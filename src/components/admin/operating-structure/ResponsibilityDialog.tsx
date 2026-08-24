@@ -204,19 +204,47 @@ export function ResponsibilityDialog({
             </div>
           )}
 
-          {(regulators.data || []).length > 1 && (
+          {resolution.singleRegulatorDeployment ? (
+            derivedName ? (
+              <p className="text-xs text-muted-foreground">
+                Regulator: <span className="font-medium text-foreground">{derivedName}</span>
+              </p>
+            ) : null
+          ) : (
             <div>
               <Label className="text-xs">Regulator</Label>
-              <Select value={regulatorId} onValueChange={setRegulatorId}>
-                <SelectTrigger><SelectValue placeholder="Select regulator" /></SelectTrigger>
-                <SelectContent>
-                  {(regulators.data || []).map((r: any) => (
-                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {resolution.candidates.length > 1 ? (
+                <>
+                  <Select value={regulatorId} onValueChange={setChosenRegulatorId}>
+                    <SelectTrigger><SelectValue placeholder="Select the responsible regulator" /></SelectTrigger>
+                    <SelectContent>
+                      {resolution.candidates.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-1 text-xs text-muted-foreground">{resolution.reason}</p>
+                </>
+              ) : (
+                <>
+                  <Input readOnly value={derivedName} placeholder="Derived from the selected coverage" />
+                  <p className="mt-1 text-xs text-muted-foreground">{resolution.reason}</p>
+                </>
+              )}
             </div>
           )}
+
+          {resolution.notConfigured && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3">
+              <p className="text-sm font-medium text-destructive">REGULATOR COVERAGE NOT CONFIGURED</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                No active regulator mandate covers this area of work and coverage, so this
+                responsibility cannot be recorded. Configure the mandate in Advanced authority
+                settings on the Operating Structure page, then try again.
+              </p>
+            </div>
+          )}
+
 
           <div>
             <Label className="text-xs">Area of work</Label>
