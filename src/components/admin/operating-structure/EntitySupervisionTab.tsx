@@ -399,6 +399,81 @@ export function EntitySupervisionTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Transfer supervision — pickers only, no raw identifiers */}
+      <Dialog open={!!transferFor} onOpenChange={(o) => !o && setTransferFor(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Transfer supervision</DialogTitle></DialogHeader>
+          {transferFor && (
+            <div className="space-y-3">
+              <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+                <p><span className="font-medium text-foreground">Entity:</span> {name(entities.data, transferFor.entity_id)}</p>
+                <p><span className="font-medium text-foreground">Function:</span> {name(functions.data, transferFor.regulatory_function_id)}</p>
+                <p><span className="font-medium text-foreground">Current lead:</span> {staffName(transferFor.lead_supervisor_user_id)}</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label className="text-xs">Team</Label>
+                  <Select value={tTeam} onValueChange={(v) => { setTTeam(v); setTLead(KEEP); setTAlt(KEEP); }}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={KEEP}>Keep current team</SelectItem>
+                      {transferTeams.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Effective from</Label>
+                  <Input type="date" value={tFrom} onChange={(e) => setTFrom(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">New lead supervisor</Label>
+                  <Select value={tLead} onValueChange={setTLead}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={KEEP}>Keep current lead</SelectItem>
+                      {transferStaff.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">New alternate supervisor</Label>
+                  <Select value={tAlt} onValueChange={setTAlt}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={KEEP}>Keep current alternate</SelectItem>
+                      <SelectItem value={NONE}>No alternate</SelectItem>
+                      {transferStaff.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="sm:col-span-2">
+                  <Label className="text-xs">Transfer reason</Label>
+                  <Textarea rows={2} value={tReason} onChange={(e) => setTReason(e.target.value)}
+                    placeholder="Why is supervision moving?" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Staff are not hidden for holding other duties. The transfer is re-checked server-side for
+                permission, entity scope, team eligibility and lead/alternate separation.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setTransferFor(null)}>Cancel</Button>
+                <Button onClick={submitTransfer} disabled={transfer.isPending || !tReason.trim()}>
+                  Transfer supervision
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
