@@ -788,6 +788,12 @@ export default function ApplicationDetail() {
   const showWorkflowTab =
     showWorkflowPanel || showManualActions || showEditRequestAdminPanel || showResubmissionPendingNotice;
 
+  // Applicant-only "Request Edit" tab. Same eligibility rules as before —
+  // owner, submitted-for-review status, and not a read-only view.
+  const showRequestEditTab =
+    isOwner && !forceReadOnlyView && EDIT_REQUEST_ALLOWED_STATUSES.includes(app.status);
+
+
 
 
   // Admin allows the applicant's edit request → pause workflow and move app to
