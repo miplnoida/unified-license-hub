@@ -56,7 +56,9 @@ export function ResponsibilityDialog({
 
   const staff = useStaffDirectory();
   const [personId, setPersonId] = useState('');
-  const [regulatorId, setRegulatorId] = useState('');
+  // Never defaulted to the first regulator record: this only ever holds an
+  // existing saved value or the regulator derived from the chosen coverage.
+  const [chosenRegulatorId, setChosenRegulatorId] = useState('');
   const [functionId, setFunctionId] = useState('');
   const [appliesTo, setAppliesTo] = useState<AppliesTo>('all');
   const [sectorId, setSectorId] = useState('');
@@ -69,8 +71,8 @@ export function ResponsibilityDialog({
 
   useEffect(() => {
     if (!open) return;
-    const defReg = existing?.regulator_id || (regulators.data || [])[0]?.id || '';
-    setRegulatorId(defReg);
+    setChosenRegulatorId(existing?.regulator_id || '');
+
     setFunctionId(existing?.regulatory_function_id || preset?.functionId || '');
     setTeamId(existing?.team_id || preset?.teamId || NONE);
     setFrom(existing?.effective_from ? String(existing.effective_from).slice(0, 10) : '');
