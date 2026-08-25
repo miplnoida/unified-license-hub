@@ -1,13 +1,13 @@
 # Manual Testing Guide (Excel) — Admin, Licensee/Applicant, Public
 
-No code changes. The only output is a downloadable Excel workbook shared in chat.
+No code changes. The only output is a downloadable Excel workbook shared in chat. Login credentials are not included in the workbook; the user already has all roles login details.
 
 ## Workbook: `Manual_Testing_Guide_v1.xlsx`
 
 Sheets:
 
 1. **How to use** — purpose, environments (preview + published URL), how to record Pass/Fail, defect logging convention, and the reminder that test accounts and passwords are in the existing `Test_Users_Roles.xlsx`.
-2. **Test accounts** — the login personas needed for the run (internal admin/supervisor/officer, licensee primary, licensee secondary, PPOC, applicant/pre-licensee, plus anonymous public), each with the panel it exercises.
+2. **Test accounts** — reference-only list of the personas needed for each sheet (Admin, Supervisor, Officer, Licensee Primary, Licensee Secondary, PPOC, Applicant/Pre-licensee, Public). No passwords are placed here; the user will use their own credentials file.
 3. **Public panel** — landing pages, service catalogue, journey choice (`/register`, `/register/applicant`, `/register/entity`), public complaint intake, public complaint tracking (reference + email verification), public registers/search, login, forgot password.
 4. **Applicant & Licensee panel** — registration submission and resubmission, registration status, dashboard, applications (pre-licence and post-licence, entitlement gating), licences, returns (`/entity/returns`, `/entity/returns/dashboard`, filing, import, submit), payments, complaints, F&P declarations, correspondence/RFI responses, support centre, profile and forced password change, PPOC entity switching.
 5. **Admin / regulator panel** — registration review and approvals, application queue and decisions, licence lifecycle actions, returns queue and review, prudential and conduct workspaces, complaints administration, enforcement, correspondence, operating structure and decision bodies, form builder and versioning, notifications and escalations, master/reference data, RBAC and role templates, support queue, audit logs, reporting.
