@@ -112,7 +112,6 @@ export interface EntityCapabilities {
   isViewer: boolean;
 }
 
-/** Resolve capability flags for a given entity from the caller's approved memberships. */
 /**
  * Resolve capability flags for a given entity from the caller's approved memberships.
  *
