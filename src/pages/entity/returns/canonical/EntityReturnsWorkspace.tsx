@@ -29,6 +29,7 @@ import { ReturnsEntitlementNotice } from '@/components/returns/ReturnsEntitlemen
 import { NewReturnDialog } from '@/components/entity/returns-canonical/NewReturnDialog';
 import { filingStatusLabel } from '@/lib/returns/filingStatusLabels';
 import { usePpoc } from '@/contexts/PpocContext';
+import { objectRoute } from '@/lib/routes/objectRoutes';
 
 
 export default function EntityReturnsWorkspace() {
@@ -95,7 +96,7 @@ export default function EntityReturnsWorkspace() {
         const res = await openFiling.mutateAsync(row.period_id);
         filingId = res.filing_id;
       }
-      navigate(`/entity/returns/filings/${filingId}`);
+      navigate(objectRoute.returnFiling(filingId, 'external'));
     } catch (e: any) {
       toast.error(e?.message || 'Could not open filing');
     }
@@ -213,7 +214,7 @@ export default function EntityReturnsWorkspace() {
                             <TableCell>{prog ? `${prog.completed}/${prog.required}` : '—'}</TableCell>
                             <TableCell className="font-mono text-xs">{row.filing_reference ?? '—'}</TableCell>
                             <TableCell className="text-right">
-                              <Button size="sm" variant="outline" onClick={() => navigate(`/entity/returns/filings/${row.filing_id}`)}>
+                              <Button size="sm" variant="outline" onClick={() => navigate(objectRoute.returnFiling(row.filing_id, 'external'))}>
                                 {capabilities.isViewer ? <><Eye className="mr-1 h-3.5 w-3.5" />View</> : <>Open<ArrowRight className="ml-1 h-3.5 w-3.5" /></>}
                               </Button>
                             </TableCell>
@@ -272,7 +273,7 @@ export default function EntityReturnsWorkspace() {
                         <TableCell className="font-mono text-xs">{row.filing_reference ?? '—'}</TableCell>
                         <TableCell className="text-right">
                           {row.filing_id ? (
-                            <Button size="sm" variant="outline" onClick={() => navigate(`/entity/returns/filings/${row.filing_id}`)}>
+                            <Button size="sm" variant="outline" onClick={() => navigate(objectRoute.returnFiling(row.filing_id, 'external'))}>
                               {capabilities.isViewer ? <><Eye className="mr-1 h-3.5 w-3.5" />View</> : <>Continue<ArrowRight className="ml-1 h-3.5 w-3.5" /></>}
                             </Button>
                           ) : capabilities.canOpenOrEdit ? (
