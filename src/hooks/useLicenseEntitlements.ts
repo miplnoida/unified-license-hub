@@ -78,9 +78,9 @@ export function useLicenseEntitlements(targetLicenseeId?: string | null): Licens
   })();
 
   // PPOC users recalculate against the entity they are currently acting for.
-  const scopedLicenseeId =
+  const scopedLicenseeId: string | null =
     targetLicenseeId
-    ?? (ppoc?.isPpoc ? ppoc?.activeLicenseeId ?? null : null)
+    ?? (ppoc?.isPpoc ? (ppoc?.activeLicenseeId as string | null) : null)
     ?? null;
 
   const { data, isLoading, refetch } = useQuery({
