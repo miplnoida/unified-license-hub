@@ -76,19 +76,38 @@ interface Props {
   email?: string;
   /** Hide the email input (signed-in users don't need to retype it). */
   hideEmailField?: boolean;
+  /**
+   * Unauthenticated mode: look the complaint up through the public intake edge
+   * function using reference + the email on file, instead of the signed-in RPC.
+   */
+  publicMode?: boolean;
   /** Called when the user submits the lookup form. */
   onLookup: (reference: string, email: string) => void;
 }
 
-export function ComplaintTrackingView({ reference, email = '', hideEmailField = false, onLookup }: Props) {
+const PUBLIC_FN_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/public-complaint-intake`;
+
+export function ComplaintTrackingView({ reference, email = '', hideEmailField = false, publicMode = false, onLookup }: Props) {
   const [refInput, setRefInput] = useState(reference ?? '');
   const [emailInput, setEmailInput] = useState(email);
   const [showLookup, setShowLookup] = useState(false);
 
   const q = useQuery({
-    queryKey: ['complaint-tracking', reference, email],
-    enabled: !!reference && reference.trim().length >= 4,
+    queryKey: ['complaint-tracking', publicMode, reference, email],
+    enabled: !!reference && reference.trim().length >= 4 && (!publicMode || !!email.trim()),
     queryFn: async () => {
+      if (publicMode) {
+        const res = await fetch(PUBLIC_FN_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'track',
+            reference: (reference ?? '').trim(),
+            email: email.trim(),
+          }),
+        });
+        return (await res.json()) as ComplaintTracking;
+      }
       const { data, error } = await supabase.rpc('get_public_complaint_tracking' as any, {
         p_reference: (reference ?? '').trim(),
         p_email: email.trim() || null,
@@ -97,6 +116,7 @@ export function ComplaintTrackingView({ reference, email = '', hideEmailField = 
       return data as ComplaintTracking;
     },
   });
+
 
   const t = q.data;
   const loaded = !!t?.found;
