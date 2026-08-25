@@ -17,7 +17,9 @@ const PUBLIC_NAV = [
   { label: 'Public Register', to: '/registry' },
   { label: 'Guidance', to: '/guidance' },
   { label: 'File a Complaint', to: '/complaints/file' },
+  { label: 'Track a Complaint', to: '/track/complaint' },
   { label: 'Help / Contact', to: '/help' },
+
 ];
 
 export function LandingNav() {
