@@ -62,10 +62,16 @@ export default function EntityReturnsDashboard() {
           title="Returns Dashboard"
           description="Overview of your organisation's regulatory return filings."
           actions={
-            <Button onClick={() => navigate('/entity/returns')}>
-              Go to Returns workspace<ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" onClick={() => navigate('/entity/returns')}>
+                Go to Returns workspace<ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+              <Button onClick={() => navigate('/entity/returns?new=1')}>
+                <Plus className="h-4 w-4 mr-1" />New Return
+              </Button>
+            </div>
           }
+
         />
 
         {/* Licence eligibility is explained in-page, never as Access Denied. */}
