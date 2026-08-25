@@ -299,3 +299,44 @@ export function useEntityReturnsMutations() {
     }),
   };
 }
+
+/* ------------------------------------------------------------------ */
+/* Guided "New Return" options (read model)                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * One configured reporting period the ENTITY may file, already filtered
+ * server-side by the canonical licence entitlement resolver. This is the ONLY
+ * source for the New Return selector — sectors, years, return types and
+ * quarters are never derived from reference data in the browser.
+ */
+export interface NewReturnOption {
+  sector_id: string;
+  sector_name: string | null;
+  reporting_year: number;
+  definition_id: string;
+  definition_code: string;
+  definition_name: string;
+  frequency: string;
+  obligation_id: string;
+  period_id: string;
+  period_label: string;
+  period_start: string;
+  period_end: string;
+  due_date: string;
+  period_status: string;
+  filing_id: string | null;
+  filing_reference: string | null;
+  filing_status: string | null;
+  current_version_id: string | null;
+  is_overdue: boolean;
+}
+
+export function useNewReturnOptions(entityId?: string | null) {
+  return useQuery({
+    queryKey: [...KEY, 'new-return-options', entityId],
+    enabled: !!entityId,
+    queryFn: () => rpc<NewReturnOption[]>('returns_new_return_options', { _entity_id: entityId }),
+    staleTime: 15_000,
+  });
+}

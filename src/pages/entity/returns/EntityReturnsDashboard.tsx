@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarCheck, Clock, CheckCircle, AlertTriangle, FileText, ArrowRight, Loader2 } from 'lucide-react';
+import { CalendarCheck, Clock, CheckCircle, AlertTriangle, FileText, ArrowRight, Loader2, Plus } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useMyApprovedMemberships } from '@/hooks/useEntityReturns';
 import {
@@ -62,10 +62,16 @@ export default function EntityReturnsDashboard() {
           title="Returns Dashboard"
           description="Overview of your organisation's regulatory return filings."
           actions={
-            <Button onClick={() => navigate('/entity/returns')}>
-              Go to Returns workspace<ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" onClick={() => navigate('/entity/returns')}>
+                Go to Returns workspace<ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+              <Button onClick={() => navigate('/entity/returns?new=1')}>
+                <Plus className="h-4 w-4 mr-1" />New Return
+              </Button>
+            </div>
           }
+
         />
 
         {/* Licence eligibility is explained in-page, never as Access Denied. */}
