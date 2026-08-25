@@ -91,30 +91,38 @@ export function hasCapability(row: ExternalPortalAccessRow | null | undefined, c
  * still enforced by RLS. Internal roles are intentionally absent here; their
  * access is governed exclusively by the dynamic RBAC engine.
  */
-const EXTERNAL_ROLE_DEFAULTS: Record<string, Partial<Record<PortalArea, PortalCapability[]>>> = {
-  applicant: {
-    licensing: ['can_submit', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
-    complaints: ['can_submit_complaints', 'can_view_status', 'can_upload_documents'],
-    fp_declarations: ['can_submit_fp_declarations', 'can_view_status', 'can_upload_documents'],
-  },
-  pre_licensee: {
-    licensing: ['can_submit', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
-    complaints: ['can_submit_complaints', 'can_view_status', 'can_upload_documents'],
-    fp_declarations: ['can_submit_fp_declarations', 'can_view_status', 'can_upload_documents'],
-  },
-  licensee_primary: {
-    licensing: ['can_submit', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
-    returns: ['can_submit_returns', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
-    complaints: ['can_submit_complaints', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
-    fp_declarations: ['can_submit_fp_declarations', 'can_view_status', 'can_upload_documents'],
-  },
-  licensee_secondary: {
-    licensing: ['can_submit', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
-    returns: ['can_submit_returns', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
-    complaints: ['can_submit_complaints', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
-    fp_declarations: ['can_submit_fp_declarations', 'can_view_status', 'can_upload_documents'],
-  },
+const APPLICANT_DEFAULTS: Partial<Record<PortalArea, PortalCapability[]>> = {
+  licensing: ['can_submit', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
+  complaints: ['can_submit_complaints', 'can_view_status', 'can_upload_documents'],
+  fp_declarations: ['can_submit_fp_declarations', 'can_view_status', 'can_upload_documents'],
+  // Read-only visibility of the Returns workspace. Submission authority is
+  // NOT granted here — licence entitlement + server-side checks decide that.
+  returns: ['can_view_status'],
 };
+
+const LICENSEE_DEFAULTS: Partial<Record<PortalArea, PortalCapability[]>> = {
+  licensing: ['can_submit', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
+  returns: ['can_submit_returns', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
+  complaints: ['can_submit_complaints', 'can_view_status', 'can_upload_documents', 'can_respond_rfi'],
+  fp_declarations: ['can_submit_fp_declarations', 'can_view_status', 'can_upload_documents'],
+};
+
+const EXTERNAL_ROLE_DEFAULTS: Record<string, Partial<Record<PortalArea, PortalCapability[]>>> = {
+  // Legacy role keys
+  applicant: APPLICANT_DEFAULTS,
+  pre_licensee: APPLICANT_DEFAULTS,
+  licensee_primary: LICENSEE_DEFAULTS,
+  licensee_secondary: LICENSEE_DEFAULTS,
+  // Canonical role keys currently issued by the security catalogue. Without
+  // these, valid portal users (notably PPOC) fell through to Access Denied.
+  pre_licensee_user: APPLICANT_DEFAULTS,
+  applicant_user: APPLICANT_DEFAULTS,
+  licensee_primary_user: LICENSEE_DEFAULTS,
+  licensee_secondary_user: LICENSEE_DEFAULTS,
+  regulated_entity_user: LICENSEE_DEFAULTS,
+  entity_ppoc: LICENSEE_DEFAULTS,
+};
+
 
 export function hasDefaultPortalCapability(
   role: string | null | undefined,

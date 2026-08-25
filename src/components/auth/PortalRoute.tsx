@@ -58,6 +58,13 @@ export function PortalRoute({ children, area, capability }: PortalRouteProps) {
   // not by external portal area/capability mapping.
   if (isInternal) return <>{children}</>;
 
+  // Read-only visibility is a PORTAL-IDENTITY question, not an action
+  // authority one: any fully authenticated external portal user may open the
+  // area workspace. Licence eligibility and action authority are decided
+  // inside the page (entitlement notices) and server-side on every write.
+  const readOnly = capabilities.every((cap) => cap === 'can_view_status');
+  if (readOnly) return <>{children}</>;
+
   if (permsLoading) return <AuthLoadingScreen />;
 
   const moduleKey = AREA_MODULE[area];

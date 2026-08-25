@@ -19,6 +19,7 @@ import {
   useEntityReturnsCalendar, useCalendarFormsProgress, useEntityReturnsMutations,
 } from '@/hooks/useEntityReturns';
 import { toast } from 'sonner';
+import { ReturnsEntitlementNotice } from '@/components/returns/ReturnsEntitlementNotice';
 
 export default function EntityReturnsWorkspace() {
   const navigate = useNavigate();
@@ -60,13 +61,17 @@ export default function EntityReturnsWorkspace() {
   if (memberships.length === 0) {
     return (
       <DashboardLayout>
-        <PageHeader title="Returns" description="Regulatory returns for your organisation" />
-        <Card><CardContent className="p-8 text-center text-muted-foreground">
-          You have no approved entity membership yet. Request membership to an entity before returns can be prepared.
-        </CardContent></Card>
+        <div className="space-y-4">
+          <PageHeader title="Returns" description="Regulatory returns for your organisation" />
+          <ReturnsEntitlementNotice />
+          <Card><CardContent className="p-8 text-center text-muted-foreground">
+            You have no approved entity membership yet. Request membership to an entity before returns can be prepared.
+          </CardContent></Card>
+        </div>
       </DashboardLayout>
     );
   }
+
 
   return (
     <DashboardLayout>
@@ -85,6 +90,9 @@ export default function EntityReturnsWorkspace() {
             </Select>
           ) : undefined}
         />
+
+        {/* Licence eligibility is explained in-page, never as Access Denied. */}
+        <ReturnsEntitlementNotice licenseeId={entityId} />
 
         {selectedMembership && (
           <p className="text-sm text-muted-foreground">

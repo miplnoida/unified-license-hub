@@ -25,6 +25,7 @@ import {
 } from '@/lib/returns/canonicalReturnsSummary';
 import { objectRoute } from '@/lib/routes/objectRoutes';
 import { formatDateOnly } from '@/lib/datetime';
+import { ReturnsEntitlementNotice } from '@/components/returns/ReturnsEntitlementNotice';
 
 export default function EntityReturnsDashboard() {
   const navigate = useNavigate();
@@ -66,6 +67,9 @@ export default function EntityReturnsDashboard() {
             </Button>
           }
         />
+
+        {/* Licence eligibility is explained in-page, never as Access Denied. */}
+        <ReturnsEntitlementNotice licenseeId={entityIds.length === 1 ? entityIds[0] : undefined} />
 
         {entityIds.length === 0 ? (
           <Card>
