@@ -89,6 +89,11 @@ export const PRE_LICENSEE_ALLOWED_ROUTES = [
   // so RegistrationApprovalGate doesn't bounce the click back to /dashboard.
   '/pre-license',
   '/payments',
+  // External regulated-entity returns surface (Reporting Dashboard, My Returns,
+  // filing workspace). Whitelisting the prefix only stops the pre-licensee
+  // approval gate from bouncing to /dashboard; PortalRoute still checks the
+  // returns capability and licence entitlement remains enforced server-side.
+  '/entity/returns',
   '/profile',
   '/change-password',
   '/notifications',
