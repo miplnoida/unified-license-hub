@@ -93,13 +93,15 @@ export default function EntityFilingWorkspace() {
               <Button variant="outline" size="sm" onClick={handleValidate} disabled={validateFiling.isPending}>
                 <ShieldCheck className="mr-1 h-4 w-4" />Validate
               </Button>
-              <Button
-                size="sm"
-                onClick={handleSubmit}
-                disabled={submitFiling.isPending || (data.definition.requires_declaration && !declarationAccepted)}
-              >
-                <Send className="mr-1 h-4 w-4" />Submit
-              </Button>
+              {capabilities.canSubmit && (
+                <Button
+                  size="sm"
+                  onClick={handleSubmit}
+                  disabled={submitFiling.isPending || (data.definition.requires_declaration && !declarationAccepted)}
+                >
+                  <Send className="mr-1 h-4 w-4" />Submit
+                </Button>
+              )}
             </div>
           ) : undefined}
         />
