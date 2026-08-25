@@ -4,10 +4,15 @@
  * Separate from regulatory complaints: this is for portal and technical issues
  * (login problems, upload failures, form errors). Tickets are worked by staff in
  * the internal support queue at /admin/support.
+ *
+ * Requests capture supporting context automatically (the screen the user was on,
+ * their browser, and the licence/entity they were acting for) plus any related
+ * reference number and screenshots, so support staff do not have to ask for it.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLicenseEntitlements } from '@/hooks/useLicenseEntitlements';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { LifeBuoy, Send } from 'lucide-react';
+import { LifeBuoy, Paperclip, Send, X } from 'lucide-react';
 import { formatDateTime } from '@/lib/datetime';
 
 type Ticket = {
@@ -29,12 +34,15 @@ type Ticket = {
   priority: string;
   status: string;
   portal_area: string;
+  reference_number: string | null;
+  page_path: string | null;
   resolution_notes: string | null;
   created_at: string;
   updated_at: string;
 };
 
 type Message = { id: string; ticket_id: string; body: string; is_internal: boolean; author_id: string; created_at: string };
+type Attachment = { id: string; ticket_id: string; file_name: string; storage_path: string; created_at: string };
 
 const CATEGORIES = [
   { value: 'technical', label: 'Technical issue / error' },
@@ -53,14 +61,23 @@ const STATUS_TONE: Record<string, string> = {
   closed: 'bg-muted text-muted-foreground',
 };
 
+const MAX_FILES = 3;
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
 export default function SupportCenter() {
   const { user } = useAuth();
+  const { licenses } = useLicenseEntitlements();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
+  const [attachments, setAttachments] = useState<Record<string, Attachment[]>>({});
   const [selected, setSelected] = useState<string | null>(null);
   const [reply, setReply] = useState('');
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ subject: '', description: '', category: 'technical', priority: 'medium' });
+  const [files, setFiles] = useState<File[]>([]);
+  const [form, setForm] = useState({
+    subject: '', description: '', category: 'technical', priority: 'medium',
+    license_id: 'none', reference_number: '', page_path: '',
+  });
 
   const load = async () => {
     const { data, error } = await supabase
@@ -73,13 +90,46 @@ export default function SupportCenter() {
 
   useEffect(() => { load(); }, []);
 
-  const loadMessages = async (ticketId: string) => {
-    const { data } = await supabase
-      .from('support_ticket_messages')
-      .select('*')
-      .eq('ticket_id', ticketId)
-      .order('created_at');
-    setMessages((m) => ({ ...m, [ticketId]: (data || []) as Message[] }));
+  const loadThread = async (ticketId: string) => {
+    const [msgRes, attRes] = await Promise.all([
+      supabase.from('support_ticket_messages').select('*').eq('ticket_id', ticketId).order('created_at'),
+      supabase.from('support_ticket_attachments').select('*').eq('ticket_id', ticketId).order('created_at'),
+    ]);
+    setMessages((m) => ({ ...m, [ticketId]: (msgRes.data || []) as Message[] }));
+    setAttachments((a) => ({ ...a, [ticketId]: (attRes.data || []) as Attachment[] }));
+  };
+
+  const addFiles = (list: FileList | null) => {
+    if (!list?.length) return;
+    const accepted: File[] = [];
+    for (const file of Array.from(list)) {
+      if (files.length + accepted.length >= MAX_FILES) { toast.error(`Up to ${MAX_FILES} files.`); break; }
+      if (file.size > MAX_FILE_BYTES) { toast.error(`${file.name} is larger than 10MB.`); continue; }
+      accepted.push(file);
+    }
+    setFiles((f) => [...f, ...accepted]);
+  };
+
+  const uploadAttachments = async (ticketId: string) => {
+    for (const file of files) {
+      const path = `${ticketId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, '_')}`;
+      const { error: upErr } = await supabase.storage.from('support-attachments').upload(path, file);
+      if (upErr) { toast.error(`${file.name}: ${upErr.message}`); continue; }
+      await supabase.from('support_ticket_attachments').insert({
+        ticket_id: ticketId,
+        storage_path: path,
+        file_name: file.name,
+        content_type: file.type || null,
+        size_bytes: file.size,
+        uploaded_by: user?.id,
+      });
+    }
+  };
+
+  const openAttachment = async (path: string) => {
+    const { data, error } = await supabase.storage.from('support-attachments').createSignedUrl(path, 300);
+    if (error || !data?.signedUrl) { toast.error('Could not open that file.'); return; }
+    window.open(data.signedUrl, '_blank', 'noopener');
   };
 
   const submitTicket = async (e: React.FormEvent) => {
@@ -90,6 +140,7 @@ export default function SupportCenter() {
       return;
     }
     setSaving(true);
+    const licence = licenses.find((l) => l.license_id === form.license_id);
     const { data, error } = await supabase
       .from('support_tickets')
       .insert({
@@ -101,13 +152,21 @@ export default function SupportCenter() {
         category: form.category,
         priority: form.priority,
         portal_area: 'external_portal',
+        license_id: licence?.license_id ?? null,
+        licensee_id: licence?.licensee_id ?? null,
+        sector_id: licence?.sector_id ?? null,
+        reference_number: form.reference_number.trim() || null,
+        page_path: form.page_path.trim() || null,
+        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 400) : null,
       })
-      .select('ticket_number')
+      .select('id, ticket_number')
       .single();
+    if (error) { setSaving(false); toast.error(error.message); return; }
+    if (data?.id && files.length) await uploadAttachments(data.id);
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
     toast.success(`Support request ${data?.ticket_number} created.`);
-    setForm({ subject: '', description: '', category: 'technical', priority: 'medium' });
+    setForm({ subject: '', description: '', category: 'technical', priority: 'medium', license_id: 'none', reference_number: '', page_path: '' });
+    setFiles([]);
     load();
   };
 
@@ -118,7 +177,7 @@ export default function SupportCenter() {
       .insert({ ticket_id: ticketId, author_id: user.id, body: reply.trim(), is_internal: false });
     if (error) { toast.error(error.message); return; }
     setReply('');
-    loadMessages(ticketId);
+    loadThread(ticketId);
   };
 
   const openTickets = useMemo(() => tickets.filter((t) => !['resolved', 'closed'].includes(t.status)), [tickets]);
@@ -137,6 +196,13 @@ export default function SupportCenter() {
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm whitespace-pre-wrap">{t.description}</p>
+        {(t.reference_number || t.page_path) && (
+          <p className="text-xs text-muted-foreground">
+            {t.reference_number ? `Related reference: ${t.reference_number}` : ''}
+            {t.reference_number && t.page_path ? ' · ' : ''}
+            {t.page_path ? `Screen: ${t.page_path}` : ''}
+          </p>
+        )}
         {t.resolution_notes && (
           <div className="rounded-md border bg-muted/40 p-3 text-sm">
             <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">Resolution</p>
@@ -149,13 +215,27 @@ export default function SupportCenter() {
           onClick={() => {
             const next = selected === t.id ? null : t.id;
             setSelected(next);
-            if (next) loadMessages(next);
+            if (next) loadThread(next);
           }}
         >
           {selected === t.id ? 'Hide conversation' : 'View conversation'}
         </Button>
         {selected === t.id && (
           <div className="space-y-3 border-t pt-3">
+            {(attachments[t.id] || []).length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">Attachments</p>
+                {(attachments[t.id] || []).map((a) => (
+                  <button
+                    key={a.id} type="button"
+                    className="flex items-center gap-2 text-xs text-primary hover:underline"
+                    onClick={() => openAttachment(a.storage_path)}
+                  >
+                    <Paperclip className="h-3 w-3" />{a.file_name}
+                  </button>
+                ))}
+              </div>
+            )}
             {(messages[t.id] || []).map((m) => (
               <div key={m.id} className="rounded-md border p-2 text-sm">
                 <p className="text-[11px] text-muted-foreground mb-1">{formatDateTime(m.created_at)}</p>
@@ -235,6 +315,68 @@ export default function SupportCenter() {
                     placeholder="What were you doing, what did you expect, and what happened? Include any error message and the screen/page."
                   />
                 </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {licenses.length > 0 && (
+                    <div>
+                      <Label>Related licence / entity</Label>
+                      <Select value={form.license_id} onValueChange={(v) => setForm((f) => ({ ...f, license_id: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Not specific to a licence" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Not specific to a licence</SelectItem>
+                          {licenses.map((l) => (
+                            <SelectItem key={l.license_id} value={l.license_id}>
+                              {l.license_number || 'Licence'}{l.licensee_name ? ` — ${l.licensee_name}` : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <div>
+                    <Label htmlFor="s-ref">Related reference (optional)</Label>
+                    <Input
+                      id="s-ref" placeholder="Application, return or complaint reference"
+                      value={form.reference_number}
+                      onChange={(e) => setForm((f) => ({ ...f, reference_number: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="s-page">Where did it happen? (optional)</Label>
+                    <Input
+                      id="s-page" placeholder="e.g. /returns/new or 'Returns dashboard'"
+                      value={form.page_path}
+                      onChange={(e) => setForm((f) => ({ ...f, page_path: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="s-files" className="flex items-center gap-2">
+                      <Paperclip className="h-3.5 w-3.5" /> Screenshots or files (optional)
+                    </Label>
+                    <Input
+                      id="s-files" type="file" multiple
+                      onChange={(e) => { addFiles(e.target.files); e.currentTarget.value = ''; }}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Up to {MAX_FILES} files, 10MB each.</p>
+                  </div>
+                </div>
+
+                {files.length > 0 && (
+                  <ul className="space-y-1">
+                    {files.map((f, i) => (
+                      <li key={`${f.name}-${i}`} className="flex items-center justify-between rounded border px-2 py-1 text-xs">
+                        <span className="truncate">{f.name} · {(f.size / 1024).toFixed(0)} KB</span>
+                        <Button
+                          type="button" variant="ghost" size="icon" className="h-6 w-6"
+                          onClick={() => setFiles((list) => list.filter((_, idx) => idx !== i))}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
                 <Button type="submit" disabled={saving}>{saving ? 'Submitting…' : 'Submit request'}</Button>
               </form>
             </CardContent>
