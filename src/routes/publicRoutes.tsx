@@ -23,6 +23,8 @@ const UserAccountStep = lazy(() => import('@/pages/registration/UserAccountStep'
 const LegacyRegisterRedirect = lazy(() => import('@/routes/LegacyRegisterRedirect'));
 const DeclarationLanding = lazy(() => import('@/pages/public/DeclarationLanding'));
 const PublicComplaintIntake = lazy(() => import('@/pages/public/PublicComplaintIntake'));
+const PublicComplaintTracking = lazy(() => import('@/pages/PublicComplaintTracking'));
+
 const LicenseeServices = lazy(() => import('@/pages/public/LicenseeServices'));
 const LicenseeServiceDetail = lazy(() => import('@/pages/public/LicenseeServiceDetail'));
 const ApplicantGuidance = lazy(() => import('@/pages/public/ApplicantGuidance'));
