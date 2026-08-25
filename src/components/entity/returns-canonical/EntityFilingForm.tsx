@@ -54,6 +54,7 @@ export function EntityFilingForm({
   const { saveFormResponse } = useEntityReturnsMutations();
   const [saving, setSaving] = useState(false);
   const [liveData, setLiveData] = useState<Record<string, any>>({});
+  const [localResponseId, setLocalResponseId] = useState<string | null>(requirement.form_response_id);
 
   const { data: version, isLoading: loadingVersion } = useQuery({
     queryKey: ['entity-returns', 'form-version', requirement.form_version_id],
@@ -93,6 +94,7 @@ export function EntityFilingForm({
   // Seed the live copy from the persisted response once it has loaded.
   useEffect(() => {
     setLiveData(initial);
+    setLocalResponseId(requirement.form_response_id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [response?.id, requirement.form_response_id]);
 
@@ -114,14 +116,15 @@ export function EntityFilingForm({
   ): Promise<boolean> => {
     setSaving(true);
     try {
-      await saveFormResponse.mutateAsync({
+      const saved = await saveFormResponse.mutateAsync({
         requirementId: requirement.id,
         templateId: requirement.form_template_id,
         formVersionId: requirement.form_version_id,
-        existingResponseId: requirement.form_response_id,
+        existingResponseId: localResponseId,
         data,
         completion,
       });
+      setLocalResponseId(saved.responseId);
       toast.success(completion === 'COMPLETED' ? 'Form marked as complete' : 'Draft saved');
       return true;
     } catch (e: any) {
@@ -187,7 +190,7 @@ export function EntityFilingForm({
           hideActions
           formId={requirement.form_template_id}
           formVersionId={requirement.form_version_id}
-          submissionId={requirement.form_response_id}
+          submissionId={localResponseId}
           entityType="return_filing_requirement"
           entityId={requirement.id}
           onChange={(data) => setLiveData(data)}

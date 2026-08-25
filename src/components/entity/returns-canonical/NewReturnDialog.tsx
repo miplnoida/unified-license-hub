@@ -26,6 +26,7 @@ import {
 } from '@/hooks/useEntityReturns';
 import { isCorrectionStatus, isSubmittedStatus, quarterOfPeriod } from '@/lib/returns/filingStatusLabels';
 import { useLicenseEntitlements } from '@/hooks/useLicenseEntitlements';
+import { objectRoute } from '@/lib/routes/objectRoutes';
 
 interface Props {
   open: boolean;
@@ -138,7 +139,7 @@ export function NewReturnDialog({
         filingId = res.filing_id;
       }
       onOpenChange(false);
-      navigate(`/entity/returns/filings/${filingId}`);
+      navigate(objectRoute.returnFiling(filingId, 'external'));
     } catch (e: any) {
       toast.error(e?.message || 'Could not start this return');
     }
