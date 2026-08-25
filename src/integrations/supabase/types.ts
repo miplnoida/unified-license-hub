@@ -36505,6 +36505,15 @@ export type Database = {
         Args: { _action: string; _user_id: string }
         Returns: boolean
       }
+      can_act_on_license: {
+        Args: {
+          _category_id?: string
+          _licensee_id: string
+          _sector_id: string
+          _sub_sector_id?: string
+        }
+        Returns: boolean
+      }
       can_act_on_payment_oversight: {
         Args: { _action: string; _user_id: string }
         Returns: boolean
@@ -38709,6 +38718,31 @@ export type Database = {
         Args: { _application_id?: string; _license_id: string }
         Returns: string
       }
+      entity_license_entitlements: {
+        Args: { target_licensee_id?: string }
+        Returns: {
+          category_id: string
+          category_name: string
+          effective_status: string
+          grace_ends_on: string
+          grace_period_days: number
+          in_grace_period: boolean
+          is_eligible_for_new_activity: boolean
+          issued_at: string
+          license_id: string
+          license_number: string
+          license_type: string
+          licensee_id: string
+          licensee_name: string
+          regulator_id: string
+          sector_id: string
+          sector_name: string
+          status: string
+          sub_sector_id: string
+          sub_sector_name: string
+          valid_until: string
+        }[]
+      }
       entity_license_summary: { Args: { _entity_id: string }; Returns: Json }
       entity_link_license: {
         Args: {
@@ -40474,6 +40508,14 @@ export type Database = {
         Returns: Json
       }
       license_fee_simulate: { Args: { _payload?: Json }; Returns: Json }
+      license_grace_days: {
+        Args: {
+          _category_id?: string
+          _sector_id?: string
+          _sub_sector_id?: string
+        }
+        Returns: number
+      }
       license_ids_for_licensee: {
         Args: { _licensee_id: string }
         Returns: string[]
