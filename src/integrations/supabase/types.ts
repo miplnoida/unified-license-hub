@@ -43308,6 +43308,15 @@ export type Database = {
         Args: { _entity_id: string }
         Returns: Json
       }
+      returns_entitlement_ok: {
+        Args: {
+          _entity_id: string
+          _sector_id?: string
+          _sub_sector_id?: string
+          _uid: string
+        }
+        Returns: boolean
+      }
       returns_entity_calendar: {
         Args: { _entity_id: string }
         Returns: {
