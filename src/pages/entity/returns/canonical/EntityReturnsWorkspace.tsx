@@ -34,10 +34,23 @@ export default function EntityReturnsWorkspace() {
   const navigate = useNavigate();
   const { data: memberships = [], isLoading: loadingMemberships } = useMyApprovedMemberships();
   const [entityId, setEntityId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [newReturnOpen, setNewReturnOpen] = useState(false);
+  const [tab, setTab] = useState('filings');
 
   useEffect(() => {
     if (!entityId && memberships.length > 0) setEntityId(memberships[0].entity_id);
   }, [memberships, entityId]);
+
+  // Deep link from the Returns dashboard: /entity/returns?new=1
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setNewReturnOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('new');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const capabilities = useEntityCapabilities(entityId);
   const { data: summary, isLoading: loadingSummary } = useEntityReturnsSummary(entityId);
@@ -47,7 +60,14 @@ export default function EntityReturnsWorkspace() {
   const versionIds = useMemo(() => calendar.map((r) => r.current_version_id).filter(Boolean) as string[], [calendar]);
   const { data: progress = {} } = useCalendarFormsProgress(versionIds);
 
+  /** My Returns = periods that already have a filing (started or submitted). */
+  const myFilings = useMemo(
+    () => calendar.filter((r) => !!r.filing_id).sort((a, b) => (b.due_date ?? '').localeCompare(a.due_date ?? '')),
+    [calendar],
+  );
+
   const selectedMembership = memberships.find((m) => m.entity_id === entityId);
+
 
   const handleOpen = async (row: (typeof calendar)[number]) => {
     if (!capabilities.canOpenOrEdit) return;
