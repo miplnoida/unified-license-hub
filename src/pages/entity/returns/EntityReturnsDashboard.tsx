@@ -25,6 +25,7 @@ import {
 } from '@/lib/returns/canonicalReturnsSummary';
 import { objectRoute } from '@/lib/routes/objectRoutes';
 import { formatDateOnly } from '@/lib/datetime';
+import { ReturnsEntitlementNotice } from '@/components/returns/ReturnsEntitlementNotice';
 
 export default function EntityReturnsDashboard() {
   const navigate = useNavigate();
