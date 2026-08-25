@@ -5,7 +5,7 @@
  * requirement. Validation, metric extraction, declaration and immutability
  * are all enforced server-side by the governed RPCs.
  */
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -15,15 +15,18 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, ShieldCheck, Send } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Loader2, ShieldCheck, Send, CheckCircle2, Circle, AlertTriangle, ArrowLeft, ArrowRight, ClipboardCheck } from 'lucide-react';
 import { formatDateOnly, formatDateTime } from '@/lib/datetime';
 import { toast } from 'sonner';
 import { FREQUENCY_LABELS, FILING_STATUS_LABELS } from '@/hooks/useWaveC';
 import { useEntityFilingDetail, useEntityCapabilities, useEntityReturnsMutations } from '@/hooks/useEntityReturns';
+import { useReturnFormValidationRules } from '@/hooks/useReturnFormValidationRules';
 import { EntityFilingForm } from '@/components/entity/returns-canonical/EntityFilingForm';
 import { FilerGuidancePanel } from '@/components/entity/returns-canonical/FilerGuidancePanel';
 
 const EDITABLE_STATUSES = new Set(['DRAFT', 'CORRECTION_REQUESTED']);
+const REVIEW_STEP = '__review__';
 
 export default function EntityFilingWorkspace() {
   const { filingId } = useParams<{ filingId: string }>();
@@ -33,6 +36,23 @@ export default function EntityFilingWorkspace() {
   const { validateFiling, submitFiling, respondToRequest } = useEntityReturnsMutations();
   const [declarationAccepted, setDeclarationAccepted] = useState(false);
   const [validation, setValidation] = useState<{ errors: number; warnings: number; can_submit: boolean } | null>(null);
+  const [activeStep, setActiveStep] = useState<string | null>(null);
+  const [formIssues, setFormIssues] = useState<Record<string, string[]>>({});
+
+  const handleIssuesChange = useCallback((requirementId: string, issues: string[]) => {
+    setFormIssues((prev) => {
+      const before = prev[requirementId] ?? [];
+      if (before.length === issues.length && before.every((m, i) => m === issues[i])) return prev;
+      return { ...prev, [requirementId]: issues };
+    });
+  }, []);
+
+  const templateIds = useMemo(
+    () => (data?.forms ?? []).map((f) => f.form_template_id).filter(Boolean),
+    [data?.forms],
+  );
+  const { data: rulesByTemplate = {} } = useReturnFormValidationRules(templateIds);
+
 
   if (isLoading) {
     return <DashboardLayout><div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div></DashboardLayout>;
@@ -45,7 +65,8 @@ export default function EntityFilingWorkspace() {
   const currentVersionId = current?.id ?? null;
   const isEditableVersion = !!current && EDITABLE_STATUSES.has(current.status) && !current.is_immutable;
   const canEdit = capabilities.canOpenOrEdit && isEditableVersion;
-  const currentForms = data.forms.filter((f) => f.return_filing_version_id === currentVersionId);
+  const currentForms = [...data.forms.filter((f) => f.return_filing_version_id === currentVersionId)]
+    .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
   const historicVersions = data.versions.filter((v) => v.id !== currentVersionId);
   const openRequests = data.requests.filter((r) => r.status !== 'RESOLVED' && r.status !== 'CLOSED');
   const requiredForms = currentForms.filter((f) => f.is_required);
@@ -54,12 +75,32 @@ export default function EntityFilingWorkspace() {
   const blockingFindings = currentFindings.filter((f) => f.is_blocking).length;
   const warningFindings = currentFindings.length - blockingFindings;
 
+  // ---- form-level navigation -------------------------------------------
+  const stepKey = activeStep ?? currentForms[0]?.id ?? REVIEW_STEP;
+  const activeIndex = currentForms.findIndex((f) => f.id === stepKey);
+  const activeForm = activeIndex >= 0 ? currentForms[activeIndex] : null;
+  const isReviewStep = stepKey === REVIEW_STEP || currentForms.length === 0;
+
+  const issuesFor = (requirementId: string) => formIssues[requirementId] ?? [];
+  const totalLiveIssues = currentForms.reduce((n, f) => n + issuesFor(f.id).length, 0);
+  const incompleteRequired = requiredForms.filter((f) => f.completion_status !== 'COMPLETED');
+  const readyToSubmit =
+    incompleteRequired.length === 0 && totalLiveIssues === 0 && blockingFindings === 0;
+
+  const formStatus = (f: typeof currentForms[number]): 'complete' | 'issue' | 'in_progress' | 'not_started' => {
+    if (issuesFor(f.id).length > 0) return 'issue';
+    if (f.completion_status === 'COMPLETED') return 'complete';
+    if (f.form_response_id) return 'in_progress';
+    return 'not_started';
+  };
+
   const handleValidate = async () => {
     if (!currentVersionId) return;
     try {
       const res = await validateFiling.mutateAsync(currentVersionId);
       setValidation(res);
       toast.success(`${res.errors} error(s), ${res.warnings} warning(s)`);
+      return res;
     } catch (e: any) {
       toast.error(e?.message || 'Validation failed');
     }
@@ -71,14 +112,25 @@ export default function EntityFilingWorkspace() {
       toast.error('You must accept the declaration before submitting.');
       return;
     }
+    if (totalLiveIssues > 0) {
+      setActiveStep(REVIEW_STEP);
+      toast.error('This return cannot be submitted while there are outstanding validation issues.');
+      return;
+    }
     try {
       const res = await submitFiling.mutateAsync({ versionId: currentVersionId, declarationAccepted });
-      toast.success('Filing submitted');
       setValidation(res.validation);
+      if (res.submitted) {
+        toast.success('Filing submitted');
+      } else {
+        setActiveStep(REVIEW_STEP);
+        toast.error('Submission blocked — please review the validation findings.');
+      }
     } catch (e: any) {
       toast.error(e?.message || 'Submit failed');
     }
   };
+
 
   return (
     <DashboardLayout>
@@ -96,14 +148,15 @@ export default function EntityFilingWorkspace() {
               {capabilities.canSubmit && (
                 <Button
                   size="sm"
-                  onClick={handleSubmit}
-                  disabled={submitFiling.isPending || (data.definition.requires_declaration && !declarationAccepted)}
+                  onClick={() => setActiveStep(REVIEW_STEP)}
+                  variant={readyToSubmit ? 'default' : 'outline'}
                 >
-                  <Send className="mr-1 h-4 w-4" />Submit
+                  <Send className="mr-1 h-4 w-4" />Review &amp; submit
                 </Button>
               )}
             </div>
           ) : undefined}
+
         />
 
         {capabilities.isViewer && (
@@ -157,70 +210,244 @@ export default function EntityFilingWorkspace() {
           </CardContent>
         </Card>
 
-        {validation && (
-          <Card>
-            <CardHeader><CardTitle className="text-base">Validation result</CardTitle></CardHeader>
-            <CardContent className="text-sm">
-              {validation.errors} blocking error(s), {validation.warnings} warning(s) — {validation.can_submit ? 'ready to submit' : 'not yet ready to submit'}.
-            </CardContent>
-          </Card>
+        {/* ---- Form-level navigator ------------------------------------ */}
+        {currentForms.length === 0 ? (
+          <Card><CardContent className="p-8 text-center text-muted-foreground">No forms are pinned to this filing.</CardContent></Card>
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">
+                  Return filing — {completedRequiredForms} of {requiredForms.length} form
+                  {requiredForms.length === 1 ? '' : 's'} completed
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-2">
+                {currentForms.map((f, idx) => {
+                  const status = formStatus(f);
+                  const isActive = stepKey === f.id;
+                  return (
+                    <Button
+                      key={f.id}
+                      type="button"
+                      size="sm"
+                      variant={isActive ? 'default' : 'outline'}
+                      onClick={() => setActiveStep(f.id)}
+                      className="gap-2"
+                    >
+                      {status === 'issue'
+                        ? <AlertTriangle className="h-4 w-4 text-destructive" />
+                        : status === 'complete'
+                          ? <CheckCircle2 className="h-4 w-4" />
+                          : <Circle className="h-4 w-4" />}
+                      <span>{idx + 1}. {f.template_name ?? f.tab_name ?? 'Form'}</span>
+                      {status === 'issue' && (
+                        <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive">
+                          {issuesFor(f.id).length}
+                        </Badge>
+                      )}
+                    </Button>
+                  );
+                })}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={isReviewStep ? 'default' : 'outline'}
+                  onClick={() => setActiveStep(REVIEW_STEP)}
+                  className="gap-2"
+                >
+                  <ClipboardCheck className="h-4 w-4" />Review &amp; submit
+                </Button>
+              </CardContent>
+            </Card>
+
+            {activeForm && !isReviewStep && (
+              <>
+                <EntityFilingForm
+                  key={activeForm.id}
+                  editable={canEdit}
+                  rules={rulesByTemplate[activeForm.form_template_id] ?? []}
+                  onIssuesChange={handleIssuesChange}
+                  continueLabel={
+                    activeIndex < currentForms.length - 1
+                      ? 'Save & continue to next form'
+                      : 'Save & continue to review'
+                  }
+                  onContinue={canEdit ? () => setActiveStep(
+                    activeIndex < currentForms.length - 1 ? currentForms[activeIndex + 1].id : REVIEW_STEP,
+                  ) : undefined}
+                  requirement={{
+                    id: activeForm.id,
+                    form_template_id: activeForm.form_template_id,
+                    form_version_id: activeForm.form_version_id,
+                    template_name: activeForm.template_name,
+                    form_version: activeForm.form_version,
+                    is_required: activeForm.is_required,
+                    sequence: activeForm.sequence,
+                    tab_name: activeForm.tab_name,
+                    form_response_id: activeForm.form_response_id,
+                    completion_status: activeForm.completion_status,
+                  }}
+                />
+                <div className="flex items-center justify-between">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={activeIndex <= 0}
+                    onClick={() => setActiveStep(currentForms[activeIndex - 1]?.id ?? null)}
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />Previous form
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveStep(
+                      activeIndex < currentForms.length - 1 ? currentForms[activeIndex + 1].id : REVIEW_STEP,
+                    )}
+                  >
+                    {activeIndex < currentForms.length - 1 ? 'Next form' : 'Review & submit'}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {isReviewStep && (
+              <Card>
+                <CardHeader><CardTitle className="text-base">Review &amp; submit</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <Table>
+                    <TableHeader><TableRow>
+                      <TableHead>Form</TableHead><TableHead>Required</TableHead>
+                      <TableHead>Completion</TableHead><TableHead>Validation</TableHead><TableHead />
+                    </TableRow></TableHeader>
+                    <TableBody>
+                      {currentForms.map((f, idx) => {
+                        const status = formStatus(f);
+                        return (
+                          <TableRow key={f.id}>
+                            <TableCell className="font-medium">{idx + 1}. {f.template_name ?? f.tab_name ?? 'Form'}</TableCell>
+                            <TableCell>{f.is_required ? 'Yes' : 'No'}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {f.completion_status === 'COMPLETED' ? 'Complete'
+                                  : f.form_response_id ? 'In progress' : 'Not started'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {status === 'issue' ? (
+                                <span className="text-sm text-destructive">
+                                  {issuesFor(f.id).length} issue{issuesFor(f.id).length === 1 ? '' : 's'}
+                                </span>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">No issues detected</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setActiveStep(f.id)}>
+                                Open form
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+
+                  {(totalLiveIssues > 0 || incompleteRequired.length > 0) && (
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>
+                        {totalLiveIssues + incompleteRequired.length} issue
+                        {totalLiveIssues + incompleteRequired.length === 1 ? '' : 's'} must be fixed before submission
+                      </AlertTitle>
+                      <AlertDescription className="space-y-1">
+                        {incompleteRequired.map((f) => (
+                          <button
+                            key={`inc-${f.id}`}
+                            type="button"
+                            className="block text-left underline underline-offset-2"
+                            onClick={() => setActiveStep(f.id)}
+                          >
+                            {f.template_name ?? 'Form'} — not yet marked as complete
+                          </button>
+                        ))}
+                        {currentForms.flatMap((f) => issuesFor(f.id).map((msg, i) => (
+                          <button
+                            key={`iss-${f.id}-${i}`}
+                            type="button"
+                            className="block text-left underline underline-offset-2"
+                            onClick={() => setActiveStep(f.id)}
+                          >
+                            {f.template_name ?? 'Form'} — {msg}
+                          </button>
+                        )))}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {validation && (
+                    <div className="rounded-md border bg-muted/30 p-3 text-sm">
+                      {validation.errors} blocking error(s), {validation.warnings} warning(s) — {validation.can_submit ? 'ready to submit' : 'not yet ready to submit'}.
+                    </div>
+                  )}
+
+                  {data.findings.length > 0 && (
+                    <div className="overflow-x-auto rounded-md border">
+                      <Table>
+                        <TableHeader><TableRow>
+                          <TableHead>Severity</TableHead><TableHead>Message</TableHead><TableHead>Blocking</TableHead>
+                        </TableRow></TableHeader>
+                        <TableBody>
+                          {data.findings.map((f) => (
+                            <TableRow key={f.id}>
+                              <TableCell><Badge variant="outline" className={f.is_blocking ? 'border-destructive/20 bg-destructive/10 text-destructive' : ''}>{f.severity}</Badge></TableCell>
+                              <TableCell>{f.message}</TableCell>
+                              <TableCell>{f.is_blocking ? 'Yes' : 'No'}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+
+
+
+                  {data.definition.requires_declaration && canEdit && (
+                    <div className="rounded-md border p-3">
+                      <p className="text-sm text-muted-foreground">{data.definition.declaration_text}</p>
+                      <label className="mt-2 flex items-center gap-2 text-sm">
+                        <Checkbox checked={declarationAccepted} onCheckedChange={(v) => setDeclarationAccepted(!!v)} />
+                        I confirm the above declaration on behalf of the entity.
+                      </label>
+                    </div>
+                  )}
+
+                  {canEdit && (
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <Button variant="outline" onClick={handleValidate} disabled={validateFiling.isPending}>
+                        <ShieldCheck className="mr-2 h-4 w-4" />Validate return
+                      </Button>
+                      {capabilities.canSubmit && (
+                        <Button
+                          onClick={handleSubmit}
+                          disabled={
+                            submitFiling.isPending
+                            || !readyToSubmit
+                            || (data.definition.requires_declaration && !declarationAccepted)
+                          }
+                        >
+                          <Send className="mr-2 h-4 w-4" />Submit return
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </>
         )}
 
-        {data.findings.length > 0 && (
-          <Card>
-            <CardHeader><CardTitle className="text-base">Validation findings</CardTitle></CardHeader>
-            <CardContent className="overflow-x-auto p-0">
-              <Table>
-                <TableHeader><TableRow><TableHead>Severity</TableHead><TableHead>Message</TableHead><TableHead>Blocking</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {data.findings.map((f) => (
-                    <TableRow key={f.id}>
-                      <TableCell><Badge variant="outline" className={f.is_blocking ? 'border-destructive/20 bg-destructive/10 text-destructive' : ''}>{f.severity}</Badge></TableCell>
-                      <TableCell>{f.message}</TableCell>
-                      <TableCell>{f.is_blocking ? 'Yes' : 'No'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="space-y-4">
-          {currentForms.length === 0 ? (
-            <Card><CardContent className="p-8 text-center text-muted-foreground">No forms are pinned to this filing.</CardContent></Card>
-          ) : currentForms.map((f) => (
-            <EntityFilingForm
-              key={f.id}
-              editable={canEdit}
-              requirement={{
-                id: f.id,
-                form_template_id: f.form_template_id,
-                form_version_id: f.form_version_id,
-                template_name: f.template_name,
-                form_version: f.form_version,
-                is_required: f.is_required,
-                sequence: f.sequence,
-                tab_name: f.tab_name,
-                form_response_id: f.form_response_id,
-                completion_status: f.completion_status,
-              }}
-            />
-          ))}
-        </div>
-
-        {data.definition.requires_declaration && canEdit && (
-          <Card>
-            <CardHeader><CardTitle className="text-base">Declaration</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">{data.definition.declaration_text}</p>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={declarationAccepted} onCheckedChange={(v) => setDeclarationAccepted(!!v)} />
-                I confirm the above declaration on behalf of the entity.
-              </label>
-            </CardContent>
-          </Card>
-        )}
 
         {historicVersions.length > 0 && (
           <Card>
