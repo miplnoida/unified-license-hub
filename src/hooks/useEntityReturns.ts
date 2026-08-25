@@ -219,7 +219,11 @@ export function useEntityFilingDetail(filingId?: string | null) {
 export function useEntityReturnsMutations() {
   const qc = useQueryClient();
   const { user } = useAuth();
-  const invalidate = () => qc.invalidateQueries({ queryKey: KEY });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: KEY });
+    qc.invalidateQueries({ queryKey: ['canonical_entity_returns_summary'] });
+    qc.invalidateQueries({ queryKey: ['canonical_entity_filing_history'] });
+  };
 
   return {
     openFiling: useMutation({

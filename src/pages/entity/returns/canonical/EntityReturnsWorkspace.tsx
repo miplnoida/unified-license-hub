@@ -28,19 +28,37 @@ import { toast } from 'sonner';
 import { ReturnsEntitlementNotice } from '@/components/returns/ReturnsEntitlementNotice';
 import { NewReturnDialog } from '@/components/entity/returns-canonical/NewReturnDialog';
 import { filingStatusLabel } from '@/lib/returns/filingStatusLabels';
+import { usePpoc } from '@/contexts/PpocContext';
 
 
 export default function EntityReturnsWorkspace() {
   const navigate = useNavigate();
   const { data: memberships = [], isLoading: loadingMemberships } = useMyApprovedMemberships();
+  const { activeLicenseeId, loading: ppocLoading } = usePpoc();
   const [entityId, setEntityId] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [newReturnOpen, setNewReturnOpen] = useState(false);
   const [tab, setTab] = useState('filings');
 
   useEffect(() => {
-    if (!entityId && memberships.length > 0) setEntityId(memberships[0].entity_id);
-  }, [memberships, entityId]);
+    if (memberships.length === 0) {
+      if (entityId) setEntityId(null);
+      return;
+    }
+
+    const activeMembership = activeLicenseeId
+      ? memberships.find((m) => m.entity_id === activeLicenseeId)
+      : undefined;
+    if (activeMembership && entityId !== activeMembership.entity_id) {
+      setEntityId(activeMembership.entity_id);
+      return;
+    }
+
+    const currentIsValid = !!entityId && memberships.some((m) => m.entity_id === entityId);
+    if (currentIsValid) return;
+
+    setEntityId((activeMembership ?? memberships[0]).entity_id);
+  }, [activeLicenseeId, memberships, entityId]);
 
   // Deep link from the Returns dashboard: /entity/returns?new=1
   useEffect(() => {
@@ -83,22 +101,8 @@ export default function EntityReturnsWorkspace() {
     }
   };
 
-  if (loadingMemberships) {
+  if (loadingMemberships || ppocLoading) {
     return <DashboardLayout><div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div></DashboardLayout>;
-  }
-
-  if (memberships.length === 0) {
-    return (
-      <DashboardLayout>
-        <div className="space-y-4">
-          <PageHeader title="Returns" description="Regulatory returns for your organisation" />
-          <ReturnsEntitlementNotice />
-          <Card><CardContent className="p-8 text-center text-muted-foreground">
-            You have no approved entity membership yet. Request membership to an entity before returns can be prepared.
-          </CardContent></Card>
-        </div>
-      </DashboardLayout>
-    );
   }
 
 
@@ -120,7 +124,7 @@ export default function EntityReturnsWorkspace() {
                   </SelectContent>
                 </Select>
               )}
-              <Button onClick={() => setNewReturnOpen(true)} disabled={!entityId}>
+              <Button onClick={() => setNewReturnOpen(true)}>
                 <Plus className="mr-1 h-4 w-4" />New Return
               </Button>
             </div>
@@ -129,7 +133,7 @@ export default function EntityReturnsWorkspace() {
         />
 
         {/* Licence eligibility is explained in-page, never as Access Denied. */}
-        <ReturnsEntitlementNotice licenseeId={entityId} />
+        {memberships.length > 0 && <ReturnsEntitlementNotice licenseeId={entityId} />}
 
         {selectedMembership && (
           <p className="text-sm text-muted-foreground">
@@ -138,6 +142,12 @@ export default function EntityReturnsWorkspace() {
           </p>
         )}
 
+        {memberships.length === 0 ? (
+          <Card><CardContent className="p-8 text-center text-muted-foreground">
+            You have no approved entity membership yet. Request membership to an entity before returns can be prepared.
+          </CardContent></Card>
+        ) : (
+          <>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryCard label="Active obligations" value={loadingSummary ? '…' : summary?.active_obligations ?? 0} />
           <SummaryCard
@@ -290,6 +300,19 @@ export default function EntityReturnsWorkspace() {
           memberships={memberships}
           canPrepare={capabilities.canOpenOrEdit}
         />
+          </>
+        )}
+
+        {memberships.length === 0 && (
+          <NewReturnDialog
+            open={newReturnOpen}
+            onOpenChange={setNewReturnOpen}
+            entityId={entityId}
+            onEntityChange={setEntityId}
+            memberships={memberships}
+            canPrepare={false}
+          />
+        )}
       </div>
 
     </DashboardLayout>

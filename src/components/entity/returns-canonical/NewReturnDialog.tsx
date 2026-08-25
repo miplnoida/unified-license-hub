@@ -25,6 +25,7 @@ import {
   useNewReturnOptions, useEntityReturnsMutations, type NewReturnOption, type ApprovedMembership,
 } from '@/hooks/useEntityReturns';
 import { isCorrectionStatus, isSubmittedStatus, quarterOfPeriod } from '@/lib/returns/filingStatusLabels';
+import { useLicenseEntitlements } from '@/hooks/useLicenseEntitlements';
 
 interface Props {
   open: boolean;
@@ -42,6 +43,7 @@ export function NewReturnDialog({
 }: Props) {
   const navigate = useNavigate();
   const { data: options = [], isLoading } = useNewReturnOptions(open ? entityId : null);
+  const entitlements = useLicenseEntitlements(open ? entityId : null);
   const { openFiling } = useEntityReturnsMutations();
 
   const [sectorId, setSectorId] = useState<string | null>(null);
@@ -143,6 +145,10 @@ export function NewReturnDialog({
   };
 
   const actionDisabled = !resolved || openFiling.isPending || (!resolved.filing_id && !canPrepare);
+  const noMembership = memberships.length === 0;
+  const noEntity = !entityId;
+  const noEligibleLicense = !noMembership && !!entityId && !entitlements.loading && !entitlements.hasEligibleLicense;
+  const noConfiguredOptions = !noMembership && !!entityId && entitlements.hasEligibleLicense && options.length === 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -152,7 +158,7 @@ export function NewReturnDialog({
           <DialogDescription>Start an eligible regulatory return for your organisation.</DialogDescription>
         </DialogHeader>
 
-        {isLoading ? (
+        {isLoading || (!!entityId && entitlements.loading) ? (
           <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
         ) : (
           <div className="space-y-4">
@@ -170,7 +176,27 @@ export function NewReturnDialog({
               </Field>
             )}
 
-            {options.length === 0 ? (
+            {noMembership ? (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  You have no approved entity membership yet. Request membership to an entity before returns can be prepared.
+                </AlertDescription>
+              </Alert>
+            ) : noEntity ? (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>Select an entity before starting a return.</AlertDescription>
+              </Alert>
+            ) : noEligibleLicense ? (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  {entitlements.unavailableReason
+                    || 'Regulatory Returns will become available once your licence has been approved and issued.'}
+                </AlertDescription>
+              </Alert>
+            ) : noConfiguredOptions ? (
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription>
