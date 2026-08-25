@@ -17,6 +17,8 @@ import { addDays, lastDayOfMonth, lastDayOfYear, lastDayOfQuarter, format } from
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
+import { useLicenseEntitlements } from '@/hooks/useLicenseEntitlements';
+import { useIsInternal } from '@/hooks/useUserPermissions';
 import { logReturnCreated } from '@/lib/returnActivityLogger';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -77,13 +79,27 @@ export default function CreateReturnPage() {
     },
   });
 
+  // CANONICAL ENTITLEMENT: returns are an entitlement of an approved / issued
+  // licence in good standing — registration approval alone is never enough.
+  // The same rule is re-validated server-side by legacy_return_create.
+  const entitlements = useLicenseEntitlements(effectiveLicenseeId);
+  const isInternal = useIsInternal();
+  const entitlementApplies = !isInternal;
+  const entitled = !entitlementApplies || entitlements.hasEligibleLicense;
+
   const activeConfigs = configs.filter(c => {
     if (c.status !== 'active') return false;
     if (!licenseeScope) return false;
     if (c.sector_id && c.sector_id !== licenseeScope.sector_id) return false;
     if ((c as any).subsector_id && (c as any).subsector_id !== licenseeScope.sub_sector_id) return false;
+    // Only configurations covered by an eligible licence may be filed.
+    if (entitlementApplies) {
+      if (!entitled) return false;
+      if (c.sector_id && !entitlements.eligibleSectorIds.includes(c.sector_id)) return false;
+    }
     return true;
   });
+
 
   // If the previously selected config is no longer available (e.g. after
   // switching licensee via the header), clear the selection & period.
@@ -132,6 +148,10 @@ export default function CreateReturnPage() {
   const accessGuard = useLicenseeAccessGuard();
 
   const handleCreate = async () => {
+    if (entitlementApplies && !entitled) {
+      toast.error(entitlements.unavailableReason || 'Returns require an approved licence in good standing.');
+      return;
+    }
     if (licenseGate.isBlocked) {
       toast.error(licenseGate.blockedReason || 'Your license is not in good standing.');
       return;
@@ -268,7 +288,12 @@ export default function CreateReturnPage() {
                   </div>
                 )}
 
-                {activeConfigs.length === 0 ? (
+                {entitlementApplies && !entitled && !entitlements.loading ? (
+                  <div className="p-4 border border-amber-300 bg-amber-50 rounded-lg text-sm text-amber-900">
+                    <p className="font-medium">Regulatory returns are not available yet.</p>
+                    <p className="mt-1 text-amber-800">{entitlements.unavailableReason}</p>
+                  </div>
+                ) : activeConfigs.length === 0 ? (
                   <div className="p-4 border border-amber-300 bg-amber-50 rounded-lg text-sm text-amber-900">
                     <p className="font-medium">No return form is currently configured for your sector.</p>
                     <p className="mt-1 text-amber-800">
@@ -355,7 +380,7 @@ export default function CreateReturnPage() {
                 </div>
                 <div className="flex justify-between">
                   <Button variant="outline" onClick={() => setStep(2)}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>
-                  <Button onClick={handleCreate} disabled={createReturn.isPending || licenseGate.isBlocked}>{createReturn.isPending ? 'Creating...' : licenseGate.isBlocked ? 'License Not Active' : 'Create & Start Filing'}</Button>
+                  <Button onClick={handleCreate} disabled={createReturn.isPending || licenseGate.isBlocked || (entitlementApplies && !entitled)}>{createReturn.isPending ? 'Creating...' : licenseGate.isBlocked ? 'License Not Active' : 'Create & Start Filing'}</Button>
                 </div>
               </div>
             )}
