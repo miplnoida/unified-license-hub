@@ -86,6 +86,9 @@ export default function EntityReturnsWorkspace() {
           ) : undefined}
         />
 
+        {/* Licence eligibility is explained in-page, never as Access Denied. */}
+        <ReturnsEntitlementNotice licenseeId={entityId} />
+
         {selectedMembership && (
           <p className="text-sm text-muted-foreground">
             Acting as <Badge variant="outline">{selectedMembership.role_label}</Badge> for {selectedMembership.entity_name}
