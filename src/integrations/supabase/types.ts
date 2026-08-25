@@ -29521,6 +29521,65 @@ export type Database = {
           },
         ]
       }
+      return_form_validation_rules: {
+        Row: {
+          created_at: string
+          expression: string
+          form_template_id: string
+          id: string
+          is_active: boolean
+          is_blocking: boolean
+          label: string
+          lhs_field: string
+          message_template: string
+          rhs_fields: string[]
+          rule_code: string
+          severity: string
+          tolerance: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expression: string
+          form_template_id: string
+          id?: string
+          is_active?: boolean
+          is_blocking?: boolean
+          label: string
+          lhs_field: string
+          message_template: string
+          rhs_fields: string[]
+          rule_code: string
+          severity?: string
+          tolerance?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expression?: string
+          form_template_id?: string
+          id?: string
+          is_active?: boolean
+          is_blocking?: boolean
+          label?: string
+          lhs_field?: string
+          message_template?: string
+          rhs_fields?: string[]
+          rule_code?: string
+          severity?: string
+          tolerance?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_form_validation_rules_form_template_id_fkey"
+            columns: ["form_template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       return_form_versions: {
         Row: {
           assigned_by: string | null
@@ -43834,6 +43893,7 @@ export type Database = {
         }[]
       }
       returns_open_filing: { Args: { _period_id: string }; Returns: Json }
+      returns_parse_numeric: { Args: { _raw: string }; Returns: number }
       returns_require: { Args: { _action: string }; Returns: undefined }
       returns_resolve_legacy_filing: {
         Args: { _legacy_id: string }
