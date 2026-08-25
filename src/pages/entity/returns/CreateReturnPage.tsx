@@ -17,6 +17,7 @@ import { addDays, lastDayOfMonth, lastDayOfYear, lastDayOfQuarter, format } from
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
+import { useLicenseEntitlements } from '@/hooks/useLicenseEntitlements';
 import { logReturnCreated } from '@/lib/returnActivityLogger';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
