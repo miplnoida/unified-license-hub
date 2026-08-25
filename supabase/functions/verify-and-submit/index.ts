@@ -87,6 +87,36 @@ Deno.serve(async (req) => {
       );
     }
 
+    // 1a. LICENCE ENTITLEMENT GATE (post-licence services only).
+    //     Post-licence filings are entitlements of an existing licence, so the
+    //     submission is refused unless an eligible licence still covers the
+    //     application's sector scope. Same predicate the draft-creation RPC and
+    //     the UI use — a direct API call cannot bypass it.
+    {
+      const d = (app.data as Record<string, unknown> | null) || {};
+      const isPostLicense = !!d.service_id || String(d.type || "") === "post_license";
+      if (isPostLicense) {
+        const { data: allowed, error: entErr } = await userClient.rpc("can_act_on_license", {
+          _licensee_id: (d.licensee_id as string | undefined) ?? null,
+          _sector_id: (d.sector_id as string | undefined) ?? null,
+          _sub_sector_id: (d.sub_sector_id as string | undefined) ?? null,
+          _category_id: (d.category_id as string | undefined) ?? null,
+        });
+        if (entErr || allowed !== true) {
+          return new Response(
+            JSON.stringify({
+              error:
+                "This service is unavailable because the related licence is not currently approved, issued and in good standing.",
+              code: "LICENSE_ENTITLEMENT_REQUIRED",
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+      }
+    }
+
+
+
     // 1b. Server-side duplicate-application & re-application guard
     //     (defense in depth — frontend + DB triggers also enforce).
     //     Match key: (applicant + sector + sub_sector + category).
