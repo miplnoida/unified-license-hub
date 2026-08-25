@@ -1,6 +1,6 @@
 # Manual Testing Guide (Excel) — Admin, Licensee/Applicant, Public
 
-No code changes. The only output is a downloadable Excel workbook shared in chat.
+No code changes. The only output is a downloadable Excel workbook shared in chat. Login credentials are not included in the workbook; the user already has all roles login details.
 
 ## Workbook: `Manual_Testing_Guide_v1.xlsx`
 
