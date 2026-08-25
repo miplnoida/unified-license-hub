@@ -33394,6 +33394,104 @@ export type Database = {
           },
         ]
       }
+      support_ticket_messages: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          is_internal: boolean
+          ticket_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          ticket_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          closed_at: string | null
+          created_at: string
+          description: string
+          id: string
+          licensee_id: string | null
+          portal_area: string
+          priority: string
+          requester_email: string | null
+          requester_id: string
+          requester_name: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          status: string
+          subject: string
+          ticket_number: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: string
+          closed_at?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          licensee_id?: string | null
+          portal_area?: string
+          priority?: string
+          requester_email?: string | null
+          requester_id: string
+          requester_name?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          status?: string
+          subject: string
+          ticket_number?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          closed_at?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          licensee_id?: string | null
+          portal_area?: string
+          priority?: string
+          requester_email?: string | null
+          requester_id?: string
+          requester_name?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          status?: string
+          subject?: string
+          ticket_number?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       thematic_review_actions: {
         Row: {
           action_type: string
@@ -39663,6 +39761,7 @@ export type Database = {
       generate_receipt_number: { Args: never; Returns: string }
       generate_registration_reference: { Args: never; Returns: string }
       generate_return_unique_id: { Args: never; Returns: string }
+      generate_support_ticket_number: { Args: never; Returns: string }
       get_active_captcha: {
         Args: never
         Returns: {
@@ -44464,6 +44563,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      support_is_staff: { Args: { _user_id: string }; Returns: boolean }
       thematic_action_extend_due_date: {
         Args: { _action_id: string; _new_due_date: string; _reason: string }
         Returns: undefined

@@ -9,6 +9,7 @@ import { INTERNAL_ROLES } from '@/types/platform';
 import type { PortalArea, PortalCapability } from '@/lib/portalAccess';
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const SupportCenter = lazy(() => import('@/pages/support/SupportCenter'));
 const LegacyReturnFilingRedirect = lazy(() => import('@/routes/LegacyReturnFilingRedirect'));
 const ApplicationsList = lazy(() => import('@/pages/applications/ApplicationsList'));
 const ApplicationQueue = lazy(() => import('@/pages/applications/ApplicationQueue'));
@@ -221,6 +222,8 @@ export const dashboardRoutes = (
     <Route path="/forms/:formId" element={<P><FormDetail /></P>} />
 
     <Route path="/profile" element={<P><Profile /></P>} />
+    {/* Technical help desk — available to every authenticated portal user. */}
+    <Route path="/support" element={<P><SupportCenter /></P>} />
     <Route path="/change-password" element={<P><ChangePassword /></P>} />
     <Route path="/preview/:versionId" element={<M module="form_management"><FormPreview /></M>} />
     <Route path="/change-sector" element={<EP area="licensing" capability="can_view_status"><ChangeActiveSector /></EP>} />

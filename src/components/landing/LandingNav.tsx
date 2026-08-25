@@ -16,6 +16,7 @@ const PUBLIC_NAV = [
   { label: 'For Licensees', to: '/licensee-services' },
   { label: 'Public Register', to: '/registry' },
   { label: 'Guidance', to: '/guidance' },
+  { label: 'File a Complaint', to: '/complaints/file' },
   { label: 'Help / Contact', to: '/help' },
 ];
 

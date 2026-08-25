@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { type NavItem } from '@/config/navigation';
 import { useNavigationSections } from '@/hooks/useNavigationSections';
-import { Layers, ChevronLeft, ChevronRight, ChevronDown, Menu, X } from 'lucide-react';
+import { Layers, ChevronLeft, ChevronRight, ChevronDown, Menu, X, Lock } from 'lucide-react';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { getModuleForPath } from '@/lib/permissionModules';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
+import { useLicenseEntitlements } from '@/hooks/useLicenseEntitlements';
+import { pathRequiresLicenceEntitlement } from '@/lib/licenceEntitlementNav';
 import { LICENSEE_ROLES, PRE_LICENSEE_ROLES, INTERNAL_ROLES } from '@/types/platform';
 import { prefetchRoute } from '@/lib/routePrefetch';
 
@@ -147,6 +149,29 @@ function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, path
 /** A navigable destination row at any depth. */
 function NavLeaf({ item, pathname, depth, collapsed = false }: { item: NavItem; pathname: string; depth: number; collapsed?: boolean }) {
   const isActive = isPathActive(item.href, pathname);
+  const locked = !!(item as NavItem & { locked?: boolean }).locked;
+  const lockedReason = (item as NavItem & { lockedReason?: string }).lockedReason
+    || 'Available once your licence is approved and issued.';
+
+  if (locked) {
+    // Entitlement-gated destination: kept visible so the journey stays clear,
+    // but not actionable until an eligible licence exists.
+    return (
+      <div
+        title={lockedReason}
+        aria-disabled="true"
+        className={cn(
+          'relative flex min-w-0 cursor-not-allowed items-start gap-2.5 text-sidebar-foreground/35',
+          rowClassForDepth(depth),
+          collapsed && 'justify-center',
+        )}
+      >
+        <span className="shrink-0 mt-[1px]"><Lock className="h-4 w-4" /></span>
+        {!collapsed && <span className="min-w-0 flex-1 break-words leading-snug line-clamp-2">{item.label}</span>}
+      </div>
+    );
+  }
+
   return (
     <Link
       to={item.href!}
@@ -194,6 +219,13 @@ export function Sidebar() {
   const { sections: navSections } = useNavigationSections();
   const { hasPermission, hasModuleAccess, hasAnyModuleAccess, enforceDynamic, hasAssignmentReturnQueueAccess, isAssignmentAllowedReturnsPath } = useUserDynamicPermissions();
   const portalContext = useEffectivePortalContext();
+  // CANONICAL ENTITLEMENT: post-licence services and returns only become
+  // actionable once an eligible licence exists (same resolver the DB enforces).
+  const entitlements = useLicenseEntitlements();
+  const entitlementGateApplies = !portalContext.isInternal;
+  const lockNewActivity = entitlementGateApplies
+    && !entitlements.loading
+    && !entitlements.hasEligibleLicense;
   const navRef = useRef<HTMLDivElement>(null);
 
   const toggleGroup = useCallback((key: string) => {
@@ -325,6 +357,15 @@ export function Sidebar() {
     if (item.children?.length) {
       const kids = item.children.map(pruneItem).filter((c): c is NavItem => !!c);
       return kids.length ? { ...item, children: kids } : null;
+    }
+    if (lockNewActivity && (item.requiresLicenceEntitlement || pathRequiresLicenceEntitlement(item.href))) {
+      return {
+        ...item,
+        locked: true,
+        lockedReason:
+          entitlements.unavailableReason
+          || 'Available once your licence is approved and issued.',
+      } as NavItem;
     }
     return item;
   };
