@@ -43801,6 +43801,30 @@ export type Database = {
         Args: { _legacy_id: string }
         Returns: Json
       }
+      returns_new_return_options: {
+        Args: { _entity_id: string }
+        Returns: {
+          current_version_id: string
+          definition_code: string
+          definition_id: string
+          definition_name: string
+          due_date: string
+          filing_id: string
+          filing_reference: string
+          filing_status: string
+          frequency: string
+          is_overdue: boolean
+          obligation_id: string
+          period_end: string
+          period_id: string
+          period_label: string
+          period_start: string
+          period_status: string
+          reporting_year: number
+          sector_id: string
+          sector_name: string
+        }[]
+      }
       returns_obligation_scope: {
         Args: { _obligation_id: string }
         Returns: {
