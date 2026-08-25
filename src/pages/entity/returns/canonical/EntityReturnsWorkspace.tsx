@@ -46,12 +46,17 @@ export default function EntityReturnsWorkspace() {
       return;
     }
 
-    const currentIsValid = !!entityId && memberships.some((m) => m.entity_id === entityId);
-    if (currentIsValid) return;
-
     const activeMembership = activeLicenseeId
       ? memberships.find((m) => m.entity_id === activeLicenseeId)
       : undefined;
+    if (activeMembership && entityId !== activeMembership.entity_id) {
+      setEntityId(activeMembership.entity_id);
+      return;
+    }
+
+    const currentIsValid = !!entityId && memberships.some((m) => m.entity_id === entityId);
+    if (currentIsValid) return;
+
     setEntityId((activeMembership ?? memberships[0]).entity_id);
   }, [activeLicenseeId, memberships, entityId]);
 
