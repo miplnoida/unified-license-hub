@@ -148,9 +148,80 @@ export default function EntityReturnsWorkspace() {
           <SummaryCard label="Correction requested" value={loadingSummary ? '…' : summary?.correction_requested_count ?? 0} tone={summary?.correction_requested_count ? 'destructive' : undefined} />
         </div>
 
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList>
+            <TabsTrigger value="filings">My Returns</TabsTrigger>
+            <TabsTrigger value="calendar">Obligations Calendar</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="filings" className="mt-4">
+            <Card>
+              <CardHeader><CardTitle className="text-base">My returns</CardTitle></CardHeader>
+              <CardContent className="overflow-x-auto p-0">
+                {loadingCalendar ? (
+                  <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+                ) : myFilings.length === 0 ? (
+                  <div className="space-y-3 py-12 text-center">
+                    <p className="text-sm text-muted-foreground">You have not started any returns yet.</p>
+                    <Button onClick={() => setNewReturnOpen(true)} disabled={!entityId}>
+                      <Plus className="mr-1 h-4 w-4" />New Return
+                    </Button>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Return</TableHead>
+                        <TableHead>Period</TableHead>
+                        <TableHead>Due date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Progress</TableHead>
+                        <TableHead>Reference</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {myFilings.map((row) => {
+                        const prog = row.current_version_id ? progress[row.current_version_id] : undefined;
+                        const isCorrection = row.filing_status === 'CORRECTION_REQUESTED';
+                        return (
+                          <TableRow key={row.period_id}>
+                            <TableCell className="font-medium">
+                              {row.definition_name}
+                              <div className="text-xs text-muted-foreground">{FREQUENCY_LABELS[row.frequency] ?? row.frequency}</div>
+                            </TableCell>
+                            <TableCell>{row.period_label}</TableCell>
+                            <TableCell>
+                              {formatDateOnly(row.due_date)}
+                              {row.is_overdue && <Badge variant="outline" className="ml-2 border-destructive/20 bg-destructive/10 text-destructive">Overdue</Badge>}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={isCorrection ? 'border-destructive/20 bg-destructive/10 text-destructive' : undefined}>
+                                {filingStatusLabel(row.filing_status)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{prog ? `${prog.completed}/${prog.required}` : '—'}</TableCell>
+                            <TableCell className="font-mono text-xs">{row.filing_reference ?? '—'}</TableCell>
+                            <TableCell className="text-right">
+                              <Button size="sm" variant="outline" onClick={() => navigate(`/entity/returns/filings/${row.filing_id}`)}>
+                                {capabilities.isViewer ? <><Eye className="mr-1 h-3.5 w-3.5" />View</> : <>Open<ArrowRight className="ml-1 h-3.5 w-3.5" /></>}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="calendar" className="mt-4">
         <Card>
           <CardHeader><CardTitle className="text-base">Obligations calendar</CardTitle></CardHeader>
           <CardContent className="overflow-x-auto p-0">
+
             {loadingCalendar ? (
               <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
             ) : (
