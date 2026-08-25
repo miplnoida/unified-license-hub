@@ -279,7 +279,19 @@ export default function EntityReturnsWorkspace() {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+        </Tabs>
+
+        <NewReturnDialog
+          open={newReturnOpen}
+          onOpenChange={setNewReturnOpen}
+          entityId={entityId}
+          onEntityChange={setEntityId}
+          memberships={memberships}
+          canPrepare={capabilities.canOpenOrEdit}
+        />
       </div>
+
     </DashboardLayout>
   );
 }
