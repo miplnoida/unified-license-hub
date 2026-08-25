@@ -14,3 +14,4 @@
 - [Operating Structure Task UX](mem://features/operating-structure/task-first-ux) — dedicated lead/staff/member dialogs, single applicable-areas resolver
 
 - [FSRA Sector Model](mem://features/operating-structure/fsra-sector-model) — Saint Lucia FSRA regulator, 9 active grouped sectors, retired legacy sectors
+- [Sector Alias Map](mem://architecture/sector-alias-map) — Legacy-to-active FSRA sector resolution for licence entitlement and returns obligations
