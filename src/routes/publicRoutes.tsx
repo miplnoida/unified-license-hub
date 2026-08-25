@@ -74,7 +74,9 @@ export const publicRoutes = (
     <Route path="/registry/entities" element={<PublicEntityRegister />} />
     <Route path="/registry/entities/:slug" element={<PublicEntityDetail />} />
     <Route path="/declaration/:token" element={<DeclarationLanding />} />
-    <Route path="/track/complaint" element={<Navigate to="/complaints/track" replace />} />
+    {/* Truly public complaint tracking: reference + email, no account required. */}
+    <Route path="/track/complaint" element={<PublicComplaintTracking />} />
+
     {/* Public consumer market-conduct complaint intake (no account required). */}
     <Route path="/complaints/file" element={<PublicComplaintIntake />} />
     <Route path="/complaints/submit" element={<Navigate to="/complaints/file" replace />} />
