@@ -19,6 +19,7 @@ import {
   useEntityReturnsCalendar, useCalendarFormsProgress, useEntityReturnsMutations,
 } from '@/hooks/useEntityReturns';
 import { toast } from 'sonner';
+import { ReturnsEntitlementNotice } from '@/components/returns/ReturnsEntitlementNotice';
 
 export default function EntityReturnsWorkspace() {
   const navigate = useNavigate();
