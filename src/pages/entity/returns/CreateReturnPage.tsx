@@ -78,13 +78,27 @@ export default function CreateReturnPage() {
     },
   });
 
+  // CANONICAL ENTITLEMENT: returns are an entitlement of an approved / issued
+  // licence in good standing — registration approval alone is never enough.
+  // The same rule is re-validated server-side by legacy_return_create.
+  const entitlements = useLicenseEntitlements(effectiveLicenseeId);
+  const isInternal = useIsInternal();
+  const entitlementApplies = !isInternal;
+  const entitled = !entitlementApplies || entitlements.hasEligibleLicense;
+
   const activeConfigs = configs.filter(c => {
     if (c.status !== 'active') return false;
     if (!licenseeScope) return false;
     if (c.sector_id && c.sector_id !== licenseeScope.sector_id) return false;
     if ((c as any).subsector_id && (c as any).subsector_id !== licenseeScope.sub_sector_id) return false;
+    // Only configurations covered by an eligible licence may be filed.
+    if (entitlementApplies) {
+      if (!entitled) return false;
+      if (c.sector_id && !entitlements.eligibleSectorIds.includes(c.sector_id)) return false;
+    }
     return true;
   });
+
 
   // If the previously selected config is no longer available (e.g. after
   // switching licensee via the header), clear the selection & period.
