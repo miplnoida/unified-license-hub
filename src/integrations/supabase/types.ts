@@ -32035,6 +32035,51 @@ export type Database = {
           },
         ]
       }
+      sector_alias_map: {
+        Row: {
+          active_sector_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          legacy_sector_id: string
+          note: string | null
+          updated_at: string
+        }
+        Insert: {
+          active_sector_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          legacy_sector_id: string
+          note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active_sector_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          legacy_sector_id?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sector_alias_map_active_sector_id_fkey"
+            columns: ["active_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_alias_map_legacy_sector_id_fkey"
+            columns: ["legacy_sector_id"]
+            isOneToOne: true
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sectors: {
         Row: {
           code: string | null
@@ -44025,6 +44070,7 @@ export type Database = {
           module_key: string
         }[]
       }
+      sector_effective_id: { Args: { _sector_id: string }; Returns: string }
       seed_external_portal_defaults: {
         Args: {
           _actor?: string
