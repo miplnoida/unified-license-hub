@@ -41,7 +41,7 @@ export type { EntityCalendarRow, FilingDetail };
 /* Membership + capability model                                       */
 /* ------------------------------------------------------------------ */
 
-export const RETURNS_CAPABILITIES = ['view_status', 'submit', 'upload_documents', 'respond_rfi', 'pay', 'manage_users'] as const;
+export const RETURNS_CAPABILITIES = ['view_status', 'prepare_filing', 'submit', 'upload_documents', 'respond_rfi', 'pay', 'manage_users'] as const;
 export type ReturnsCapability = typeof RETURNS_CAPABILITIES[number];
 
 export interface ApprovedMembership {
@@ -113,17 +113,25 @@ export interface EntityCapabilities {
 }
 
 /** Resolve capability flags for a given entity from the caller's approved memberships. */
+/**
+ * Resolve capability flags for a given entity from the caller's approved memberships.
+ *
+ * Mirrors the server split between `returns_can_prepare` (open/edit a filing) and
+ * `returns_can_file` (submit it): a Preparer holds `prepare_filing` only and must
+ * still be able to open and work a filing, while submission stays `submit`-only.
+ */
 export function useEntityCapabilities(entityId?: string | null): EntityCapabilities {
   const { data: memberships } = useMyApprovedMemberships();
   return useMemo(() => {
     const membership = (memberships ?? []).find((m) => m.entity_id === entityId);
     const has = (c: ReturnsCapability) => !!membership?.capabilities.includes(c);
-    const canOpenOrEdit = has('submit');
+    const canSubmit = has('submit');
+    const canOpenOrEdit = canSubmit || has('prepare_filing');
     return {
       canView: !!membership,
       canOpenOrEdit,
       canValidate: canOpenOrEdit,
-      canSubmit: canOpenOrEdit,
+      canSubmit,
       canRespondToRequest: canOpenOrEdit || has('respond_rfi'),
       isViewer: !!membership && !canOpenOrEdit && !has('respond_rfi'),
     };
