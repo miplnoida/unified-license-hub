@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarCheck, Clock, CheckCircle, AlertTriangle, FileText, ArrowRight, Loader2 } from 'lucide-react';
+import { CalendarCheck, Clock, CheckCircle, AlertTriangle, FileText, ArrowRight, Loader2, Plus } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useMyApprovedMemberships } from '@/hooks/useEntityReturns';
 import {
