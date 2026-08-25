@@ -1,9 +1,14 @@
 /**
  * RDM-ENTITY-001 Wave C (external) — "My Organisation → Returns".
- * Entity switcher (APPROVED memberships only) + summary strip + calendar.
+ *
+ * Filer-first layout: "My Returns" (actual filings) is the default view, the
+ * regulator-generated obligations calendar is a second tab, and a prominent
+ * "+ New Return" opens the guided selector. All eligibility, obligation and
+ * filing rules stay server-side (`returns_new_return_options`,
+ * `returns_open_filing`).
  */
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +16,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, ArrowRight, Eye } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, ArrowRight, Eye, Plus } from 'lucide-react';
 import { formatDateOnly } from '@/lib/datetime';
 import { FREQUENCY_LABELS } from '@/hooks/useWaveC';
 import {
@@ -20,6 +26,9 @@ import {
 } from '@/hooks/useEntityReturns';
 import { toast } from 'sonner';
 import { ReturnsEntitlementNotice } from '@/components/returns/ReturnsEntitlementNotice';
+import { NewReturnDialog } from '@/components/entity/returns-canonical/NewReturnDialog';
+import { filingStatusLabel } from '@/lib/returns/filingStatusLabels';
+
 
 export default function EntityReturnsWorkspace() {
   const navigate = useNavigate();
