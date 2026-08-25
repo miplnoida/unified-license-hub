@@ -22,6 +22,7 @@ const EntityIdentification = lazy(() => import('@/pages/registration/EntityIdent
 const UserAccountStep = lazy(() => import('@/pages/registration/UserAccountStep'));
 const LegacyRegisterRedirect = lazy(() => import('@/routes/LegacyRegisterRedirect'));
 const DeclarationLanding = lazy(() => import('@/pages/public/DeclarationLanding'));
+const PublicComplaintIntake = lazy(() => import('@/pages/public/PublicComplaintIntake'));
 const LicenseeServices = lazy(() => import('@/pages/public/LicenseeServices'));
 const LicenseeServiceDetail = lazy(() => import('@/pages/public/LicenseeServiceDetail'));
 const ApplicantGuidance = lazy(() => import('@/pages/public/ApplicantGuidance'));
@@ -74,10 +75,11 @@ export const publicRoutes = (
     <Route path="/registry/entities/:slug" element={<PublicEntityDetail />} />
     <Route path="/declaration/:token" element={<DeclarationLanding />} />
     <Route path="/track/complaint" element={<Navigate to="/complaints/track" replace />} />
-    {/* Complaint intake requires authentication — no public or anonymous lodging. */}
-    <Route path="/complaints/submit" element={<Navigate to="/login?redirect=%2Fcomplaints" replace />} />
-    <Route path="/complaints/new" element={<Navigate to="/login?redirect=%2Fcomplaints" replace />} />
-    <Route path="/submit-complaint" element={<Navigate to="/login?redirect=%2Fcomplaints" replace />} />
+    {/* Public consumer market-conduct complaint intake (no account required). */}
+    <Route path="/complaints/file" element={<PublicComplaintIntake />} />
+    <Route path="/complaints/submit" element={<Navigate to="/complaints/file" replace />} />
+    <Route path="/complaints/new" element={<Navigate to="/complaints/file" replace />} />
+    <Route path="/submit-complaint" element={<Navigate to="/complaints/file" replace />} />
     <Route path="*" element={<NotFound />} />
   </>
 );

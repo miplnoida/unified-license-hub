@@ -36,6 +36,16 @@ export interface NavItem {
    * user who is granted the same module does not see internal admin screens.
    */
   adminOnly?: boolean;
+  /**
+   * External-portal items that represent NEW regulated activity (post-licence
+   * services, regulatory returns). They stay listed but are disabled until the
+   * entity holds an eligible (approved / issued / in-grace) licence — the same
+   * canonical entitlement the database enforces on every write.
+   */
+  requiresLicenceEntitlement?: boolean;
+  /** Runtime-only: set by the sidebar when an entitlement gate blocks the item. */
+  locked?: boolean;
+  lockedReason?: string;
   children?: NavItem[];
 }
 
@@ -103,7 +113,7 @@ export const mainNavSections: NavSection[] = [
     label: 'License Requests',
     items: [
       { label: 'Pre Licensing Applications', href: '/applications?type=pre', icon: <FileText className="h-5 w-5" />, roles: [...PRE_LICENSEE, ...LICENSEE_ALL, 'applicant'] },
-      { label: 'Post Licensing Applications', href: '/applications?type=post', icon: <FileText className="h-5 w-5" />, roles: LICENSEE_ALL },
+      { label: 'Post Licensing Applications', href: '/applications?type=post', icon: <FileText className="h-5 w-5" />, roles: LICENSEE_ALL, requiresLicenceEntitlement: true },
       { label: 'All License Requests', href: '/applications/queue', icon: <ClipboardList className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst'], module: 'application_management' },
       { label: 'Licensee Entities', href: '/admin/licensees', icon: <Briefcase className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'license_management' },
       { label: 'License Action Forms', href: '/admin/license-action-forms', icon: <Shield className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'license_management' },
@@ -128,8 +138,8 @@ export const mainNavSections: NavSection[] = [
         ],
       },
       { label: 'Returns Queue', href: '/returns/queue', icon: <ClipboardList className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'analyst'], module: 'returns_management' },
-      { label: 'Returns Dashboard', href: '/entity/returns/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, roles: LICENSEE_ALL },
-      { label: 'My Returns', href: '/entity/returns', icon: <CalendarCheck className="h-5 w-5" />, roles: LICENSEE_ALL },
+      { label: 'Returns Dashboard', href: '/entity/returns/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, roles: LICENSEE_ALL, requiresLicenceEntitlement: true },
+      { label: 'My Returns', href: '/entity/returns', icon: <CalendarCheck className="h-5 w-5" />, roles: LICENSEE_ALL, requiresLicenceEntitlement: true },
     ],
   },
   {
