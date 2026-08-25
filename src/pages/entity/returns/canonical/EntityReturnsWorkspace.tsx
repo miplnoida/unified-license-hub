@@ -108,16 +108,24 @@ export default function EntityReturnsWorkspace() {
         <PageHeader
           title="Returns"
           description="Regulatory returns, filings and obligations for your organisation"
-          actions={memberships.length > 1 ? (
-            <Select value={entityId ?? undefined} onValueChange={setEntityId}>
-              <SelectTrigger className="w-[280px]"><SelectValue placeholder="Select entity" /></SelectTrigger>
-              <SelectContent>
-                {memberships.map((m) => (
-                  <SelectItem key={m.entity_id} value={m.entity_id}>{m.entity_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : undefined}
+          actions={(
+            <div className="flex flex-wrap items-center gap-2">
+              {memberships.length > 1 && (
+                <Select value={entityId ?? undefined} onValueChange={setEntityId}>
+                  <SelectTrigger className="w-[240px]"><SelectValue placeholder="Select entity" /></SelectTrigger>
+                  <SelectContent>
+                    {memberships.map((m) => (
+                      <SelectItem key={m.entity_id} value={m.entity_id}>{m.entity_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <Button onClick={() => setNewReturnOpen(true)} disabled={!entityId}>
+                <Plus className="mr-1 h-4 w-4" />New Return
+              </Button>
+            </div>
+          )}
+
         />
 
         {/* Licence eligibility is explained in-page, never as Access Denied. */}
