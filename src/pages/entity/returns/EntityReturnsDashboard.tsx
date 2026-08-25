@@ -67,6 +67,9 @@ export default function EntityReturnsDashboard() {
           }
         />
 
+        {/* Licence eligibility is explained in-page, never as Access Denied. */}
+        <ReturnsEntitlementNotice licenseeId={entityIds.length === 1 ? entityIds[0] : undefined} />
+
         {entityIds.length === 0 ? (
           <Card>
             <CardContent className="py-10 text-center text-sm text-muted-foreground">
