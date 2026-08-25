@@ -61,13 +61,17 @@ export default function EntityReturnsWorkspace() {
   if (memberships.length === 0) {
     return (
       <DashboardLayout>
-        <PageHeader title="Returns" description="Regulatory returns for your organisation" />
-        <Card><CardContent className="p-8 text-center text-muted-foreground">
-          You have no approved entity membership yet. Request membership to an entity before returns can be prepared.
-        </CardContent></Card>
+        <div className="space-y-4">
+          <PageHeader title="Returns" description="Regulatory returns for your organisation" />
+          <ReturnsEntitlementNotice />
+          <Card><CardContent className="p-8 text-center text-muted-foreground">
+            You have no approved entity membership yet. Request membership to an entity before returns can be prepared.
+          </CardContent></Card>
+        </div>
       </DashboardLayout>
     );
   }
+
 
   return (
     <DashboardLayout>
