@@ -4575,6 +4575,8 @@ export type Database = {
           closure_category: string | null
           closure_reason: string | null
           complainant_id: string | null
+          complainant_name: string | null
+          complainant_phone: string | null
           complaint_number: string
           complaint_type_id: string | null
           conduct_risk_category_id: string | null
@@ -4586,6 +4588,7 @@ export type Database = {
           findings: string | null
           id: string
           idempotency_key: string | null
+          incident_date: string | null
           intake_source: string | null
           internal_created_by: string | null
           investigation_notes: string | null
@@ -4593,6 +4596,7 @@ export type Database = {
           license_holder_id: string | null
           licensee_id: string | null
           parent_complaint_id: string | null
+          preferred_contact_method: string | null
           priority: string | null
           product_id: string | null
           regulator_id: string | null
@@ -4631,6 +4635,8 @@ export type Database = {
           closure_category?: string | null
           closure_reason?: string | null
           complainant_id?: string | null
+          complainant_name?: string | null
+          complainant_phone?: string | null
           complaint_number?: string
           complaint_type_id?: string | null
           conduct_risk_category_id?: string | null
@@ -4642,6 +4648,7 @@ export type Database = {
           findings?: string | null
           id?: string
           idempotency_key?: string | null
+          incident_date?: string | null
           intake_source?: string | null
           internal_created_by?: string | null
           investigation_notes?: string | null
@@ -4649,6 +4656,7 @@ export type Database = {
           license_holder_id?: string | null
           licensee_id?: string | null
           parent_complaint_id?: string | null
+          preferred_contact_method?: string | null
           priority?: string | null
           product_id?: string | null
           regulator_id?: string | null
@@ -4687,6 +4695,8 @@ export type Database = {
           closure_category?: string | null
           closure_reason?: string | null
           complainant_id?: string | null
+          complainant_name?: string | null
+          complainant_phone?: string | null
           complaint_number?: string
           complaint_type_id?: string | null
           conduct_risk_category_id?: string | null
@@ -4698,6 +4708,7 @@ export type Database = {
           findings?: string | null
           id?: string
           idempotency_key?: string | null
+          incident_date?: string | null
           intake_source?: string | null
           internal_created_by?: string | null
           investigation_notes?: string | null
@@ -4705,6 +4716,7 @@ export type Database = {
           license_holder_id?: string | null
           licensee_id?: string | null
           parent_complaint_id?: string | null
+          preferred_contact_method?: string | null
           priority?: string | null
           product_id?: string | null
           regulator_id?: string | null
@@ -25265,6 +25277,30 @@ export type Database = {
           },
         ]
       }
+      public_intake_events: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          ip_hash: string | null
+          kind: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip_hash?: string | null
+          kind?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip_hash?: string | null
+          kind?: string
+        }
+        Relationships: []
+      }
       rbac_module_scopes: {
         Row: {
           created_at: string
@@ -33394,6 +33430,92 @@ export type Database = {
           },
         ]
       }
+      support_ticket_attachments: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          file_name: string
+          id: string
+          message_id: string | null
+          size_bytes: number | null
+          storage_path: string
+          ticket_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          file_name: string
+          id?: string
+          message_id?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          ticket_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          file_name?: string
+          id?: string
+          message_id?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          ticket_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "support_ticket_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_ticket_attachments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_ticket_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          details: Json
+          id: string
+          ticket_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          ticket_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_audit_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_ticket_messages: {
         Row: {
           author_id: string
@@ -33431,64 +33553,82 @@ export type Database = {
       }
       support_tickets: {
         Row: {
+          assigned_team: string | null
           assigned_to: string | null
           category: string
           closed_at: string | null
           created_at: string
           description: string
           id: string
+          license_id: string | null
           licensee_id: string | null
+          page_path: string | null
           portal_area: string
           priority: string
+          reference_number: string | null
           requester_email: string | null
           requester_id: string
           requester_name: string | null
           resolution_notes: string | null
           resolved_at: string | null
+          sector_id: string | null
           status: string
           subject: string
           ticket_number: string
           updated_at: string
+          user_agent: string | null
         }
         Insert: {
+          assigned_team?: string | null
           assigned_to?: string | null
           category?: string
           closed_at?: string | null
           created_at?: string
           description: string
           id?: string
+          license_id?: string | null
           licensee_id?: string | null
+          page_path?: string | null
           portal_area?: string
           priority?: string
+          reference_number?: string | null
           requester_email?: string | null
           requester_id: string
           requester_name?: string | null
           resolution_notes?: string | null
           resolved_at?: string | null
+          sector_id?: string | null
           status?: string
           subject: string
           ticket_number?: string
           updated_at?: string
+          user_agent?: string | null
         }
         Update: {
+          assigned_team?: string | null
           assigned_to?: string | null
           category?: string
           closed_at?: string | null
           created_at?: string
           description?: string
           id?: string
+          license_id?: string | null
           licensee_id?: string | null
+          page_path?: string | null
           portal_area?: string
           priority?: string
+          reference_number?: string | null
           requester_email?: string | null
           requester_id?: string
           requester_name?: string | null
           resolution_notes?: string | null
           resolved_at?: string | null
+          sector_id?: string | null
           status?: string
           subject?: string
           ticket_number?: string
           updated_at?: string
+          user_agent?: string | null
         }
         Relationships: []
       }
@@ -36424,6 +36564,8 @@ export type Database = {
               closure_category: string | null
               closure_reason: string | null
               complainant_id: string | null
+              complainant_name: string | null
+              complainant_phone: string | null
               complaint_number: string
               complaint_type_id: string | null
               conduct_risk_category_id: string | null
@@ -36435,6 +36577,7 @@ export type Database = {
               findings: string | null
               id: string
               idempotency_key: string | null
+              incident_date: string | null
               intake_source: string | null
               internal_created_by: string | null
               investigation_notes: string | null
@@ -36442,6 +36585,7 @@ export type Database = {
               license_holder_id: string | null
               licensee_id: string | null
               parent_complaint_id: string | null
+              preferred_contact_method: string | null
               priority: string | null
               product_id: string | null
               regulator_id: string | null
@@ -36617,6 +36761,16 @@ export type Database = {
         Returns: boolean
       }
       can_act_on_prudential: { Args: { _user: string }; Returns: boolean }
+      can_act_on_specific_license: {
+        Args: {
+          _category_id?: string
+          _license_id: string
+          _licensee_id?: string
+          _sector_id?: string
+          _sub_sector_id?: string
+        }
+        Returns: boolean
+      }
       can_activate_rule_engine: {
         Args: { _user_id?: string }
         Returns: boolean
@@ -43092,6 +43246,8 @@ export type Database = {
               closure_category: string | null
               closure_reason: string | null
               complainant_id: string | null
+              complainant_name: string | null
+              complainant_phone: string | null
               complaint_number: string
               complaint_type_id: string | null
               conduct_risk_category_id: string | null
@@ -43103,6 +43259,7 @@ export type Database = {
               findings: string | null
               id: string
               idempotency_key: string | null
+              incident_date: string | null
               intake_source: string | null
               internal_created_by: string | null
               investigation_notes: string | null
@@ -43110,6 +43267,7 @@ export type Database = {
               license_holder_id: string | null
               licensee_id: string | null
               parent_complaint_id: string | null
+              preferred_contact_method: string | null
               priority: string | null
               product_id: string | null
               regulator_id: string | null
@@ -43161,6 +43319,8 @@ export type Database = {
               closure_category: string | null
               closure_reason: string | null
               complainant_id: string | null
+              complainant_name: string | null
+              complainant_phone: string | null
               complaint_number: string
               complaint_type_id: string | null
               conduct_risk_category_id: string | null
@@ -43172,6 +43332,7 @@ export type Database = {
               findings: string | null
               id: string
               idempotency_key: string | null
+              incident_date: string | null
               intake_source: string | null
               internal_created_by: string | null
               investigation_notes: string | null
@@ -43179,6 +43340,7 @@ export type Database = {
               license_holder_id: string | null
               licensee_id: string | null
               parent_complaint_id: string | null
+              preferred_contact_method: string | null
               priority: string | null
               product_id: string | null
               regulator_id: string | null
@@ -43389,7 +43551,15 @@ export type Database = {
         Returns: number
       }
       returns_can_file: { Args: { _entity_id: string }; Returns: boolean }
+      returns_can_file_obligation: {
+        Args: { _obligation_id: string }
+        Returns: boolean
+      }
       returns_can_prepare: { Args: { _entity_id: string }; Returns: boolean }
+      returns_can_prepare_obligation: {
+        Args: { _obligation_id: string }
+        Returns: boolean
+      }
       returns_can_view_filing_scope: {
         Args: { _entity_id: string }
         Returns: boolean
@@ -43585,6 +43755,14 @@ export type Database = {
       returns_migrate_legacy_filing: {
         Args: { _legacy_id: string }
         Returns: Json
+      }
+      returns_obligation_scope: {
+        Args: { _obligation_id: string }
+        Returns: {
+          entity_id: string
+          sector_id: string
+          sub_sector_id: string
+        }[]
       }
       returns_open_filing: { Args: { _period_id: string }; Returns: Json }
       returns_require: { Args: { _action: string }; Returns: undefined }
@@ -44064,6 +44242,8 @@ export type Database = {
               closure_category: string | null
               closure_reason: string | null
               complainant_id: string | null
+              complainant_name: string | null
+              complainant_phone: string | null
               complaint_number: string
               complaint_type_id: string | null
               conduct_risk_category_id: string | null
@@ -44075,6 +44255,7 @@ export type Database = {
               findings: string | null
               id: string
               idempotency_key: string | null
+              incident_date: string | null
               intake_source: string | null
               internal_created_by: string | null
               investigation_notes: string | null
@@ -44082,6 +44263,7 @@ export type Database = {
               license_holder_id: string | null
               licensee_id: string | null
               parent_complaint_id: string | null
+              preferred_contact_method: string | null
               priority: string | null
               product_id: string | null
               regulator_id: string | null
@@ -44129,6 +44311,8 @@ export type Database = {
               closure_category: string | null
               closure_reason: string | null
               complainant_id: string | null
+              complainant_name: string | null
+              complainant_phone: string | null
               complaint_number: string
               complaint_type_id: string | null
               conduct_risk_category_id: string | null
@@ -44140,6 +44324,7 @@ export type Database = {
               findings: string | null
               id: string
               idempotency_key: string | null
+              incident_date: string | null
               intake_source: string | null
               internal_created_by: string | null
               investigation_notes: string | null
@@ -44147,6 +44332,7 @@ export type Database = {
               license_holder_id: string | null
               licensee_id: string | null
               parent_complaint_id: string | null
+              preferred_contact_method: string | null
               priority: string | null
               product_id: string | null
               regulator_id: string | null
@@ -44563,7 +44749,11 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      support_is_staff: { Args: { _user_id: string }; Returns: boolean }
+      support_has_action: {
+        Args: { _action: string; _uid?: string }
+        Returns: boolean
+      }
+      support_is_staff: { Args: { _user_id?: string }; Returns: boolean }
       thematic_action_extend_due_date: {
         Args: { _action_id: string; _new_due_date: string; _reason: string }
         Returns: undefined
