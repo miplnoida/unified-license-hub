@@ -1,6 +1,6 @@
 -- MC-06 — deterministic conduct pattern & similarity layer (backend contract).
 BEGIN;
-SELECT plan(14);
+SELECT plan(15);
 
 -- 1..4 canonical objects
 SELECT has_table('public', 'conduct_clusters', 'conduct_clusters exists');
