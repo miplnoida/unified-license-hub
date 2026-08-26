@@ -5710,6 +5710,95 @@ export type Database = {
           },
         ]
       }
+      complaint_triage_evaluations: {
+        Row: {
+          complaint_id: string
+          conduct_risk_level: string | null
+          consumer_harm: string | null
+          created_at: string
+          evaluated_at: string
+          evaluated_by: string | null
+          id: string
+          input_snapshot: Json
+          output_snapshot: Json
+          override_reason: string | null
+          priority: string | null
+          rule_id: string | null
+          rule_version: number | null
+          rule_version_id: string | null
+          sla_days: number | null
+          source: string
+          systemic_potential: string | null
+        }
+        Insert: {
+          complaint_id: string
+          conduct_risk_level?: string | null
+          consumer_harm?: string | null
+          created_at?: string
+          evaluated_at?: string
+          evaluated_by?: string | null
+          id?: string
+          input_snapshot?: Json
+          output_snapshot?: Json
+          override_reason?: string | null
+          priority?: string | null
+          rule_id?: string | null
+          rule_version?: number | null
+          rule_version_id?: string | null
+          sla_days?: number | null
+          source: string
+          systemic_potential?: string | null
+        }
+        Update: {
+          complaint_id?: string
+          conduct_risk_level?: string | null
+          consumer_harm?: string | null
+          created_at?: string
+          evaluated_at?: string
+          evaluated_by?: string | null
+          id?: string
+          input_snapshot?: Json
+          output_snapshot?: Json
+          override_reason?: string | null
+          priority?: string | null
+          rule_id?: string | null
+          rule_version?: number | null
+          rule_version_id?: string | null
+          sla_days?: number | null
+          source?: string
+          systemic_potential?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_triage_evaluations_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_triage_evaluations_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_triage_evaluations_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_triage_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_triage_evaluations_rule_version_id_fkey"
+            columns: ["rule_version_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_triage_rule_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_types: {
         Row: {
           created_at: string
@@ -5824,6 +5913,8 @@ export type Database = {
           complaint_number: string
           complaint_type_id: string | null
           conduct_risk_category_id: string | null
+          conduct_risk_level: string | null
+          consumer_harm: string | null
           created_at: string
           customer_type: string | null
           description: string
@@ -5857,9 +5948,16 @@ export type Database = {
           sla_due_at: string | null
           status: string
           subject: string
+          systemic_confirmed_at: string | null
+          systemic_confirmed_by: string | null
+          systemic_potential: string
+          triage_confirmation_status: string | null
+          triage_confirmed_at: string | null
+          triage_confirmed_by: string | null
           triage_evaluated_at: string | null
           triage_last_error: string | null
           triage_original_values: Json | null
+          triage_override_reason: string | null
           triage_override_status: string
           triage_result_snapshot: Json | null
           triage_rule_id: string | null
@@ -5884,6 +5982,8 @@ export type Database = {
           complaint_number?: string
           complaint_type_id?: string | null
           conduct_risk_category_id?: string | null
+          conduct_risk_level?: string | null
+          consumer_harm?: string | null
           created_at?: string
           customer_type?: string | null
           description: string
@@ -5917,9 +6017,16 @@ export type Database = {
           sla_due_at?: string | null
           status?: string
           subject: string
+          systemic_confirmed_at?: string | null
+          systemic_confirmed_by?: string | null
+          systemic_potential?: string
+          triage_confirmation_status?: string | null
+          triage_confirmed_at?: string | null
+          triage_confirmed_by?: string | null
           triage_evaluated_at?: string | null
           triage_last_error?: string | null
           triage_original_values?: Json | null
+          triage_override_reason?: string | null
           triage_override_status?: string
           triage_result_snapshot?: Json | null
           triage_rule_id?: string | null
@@ -5944,6 +6051,8 @@ export type Database = {
           complaint_number?: string
           complaint_type_id?: string | null
           conduct_risk_category_id?: string | null
+          conduct_risk_level?: string | null
+          consumer_harm?: string | null
           created_at?: string
           customer_type?: string | null
           description?: string
@@ -5977,9 +6086,16 @@ export type Database = {
           sla_due_at?: string | null
           status?: string
           subject?: string
+          systemic_confirmed_at?: string | null
+          systemic_confirmed_by?: string | null
+          systemic_potential?: string
+          triage_confirmation_status?: string | null
+          triage_confirmed_at?: string | null
+          triage_confirmed_by?: string | null
           triage_evaluated_at?: string | null
           triage_last_error?: string | null
           triage_original_values?: Json | null
+          triage_override_reason?: string | null
           triage_override_status?: string
           triage_result_snapshot?: Json | null
           triage_rule_id?: string | null
@@ -8493,12 +8609,85 @@ export type Database = {
           },
         ]
       }
+      conduct_triage_rule_versions: {
+        Row: {
+          change_rationale: string | null
+          conditions: Json
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          match_mode: string
+          outputs: Json
+          priority_order: number
+          published_at: string | null
+          published_by: string | null
+          rule_id: string
+          status: string
+          supersedes_id: string | null
+          version: number
+        }
+        Insert: {
+          change_rationale?: string | null
+          conditions: Json
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          match_mode: string
+          outputs: Json
+          priority_order?: number
+          published_at?: string | null
+          published_by?: string | null
+          rule_id: string
+          status?: string
+          supersedes_id?: string | null
+          version: number
+        }
+        Update: {
+          change_rationale?: string | null
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          match_mode?: string
+          outputs?: Json
+          priority_order?: number
+          published_at?: string | null
+          published_by?: string | null
+          rule_id?: string
+          status?: string
+          supersedes_id?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_triage_rule_versions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_triage_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_triage_rule_versions_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_triage_rule_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conduct_triage_rules: {
         Row: {
           active: boolean
           conditions: Json
           created_at: string
           created_by: string | null
+          current_version: number
           description: string | null
           id: string
           match_mode: string
@@ -8514,6 +8703,7 @@ export type Database = {
           conditions?: Json
           created_at?: string
           created_by?: string | null
+          current_version?: number
           description?: string | null
           id?: string
           match_mode?: string
@@ -8529,6 +8719,7 @@ export type Database = {
           conditions?: Json
           created_at?: string
           created_by?: string | null
+          current_version?: number
           description?: string | null
           id?: string
           match_mode?: string
@@ -37926,6 +38117,8 @@ export type Database = {
               complaint_number: string
               complaint_type_id: string | null
               conduct_risk_category_id: string | null
+              conduct_risk_level: string | null
+              consumer_harm: string | null
               created_at: string
               customer_type: string | null
               description: string
@@ -37959,9 +38152,16 @@ export type Database = {
               sla_due_at: string | null
               status: string
               subject: string
+              systemic_confirmed_at: string | null
+              systemic_confirmed_by: string | null
+              systemic_potential: string
+              triage_confirmation_status: string | null
+              triage_confirmed_at: string | null
+              triage_confirmed_by: string | null
               triage_evaluated_at: string | null
               triage_last_error: string | null
               triage_original_values: Json | null
+              triage_override_reason: string | null
               triage_override_status: string
               triage_result_snapshot: Json | null
               triage_rule_id: string | null
@@ -39001,6 +39201,7 @@ export type Database = {
         Returns: Json
       }
       complaint_case: { Args: { _complaint_id: string }; Returns: Json }
+      complaint_harm_to_severity: { Args: { _harm: string }; Returns: string }
       complaint_intake_decide: {
         Args: { _payload: Json; _regulator_id: string; _variant: string }
         Returns: Json
@@ -39009,6 +39210,16 @@ export type Database = {
         Args: { _complaint_id: string; _payload: Json; _variant: string }
         Returns: Json
       }
+      complaint_intake_queue: {
+        Args: {
+          _filters?: Json
+          _page?: number
+          _page_size?: number
+          _search?: string
+        }
+        Returns: Json
+      }
+      complaint_intake_queue_counts: { Args: { _scope?: Json }; Returns: Json }
       complaint_jurisdiction_decide: {
         Args: {
           _complaint_id: string
@@ -39180,6 +39391,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      complaint_severity_to_harm: {
+        Args: { _severity: string }
+        Returns: string
+      }
       complaint_sla_status: {
         Args: {
           _created_at: string
@@ -39201,6 +39416,18 @@ export type Database = {
       }
       complaint_task_set_status: {
         Args: { _status: string; _task_id: string }
+        Returns: Json
+      }
+      complaint_triage_confirm: {
+        Args: {
+          _complaint_id: string
+          _expected_updated_at?: string
+          _payload: Json
+        }
+        Returns: Json
+      }
+      complaint_triage_inputs: {
+        Args: { _complaint_id: string }
         Returns: Json
       }
       complaints_analytics: { Args: { _filters?: Json }; Returns: Json }
@@ -39669,6 +39896,14 @@ export type Database = {
       }
       conduct_supervision_unresolved_risks: {
         Args: { _entity_id?: string; _sector_id?: string }
+        Returns: Json
+      }
+      conduct_triage_rule_publish_version: {
+        Args: {
+          _change_rationale?: string
+          _effective_from?: string
+          _rule_id: string
+        }
         Returns: Json
       }
       conduct_work_queue: {
@@ -42652,6 +42887,8 @@ export type Database = {
           complaint_number: string
           complaint_type_id: string | null
           conduct_risk_category_id: string | null
+          conduct_risk_level: string | null
+          consumer_harm: string | null
           created_at: string
           customer_type: string | null
           description: string
@@ -42685,9 +42922,16 @@ export type Database = {
           sla_due_at: string | null
           status: string
           subject: string
+          systemic_confirmed_at: string | null
+          systemic_confirmed_by: string | null
+          systemic_potential: string
+          triage_confirmation_status: string | null
+          triage_confirmed_at: string | null
+          triage_confirmed_by: string | null
           triage_evaluated_at: string | null
           triage_last_error: string | null
           triage_original_values: Json | null
+          triage_override_reason: string | null
           triage_override_status: string
           triage_result_snapshot: Json | null
           triage_rule_id: string | null
@@ -44797,6 +45041,8 @@ export type Database = {
               complaint_number: string
               complaint_type_id: string | null
               conduct_risk_category_id: string | null
+              conduct_risk_level: string | null
+              consumer_harm: string | null
               created_at: string
               customer_type: string | null
               description: string
@@ -44830,9 +45076,16 @@ export type Database = {
               sla_due_at: string | null
               status: string
               subject: string
+              systemic_confirmed_at: string | null
+              systemic_confirmed_by: string | null
+              systemic_potential: string
+              triage_confirmation_status: string | null
+              triage_confirmed_at: string | null
+              triage_confirmed_by: string | null
               triage_evaluated_at: string | null
               triage_last_error: string | null
               triage_original_values: Json | null
+              triage_override_reason: string | null
               triage_override_status: string
               triage_result_snapshot: Json | null
               triage_rule_id: string | null
@@ -44870,6 +45123,8 @@ export type Database = {
               complaint_number: string
               complaint_type_id: string | null
               conduct_risk_category_id: string | null
+              conduct_risk_level: string | null
+              consumer_harm: string | null
               created_at: string
               customer_type: string | null
               description: string
@@ -44903,9 +45158,16 @@ export type Database = {
               sla_due_at: string | null
               status: string
               subject: string
+              systemic_confirmed_at: string | null
+              systemic_confirmed_by: string | null
+              systemic_potential: string
+              triage_confirmation_status: string | null
+              triage_confirmed_at: string | null
+              triage_confirmed_by: string | null
               triage_evaluated_at: string | null
               triage_last_error: string | null
               triage_original_values: Json | null
+              triage_override_reason: string | null
               triage_override_status: string
               triage_result_snapshot: Json | null
               triage_rule_id: string | null
@@ -45823,6 +46085,8 @@ export type Database = {
               complaint_number: string
               complaint_type_id: string | null
               conduct_risk_category_id: string | null
+              conduct_risk_level: string | null
+              consumer_harm: string | null
               created_at: string
               customer_type: string | null
               description: string
@@ -45856,9 +46120,16 @@ export type Database = {
               sla_due_at: string | null
               status: string
               subject: string
+              systemic_confirmed_at: string | null
+              systemic_confirmed_by: string | null
+              systemic_potential: string
+              triage_confirmation_status: string | null
+              triage_confirmed_at: string | null
+              triage_confirmed_by: string | null
               triage_evaluated_at: string | null
               triage_last_error: string | null
               triage_original_values: Json | null
+              triage_override_reason: string | null
               triage_override_status: string
               triage_result_snapshot: Json | null
               triage_rule_id: string | null
@@ -45892,6 +46163,8 @@ export type Database = {
               complaint_number: string
               complaint_type_id: string | null
               conduct_risk_category_id: string | null
+              conduct_risk_level: string | null
+              consumer_harm: string | null
               created_at: string
               customer_type: string | null
               description: string
@@ -45925,9 +46198,16 @@ export type Database = {
               sla_due_at: string | null
               status: string
               subject: string
+              systemic_confirmed_at: string | null
+              systemic_confirmed_by: string | null
+              systemic_potential: string
+              triage_confirmation_status: string | null
+              triage_confirmed_at: string | null
+              triage_confirmed_by: string | null
               triage_evaluated_at: string | null
               triage_last_error: string | null
               triage_original_values: Json | null
+              triage_override_reason: string | null
               triage_override_status: string
               triage_result_snapshot: Json | null
               triage_rule_id: string | null
