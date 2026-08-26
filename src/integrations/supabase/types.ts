@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -8196,6 +8196,7 @@ export type Database = {
           investigation_id: string | null
           metadata: Json
           restricted: boolean
+          signal_id: string | null
           source: string | null
           thematic_review_id: string | null
           title: string
@@ -8219,6 +8220,7 @@ export type Database = {
           investigation_id?: string | null
           metadata?: Json
           restricted?: boolean
+          signal_id?: string | null
           source?: string | null
           thematic_review_id?: string | null
           title: string
@@ -8242,6 +8244,7 @@ export type Database = {
           investigation_id?: string | null
           metadata?: Json
           restricted?: boolean
+          signal_id?: string | null
           source?: string | null
           thematic_review_id?: string | null
           title?: string
@@ -8269,6 +8272,13 @@ export type Database = {
             columns: ["investigation_id"]
             isOneToOne: false
             referencedRelation: "v_conduct_investigation_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_evidence_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_signals"
             referencedColumns: ["id"]
           },
         ]
@@ -9669,6 +9679,51 @@ export type Database = {
         }
         Relationships: []
       }
+      conduct_signal_alert_links: {
+        Row: {
+          alert_id: string
+          created_at: string
+          id: string
+          link_type: string
+          linked_by: string | null
+          rationale: string | null
+          signal_id: string
+        }
+        Insert: {
+          alert_id: string
+          created_at?: string
+          id?: string
+          link_type?: string
+          linked_by?: string | null
+          rationale?: string | null
+          signal_id: string
+        }
+        Update: {
+          alert_id?: string
+          created_at?: string
+          id?: string
+          link_type?: string
+          linked_by?: string | null
+          rationale?: string | null
+          signal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_signal_alert_links_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_signal_alert_links_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conduct_signal_events: {
         Row: {
           actor_id: string | null
@@ -9747,6 +9802,255 @@ export type Database = {
             columns: ["signal_id"]
             isOneToOne: false
             referencedRelation: "conduct_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_signal_history: {
+        Row: {
+          action_code: string
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          from_status: string | null
+          id: string
+          reason: string | null
+          signal_id: string
+          to_status: string | null
+        }
+        Insert: {
+          action_code: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          from_status?: string | null
+          id?: string
+          reason?: string | null
+          signal_id: string
+          to_status?: string | null
+        }
+        Update: {
+          action_code?: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          from_status?: string | null
+          id?: string
+          reason?: string | null
+          signal_id?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_signal_history_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_signal_sources: {
+        Row: {
+          created_at: string
+          id: string
+          linked_by: string | null
+          note: string | null
+          signal_id: string
+          source_id: string | null
+          source_reference: string | null
+          source_table: string | null
+          source_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          linked_by?: string | null
+          note?: string | null
+          signal_id: string
+          source_id?: string | null
+          source_reference?: string | null
+          source_table?: string | null
+          source_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          linked_by?: string | null
+          note?: string | null
+          signal_id?: string
+          source_id?: string | null
+          source_reference?: string | null
+          source_table?: string | null
+          source_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_signal_sources_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_signals: {
+        Row: {
+          assigned_at: string | null
+          channel_id: string | null
+          closed_at: string | null
+          conduct_risk_category_id: string | null
+          created_at: string
+          created_by: string | null
+          dismissed_at: string | null
+          dismissed_by: string | null
+          disposition: string | null
+          disposition_reason: string | null
+          escalated_alert_id: string | null
+          escalated_at: string | null
+          escalated_by: string | null
+          id: string
+          licensee_id: string | null
+          metadata: Json
+          owner_id: string | null
+          product_id: string | null
+          rationale: string | null
+          reference: string
+          regulator_id: string | null
+          reopened_at: string | null
+          risk_score: number | null
+          sector_id: string | null
+          severity: string
+          signal_category: string | null
+          source_type: string
+          status: string
+          summary: string | null
+          systemic_potential: string
+          title: string
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          channel_id?: string | null
+          closed_at?: string | null
+          conduct_risk_category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          disposition?: string | null
+          disposition_reason?: string | null
+          escalated_alert_id?: string | null
+          escalated_at?: string | null
+          escalated_by?: string | null
+          id?: string
+          licensee_id?: string | null
+          metadata?: Json
+          owner_id?: string | null
+          product_id?: string | null
+          rationale?: string | null
+          reference: string
+          regulator_id?: string | null
+          reopened_at?: string | null
+          risk_score?: number | null
+          sector_id?: string | null
+          severity?: string
+          signal_category?: string | null
+          source_type: string
+          status?: string
+          summary?: string | null
+          systemic_potential?: string
+          title: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          channel_id?: string | null
+          closed_at?: string | null
+          conduct_risk_category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          dismissed_at?: string | null
+          dismissed_by?: string | null
+          disposition?: string | null
+          disposition_reason?: string | null
+          escalated_alert_id?: string | null
+          escalated_at?: string | null
+          escalated_by?: string | null
+          id?: string
+          licensee_id?: string | null
+          metadata?: Json
+          owner_id?: string | null
+          product_id?: string | null
+          rationale?: string | null
+          reference?: string
+          regulator_id?: string | null
+          reopened_at?: string | null
+          risk_score?: number | null
+          sector_id?: string | null
+          severity?: string
+          signal_category?: string | null
+          source_type?: string
+          status?: string
+          summary?: string | null
+          systemic_potential?: string
+          title?: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_signals_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_signals_conduct_risk_category_id_fkey"
+            columns: ["conduct_risk_category_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_risk_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_signals_escalated_alert_id_fkey"
+            columns: ["escalated_alert_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_signals_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_signals_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "conduct_signals_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_signals_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
             referencedColumns: ["id"]
           },
         ]
@@ -41422,6 +41726,164 @@ export type Database = {
       conduct_require: {
         Args: { _action: string; _module: string }
         Returns: string
+      }
+      conduct_signal_assign: {
+        Args: { _note?: string; _owner_id: string; _signal_id: string }
+        Returns: Json
+      }
+      conduct_signal_case: { Args: { _signal_id: string }; Returns: Json }
+      conduct_signal_create: { Args: { _payload: Json }; Returns: Json }
+      conduct_signal_dismiss: {
+        Args: { _reason: string; _signal_id: string }
+        Returns: Json
+      }
+      conduct_signal_escalate_to_alert: {
+        Args: { _rationale: string; _severity?: string; _signal_id: string }
+        Returns: Json
+      }
+      conduct_signal_guard: {
+        Args: { _actions: string[]; _signal_id: string }
+        Returns: {
+          assigned_at: string | null
+          channel_id: string | null
+          closed_at: string | null
+          conduct_risk_category_id: string | null
+          created_at: string
+          created_by: string | null
+          dismissed_at: string | null
+          dismissed_by: string | null
+          disposition: string | null
+          disposition_reason: string | null
+          escalated_alert_id: string | null
+          escalated_at: string | null
+          escalated_by: string | null
+          id: string
+          licensee_id: string | null
+          metadata: Json
+          owner_id: string | null
+          product_id: string | null
+          rationale: string | null
+          reference: string
+          regulator_id: string | null
+          reopened_at: string | null
+          risk_score: number | null
+          sector_id: string | null
+          severity: string
+          signal_category: string | null
+          source_type: string
+          status: string
+          summary: string | null
+          systemic_potential: string
+          title: string
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "conduct_signals"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      conduct_signal_link_alert: {
+        Args: {
+          _alert_id: string
+          _link_type?: string
+          _rationale: string
+          _signal_id: string
+        }
+        Returns: Json
+      }
+      conduct_signal_link_evidence: {
+        Args: { _evidence_id: string; _note?: string; _signal_id: string }
+        Returns: Json
+      }
+      conduct_signal_link_source: {
+        Args: {
+          _note?: string
+          _signal_id: string
+          _source_id: string
+          _source_reference?: string
+          _source_table?: string
+          _source_type: string
+        }
+        Returns: Json
+      }
+      conduct_signal_log: {
+        Args: {
+          _action_code: string
+          _actor: string
+          _detail: Json
+          _from: string
+          _reason: string
+          _signal_id: string
+          _to: string
+        }
+        Returns: undefined
+      }
+      conduct_signal_next_reference: { Args: never; Returns: string }
+      conduct_signal_register: {
+        Args: {
+          _entity_id?: string
+          _include_disposed?: boolean
+          _limit?: number
+          _offset?: number
+          _owner_id?: string
+          _search?: string
+          _severities?: string[]
+          _source_types?: string[]
+          _statuses?: string[]
+        }
+        Returns: {
+          alert_links: number
+          canonical_href: string
+          channel_name: string
+          created_at: string
+          dismissed_at: string
+          disposition: string
+          disposition_reason: string
+          entity_id: string
+          entity_name: string
+          escalated_alert_id: string
+          escalated_at: string
+          evidence_count: number
+          id: string
+          last_activity_at: string
+          owner_id: string
+          owner_name: string
+          product_name: string
+          rationale: string
+          reference: string
+          risk_category_name: string
+          risk_score: number
+          sector_id: string
+          severity: string
+          signal_category: string
+          source_links: number
+          source_type: string
+          status: string
+          summary: string
+          systemic_potential: string
+          title: string
+          total_count: number
+          validated_at: string
+        }[]
+      }
+      conduct_signal_reopen: {
+        Args: { _reason: string; _signal_id: string }
+        Returns: Json
+      }
+      conduct_signal_require: { Args: { _actions: string[] }; Returns: string }
+      conduct_signal_validate: {
+        Args: {
+          _rationale: string
+          _risk_score?: number
+          _severity?: string
+          _signal_id: string
+          _systemic_potential?: string
+        }
+        Returns: Json
       }
       conduct_supervision_learning: { Args: { _limit?: number }; Returns: Json }
       conduct_supervision_log_export: {
