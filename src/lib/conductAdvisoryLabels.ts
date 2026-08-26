@@ -43,17 +43,33 @@ export const PLAN_ADVISORY_USE_CASES = [
   'INTERVENTION_OPTIONS',
 ] as const;
 
+/** Advisory types for supervisory management reporting (MC-11). */
+export const REPORTING_ADVISORY_USE_CASES = [
+  'MANAGEMENT_SUMMARY_DRAFT',
+  'MATERIAL_MOVEMENT_EXPLANATION',
+  'RISK_REPORTING_NARRATIVE',
+  'COVERAGE_COMMENTARY',
+] as const;
+
+/** Advisory type available on a single evidence pack (MC-11). */
+export const EVIDENCE_PACK_ADVISORY_USE_CASES = ['EVIDENCE_PACK_SUMMARY'] as const;
+
 export type EntityAdvisoryUseCase = (typeof ADVISORY_USE_CASES)[number];
 export type ThemeAdvisoryUseCase = (typeof THEME_ADVISORY_USE_CASES)[number];
 export type EmergingRiskAdvisoryUseCase = (typeof EMERGING_RISK_ADVISORY_USE_CASES)[number];
 export type PlanningAdvisoryUseCase =
   | (typeof ATTENTION_ADVISORY_USE_CASES)[number]
   | (typeof PLAN_ADVISORY_USE_CASES)[number];
+export type ReportingAdvisoryUseCase =
+  | (typeof REPORTING_ADVISORY_USE_CASES)[number]
+  | (typeof EVIDENCE_PACK_ADVISORY_USE_CASES)[number];
 export type AdvisoryUseCase =
   | EntityAdvisoryUseCase
   | ThemeAdvisoryUseCase
   | EmergingRiskAdvisoryUseCase
-  | PlanningAdvisoryUseCase;
+  | PlanningAdvisoryUseCase
+  | ReportingAdvisoryUseCase;
+
 
 
 interface UseCaseMeta {
@@ -144,7 +160,33 @@ export const USE_CASE_META: Record<AdvisoryUseCase, UseCaseMeta> = {
     purpose: 'Matters a supervisor may want to weigh when reassessing whether the concern is resolved.',
     caveat: 'Considerations only. It closes nothing and resolves no concern.',
   },
+  MANAGEMENT_SUMMARY_DRAFT: {
+    label: 'Draft management summary',
+    purpose: 'Draft summary wording for the reporting period, written only from the published measures.',
+    caveat: 'Drafting help only. Every figure comes from the published measures; the summary itself is not management information until a supervisor adopts it.',
+  },
+  MATERIAL_MOVEMENT_EXPLANATION: {
+    label: 'Movement explanation',
+    purpose: 'Describes where the period-on-period movements sit in the recorded measures.',
+    caveat: 'Describes movement in published measures. It does not establish cause and does not declare a movement material.',
+  },
+  RISK_REPORTING_NARRATIVE: {
+    label: 'Risk reporting narrative',
+    purpose: 'Draft narrative on recorded emerging risks and the supervisory response already logged against them.',
+    caveat: 'Narrative on recorded risks only. It sets no severity, systemic assessment or supervisory position.',
+  },
+  COVERAGE_COMMENTARY: {
+    label: 'Coverage commentary',
+    purpose: 'Draft commentary on where recorded supervisory activity is concentrated and where it is absent.',
+    caveat: 'Absence of recorded activity is not evidence of low risk, and this commentary never treats it as such.',
+  },
+  EVIDENCE_PACK_SUMMARY: {
+    label: 'Evidence pack summary',
+    purpose: 'Draft plain-language summary of one immutable evidence pack version.',
+    caveat: 'Summary of the pack contents only. The pack version itself remains the evidence; this wording does not.',
+  },
 };
+
 
 
 
@@ -238,6 +280,12 @@ const SECTION_LABELS: Record<string, string> = {
   movement: 'Movement measure',
   emerging_risk: 'Emerging conduct risk',
   theme: 'Conduct theme',
+  measure: 'Published measure',
+  pack: 'Evidence pack',
+  coverage: 'Coverage measure',
+  risk: 'Emerging conduct risk',
+  intervention: 'Supervisory intervention',
+
 };
 
 

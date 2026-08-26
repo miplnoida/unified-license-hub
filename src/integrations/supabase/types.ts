@@ -45689,6 +45689,10 @@ export type Database = {
         }
         Returns: string
       }
+      conduct_reporting_ai_refresh_staleness: {
+        Args: { _insight_id: string }
+        Returns: Json
+      }
       conduct_reporting_narrative_adopt: {
         Args: {
           _insight_id: string
