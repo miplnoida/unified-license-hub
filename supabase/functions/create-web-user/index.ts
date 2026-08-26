@@ -129,10 +129,17 @@ Deno.serve(async (req) => {
 
     // Update profile with additional fields
     if (userData.user) {
+      const isEntityWebUser = (user_type === 'primary' || user_type === 'secondary') && !!licensee_id;
+
       const updates: Record<string, any> = { force_password_change: true };
       if (primaryRoleId) updates.role_id = primaryRoleId;
       if (gender) updates.gender = gender;
       if (licensee_id) updates.licensee_id = licensee_id;
+      // Entity web users must carry their portal role on the profile row; the
+      // signup trigger's safe default would otherwise label them "applicant".
+      if (isEntityWebUser) {
+        updates.role = user_type === 'primary' ? 'licensee_primary' : 'licensee_secondary';
+      }
 
       const { error: updateError } = await supabaseAdmin
         .from("profiles")
@@ -142,6 +149,62 @@ Deno.serve(async (req) => {
       if (updateError) {
         console.error("Failed to update profile:", updateError.message);
       }
+
+      // Provision the entity link. Returns/portal server-side rules read
+      // `entity_user_memberships` (capabilities) and `entity_user_access`
+      // (read access) — without these rows the user can sign in but cannot
+      // see or file anything for the entity.
+      if (isEntityWebUser) {
+        try {
+          const membershipRoleKey = user_type === 'primary' ? 'PRIMARY_REPRESENTATIVE' : 'FILING_USER';
+          const { data: membershipRole } = await supabaseAdmin
+            .from('entity_membership_roles')
+            .select('id')
+            .eq('key', membershipRoleKey)
+            .maybeSingle();
+
+          const nowIso = new Date().toISOString();
+
+          if ((membershipRole as any)?.id) {
+            const { error: membershipError } = await supabaseAdmin
+              .from('entity_user_memberships')
+              .insert({
+                user_id: userData.user.id,
+                entity_id: licensee_id,
+                membership_role_id: (membershipRole as any).id,
+                status: 'APPROVED',
+                requested_at: nowIso,
+                verified_at: nowIso,
+                approved_at: nowIso,
+                effective_from: nowIso,
+                authority_evidence_reference: 'Admin-provisioned entity web user',
+              });
+            if (membershipError) throw membershipError;
+          } else {
+            throw new Error(`Entity membership role ${membershipRoleKey} not configured`);
+          }
+
+          const { error: accessError } = await supabaseAdmin
+            .from('entity_user_access')
+            .insert({
+              user_id: userData.user.id,
+              entity_id: licensee_id,
+              access_type: user_type === 'primary' ? 'primary_user' : 'secondary_contact',
+              is_active: true,
+            });
+          if (accessError) throw accessError;
+        } catch (linkErr: any) {
+          console.error('Failed to provision entity membership/access:', linkErr?.message || linkErr);
+          return new Response(JSON.stringify({
+            error: `Account created but entity access could not be provisioned: ${linkErr?.message || 'unknown error'}. Please contact support.`,
+            user: userData.user,
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
 
       // Belt-and-braces: for internal employees, strip any auto-seeded
       // Applicant dynamic role that legacy triggers may have added, so the
