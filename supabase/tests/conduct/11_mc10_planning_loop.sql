@@ -82,7 +82,7 @@ BEGIN
   SELECT id INTO _analyst FROM public.profiles WHERE email = 'conduct_analyst@mishainfotech.com';
   SELECT id INTO _auditor FROM public.profiles WHERE email = 'auditor@mishainfotech.com';
 
-  SELECT l.sector_id, l.id, max(c.regulator_id) INTO _sector, _entity, _reg
+  SELECT l.sector_id, l.id, (array_agg(c.regulator_id))[1] INTO _sector, _entity, _reg
     FROM public.complaints c JOIN public.licensees l ON l.id = c.licensee_id
    WHERE l.sector_id IS NOT NULL
    GROUP BY l.sector_id, l.id
