@@ -183,17 +183,17 @@ async function main() {
   const insight = fresh.body?.[0] ?? any.body?.[0];
   const alreadyReviewed = !fresh.body?.[0] && !!insight;
   if (insight) {
-    const outReview = await rpc(OUTSIDER, 'ai_insight_review', {
-      _insight_id: insight.id, _action: 'ACCEPTED', _justification: 'unauthorized attempt',
+    const outReview = await rpc(OUTSIDER, 'conduct_ai_insight_review', {
+      _insight_id: insight.id, _action: 'accept', _rationale: 'unauthorized attempt',
     });
     record('J unauthorized identity cannot review an advisory', denied(outReview), `HTTP ${outReview.status}`);
-    const audReview = await rpc(AUDITOR, 'ai_insight_review', {
-      _insight_id: insight.id, _action: 'ACCEPTED', _justification: 'auditor attempt',
+    const audReview = await rpc(AUDITOR, 'conduct_ai_insight_review', {
+      _insight_id: insight.id, _action: 'accept', _rationale: 'auditor attempt',
     });
     record('J read-only authority cannot record a review decision', denied(audReview), `HTTP ${audReview.status}`);
-    const doReview = await rpc(SUPERVISOR, 'ai_insight_review', {
-      _insight_id: insight.id, _action: 'ACCEPTED',
-      _justification: 'MC-09 closure gate: reviewed and accepted as advisory input only.',
+    const doReview = await rpc(SUPERVISOR, 'conduct_ai_insight_review', {
+      _insight_id: insight.id, _action: 'accept',
+      _rationale: 'MC-09 closure gate: reviewed and accepted as advisory input only.',
     });
     const after = await sel(ADMIN, `conduct_ai_insights?select=review_state,reviewed_by,reviewed_at,human_rationale&id=eq.${insight.id}`);
     const row = after.body?.[0] ?? {};
