@@ -83,7 +83,7 @@ export function ReportingAdvisoryPanel({ scope, useCases, canOperate, pack = nul
         packId: pack?.id ?? null,
         packVersion: pack?.version ?? null,
       });
-      if (!result.ok) setFailure({ message: result.message, detail: result.detail ?? null });
+      if (result.ok === false) setFailure({ message: result.message, detail: result.detail ?? null });
       else toast.success(`${USE_CASE_META[code].label} drafted — awaiting your review.`);
     } catch {
       setFailure({
