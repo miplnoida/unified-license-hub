@@ -300,10 +300,10 @@ function ContributingRecords({ members }: { members: PatternMember[] }) {
       const key = m.member_type ?? 'other';
       map.set(key, [...(map.get(key) ?? []), m]);
     });
-    return [...map.entries()].sort(
-      (a, b) => (MEMBER_ORDER.indexOf(a[0]) + 99) % 99 - (MEMBER_ORDER.indexOf(b[0]) + 99) % 99,
-    );
+    const rank = (k: string) => (MEMBER_ORDER.indexOf(k) === -1 ? 99 : MEMBER_ORDER.indexOf(k));
+    return [...map.entries()].sort((a, b) => rank(a[0]) - rank(b[0]));
   }, [members]);
+
 
   if (members.length === 0) {
     return (

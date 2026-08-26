@@ -105,6 +105,9 @@ const SupervisionLoop = lazy(() => import('@/pages/conduct/SupervisionLoop'));
 const SurveillanceWorkspace = lazy(() => import('@/pages/conduct/SurveillanceWorkspace'));
 const ConductSignals = lazy(() => import('@/pages/conduct/ConductSignals'));
 const ConductSignalDetail = lazy(() => import('@/pages/conduct/ConductSignalDetail'));
+const ConductPatterns = lazy(() => import('@/pages/conduct/ConductPatterns'));
+const ConductPatternDetail = lazy(() => import('@/pages/conduct/ConductPatternDetail'));
+
 
 const NewInternalComplaint = lazy(() => import('@/pages/complaints/NewInternalComplaint'));
 const PrudentialDashboard = lazy(() => import('@/pages/prudential/PrudentialDashboard'));
