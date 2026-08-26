@@ -100,15 +100,39 @@ export interface AttentionRegister {
 
 export interface CoverageGap { id: string; reference: string; title?: string | null }
 
-export interface PlanningCoverage {
-  high_priority_without_plan: CoverageGap[];
+export interface PlanningCoverageGaps {
+  high_priority_without_plan: Array<CoverageGap & { priority?: string | null }>;
+  plans_awaiting_approval: Array<CoverageGap & { submitted_at?: string | null }>;
   approved_plan_without_intervention: CoverageGap[];
   overdue_intervention: Array<CoverageGap & { planned_end?: string | null }>;
   completed_without_outcome: CoverageGap[];
   outstanding_followup: Array<CoverageGap & { followup_due?: string | null }>;
+  followup_overdue: Array<CoverageGap & { followup_due?: string | null }>;
+  followup_done_awaiting_reassessment: CoverageGap[];
   confirmed_risk_without_response: CoverageGap[];
-  [key: string]: unknown;
+  reassessment_overdue: Array<CoverageGap & { target_review_date?: string | null }>;
 }
+
+export interface PlanningCoverageOverview {
+  attention_by_priority: Record<string, number>;
+  attention_open: number;
+  plans_awaiting_approval: number;
+  active_plans: number;
+  active_interventions: number;
+  completed_interventions: number;
+  entities_covered: number;
+  sectors_covered: number;
+  upcoming_milestones: Array<{ plan_id: string; plan_reference: string; title: string; due_date: string | null }>;
+}
+
+export interface PlanningCoverage {
+  sectors_in_view: string[] | 'all';
+  overview: PlanningCoverageOverview;
+  gaps: PlanningCoverageGaps;
+  caveat: string;
+  method: string;
+}
+
 
 export interface AttentionCase {
   attention: Record<string, unknown> & AttentionRow & {
