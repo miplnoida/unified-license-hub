@@ -163,39 +163,20 @@ export function ComplaintCurrentStepPanel({ complaintId, status, licenseeId, onO
 
   return (
     <div className="space-y-4">
-      <Card className="border-primary/30">
-        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 pb-3">
-          <div>
-            <CardTitle className="text-base">Where this case stands</CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              Case status and workflow step are separate: the status describes the complaint, the step describes where
-              it sits in the Complaint Management Workflow.
-            </p>
-          </div>
-          {progress.total > 0 && (
-            <Badge variant="outline">Step {progress.index || '—'} of {progress.total}</Badge>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-md border p-3">
-              <p className="text-xs text-muted-foreground">Case status</p>
-              <Badge variant={complaintStatusVariant(status)} className="mt-1">{complaintStatusLabel(status)}</Badge>
-            </div>
-            <div className="rounded-md border p-3">
-              <p className="text-xs text-muted-foreground">Current workflow step</p>
-              <p className="text-sm font-medium mt-1">{tracking?.current_step_label || 'Not started'}</p>
-              {(tracking?.assigned_user_name || tracking?.assigned_role) && (
-                <p className="text-xs text-muted-foreground">
-                  With {tracking?.assigned_user_name || tracking?.assigned_role}
-                </p>
-              )}
-            </div>
-          </div>
+      {/* Canonical, read-only Market Conduct phase. Progression is driven by the
+          business decision recorded in the owning workspace, never from here. */}
+      <ComplaintPhasePanel complaintId={complaintId} onOpenSection={onOpenSection} />
 
-          {task && (
-            <div className="rounded-md border border-primary/40 bg-primary/5 p-3 text-sm font-medium">{task}</div>
-          )}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Case status</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Case status describes the complaint itself; the phase above describes where it sits in the Market Conduct
+            complaint workflow.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Badge variant={complaintStatusVariant(status)}>{complaintStatusLabel(status)}</Badge>
 
           {waiting && (
             <div className="rounded-md border border-warning/30 bg-warning/10 p-3">
@@ -205,12 +186,9 @@ export function ComplaintCurrentStepPanel({ complaintId, status, licenseeId, onO
               {waiting.detail && <p className="text-xs text-muted-foreground mt-1">{waiting.detail}</p>}
             </div>
           )}
-
-          {tracking?.due_at && (
-            <p className="text-xs text-muted-foreground">Step due {formatDateOnly(tracking.due_at)}</p>
-          )}
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader className="pb-3">
