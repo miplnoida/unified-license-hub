@@ -467,17 +467,21 @@ export default function WorkflowList() {
 
     if (depCount > 0) {
       const res = await Swal.fire({
-        title: 'Cannot delete — workflow is in use',
-        html: `<p>"<strong>${wf.name}</strong>" has <strong>${depCount}</strong> active or historical workflow instance${depCount === 1 ? '' : 's'} depending on it.</p><p style="margin-top:8px">Deactivate it instead — it stops being used for new submissions but history is preserved.</p>`,
+        title: 'Cannot delete — workflow has case history',
+        html: `<p>"<strong>${wf.name}</strong>" has <strong>${depCount}</strong> active or historical case${depCount === 1 ? '' : 's'} recorded against it.</p><p style="margin-top:8px">Retire it instead. Retirement stops it being used for new cases while preserving the definition, every version, all steps and the full case history.</p>`,
         icon: 'warning',
+        input: 'textarea',
+        inputLabel: 'Reason for retirement',
+        inputPlaceholder: 'Why is this workflow being retired?',
+        inputValidator: value => (value && value.trim().length >= 10 ? undefined : 'Record a reason of at least 10 characters'),
         showCancelButton: true,
-        confirmButtonText: wf.is_active ? 'Deactivate' : 'Keep',
+        confirmButtonText: 'Retire workflow',
         cancelButtonText: 'Cancel',
       });
-      if (res.isConfirmed && wf.is_active) {
+      if (res.isConfirmed && typeof res.value === 'string') {
         try {
-          await updateWorkflow.mutateAsync({ id: wf.id, is_active: false } as any);
-          toast.success('Workflow deactivated');
+          await retireWorkflow.mutateAsync({ id: wf.id, reason: res.value.trim() });
+          toast.success('Workflow retired — history preserved');
         } catch (err: any) { toast.error(err.message); }
       }
       return;
@@ -485,7 +489,7 @@ export default function WorkflowList() {
 
     const res = await Swal.fire({
       title: 'Delete workflow?',
-      text: `"${wf.name}" and all its steps will be permanently removed.`,
+      text: `"${wf.name}" and all its steps will be permanently removed. The server will refuse if any case history exists.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete',
@@ -500,6 +504,7 @@ export default function WorkflowList() {
       toast.error(err.message);
     }
   };
+
 
   const handleToggleActive = async (wf: Workflow) => {
     // Turning OFF: warn if it has live instances, but allow.
