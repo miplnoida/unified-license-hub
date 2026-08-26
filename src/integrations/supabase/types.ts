@@ -12107,6 +12107,78 @@ export type Database = {
           },
         ]
       }
+      conduct_reporting_adopted_narratives: {
+        Row: {
+          adopted_at: string
+          adopted_by: string
+          adopted_text: Json
+          adoption_rationale: string
+          conduct_ai_insight_id: string
+          facts_signature: string
+          id: string
+          pack_id: string | null
+          pack_version: number | null
+          period_end: string
+          period_start: string
+          regulator_id: string | null
+          review_state: string
+          section: string
+          sector_id: string | null
+          use_case_code: string
+        }
+        Insert: {
+          adopted_at?: string
+          adopted_by: string
+          adopted_text: Json
+          adoption_rationale: string
+          conduct_ai_insight_id: string
+          facts_signature: string
+          id?: string
+          pack_id?: string | null
+          pack_version?: number | null
+          period_end: string
+          period_start: string
+          regulator_id?: string | null
+          review_state: string
+          section: string
+          sector_id?: string | null
+          use_case_code: string
+        }
+        Update: {
+          adopted_at?: string
+          adopted_by?: string
+          adopted_text?: Json
+          adoption_rationale?: string
+          conduct_ai_insight_id?: string
+          facts_signature?: string
+          id?: string
+          pack_id?: string | null
+          pack_version?: number | null
+          period_end?: string
+          period_start?: string
+          regulator_id?: string | null
+          review_state?: string
+          section?: string
+          sector_id?: string | null
+          use_case_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_reporting_adopted_narratives_conduct_ai_insight_id_fkey"
+            columns: ["conduct_ai_insight_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_ai_insights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_reporting_adopted_narratives_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_evidence_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conduct_risk_categories: {
         Row: {
           active: boolean
@@ -45319,6 +45391,25 @@ export type Database = {
         }
         Returns: Json
       }
+      conduct_mi_entity_coverage: {
+        Args: {
+          _limit?: number
+          _period_end?: string
+          _period_start?: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
+        Returns: Json
+      }
+      conduct_mi_outcome_reporting: {
+        Args: {
+          _period_end?: string
+          _period_start?: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
+        Returns: Json
+      }
       conduct_mi_period_compare: {
         Args: {
           _period_end: string
@@ -45346,8 +45437,26 @@ export type Database = {
           title: string
         }[]
       }
+      conduct_mi_risk_reporting: {
+        Args: {
+          _period_end?: string
+          _period_start?: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
+        Returns: Json
+      }
       conduct_mi_scope_header: {
         Args: { _period_end: string; _period_start: string; _sectors: string[] }
+        Returns: Json
+      }
+      conduct_mi_sector_coverage: {
+        Args: {
+          _period_end?: string
+          _period_start?: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
         Returns: Json
       }
       conduct_monitoring_directive_upsert: {
@@ -45541,6 +45650,63 @@ export type Database = {
       }
       conduct_related_cases: {
         Args: { _case_id: string; _case_type: string }
+        Returns: Json
+      }
+      conduct_reporting_ai_context: {
+        Args: {
+          _pack_id?: string
+          _pack_version?: number
+          _period_end?: string
+          _period_start?: string
+          _regulator_id?: string
+          _sector_id?: string
+          _use_case_code: string
+        }
+        Returns: Json
+      }
+      conduct_reporting_ai_insight_record: {
+        Args: {
+          _ai_output: Json
+          _confidence: number
+          _generated_by: string
+          _limitations: string[]
+          _model: string
+          _model_version: string
+          _pack_id?: string
+          _pack_version?: number
+          _prompt_template_version: string
+          _provider: string
+          _regulator_id: string
+          _sector_id: string
+          _snapshot_fingerprint: string
+          _source_references: Json
+          _subject_key: string
+          _title?: string
+          _uncertainty: string
+          _use_case_code: string
+          _window_end: string
+          _window_start: string
+        }
+        Returns: string
+      }
+      conduct_reporting_narrative_adopt: {
+        Args: {
+          _insight_id: string
+          _pack_id?: string
+          _pack_version?: number
+          _rationale: string
+          _section: string
+        }
+        Returns: string
+      }
+      conduct_reporting_narratives_list: {
+        Args: {
+          _limit?: number
+          _period_end?: string
+          _period_start?: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
         Returns: Json
       }
       conduct_require: {
