@@ -238,12 +238,6 @@ export function ComplaintCurrentStepPanel({ complaintId, status, licenseeId, onO
         </CardContent>
       </Card>
 
-      <WorkflowActionPanel
-        complaintId={complaintId}
-        currentStepLabel={tracking?.current_step_label ?? null}
-        steps={(tracking?.steps ?? []).map(s => ({ step_key: s.step_key, label: s.label }))}
-        instanceUpdatedAt={tracking?.instance_updated_at ?? null}
-      />
     </div>
   );
 }
