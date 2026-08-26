@@ -72,29 +72,44 @@ const fmt = (v?: string | null) => {
 interface Props {
   /** Reference from the URL. When absent, only the lookup form is shown. */
   reference?: string;
-  /** Contact email used for verification — taken from the session when signed in. */
+  /** Contact email used for legacy verification — taken from the session when signed in. */
   email?: string;
+  /** Tracking access code issued when the complaint was lodged (primary public credential). */
+  accessCode?: string;
   /** Hide the email input (signed-in users don't need to retype it). */
   hideEmailField?: boolean;
   /**
    * Unauthenticated mode: look the complaint up through the public intake edge
-   * function using reference + the email on file, instead of the signed-in RPC.
+   * function using the reference plus a tracking access code, or — for older
+   * complaints — the email address on file.
    */
   publicMode?: boolean;
   /** Called when the user submits the lookup form. */
-  onLookup: (reference: string, email: string) => void;
+  onLookup: (reference: string, email: string, accessCode?: string) => void;
 }
 
 const PUBLIC_FN_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/public-complaint-intake`;
 
-export function ComplaintTrackingView({ reference, email = '', hideEmailField = false, publicMode = false, onLookup }: Props) {
+export function ComplaintTrackingView({
+  reference,
+  email = '',
+  accessCode = '',
+  hideEmailField = false,
+  publicMode = false,
+  onLookup,
+}: Props) {
   const [refInput, setRefInput] = useState(reference ?? '');
   const [emailInput, setEmailInput] = useState(email);
+  const [codeInput, setCodeInput] = useState(accessCode);
+  const [useLegacyEmail, setUseLegacyEmail] = useState(!!email && !accessCode);
   const [showLookup, setShowLookup] = useState(false);
 
   const q = useQuery({
-    queryKey: ['complaint-tracking', publicMode, reference, email],
-    enabled: !!reference && reference.trim().length >= 4 && (!publicMode || !!email.trim()),
+    queryKey: ['complaint-tracking', publicMode, reference, email, accessCode],
+    enabled:
+      !!reference &&
+      reference.trim().length >= 4 &&
+      (!publicMode || !!email.trim() || !!accessCode.trim()),
     queryFn: async () => {
       if (publicMode) {
         const res = await fetch(PUBLIC_FN_URL, {
@@ -103,19 +118,22 @@ export function ComplaintTrackingView({ reference, email = '', hideEmailField = 
           body: JSON.stringify({
             action: 'track',
             reference: (reference ?? '').trim(),
-            email: email.trim(),
+            access_code: accessCode.trim() || null,
+            email: email.trim() || null,
           }),
         });
         return (await res.json()) as ComplaintTracking;
       }
-      const { data, error } = await supabase.rpc('get_public_complaint_tracking' as any, {
+      const { data, error } = await supabase.rpc('get_public_complaint_tracking_v2' as any, {
         p_reference: (reference ?? '').trim(),
+        p_access_code: accessCode.trim() || null,
         p_email: email.trim() || null,
       });
       if (error) throw error;
       return data as ComplaintTracking;
     },
   });
+
 
 
   const t = q.data;
@@ -139,42 +157,73 @@ export function ComplaintTrackingView({ reference, email = '', hideEmailField = 
           </CardHeader>
           <CardContent>
             <form
-              className="flex flex-col gap-3 sm:flex-row sm:items-end"
+              className="space-y-3"
               onSubmit={(e) => {
                 e.preventDefault();
                 setShowLookup(false);
-                onLookup(refInput.trim(), emailInput.trim());
+                onLookup(
+                  refInput.trim(),
+                  useLegacyEmail ? emailInput.trim() : '',
+                  useLegacyEmail ? '' : codeInput.trim(),
+                );
               }}
             >
-              <div className="sm:max-w-xs sm:flex-1">
-                <Label htmlFor="ctv-ref" className="text-xs">Complaint reference</Label>
-                <Input
-                  id="ctv-ref"
-                  value={refInput}
-                  onChange={(e) => setRefInput(e.target.value)}
-                  required
-                  minLength={4}
-                  placeholder="e.g. CMP-2026-000123"
-                />
-              </div>
-              {!hideEmailField && (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div className="sm:max-w-xs sm:flex-1">
-                  <Label htmlFor="ctv-email" className="text-xs">Contact email</Label>
+                  <Label htmlFor="ctv-ref" className="text-xs">Complaint reference</Label>
                   <Input
-                    id="ctv-email"
-                    type="email"
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder="you@example.com"
+                    id="ctv-ref"
+                    value={refInput}
+                    onChange={(e) => setRefInput(e.target.value)}
+                    required
+                    minLength={4}
+                    placeholder="e.g. CMP-2026-000123"
                   />
                 </div>
-              )}
-              <Button type="submit" size="sm" disabled={refInput.trim().length < 4 || q.isFetching}>
-                {q.isFetching ? 'Looking up…' : 'Track complaint'}
-              </Button>
-              {loaded && (
-                <Button type="button" size="sm" variant="ghost" onClick={() => setShowLookup(false)}>
-                  Cancel
+                {publicMode && !useLegacyEmail && (
+                  <div className="sm:max-w-xs sm:flex-1">
+                    <Label htmlFor="ctv-code" className="text-xs">Tracking access code</Label>
+                    <Input
+                      id="ctv-code"
+                      value={codeInput}
+                      onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+                      placeholder="Given to you when you submitted"
+                      autoComplete="off"
+                    />
+                  </div>
+                )}
+                {(!publicMode || useLegacyEmail) && !hideEmailField && (
+                  <div className="sm:max-w-xs sm:flex-1">
+                    <Label htmlFor="ctv-email" className="text-xs">Contact email</Label>
+                    <Input
+                      id="ctv-email"
+                      type="email"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      placeholder="you@example.com"
+                    />
+                  </div>
+                )}
+                <Button type="submit" size="sm" disabled={refInput.trim().length < 4 || q.isFetching}>
+                  {q.isFetching ? 'Looking up…' : 'Track complaint'}
+                </Button>
+                {loaded && (
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setShowLookup(false)}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
+              {publicMode && (
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-xs"
+                  onClick={() => setUseLegacyEmail((v) => !v)}
+                >
+                  {useLegacyEmail
+                    ? 'Have a tracking access code? Use that instead.'
+                    : 'Using an older complaint? Track with your email address.'}
                 </Button>
               )}
             </form>
@@ -200,7 +249,7 @@ export function ComplaintTrackingView({ reference, email = '', hideEmailField = 
         <Card className="border-destructive/30">
           <CardContent className="pt-6 space-y-2 text-sm">
             <p className="font-medium text-destructive">Unable to load tracking right now.</p>
-            <p className="text-muted-foreground">{(q.error as Error)?.message}</p>
+            <p className="text-muted-foreground">Please try again in a moment.</p>
             <Button size="sm" variant="outline" onClick={() => void q.refetch()}>Retry</Button>
           </CardContent>
         </Card>
@@ -209,12 +258,13 @@ export function ComplaintTrackingView({ reference, email = '', hideEmailField = 
       {t && !t.found && (
         <Card>
           <CardContent className="pt-6 text-sm text-muted-foreground">
-            {t.error === 'CONTACT_MISMATCH'
-              ? 'We could not verify your contact details for that reference. Please enter the email address used when the complaint was submitted.'
-              : 'No complaint found for the details provided. Please check the reference and try again.'}
+            {/* Uniform message: never disclose whether a reference exists. */}
+            We could not verify those tracking details. Please check the complaint reference and the
+            tracking access code (or, for an older complaint, the email address you used) and try again.
           </CardContent>
         </Card>
       )}
+
 
       {loaded && t && (
         <>
