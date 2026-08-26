@@ -112,10 +112,16 @@ export default function IntakeQueue() {
       onClick: () => { setSupportState('pending'); setPage(1); },
     },
     {
-      label: 'Suspected unauthorised providers',
+      label: 'Suspected unauthorized providers',
       value: counts.suspected_unauthorised ?? 0,
-      onClick: () => { setMatchState('suspected_unlicensed'); setPage(1); },
+      onClick: () => { setMatchState('SUSPECTED_UNAUTHORISED'); setPage(1); },
     },
+    {
+      label: 'Entities not yet matched',
+      value: counts.unmatched_respondents ?? 0,
+      onClick: () => { setMatchState('UNMATCHED'); setPage(1); },
+    },
+
   ];
 
   return (
