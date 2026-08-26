@@ -591,6 +591,16 @@ Deno.serve(async (req) => {
     });
 
     if (rpcErr) {
+      console.error("[MC01 public_complaint_intake_submit failed]", {
+        code: rpcErr.code,
+        message: rpcErr.message,
+        details: rpcErr.details,
+        hint: rpcErr.hint,
+        stagedUploadCount: stagedIds.length,
+        hasIdempotencyKey: !!idempotencyKey,
+        respondentCount: respondents.length,
+        partyCount: parties.length,
+      });
       // No authoritative state was created — clean up staged transfer artefacts.
       if (stagedIds.length) {
         await admin.from("file_uploads").delete().in("id", stagedIds);

@@ -1,0 +1,1 @@
+DO $mc01_certification_complete$ BEGIN RAISE NOTICE 'MC-01 runtime certification complete'; END $mc01_certification_complete$;

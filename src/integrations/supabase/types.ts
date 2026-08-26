@@ -44246,6 +44246,10 @@ export type Database = {
         Args: { _complaint_id: string }
         Returns: Json
       }
+      resolve_complaint_intake_regulator: {
+        Args: { _candidate_regulator_id?: string; _complaint_id: string }
+        Returns: string
+      }
       resolve_effective_threshold: {
         Args: {
           _as_of?: string

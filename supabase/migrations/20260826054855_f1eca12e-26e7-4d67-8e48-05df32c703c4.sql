@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.get_public_complaint_tracking_v2(text,text,text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_public_complaint_tracking_v2(text,text,text) TO authenticated, service_role;
