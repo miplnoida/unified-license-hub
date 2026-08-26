@@ -5,7 +5,7 @@
 -- versions are immutable and point-in-time, and that AI narratives are
 -- grounded, reviewed by a human and only adoptable while current.
 BEGIN;
-SELECT plan(30);
+SELECT plan(42);
 
 -- ---------------- structure and lockdown ----------------
 SELECT ok(
