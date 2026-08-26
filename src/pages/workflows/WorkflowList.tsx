@@ -32,7 +32,7 @@ import { toast } from 'sonner';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import {
   useWorkflows, useWorkflowSteps,
-  useCreateWorkflow, useCreateWorkflowWithSteps, useUpdateWorkflow, useDeleteWorkflow,
+  useCreateWorkflow, useCreateWorkflowWithSteps, useUpdateWorkflow, useDeleteWorkflow, useRetireWorkflow,
   useCreateStep, useUpdateStep, useDeleteStep, useReorderSteps,
   useWorkflowTypeConfigs, filterActiveWorkflowTypes, getWorkflowTypeLabel,
   type Workflow, type WorkflowStep, type WorkflowEntityType, type WorkflowActionType,
@@ -166,6 +166,7 @@ export default function WorkflowList() {
   const createWorkflowWithSteps = useCreateWorkflowWithSteps();
   const updateWorkflow = useUpdateWorkflow();
   const deleteWorkflow = useDeleteWorkflow();
+  const retireWorkflow = useRetireWorkflow();
   const createStep = useCreateStep();
   const updateStep = useUpdateStep();
   const deleteStep = useDeleteStep();
