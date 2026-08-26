@@ -185,6 +185,12 @@ export const REMEDIATION_LABEL: Record<string, string> = {
   NOT_REQUIRED: 'Not required',
 };
 
+export const ASSURANCE_STATUS_LABEL: Record<string, string> = {
+  OPEN: 'Open',
+  IN_REVIEW: 'In review',
+  CONCLUDED: 'Concluded',
+};
+
 /** The assurance criteria a supervisory reviewer works through. */
 export const ASSURANCE_CRITERIA: Array<{ code: string; label: string; help: string }> = [
   { code: 'GROUNDED_IN_RECORD', label: 'Grounded in the regulatory record', help: 'Every statement traces to a record that was supplied to the model.' },
