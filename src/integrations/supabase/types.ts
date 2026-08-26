@@ -2174,6 +2174,9 @@ export type Database = {
           license_type: string
           name: string
           regulator_id: string | null
+          retired_at: string | null
+          retired_by: string | null
+          retirement_reason: string | null
           sector_id: string | null
           service_id: string | null
           sub_sector_id: string | null
@@ -2191,6 +2194,9 @@ export type Database = {
           license_type: string
           name: string
           regulator_id?: string | null
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
           sector_id?: string | null
           service_id?: string | null
           sub_sector_id?: string | null
@@ -2208,6 +2214,9 @@ export type Database = {
           license_type?: string
           name?: string
           regulator_id?: string | null
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_reason?: string | null
           sector_id?: string | null
           service_id?: string | null
           sub_sector_id?: string | null
@@ -40382,6 +40391,10 @@ export type Database = {
         Args: { _complaint_id: string; _payload: Json }
         Returns: Json
       }
+      complaint_workflow_state: {
+        Args: { _complaint_id: string }
+        Returns: Json
+      }
       complaints_analytics: { Args: { _filters?: Json }; Returns: Json }
       complaints_dashboard_counts: { Args: { _scope?: Json }; Returns: Json }
       complete_appeal_hearing:
@@ -43828,6 +43841,15 @@ export type Database = {
       mark_expired_licenses: { Args: never; Returns: number }
       mark_prudential_actions_breached: { Args: never; Returns: number }
       mark_prudential_actions_overdue: { Args: never; Returns: number }
+      mc_complaint_readiness_sync: {
+        Args: { _complaint_id: string }
+        Returns: Json
+      }
+      mc_complaint_workflow_definition: { Args: never; Returns: string }
+      mc_complaint_workflow_sync: {
+        Args: { _complaint_id: string; _event: string }
+        Returns: Json
+      }
       mc02_complaint_guard: {
         Args: { _action: string; _complaint_id: string }
         Returns: {
@@ -47916,11 +47938,17 @@ export type Database = {
         Args: { _sector_id: string; _user_id: string }
         Returns: boolean
       }
+      workflow_admin_guard: { Args: never; Returns: string }
       workflow_diagnostic_for_application: {
         Args: { _application_id: string }
         Returns: Json
       }
+      workflow_hard_delete: { Args: { _workflow_id: string }; Returns: Json }
       workflow_resolve_actor: { Args: { _claimed: string }; Returns: string }
+      workflow_retire: {
+        Args: { _reason: string; _workflow_id: string }
+        Returns: Json
+      }
       write_audit: {
         Args: {
           _action: string
