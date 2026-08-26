@@ -25,7 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { AlertTriangle, ClipboardList, Loader2, Plus, Target } from 'lucide-react';
+import { AlertTriangle, ClipboardList, Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCan } from '@/hooks/useCan';
 import { formatDate } from '@/lib/datetime';
@@ -149,7 +149,6 @@ export default function SupervisoryAttentionRegister() {
       <PageHeader
         title="Supervisory attention"
         description="What has been raised for supervisory attention, how it was prioritised, and the planned response."
-        icon={Target}
         actions={canOperate ? (
           <Button onClick={() => setOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Raise attention item
