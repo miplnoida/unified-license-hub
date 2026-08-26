@@ -106,6 +106,9 @@ const SurveillanceWorkspace = lazy(() => import('@/pages/conduct/SurveillanceWor
 const ConductSignals = lazy(() => import('@/pages/conduct/ConductSignals'));
 const ConductSignalDetail = lazy(() => import('@/pages/conduct/ConductSignalDetail'));
 const ConductPatterns = lazy(() => import('@/pages/conduct/ConductPatterns'));
+const SupervisoryIntelligence = lazy(() => import('@/pages/conduct/SupervisoryIntelligence'));
+const EmergingRisksRegister = lazy(() => import('@/pages/conduct/EmergingRisksRegister'));
+const EmergingRiskDetail = lazy(() => import('@/pages/conduct/EmergingRiskDetail'));
 const AiGovernanceOverview = lazy(() => import('@/pages/governance/ai/AiGovernanceOverview'));
 const AiActivityRegister = lazy(() => import('@/pages/governance/ai/AiActivityRegister'));
 const AiActivityDetail = lazy(() => import('@/pages/governance/ai/AiActivityDetail'));
