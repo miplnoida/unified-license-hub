@@ -7813,6 +7813,237 @@ export type Database = {
           },
         ]
       }
+      conduct_ai_insights: {
+        Row: {
+          ai_output: Json
+          confidence: number | null
+          created_at: string
+          entity_id: string
+          generated_at: string
+          generated_by: string | null
+          human_output: Json | null
+          human_rationale: string | null
+          id: string
+          insight_id: string
+          limitations: string[]
+          model: string | null
+          model_version: string | null
+          prompt_template_code: string
+          prompt_template_version: string
+          provider: string | null
+          regulator_id: string | null
+          review_state: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sector_id: string | null
+          snapshot_fingerprint: string
+          source_references: Json
+          staleness_checked_at: string | null
+          staleness_state: string
+          superseded_by_id: string | null
+          uncertainty: string | null
+          updated_at: string
+          use_case_code: string
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          ai_output: Json
+          confidence?: number | null
+          created_at?: string
+          entity_id: string
+          generated_at?: string
+          generated_by?: string | null
+          human_output?: Json | null
+          human_rationale?: string | null
+          id?: string
+          insight_id: string
+          limitations?: string[]
+          model?: string | null
+          model_version?: string | null
+          prompt_template_code: string
+          prompt_template_version: string
+          provider?: string | null
+          regulator_id?: string | null
+          review_state?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sector_id?: string | null
+          snapshot_fingerprint: string
+          source_references?: Json
+          staleness_checked_at?: string | null
+          staleness_state?: string
+          superseded_by_id?: string | null
+          uncertainty?: string | null
+          updated_at?: string
+          use_case_code: string
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          ai_output?: Json
+          confidence?: number | null
+          created_at?: string
+          entity_id?: string
+          generated_at?: string
+          generated_by?: string | null
+          human_output?: Json | null
+          human_rationale?: string | null
+          id?: string
+          insight_id?: string
+          limitations?: string[]
+          model?: string | null
+          model_version?: string | null
+          prompt_template_code?: string
+          prompt_template_version?: string
+          provider?: string | null
+          regulator_id?: string | null
+          review_state?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sector_id?: string | null
+          snapshot_fingerprint?: string
+          source_references?: Json
+          staleness_checked_at?: string | null
+          staleness_state?: string
+          superseded_by_id?: string | null
+          uncertainty?: string | null
+          updated_at?: string
+          use_case_code?: string
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_ai_insights_insight_id_fkey"
+            columns: ["insight_id"]
+            isOneToOne: false
+            referencedRelation: "ai_insights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_ai_insights_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_ai_insights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_ai_insights_use_case_code_fkey"
+            columns: ["use_case_code"]
+            isOneToOne: false
+            referencedRelation: "conduct_ai_use_cases"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      conduct_ai_review_events: {
+        Row: {
+          action: string
+          actor_id: string
+          conduct_ai_insight_id: string
+          created_at: string
+          from_state: string
+          human_output: Json | null
+          id: string
+          rationale: string | null
+          to_state: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          conduct_ai_insight_id: string
+          created_at?: string
+          from_state: string
+          human_output?: Json | null
+          id?: string
+          rationale?: string | null
+          to_state: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          conduct_ai_insight_id?: string
+          created_at?: string
+          from_state?: string
+          human_output?: Json | null
+          id?: string
+          rationale?: string | null
+          to_state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_ai_review_events_conduct_ai_insight_id_fkey"
+            columns: ["conduct_ai_insight_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_ai_insights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_ai_use_cases: {
+        Row: {
+          allowed_output_classes: string[]
+          allowed_source: string
+          citations_required: boolean
+          code: string
+          confidence_policy: Json
+          created_at: string
+          governance_level: string
+          human_review_required: boolean
+          is_enabled: boolean
+          label: string
+          limitation_policy: string
+          model_policy: Json
+          prohibited_output_classes: string[]
+          prompt_template_code: string
+          prompt_template_version: string
+          purpose: string
+          updated_at: string
+          workflow_mutation_allowed: boolean
+        }
+        Insert: {
+          allowed_output_classes?: string[]
+          allowed_source?: string
+          citations_required?: boolean
+          code: string
+          confidence_policy?: Json
+          created_at?: string
+          governance_level?: string
+          human_review_required?: boolean
+          is_enabled?: boolean
+          label: string
+          limitation_policy: string
+          model_policy?: Json
+          prohibited_output_classes?: string[]
+          prompt_template_code: string
+          prompt_template_version?: string
+          purpose: string
+          updated_at?: string
+          workflow_mutation_allowed?: boolean
+        }
+        Update: {
+          allowed_output_classes?: string[]
+          allowed_source?: string
+          citations_required?: boolean
+          code?: string
+          confidence_policy?: Json
+          created_at?: string
+          governance_level?: string
+          human_review_required?: boolean
+          is_enabled?: boolean
+          label?: string
+          limitation_policy?: string
+          model_policy?: Json
+          prohibited_output_classes?: string[]
+          prompt_template_code?: string
+          prompt_template_version?: string
+          purpose?: string
+          updated_at?: string
+          workflow_mutation_allowed?: boolean
+        }
+        Relationships: []
+      }
       conduct_alert_thresholds: {
         Row: {
           active: boolean
@@ -41679,6 +41910,16 @@ export type Database = {
       }
       compliance_return_save_draft: { Args: { _payload: Json }; Returns: Json }
       compliance_return_submit: { Args: { _payload: Json }; Returns: Json }
+      conduct_360_ai_context: {
+        Args: {
+          _entity_id: string
+          _use_case_code: string
+          _window_end?: string
+          _window_start?: string
+        }
+        Returns: Json
+      }
+      conduct_360_fingerprint: { Args: { _snapshot: Json }; Returns: string }
       conduct_360_snapshot: {
         Args: {
           _entity_id: string
@@ -41754,6 +41995,41 @@ export type Database = {
       }
       conduct_action_step: {
         Args: { _action_code: string; _action_id: string; _payload?: Json }
+        Returns: Json
+      }
+      conduct_ai_insight_record: {
+        Args: {
+          _ai_output: Json
+          _confidence?: number
+          _entity_id: string
+          _generated_by?: string
+          _limitations?: string[]
+          _model: string
+          _model_version: string
+          _prompt_template_version?: string
+          _provider: string
+          _snapshot_fingerprint: string
+          _source_references: Json
+          _title?: string
+          _uncertainty?: string
+          _use_case_code: string
+          _window_end: string
+          _window_start: string
+        }
+        Returns: string
+      }
+      conduct_ai_insight_refresh_staleness: {
+        Args: { _insight_id: string }
+        Returns: Json
+      }
+      conduct_ai_insight_review: {
+        Args: {
+          _action: string
+          _human_output?: Json
+          _insight_id: string
+          _rationale?: string
+          _superseded_by_id?: string
+        }
         Returns: Json
       }
       conduct_alert_acknowledge: {
