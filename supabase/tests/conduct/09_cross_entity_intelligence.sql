@@ -3,7 +3,7 @@
 -- deterministic cross-entity facts, governed lifecycle, written basis,
 -- record linking, entity counting and auditor read-only behaviour.
 BEGIN;
-SELECT plan(14);
+SELECT plan(16);
 
 -- 1 registers exist
 SELECT ok(
