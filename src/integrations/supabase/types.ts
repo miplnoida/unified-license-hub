@@ -3441,6 +3441,175 @@ export type Database = {
         }
         Relationships: []
       }
+      complaint_allegation_history: {
+        Row: {
+          actor_id: string | null
+          allegation_id: string
+          complaint_id: string
+          event_type: string
+          from_state: Json | null
+          id: string
+          occurred_at: string
+          rationale: string | null
+          to_state: Json | null
+        }
+        Insert: {
+          actor_id?: string | null
+          allegation_id: string
+          complaint_id: string
+          event_type: string
+          from_state?: Json | null
+          id?: string
+          occurred_at?: string
+          rationale?: string | null
+          to_state?: Json | null
+        }
+        Update: {
+          actor_id?: string | null
+          allegation_id?: string
+          complaint_id?: string
+          event_type?: string
+          from_state?: Json | null
+          id?: string
+          occurred_at?: string
+          rationale?: string | null
+          to_state?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_allegation_history_allegation_id_fkey"
+            columns: ["allegation_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_allegations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_allegations: {
+        Row: {
+          affected_party: string | null
+          allegation_number: number
+          assessed_at: string | null
+          assessed_by: string | null
+          assessment_outcome: string | null
+          assessment_rationale: string | null
+          complaint_id: string
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          financial_amount: number | null
+          id: string
+          incident_from: string | null
+          incident_to: string | null
+          investigation_status: string
+          issue_category_id: string | null
+          issue_category_label: string | null
+          jurisdiction_rationale: string | null
+          jurisdiction_scope: string
+          officer_analysis: string | null
+          product_service: string | null
+          regulator_id: string | null
+          respondent_id: string | null
+          row_version: number
+          source: string | null
+          statement: string | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          affected_party?: string | null
+          allegation_number: number
+          assessed_at?: string | null
+          assessed_by?: string | null
+          assessment_outcome?: string | null
+          assessment_rationale?: string | null
+          complaint_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          financial_amount?: number | null
+          id?: string
+          incident_from?: string | null
+          incident_to?: string | null
+          investigation_status?: string
+          issue_category_id?: string | null
+          issue_category_label?: string | null
+          jurisdiction_rationale?: string | null
+          jurisdiction_scope?: string
+          officer_analysis?: string | null
+          product_service?: string | null
+          regulator_id?: string | null
+          respondent_id?: string | null
+          row_version?: number
+          source?: string | null
+          statement?: string | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          affected_party?: string | null
+          allegation_number?: number
+          assessed_at?: string | null
+          assessed_by?: string | null
+          assessment_outcome?: string | null
+          assessment_rationale?: string | null
+          complaint_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          financial_amount?: number | null
+          id?: string
+          incident_from?: string | null
+          incident_to?: string | null
+          investigation_status?: string
+          issue_category_id?: string | null
+          issue_category_label?: string | null
+          jurisdiction_rationale?: string | null
+          jurisdiction_scope?: string
+          officer_analysis?: string | null
+          product_service?: string | null
+          regulator_id?: string | null
+          respondent_id?: string | null
+          row_version?: number
+          source?: string | null
+          statement?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_allegations_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_allegations_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_allegations_issue_category_id_fkey"
+            columns: ["issue_category_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_risk_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_allegations_respondent_id_fkey"
+            columns: ["respondent_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_respondents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_closure_reviews: {
         Row: {
           complaint_id: string
@@ -4018,37 +4187,118 @@ export type Database = {
       }
       complaint_evidence: {
         Row: {
+          acquisition_method: string | null
+          ai_extraction_state: string
+          assessed_at: string | null
+          assessed_by: string | null
+          assessment_rationale: string | null
           complaint_id: string
+          confidentiality: string
+          content_hash: string | null
           created_at: string
+          custodian_id: string | null
+          custody_state: string
           description: string | null
+          document_type: string | null
+          evidence_reference: string | null
           file_upload_id: string | null
           finalized_at: string | null
           id: string
           label: string
+          personal_data: boolean
+          privileged: boolean
+          received_at: string | null
+          received_from: string | null
+          relevance: string
+          reliability: string
+          row_version: number
+          source_party: string | null
+          source_record_id: string | null
+          source_record_type: string | null
+          source_type: string | null
           staged_at: string
+          superseded_by_evidence_id: string | null
+          supersedes_evidence_id: string | null
+          supersession_reason: string | null
+          updated_at: string
           uploaded_by: string | null
+          version: number
         }
         Insert: {
+          acquisition_method?: string | null
+          ai_extraction_state?: string
+          assessed_at?: string | null
+          assessed_by?: string | null
+          assessment_rationale?: string | null
           complaint_id: string
+          confidentiality?: string
+          content_hash?: string | null
           created_at?: string
+          custodian_id?: string | null
+          custody_state?: string
           description?: string | null
+          document_type?: string | null
+          evidence_reference?: string | null
           file_upload_id?: string | null
           finalized_at?: string | null
           id?: string
           label: string
+          personal_data?: boolean
+          privileged?: boolean
+          received_at?: string | null
+          received_from?: string | null
+          relevance?: string
+          reliability?: string
+          row_version?: number
+          source_party?: string | null
+          source_record_id?: string | null
+          source_record_type?: string | null
+          source_type?: string | null
           staged_at?: string
+          superseded_by_evidence_id?: string | null
+          supersedes_evidence_id?: string | null
+          supersession_reason?: string | null
+          updated_at?: string
           uploaded_by?: string | null
+          version?: number
         }
         Update: {
+          acquisition_method?: string | null
+          ai_extraction_state?: string
+          assessed_at?: string | null
+          assessed_by?: string | null
+          assessment_rationale?: string | null
           complaint_id?: string
+          confidentiality?: string
+          content_hash?: string | null
           created_at?: string
+          custodian_id?: string | null
+          custody_state?: string
           description?: string | null
+          document_type?: string | null
+          evidence_reference?: string | null
           file_upload_id?: string | null
           finalized_at?: string | null
           id?: string
           label?: string
+          personal_data?: boolean
+          privileged?: boolean
+          received_at?: string | null
+          received_from?: string | null
+          relevance?: string
+          reliability?: string
+          row_version?: number
+          source_party?: string | null
+          source_record_id?: string | null
+          source_record_type?: string | null
+          source_type?: string | null
           staged_at?: string
+          superseded_by_evidence_id?: string | null
+          supersedes_evidence_id?: string | null
+          supersession_reason?: string | null
+          updated_at?: string
           uploaded_by?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -4070,6 +4320,65 @@ export type Database = {
             columns: ["file_upload_id"]
             isOneToOne: false
             referencedRelation: "file_uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_evidence_superseded_by_evidence_id_fkey"
+            columns: ["superseded_by_evidence_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_evidence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_evidence_supersedes_evidence_id_fkey"
+            columns: ["supersedes_evidence_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_evidence"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_evidence_allegations: {
+        Row: {
+          allegation_id: string
+          evidence_id: string
+          id: string
+          linked_at: string
+          linked_by: string | null
+          relationship_type: string
+          relevance_note: string | null
+        }
+        Insert: {
+          allegation_id: string
+          evidence_id: string
+          id?: string
+          linked_at?: string
+          linked_by?: string | null
+          relationship_type?: string
+          relevance_note?: string | null
+        }
+        Update: {
+          allegation_id?: string
+          evidence_id?: string
+          id?: string
+          linked_at?: string
+          linked_by?: string | null
+          relationship_type?: string
+          relevance_note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_evidence_allegations_allegation_id_fkey"
+            columns: ["allegation_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_allegations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_evidence_allegations_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_evidence"
             referencedColumns: ["id"]
           },
         ]
@@ -4433,50 +4742,214 @@ export type Database = {
           },
         ]
       }
+      complaint_investigation_plans: {
+        Row: {
+          approach: string | null
+          approved_at: string | null
+          approved_by: string | null
+          complaint_id: string
+          created_at: string
+          created_by: string | null
+          dependencies: string | null
+          evidence_required: string | null
+          id: string
+          in_scope_summary: string | null
+          information_sources: string | null
+          is_current: boolean
+          jurisdiction_scope: string | null
+          lead_investigator_id: string | null
+          milestones: Json
+          objective: string | null
+          out_of_scope_summary: string | null
+          parties_to_contact: string | null
+          planned_completion_date: string | null
+          policy_reference: string | null
+          regulator_id: string | null
+          review_note: string | null
+          review_officer_id: string | null
+          revision_reason: string | null
+          risks_constraints: string | null
+          row_version: number
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          superseded_by_id: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approach?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          complaint_id: string
+          created_at?: string
+          created_by?: string | null
+          dependencies?: string | null
+          evidence_required?: string | null
+          id?: string
+          in_scope_summary?: string | null
+          information_sources?: string | null
+          is_current?: boolean
+          jurisdiction_scope?: string | null
+          lead_investigator_id?: string | null
+          milestones?: Json
+          objective?: string | null
+          out_of_scope_summary?: string | null
+          parties_to_contact?: string | null
+          planned_completion_date?: string | null
+          policy_reference?: string | null
+          regulator_id?: string | null
+          review_note?: string | null
+          review_officer_id?: string | null
+          revision_reason?: string | null
+          risks_constraints?: string | null
+          row_version?: number
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          superseded_by_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approach?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          complaint_id?: string
+          created_at?: string
+          created_by?: string | null
+          dependencies?: string | null
+          evidence_required?: string | null
+          id?: string
+          in_scope_summary?: string | null
+          information_sources?: string | null
+          is_current?: boolean
+          jurisdiction_scope?: string | null
+          lead_investigator_id?: string | null
+          milestones?: Json
+          objective?: string | null
+          out_of_scope_summary?: string | null
+          parties_to_contact?: string | null
+          planned_completion_date?: string | null
+          policy_reference?: string | null
+          regulator_id?: string | null
+          review_note?: string | null
+          review_officer_id?: string | null
+          revision_reason?: string | null
+          risks_constraints?: string | null
+          row_version?: number
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          superseded_by_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_investigation_plans_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_investigation_plans_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_investigation_plans_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_investigation_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_investigation_tasks: {
         Row: {
+          allegation_id: string | null
+          blocked_reason: string | null
           complaint_id: string
           completed_at: string | null
           completed_by: string | null
+          completion_note: string | null
           created_at: string
           created_by: string | null
           description: string | null
           due_date: string | null
           id: string
+          is_mandatory: boolean
           owner_id: string | null
+          plan_id: string | null
+          priority: string
+          representation_id: string | null
+          rfi_id: string | null
+          row_version: number
           status: string
+          task_kind: string
           title: string
           updated_at: string
         }
         Insert: {
+          allegation_id?: string | null
+          blocked_reason?: string | null
           complaint_id: string
           completed_at?: string | null
           completed_by?: string | null
+          completion_note?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
+          is_mandatory?: boolean
           owner_id?: string | null
+          plan_id?: string | null
+          priority?: string
+          representation_id?: string | null
+          rfi_id?: string | null
+          row_version?: number
           status?: string
+          task_kind?: string
           title: string
           updated_at?: string
         }
         Update: {
+          allegation_id?: string | null
+          blocked_reason?: string | null
           complaint_id?: string
           completed_at?: string | null
           completed_by?: string | null
+          completion_note?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
+          is_mandatory?: boolean
           owner_id?: string | null
+          plan_id?: string | null
+          priority?: string
+          representation_id?: string | null
+          rfi_id?: string | null
+          row_version?: number
           status?: string
+          task_kind?: string
           title?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "complaint_investigation_tasks_allegation_id_fkey"
+            columns: ["allegation_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_allegations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "complaint_investigation_tasks_complaint_id_fkey"
             columns: ["complaint_id"]
@@ -4489,6 +4962,27 @@ export type Database = {
             columns: ["complaint_id"]
             isOneToOne: false
             referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_investigation_tasks_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_investigation_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_investigation_tasks_representation_id_fkey"
+            columns: ["representation_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_representations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_investigation_tasks_rfi_id_fkey"
+            columns: ["rfi_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_rfis"
             referencedColumns: ["id"]
           },
         ]
@@ -5218,6 +5712,207 @@ export type Database = {
           },
         ]
       }
+      complaint_representation_allegations: {
+        Row: {
+          allegation_id: string
+          id: string
+          representation_id: string
+        }
+        Insert: {
+          allegation_id: string
+          id?: string
+          representation_id: string
+        }
+        Update: {
+          allegation_id?: string
+          id?: string
+          representation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_representation_allegations_allegation_id_fkey"
+            columns: ["allegation_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_allegations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_representation_allegations_representation_id_fkey"
+            columns: ["representation_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_representations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_representation_events: {
+        Row: {
+          actor_id: string | null
+          complaint_id: string
+          detail: Json | null
+          event_type: string
+          id: string
+          narrative_snapshot: string | null
+          occurred_at: string
+          representation_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          complaint_id: string
+          detail?: Json | null
+          event_type: string
+          id?: string
+          narrative_snapshot?: string | null
+          occurred_at?: string
+          representation_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          complaint_id?: string
+          detail?: Json | null
+          event_type?: string
+          id?: string
+          narrative_snapshot?: string | null
+          occurred_at?: string
+          representation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_representation_events_representation_id_fkey"
+            columns: ["representation_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_representations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_representations: {
+        Row: {
+          accepted_for_consideration: boolean
+          closed_at: string | null
+          closed_by: string | null
+          complaint_id: string
+          confidentiality_claim: string | null
+          created_at: string
+          created_by: string | null
+          due_at: string | null
+          extended_due_at: string | null
+          extension_reason: string | null
+          id: string
+          invitation_reference: string | null
+          invitation_summary: string | null
+          invited_at: string | null
+          is_late: boolean
+          late_decision: string | null
+          late_decision_reason: string | null
+          licensee_id: string | null
+          narrative: string | null
+          regulator_id: string | null
+          representation_type: string
+          representing_party: string | null
+          respondent_id: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewer_id: string | null
+          row_version: number
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+          window_opens_at: string | null
+        }
+        Insert: {
+          accepted_for_consideration?: boolean
+          closed_at?: string | null
+          closed_by?: string | null
+          complaint_id: string
+          confidentiality_claim?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_at?: string | null
+          extended_due_at?: string | null
+          extension_reason?: string | null
+          id?: string
+          invitation_reference?: string | null
+          invitation_summary?: string | null
+          invited_at?: string | null
+          is_late?: boolean
+          late_decision?: string | null
+          late_decision_reason?: string | null
+          licensee_id?: string | null
+          narrative?: string | null
+          regulator_id?: string | null
+          representation_type?: string
+          representing_party?: string | null
+          respondent_id?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          row_version?: number
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+          window_opens_at?: string | null
+        }
+        Update: {
+          accepted_for_consideration?: boolean
+          closed_at?: string | null
+          closed_by?: string | null
+          complaint_id?: string
+          confidentiality_claim?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_at?: string | null
+          extended_due_at?: string | null
+          extension_reason?: string | null
+          id?: string
+          invitation_reference?: string | null
+          invitation_summary?: string | null
+          invited_at?: string | null
+          is_late?: boolean
+          late_decision?: string | null
+          late_decision_reason?: string | null
+          licensee_id?: string | null
+          narrative?: string | null
+          regulator_id?: string | null
+          representation_type?: string
+          representing_party?: string | null
+          respondent_id?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          row_version?: number
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+          window_opens_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_representations_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_representations_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_representations_respondent_id_fkey"
+            columns: ["respondent_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_respondents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_respondents: {
         Row: {
           address: string | null
@@ -5353,6 +6048,39 @@ export type Database = {
           },
         ]
       }
+      complaint_rfi_allegations: {
+        Row: {
+          allegation_id: string
+          id: string
+          rfi_id: string
+        }
+        Insert: {
+          allegation_id: string
+          id?: string
+          rfi_id: string
+        }
+        Update: {
+          allegation_id?: string
+          id?: string
+          rfi_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_rfi_allegations_allegation_id_fkey"
+            columns: ["allegation_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_allegations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_rfi_allegations_rfi_id_fkey"
+            columns: ["rfi_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_rfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_rfi_items: {
         Row: {
           created_at: string
@@ -5479,14 +6207,21 @@ export type Database = {
           closed_by: string | null
           closure_notes: string | null
           complaint_id: string
+          completeness_review: string | null
           created_at: string
           dispatched_at: string | null
           due_at: string | null
+          evidence_finalized_at: string | null
+          evidence_requirement: string | null
           id: string
+          investigator_disposition: string | null
           licensee_id: string
+          plan_id: string | null
+          purpose: string | null
           raised_at: string
           raised_by: string | null
           rejection_reason: string | null
+          respondent_id: string | null
           status: string
           submitted_at: string | null
           submitted_by: string | null
@@ -5505,14 +6240,21 @@ export type Database = {
           closed_by?: string | null
           closure_notes?: string | null
           complaint_id: string
+          completeness_review?: string | null
           created_at?: string
           dispatched_at?: string | null
           due_at?: string | null
+          evidence_finalized_at?: string | null
+          evidence_requirement?: string | null
           id?: string
+          investigator_disposition?: string | null
           licensee_id: string
+          plan_id?: string | null
+          purpose?: string | null
           raised_at?: string
           raised_by?: string | null
           rejection_reason?: string | null
+          respondent_id?: string | null
           status?: string
           submitted_at?: string | null
           submitted_by?: string | null
@@ -5531,14 +6273,21 @@ export type Database = {
           closed_by?: string | null
           closure_notes?: string | null
           complaint_id?: string
+          completeness_review?: string | null
           created_at?: string
           dispatched_at?: string | null
           due_at?: string | null
+          evidence_finalized_at?: string | null
+          evidence_requirement?: string | null
           id?: string
+          investigator_disposition?: string | null
           licensee_id?: string
+          plan_id?: string | null
+          purpose?: string | null
           raised_at?: string
           raised_by?: string | null
           rejection_reason?: string | null
+          respondent_id?: string | null
           status?: string
           submitted_at?: string | null
           submitted_by?: string | null
@@ -5575,6 +6324,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_prudential_early_warnings"
             referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "complaint_rfis_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_investigation_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_rfis_respondent_id_fkey"
+            columns: ["respondent_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_respondents"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -39193,6 +39956,45 @@ export type Database = {
           template_version: number
         }[]
       }
+      complaint_allegation_create: {
+        Args: { _complaint_id: string; _payload: Json }
+        Returns: Json
+      }
+      complaint_allegation_record_outcome: {
+        Args: {
+          _allegation_id: string
+          _analysis?: string
+          _expected_row_version?: number
+          _outcome: string
+          _rationale: string
+        }
+        Returns: Json
+      }
+      complaint_allegation_reopen: {
+        Args: {
+          _allegation_id: string
+          _expected_row_version?: number
+          _reason: string
+        }
+        Returns: Json
+      }
+      complaint_allegation_set_status: {
+        Args: {
+          _allegation_id: string
+          _expected_row_version?: number
+          _note?: string
+          _status: string
+        }
+        Returns: Json
+      }
+      complaint_allegation_update: {
+        Args: {
+          _allegation_id: string
+          _expected_row_version?: number
+          _payload: Json
+        }
+        Returns: Json
+      }
       complaint_blockers: { Args: { _complaint_id: string }; Returns: Json }
       complaint_bulk_import: {
         Args: {
@@ -39204,6 +40006,41 @@ export type Database = {
         Returns: Json
       }
       complaint_case: { Args: { _complaint_id: string }; Returns: Json }
+      complaint_evidence_assess: {
+        Args: {
+          _evidence_id: string
+          _expected_row_version?: number
+          _rationale?: string
+          _relevance: string
+          _reliability: string
+        }
+        Returns: Json
+      }
+      complaint_evidence_link_allegation: {
+        Args: {
+          _allegation_id: string
+          _evidence_id: string
+          _note?: string
+          _relationship_type?: string
+        }
+        Returns: Json
+      }
+      complaint_evidence_register: {
+        Args: { _complaint_id: string; _payload: Json }
+        Returns: Json
+      }
+      complaint_evidence_supersede: {
+        Args: { _evidence_id: string; _payload: Json; _reason: string }
+        Returns: Json
+      }
+      complaint_evidence_unlink_allegation: {
+        Args: { _allegation_id: string; _evidence_id: string; _reason?: string }
+        Returns: Json
+      }
+      complaint_evidence_withdraw: {
+        Args: { _evidence_id: string; _reason: string }
+        Returns: Json
+      }
       complaint_harm_to_severity: { Args: { _harm: string }; Returns: string }
       complaint_intake_decide: {
         Args: { _payload: Json; _regulator_id: string; _variant: string }
@@ -39223,6 +40060,50 @@ export type Database = {
         Returns: Json
       }
       complaint_intake_queue_counts: { Args: { _scope?: Json }; Returns: Json }
+      complaint_investigation_gate: {
+        Args: { _complaint_id: string }
+        Returns: Json
+      }
+      complaint_investigation_open: {
+        Args: { _complaint_id: string; _payload?: Json }
+        Returns: Json
+      }
+      complaint_investigation_plan_approve: {
+        Args: {
+          _expected_row_version?: number
+          _note?: string
+          _plan_id: string
+        }
+        Returns: Json
+      }
+      complaint_investigation_plan_revise: {
+        Args: { _complaint_id: string; _reason: string }
+        Returns: Json
+      }
+      complaint_investigation_plan_save: {
+        Args: {
+          _complaint_id: string
+          _expected_row_version?: number
+          _payload: Json
+        }
+        Returns: Json
+      }
+      complaint_investigation_plan_submit: {
+        Args: { _expected_row_version?: number; _plan_id: string }
+        Returns: Json
+      }
+      complaint_investigation_readiness: {
+        Args: { _complaint_id: string }
+        Returns: Json
+      }
+      complaint_investigation_task_save: {
+        Args: { _payload: Json }
+        Returns: Json
+      }
+      complaint_investigation_timeline: {
+        Args: { _complaint_id: string; _limit?: number }
+        Returns: Json
+      }
       complaint_jurisdiction_decide: {
         Args: {
           _complaint_id: string
@@ -39301,6 +40182,10 @@ export type Database = {
         Args: { _complaint_id: string }
         Returns: Json
       }
+      complaint_note_add: {
+        Args: { _body: string; _complaint_id: string; _subject?: string }
+        Returns: Json
+      }
       complaint_record_closure_review: {
         Args: {
           _complaint_id: string
@@ -39332,6 +40217,49 @@ export type Database = {
         }
         Returns: Json
       }
+      complaint_representation_close: {
+        Args: { _note?: string; _representation_id: string }
+        Returns: Json
+      }
+      complaint_representation_extend: {
+        Args: {
+          _expected_row_version?: number
+          _new_due_at: string
+          _reason: string
+          _representation_id: string
+        }
+        Returns: Json
+      }
+      complaint_representation_late_decision: {
+        Args: { _decision: string; _reason: string; _representation_id: string }
+        Returns: Json
+      }
+      complaint_representation_open: {
+        Args: { _complaint_id: string; _payload: Json }
+        Returns: Json
+      }
+      complaint_representation_review: {
+        Args: {
+          _decision: string
+          _expected_row_version?: number
+          _note: string
+          _representation_id: string
+        }
+        Returns: Json
+      }
+      complaint_representation_submit: {
+        Args: {
+          _confidentiality_claim?: string
+          _file_upload_ids?: string[]
+          _narrative: string
+          _representation_id: string
+        }
+        Returns: Json
+      }
+      complaint_representation_withdraw: {
+        Args: { _reason: string; _representation_id: string }
+        Returns: Json
+      }
       complaint_review_support_needs: {
         Args: {
           _complaint_id: string
@@ -39353,6 +40281,14 @@ export type Database = {
       complaint_rfi_close: {
         Args: { p_notes: string; p_rfi_id: string }
         Returns: undefined
+      }
+      complaint_rfi_finalize_evidence: {
+        Args: { _payload?: Json; _rfi_id: string }
+        Returns: Json
+      }
+      complaint_rfi_link_allegation: {
+        Args: { _allegation_id: string; _link?: boolean; _rfi_id: string }
+        Returns: Json
       }
       complaint_rfi_raise: {
         Args: {
@@ -41772,6 +42708,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_complaint_investigation_workspace: {
+        Args: { _complaint_id: string }
+        Returns: Json
+      }
       get_complaint_jurisdiction: {
         Args: { _complaint_id: string }
         Returns: Json
@@ -42966,6 +43906,85 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      mc03_guard: {
+        Args: { _action: string; _complaint_id: string }
+        Returns: {
+          acknowledged_at: string | null
+          assigned_team: string | null
+          channel_id: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closure_category: string | null
+          closure_reason: string | null
+          complainant_id: string | null
+          complainant_name: string | null
+          complainant_phone: string | null
+          complaint_number: string
+          complaint_type_id: string | null
+          conduct_risk_category_id: string | null
+          conduct_risk_level: string | null
+          consumer_harm: string | null
+          created_at: string
+          customer_type: string | null
+          description: string
+          email: string | null
+          enforcement_action_id: string | null
+          findings: string | null
+          id: string
+          idempotency_key: string | null
+          incident_date: string | null
+          intake_source: string | null
+          internal_created_by: string | null
+          investigation_notes: string | null
+          investigator_id: string | null
+          license_holder_id: string | null
+          licensee_id: string | null
+          parent_complaint_id: string | null
+          preferred_contact_method: string | null
+          priority: string | null
+          product_id: string | null
+          regulator_id: string | null
+          repeat_complaint_count: number
+          resolution: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          search_vector: unknown
+          severity: string
+          severity_overridden_at: string | null
+          severity_overridden_by: string | null
+          severity_override_reason: string | null
+          sla_days: number | null
+          sla_due_at: string | null
+          status: string
+          subject: string
+          systemic_confirmed_at: string | null
+          systemic_confirmed_by: string | null
+          systemic_potential: string
+          triage_confirmation_status: string | null
+          triage_confirmed_at: string | null
+          triage_confirmed_by: string | null
+          triage_evaluated_at: string | null
+          triage_last_error: string | null
+          triage_original_values: Json | null
+          triage_override_reason: string | null
+          triage_override_status: string
+          triage_result_snapshot: Json | null
+          triage_rule_id: string | null
+          triage_source: string | null
+          updated_at: string
+          vulnerability_category: string | null
+          vulnerability_indicator: boolean
+          vulnerability_notes: string | null
+          vulnerability_review_state: Database["public"]["Enums"]["complaint_vulnerability_review_state"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "complaints"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      mc03_require_gate: { Args: { _complaint_id: string }; Returns: Json }
       next_invoice_number: { Args: never; Returns: string }
       no_plan: { Args: never; Returns: boolean[] }
       normalize_entity_identifier: {
