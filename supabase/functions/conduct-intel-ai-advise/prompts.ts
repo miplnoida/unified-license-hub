@@ -136,6 +136,19 @@ export function buildSystemPrompt(
   ].filter(Boolean).join('\n\n');
 }
 
+/** The exact citation tokens the model is permitted to use, in context order. */
+export function permittedReferenceTokens(context: Record<string, unknown>): string[] {
+  const list = Array.isArray(context.permitted_source_references)
+    ? (context.permitted_source_references as Array<Record<string, unknown>>)
+    : [];
+  const seen = new Set<string>();
+  for (const r of list) {
+    const ref = typeof r?.reference === 'string' ? r.reference.trim() : '';
+    if (ref) seen.add(ref);
+  }
+  return [...seen];
+}
+
 export function buildUserPrompt(context: Record<string, unknown>): string {
   // Only the governed context is sent: scoped cross-entity facts, permitted
   // references and the window. Nothing else about the platform is disclosed.
@@ -145,14 +158,40 @@ export function buildUserPrompt(context: Record<string, unknown>): string {
     permitted_source_references: context.permitted_source_references ?? [],
     cross_entity_facts: context.snapshot ?? {},
   };
+  const tokens = permittedReferenceTokens(context);
   return [
     'Cross-entity supervisory intelligence governed context (facts only — the sole source you may use):',
     '```json',
     JSON.stringify(payload),
     '```',
-    'Return the structured advisory object as specified. Cite only references from permitted_source_references.',
+    'CITATIONS — the following list is the complete and only set of citation tokens that exist.',
+    'Copy a token character-for-character from this list. A citation that is not on this list,',
+    'including any field name, JSON path, table name, entity name or figure taken from the facts',
+    'above, is invalid and invalidates the entire response:',
+    tokens.length ? tokens.map((t) => `- ${t}`).join('\n') : '- (no citable records in this window)',
+    tokens.length
+      ? 'Return the structured advisory object as specified, citing only tokens from that list.'
+      : 'There are no citable records. Say plainly that the window contains nothing citable, keep every array empty and state low confidence.',
   ].join('\n');
 }
+
+/**
+ * Per-request output schema. Citation fields are constrained to the exact
+ * permitted tokens so an invented reference cannot be produced at all; the
+ * grounding check in `grounding.ts` remains the authoritative backstop.
+ */
+export function buildAdvisorySchema(permitted: string[]): Record<string, unknown> {
+  const schema = JSON.parse(JSON.stringify(ADVISORY_SCHEMA)) as any;
+  if (permitted.length === 0) return schema;
+  const citation = { type: 'string', enum: permitted };
+  schema.properties.cited_references.items = citation;
+  schema.properties.sections.items.properties.cited_references.items = citation;
+  schema.properties.questions.items.properties.cited_references.items = citation;
+  schema.properties.hypotheses.items.properties.cited_references.items = citation;
+  schema.properties.records.items.properties.reference = citation;
+  return schema;
+}
+
 
 /** Strict JSON schema for advisory output. Identical across capabilities so the review UI stays uniform. */
 export const ADVISORY_SCHEMA = {
