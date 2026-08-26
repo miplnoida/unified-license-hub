@@ -3510,6 +3510,84 @@ export type Database = {
           },
         ]
       }
+      complaint_contact_preferences: {
+        Row: {
+          accessibility_needs: string | null
+          alternative_method: string | null
+          city: string | null
+          complaint_id: string
+          country: string | null
+          created_at: string
+          email: string | null
+          id: string
+          information_source: string
+          phone: string | null
+          postal_address_line1: string | null
+          postal_address_line2: string | null
+          postal_code: string | null
+          preferred_language: string
+          preferred_method: string
+          region: string | null
+          safe_contact_instructions: string | null
+          updated_at: string
+        }
+        Insert: {
+          accessibility_needs?: string | null
+          alternative_method?: string | null
+          city?: string | null
+          complaint_id: string
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          information_source?: string
+          phone?: string | null
+          postal_address_line1?: string | null
+          postal_address_line2?: string | null
+          postal_code?: string | null
+          preferred_language?: string
+          preferred_method: string
+          region?: string | null
+          safe_contact_instructions?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accessibility_needs?: string | null
+          alternative_method?: string | null
+          city?: string | null
+          complaint_id?: string
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          information_source?: string
+          phone?: string | null
+          postal_address_line1?: string | null
+          postal_address_line2?: string | null
+          postal_code?: string | null
+          preferred_language?: string
+          preferred_method?: string
+          region?: string | null
+          safe_contact_instructions?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_contact_preferences_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: true
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_contact_preferences_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: true
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_correspondence: {
         Row: {
           attachments: Json
@@ -4125,6 +4203,189 @@ export type Database = {
           },
         ]
       }
+      complaint_intake_details: {
+        Row: {
+          acknowledgement_received: boolean | null
+          amount_disputed: number | null
+          amount_involved: number | null
+          channel_code: string | null
+          channel_id: string | null
+          channel_other: string | null
+          claimed_loss: number | null
+          complaint_id: string
+          continuing_loss: boolean
+          created_at: string
+          currency: string | null
+          customer_segment: string | null
+          declaration_accepted: boolean
+          declared_at: string | null
+          desired_amount: number | null
+          desired_outcome_other: string | null
+          desired_outcomes: string[]
+          entity_complaint_reference: string | null
+          final_response_date: string | null
+          final_response_received: boolean | null
+          id: string
+          incident_date: string | null
+          incident_date_to: string | null
+          information_sharing_acknowledged: boolean
+          is_ongoing: boolean
+          location: string | null
+          outcome_offered: string | null
+          privacy_notice_acknowledged: boolean
+          privacy_notice_version: string | null
+          product_family: string | null
+          product_id: string | null
+          product_other: string | null
+          raised_with_entity: boolean
+          raised_with_entity_channel: string | null
+          raised_with_entity_date: string | null
+          redress_accepted: boolean | null
+          redress_offered: string | null
+          redress_offered_amount: number | null
+          respondent_contact_permitted: boolean | null
+          sector_id: string | null
+          service_description: string | null
+          still_dissatisfied_reason: string | null
+          suspected_fraud: boolean
+          transaction_reference: string | null
+          updated_at: string
+          urgent_funds_access: boolean
+        }
+        Insert: {
+          acknowledgement_received?: boolean | null
+          amount_disputed?: number | null
+          amount_involved?: number | null
+          channel_code?: string | null
+          channel_id?: string | null
+          channel_other?: string | null
+          claimed_loss?: number | null
+          complaint_id: string
+          continuing_loss?: boolean
+          created_at?: string
+          currency?: string | null
+          customer_segment?: string | null
+          declaration_accepted?: boolean
+          declared_at?: string | null
+          desired_amount?: number | null
+          desired_outcome_other?: string | null
+          desired_outcomes?: string[]
+          entity_complaint_reference?: string | null
+          final_response_date?: string | null
+          final_response_received?: boolean | null
+          id?: string
+          incident_date?: string | null
+          incident_date_to?: string | null
+          information_sharing_acknowledged?: boolean
+          is_ongoing?: boolean
+          location?: string | null
+          outcome_offered?: string | null
+          privacy_notice_acknowledged?: boolean
+          privacy_notice_version?: string | null
+          product_family?: string | null
+          product_id?: string | null
+          product_other?: string | null
+          raised_with_entity?: boolean
+          raised_with_entity_channel?: string | null
+          raised_with_entity_date?: string | null
+          redress_accepted?: boolean | null
+          redress_offered?: string | null
+          redress_offered_amount?: number | null
+          respondent_contact_permitted?: boolean | null
+          sector_id?: string | null
+          service_description?: string | null
+          still_dissatisfied_reason?: string | null
+          suspected_fraud?: boolean
+          transaction_reference?: string | null
+          updated_at?: string
+          urgent_funds_access?: boolean
+        }
+        Update: {
+          acknowledgement_received?: boolean | null
+          amount_disputed?: number | null
+          amount_involved?: number | null
+          channel_code?: string | null
+          channel_id?: string | null
+          channel_other?: string | null
+          claimed_loss?: number | null
+          complaint_id?: string
+          continuing_loss?: boolean
+          created_at?: string
+          currency?: string | null
+          customer_segment?: string | null
+          declaration_accepted?: boolean
+          declared_at?: string | null
+          desired_amount?: number | null
+          desired_outcome_other?: string | null
+          desired_outcomes?: string[]
+          entity_complaint_reference?: string | null
+          final_response_date?: string | null
+          final_response_received?: boolean | null
+          id?: string
+          incident_date?: string | null
+          incident_date_to?: string | null
+          information_sharing_acknowledged?: boolean
+          is_ongoing?: boolean
+          location?: string | null
+          outcome_offered?: string | null
+          privacy_notice_acknowledged?: boolean
+          privacy_notice_version?: string | null
+          product_family?: string | null
+          product_id?: string | null
+          product_other?: string | null
+          raised_with_entity?: boolean
+          raised_with_entity_channel?: string | null
+          raised_with_entity_date?: string | null
+          redress_accepted?: boolean | null
+          redress_offered?: string | null
+          redress_offered_amount?: number | null
+          respondent_contact_permitted?: boolean | null
+          sector_id?: string | null
+          service_description?: string | null
+          still_dissatisfied_reason?: string | null
+          suspected_fraud?: boolean
+          transaction_reference?: string | null
+          updated_at?: string
+          urgent_funds_access?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_intake_details_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_intake_details_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: true
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_intake_details_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: true
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_intake_details_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_intake_details_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_intake_rules: {
         Row: {
           allow_anonymous: boolean
@@ -4229,6 +4490,364 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "report_view_complaints"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_jurisdiction_assessments: {
+        Row: {
+          assessed_at: string | null
+          assessed_by: string | null
+          complaint_id: string
+          created_at: string
+          id: string
+          rationale: string | null
+          referred_to: string | null
+          regulator_id: string | null
+          routing_basis: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assessed_at?: string | null
+          assessed_by?: string | null
+          complaint_id: string
+          created_at?: string
+          id?: string
+          rationale?: string | null
+          referred_to?: string | null
+          regulator_id?: string | null
+          routing_basis?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assessed_at?: string | null
+          assessed_by?: string | null
+          complaint_id?: string
+          created_at?: string
+          id?: string
+          rationale?: string | null
+          referred_to?: string | null
+          regulator_id?: string | null
+          routing_basis?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_jurisdiction_assessments_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: true
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_jurisdiction_assessments_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: true
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_jurisdiction_assessments_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_parties: {
+        Row: {
+          authority_basis: string | null
+          authority_confirmed: boolean
+          authority_evidence_file_id: string | null
+          business_name: string | null
+          complaint_id: string
+          confidentiality: string
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          information_source: string
+          is_primary_contact: boolean
+          notes: string | null
+          party_role: string
+          party_type: string
+          phone: string | null
+          position_or_title: string | null
+          relationship_to_consumer: string | null
+          updated_at: string
+        }
+        Insert: {
+          authority_basis?: string | null
+          authority_confirmed?: boolean
+          authority_evidence_file_id?: string | null
+          business_name?: string | null
+          complaint_id: string
+          confidentiality?: string
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          information_source?: string
+          is_primary_contact?: boolean
+          notes?: string | null
+          party_role: string
+          party_type?: string
+          phone?: string | null
+          position_or_title?: string | null
+          relationship_to_consumer?: string | null
+          updated_at?: string
+        }
+        Update: {
+          authority_basis?: string | null
+          authority_confirmed?: boolean
+          authority_evidence_file_id?: string | null
+          business_name?: string | null
+          complaint_id?: string
+          confidentiality?: string
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          information_source?: string
+          is_primary_contact?: boolean
+          notes?: string | null
+          party_role?: string
+          party_type?: string
+          phone?: string | null
+          position_or_title?: string | null
+          relationship_to_consumer?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_parties_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_parties_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_public_intake_config: {
+        Row: {
+          allow_anonymous: boolean
+          allow_confidential: boolean
+          channel_options: Json
+          created_at: string
+          declaration_text: string | null
+          default_intake_regulator_id: string | null
+          desired_outcome_options: Json
+          id: string
+          is_active: boolean
+          max_attachment_bytes: number
+          max_attachments: number
+          privacy_notice_text: string | null
+          privacy_notice_version: string
+          regulator_id: string | null
+          require_respondent_contact_permission: boolean
+          support_categories: Json
+          tracking_code_ttl_days: number | null
+          updated_at: string
+        }
+        Insert: {
+          allow_anonymous?: boolean
+          allow_confidential?: boolean
+          channel_options?: Json
+          created_at?: string
+          declaration_text?: string | null
+          default_intake_regulator_id?: string | null
+          desired_outcome_options?: Json
+          id?: string
+          is_active?: boolean
+          max_attachment_bytes?: number
+          max_attachments?: number
+          privacy_notice_text?: string | null
+          privacy_notice_version?: string
+          regulator_id?: string | null
+          require_respondent_contact_permission?: boolean
+          support_categories?: Json
+          tracking_code_ttl_days?: number | null
+          updated_at?: string
+        }
+        Update: {
+          allow_anonymous?: boolean
+          allow_confidential?: boolean
+          channel_options?: Json
+          created_at?: string
+          declaration_text?: string | null
+          default_intake_regulator_id?: string | null
+          desired_outcome_options?: Json
+          id?: string
+          is_active?: boolean
+          max_attachment_bytes?: number
+          max_attachments?: number
+          privacy_notice_text?: string | null
+          privacy_notice_version?: string
+          regulator_id?: string | null
+          require_respondent_contact_permission?: boolean
+          support_categories?: Json
+          tracking_code_ttl_days?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_public_intake_config_default_intake_regulator_id_fkey"
+            columns: ["default_intake_regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_public_intake_config_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_respondents: {
+        Row: {
+          address: string | null
+          agent_name: string | null
+          complaint_id: string
+          consumer_notes: string | null
+          country: string | null
+          created_at: string
+          email: string | null
+          id: string
+          information_source: string
+          is_primary: boolean
+          legal_name: string | null
+          license_id: string | null
+          licensee_id: string | null
+          match_state: string
+          online_reference: string | null
+          phone: string | null
+          related_principal_licensee_id: string | null
+          related_principal_name: string | null
+          respondent_role: string
+          service_offered: string | null
+          trading_name: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          agent_name?: string | null
+          complaint_id: string
+          consumer_notes?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          information_source?: string
+          is_primary?: boolean
+          legal_name?: string | null
+          license_id?: string | null
+          licensee_id?: string | null
+          match_state: string
+          online_reference?: string | null
+          phone?: string | null
+          related_principal_licensee_id?: string | null
+          related_principal_name?: string | null
+          respondent_role?: string
+          service_offered?: string | null
+          trading_name?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          agent_name?: string | null
+          complaint_id?: string
+          consumer_notes?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          information_source?: string
+          is_primary?: boolean
+          legal_name?: string | null
+          license_id?: string | null
+          licensee_id?: string | null
+          match_state?: string
+          online_reference?: string | null
+          phone?: string | null
+          related_principal_licensee_id?: string | null
+          related_principal_name?: string | null
+          respondent_role?: string
+          service_offered?: string | null
+          trading_name?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_respondents_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_respondents_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_respondents_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_respondents_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_respondents_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_respondents_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "complaint_respondents_related_principal_licensee_id_fkey"
+            columns: ["related_principal_licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_respondents_related_principal_licensee_id_fkey"
+            columns: ["related_principal_licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
         ]
       }
@@ -4535,6 +5154,63 @@ export type Database = {
         }
         Relationships: []
       }
+      complaint_tracking_credentials: {
+        Row: {
+          code_hash: string
+          code_hint: string | null
+          complaint_id: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          issued_at: string
+          last_used_at: string | null
+          revoked_at: string | null
+          updated_at: string
+          use_count: number
+        }
+        Insert: {
+          code_hash: string
+          code_hint?: string | null
+          complaint_id: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          issued_at?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+          updated_at?: string
+          use_count?: number
+        }
+        Update: {
+          code_hash?: string
+          code_hint?: string | null
+          complaint_id?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          issued_at?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+          updated_at?: string
+          use_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_tracking_credentials_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: true
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_tracking_credentials_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: true
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_types: {
         Row: {
           created_at: string
@@ -4564,6 +5240,66 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      complaint_vulnerability_assessments: {
+        Row: {
+          categories: string[]
+          complaint_id: string
+          consumer_notes: string | null
+          created_at: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string
+          staff_notes: string | null
+          staff_review_state: string
+          support_required: boolean
+          updated_at: string
+        }
+        Insert: {
+          categories?: string[]
+          complaint_id: string
+          consumer_notes?: string | null
+          created_at?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string
+          staff_notes?: string | null
+          staff_review_state?: string
+          support_required?: boolean
+          updated_at?: string
+        }
+        Update: {
+          categories?: string[]
+          complaint_id?: string
+          consumer_notes?: string | null
+          created_at?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string
+          staff_notes?: string | null
+          staff_review_state?: string
+          support_required?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_vulnerability_assessments_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_vulnerability_assessments_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       complaints: {
         Row: {
@@ -13789,7 +14525,7 @@ export type Database = {
           mime_type: string
           scan_status: string
           updated_at: string
-          uploaded_by: string
+          uploaded_by: string | null
         }
         Insert: {
           access_count?: number
@@ -13809,7 +14545,7 @@ export type Database = {
           mime_type: string
           scan_status?: string
           updated_at?: string
-          uploaded_by: string
+          uploaded_by?: string | null
         }
         Update: {
           access_count?: number
@@ -13829,7 +14565,7 @@ export type Database = {
           mime_type?: string
           scan_status?: string
           updated_at?: string
-          uploaded_by?: string
+          uploaded_by?: string | null
         }
         Relationships: []
       }
@@ -25279,25 +26015,34 @@ export type Database = {
       }
       public_intake_events: {
         Row: {
+          context: string | null
           created_at: string
           email: string | null
+          email_hash: string | null
           id: string
           ip_hash: string | null
           kind: string
+          phone_hash: string | null
         }
         Insert: {
+          context?: string | null
           created_at?: string
           email?: string | null
+          email_hash?: string | null
           id?: string
           ip_hash?: string | null
           kind?: string
+          phone_hash?: string | null
         }
         Update: {
+          context?: string | null
           created_at?: string
           email?: string | null
+          email_hash?: string | null
           id?: string
           ip_hash?: string | null
           kind?: string
+          phone_hash?: string | null
         }
         Relationships: []
       }
@@ -37752,6 +38497,10 @@ export type Database = {
         Args: { _payload: Json; _regulator_id: string; _variant: string }
         Returns: Json
       }
+      complaint_intake_persist_structured: {
+        Args: { _complaint_id: string; _payload: Json; _variant: string }
+        Returns: Json
+      }
       complaint_record_closure_review: {
         Args: {
           _complaint_id: string
@@ -40269,6 +41018,10 @@ export type Database = {
         Args: { p_email?: string; p_reference: string }
         Returns: Json
       }
+      get_public_complaint_tracking_v2: {
+        Args: { p_access_code?: string; p_email?: string; p_reference: string }
+        Returns: Json
+      }
       get_registration_reviewer_remarks: {
         Args: { _registration_id: string }
         Returns: string
@@ -42771,6 +43524,14 @@ export type Database = {
           _stage?: string
           _types?: string[]
           _unassigned?: boolean
+        }
+        Returns: Json
+      }
+      public_complaint_intake_submit: {
+        Args: {
+          _idempotency_key?: string
+          _payload: Json
+          _staged_upload_ids?: string[]
         }
         Returns: Json
       }
