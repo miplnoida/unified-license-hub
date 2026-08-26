@@ -46,10 +46,14 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
-  // 1. Authority — an authorised market-conduct user. Regulator and supervisory
-  //    scope are additionally enforced inside the context RPC, which runs as the
-  //    caller.
-  const gate = await requireUserPermission(req, 'market_conduct', 'view');
+  // 1. Authority — generating an advisory is a supervisory analytical act, not a
+  //    read: it consumes a governed model on the regulator's behalf and leaves a
+  //    record in the AI activity register. Read-only officers (auditors, and
+  //    anyone holding market-conduct view alone) can read the facts and any
+  //    recorded advisory, but cannot commission a new one. Regulator and
+  //    supervisory scope are additionally enforced inside the context RPC, which
+  //    runs as the caller.
+  const gate = await requireUserPermission(req, 'market_conduct', 'run_conduct_analytics');
   if (!gate.ok) return gate.response;
   const { userId, authClient, adminClient } = gate;
 
