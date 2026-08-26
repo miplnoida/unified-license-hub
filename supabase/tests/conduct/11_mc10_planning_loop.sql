@@ -356,7 +356,7 @@ BEGIN
   -- X. reassessment closes the loop back onto the attention item
   _res := public.conduct_attention_reassess(_att,'reduced',
     'Remediation evidenced through the information request; residual concern is now low.',
-    'monitor', _iv, (current_date + 90));
+    'continue_monitoring', _iv, (current_date + 90));
   INSERT INTO mc10 VALUES ('reassessment_closes_loop',
     EXISTS (SELECT 1 FROM public.conduct_attention_reassessments
              WHERE attention_id=_att AND intervention_id=_iv AND assessed_by=_maker),
