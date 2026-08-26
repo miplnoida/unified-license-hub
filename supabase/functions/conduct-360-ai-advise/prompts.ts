@@ -93,18 +93,43 @@ Use the "hypotheses" array. Keep "records" and "questions" empty.
 `.trim(),
 };
 
-export function buildSystemPrompt(code: UseCaseCode, useCase: Record<string, unknown>): string {
+export interface GovernedInstruction {
+  instruction_body?: string | null;
+  instruction_template_code?: string | null;
+  instruction_version?: string | null;
+  prohibited_behaviours?: string[] | null;
+  required_caveats?: string[] | null;
+  advisory_classification?: string | null;
+}
+
+export function buildSystemPrompt(
+  code: UseCaseCode,
+  useCase: Record<string, unknown>,
+  governance?: GovernedInstruction,
+): string {
   const allowed = Array.isArray(useCase.allowed_output_classes) ? useCase.allowed_output_classes.join(', ') : '';
   const prohibited = Array.isArray(useCase.prohibited_output_classes) ? useCase.prohibited_output_classes.join(', ') : '';
+  // The governed instruction body registered in the AI instruction register is
+  // authoritative for the common clauses. The code template is the fallback for
+  // the exact version, and the per-use-case task text is always server-held.
+  const common = String(governance?.instruction_body ?? '').trim() || COMMON_RULES;
+  const govProhibited = (governance?.prohibited_behaviours ?? []).filter(Boolean).join(', ');
+  const caveats = (governance?.required_caveats ?? []).filter(Boolean);
   return [
-    COMMON_RULES,
+    common,
     USE_CASE_RULES[code],
-    `GOVERNANCE\nGovernance level: ${String(useCase.governance_level ?? '')}. Human review is mandatory.`,
+    `GOVERNANCE\nGovernance level: ${String(useCase.governance_level ?? '')}. Human review is mandatory.`
+      + (governance?.advisory_classification ? `\nAdvisory classification: ${governance.advisory_classification}.` : ''),
     `Permitted output classes: ${allowed}.\nProhibited output classes: ${prohibited}.`,
-    `Standing limitation that applies to your output: ${String(useCase.limitation_policy ?? '')}`,
-    `Prompt template: ${String(useCase.prompt_template_code ?? '')} version ${String(useCase.prompt_template_version ?? '')}.`,
-  ].join('\n\n');
+    govProhibited ? `Institutionally prohibited behaviours: ${govProhibited}.` : '',
+    caveats.length
+      ? `Caveats that must appear in your limitations:\n${caveats.map((c) => `- ${c}`).join('\n')}`
+      : `Standing limitation that applies to your output: ${String(useCase.limitation_policy ?? '')}`,
+    `Instruction version: ${String(governance?.instruction_template_code ?? useCase.prompt_template_code ?? '')}`
+      + ` ${String(governance?.instruction_version ?? useCase.prompt_template_version ?? '')}.`,
+  ].filter(Boolean).join('\n\n');
 }
+
 
 export function buildUserPrompt(context: Record<string, unknown>): string {
   // Only the governed context is sent: scoped facts, permitted references and
