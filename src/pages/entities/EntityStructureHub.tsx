@@ -461,9 +461,15 @@ export default function EntityStructureHub() {
                   </Select>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Public register entry</p>
+                  <p className="text-xs text-muted-foreground">Current policy applied</p>
+                  <p className="font-medium">
+                    {((overview as any)?.publication_policy_label as string | undefined)
+                      || policies.find((p) => p.key === currentPolicy)?.label
+                      || 'Not set'}
+                  </p>
                   <Link className="text-primary underline" to="/registry/entities">Open the public entity register</Link>
                 </div>
+
               </div>
               <ul className="space-y-1 text-xs text-muted-foreground">
                 {policies.map((p) => (
