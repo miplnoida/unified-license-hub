@@ -1,12 +1,11 @@
 /**
  * Guided "Current step" panel for the complaint workspace.
  *
- * This is the ONLY lifecycle controller in the complaint detail page. The
- * step, the available actions and their target steps all come from the
- * configured Complaint Management Workflow via
- * `get_complaint_tracking` / `get_complaint_available_actions`; the panel just
- * explains them and summarises supporting work (tasks, RFIs, closure/QA,
- * communications) as readiness information.
+ * MC-03: the complaint no longer carries a step-action controller. The canonical
+ * Market Conduct workflow advances on domain events, so this panel renders the
+ * read-only phase panel (`complaint_workflow_state`) plus supporting readiness
+ * (work items, information requests, closure/QA) and routes the officer to the
+ * one workspace where each decision is actually recorded.
  */
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,7 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, ArrowRight, Check, Circle, Clock, Loader2 } from 'lucide-react';
 import { useComplaintRfis } from '@/hooks/useComplaintRfis';
-import { WorkflowActionPanel } from '@/components/complaints/WorkflowActionPanel';
+import { ComplaintPhasePanel } from '@/components/complaints/ComplaintPhasePanel';
+
 import { complaintStatusLabel, complaintStatusVariant } from '@/lib/complaintStatus';
 import { formatDateOnly } from '@/lib/datetime';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
@@ -24,11 +24,9 @@ import {
   buildReadiness,
   deriveWaitingState,
   isClosurePhaseRelevant,
-  stepProgress,
   summariseClosure,
   summariseRfis,
   summariseTasks,
-  yourTaskLine,
   type CaseWorkSection,
   type ComplaintTracking,
   type WorkflowAction,
@@ -134,8 +132,6 @@ export function ComplaintCurrentStepPanel({ complaintId, status, licenseeId, onO
   const waiting = rfiOk && closureOk
     ? deriveWaitingState({ actions, rfi, closure, closurePhase, tracking })
     : null;
-  const progress = stepProgress(tracking?.steps);
-  const task = yourTaskLine(actions);
 
   // Core data for this panel: workflow tracking + available actions.
   if (trackingQ.isLoading || (actionsQ.isLoading && !actionsQ.data)) {
@@ -163,39 +159,20 @@ export function ComplaintCurrentStepPanel({ complaintId, status, licenseeId, onO
 
   return (
     <div className="space-y-4">
-      <Card className="border-primary/30">
-        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 pb-3">
-          <div>
-            <CardTitle className="text-base">Where this case stands</CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              Case status and workflow step are separate: the status describes the complaint, the step describes where
-              it sits in the Complaint Management Workflow.
-            </p>
-          </div>
-          {progress.total > 0 && (
-            <Badge variant="outline">Step {progress.index || '—'} of {progress.total}</Badge>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-md border p-3">
-              <p className="text-xs text-muted-foreground">Case status</p>
-              <Badge variant={complaintStatusVariant(status)} className="mt-1">{complaintStatusLabel(status)}</Badge>
-            </div>
-            <div className="rounded-md border p-3">
-              <p className="text-xs text-muted-foreground">Current workflow step</p>
-              <p className="text-sm font-medium mt-1">{tracking?.current_step_label || 'Not started'}</p>
-              {(tracking?.assigned_user_name || tracking?.assigned_role) && (
-                <p className="text-xs text-muted-foreground">
-                  With {tracking?.assigned_user_name || tracking?.assigned_role}
-                </p>
-              )}
-            </div>
-          </div>
+      {/* Canonical, read-only Market Conduct phase. Progression is driven by the
+          business decision recorded in the owning workspace, never from here. */}
+      <ComplaintPhasePanel complaintId={complaintId} onOpenSection={onOpenSection} />
 
-          {task && (
-            <div className="rounded-md border border-primary/40 bg-primary/5 p-3 text-sm font-medium">{task}</div>
-          )}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Case status</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Case status describes the complaint itself; the phase above describes where it sits in the Market Conduct
+            complaint workflow.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Badge variant={complaintStatusVariant(status)}>{complaintStatusLabel(status)}</Badge>
 
           {waiting && (
             <div className="rounded-md border border-warning/30 bg-warning/10 p-3">
@@ -205,12 +182,9 @@ export function ComplaintCurrentStepPanel({ complaintId, status, licenseeId, onO
               {waiting.detail && <p className="text-xs text-muted-foreground mt-1">{waiting.detail}</p>}
             </div>
           )}
-
-          {tracking?.due_at && (
-            <p className="text-xs text-muted-foreground">Step due {formatDateOnly(tracking.due_at)}</p>
-          )}
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader className="pb-3">
@@ -260,12 +234,6 @@ export function ComplaintCurrentStepPanel({ complaintId, status, licenseeId, onO
         </CardContent>
       </Card>
 
-      <WorkflowActionPanel
-        complaintId={complaintId}
-        currentStepLabel={tracking?.current_step_label ?? null}
-        steps={(tracking?.steps ?? []).map(s => ({ step_key: s.step_key, label: s.label }))}
-        instanceUpdatedAt={tracking?.instance_updated_at ?? null}
-      />
     </div>
   );
 }

@@ -613,7 +613,7 @@ export default function ComplaintDetail() {
               </TabsContent>
 
               <TabsContent value="investigation" className="space-y-4">
-                <ComplaintInvestigationTab complaintId={id!} complaintStatus={complaint.status} />
+                <ComplaintInvestigationTab complaintId={id!} complaintStatus={complaint.status} onOpenSection={openCaseWork} />
                 <p className="text-xs text-muted-foreground">
                   AI investigation support notes and draft response wording are on the{' '}
                   <strong>AI analysis reports</strong> tab.

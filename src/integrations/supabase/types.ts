@@ -43841,6 +43841,10 @@ export type Database = {
       mark_expired_licenses: { Args: never; Returns: number }
       mark_prudential_actions_breached: { Args: never; Returns: number }
       mark_prudential_actions_overdue: { Args: never; Returns: number }
+      mc_complaint_derive_phase_event: {
+        Args: { _complaint_id: string }
+        Returns: string
+      }
       mc_complaint_readiness_sync: {
         Args: { _complaint_id: string }
         Returns: Json
@@ -47944,6 +47948,10 @@ export type Database = {
         Returns: Json
       }
       workflow_hard_delete: { Args: { _workflow_id: string }; Returns: Json }
+      workflow_instance_dispose: {
+        Args: { _classification: string; _instance_id: string; _reason: string }
+        Returns: Json
+      }
       workflow_resolve_actor: { Args: { _claimed: string }; Returns: string }
       workflow_retire: {
         Args: { _reason: string; _workflow_id: string }
