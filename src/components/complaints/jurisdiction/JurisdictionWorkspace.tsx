@@ -66,12 +66,8 @@ const OUTCOME_LABEL: Record<string, string> = {
   OUT_OF_JURISDICTION: 'Outside our role',
 };
 
-const MATCH_STATE_LABEL: Record<string, string> = {
-  matched_current: 'Currently regulated by us',
-  matched_former: 'Formerly regulated by us',
-  unmatched: 'Not matched to a regulated firm',
-  suspected_unlicensed: 'Suspected unauthorised provider',
-};
+
+
 
 interface Props {
   complaintId: string;
