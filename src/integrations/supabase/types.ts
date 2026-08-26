@@ -44225,6 +44225,7 @@ export type Database = {
         }
         Returns: Json
       }
+      conduct_attention_case: { Args: { _id: string }; Returns: Json }
       conduct_attention_create: {
         Args: {
           _emerging_risk_id?: string
@@ -44316,6 +44317,16 @@ export type Database = {
           _intervention_id?: string
           _next_review_date?: string
           _next_step: string
+        }
+        Returns: Json
+      }
+      conduct_attention_register: {
+        Args: {
+          _limit?: number
+          _priority?: string
+          _regulator_id?: string
+          _sector_id?: string
+          _status?: string
         }
         Returns: Json
       }
@@ -44991,6 +45002,7 @@ export type Database = {
       conduct_pattern_require: { Args: { _actions: string[] }; Returns: string }
       conduct_pattern_rule_upsert: { Args: { _payload: Json }; Returns: Json }
       conduct_pattern_run_all: { Args: { _as_of?: string }; Returns: Json }
+      conduct_plan_case: { Args: { _id: string }; Returns: Json }
       conduct_plan_create: {
         Args: {
           _attention_id?: string
@@ -45093,6 +45105,30 @@ export type Database = {
           _title?: string
         }
         Returns: Json
+      }
+      conduct_planning_ai_insight_record: {
+        Args: {
+          _ai_output: Json
+          _attention_id: string
+          _confidence: number
+          _generated_by: string
+          _limitations: string[]
+          _model: string
+          _model_version: string
+          _plan_id: string
+          _prompt_template_version: string
+          _provider: string
+          _regulator_id: string
+          _sector_id: string
+          _snapshot_fingerprint: string
+          _source_references: Json
+          _subject_key: string
+          _subject_type: string
+          _title?: string
+          _uncertainty: string
+          _use_case_code: string
+        }
+        Returns: string
       }
       conduct_planning_coverage: {
         Args: { _regulator_id?: string; _sector_id?: string }

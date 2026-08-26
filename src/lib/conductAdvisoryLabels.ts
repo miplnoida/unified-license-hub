@@ -27,10 +27,34 @@ export const EMERGING_RISK_ADVISORY_USE_CASES = [
   'EMERGING_RISK_HYPOTHESIS',
 ] as const;
 
+/** Advisory types for a supervisory attention item (MC-10). */
+export const ATTENTION_ADVISORY_USE_CASES = [
+  'ATTENTION_SUMMARY',
+  'PLANNING_RECORDS_TO_REVIEW',
+  'PLANNING_QUESTIONS',
+  'INTERVENTION_OPTIONS',
+  'FOLLOWUP_CONSIDERATIONS',
+] as const;
+
+/** Advisory types for a supervisory plan (MC-10). */
+export const PLAN_ADVISORY_USE_CASES = [
+  'SUPERVISORY_PLAN_DRAFT',
+  'PLANNING_QUESTIONS',
+  'INTERVENTION_OPTIONS',
+] as const;
+
 export type EntityAdvisoryUseCase = (typeof ADVISORY_USE_CASES)[number];
 export type ThemeAdvisoryUseCase = (typeof THEME_ADVISORY_USE_CASES)[number];
 export type EmergingRiskAdvisoryUseCase = (typeof EMERGING_RISK_ADVISORY_USE_CASES)[number];
-export type AdvisoryUseCase = EntityAdvisoryUseCase | ThemeAdvisoryUseCase | EmergingRiskAdvisoryUseCase;
+export type PlanningAdvisoryUseCase =
+  | (typeof ATTENTION_ADVISORY_USE_CASES)[number]
+  | (typeof PLAN_ADVISORY_USE_CASES)[number];
+export type AdvisoryUseCase =
+  | EntityAdvisoryUseCase
+  | ThemeAdvisoryUseCase
+  | EmergingRiskAdvisoryUseCase
+  | PlanningAdvisoryUseCase;
+
 
 interface UseCaseMeta {
   label: string;
@@ -90,7 +114,38 @@ export const USE_CASE_META: Record<AdvisoryUseCase, UseCaseMeta> = {
     purpose: 'Possible explanations a supervisor could test against the linked records.',
     caveat: 'Hypothesis — not a risk rating, finding or decision.',
   },
+  ATTENTION_SUMMARY: {
+    label: 'Attention summary',
+    purpose: 'A narrative summary of the recorded facts behind this supervisory attention item.',
+    caveat: 'Summary of recorded facts only. It sets no priority, plan or supervisory decision.',
+  },
+  PLANNING_RECORDS_TO_REVIEW: {
+    label: 'Records to review before planning',
+    purpose: 'Records a supervisor may want to open before settling a supervisory response.',
+    caveat: 'Suggestions for supervisory attention only. No record is changed by this advice.',
+  },
+  PLANNING_QUESTIONS: {
+    label: 'Planning questions',
+    purpose: 'Draft questions a supervisor may consider while shaping the response.',
+    caveat: 'Working material only. Nothing is issued to an entity from here.',
+  },
+  INTERVENTION_OPTIONS: {
+    label: 'Intervention options to consider',
+    purpose: 'Options drawn only from the approved intervention catalogue, for a supervisor to weigh.',
+    caveat: 'Options for consideration only. No intervention is proposed, approved or initiated by this advice.',
+  },
+  SUPERVISORY_PLAN_DRAFT: {
+    label: 'Draft plan wording',
+    purpose: 'Draft objective, scope and milestone wording a supervisor may adopt, edit or discard.',
+    caveat: 'Drafting help only. The plan, its objective and its approval remain supervisory decisions.',
+  },
+  FOLLOWUP_CONSIDERATIONS: {
+    label: 'Follow-up considerations',
+    purpose: 'Matters a supervisor may want to weigh when reassessing whether the concern is resolved.',
+    caveat: 'Considerations only. It closes nothing and resolves no concern.',
+  },
 };
+
 
 
 export const ADVISORY_LABEL = 'AI suggestion — requires human review';
