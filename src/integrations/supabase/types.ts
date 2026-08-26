@@ -44617,6 +44617,10 @@ export type Database = {
           object_type: string
         }[]
       }
+      conduct_entity_planning_links: {
+        Args: { _licensee_id: string }
+        Returns: Json
+      }
       conduct_entity_profile_summary: {
         Args: { _entity_id: string }
         Returns: Json
