@@ -152,21 +152,16 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
       if (error || data?.error) {
         toast.error(data?.error || error?.message || 'Failed to create user');
       } else {
-        const newUserId = data?.user?.id;
-        if (newUserId) {
-          await supabase.from('entity_user_access' as any).insert({
-            user_id: newUserId,
-            entity_id: entityId,
-            access_type: userType === 'primary' ? 'primary_user' : 'secondary_contact',
-            is_active: true,
-          });
-        }
+        // Entity membership + access rows are provisioned server-side by the
+        // create-web-user function (client inserts were blocked by RLS and
+        // failed silently, leaving users without Returns access).
         toast.success(`${userType === 'primary' ? 'Primary' : 'Secondary'} user created. Credentials sent to ${email.trim()}`);
         resetForm();
         setOpen(false);
         await loadUsers();
         setPrimaryRefreshKey(k => k + 1);
       }
+
     } catch (e: any) {
       toast.error(e.message || 'Unexpected error');
     } finally {
