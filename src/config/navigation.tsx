@@ -5,7 +5,7 @@ import {
   SlidersHorizontal, DollarSign, CreditCard, BookOpen, Briefcase,
   CalendarCheck, LayoutGrid, Mail, CalendarDays, Clock, Timer, FileBarChart,
   Activity, ClipboardEdit, Database, ClipboardCheck, Microscope, History, Gavel, ShieldCheck, Radar, Sparkles,
-  ListChecks, GraduationCap,
+  ListChecks, GraduationCap, Network,
 } from 'lucide-react';
 import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
 import type { PermissionModule } from '@/lib/permissionModules';
