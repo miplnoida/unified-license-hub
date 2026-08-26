@@ -45250,6 +45250,57 @@ export type Database = {
         }
         Returns: Json
       }
+      conduct_mi_dashboard: {
+        Args: {
+          _period_end?: string
+          _period_start?: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
+        Returns: Json
+      }
+      conduct_mi_drilldown: {
+        Args: {
+          _limit?: number
+          _metric_code: string
+          _period_end?: string
+          _period_start?: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
+        Returns: Json
+      }
+      conduct_mi_period_compare: {
+        Args: {
+          _period_end: string
+          _period_start: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
+        Returns: Json
+      }
+      conduct_mi_records: {
+        Args: {
+          _metric_code: string
+          _period_end: string
+          _period_start: string
+          _sectors: string[]
+        }
+        Returns: {
+          detail: Json
+          occurred_at: string
+          record_id: string
+          record_type: string
+          reference: string
+          route: string
+          sector_id: string
+          title: string
+        }[]
+      }
+      conduct_mi_scope_header: {
+        Args: { _period_end: string; _period_start: string; _sectors: string[] }
+        Returns: Json
+      }
       conduct_monitoring_directive_upsert: {
         Args: {
           _closure_id?: string
