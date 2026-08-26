@@ -36,7 +36,6 @@ import { TotalSlaBadge } from '@/components/workflows/TotalSlaBadge';
 import { CollaborativeReview } from '@/components/collab-review/CollaborativeReview';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 import { ComplaintTrackingTimeline } from '@/components/complaints/ComplaintTrackingTimeline';
-import { WorkflowActionPanel } from '@/components/complaints/WorkflowActionPanel';
 import { VulnerabilityReviewBanner } from '@/components/complaints/VulnerabilityReviewBanner';
 import { ComplaintRfiTab } from '@/components/complaints/ComplaintRfiTab';
 import { ComplaintClosureSection } from '@/components/complaints/ComplaintClosureSection';
@@ -46,10 +45,10 @@ import { ComplaintEntityCard } from '@/components/complaints/ComplaintEntityCard
 
 import type { CaseSection, CaseWorkSection } from '@/lib/complaintWorkflow';
 
-// Lifecycle mutations (assign / resolve / close / escalate / severity) are
-// driven exclusively by the Complaint Management Workflow via
-// <WorkflowActionPanel>. Notification dispatch is owned by
-// `execute_complaint_workflow_action` → notification_outbox — never React.
+// Lifecycle progression is owned by the canonical "Market Conduct — Consumer
+// Complaint" workflow and advances server-side on domain events. The Current
+// step tab is read-only over `complaint_workflow_state` via
+// <ComplaintPhasePanel>; notification dispatch is server-owned, never React.
 
 import { complaintStatusLabel, complaintStatusVariant } from '@/lib/complaintStatus';
 import { ConductRelatedCasesPanel } from '@/components/conduct/ConductRelatedCasesPanel';
@@ -88,9 +87,8 @@ export default function ComplaintDetail() {
   };
   const openCaseWork = (nextSub: CaseWorkSection) => goSection('casework', nextSub);
 
-  // Only presentation + data-helper state remains. All lifecycle mutations
-  // (assign / resolve / close / escalate / notice / decision / appeal / payment)
-  // execute through <WorkflowActionPanel>, surfaced on the Current step tab.
+  // Only presentation + data-helper state remains. The complaint's phase is
+  // derived server-side and shown read-only on the Current step tab.
 
   const [severity, setSeverity] = useState<string>('');
   const [severityOverride, setSeverityOverride] = useState<null | { from: string; to: string }>(null);
@@ -208,8 +206,8 @@ export default function ComplaintDetail() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ['complaint', id] });
 
   // takeInvestigation / resolve / close / escalate lifecycle mutations were
-  // removed — they now run through <WorkflowActionPanel> in the Tracking tab,
-  // driven by the Complaint Management Workflow.
+  // removed — the canonical Market Conduct workflow moves the case when the
+  // owning business decision is recorded in its workspace.
 
 
 
@@ -266,9 +264,9 @@ export default function ComplaintDetail() {
     setSeverityOverride({ from: current, to: severity });
   }
 
-  // resolve / close / escalate lifecycle mutations were removed. All three
-  // now execute through <WorkflowActionPanel> → `execute_complaint_workflow_action`,
-  // which handles state transition, audit log, and notification-outbox rows.
+  // resolve / close / escalate lifecycle mutations were removed. The phase now
+  // changes server-side through `mc_complaint_workflow_sync`, which handles the
+  // transition, audit log, and notification-outbox rows.
 
   // Entity mapping (licensed vs applicant entity), its search fallback and the
   // link mutation all live in <ComplaintEntityCard>. This query only supplies
@@ -655,9 +653,9 @@ export default function ComplaintDetail() {
 
             <Card>
               <CardContent className="pt-6 text-sm text-muted-foreground">
-                These are classification and case-setup details, not lifecycle steps. The complaint only progresses
-                through the workflow action shown on the <strong>Current step</strong> tab, exactly as configured in
-                the Complaint Management Workflow.
+                These are classification and case-setup details, not lifecycle steps. The complaint's phase changes
+                when the owning business decision is recorded; the <strong>Current step</strong> tab shows where the
+                case sits on the Market Conduct — Consumer Complaint workflow.
               </CardContent>
             </Card>
               </TabsContent>
