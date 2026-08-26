@@ -8,7 +8,7 @@
  * the phase panel on "Current step" is read-only over the server's state.
  *
  * Order of work: gate → plan → allegations → evidence → representations →
- * work items → readiness → internal notes.
+ * work items → readiness → activity timeline → internal notes.
  */
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -36,6 +36,8 @@ import { EvidenceWorkspace } from '@/components/complaints/investigation/Evidenc
 import { RepresentationsPanel } from '@/components/complaints/investigation/RepresentationsPanel';
 import { InvestigationTasksPanel } from '@/components/complaints/investigation/InvestigationTasksPanel';
 import { InvestigationReadinessPanel } from '@/components/complaints/investigation/InvestigationReadinessPanel';
+import { InvestigationRfiLinkPanel } from '@/components/complaints/investigation/InvestigationRfiLinkPanel';
+import { InvestigationTimelinePanel } from '@/components/complaints/investigation/InvestigationTimelinePanel';
 
 interface Props {
   complaintId: string;
@@ -179,9 +181,11 @@ export default function ComplaintInvestigationTab({ complaintId, onOpenSection }
       <InvestigationPlanPanel complaintId={complaintId} workspace={ws} onOpenSection={onOpenSection} />
       <AllegationsRegister complaintId={complaintId} workspace={ws} />
       <EvidenceWorkspace complaintId={complaintId} workspace={ws} />
+      <InvestigationRfiLinkPanel workspace={ws} onOpenSection={onOpenSection} />
       <RepresentationsPanel complaintId={complaintId} workspace={ws} />
       <InvestigationTasksPanel complaintId={complaintId} workspace={ws} />
       <InvestigationReadinessPanel workspace={ws} onOpenSection={onOpenSection} />
+      <InvestigationTimelinePanel complaintId={complaintId} />
 
       {/* Internal notes — governed insert only (complaint_note_add). */}
       <Card>
