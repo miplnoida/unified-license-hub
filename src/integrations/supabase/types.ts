@@ -45319,6 +45319,25 @@ export type Database = {
         }
         Returns: Json
       }
+      conduct_mi_entity_coverage: {
+        Args: {
+          _limit?: number
+          _period_end?: string
+          _period_start?: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
+        Returns: Json
+      }
+      conduct_mi_outcome_reporting: {
+        Args: {
+          _period_end?: string
+          _period_start?: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
+        Returns: Json
+      }
       conduct_mi_period_compare: {
         Args: {
           _period_end: string
@@ -45346,8 +45365,26 @@ export type Database = {
           title: string
         }[]
       }
+      conduct_mi_risk_reporting: {
+        Args: {
+          _period_end?: string
+          _period_start?: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
+        Returns: Json
+      }
       conduct_mi_scope_header: {
         Args: { _period_end: string; _period_start: string; _sectors: string[] }
+        Returns: Json
+      }
+      conduct_mi_sector_coverage: {
+        Args: {
+          _period_end?: string
+          _period_start?: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
         Returns: Json
       }
       conduct_monitoring_directive_upsert: {
