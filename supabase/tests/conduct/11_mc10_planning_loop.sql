@@ -5,7 +5,7 @@
 -- resolved through public.has_permission -> sec_has_permission ->
 -- sec_user_permissions, and scoped by public.regulatory_scope_allows.
 BEGIN;
-SELECT plan(30);
+SELECT plan(40);
 
 -- ---------------- structure and lockdown ----------------
 SELECT ok(
