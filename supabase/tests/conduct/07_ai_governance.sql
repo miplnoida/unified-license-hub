@@ -1,6 +1,6 @@
 -- MC-07.2 — Conduct 360 AI governance backend (no model calls, advisory only).
 BEGIN;
-SELECT plan(14);
+SELECT plan(19);
 
 -- 1 the five approved use cases exist, and only those
 SELECT is(
