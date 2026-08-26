@@ -1,7 +1,7 @@
 -- MC-09 CERTIFICATION — cross-entity supervisory intelligence, emerging risk
 -- assessment layer and the governed AI advisory boundary for cross-entity subjects.
 BEGIN;
-SELECT plan(20);
+SELECT plan(23);
 
 -- 1 deterministic fact operations exist
 SELECT ok(
