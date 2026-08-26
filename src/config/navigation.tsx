@@ -180,6 +180,13 @@ export const mainNavSections: NavSection[] = [
     ],
   },
   {
+    label: 'Governance',
+    items: [
+      { label: 'AI Governance', href: '/governance/ai', icon: <ShieldCheck className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'ai_management' as PermissionModule },
+      { label: 'AI Activity Register', href: '/governance/ai/activity', icon: <ScrollText className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'ai_management' as PermissionModule },
+    ],
+  },
+  {
     label: 'Fit & Proper',
     items: [
       // Ordered to read as the 17-step F&P process itself: overview, then

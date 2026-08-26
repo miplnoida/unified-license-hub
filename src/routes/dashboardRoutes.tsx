@@ -106,6 +106,8 @@ const SurveillanceWorkspace = lazy(() => import('@/pages/conduct/SurveillanceWor
 const ConductSignals = lazy(() => import('@/pages/conduct/ConductSignals'));
 const ConductSignalDetail = lazy(() => import('@/pages/conduct/ConductSignalDetail'));
 const ConductPatterns = lazy(() => import('@/pages/conduct/ConductPatterns'));
+const AiGovernanceOverview = lazy(() => import('@/pages/governance/ai/AiGovernanceOverview'));
+const AiActivityRegister = lazy(() => import('@/pages/governance/ai/AiActivityRegister'));
 const ConductPatternDetail = lazy(() => import('@/pages/conduct/ConductPatternDetail'));
 const Conduct360 = lazy(() => import('@/pages/conduct/Conduct360'));
 
@@ -260,6 +262,8 @@ export const dashboardRoutes = (
     <Route path="/conduct" element={<M module="market_conduct"><ConductDashboard /></M>} />
     <Route path="/conduct/signals" element={<M module="market_conduct"><ConductSignals /></M>} />
     <Route path="/conduct/signals/:id" element={<M module="market_conduct"><ConductSignalDetail /></M>} />
+    <Route path="/governance/ai" element={<M module="ai_management"><AiGovernanceOverview /></M>} />
+    <Route path="/governance/ai/activity" element={<M module="ai_management"><AiActivityRegister /></M>} />
     <Route path="/conduct/patterns" element={<M module="market_conduct"><ConductPatterns /></M>} />
     <Route path="/conduct/patterns/:id" element={<M module="market_conduct"><ConductPatternDetail /></M>} />
 
