@@ -1,10 +1,23 @@
-# Market Conduct Supervisory System — Current State (EPIC MC-00)
+# Market Conduct Supervisory System — Current State
 
-Status: Baseline established. This is the repository truth document required by the Master Plan
-before any MC-01+ feature work begins. Every statement below was verified against the live
-database schema and the repository source on the date of writing.
+Programme status:
+
+| Epic | Scope | Status |
+| --- | --- | --- |
+| MC-00 | Repository truth & canonicalisation | BUILT / CERTIFIED |
+| MC-01 | Public complaint intake (7-step wizard, parties, respondents, tracking) | BUILT / TESTED / CERTIFIED |
+| MC-02 | Jurisdiction assessment & risk-based triage | BUILT / TESTED / CERTIFIED |
+| MC-03 | Investigation & casework | NOT STARTED |
+
+Detail: `docs/product/market-conduct/MC-02_JURISDICTION_TRIAGE.md`.
+Certification evidence: `docs/certification/market-conduct/MC-02_CERTIFICATION.md`.
+
+The baseline below is the MC-00 repository truth document, retained as the record of the
+starting position; it was verified against the live database schema and repository source
+on the date of writing, and sections it marks for replacement were delivered by MC-01/MC-02.
 
 ---
+
 
 ## 1. Method
 

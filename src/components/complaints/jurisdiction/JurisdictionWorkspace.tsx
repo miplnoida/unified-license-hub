@@ -32,6 +32,8 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 import { formatDateTime } from '@/lib/datetime';
+import { respondentMatchStateLabel } from '@/lib/complaints/respondentMatchState';
+
 import { AlertTriangle, CheckCircle2, Clock, HelpCircle, Loader2, Scale } from 'lucide-react';
 
 type FactorResult = 'YES' | 'NO' | 'UNKNOWN' | 'NOT_APPLICABLE' | 'MORE_INFORMATION_REQUIRED';
@@ -66,12 +68,8 @@ const OUTCOME_LABEL: Record<string, string> = {
   OUT_OF_JURISDICTION: 'Outside our role',
 };
 
-const MATCH_STATE_LABEL: Record<string, string> = {
-  matched_current: 'Currently regulated by us',
-  matched_former: 'Formerly regulated by us',
-  unmatched: 'Not matched to a regulated firm',
-  suspected_unlicensed: 'Suspected unauthorised provider',
-};
+
+
 
 interface Props {
   complaintId: string;
@@ -242,7 +240,11 @@ export function JurisdictionWorkspace({ complaintId, onJurisdictionDecided }: Pr
     return <QueryErrorState message="Failed to load the jurisdiction assessment" onRetry={() => q.refetch()} />;
   }
 
-  const openInfoRequests: any[] = (data?.information_requests ?? []).filter((r: any) => !r.responded_at);
+  // Outstanding = the authoritative server state, never an inferred timestamp.
+  const openInfoRequests: any[] = (data?.information_requests ?? []).filter(
+    (r: any) => String(r.status ?? '').toUpperCase() === 'OPEN',
+  );
+
 
   return (
     <div className="space-y-4">
@@ -271,7 +273,7 @@ export function JurisdictionWorkspace({ complaintId, onJurisdictionDecided }: Pr
                   {r.legal_name}
                   {r.trading_name ? ` (${r.trading_name})` : ''}
                   <span className="block text-xs text-muted-foreground">
-                    {MATCH_STATE_LABEL[r.match_state] ?? r.match_state ?? 'Match state not recorded'}
+                    {respondentMatchStateLabel(r.match_state)}
                   </span>
                 </p>
               ))}

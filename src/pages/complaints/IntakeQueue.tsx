@@ -25,7 +25,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 import { formatDateTime } from '@/lib/datetime';
+import {
+  RESPONDENT_MATCH_STATE_LABEL,
+  respondentMatchStateLabel,
+} from '@/lib/complaints/respondentMatchState';
 import { Search } from 'lucide-react';
+
 
 const J_STATUS_LABEL: Record<string, string> = {
   PENDING_ASSESSMENT: 'Awaiting assessment',
@@ -34,12 +39,8 @@ const J_STATUS_LABEL: Record<string, string> = {
   DECIDED: 'Decision made',
 };
 
-const MATCH_LABEL: Record<string, string> = {
-  matched_current: 'Currently regulated',
-  matched_former: 'Formerly regulated',
-  unmatched: 'Unmatched',
-  suspected_unlicensed: 'Suspected unauthorised',
-};
+const MATCH_LABEL = RESPONDENT_MATCH_STATE_LABEL;
+
 
 const ANY = 'any';
 
@@ -111,10 +112,16 @@ export default function IntakeQueue() {
       onClick: () => { setSupportState('pending'); setPage(1); },
     },
     {
-      label: 'Suspected unauthorised providers',
+      label: 'Suspected unauthorized providers',
       value: counts.suspected_unauthorised ?? 0,
-      onClick: () => { setMatchState('suspected_unlicensed'); setPage(1); },
+      onClick: () => { setMatchState('SUSPECTED_UNAUTHORISED'); setPage(1); },
     },
+    {
+      label: 'Entities not yet matched',
+      value: counts.unmatched_respondents ?? 0,
+      onClick: () => { setMatchState('UNMATCHED'); setPage(1); },
+    },
+
   ];
 
   return (
@@ -223,7 +230,7 @@ export default function IntakeQueue() {
                       <td className="py-2 pr-3">
                         <p>{r.respondent_name || 'Not identified'}</p>
                         <p className="text-xs text-muted-foreground">
-                          {MATCH_LABEL[r.respondent_match_state] ?? 'Match state not recorded'}
+                          {respondentMatchStateLabel(r.respondent_match_state)}
                         </p>
                       </td>
                       <td className="py-2 pr-3">
