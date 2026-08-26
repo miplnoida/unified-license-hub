@@ -43985,6 +43985,70 @@ export type Database = {
         }
         Returns: Json
       }
+      conduct_intervention_case: { Args: { _id: string }; Returns: Json }
+      conduct_intervention_decide: {
+        Args: { _decision: string; _id: string; _rationale: string }
+        Returns: Json
+      }
+      conduct_intervention_guard: {
+        Args: { _actions: string[]; _id: string }
+        Returns: {
+          activated_at: string | null
+          basis: string
+          completed_at: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_rationale: string | null
+          emerging_risk_id: string | null
+          expected_outcome: string | null
+          id: string
+          intervention_type: string
+          licensee_id: string | null
+          outcome_note: string | null
+          owner_id: string | null
+          planned_end: string | null
+          planned_start: string | null
+          priority_score_id: string | null
+          proposed_at: string
+          proposed_by: string
+          reference: string
+          regulator_id: string | null
+          sector_id: string | null
+          status: string
+          theme: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "conduct_interventions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      conduct_intervention_propose: {
+        Args: {
+          _basis: string
+          _emerging_risk_id?: string
+          _expected_outcome?: string
+          _intervention_type: string
+          _licensee_id?: string
+          _owner_id?: string
+          _planned_end?: string
+          _planned_start?: string
+          _priority_score_id?: string
+          _regulator_id?: string
+          _sector_id?: string
+          _theme?: string
+          _title: string
+        }
+        Returns: Json
+      }
+      conduct_intervention_transition: {
+        Args: { _id: string; _rationale: string; _to_status: string }
+        Returns: Json
+      }
       conduct_investigation_available_actions: {
         Args: { _investigation_id: string }
         Returns: Json
@@ -44050,6 +44114,23 @@ export type Database = {
       conduct_pattern_require: { Args: { _actions: string[] }; Returns: string }
       conduct_pattern_rule_upsert: { Args: { _payload: Json }; Returns: Json }
       conduct_pattern_run_all: { Args: { _as_of?: string }; Returns: Json }
+      conduct_planning_scope: {
+        Args: { _regulator_id: string; _sector_id: string; _uid: string }
+        Returns: string[]
+      }
+      conduct_priority_compute: {
+        Args: {
+          _config_code?: string
+          _regulator_id?: string
+          _sector_id?: string
+          _window_days?: number
+        }
+        Returns: Json
+      }
+      conduct_priority_register: {
+        Args: { _limit?: number; _run_id?: string }
+        Returns: Json
+      }
       conduct_related_cases: {
         Args: { _case_id: string; _case_type: string }
         Returns: Json
