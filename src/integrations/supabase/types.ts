@@ -38874,6 +38874,47 @@ export type Database = {
       }
     }
     Views: {
+      ai_governance_activity_v: {
+        Row: {
+          activity_id: string | null
+          activity_kind: string | null
+          advisory_classification: string | null
+          citation_count: number | null
+          conduct_ai_insight_id: string | null
+          confidence: number | null
+          entity_id: string | null
+          has_human_wording: boolean | null
+          human_rationale: string | null
+          latency_ms: number | null
+          limitations: string[] | null
+          model: string | null
+          model_version: string | null
+          occurred_at: string | null
+          outcome: string | null
+          owning_module: string | null
+          prompt_template_code: string | null
+          prompt_template_version: string | null
+          provider: string | null
+          reason_code: string | null
+          regulator_id: string | null
+          requested_by: string | null
+          requested_role: string | null
+          review_state: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sector_id: string | null
+          snapshot_fingerprint: string | null
+          staleness_checked_at: string | null
+          staleness_state: string | null
+          uncertainty: string | null
+          use_case_code: string | null
+          use_case_label: string | null
+          use_case_lifecycle: string | null
+          window_end: string | null
+          window_start: string | null
+        }
+        Relationships: []
+      }
       audit_timeline: {
         Row: {
           action: string | null
@@ -40454,6 +40495,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      ai_governance_exceptions: {
+        Args: { _limit?: number }
+        Returns: {
+          activity_id: string
+          activity_kind: string
+          detail: string
+          entity_id: string
+          exception_code: string
+          occurred_at: string
+          severity: string
+          use_case_code: string
+        }[]
+      }
       ai_governance_instruction_save: {
         Args: {
           _allowed_fact_scope?: string
@@ -40485,6 +40539,15 @@ export type Database = {
           _technical_identifier: string
         }
         Returns: string
+      }
+      ai_governance_overview: {
+        Args: {
+          _from?: string
+          _module?: string
+          _to?: string
+          _use_case_code?: string
+        }
+        Returns: Json
       }
       ai_governance_record_attempt: {
         Args: {
@@ -40544,6 +40607,24 @@ export type Database = {
           _use_case_code: string
         }
         Returns: Json
+      }
+      ai_governance_version_impact: {
+        Args: { _dimension?: string }
+        Returns: {
+          accepted: number
+          avg_confidence: number
+          avg_review_hours: number
+          cohort: string
+          low_confidence: number
+          modified: number
+          no_citation: number
+          not_reviewed: number
+          rejected: number
+          stale: number
+          sufficient_volume: boolean
+          superseded: number
+          volume: number
+        }[]
       }
       ai_insight_review: {
         Args: {
