@@ -1,0 +1,18 @@
+REVOKE ALL ON FUNCTION public.workflow_admin_guard() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.workflow_retire(uuid,text) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.workflow_hard_delete(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.mc_complaint_workflow_definition() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.mc_complaint_workflow_sync(uuid,text) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.mc_complaint_readiness_sync(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.complaint_workflow_state(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.trg_mc_complaint_created() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.trg_mc_jurisdiction_decided() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.trg_mc_triage_confirmed() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.trg_mc_plan_approved() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.trg_mc_readiness_recheck() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.workflow_retire(uuid,text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.workflow_hard_delete(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.mc_complaint_workflow_definition() TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.mc_complaint_workflow_sync(uuid,text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.mc_complaint_readiness_sync(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.complaint_workflow_state(uuid) TO authenticated;
