@@ -100,15 +100,39 @@ export interface AttentionRegister {
 
 export interface CoverageGap { id: string; reference: string; title?: string | null }
 
-export interface PlanningCoverage {
-  high_priority_without_plan: CoverageGap[];
+export interface PlanningCoverageGaps {
+  high_priority_without_plan: Array<CoverageGap & { priority?: string | null }>;
+  plans_awaiting_approval: Array<CoverageGap & { submitted_at?: string | null }>;
   approved_plan_without_intervention: CoverageGap[];
   overdue_intervention: Array<CoverageGap & { planned_end?: string | null }>;
   completed_without_outcome: CoverageGap[];
   outstanding_followup: Array<CoverageGap & { followup_due?: string | null }>;
+  followup_overdue: Array<CoverageGap & { followup_due?: string | null }>;
+  followup_done_awaiting_reassessment: CoverageGap[];
   confirmed_risk_without_response: CoverageGap[];
-  [key: string]: unknown;
+  reassessment_overdue: Array<CoverageGap & { target_review_date?: string | null }>;
 }
+
+export interface PlanningCoverageOverview {
+  attention_by_priority: Record<string, number>;
+  attention_open: number;
+  plans_awaiting_approval: number;
+  active_plans: number;
+  active_interventions: number;
+  completed_interventions: number;
+  entities_covered: number;
+  sectors_covered: number;
+  upcoming_milestones: Array<{ plan_id: string; plan_reference: string; title: string; due_date: string | null }>;
+}
+
+export interface PlanningCoverage {
+  sectors_in_view: string[] | 'all';
+  overview: PlanningCoverageOverview;
+  gaps: PlanningCoverageGaps;
+  caveat: string;
+  method: string;
+}
+
 
 export interface AttentionCase {
   attention: Record<string, unknown> & AttentionRow & {
@@ -547,5 +571,216 @@ export function useInitiateIntervention() {
         _ai_insight_id: input.aiInsightId ?? null,
       }),
     onSuccess: (_d, vars) => invalidate(vars.attentionId ?? undefined, vars.planId ?? undefined),
+  });
+}
+
+/* -------------------------------------------- intervention case file (MC-10) */
+
+export type InterventionStatusMc10 =
+  | 'PROPOSED' | 'ENDORSED' | 'REJECTED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+
+export const INTERVENTION_NEXT_STATUS: Record<InterventionStatusMc10, InterventionStatusMc10[]> = {
+  PROPOSED: ['CANCELLED'],
+  ENDORSED: ['ACTIVE', 'CANCELLED'],
+  REJECTED: [],
+  ACTIVE: ['COMPLETED', 'CANCELLED'],
+  COMPLETED: [],
+  CANCELLED: [],
+};
+
+export interface InterventionRecord {
+  id: string;
+  reference: string;
+  title: string;
+  status: InterventionStatusMc10;
+  intervention_type: string;
+  catalogue_code: string | null;
+  basis: string;
+  purpose: string | null;
+  expected_outcome: string | null;
+  theme: string | null;
+  sector_id: string | null;
+  licensee_id: string | null;
+  attention_id: string | null;
+  plan_id: string | null;
+  emerging_risk_id: string | null;
+  planned_start: string | null;
+  planned_end: string | null;
+  actual_start: string | null;
+  actual_end: string | null;
+  proposed_at: string | null;
+  decided_at: string | null;
+  decision_rationale: string | null;
+  activated_at: string | null;
+  completed_at: string | null;
+  canonical_module: string | null;
+  canonical_record_id: string | null;
+  canonical_reference: string | null;
+  canonical_route: string | null;
+  evidence: unknown;
+  outcome_result: string | null;
+  outcome_rationale: string | null;
+  outcome_findings: string | null;
+  outstanding_actions: string | null;
+  outcome_recorded_at: string | null;
+  followup_due_date: string | null;
+  followup_note: string | null;
+  followup_completed_at: string | null;
+  ai_insight_id: string | null;
+}
+
+export interface InterventionExceptions {
+  delivery_overdue: boolean;
+  outcome_missing: boolean;
+  followup_missing: boolean;
+  followup_overdue: boolean;
+  reassessment_outstanding: boolean;
+}
+
+export interface InterventionCaseMc10 {
+  intervention: InterventionRecord;
+  catalogue: InterventionType | null;
+  licensee_name: string | null;
+  sector_name: string | null;
+  emerging_risk: { id: string; reference: string; title: string; status: string; severity: string } | null;
+  attention: {
+    id: string; reference: string; title: string; status: AttentionStatus;
+    confirmed_priority: PriorityBand | null; calculated_priority: PriorityBand | null;
+    supervisory_basis: string; emerging_risk_id: string | null; entity_ids: string[] | null;
+    linked_evidence: unknown;
+  } | null;
+  plan: { id: string; reference: string; title: string; status: PlanStatus; objective: string | null; objective_source: string } | null;
+  entities: Array<{ id: string; name: string }>;
+  reassessments: AttentionCase['reassessments'];
+  proposed_by_name: string | null;
+  decided_by_name: string | null;
+  outcome_recorded_by_name: string | null;
+  owner_name: string | null;
+  exceptions: InterventionExceptions;
+  events: Array<{
+    id: string; event_type: string; from_status: string | null; to_status: string | null;
+    rationale: string | null; actor_name: string | null; created_at: string;
+  }>;
+  method: string;
+}
+
+export interface EntityPlanningLinks {
+  attention_items: Array<Pick<AttentionRow, 'id' | 'reference' | 'title' | 'status' | 'confirmed_priority' | 'calculated_priority' | 'target_review_date'>>;
+  plans: Array<{ id: string; reference: string; title: string; status: PlanStatus; target_completion: string | null }>;
+  interventions: Array<{
+    id: string; reference: string; title: string; catalogue_code: string | null;
+    status: InterventionStatusMc10; outcome_result: string | null; planned_end: string | null;
+    followup_due_date: string | null; followup_completed_at: string | null;
+  }>;
+  emerging_risks: Array<{ id: string; reference: string; title: string; status: string; severity: string }>;
+  method: string;
+}
+
+export const interventionKeys = {
+  caseFile: (id?: string) => ['conduct-intervention-case-mc10', id] as const,
+  entityLinks: (id?: string) => ['conduct-entity-planning-links', id] as const,
+};
+
+export function useInterventionCaseMc10(id: string | undefined) {
+  return useQuery({
+    queryKey: interventionKeys.caseFile(id),
+    enabled: Boolean(id),
+    retry: false,
+    queryFn: () => rpc<InterventionCaseMc10>('conduct_intervention_case', { _id: id }),
+  });
+}
+
+export function useEntityPlanningLinks(licenseeId: string | undefined) {
+  return useQuery({
+    queryKey: interventionKeys.entityLinks(licenseeId),
+    enabled: Boolean(licenseeId),
+    retry: false,
+    staleTime: 60_000,
+    queryFn: () => rpc<EntityPlanningLinks>('conduct_entity_planning_links', { _licensee_id: licenseeId }),
+  });
+}
+
+function useInvalidateIntervention(id: string | undefined) {
+  const qc = useQueryClient();
+  return () => {
+    void qc.invalidateQueries({ queryKey: interventionKeys.caseFile(id) });
+    void qc.invalidateQueries({ queryKey: ['conduct-attention-register'] });
+    void qc.invalidateQueries({ queryKey: ['conduct-interventions'] });
+    void qc.invalidateQueries({ queryKey: attentionKeys.coverage() });
+    void qc.invalidateQueries({ queryKey: ['conduct-attention-case'] });
+    void qc.invalidateQueries({ queryKey: ['conduct-plan-case'] });
+  };
+}
+
+/** Endorse or refuse a proposed intervention. The server refuses the proposer. */
+export function useDecideInterventionMc10(id: string | undefined) {
+  const invalidate = useInvalidateIntervention(id);
+  return useMutation({
+    mutationFn: (args: { decision: 'ENDORSED' | 'REJECTED'; rationale: string }) =>
+      rpc('conduct_intervention_decide', { _id: id, _decision: args.decision, _rationale: args.rationale }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useTransitionInterventionMc10(id: string | undefined) {
+  const invalidate = useInvalidateIntervention(id);
+  return useMutation({
+    mutationFn: (args: { toStatus: InterventionStatusMc10; rationale: string }) =>
+      rpc('conduct_intervention_transition', { _id: id, _to_status: args.toStatus, _rationale: args.rationale }),
+    onSuccess: invalidate,
+  });
+}
+
+export interface InterventionOutcomeInput {
+  result: string;
+  rationale: string;
+  findings?: string | null;
+  outstandingActions?: string | null;
+  followupDueDate?: string | null;
+  followupNote?: string | null;
+  actualStart?: string | null;
+  actualEnd?: string | null;
+}
+
+export function useRecordInterventionOutcome(id: string | undefined) {
+  const invalidate = useInvalidateIntervention(id);
+  return useMutation({
+    mutationFn: (input: InterventionOutcomeInput) =>
+      rpc('conduct_intervention_record_outcome', {
+        _id: id,
+        _result: input.result,
+        _rationale: input.rationale,
+        _findings: input.findings ?? null,
+        _outstanding_actions: input.outstandingActions ?? null,
+        _evidence: [],
+        _followup_due_date: input.followupDueDate ?? null,
+        _followup_note: input.followupNote ?? null,
+        _actual_start: input.actualStart ?? null,
+        _actual_end: input.actualEnd ?? null,
+      }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useRecordInterventionFollowup(id: string | undefined) {
+  const invalidate = useInvalidateIntervention(id);
+  return useMutation({
+    mutationFn: (args: { note: string; dueDate?: string | null; completed?: boolean }) =>
+      rpc('conduct_intervention_record_followup', {
+        _id: id, _note: args.note, _due_date: args.dueDate ?? null, _completed: args.completed ?? false,
+      }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useLinkInterventionCanonical(id: string | undefined) {
+  const invalidate = useInvalidateIntervention(id);
+  return useMutation({
+    mutationFn: (args: { module: string; recordId: string; reference?: string | null; route?: string | null }) =>
+      rpc('conduct_intervention_link_canonical', {
+        _id: id, _module: args.module, _record_id: args.recordId,
+        _reference: args.reference ?? null, _route: args.route ?? null,
+      }),
+    onSuccess: invalidate,
   });
 }

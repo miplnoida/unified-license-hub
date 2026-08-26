@@ -12,6 +12,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { RaiseAttentionFromRisk } from '@/components/conduct/planning/RaiseAttentionFromRisk';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -258,6 +259,8 @@ export default function EmergingRiskDetail() {
             )}
           </div>
         )}
+
+        <RaiseAttentionFromRisk risk={risk} canOperate={canAct} />
 
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2">

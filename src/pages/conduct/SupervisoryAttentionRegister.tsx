@@ -142,7 +142,9 @@ export default function SupervisoryAttentionRegister() {
     }
   };
 
-  const gaps = coverage.data;
+  const gaps = coverage.data?.gaps;
+  const overview = coverage.data?.overview;
+
 
   return (
     <DashboardLayout>
@@ -372,45 +374,95 @@ export default function SupervisoryAttentionRegister() {
           ) : !gaps ? (
             <p className="text-sm text-muted-foreground">Coverage information is unavailable.</p>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              <GapList
-                title="High priority without a plan"
-                description="Confirmed immediate or high priority with no supervisory plan recorded."
-                rows={gaps.high_priority_without_plan ?? []}
-                onOpen={(id) => navigate(`/conduct/attention/${id}`)}
-              />
-              <GapList
-                title="Approved plans without an intervention"
-                description="Plans approved or active with nothing yet initiated under them."
-                rows={gaps.approved_plan_without_intervention ?? []}
-                onOpen={(id) => navigate(`/conduct/plans/${id}`)}
-              />
-              <GapList
-                title="Overdue interventions"
-                description="In progress past their planned end date."
-                rows={gaps.overdue_intervention ?? []}
-                onOpen={(id) => navigate(`/conduct/interventions/${id}`)}
-              />
-              <GapList
-                title="Completed without a recorded outcome"
-                description="Completed interventions where no supervisory outcome has been recorded."
-                rows={gaps.completed_without_outcome ?? []}
-                onOpen={(id) => navigate(`/conduct/interventions/${id}`)}
-              />
-              <GapList
-                title="Outstanding follow-up"
-                description="Follow-up is due and has not been completed."
-                rows={gaps.outstanding_followup ?? []}
-                onOpen={(id) => navigate(`/conduct/interventions/${id}`)}
-              />
-              <GapList
-                title="Confirmed risks without a response"
-                description="Confirmed emerging conduct risks with no attention item raised."
-                rows={gaps.confirmed_risk_without_response ?? []}
-                onOpen={(id) => navigate(`/conduct/emerging-risks/${id}`)}
-              />
-            </div>
+            <>
+              {overview && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Where supervisory effort currently sits</CardTitle>
+                    <CardDescription>{coverage.data?.caveat}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+                    {[
+                      ['Open attention', overview.attention_open],
+                      ['Plans awaiting approval', overview.plans_awaiting_approval],
+                      ['Plans in progress', overview.active_plans],
+                      ['Interventions in progress', overview.active_interventions],
+                      ['Interventions completed', overview.completed_interventions],
+                      ['Entities covered', overview.entities_covered],
+                    ].map(([label, value]) => (
+                      <div key={String(label)}>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+                        <p className="font-mono text-2xl">{Number(value ?? 0)}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+              <div className="grid gap-4 md:grid-cols-2">
+                <GapList
+                  title="High priority without a plan"
+                  description="Confirmed immediate or high priority with no supervisory plan recorded."
+                  rows={gaps.high_priority_without_plan ?? []}
+                  onOpen={(id) => navigate(`/conduct/attention/${id}`)}
+                />
+                <GapList
+                  title="Plans awaiting approval"
+                  description="Submitted plans that still need a second supervisor's decision."
+                  rows={gaps.plans_awaiting_approval ?? []}
+                  onOpen={(id) => navigate(`/conduct/plans/${id}`)}
+                />
+                <GapList
+                  title="Approved plans without an intervention"
+                  description="Plans approved or active with nothing yet initiated under them."
+                  rows={gaps.approved_plan_without_intervention ?? []}
+                  onOpen={(id) => navigate(`/conduct/plans/${id}`)}
+                />
+                <GapList
+                  title="Overdue interventions"
+                  description="In progress past their planned end date."
+                  rows={gaps.overdue_intervention ?? []}
+                  onOpen={(id) => navigate(`/conduct/interventions/${id}`)}
+                />
+                <GapList
+                  title="Completed without a recorded outcome"
+                  description="Completed interventions where no supervisory outcome has been recorded."
+                  rows={gaps.completed_without_outcome ?? []}
+                  onOpen={(id) => navigate(`/conduct/interventions/${id}`)}
+                />
+                <GapList
+                  title="Outstanding follow-up"
+                  description="Follow-up is due and has not been completed."
+                  rows={gaps.outstanding_followup ?? []}
+                  onOpen={(id) => navigate(`/conduct/interventions/${id}`)}
+                />
+                <GapList
+                  title="Overdue follow-up"
+                  description="Follow-up is past its due date and still outstanding."
+                  rows={gaps.followup_overdue ?? []}
+                  onOpen={(id) => navigate(`/conduct/interventions/${id}`)}
+                />
+                <GapList
+                  title="Follow-up done, concern not reassessed"
+                  description="The loop is not yet closed back to the attention item."
+                  rows={gaps.followup_done_awaiting_reassessment ?? []}
+                  onOpen={(id) => navigate(`/conduct/interventions/${id}`)}
+                />
+                <GapList
+                  title="Reassessment overdue"
+                  description="The target review date for the attention item has passed."
+                  rows={gaps.reassessment_overdue ?? []}
+                  onOpen={(id) => navigate(`/conduct/attention/${id}`)}
+                />
+                <GapList
+                  title="Confirmed risks without a response"
+                  description="Confirmed emerging conduct risks with no attention item raised."
+                  rows={gaps.confirmed_risk_without_response ?? []}
+                  onOpen={(id) => navigate(`/conduct/emerging-risks/${id}`)}
+                />
+              </div>
+            </>
           )}
+
         </TabsContent>
       </Tabs>
 
