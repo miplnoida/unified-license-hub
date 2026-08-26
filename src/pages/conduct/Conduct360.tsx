@@ -461,6 +461,10 @@ export default function Conduct360() {
                 Prepared from regulatory records on {formatDateTime(snapshot.generated_at)}
               </p>
             )}
+
+            {/* AI advisory layer — separated from the fact layer above */}
+            <AdvisoryPanel entityId={entityId} windowChoice={choice} canOperate={canOperateAdvisory} />
+
           </div>
         )}
       </div>
