@@ -101,7 +101,10 @@ async function main() {
 
   // ------------------------------------------------------------------ G
   const outOfRemit = await rpc(SUPERVISOR, 'conduct_priority_compute', { _window_days: 90, _sector_id: FAKE_UUID });
-  record('G an out-of-remit sector fails closed', denied(outOfRemit), `HTTP ${outOfRemit.status}`);
+  // Either an authority refusal (403) or an explicit unknown-sector rejection
+  // (400) is acceptable: both refuse to widen the population.
+  record('G an out-of-remit sector fails closed',
+    denied(outOfRemit) || outOfRemit.status === 400, `HTTP ${outOfRemit.status} ${String(outOfRemit.text).slice(0, 120)}`);
 
   // ------------------------------------------------------------------ H / I
   const thinBasis = await rpc(ANALYST, 'conduct_intervention_propose', {
