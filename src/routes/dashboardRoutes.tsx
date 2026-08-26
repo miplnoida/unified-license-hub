@@ -108,6 +108,9 @@ const ConductSignalDetail = lazy(() => import('@/pages/conduct/ConductSignalDeta
 const ConductPatterns = lazy(() => import('@/pages/conduct/ConductPatterns'));
 const SupervisoryIntelligence = lazy(() => import('@/pages/conduct/SupervisoryIntelligence'));
 const EmergingRisksRegister = lazy(() => import('@/pages/conduct/EmergingRisksRegister'));
+const ConductPrioritisation = lazy(() => import('@/pages/conduct/ConductPrioritisation'));
+const InterventionsRegister = lazy(() => import('@/pages/conduct/InterventionsRegister'));
+const InterventionDetail = lazy(() => import('@/pages/conduct/InterventionDetail'));
 const EmergingRiskDetail = lazy(() => import('@/pages/conduct/EmergingRiskDetail'));
 const AiGovernanceOverview = lazy(() => import('@/pages/governance/ai/AiGovernanceOverview'));
 const AiActivityRegister = lazy(() => import('@/pages/governance/ai/AiActivityRegister'));
@@ -290,6 +293,9 @@ export const dashboardRoutes = (
     <Route path="/conduct/supervisory-intelligence" element={<M module="market_conduct"><SupervisoryIntelligence /></M>} />
     <Route path="/conduct/emerging-risks" element={<M module="market_conduct"><EmergingRisksRegister /></M>} />
     <Route path="/conduct/emerging-risks/:riskId" element={<M module="market_conduct"><EmergingRiskDetail /></M>} />
+    <Route path="/conduct/prioritisation" element={<M module="market_conduct"><ConductPrioritisation /></M>} />
+    <Route path="/conduct/interventions" element={<M module="market_conduct"><InterventionsRegister /></M>} />
+    <Route path="/conduct/interventions/:id" element={<M module="market_conduct"><InterventionDetail /></M>} />
 
     <Route path="/conduct/alerts" element={<M module="market_conduct"><ConductAlerts /></M>} />
     <Route path="/conduct/surveillance" element={<M module="market_conduct"><SurveillanceWorkspace /></M>} />
