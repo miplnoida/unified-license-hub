@@ -3630,11 +3630,17 @@ export type Database = {
           final_communication_ref: string | null
           id: string
           outcome_category: string | null
+          outcome_id: string | null
+          qa_checklist: Json | null
+          qa_findings: string | null
+          qa_policy_basis: string | null
+          qa_policy_id: string | null
           qa_required: boolean
           rationale: string | null
           resolution_summary: string | null
           reviewer_id: string | null
           stage: string
+          submitted_by: string | null
           superseded: boolean
         }
         Insert: {
@@ -3647,11 +3653,17 @@ export type Database = {
           final_communication_ref?: string | null
           id?: string
           outcome_category?: string | null
+          outcome_id?: string | null
+          qa_checklist?: Json | null
+          qa_findings?: string | null
+          qa_policy_basis?: string | null
+          qa_policy_id?: string | null
           qa_required?: boolean
           rationale?: string | null
           resolution_summary?: string | null
           reviewer_id?: string | null
           stage?: string
+          submitted_by?: string | null
           superseded?: boolean
         }
         Update: {
@@ -3664,11 +3676,17 @@ export type Database = {
           final_communication_ref?: string | null
           id?: string
           outcome_category?: string | null
+          outcome_id?: string | null
+          qa_checklist?: Json | null
+          qa_findings?: string | null
+          qa_policy_basis?: string | null
+          qa_policy_id?: string | null
           qa_required?: boolean
           rationale?: string | null
           resolution_summary?: string | null
           reviewer_id?: string | null
           stage?: string
+          submitted_by?: string | null
           superseded?: boolean
         }
         Relationships: [
@@ -3684,6 +3702,20 @@ export type Database = {
             columns: ["complaint_id"]
             isOneToOne: false
             referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_closure_reviews_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_closure_reviews_qa_policy_id_fkey"
+            columns: ["qa_policy_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_qa_policies"
             referencedColumns: ["id"]
           },
         ]
@@ -5461,6 +5493,102 @@ export type Database = {
           },
         ]
       }
+      complaint_outcomes: {
+        Row: {
+          allegation_outcome_snapshot: Json
+          communication_basis: string | null
+          communication_required: boolean
+          complaint_id: string
+          consumer_harm_summary: string | null
+          created_at: string
+          created_by: string | null
+          harm_level: string | null
+          id: string
+          is_current: boolean
+          outcome_rationale: string | null
+          overall_outcome: string | null
+          recommended_closure_route: string | null
+          redress_rationale: string | null
+          redress_required: boolean
+          regulator_id: string | null
+          reviewer_id: string | null
+          row_version: number
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          allegation_outcome_snapshot?: Json
+          communication_basis?: string | null
+          communication_required?: boolean
+          complaint_id: string
+          consumer_harm_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          harm_level?: string | null
+          id?: string
+          is_current?: boolean
+          outcome_rationale?: string | null
+          overall_outcome?: string | null
+          recommended_closure_route?: string | null
+          redress_rationale?: string | null
+          redress_required?: boolean
+          regulator_id?: string | null
+          reviewer_id?: string | null
+          row_version?: number
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          allegation_outcome_snapshot?: Json
+          communication_basis?: string | null
+          communication_required?: boolean
+          complaint_id?: string
+          consumer_harm_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          harm_level?: string | null
+          id?: string
+          is_current?: boolean
+          outcome_rationale?: string | null
+          overall_outcome?: string | null
+          recommended_closure_route?: string | null
+          redress_rationale?: string | null
+          redress_required?: boolean
+          regulator_id?: string | null
+          reviewer_id?: string | null
+          row_version?: number
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_outcomes_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_outcomes_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_parties: {
         Row: {
           authority_basis: string | null
@@ -5619,6 +5747,380 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      complaint_qa_policies: {
+        Row: {
+          applies_when: Json
+          checklist: Json
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          label: string
+          policy_basis: string
+          priority: number
+          qa_required: boolean
+          regulator_id: string | null
+          reviewer_role: string | null
+          updated_at: string
+        }
+        Insert: {
+          applies_when?: Json
+          checklist?: Json
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          policy_basis: string
+          priority?: number
+          qa_required?: boolean
+          regulator_id?: string | null
+          reviewer_role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          applies_when?: Json
+          checklist?: Json
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          policy_basis?: string
+          priority?: number
+          qa_required?: boolean
+          regulator_id?: string | null
+          reviewer_role?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      complaint_reconsiderations: {
+        Row: {
+          admissibility_at: string | null
+          admissibility_by: string | null
+          admissibility_decision: string | null
+          admissibility_rationale: string | null
+          complaint_id: string
+          created_at: string
+          created_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision: string | null
+          decision_rationale: string | null
+          grounds: string
+          id: string
+          original_closure_review_id: string | null
+          original_outcome_id: string | null
+          received_at: string
+          reference: string | null
+          requester_contact: string | null
+          requester_name: string
+          requester_party_id: string | null
+          requester_type: string
+          reviewer_assigned_at: string | null
+          reviewer_assigned_by: string | null
+          reviewer_id: string | null
+          row_version: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admissibility_at?: string | null
+          admissibility_by?: string | null
+          admissibility_decision?: string | null
+          admissibility_rationale?: string | null
+          complaint_id: string
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          decision_rationale?: string | null
+          grounds: string
+          id?: string
+          original_closure_review_id?: string | null
+          original_outcome_id?: string | null
+          received_at?: string
+          reference?: string | null
+          requester_contact?: string | null
+          requester_name: string
+          requester_party_id?: string | null
+          requester_type?: string
+          reviewer_assigned_at?: string | null
+          reviewer_assigned_by?: string | null
+          reviewer_id?: string | null
+          row_version?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admissibility_at?: string | null
+          admissibility_by?: string | null
+          admissibility_decision?: string | null
+          admissibility_rationale?: string | null
+          complaint_id?: string
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          decision_rationale?: string | null
+          grounds?: string
+          id?: string
+          original_closure_review_id?: string | null
+          original_outcome_id?: string | null
+          received_at?: string
+          reference?: string | null
+          requester_contact?: string | null
+          requester_name?: string
+          requester_party_id?: string | null
+          requester_type?: string
+          reviewer_assigned_at?: string | null
+          reviewer_assigned_by?: string | null
+          reviewer_id?: string | null
+          row_version?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_reconsiderations_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_reconsiderations_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_reconsiderations_original_closure_review_id_fkey"
+            columns: ["original_closure_review_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_closure_reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_reconsiderations_original_outcome_id_fkey"
+            columns: ["original_outcome_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_reconsiderations_requester_party_id_fkey"
+            columns: ["requester_party_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_redress: {
+        Row: {
+          action_required: string
+          affected_party_label: string
+          allegation_id: string | null
+          amount: number | null
+          cancelled_reason: string | null
+          complaint_id: string
+          completed_at: string | null
+          completed_by: string | null
+          completion_evidence_file_id: string | null
+          completion_note: string | null
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          due_date: string | null
+          id: string
+          is_required: boolean
+          outcome_id: string | null
+          party_id: string | null
+          rationale: string | null
+          redress_type_id: string | null
+          responsible_entity: string | null
+          responsible_licensee_id: string | null
+          row_version: number
+          status: string
+          updated_at: string
+          updated_by: string | null
+          verification_note: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          action_required: string
+          affected_party_label: string
+          allegation_id?: string | null
+          amount?: number | null
+          cancelled_reason?: string | null
+          complaint_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_evidence_file_id?: string | null
+          completion_note?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          due_date?: string | null
+          id?: string
+          is_required?: boolean
+          outcome_id?: string | null
+          party_id?: string | null
+          rationale?: string | null
+          redress_type_id?: string | null
+          responsible_entity?: string | null
+          responsible_licensee_id?: string | null
+          row_version?: number
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          verification_note?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          action_required?: string
+          affected_party_label?: string
+          allegation_id?: string | null
+          amount?: number | null
+          cancelled_reason?: string | null
+          complaint_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_evidence_file_id?: string | null
+          completion_note?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          due_date?: string | null
+          id?: string
+          is_required?: boolean
+          outcome_id?: string | null
+          party_id?: string | null
+          rationale?: string | null
+          redress_type_id?: string | null
+          responsible_entity?: string | null
+          responsible_licensee_id?: string | null
+          row_version?: number
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          verification_note?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_redress_allegation_id_fkey"
+            columns: ["allegation_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_allegations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_redress_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_redress_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_redress_completion_evidence_file_id_fkey"
+            columns: ["completion_evidence_file_id"]
+            isOneToOne: false
+            referencedRelation: "file_uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_redress_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_redress_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_redress_redress_type_id_fkey"
+            columns: ["redress_type_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_redress_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_redress_types: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          regulator_id: string | null
+          requires_amount: boolean
+          requires_due_date: boolean
+          requires_evidence: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          regulator_id?: string | null
+          requires_amount?: boolean
+          requires_due_date?: boolean
+          requires_evidence?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          regulator_id?: string | null
+          requires_amount?: boolean
+          requires_due_date?: boolean
+          requires_evidence?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       complaint_referrals: {
         Row: {
@@ -40015,6 +40517,18 @@ export type Database = {
         Returns: Json
       }
       complaint_case: { Args: { _complaint_id: string }; Returns: Json }
+      complaint_close: {
+        Args: {
+          _complaint_id: string
+          _expected_updated_at?: string
+          _payload?: Json
+        }
+        Returns: Json
+      }
+      complaint_closure_readiness: {
+        Args: { _complaint_id: string }
+        Returns: Json
+      }
       complaint_evidence_assess: {
         Args: {
           _evidence_id: string
@@ -40195,6 +40709,62 @@ export type Database = {
         Args: { _body: string; _complaint_id: string; _subject?: string }
         Returns: Json
       }
+      complaint_outcome_gate: { Args: { _complaint_id: string }; Returns: Json }
+      complaint_outcome_get: { Args: { _complaint_id: string }; Returns: Json }
+      complaint_outcome_save: {
+        Args: {
+          _complaint_id: string
+          _expected_row_version?: number
+          _payload: Json
+        }
+        Returns: string
+      }
+      complaint_outcome_submit: {
+        Args: { _complaint_id: string; _expected_row_version?: number }
+        Returns: Json
+      }
+      complaint_qa_record: {
+        Args: {
+          _checklist?: Json
+          _complaint_id: string
+          _decision: string
+          _findings: string
+          _rationale: string
+        }
+        Returns: string
+      }
+      complaint_qa_requirement: {
+        Args: { _complaint_id: string }
+        Returns: Json
+      }
+      complaint_qa_submit_for_review: {
+        Args: { _complaint_id: string; _note?: string; _reviewer_id?: string }
+        Returns: string
+      }
+      complaint_reconsideration_assign_reviewer: {
+        Args: { _reconsideration_id: string; _reviewer_id: string }
+        Returns: undefined
+      }
+      complaint_reconsideration_decide: {
+        Args: {
+          _decision: string
+          _rationale: string
+          _reconsideration_id: string
+        }
+        Returns: Json
+      }
+      complaint_reconsideration_decide_admissibility: {
+        Args: {
+          _decision: string
+          _rationale: string
+          _reconsideration_id: string
+        }
+        Returns: undefined
+      }
+      complaint_reconsideration_request: {
+        Args: { _complaint_id: string; _payload: Json }
+        Returns: string
+      }
       complaint_record_closure_review: {
         Args: {
           _complaint_id: string
@@ -40208,6 +40778,28 @@ export type Database = {
           _reviewer_id?: string
         }
         Returns: string
+      }
+      complaint_redress_cancel: {
+        Args: { _reason: string; _redress_id: string }
+        Returns: undefined
+      }
+      complaint_redress_complete: {
+        Args: {
+          _evidence_file_id?: string
+          _expected_row_version?: number
+          _note: string
+          _redress_id: string
+        }
+        Returns: undefined
+      }
+      complaint_redress_save: { Args: { _payload: Json }; Returns: string }
+      complaint_redress_verify: {
+        Args: {
+          _expected_row_version?: number
+          _note: string
+          _redress_id: string
+        }
+        Returns: undefined
       }
       complaint_referral_mark_referred: {
         Args: {
