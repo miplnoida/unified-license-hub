@@ -50,9 +50,11 @@ export default function ConductSignals() {
   const [page, setPage] = useState(0);
   const [raiseOpen, setRaiseOpen] = useState(false);
 
-  const canManage = useCan('market_conduct', 'manage_complaints')
-    || useCan('market_conduct', 'run_conduct_analytics')
-    || useCan('market_conduct', 'manage_monitoring_rules');
+  const canComplaints = useCan('market_conduct', 'manage_complaints');
+  const canAnalytics = useCan('market_conduct', 'run_conduct_analytics');
+  const canRules = useCan('market_conduct', 'manage_monitoring_rules');
+  const canManage = canComplaints || canAnalytics || canRules;
+
 
   const { data: staff = [] } = useInternalUsers();
   const { data: sectors = [] } = useSectors();
