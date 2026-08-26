@@ -161,6 +161,8 @@ export const mainNavSections: NavSection[] = [
       { label: 'Market Surveillance', href: '/conduct/surveillance', icon: <Radar className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Conduct Signals', href: '/conduct/signals', icon: <Radar className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Pattern Detection', href: '/conduct/patterns', icon: <Network className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
+      { label: 'Supervisory Intelligence', href: '/conduct/supervisory-intelligence', icon: <Microscope className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
+      { label: 'Emerging Conduct Risks', href: '/conduct/emerging-risks', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
 
       { label: 'Conduct Alerts', href: '/conduct/alerts', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Conduct Actions', href: '/conduct/actions', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
