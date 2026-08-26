@@ -314,7 +314,7 @@ BEGIN
 
   -- U. canonical linkage is retained
   PERFORM set_config('request.jwt.claims', json_build_object('sub',_maker,'role','authenticated')::text, true);
-  _res := public.conduct_intervention_transition(_iv,'IN_PROGRESS','Information request issued to the entity.');
+  _res := public.conduct_intervention_transition(_iv,'ACTIVE','Information request issued to the entity.');
   DECLARE _thread uuid;
   BEGIN
     SELECT id INTO _thread FROM public.correspondence_threads ORDER BY created_at DESC LIMIT 1;
