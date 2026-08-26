@@ -7,7 +7,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-import { cn } from '@/lib/utils';
+
 
 export type Classification = 'FACT' | 'RULE_OUTCOME' | 'AI_SUGGESTION' | 'HUMAN_DECISION';
 
