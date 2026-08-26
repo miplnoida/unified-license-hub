@@ -4890,6 +4890,7 @@ export type Database = {
           effective_from: string
           effective_to: string | null
           id: string
+          is_platform_template: boolean
           name: string
           published_at: string | null
           published_by: string | null
@@ -4909,6 +4910,7 @@ export type Database = {
           effective_from?: string
           effective_to?: string | null
           id?: string
+          is_platform_template?: boolean
           name: string
           published_at?: string | null
           published_by?: string | null
@@ -4928,6 +4930,7 @@ export type Database = {
           effective_from?: string
           effective_to?: string | null
           id?: string
+          is_platform_template?: boolean
           name?: string
           published_at?: string | null
           published_by?: string | null
@@ -39262,6 +39265,7 @@ export type Database = {
           effective_from: string
           effective_to: string | null
           id: string
+          is_platform_template: boolean
           name: string
           published_at: string | null
           published_by: string | null
@@ -39287,6 +39291,10 @@ export type Database = {
           _rationale?: string
           _result: string
         }
+        Returns: Json
+      }
+      complaint_jurisdiction_sla: {
+        Args: { _regulator_id: string }
         Returns: Json
       }
       complaint_jurisdiction_start: {
@@ -39425,6 +39433,10 @@ export type Database = {
           _payload: Json
         }
         Returns: Json
+      }
+      complaint_triage_gate_ok: {
+        Args: { _complaint_id: string }
+        Returns: boolean
       }
       complaint_triage_inputs: {
         Args: { _complaint_id: string }
