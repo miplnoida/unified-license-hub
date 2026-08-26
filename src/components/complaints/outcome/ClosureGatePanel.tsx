@@ -226,30 +226,43 @@ export function ClosureGatePanel({ complaintId, complaintUpdatedAt, onOpenOutcom
               {mode === 'submit_qa' ? 'Send for quality review'
                 : mode === 'qa_pass' ? 'Pass the quality review'
                 : mode === 'qa_return' ? 'Return for correction'
+                : mode === 'letter' ? 'Issue the outcome letter to the consumer'
                 : 'Approve and close the complaint'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            {(mode === 'qa_pass' || mode === 'qa_return') && (
+            {(mode === 'qa_pass' || mode === 'qa_return' || mode === 'letter') && (
               <div>
-                <Label>Review findings</Label>
-                <Textarea rows={3} value={findings} onChange={(e) => setFindings(e.target.value)} placeholder="What the review examined and observed." />
+                <Label>{mode === 'letter' ? 'Letter subject (optional)' : 'Review findings'}</Label>
+                {mode === 'letter'
+                  ? <Textarea rows={1} value={findings} onChange={(e) => setFindings(e.target.value)} placeholder="Outcome of your complaint" />
+                  : <Textarea rows={3} value={findings} onChange={(e) => setFindings(e.target.value)} placeholder="What the review examined and observed." />}
               </div>
             )}
             <div>
-              <Label>{mode === 'submit_qa' ? 'Note for the reviewer' : 'Reasons for this decision'}</Label>
-              <Textarea rows={4} value={rationale} onChange={(e) => setRationale(e.target.value)} />
+              <Label>
+                {mode === 'submit_qa' ? 'Note for the reviewer'
+                  : mode === 'letter' ? 'Letter to the consumer'
+                  : 'Reasons for this decision'}
+              </Label>
+              <Textarea
+                rows={mode === 'letter' ? 8 : 4}
+                value={rationale}
+                onChange={(e) => setRationale(e.target.value)}
+                placeholder={mode === 'letter' ? 'Explain the outcome, the reasons for it and any remedy the consumer will receive.' : undefined}
+              />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMode(null)}>Cancel</Button>
-            <Button onClick={confirm} disabled={submitForQa.isPending || recordQa.isPending || closeComplaint.isPending}>
-              {(submitForQa.isPending || recordQa.isPending || closeComplaint.isPending) && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+            <Button onClick={confirm} disabled={submitForQa.isPending || recordQa.isPending || closeComplaint.isPending || issueOutcomeLetter.isPending}>
+              {(submitForQa.isPending || recordQa.isPending || closeComplaint.isPending || issueOutcomeLetter.isPending) && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
               Confirm
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }
