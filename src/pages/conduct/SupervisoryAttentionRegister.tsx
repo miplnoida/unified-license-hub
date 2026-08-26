@@ -142,7 +142,9 @@ export default function SupervisoryAttentionRegister() {
     }
   };
 
-  const gaps = coverage.data;
+  const gaps = coverage.data?.gaps;
+  const overview = coverage.data?.overview;
+
 
   return (
     <DashboardLayout>
