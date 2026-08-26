@@ -10078,6 +10078,154 @@ export type Database = {
         }
         Relationships: []
       }
+      conduct_evidence_pack_exports: {
+        Row: {
+          exported_at: string
+          exported_by: string | null
+          format: string
+          id: string
+          pack_id: string
+          scope: Json
+          version: number
+        }
+        Insert: {
+          exported_at?: string
+          exported_by?: string | null
+          format: string
+          id?: string
+          pack_id: string
+          scope?: Json
+          version: number
+        }
+        Update: {
+          exported_at?: string
+          exported_by?: string | null
+          format?: string
+          id?: string
+          pack_id?: string
+          scope?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_evidence_pack_exports_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_evidence_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_evidence_pack_versions: {
+        Row: {
+          ai_assistance: Json
+          definition_version: string
+          facts_signature: string
+          generated_at: string
+          generated_by: string | null
+          id: string
+          metric_package: Json
+          pack_id: string
+          regeneration_reason: string | null
+          snapshot: Json
+          source_record_ids: Json
+          version: number
+        }
+        Insert: {
+          ai_assistance?: Json
+          definition_version: string
+          facts_signature: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          metric_package?: Json
+          pack_id: string
+          regeneration_reason?: string | null
+          snapshot: Json
+          source_record_ids?: Json
+          version: number
+        }
+        Update: {
+          ai_assistance?: Json
+          definition_version?: string
+          facts_signature?: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          metric_package?: Json
+          pack_id?: string
+          regeneration_reason?: string | null
+          snapshot?: Json
+          source_record_ids?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_evidence_pack_versions_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_evidence_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_evidence_packs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          current_version: number
+          id: string
+          pack_type: string
+          period_end: string
+          period_start: string
+          reference: string
+          regulator_id: string | null
+          sector_id: string | null
+          sectors_in_view: string[]
+          status: string
+          subject_id: string | null
+          subject_key: string
+          subject_label: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          id?: string
+          pack_type: string
+          period_end: string
+          period_start: string
+          reference: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          sectors_in_view?: string[]
+          status?: string
+          subject_id?: string | null
+          subject_key: string
+          subject_label: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          id?: string
+          pack_type?: string
+          period_end?: string
+          period_start?: string
+          reference?: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          sectors_in_view?: string[]
+          status?: string
+          subject_id?: string | null
+          subject_key?: string
+          subject_label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conduct_findings: {
         Row: {
           category: string | null
@@ -11196,6 +11344,75 @@ export type Database = {
             referencedColumns: ["licensee_id"]
           },
         ]
+      }
+      conduct_mi_definitions: {
+        Row: {
+          business_meaning: string
+          calculation_note: string | null
+          calculation_version: number
+          code: string
+          created_at: string
+          denominator: string | null
+          drilldown_supported: boolean
+          effective_from: string
+          exclusion_criteria: string | null
+          grouping_dimensions: string[]
+          inclusion_criteria: string
+          is_active: boolean
+          metric_group: string
+          name: string
+          numerator: string
+          retired_at: string | null
+          sort_order: number
+          source_object: string
+          time_basis: string
+          updated_at: string
+        }
+        Insert: {
+          business_meaning: string
+          calculation_note?: string | null
+          calculation_version?: number
+          code: string
+          created_at?: string
+          denominator?: string | null
+          drilldown_supported?: boolean
+          effective_from?: string
+          exclusion_criteria?: string | null
+          grouping_dimensions?: string[]
+          inclusion_criteria: string
+          is_active?: boolean
+          metric_group: string
+          name: string
+          numerator: string
+          retired_at?: string | null
+          sort_order?: number
+          source_object: string
+          time_basis: string
+          updated_at?: string
+        }
+        Update: {
+          business_meaning?: string
+          calculation_note?: string | null
+          calculation_version?: number
+          code?: string
+          created_at?: string
+          denominator?: string | null
+          drilldown_supported?: boolean
+          effective_from?: string
+          exclusion_criteria?: string | null
+          grouping_dimensions?: string[]
+          inclusion_criteria?: string
+          is_active?: boolean
+          metric_group?: string
+          name?: string
+          numerator?: string
+          retired_at?: string | null
+          sort_order?: number
+          source_object?: string
+          time_basis?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       conduct_monitoring_results: {
         Row: {
@@ -32363,6 +32580,69 @@ export type Database = {
           },
         ]
       }
+      release_debt_register: {
+        Row: {
+          assertion: string | null
+          classification: string
+          created_at: string
+          description: string
+          id: string
+          intended_verification: string
+          item_code: string
+          last_observed_at: string
+          notes: string | null
+          owner_role: string | null
+          raised_in_phase: string | null
+          release_blocking: boolean
+          security_blocking: boolean
+          status: string
+          target_phase: string
+          test_reference: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assertion?: string | null
+          classification: string
+          created_at?: string
+          description: string
+          id?: string
+          intended_verification: string
+          item_code: string
+          last_observed_at?: string
+          notes?: string | null
+          owner_role?: string | null
+          raised_in_phase?: string | null
+          release_blocking?: boolean
+          security_blocking?: boolean
+          status?: string
+          target_phase?: string
+          test_reference: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assertion?: string | null
+          classification?: string
+          created_at?: string
+          description?: string
+          id?: string
+          intended_verification?: string
+          item_code?: string
+          last_observed_at?: string
+          notes?: string | null
+          owner_role?: string | null
+          raised_in_phase?: string | null
+          release_blocking?: boolean
+          security_blocking?: boolean
+          status?: string
+          target_phase?: string
+          test_reference?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       report_dashboard_layouts: {
         Row: {
           created_at: string
@@ -44625,6 +44905,55 @@ export type Database = {
         Args: { _entity_id: string }
         Returns: Json
       }
+      conduct_evidence_pack_export_log: {
+        Args: {
+          _format: string
+          _pack_id: string
+          _scope?: Json
+          _version: number
+        }
+        Returns: string
+      }
+      conduct_evidence_pack_facts: {
+        Args: {
+          _pack_type: string
+          _period_end: string
+          _period_start: string
+          _sectors: string[]
+          _subject_id: string
+          _subject_key: string
+        }
+        Returns: Json
+      }
+      conduct_evidence_pack_generate: {
+        Args: {
+          _existing_pack_id?: string
+          _pack_type: string
+          _period_end?: string
+          _period_start?: string
+          _regeneration_reason?: string
+          _regulator_id?: string
+          _sector_id?: string
+          _subject_id?: string
+          _subject_key?: string
+          _subject_label?: string
+        }
+        Returns: Json
+      }
+      conduct_evidence_pack_list: {
+        Args: {
+          _limit?: number
+          _pack_type?: string
+          _regulator_id?: string
+          _sector_id?: string
+          _subject_id?: string
+        }
+        Returns: Json
+      }
+      conduct_evidence_pack_read: {
+        Args: { _pack_id: string; _version?: number }
+        Returns: Json
+      }
       conduct_evidence_set_restriction: {
         Args: { _evidence_id: string; _reason: string; _restricted: boolean }
         Returns: Json
@@ -44968,6 +45297,57 @@ export type Database = {
           _justification?: string
           _patch: Json
         }
+        Returns: Json
+      }
+      conduct_mi_dashboard: {
+        Args: {
+          _period_end?: string
+          _period_start?: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
+        Returns: Json
+      }
+      conduct_mi_drilldown: {
+        Args: {
+          _limit?: number
+          _metric_code: string
+          _period_end?: string
+          _period_start?: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
+        Returns: Json
+      }
+      conduct_mi_period_compare: {
+        Args: {
+          _period_end: string
+          _period_start: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
+        Returns: Json
+      }
+      conduct_mi_records: {
+        Args: {
+          _metric_code: string
+          _period_end: string
+          _period_start: string
+          _sectors: string[]
+        }
+        Returns: {
+          detail: Json
+          occurred_at: string
+          record_id: string
+          record_type: string
+          reference: string
+          route: string
+          sector_id: string
+          title: string
+        }[]
+      }
+      conduct_mi_scope_header: {
+        Args: { _period_end: string; _period_start: string; _sectors: string[] }
         Returns: Json
       }
       conduct_monitoring_directive_upsert: {
@@ -50535,6 +50915,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      release_debt_summary: { Args: never; Returns: Json }
       reorder_approval_steps: {
         Args: { _orders: Json; _workflow_id: string }
         Returns: undefined
