@@ -32,6 +32,8 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 import { formatDateTime } from '@/lib/datetime';
+import { respondentMatchStateLabel } from '@/lib/complaints/respondentMatchState';
+
 import { AlertTriangle, CheckCircle2, Clock, HelpCircle, Loader2, Scale } from 'lucide-react';
 
 type FactorResult = 'YES' | 'NO' | 'UNKNOWN' | 'NOT_APPLICABLE' | 'MORE_INFORMATION_REQUIRED';
