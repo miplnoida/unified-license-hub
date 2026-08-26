@@ -32,6 +32,7 @@ const ComplaintsAnalytics = lazy(() => import('@/pages/complaints/ComplaintsAnal
 const DuplicateDetectionHub = lazy(() => import('@/pages/complaints/duplicates/DuplicateDetectionHub'));
 const EscalationHub = lazy(() => import('@/pages/complaints/escalations/EscalationHub'));
 const RfiApprovalQueue = lazy(() => import('@/pages/complaints/rfi-approvals/RfiApprovalQueue'));
+const ComplaintIntakeQueue = lazy(() => import('@/pages/complaints/IntakeQueue'));
 const WorkflowList = lazy(() => import('@/pages/workflows/WorkflowList'));
 const DelegationRules = lazy(() => import('@/pages/delegation/DelegationRules'));
 const DocumentStore = lazy(() => import('@/pages/documents/DocumentStore'));
