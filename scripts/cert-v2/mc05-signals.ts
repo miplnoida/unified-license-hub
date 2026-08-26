@@ -80,7 +80,7 @@ async function main() {
 
   // F — link existing evidence (reuses the conduct evidence engine)
   const ev = await rpc(OFFICER, 'conduct_evidence_upload', {
-    _payload: { title: 'Certification evidence — disclosure sample', evidence_type: 'document', entity_id: LICENSEE, complaint_id: COMPLAINT },
+    _payload: { title: 'Certification evidence — disclosure sample', evidence_type: 'document', confidentiality_level: 'internal', entity_id: LICENSEE, complaint_id: COMPLAINT },
   });
   const evidenceId: string | undefined = ev.body?.id;
   const link = evidenceId
