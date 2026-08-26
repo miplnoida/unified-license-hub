@@ -196,25 +196,53 @@ async function main() {
     `alerts_for_cluster=${Array.isArray(alertCount) ? alertCount.length : 'n/a'}`);
 
   // ------------------------------------------------ L out-of-scope mutation denied
-  const outOfScope = await rpc(ANALYST, 'conduct_cluster_review', {
-    _cluster_id: sigCluster.id, _status: 'open', _note: 'Attempting a review outside the acting officer regulatory scope.',
-  });
-  const outOfScopeRaise = await rpc(ANALYST, 'conduct_cluster_raise_alert', {
+  const outOfScope = await rpc(ANALYST, 'conduct_cluster_raise_alert', {
     _cluster_id: sigCluster.id, _rationale: 'Attempting an escalation outside the acting officer regulatory scope.',
   });
+  const outOfScopeAuditor = await rpc(AUDITOR, 'conduct_cluster_review', {
+    _cluster_id: sigCluster.id, _status: 'open', _note: 'Attempting a review of a pattern outside the acting portfolio.',
+  });
   record('L out-of-regulatory-scope pattern mutation denied',
-    (denied(outOfScope) || !outOfScope.ok) && (denied(outOfScopeRaise) || !outOfScopeRaise.ok),
-    `${outOfScope.text} | ${outOfScopeRaise.text}`);
+    (denied(outOfScope) || !outOfScope.ok) && (denied(outOfScopeAuditor) || !outOfScopeAuditor.ok),
+    `${outOfScope.text} | ${outOfScopeAuditor.text}`);
+  const auditorOutOfScopeRead = await rpc(AUDITOR, 'conduct_cluster_detail', { _cluster_id: sigCluster.id });
+  record('L pattern outside the acting portfolio is not readable either',
+    !auditorOutOfScopeRead.ok, auditorOutOfScopeRead.text);
 
-  // ------------------------------------------------ M auditor read-only
-  const aRead = await rpc(AUDITOR, 'conduct_cluster_register', { _limit: 5 });
-  const aDetail = await rpc(AUDITOR, 'conduct_cluster_detail', { _cluster_id: sigCluster.id });
-  const aReview = await rpc(AUDITOR, 'conduct_cluster_review', { _cluster_id: sigCluster.id, _status: 'open', _note: 'Auditor attempting a governed mutation.' });
-  const aRaise = await rpc(AUDITOR, 'conduct_cluster_raise_signal', { _cluster_id: sigCluster.id, _rationale: 'Auditor attempting to raise a signal.' });
+  // ------------------------------------------------ M auditor read-only (in-portfolio pattern)
+  // Seed an in-portfolio (Domestic Insurance & Pension) pattern so auditor read access is testable.
+  const INS_LICENSEE = '6efc6754-abc1-4834-83d0-eb052dfcb136';
+  const REGULATOR = '8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3';
+  for (let i = 1; i <= 3; i++) {
+    await rpc(OFFICER, 'conduct_signal_create', {
+      _payload: {
+        title: `MC-06 certification insurance signal ${i}`,
+        summary: 'Certification signal raised through the governed operation.',
+        source_type: 'supervisory_observation', signal_category: 'sales_practice',
+        severity: 'medium', systemic_potential: 'low',
+        rationale: 'Recurring supervisory observation warranting a conduct intelligence item.',
+        licensee_id: INS_LICENSEE, regulator_id: REGULATOR,
+      },
+    });
+  }
+  await rpc(OFFICER, 'conduct_pattern_detect', { _rule_id: ruleIds[0] });
+  const regIns = await rpc(OFFICER, 'conduct_cluster_register', { _entity_id: INS_LICENSEE, _limit: 20 });
+  const insRows: any[] = Array.isArray(regIns.body) ? regIns.body : (regIns.body?.rows ?? []);
+  const insCluster = insRows.find((x) => x.rule_code === RULE_SIGNALS);
+
+  const aRead = await rpc(AUDITOR, 'conduct_cluster_register', { _limit: 50 });
+  const aRows: any[] = Array.isArray(aRead.body) ? aRead.body : (aRead.body?.rows ?? []);
+  const aDetail = insCluster ? await rpc(AUDITOR, 'conduct_cluster_detail', { _cluster_id: insCluster.id }) : { ok: false, text: 'no in-portfolio cluster' } as any;
+  record('M auditor can read in-scope pattern register and detail',
+    ok(aRead) && !!insCluster && aRows.some((x) => x.id === insCluster.id) && ok(aDetail),
+    `auditor_rows=${aRows.length} ${aDetail.text?.slice?.(0, 120)}`);
+
+  const target = insCluster?.id ?? sigCluster.id;
+  const aReview = await rpc(AUDITOR, 'conduct_cluster_review', { _cluster_id: target, _status: 'open', _note: 'Auditor attempting a governed mutation.' });
+  const aRaise = await rpc(AUDITOR, 'conduct_cluster_raise_signal', { _cluster_id: target, _rationale: 'Auditor attempting to raise a signal.' });
   const aDetect = await rpc(AUDITOR, 'conduct_pattern_detect', { _rule_id: ruleIds[0] });
-  const aPatch = await patch(AUDITOR, `conduct_clusters?id=eq.${sigCluster.id}`, { severity: 'low' });
+  const aPatch = await patch(AUDITOR, `conduct_clusters?id=eq.${target}`, { severity: 'low' });
   const aIns = await ins(AUDITOR, 'conduct_clusters', { reference: 'auditor-direct', dedupe_key: 'auditor-direct', pattern_type: 'entity_signal_recurrence', title: 'auditor direct insert' });
-  record('M auditor can read the pattern register and detail', ok(aRead) && ok(aDetail), `${aRead.text} ${aDetail.text}`);
   record('M auditor governed pattern mutations denied', !aReview.ok && !aRaise.ok && !aDetect.ok,
     `${aReview.text} | ${aRaise.text} | ${aDetect.text}`);
   record('M auditor direct table writes denied',
