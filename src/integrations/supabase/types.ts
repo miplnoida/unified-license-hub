@@ -14,6 +14,429 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_assurance_criteria_assessments: {
+        Row: {
+          assessed_by: string
+          assessment: string
+          comment: string | null
+          created_at: string
+          criterion_code: string
+          id: string
+          review_id: string
+        }
+        Insert: {
+          assessed_by: string
+          assessment: string
+          comment?: string | null
+          created_at?: string
+          criterion_code: string
+          id?: string
+          review_id: string
+        }
+        Update: {
+          assessed_by?: string
+          assessment?: string
+          comment?: string | null
+          created_at?: string
+          criterion_code?: string
+          id?: string
+          review_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_assurance_criteria_assessments_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "ai_assurance_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_assurance_reviews: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          closure_note: string | null
+          conclusion: string | null
+          conduct_ai_insight_id: string
+          created_at: string
+          evidence_references: Json
+          id: string
+          notes: string | null
+          reference: string
+          remediation_action: string | null
+          remediation_due_date: string | null
+          remediation_owner: string | null
+          remediation_status: string | null
+          reviewer_id: string
+          status: string
+          updated_at: string
+          use_case_code: string | null
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          closure_note?: string | null
+          conclusion?: string | null
+          conduct_ai_insight_id: string
+          created_at?: string
+          evidence_references?: Json
+          id?: string
+          notes?: string | null
+          reference: string
+          remediation_action?: string | null
+          remediation_due_date?: string | null
+          remediation_owner?: string | null
+          remediation_status?: string | null
+          reviewer_id: string
+          status?: string
+          updated_at?: string
+          use_case_code?: string | null
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          closure_note?: string | null
+          conclusion?: string | null
+          conduct_ai_insight_id?: string
+          created_at?: string
+          evidence_references?: Json
+          id?: string
+          notes?: string | null
+          reference?: string
+          remediation_action?: string | null
+          remediation_due_date?: string | null
+          remediation_owner?: string | null
+          remediation_status?: string | null
+          reviewer_id?: string
+          status?: string
+          updated_at?: string
+          use_case_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_assurance_reviews_conduct_ai_insight_id_fkey"
+            columns: ["conduct_ai_insight_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_ai_insights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_governance_activity_attempts: {
+        Row: {
+          completed_at: string | null
+          conduct_ai_insight_id: string | null
+          created_at: string
+          detail: string | null
+          entity_id: string | null
+          id: string
+          instruction_template_code: string | null
+          instruction_version: string | null
+          latency_ms: number | null
+          metadata: Json
+          model: string | null
+          model_version: string | null
+          outcome: string
+          owning_module: string
+          provider: string | null
+          reason_code: string | null
+          requested_at: string
+          requested_by: string | null
+          requested_role: string | null
+          snapshot_fingerprint: string | null
+          use_case_code: string | null
+          window_end: string | null
+          window_start: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          conduct_ai_insight_id?: string | null
+          created_at?: string
+          detail?: string | null
+          entity_id?: string | null
+          id?: string
+          instruction_template_code?: string | null
+          instruction_version?: string | null
+          latency_ms?: number | null
+          metadata?: Json
+          model?: string | null
+          model_version?: string | null
+          outcome: string
+          owning_module?: string
+          provider?: string | null
+          reason_code?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          requested_role?: string | null
+          snapshot_fingerprint?: string | null
+          use_case_code?: string | null
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          conduct_ai_insight_id?: string | null
+          created_at?: string
+          detail?: string | null
+          entity_id?: string | null
+          id?: string
+          instruction_template_code?: string | null
+          instruction_version?: string | null
+          latency_ms?: number | null
+          metadata?: Json
+          model?: string | null
+          model_version?: string | null
+          outcome?: string
+          owning_module?: string
+          provider?: string | null
+          reason_code?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          requested_role?: string | null
+          snapshot_fingerprint?: string | null
+          use_case_code?: string | null
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_governance_activity_attempts_conduct_ai_insight_id_fkey"
+            columns: ["conduct_ai_insight_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_ai_insights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_governance_events: {
+        Row: {
+          actor_id: string | null
+          actor_role: string | null
+          created_at: string
+          event_type: string
+          from_state: string | null
+          id: string
+          metadata: Json
+          object_code: string | null
+          object_id: string | null
+          object_type: string
+          rationale: string | null
+          to_state: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_role?: string | null
+          created_at?: string
+          event_type: string
+          from_state?: string | null
+          id?: string
+          metadata?: Json
+          object_code?: string | null
+          object_id?: string | null
+          object_type: string
+          rationale?: string | null
+          to_state?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_role?: string | null
+          created_at?: string
+          event_type?: string
+          from_state?: string | null
+          id?: string
+          metadata?: Json
+          object_code?: string | null
+          object_id?: string | null
+          object_type?: string
+          rationale?: string | null
+          to_state?: string | null
+        }
+        Relationships: []
+      }
+      ai_governance_instructions: {
+        Row: {
+          allowed_fact_scope: string
+          citation_expectation: string
+          confidence_expectation: string
+          created_at: string
+          created_by: string | null
+          effective_from: string | null
+          id: string
+          instruction_body: string | null
+          lifecycle_state: Database["public"]["Enums"]["ai_gov_lifecycle"]
+          prohibited_behaviours: string[]
+          purpose: string
+          released_at: string | null
+          released_by: string | null
+          required_caveats: string[]
+          suspended_at: string | null
+          suspended_by: string | null
+          suspension_reason: string | null
+          template_code: string
+          title: string
+          updated_at: string
+          use_case_code: string | null
+          version: string
+        }
+        Insert: {
+          allowed_fact_scope?: string
+          citation_expectation?: string
+          confidence_expectation?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          id?: string
+          instruction_body?: string | null
+          lifecycle_state?: Database["public"]["Enums"]["ai_gov_lifecycle"]
+          prohibited_behaviours?: string[]
+          purpose: string
+          released_at?: string | null
+          released_by?: string | null
+          required_caveats?: string[]
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
+          template_code: string
+          title: string
+          updated_at?: string
+          use_case_code?: string | null
+          version: string
+        }
+        Update: {
+          allowed_fact_scope?: string
+          citation_expectation?: string
+          confidence_expectation?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          id?: string
+          instruction_body?: string | null
+          lifecycle_state?: Database["public"]["Enums"]["ai_gov_lifecycle"]
+          prohibited_behaviours?: string[]
+          purpose?: string
+          released_at?: string | null
+          released_by?: string | null
+          required_caveats?: string[]
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
+          template_code?: string
+          title?: string
+          updated_at?: string
+          use_case_code?: string | null
+          version?: string
+        }
+        Relationships: []
+      }
+      ai_governance_models: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          data_handling_class: string
+          display_name: string
+          effective_from: string | null
+          external_data_capable: boolean
+          id: string
+          known_limitations: string | null
+          lifecycle_state: Database["public"]["Enums"]["ai_gov_lifecycle"]
+          model_key: string
+          model_version: string | null
+          model_version_key: string | null
+          provider: string
+          regulatory_purpose: string
+          retired_at: string | null
+          suspended_at: string | null
+          suspended_by: string | null
+          suspension_reason: string | null
+          technical_identifier: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_handling_class?: string
+          display_name: string
+          effective_from?: string | null
+          external_data_capable?: boolean
+          id?: string
+          known_limitations?: string | null
+          lifecycle_state?: Database["public"]["Enums"]["ai_gov_lifecycle"]
+          model_key: string
+          model_version?: string | null
+          model_version_key?: string | null
+          provider: string
+          regulatory_purpose: string
+          retired_at?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
+          technical_identifier: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_handling_class?: string
+          display_name?: string
+          effective_from?: string | null
+          external_data_capable?: boolean
+          id?: string
+          known_limitations?: string | null
+          lifecycle_state?: Database["public"]["Enums"]["ai_gov_lifecycle"]
+          model_key?: string
+          model_version?: string | null
+          model_version_key?: string | null
+          provider?: string
+          regulatory_purpose?: string
+          retired_at?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
+          technical_identifier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_governance_thresholds: {
+        Row: {
+          high_modification_rate: number
+          high_rejection_rate: number
+          id: boolean
+          low_confidence_below: number
+          min_volume_for_analysis: number
+          unreviewed_hours: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          high_modification_rate?: number
+          high_rejection_rate?: number
+          id?: boolean
+          low_confidence_below?: number
+          min_volume_for_analysis?: number
+          unreviewed_hours?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          high_modification_rate?: number
+          high_rejection_rate?: number
+          id?: boolean
+          low_confidence_below?: number
+          min_volume_for_analysis?: number
+          unreviewed_hours?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ai_insight_actions: {
         Row: {
           action: string
@@ -160,6 +583,30 @@ export type Database = {
           source_records?: Json
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_prohibited_actions: {
+        Row: {
+          code: string
+          description: string
+          enforcement: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          description: string
+          enforcement: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          description?: string
+          enforcement?: string
+          label?: string
+          sort_order?: number
         }
         Relationships: []
       }
@@ -7983,66 +8430,135 @@ export type Database = {
       }
       conduct_ai_use_cases: {
         Row: {
+          advisory_classification: string
           allowed_output_classes: string[]
           allowed_source: string
+          approved_at: string | null
+          approved_by: string | null
+          approved_instruction_id: string | null
+          approved_model_id: string | null
+          approved_roles: string[]
           citations_required: boolean
           code: string
           confidence_policy: Json
           created_at: string
+          created_by: string | null
+          effective_from: string | null
+          effective_to: string | null
           governance_level: string
+          governance_owner: string | null
           human_review_required: boolean
           is_enabled: boolean
           label: string
+          lifecycle_state: Database["public"]["Enums"]["ai_gov_lifecycle"]
           limitation_policy: string
           model_policy: Json
+          owning_module: string
           prohibited_output_classes: string[]
           prompt_template_code: string
           prompt_template_version: string
           purpose: string
+          required_permission_actions: string[]
+          risk_classification: string
+          suspended_at: string | null
+          suspended_by: string | null
+          suspension_reason: string | null
           updated_at: string
+          use_case_version: number
           workflow_mutation_allowed: boolean
         }
         Insert: {
+          advisory_classification?: string
           allowed_output_classes?: string[]
           allowed_source?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_instruction_id?: string | null
+          approved_model_id?: string | null
+          approved_roles?: string[]
           citations_required?: boolean
           code: string
           confidence_policy?: Json
           created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           governance_level?: string
+          governance_owner?: string | null
           human_review_required?: boolean
           is_enabled?: boolean
           label: string
+          lifecycle_state?: Database["public"]["Enums"]["ai_gov_lifecycle"]
           limitation_policy: string
           model_policy?: Json
+          owning_module?: string
           prohibited_output_classes?: string[]
           prompt_template_code: string
           prompt_template_version?: string
           purpose: string
+          required_permission_actions?: string[]
+          risk_classification?: string
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
           updated_at?: string
+          use_case_version?: number
           workflow_mutation_allowed?: boolean
         }
         Update: {
+          advisory_classification?: string
           allowed_output_classes?: string[]
           allowed_source?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_instruction_id?: string | null
+          approved_model_id?: string | null
+          approved_roles?: string[]
           citations_required?: boolean
           code?: string
           confidence_policy?: Json
           created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           governance_level?: string
+          governance_owner?: string | null
           human_review_required?: boolean
           is_enabled?: boolean
           label?: string
+          lifecycle_state?: Database["public"]["Enums"]["ai_gov_lifecycle"]
           limitation_policy?: string
           model_policy?: Json
+          owning_module?: string
           prohibited_output_classes?: string[]
           prompt_template_code?: string
           prompt_template_version?: string
           purpose?: string
+          required_permission_actions?: string[]
+          risk_classification?: string
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
           updated_at?: string
+          use_case_version?: number
           workflow_mutation_allowed?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conduct_ai_use_cases_approved_instruction_id_fkey"
+            columns: ["approved_instruction_id"]
+            isOneToOne: false
+            referencedRelation: "ai_governance_instructions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_ai_use_cases_approved_model_id_fkey"
+            columns: ["approved_model_id"]
+            isOneToOne: false
+            referencedRelation: "ai_governance_models"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conduct_alert_thresholds: {
         Row: {
@@ -39882,6 +40398,153 @@ export type Database = {
         }
         Returns: Json
       }
+      ai_assurance_assess: {
+        Args: {
+          _assessment: string
+          _comment?: string
+          _criterion_code: string
+          _review_id: string
+        }
+        Returns: string
+      }
+      ai_assurance_remediation_set: {
+        Args: {
+          _action: string
+          _due_date: string
+          _note?: string
+          _owner: string
+          _review_id: string
+          _status: string
+        }
+        Returns: Json
+      }
+      ai_assurance_review_conclude: {
+        Args: {
+          _closure_note?: string
+          _conclusion: string
+          _review_id: string
+        }
+        Returns: Json
+      }
+      ai_assurance_review_create: {
+        Args: { _insight_id: string; _notes?: string }
+        Returns: string
+      }
+      ai_gov_actor_role: { Args: { _uid: string }; Returns: string }
+      ai_gov_can_read: { Args: { _uid: string }; Returns: boolean }
+      ai_gov_log_event: {
+        Args: {
+          _actor_id: string
+          _event_type: string
+          _from_state: string
+          _metadata?: Json
+          _object_code: string
+          _object_id: string
+          _object_type: string
+          _rationale: string
+          _to_state: string
+        }
+        Returns: string
+      }
+      ai_gov_require: { Args: { _actions: string[] }; Returns: string }
+      ai_gov_transition_allowed: {
+        Args: {
+          _from: Database["public"]["Enums"]["ai_gov_lifecycle"]
+          _to: Database["public"]["Enums"]["ai_gov_lifecycle"]
+        }
+        Returns: boolean
+      }
+      ai_governance_instruction_save: {
+        Args: {
+          _allowed_fact_scope?: string
+          _citation_expectation?: string
+          _confidence_expectation?: string
+          _id: string
+          _instruction_body?: string
+          _prohibited_behaviours?: string[]
+          _purpose: string
+          _required_caveats?: string[]
+          _template_code: string
+          _title: string
+          _use_case_code?: string
+          _version: string
+        }
+        Returns: string
+      }
+      ai_governance_model_save: {
+        Args: {
+          _data_handling_class?: string
+          _display_name: string
+          _external_data_capable?: boolean
+          _id: string
+          _known_limitations?: string
+          _model_key: string
+          _model_version?: string
+          _provider: string
+          _regulatory_purpose: string
+          _technical_identifier: string
+        }
+        Returns: string
+      }
+      ai_governance_record_attempt: {
+        Args: {
+          _detail?: string
+          _entity_id: string
+          _insight_id?: string
+          _instruction_template_code?: string
+          _instruction_version?: string
+          _latency_ms?: number
+          _metadata?: Json
+          _model?: string
+          _model_version?: string
+          _outcome: string
+          _provider?: string
+          _reason_code?: string
+          _requested_at?: string
+          _requested_by: string
+          _snapshot_fingerprint?: string
+          _use_case_code: string
+          _window_end?: string
+          _window_start?: string
+        }
+        Returns: string
+      }
+      ai_governance_resolve_execution: {
+        Args: {
+          _acting_user: string
+          _requested_model?: string
+          _use_case_code: string
+        }
+        Returns: Json
+      }
+      ai_governance_thresholds_save: {
+        Args: {
+          _high_modification_rate: number
+          _high_rejection_rate: number
+          _low_confidence_below: number
+          _min_volume_for_analysis: number
+          _unreviewed_hours: number
+        }
+        Returns: Json
+      }
+      ai_governance_transition: {
+        Args: {
+          _object_key: string
+          _object_type: string
+          _rationale?: string
+          _to_state: string
+        }
+        Returns: Json
+      }
+      ai_governance_use_case_bind: {
+        Args: {
+          _instruction_id?: string
+          _model_id?: string
+          _rationale?: string
+          _use_case_code: string
+        }
+        Returns: Json
+      }
       ai_insight_review: {
         Args: {
           _action: string
@@ -49809,6 +50472,7 @@ export type Database = {
       }
     }
     Enums: {
+      ai_gov_lifecycle: "DRAFT" | "TESTING" | "ACTIVE" | "SUSPENDED" | "RETIRED"
       app_role:
         | "super_admin"
         | "admin"
@@ -50048,6 +50712,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ai_gov_lifecycle: ["DRAFT", "TESTING", "ACTIVE", "SUSPENDED", "RETIRED"],
       app_role: [
         "super_admin",
         "admin",
