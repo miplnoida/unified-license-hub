@@ -229,42 +229,22 @@ Deno.serve(async (req) => {
   }
 
   // 5. Grounding — every cited reference must exist in the supplied context.
-  const permittedRefs = new Set(
-    permitted.map((r) => String(r.reference ?? '')).filter(Boolean),
-  );
-  const collected = new Set<string>();
-  const addRefs = (v: unknown) => {
-    if (Array.isArray(v)) v.forEach((x) => { if (typeof x === 'string' && x.trim()) collected.add(x.trim()); });
-  };
-  addRefs(output.cited_references);
-  for (const s of (Array.isArray(output.sections) ? output.sections : []) as Array<Record<string, unknown>>) {
-    addRefs(s.cited_references);
-  }
-  for (const q of (Array.isArray(output.questions) ? output.questions : []) as Array<Record<string, unknown>>) {
-    addRefs(q.cited_references);
-  }
-  for (const h of (Array.isArray(output.hypotheses) ? output.hypotheses : []) as Array<Record<string, unknown>>) {
-    addRefs(h.cited_references);
-  }
-  for (const r of (Array.isArray(output.records) ? output.records : []) as Array<Record<string, unknown>>) {
-    const ref = String(r.reference ?? '').trim();
-    if (ref) collected.add(ref);
-  }
-
-  const invented = [...collected].filter((r) => !permittedRefs.has(r));
-  if (invented.length > 0) {
+  const grounding = checkGrounding(output, permitted);
+  if (grounding.invented.length > 0) {
     // Invented references make the whole item invalid — nothing is persisted.
     return unavailable(
       'UNGROUNDED_CITATION',
-      `The advisory response cited records that are not in the supplied context: ${invented.slice(0, 5).join(', ')}`,
+      `The advisory response cited records that are not in the supplied context: ${grounding.invented.slice(0, 5).join(', ')}`,
     );
   }
-  if (useCase.citations_required === true && permittedRefs.size > 0 && collected.size === 0) {
+  const hasPermitted = permitted.some((r) => String(r.reference ?? '').trim() !== '');
+  if (useCase.citations_required === true && hasPermitted && grounding.cited.length === 0) {
     return unavailable(
       'MISSING_CITATIONS',
       'The advisory response did not cite any of the supplied records.',
     );
   }
+
   // Use-case shape: the required payload for the narrow use cases must be present.
   const shapeMissing =
     (useCaseCode === 'RECORDS_TO_REVIEW' && !(Array.isArray(output.records) && output.records.length > 0) && permittedRefs.size > 0) ||
