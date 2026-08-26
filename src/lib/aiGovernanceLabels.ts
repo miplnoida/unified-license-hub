@@ -189,6 +189,7 @@ export const ASSURANCE_STATUS_LABEL: Record<string, string> = {
   OPEN: 'Open',
   IN_REVIEW: 'In review',
   CONCLUDED: 'Concluded',
+  CLOSED: 'Concluded',
 };
 
 /** The assurance criteria a supervisory reviewer works through. */

@@ -9378,6 +9378,175 @@ export type Database = {
           },
         ]
       }
+      conduct_emerging_risk_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          event_type: string
+          from_status: string | null
+          id: string
+          metadata: Json
+          rationale: string | null
+          risk_id: string
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          rationale?: string | null
+          risk_id: string
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          rationale?: string | null
+          risk_id?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_emerging_risk_events_risk_id_fkey"
+            columns: ["risk_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_emerging_risks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_emerging_risk_records: {
+        Row: {
+          id: string
+          licensee_id: string | null
+          linked_at: string
+          linked_by: string | null
+          note: string | null
+          record_id: string
+          record_reference: string | null
+          record_type: string
+          risk_id: string
+        }
+        Insert: {
+          id?: string
+          licensee_id?: string | null
+          linked_at?: string
+          linked_by?: string | null
+          note?: string | null
+          record_id: string
+          record_reference?: string | null
+          record_type: string
+          risk_id: string
+        }
+        Update: {
+          id?: string
+          licensee_id?: string | null
+          linked_at?: string
+          linked_by?: string | null
+          note?: string | null
+          record_id?: string
+          record_reference?: string | null
+          record_type?: string
+          risk_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_emerging_risk_records_risk_id_fkey"
+            columns: ["risk_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_emerging_risks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_emerging_risks: {
+        Row: {
+          basis: string
+          closed_at: string | null
+          closure_note: string | null
+          confidence: string
+          created_at: string
+          created_by: string | null
+          driver_metrics: Json
+          entity_count: number
+          fact_basis: Json
+          id: string
+          owner_id: string | null
+          raised_alert_id: string | null
+          reference: string
+          regulator_id: string | null
+          sector_id: string | null
+          severity: string
+          status: string
+          summary: string | null
+          systemic_potential: string
+          thematic_scope: string
+          title: string
+          updated_at: string
+          window_end: string | null
+          window_start: string | null
+        }
+        Insert: {
+          basis: string
+          closed_at?: string | null
+          closure_note?: string | null
+          confidence?: string
+          created_at?: string
+          created_by?: string | null
+          driver_metrics?: Json
+          entity_count?: number
+          fact_basis?: Json
+          id?: string
+          owner_id?: string | null
+          raised_alert_id?: string | null
+          reference: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          severity?: string
+          status?: string
+          summary?: string | null
+          systemic_potential?: string
+          thematic_scope?: string
+          title: string
+          updated_at?: string
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          basis?: string
+          closed_at?: string | null
+          closure_note?: string | null
+          confidence?: string
+          created_at?: string
+          created_by?: string | null
+          driver_metrics?: Json
+          entity_count?: number
+          fact_basis?: Json
+          id?: string
+          owner_id?: string | null
+          raised_alert_id?: string | null
+          reference?: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          severity?: string
+          status?: string
+          summary?: string | null
+          systemic_potential?: string
+          thematic_scope?: string
+          title?: string
+          updated_at?: string
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       conduct_evidence: {
         Row: {
           action_id: string | null
@@ -43162,6 +43331,69 @@ export type Database = {
       }
       conduct_cluster_review: {
         Args: { _cluster_id: string; _note: string; _status: string }
+        Returns: Json
+      }
+      conduct_cross_entity_snapshot: {
+        Args: {
+          _regulator_id?: string
+          _sector_id?: string
+          _window_days?: number
+        }
+        Returns: Json
+      }
+      conduct_emerging_risk_create: { Args: { _payload: Json }; Returns: Json }
+      conduct_emerging_risk_guard: {
+        Args: { _actions: string[]; _risk_id: string }
+        Returns: {
+          basis: string
+          closed_at: string | null
+          closure_note: string | null
+          confidence: string
+          created_at: string
+          created_by: string | null
+          driver_metrics: Json
+          entity_count: number
+          fact_basis: Json
+          id: string
+          owner_id: string | null
+          raised_alert_id: string | null
+          reference: string
+          regulator_id: string | null
+          sector_id: string | null
+          severity: string
+          status: string
+          summary: string | null
+          systemic_potential: string
+          thematic_scope: string
+          title: string
+          updated_at: string
+          window_end: string | null
+          window_start: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "conduct_emerging_risks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      conduct_emerging_risk_link_record: {
+        Args: {
+          _note?: string
+          _record_id: string
+          _record_reference?: string
+          _record_type: string
+          _risk_id: string
+        }
+        Returns: Json
+      }
+      conduct_emerging_risk_next_reference: { Args: never; Returns: string }
+      conduct_emerging_risk_require: {
+        Args: { _actions: string[] }
+        Returns: string
+      }
+      conduct_emerging_risk_transition: {
+        Args: { _rationale: string; _risk_id: string; _to_status: string }
         Returns: Json
       }
       conduct_entity_audit_history: {
