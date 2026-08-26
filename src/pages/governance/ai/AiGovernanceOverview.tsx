@@ -221,11 +221,12 @@ export default function AiGovernanceOverview() {
             </CardHeader>
             <CardContent className="space-y-2">
               {prohibited.map((p) => (
-                <div key={p.id} className="rounded border p-2">
-                  <p className="text-sm font-medium">{p.action_label}</p>
-                  <p className="text-xs text-muted-foreground">{p.rationale}</p>
+                <div key={p.code} className="rounded border p-2">
+                  <p className="text-sm font-medium">{p.label}</p>
+                  <p className="text-xs text-muted-foreground">{p.enforcement}</p>
                 </div>
               ))}
+
               {prohibited.length === 0 && <p className="text-sm text-muted-foreground">No entries recorded.</p>}
             </CardContent>
           </Card>

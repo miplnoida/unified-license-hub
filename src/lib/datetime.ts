@@ -59,6 +59,9 @@ export function formatDateOnly(
   }
 }
 
+/** Alias of {@link formatDateOnly} for date-only business values. */
+export const formatDate = formatDateOnly;
+
 /** ISO-8601 instants (with time) and plain ISO dates found inside free text. */
 const ISO_INSTANT_RE = /\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?/g;
 const ISO_DATE_RE = /(?<![\d-])\d{4}-\d{2}-\d{2}(?![\d:T-])/g;

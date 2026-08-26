@@ -108,6 +108,15 @@ const ConductSignalDetail = lazy(() => import('@/pages/conduct/ConductSignalDeta
 const ConductPatterns = lazy(() => import('@/pages/conduct/ConductPatterns'));
 const AiGovernanceOverview = lazy(() => import('@/pages/governance/ai/AiGovernanceOverview'));
 const AiActivityRegister = lazy(() => import('@/pages/governance/ai/AiActivityRegister'));
+const AiActivityDetail = lazy(() => import('@/pages/governance/ai/AiActivityDetail'));
+const AiUseCases = lazy(() => import('@/pages/governance/ai/AiUseCases'));
+const AiUseCaseDetail = lazy(() => import('@/pages/governance/ai/AiUseCaseDetail'));
+const AiModels = lazy(() => import('@/pages/governance/ai/AiModels'));
+const AiInstructions = lazy(() => import('@/pages/governance/ai/AiInstructions'));
+const AiAssurance = lazy(() => import('@/pages/governance/ai/AiAssurance'));
+const AiAssuranceDetail = lazy(() => import('@/pages/governance/ai/AiAssuranceDetail'));
+const AiExceptions = lazy(() => import('@/pages/governance/ai/AiExceptions'));
+const AiSurfaces = lazy(() => import('@/pages/governance/ai/AiSurfaces'));
 const ConductPatternDetail = lazy(() => import('@/pages/conduct/ConductPatternDetail'));
 const Conduct360 = lazy(() => import('@/pages/conduct/Conduct360'));
 
@@ -264,6 +273,15 @@ export const dashboardRoutes = (
     <Route path="/conduct/signals/:id" element={<M module="market_conduct"><ConductSignalDetail /></M>} />
     <Route path="/governance/ai" element={<M module="ai_management"><AiGovernanceOverview /></M>} />
     <Route path="/governance/ai/activity" element={<M module="ai_management"><AiActivityRegister /></M>} />
+    <Route path="/governance/ai/activity/:kind/:id" element={<M module="ai_management"><AiActivityDetail /></M>} />
+    <Route path="/governance/ai/use-cases" element={<M module="ai_management"><AiUseCases /></M>} />
+    <Route path="/governance/ai/use-cases/:code" element={<M module="ai_management"><AiUseCaseDetail /></M>} />
+    <Route path="/governance/ai/models" element={<M module="ai_management"><AiModels /></M>} />
+    <Route path="/governance/ai/instructions" element={<M module="ai_management"><AiInstructions /></M>} />
+    <Route path="/governance/ai/assurance" element={<M module="ai_management"><AiAssurance /></M>} />
+    <Route path="/governance/ai/assurance/:id" element={<M module="ai_management"><AiAssuranceDetail /></M>} />
+    <Route path="/governance/ai/exceptions" element={<M module="ai_management"><AiExceptions /></M>} />
+    <Route path="/governance/ai/surfaces" element={<M module="ai_management"><AiSurfaces /></M>} />
     <Route path="/conduct/patterns" element={<M module="market_conduct"><ConductPatterns /></M>} />
     <Route path="/conduct/patterns/:id" element={<M module="market_conduct"><ConductPatternDetail /></M>} />
 

@@ -443,6 +443,83 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_governance_surfaces: {
+        Row: {
+          advisory_classification: string
+          approved_at: string | null
+          approved_by: string | null
+          approved_model_id: string | null
+          authoritative_write_path: string
+          business_purpose: string
+          code: string
+          created_at: string
+          created_by: string | null
+          edge_function: string | null
+          human_review: string
+          instruction_governance: string
+          label: string
+          lifecycle_state: Database["public"]["Enums"]["ai_gov_lifecycle"]
+          owning_module: string
+          production_status: string
+          suspended_at: string | null
+          suspended_by: string | null
+          suspension_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          advisory_classification?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_model_id?: string | null
+          authoritative_write_path?: string
+          business_purpose: string
+          code: string
+          created_at?: string
+          created_by?: string | null
+          edge_function?: string | null
+          human_review?: string
+          instruction_governance?: string
+          label: string
+          lifecycle_state?: Database["public"]["Enums"]["ai_gov_lifecycle"]
+          owning_module: string
+          production_status?: string
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          advisory_classification?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_model_id?: string | null
+          authoritative_write_path?: string
+          business_purpose?: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          edge_function?: string | null
+          human_review?: string
+          instruction_governance?: string
+          label?: string
+          lifecycle_state?: Database["public"]["Enums"]["ai_gov_lifecycle"]
+          owning_module?: string
+          production_status?: string
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_governance_surfaces_approved_model_id_fkey"
+            columns: ["approved_model_id"]
+            isOneToOne: false
+            referencedRelation: "ai_governance_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_governance_thresholds: {
         Row: {
           high_modification_rate: number
@@ -40622,6 +40699,14 @@ export type Database = {
           _requested_model?: string
           _use_case_code: string
         }
+        Returns: Json
+      }
+      ai_governance_surface_gate: {
+        Args: { _acting_user?: string; _code: string }
+        Returns: Json
+      }
+      ai_governance_surface_set_state: {
+        Args: { _code: string; _rationale?: string; _to_state: string }
         Returns: Json
       }
       ai_governance_thresholds_save: {
