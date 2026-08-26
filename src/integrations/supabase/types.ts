@@ -40711,6 +40711,10 @@ export type Database = {
       }
       complaint_outcome_gate: { Args: { _complaint_id: string }; Returns: Json }
       complaint_outcome_get: { Args: { _complaint_id: string }; Returns: Json }
+      complaint_outcome_letter_issue: {
+        Args: { _body?: string; _complaint_id: string; _subject?: string }
+        Returns: Json
+      }
       complaint_outcome_save: {
         Args: {
           _complaint_id: string
