@@ -594,11 +594,21 @@ export default function ComplaintDetail() {
 
             <Tabs value={sub} onValueChange={(v) => goSection('casework', v as CaseWorkSection)}>
               <TabsList className="flex-wrap h-auto">
+                <TabsTrigger value="jurisdiction">Jurisdiction</TabsTrigger>
+                <TabsTrigger value="triage">Triage</TabsTrigger>
                 <TabsTrigger value="investigation">Investigation</TabsTrigger>
                 <TabsTrigger value="rfis">Information requests</TabsTrigger>
                 <TabsTrigger value="classification">Classification &amp; case setup</TabsTrigger>
                 <TabsTrigger value="closure">Closure &amp; QA</TabsTrigger>
               </TabsList>
+
+              <TabsContent value="jurisdiction" className="space-y-4">
+                <JurisdictionWorkspace complaintId={id!} />
+              </TabsContent>
+
+              <TabsContent value="triage" className="space-y-4">
+                <TriagePanel complaintId={id!} onOpenJurisdiction={() => openCaseWork('jurisdiction')} />
+              </TabsContent>
 
               <TabsContent value="investigation" className="space-y-4">
                 <ComplaintInvestigationTab complaintId={id!} complaintStatus={complaint.status} />
@@ -608,6 +618,7 @@ export default function ComplaintDetail() {
                 </p>
 
               </TabsContent>
+
 
               <TabsContent value="classification" className="space-y-4">
 
