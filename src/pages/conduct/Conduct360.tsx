@@ -25,6 +25,8 @@ import { MeasureTiles } from '@/components/conduct/three-sixty/MeasureTiles';
 import { BreakdownList, SeriesList } from '@/components/conduct/three-sixty/BreakdownList';
 import { TrendStatement } from '@/components/conduct/three-sixty/TrendStatement';
 import { FactItemTable, type FactColumn } from '@/components/conduct/three-sixty/FactItemTable';
+import { AdvisoryPanel } from '@/components/conduct/three-sixty/advisory/AdvisoryPanel';
+import { useCan } from '@/hooks/useCan';
 import {
   comparisonLabel, formatAmount, formatCount, formatDate, formatDateTime, harmLabel,
   humanise, measureLabel, openItemTypeLabel, outcomeLabel, severityLabel, slaStateLabel,
@@ -60,6 +62,15 @@ export default function Conduct360() {
   const { entityId } = useParams<{ entityId: string }>();
   const [choice, setChoice] = useState<Conduct360WindowChoice>('last_12_months');
   const { snapshot, isLoading, isDenied, error } = useConduct360(entityId, choice);
+
+  /**
+   * Preparing assistance and recording a supervisory decision are supervisory acts.
+   * Auditors and other read-only roles see the advisory content but cannot act on it.
+   */
+  const canApprove = useCan('market_conduct', 'approve');
+  const canManageComplaints = useCan('market_conduct', 'manage_complaints');
+  const canRunAnalytics = useCan('market_conduct', 'run_conduct_analytics');
+  const canOperateAdvisory = canApprove || canManageComplaints || canRunAnalytics;
 
   const win = snapshot?.window;
   const comparisonPhrase = useMemo(() => {
@@ -461,6 +472,10 @@ export default function Conduct360() {
                 Prepared from regulatory records on {formatDateTime(snapshot.generated_at)}
               </p>
             )}
+
+            {/* AI advisory layer — separated from the fact layer above */}
+            <AdvisoryPanel entityId={entityId} windowChoice={choice} canOperate={canOperateAdvisory} />
+
           </div>
         )}
       </div>
