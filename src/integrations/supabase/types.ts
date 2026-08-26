@@ -44905,6 +44905,55 @@ export type Database = {
         Args: { _entity_id: string }
         Returns: Json
       }
+      conduct_evidence_pack_export_log: {
+        Args: {
+          _format: string
+          _pack_id: string
+          _scope?: Json
+          _version: number
+        }
+        Returns: string
+      }
+      conduct_evidence_pack_facts: {
+        Args: {
+          _pack_type: string
+          _period_end: string
+          _period_start: string
+          _sectors: string[]
+          _subject_id: string
+          _subject_key: string
+        }
+        Returns: Json
+      }
+      conduct_evidence_pack_generate: {
+        Args: {
+          _existing_pack_id?: string
+          _pack_type: string
+          _period_end?: string
+          _period_start?: string
+          _regeneration_reason?: string
+          _regulator_id?: string
+          _sector_id?: string
+          _subject_id?: string
+          _subject_key?: string
+          _subject_label?: string
+        }
+        Returns: Json
+      }
+      conduct_evidence_pack_list: {
+        Args: {
+          _limit?: number
+          _pack_type?: string
+          _regulator_id?: string
+          _sector_id?: string
+          _subject_id?: string
+        }
+        Returns: Json
+      }
+      conduct_evidence_pack_read: {
+        Args: { _pack_id: string; _version?: number }
+        Returns: Json
+      }
       conduct_evidence_set_restriction: {
         Args: { _evidence_id: string; _reason: string; _restricted: boolean }
         Returns: Json
@@ -50866,6 +50915,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      release_debt_summary: { Args: never; Returns: Json }
       reorder_approval_steps: {
         Args: { _orders: Json; _workflow_id: string }
         Returns: undefined
