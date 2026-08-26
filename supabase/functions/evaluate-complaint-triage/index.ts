@@ -186,19 +186,12 @@ Deno.serve(async (req) => {
     const isServiceCall = !!bearer && !!serviceRoleKey && bearer === serviceRoleKey;
 
     if (!isServiceCall) {
-      if (!bearer) {
-        return new Response(JSON.stringify({ success: false, error: 'unauthorized' }), {
-          status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
-        });
-      }
-      const { data: claims, error: claimsErr } = await supabase.auth.getClaims(bearer);
-      if (claimsErr || !claims?.claims?.sub) {
-        return new Response(JSON.stringify({ success: false, error: 'unauthorized' }), {
-          status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
-        });
-      }
-      actorId = claims.claims.sub as string;
+      // Centralised JWT + module gate (module.action authority in Postgres).
+      const gate = await requireUserPermission(req, 'complaint_management', 'workflow_action');
+      if (!gate.ok) return gate.response;
+      actorId = gate.userId;
 
+      // Narrow, operation-specific authority on top of the module gate.
       const requiredAction = triggered_by === 'intake' ? 'create' : 'retry_triage';
       const { data: allowed, error: permErr } = await supabase.rpc('has_complaint_perm', {
         _user_id: actorId, _action: requiredAction,
@@ -209,6 +202,7 @@ Deno.serve(async (req) => {
         });
       }
     }
+
 
     const { data: complaint, error: cErr } = await supabase
       .from('complaints').select('*').eq('id', complaint_id).maybeSingle();
