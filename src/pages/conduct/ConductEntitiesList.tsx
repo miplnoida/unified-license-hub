@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, ExternalLink } from 'lucide-react';
+import { Loader2, ExternalLink, LayoutDashboard } from 'lucide-react';
 
 const sb = supabase as any;
 
@@ -78,12 +78,13 @@ export default function ConductEntitiesList() {
                     <TableHead className="text-right">Open alerts</TableHead>
                     <TableHead className="text-right">Open actions</TableHead>
                     <TableHead className="text-right">Open investigations</TableHead>
+                    <TableHead className="w-40 text-right">Conduct 360</TableHead>
                     <TableHead className="w-16" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 && (
-                    <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No entities found.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">No entities found.</TableCell></TableRow>
                   )}
                   {filtered.map((r: any) => (
                     <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/conduct/entities/${r.id}`)}>
@@ -95,6 +96,15 @@ export default function ConductEntitiesList() {
                       <TableCell className="text-right font-mono">{r.alerts_open}</TableCell>
                       <TableCell className="text-right font-mono">{r.actions_open}</TableCell>
                       <TableCell className="text-right font-mono">{r.investigations_open}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/conduct/entities/${r.id}/360`); }}
+                        >
+                          <LayoutDashboard className="h-4 w-4 mr-2" />Conduct 360
+                        </Button>
+                      </TableCell>
                       <TableCell><Button size="icon" variant="ghost"><ExternalLink className="h-4 w-4" /></Button></TableCell>
                     </TableRow>
                   ))}
