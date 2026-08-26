@@ -27,10 +27,34 @@ export const EMERGING_RISK_ADVISORY_USE_CASES = [
   'EMERGING_RISK_HYPOTHESIS',
 ] as const;
 
+/** Advisory types for a supervisory attention item (MC-10). */
+export const ATTENTION_ADVISORY_USE_CASES = [
+  'ATTENTION_SUMMARY',
+  'PLANNING_RECORDS_TO_REVIEW',
+  'PLANNING_QUESTIONS',
+  'INTERVENTION_OPTIONS',
+  'FOLLOWUP_CONSIDERATIONS',
+] as const;
+
+/** Advisory types for a supervisory plan (MC-10). */
+export const PLAN_ADVISORY_USE_CASES = [
+  'SUPERVISORY_PLAN_DRAFT',
+  'PLANNING_QUESTIONS',
+  'INTERVENTION_OPTIONS',
+] as const;
+
 export type EntityAdvisoryUseCase = (typeof ADVISORY_USE_CASES)[number];
 export type ThemeAdvisoryUseCase = (typeof THEME_ADVISORY_USE_CASES)[number];
 export type EmergingRiskAdvisoryUseCase = (typeof EMERGING_RISK_ADVISORY_USE_CASES)[number];
-export type AdvisoryUseCase = EntityAdvisoryUseCase | ThemeAdvisoryUseCase | EmergingRiskAdvisoryUseCase;
+export type PlanningAdvisoryUseCase =
+  | (typeof ATTENTION_ADVISORY_USE_CASES)[number]
+  | (typeof PLAN_ADVISORY_USE_CASES)[number];
+export type AdvisoryUseCase =
+  | EntityAdvisoryUseCase
+  | ThemeAdvisoryUseCase
+  | EmergingRiskAdvisoryUseCase
+  | PlanningAdvisoryUseCase;
+
 
 interface UseCaseMeta {
   label: string;
