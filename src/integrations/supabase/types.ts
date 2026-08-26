@@ -8179,10 +8179,347 @@ export type Database = {
           },
         ]
       }
+      conduct_cluster_history: {
+        Row: {
+          actor_id: string | null
+          cluster_id: string
+          created_at: string
+          detail: Json
+          event_type: string
+          from_status: string | null
+          id: string
+          reason: string | null
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          cluster_id: string
+          created_at?: string
+          detail?: Json
+          event_type: string
+          from_status?: string | null
+          id?: string
+          reason?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          cluster_id?: string
+          created_at?: string
+          detail?: Json
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          reason?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_cluster_history_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_cluster_members: {
+        Row: {
+          cluster_id: string
+          contribution: number
+          detail: Json
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          member_id: string
+          member_reference: string | null
+          member_severity: string | null
+          member_table: string
+          member_title: string | null
+          member_type: string
+          occurred_at: string | null
+        }
+        Insert: {
+          cluster_id: string
+          contribution?: number
+          detail?: Json
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          member_id: string
+          member_reference?: string | null
+          member_severity?: string | null
+          member_table: string
+          member_title?: string | null
+          member_type: string
+          occurred_at?: string | null
+        }
+        Update: {
+          cluster_id?: string
+          contribution?: number
+          detail?: Json
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          member_id?: string
+          member_reference?: string | null
+          member_severity?: string | null
+          member_table?: string
+          member_title?: string | null
+          member_type?: string
+          occurred_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_cluster_members_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_cluster_metrics: {
+        Row: {
+          cluster_id: string
+          comparison_operator: string
+          detail: Json
+          evaluated_at: string
+          id: string
+          matched: boolean
+          member_count: number
+          metric: string
+          metric_value: number
+          rule_id: string
+          rule_version: number
+          run_id: string | null
+          threshold_value: number
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          cluster_id: string
+          comparison_operator: string
+          detail?: Json
+          evaluated_at?: string
+          id?: string
+          matched?: boolean
+          member_count?: number
+          metric: string
+          metric_value: number
+          rule_id: string
+          rule_version: number
+          run_id?: string | null
+          threshold_value: number
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          cluster_id?: string
+          comparison_operator?: string
+          detail?: Json
+          evaluated_at?: string
+          id?: string
+          matched?: boolean
+          member_count?: number
+          metric?: string
+          metric_value?: number
+          rule_id?: string
+          rule_version?: number
+          run_id?: string | null
+          threshold_value?: number
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_cluster_metrics_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_cluster_metrics_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_monitoring_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_cluster_metrics_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_monitoring_rule_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_clusters: {
+        Row: {
+          channel_id: string | null
+          comparison_operator: string
+          complaint_type_id: string | null
+          conduct_risk_category_id: string | null
+          created_at: string
+          created_by: string | null
+          dedupe_key: string
+          distinct_entity_count: number
+          evaluation_count: number
+          first_detected_at: string
+          group_key: Json
+          id: string
+          last_evaluated_at: string
+          licensee_id: string | null
+          match_explanation: string
+          member_count: number
+          metric: string
+          metric_unit: string
+          metric_value: number
+          pattern_type: string
+          product_id: string | null
+          raised_alert_id: string | null
+          raised_signal_id: string | null
+          reference: string
+          regulator_id: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewer_id: string | null
+          rule_code: string | null
+          rule_id: string
+          rule_snapshot: Json
+          rule_version: number
+          sector_id: string | null
+          severity: string
+          severity_mix: Json
+          status: string
+          systemic_member_count: number
+          threshold_value: number
+          title: string
+          updated_at: string
+          window_days: number
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          channel_id?: string | null
+          comparison_operator?: string
+          complaint_type_id?: string | null
+          conduct_risk_category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          dedupe_key: string
+          distinct_entity_count?: number
+          evaluation_count?: number
+          first_detected_at?: string
+          group_key?: Json
+          id?: string
+          last_evaluated_at?: string
+          licensee_id?: string | null
+          match_explanation: string
+          member_count?: number
+          metric: string
+          metric_unit?: string
+          metric_value: number
+          pattern_type: string
+          product_id?: string | null
+          raised_alert_id?: string | null
+          raised_signal_id?: string | null
+          reference: string
+          regulator_id?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          rule_code?: string | null
+          rule_id: string
+          rule_snapshot?: Json
+          rule_version?: number
+          sector_id?: string | null
+          severity?: string
+          severity_mix?: Json
+          status?: string
+          systemic_member_count?: number
+          threshold_value: number
+          title: string
+          updated_at?: string
+          window_days: number
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          channel_id?: string | null
+          comparison_operator?: string
+          complaint_type_id?: string | null
+          conduct_risk_category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          dedupe_key?: string
+          distinct_entity_count?: number
+          evaluation_count?: number
+          first_detected_at?: string
+          group_key?: Json
+          id?: string
+          last_evaluated_at?: string
+          licensee_id?: string | null
+          match_explanation?: string
+          member_count?: number
+          metric?: string
+          metric_unit?: string
+          metric_value?: number
+          pattern_type?: string
+          product_id?: string | null
+          raised_alert_id?: string | null
+          raised_signal_id?: string | null
+          reference?: string
+          regulator_id?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          rule_code?: string | null
+          rule_id?: string
+          rule_snapshot?: Json
+          rule_version?: number
+          sector_id?: string | null
+          severity?: string
+          severity_mix?: Json
+          status?: string
+          systemic_member_count?: number
+          threshold_value?: number
+          title?: string
+          updated_at?: string
+          window_days?: number
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_clusters_raised_alert_id_fkey"
+            columns: ["raised_alert_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_clusters_raised_signal_id_fkey"
+            columns: ["raised_signal_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_signals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_clusters_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_monitoring_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conduct_evidence: {
         Row: {
           action_id: string | null
           alert_id: string | null
+          cluster_id: string | null
           complaint_id: string | null
           confidentiality_level: string
           created_at: string
@@ -8207,6 +8544,7 @@ export type Database = {
         Insert: {
           action_id?: string | null
           alert_id?: string | null
+          cluster_id?: string | null
           complaint_id?: string | null
           confidentiality_level?: string
           created_at?: string
@@ -8231,6 +8569,7 @@ export type Database = {
         Update: {
           action_id?: string | null
           alert_id?: string | null
+          cluster_id?: string | null
           complaint_id?: string | null
           confidentiality_level?: string
           created_at?: string
@@ -8253,6 +8592,13 @@ export type Database = {
           uploaded_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "conduct_evidence_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_clusters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conduct_evidence_finding_id_fkey"
             columns: ["finding_id"]
@@ -9386,6 +9732,7 @@ export type Database = {
           lookback_days: number | null
           metric: string | null
           name: string
+          pattern_type: string | null
           risk_delta: number
           rule_type: string
           scope: string
@@ -9407,6 +9754,7 @@ export type Database = {
           lookback_days?: number | null
           metric?: string | null
           name: string
+          pattern_type?: string | null
           risk_delta?: number
           rule_type?: string
           scope?: string
@@ -9428,6 +9776,7 @@ export type Database = {
           lookback_days?: number | null
           metric?: string | null
           name?: string
+          pattern_type?: string | null
           risk_delta?: number
           rule_type?: string
           scope?: string
@@ -41523,6 +41872,141 @@ export type Database = {
         }
         Returns: string
       }
+      conduct_cluster_detail: { Args: { _cluster_id: string }; Returns: Json }
+      conduct_cluster_guard: {
+        Args: { _actions: string[]; _cluster_id: string }
+        Returns: {
+          channel_id: string | null
+          comparison_operator: string
+          complaint_type_id: string | null
+          conduct_risk_category_id: string | null
+          created_at: string
+          created_by: string | null
+          dedupe_key: string
+          distinct_entity_count: number
+          evaluation_count: number
+          first_detected_at: string
+          group_key: Json
+          id: string
+          last_evaluated_at: string
+          licensee_id: string | null
+          match_explanation: string
+          member_count: number
+          metric: string
+          metric_unit: string
+          metric_value: number
+          pattern_type: string
+          product_id: string | null
+          raised_alert_id: string | null
+          raised_signal_id: string | null
+          reference: string
+          regulator_id: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewer_id: string | null
+          rule_code: string | null
+          rule_id: string
+          rule_snapshot: Json
+          rule_version: number
+          sector_id: string | null
+          severity: string
+          severity_mix: Json
+          status: string
+          systemic_member_count: number
+          threshold_value: number
+          title: string
+          updated_at: string
+          window_days: number
+          window_end: string
+          window_start: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "conduct_clusters"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      conduct_cluster_link_evidence: {
+        Args: { _cluster_id: string; _evidence_id: string; _note?: string }
+        Returns: Json
+      }
+      conduct_cluster_log: {
+        Args: {
+          _actor: string
+          _cluster_id: string
+          _detail: Json
+          _event_type: string
+          _from: string
+          _reason: string
+          _to: string
+        }
+        Returns: undefined
+      }
+      conduct_cluster_next_reference: { Args: never; Returns: string }
+      conduct_cluster_raise_alert: {
+        Args: { _cluster_id: string; _rationale: string }
+        Returns: Json
+      }
+      conduct_cluster_raise_signal: {
+        Args: { _cluster_id: string; _rationale: string }
+        Returns: Json
+      }
+      conduct_cluster_register: {
+        Args: {
+          _entity_id?: string
+          _limit?: number
+          _offset?: number
+          _pattern_types?: string[]
+          _rule_id?: string
+          _search?: string
+          _severities?: string[]
+          _statuses?: string[]
+        }
+        Returns: {
+          canonical_href: string
+          channel_name: string
+          comparison_operator: string
+          distinct_entity_count: number
+          entity_id: string
+          entity_name: string
+          evaluation_count: number
+          evidence_count: number
+          first_detected_at: string
+          id: string
+          last_evaluated_at: string
+          match_explanation: string
+          member_count: number
+          metric: string
+          metric_unit: string
+          metric_value: number
+          pattern_type: string
+          product_name: string
+          raised_alert_id: string
+          raised_signal_id: string
+          reference: string
+          reviewed_at: string
+          reviewer_id: string
+          reviewer_name: string
+          rule_code: string
+          rule_id: string
+          rule_version: number
+          sector_id: string
+          severity: string
+          status: string
+          systemic_member_count: number
+          threshold_value: number
+          title: string
+          total_count: number
+          window_days: number
+          window_end: string
+          window_start: string
+        }[]
+      }
+      conduct_cluster_review: {
+        Args: { _cluster_id: string; _note: string; _status: string }
+        Returns: Json
+      }
       conduct_entity_audit_history: {
         Args: { _entity_id: string }
         Returns: {
@@ -41719,6 +42203,17 @@ export type Database = {
         Returns: undefined
       }
       conduct_overview: { Args: never; Returns: Json }
+      conduct_pattern_detect: {
+        Args: { _as_of?: string; _dry_run?: boolean; _rule_id: string }
+        Returns: Json
+      }
+      conduct_pattern_matches: {
+        Args: { _op: string; _threshold: number; _value: number }
+        Returns: boolean
+      }
+      conduct_pattern_require: { Args: { _actions: string[] }; Returns: string }
+      conduct_pattern_rule_upsert: { Args: { _payload: Json }; Returns: Json }
+      conduct_pattern_run_all: { Args: { _as_of?: string }; Returns: Json }
       conduct_related_cases: {
         Args: { _case_id: string; _case_type: string }
         Returns: Json
