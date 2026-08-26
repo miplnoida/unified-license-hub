@@ -25,7 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 import { formatDateTime } from '@/lib/datetime';
-import { Inbox, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 const J_STATUS_LABEL: Record<string, string> = {
   PENDING_ASSESSMENT: 'Awaiting assessment',
