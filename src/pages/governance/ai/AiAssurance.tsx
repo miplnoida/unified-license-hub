@@ -105,8 +105,8 @@ export default function AiAssurance() {
                 <SelectContent>
                   <SelectItem value="all">All reviews</SelectItem>
                   <SelectItem value="OPEN">Open</SelectItem>
-                  <SelectItem value="IN_PROGRESS">In progress</SelectItem>
-                  <SelectItem value="CONCLUDED">Concluded</SelectItem>
+                  <SelectItem value="IN_REVIEW">In review</SelectItem>
+                  <SelectItem value="CLOSED">Concluded</SelectItem>
                 </SelectContent>
               </Select>
             </div>
