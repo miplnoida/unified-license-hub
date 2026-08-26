@@ -27,6 +27,8 @@ import { HistoryButton } from '@/components/audit/HistoryButton';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { ConductClassificationCard } from '@/components/complaints/ConductClassificationCard';
 import { TriageHistoryCard } from '@/components/complaints/TriageHistoryCard';
+import { JurisdictionWorkspace } from '@/components/complaints/jurisdiction/JurisdictionWorkspace';
+import { TriagePanel } from '@/components/complaints/triage/TriagePanel';
 import { COMPLAINT_TRIAGE_HISTORY_ENABLED } from '@/lib/featureFlags';
 import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
 import { useWorkflowTotalSla } from '@/hooks/useWorkflowTotalSla';
