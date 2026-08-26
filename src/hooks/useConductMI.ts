@@ -194,6 +194,8 @@ export interface ReportingNarrative extends AdvisoryInsight {
   use_case_code: ReportingAdvisoryUseCase;
   sector_id: string | null;
   model_version: string | null;
+  /** Server-recorded reporting scope (period, sector, pack) this narrative was drafted for. */
+  subject_population: Record<string, unknown> | null;
   adoptions: ReportingNarrativeAdoption[];
 }
 
