@@ -41679,6 +41679,14 @@ export type Database = {
       }
       compliance_return_save_draft: { Args: { _payload: Json }; Returns: Json }
       compliance_return_submit: { Args: { _payload: Json }; Returns: Json }
+      conduct_360_snapshot: {
+        Args: {
+          _entity_id: string
+          _window_end?: string
+          _window_start?: string
+        }
+        Returns: Json
+      }
       conduct_action_available_actions: {
         Args: { _action_id: string }
         Returns: Json
