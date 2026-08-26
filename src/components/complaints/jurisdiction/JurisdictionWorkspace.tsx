@@ -273,7 +273,7 @@ export function JurisdictionWorkspace({ complaintId, onJurisdictionDecided }: Pr
                   {r.legal_name}
                   {r.trading_name ? ` (${r.trading_name})` : ''}
                   <span className="block text-xs text-muted-foreground">
-                    {MATCH_STATE_LABEL[r.match_state] ?? r.match_state ?? 'Match state not recorded'}
+                    {respondentMatchStateLabel(r.match_state)}
                   </span>
                 </p>
               ))}
