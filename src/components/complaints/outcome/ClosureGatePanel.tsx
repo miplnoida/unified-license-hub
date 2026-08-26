@@ -113,9 +113,11 @@ export function ClosureGatePanel({ complaintId, complaintUpdatedAt, onOpenOutcom
             <div className="flex flex-wrap gap-2 pt-1">
               {onOpenOutcome && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={onOpenOutcome}>Go to outcome</Button>}
               {onOpenRedress && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={onOpenRedress}>Go to redress</Button>}
+              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setMode('letter')}>Issue outcome letter</Button>
               <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => closureReadinessQ.refetch()}>Re-check</Button>
             </div>
           )}
+
         </CardContent>
       </Card>
 
