@@ -2,16 +2,19 @@
 BEGIN;
 SELECT plan(19);
 
--- 1 the five approved use cases exist, and only those
+-- 1 the five approved Conduct 360 use cases exist, and only those, in the
+--   Conduct 360 fact scope (MC-09 registers its own cross-entity capabilities
+--   in the `conduct_intelligence_snapshot` scope and is certified separately).
 SELECT is(
-  (SELECT string_agg(code, ',' ORDER BY code) FROM public.conduct_ai_use_cases),
+  (SELECT string_agg(code, ',' ORDER BY code) FROM public.conduct_ai_use_cases
+    WHERE allowed_source = 'conduct_360_snapshot'),
   'MATERIAL_CHANGE_EXPLANATION,RECORDS_TO_REVIEW,RISK_HYPOTHESIS,SUPERVISORY_QUESTIONS,SUPERVISORY_SUMMARY',
   'exactly the five approved Conduct 360 AI use cases are registered'
 );
 
 -- 2 governance flags are locked on every use case
 SELECT ok(
-  (SELECT bool_and(allowed_source = 'conduct_360_snapshot'
+  (SELECT bool_and(allowed_source IN ('conduct_360_snapshot','conduct_intelligence_snapshot')
               AND human_review_required
               AND citations_required
               AND NOT workflow_mutation_allowed
@@ -26,6 +29,7 @@ SELECT ok(
      FROM public.conduct_ai_use_cases),
   'every use case locks source, review, citations, no-mutation, prompt version and model/confidence policy'
 );
+
 
 -- 3 the locks cannot be configured away (enforced by database constraints)
 SELECT ok(
