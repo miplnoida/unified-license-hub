@@ -53,8 +53,10 @@ export default function ConductPatterns() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
 
-  const canManage = useCan('market_conduct', 'manage_complaints')
-    || useCan('market_conduct', 'run_conduct_analytics');
+  const canComplaints = useCan('market_conduct', 'manage_complaints');
+  const canAnalytics = useCan('market_conduct', 'run_conduct_analytics');
+  const canManage = canComplaints || canAnalytics;
+
 
   const { data: sectors = [] } = useSectors();
   const reset = () => setPage(0);
