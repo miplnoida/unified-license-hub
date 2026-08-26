@@ -279,8 +279,7 @@ export function useAiStopControls() {
 }
 
 export interface ProhibitedActionRow {
-  id: string; action_code: string; action_label: string; rationale: string;
-  applies_to_module: string | null; is_active: boolean;
+  code: string; label: string; enforcement: string; sort_order: number | null;
 }
 
 export function useProhibitedActions() {
@@ -288,12 +287,13 @@ export function useProhibitedActions() {
     queryKey: ['ai-gov-prohibited'],
     queryFn: async () => {
       const { data, error } = await sb.from('ai_prohibited_actions')
-        .select('*').eq('is_active', true).order('action_label');
+        .select('*').order('sort_order', { ascending: true });
       if (error) throw new Error(error.message);
       return (data ?? []) as ProhibitedActionRow[];
     },
   });
 }
+
 
 // -------------------------------------------------------------- assurance
 export interface AssuranceRow {
@@ -467,4 +467,163 @@ export const useAssuranceConclude = () => useGovernedMutation<{
   (a) => ({ _review_id: a.reviewId, _conclusion: a.conclusion, _closure_note: a.closureNote }),
   'Assurance review concluded. The AI record itself is unchanged.',
   ['ai-gov-assurance', 'ai-gov-overview', 'ai-gov-events'],
+);
+
+// ------------------------------------------------- detail reads (MC-08 part 6)
+export interface InsightDetail {
+  id: string; insight_id: string; use_case_code: string; entity_id: string | null;
+  window_start: string | null; window_end: string | null; snapshot_fingerprint: string | null;
+  source_references: unknown; provider: string | null; model: string | null;
+  model_version: string | null; prompt_template_code: string | null; prompt_template_version: string | null;
+  generated_at: string; generated_by: string | null; ai_output: Record<string, unknown> | null;
+  confidence: number | null; uncertainty: string | null; limitations: string[] | null;
+  staleness_state: string | null; staleness_checked_at: string | null;
+  review_state: string; human_output: Record<string, unknown> | null; human_rationale: string | null;
+  reviewed_by: string | null; reviewed_at: string | null; superseded_by_id: string | null;
+}
+
+export function useConductAiInsight(id?: string | null) {
+  return useQuery({
+    queryKey: ['ai-gov-insight', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await sb.from('conduct_ai_insights').select('*').eq('id', id).maybeSingle();
+      if (error) throw new Error(error.message);
+      return (data ?? null) as InsightDetail | null;
+    },
+  });
+}
+
+export interface InsightReviewEvent {
+  id: string; conduct_ai_insight_id: string; action: string; rationale: string | null;
+  from_state: string | null; to_state: string | null; actor_id: string | null; created_at: string;
+}
+
+export function useConductAiReviewEvents(insightId?: string | null) {
+  return useQuery({
+    queryKey: ['ai-gov-insight-events', insightId],
+    enabled: !!insightId,
+    queryFn: async () => {
+      const { data, error } = await sb.from('conduct_ai_review_events')
+        .select('*').eq('conduct_ai_insight_id', insightId).order('created_at', { ascending: true });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as InsightReviewEvent[];
+    },
+  });
+}
+
+export interface AttemptDetail {
+  id: string; use_case_code: string | null; owning_module: string | null; entity_id: string | null;
+  requested_by: string | null; requested_role: string | null; outcome: string; reason_code: string | null;
+  detail: string | null; provider: string | null; model: string | null; model_version: string | null;
+  instruction_template_code: string | null; instruction_version: string | null;
+  snapshot_fingerprint: string | null; window_start: string | null; window_end: string | null;
+  latency_ms: number | null; conduct_ai_insight_id: string | null;
+  requested_at: string; completed_at: string | null; metadata: Record<string, unknown> | null;
+}
+
+export function useAiAttempt(id?: string | null) {
+  return useQuery({
+    queryKey: ['ai-gov-attempt', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await sb.from('ai_governance_activity_attempts')
+        .select('*').eq('id', id).maybeSingle();
+      if (error) throw new Error(error.message);
+      return (data ?? null) as AttemptDetail | null;
+    },
+  });
+}
+
+/** Every recorded attempt tied to one advisory item — the full execution trail. */
+export function useAttemptsForInsight(insightId?: string | null) {
+  return useQuery({
+    queryKey: ['ai-gov-attempts-insight', insightId],
+    enabled: !!insightId,
+    queryFn: async () => {
+      const { data, error } = await sb.from('ai_governance_activity_attempts')
+        .select('*').eq('conduct_ai_insight_id', insightId).order('requested_at', { ascending: true });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as AttemptDetail[];
+    },
+  });
+}
+
+export function useAssuranceForInsight(insightId?: string | null) {
+  return useQuery({
+    queryKey: ['ai-gov-assurance-insight', insightId],
+    enabled: !!insightId,
+    queryFn: async () => {
+      const { data, error } = await sb.from('ai_assurance_reviews')
+        .select('*').eq('conduct_ai_insight_id', insightId).order('created_at', { ascending: false });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as AssuranceRow[];
+    },
+  });
+}
+
+export function useAssuranceReview(id?: string | null) {
+  return useQuery({
+    queryKey: ['ai-gov-assurance-one', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await sb.from('ai_assurance_reviews').select('*').eq('id', id).maybeSingle();
+      if (error) throw new Error(error.message);
+      return (data ?? null) as AssuranceRow | null;
+    },
+  });
+}
+
+export function useGovernanceEventsForObject(objectType: string, objectId?: string | null) {
+  return useQuery({
+    queryKey: ['ai-gov-events-object', objectType, objectId],
+    enabled: !!objectId,
+    queryFn: async () => {
+      const { data, error } = await sb.from('ai_governance_events')
+        .select('*').eq('object_type', objectType).eq('object_id', objectId)
+        .order('created_at', { ascending: false });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as GovernanceEventRow[];
+    },
+  });
+}
+
+export function useAiThresholds() {
+  return useQuery({
+    queryKey: ['ai-gov-thresholds'],
+    queryFn: async () => {
+      const { data, error } = await sb.from('ai_governance_thresholds').select('*').maybeSingle();
+      if (error) throw new Error(error.message);
+      return data as { unreviewed_hours: number; low_confidence_below: number; updated_at: string } | null;
+    },
+  });
+}
+
+/** Platform-wide AI capability inventory beyond Conduct 360 (MC-08 item 10). */
+export interface SurfaceRow {
+  code: string; label: string; owning_module: string; business_purpose: string;
+  advisory_classification: string; lifecycle_state: string; approved_model_id: string | null;
+  instruction_governance: string; human_review: string; authoritative_write_path: string;
+  production_status: string; suspended_at: string | null; suspension_reason: string | null;
+  approved_at: string | null; created_at: string; updated_at: string;
+}
+
+export function useAiSurfaces() {
+  return useQuery({
+    queryKey: ['ai-gov-surfaces'],
+    queryFn: async () => {
+      const { data, error } = await sb.from('ai_governance_surfaces').select('*').order('label');
+      if (error) throw new Error(error.message);
+      return (data ?? []) as SurfaceRow[];
+    },
+  });
+}
+
+export const useAiSurfaceTransition = () => useGovernedMutation<{
+  code: string; toState: string; rationale?: string;
+}>(
+  'ai_governance_surface_set_state',
+  (a) => ({ _code: a.code, _to_state: a.toState, _rationale: a.rationale ?? null }),
+  'AI capability status updated and recorded in the governance history.',
+  ['ai-gov-surfaces', 'ai-gov-events'],
 );
