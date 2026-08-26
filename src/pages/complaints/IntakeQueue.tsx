@@ -122,8 +122,8 @@ export default function IntakeQueue() {
       <PageHeader
         title="Complaint intake queue"
         description="What has been received and what it needs next — jurisdiction assessment, information, triage or a support review."
-        icon={Inbox}
       />
+
 
       {countsQ.isError ? (
         <QueryErrorState message="Failed to load queue counts" onRetry={() => countsQ.refetch()} />
