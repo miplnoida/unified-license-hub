@@ -230,7 +230,7 @@ export default function IntakeQueue() {
                       <td className="py-2 pr-3">
                         <p>{r.respondent_name || 'Not identified'}</p>
                         <p className="text-xs text-muted-foreground">
-                          {MATCH_LABEL[r.respondent_match_state] ?? 'Match state not recorded'}
+                          {respondentMatchStateLabel(r.respondent_match_state)}
                         </p>
                       </td>
                       <td className="py-2 pr-3">
