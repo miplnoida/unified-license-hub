@@ -401,6 +401,8 @@ export function useComplaintOutcome(complaintId: string | undefined) {
     decideAdmissibility,
     assignReviewer,
     decideReconsideration,
+    issueOutcomeLetter,
+
   };
 }
 
