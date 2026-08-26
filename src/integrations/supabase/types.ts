@@ -39430,6 +39430,10 @@ export type Database = {
         Args: { _complaint_id: string }
         Returns: Json
       }
+      complaint_triage_record_evaluation: {
+        Args: { _complaint_id: string; _payload: Json }
+        Returns: Json
+      }
       complaints_analytics: { Args: { _filters?: Json }; Returns: Json }
       complaints_dashboard_counts: { Args: { _scope?: Json }; Returns: Json }
       complete_appeal_hearing:
@@ -41761,6 +41765,7 @@ export type Database = {
         Returns: Json
       }
       get_complaint_tracking: { Args: { _complaint_id: string }; Returns: Json }
+      get_complaint_triage: { Args: { _complaint_id: string }; Returns: Json }
       get_declaration_invitation_public: {
         Args: { p_token: string }
         Returns: {
