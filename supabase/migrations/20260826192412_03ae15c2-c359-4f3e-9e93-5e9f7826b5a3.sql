@@ -1,0 +1,3 @@
+REVOKE ALL ON FUNCTION public.conduct_reporting_adoption_immutable() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.conduct_reporting_ai_insight_record(text,text,uuid,uuid,date,date,text,jsonb,jsonb,text,text,text,text,numeric,text,text[],uuid,uuid,integer,text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.conduct_reporting_ai_insight_record(text,text,uuid,uuid,date,date,text,jsonb,jsonb,text,text,text,text,numeric,text,text[],uuid,uuid,integer,text) TO service_role;
