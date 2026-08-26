@@ -31,7 +31,7 @@ import { toast } from 'sonner';
 import { useCan } from '@/hooks/useCan';
 import { formatDate, formatDateTime } from '@/lib/datetime';
 import {
-  ATTENTION_STATUS_LABEL, INTERVENTION_NEXT_STATUS, OUTCOME_RESULT_LABEL,
+  ATTENTION_STATUS_LABEL, OUTCOME_RESULT_LABEL,
   PLAN_NEXT_STATUS, PLAN_STATUS_LABEL, PRIORITY_BAND_LABEL, attentionErrorMessage,
   useInitiateIntervention, usePlanCase, useTransitionPlan, useUpsertPlanMilestone,
   type PlanStatus,
@@ -167,7 +167,7 @@ export default function SupervisoryPlanDetail() {
             <CheckCircle2 className="h-4 w-4" />
             <AlertTitle className="text-sm">Awaiting a separate approval decision</AlertTitle>
             <AlertDescription className="text-xs">
-              Submitted{plan.submitted_by_name ? ` by ${data?.submitted_by_name}` : ''}
+              Submitted{data?.submitted_by_name ? ` by ${data.submitted_by_name}` : ''}
               {plan.submitted_at ? ` on ${formatDateTime(plan.submitted_at)}` : ''}. The officer who submitted
               the plan cannot approve it — a second supervisor with approval authority must decide.
             </AlertDescription>
