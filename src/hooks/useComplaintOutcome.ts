@@ -369,6 +369,17 @@ export function useComplaintOutcome(complaintId: string | undefined) {
     onSuccess: invalidate,
   });
 
+  const issueOutcomeLetter = useMutation({
+    mutationFn: (v: { subject?: string; body: string }) =>
+      call('complaint_outcome_letter_issue', {
+        _complaint_id: complaintId,
+        _subject: v.subject ?? null,
+        _body: v.body,
+      }),
+    onSuccess: invalidate,
+  });
+
+
   return {
     outcomeQ,
     redressQ,
