@@ -25,6 +25,7 @@ import { requireUserPermission } from '../_shared/authz.ts';
 import {
   ADVISORY_SCHEMA, USE_CASE_CODES, buildSystemPrompt, buildUserPrompt, type UseCaseCode,
 } from './prompts.ts';
+import { checkGrounding, resolveCitations } from './grounding.ts';
 
 const GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const PROVIDER = 'lovable_ai_gateway';
@@ -247,7 +248,7 @@ Deno.serve(async (req) => {
 
   // Use-case shape: the required payload for the narrow use cases must be present.
   const shapeMissing =
-    (useCaseCode === 'RECORDS_TO_REVIEW' && !(Array.isArray(output.records) && output.records.length > 0) && permittedRefs.size > 0) ||
+    (useCaseCode === 'RECORDS_TO_REVIEW' && !(Array.isArray(output.records) && output.records.length > 0) && hasPermitted) ||
     (useCaseCode === 'SUPERVISORY_QUESTIONS' && !(Array.isArray(output.questions) && output.questions.length > 0)) ||
     (useCaseCode === 'RISK_HYPOTHESIS' && !(Array.isArray(output.hypotheses) && output.hypotheses.length > 0));
   if (shapeMissing) {
@@ -265,7 +266,7 @@ Deno.serve(async (req) => {
 
   // Citations are persisted as the resolved context references (section + href),
   // so review and drill-down never depend on model-formatted text.
-  const citations = permitted.filter((r) => collected.has(String(r.reference ?? '')));
+  const citations = resolveCitations(grounding.cited, permitted);
 
   // 6. Recording — governed RPC only. Review state defaults to NOT_REVIEWED.
   const { data: recordedId, error: recordError } = await adminClient.rpc('conduct_ai_insight_record', {
