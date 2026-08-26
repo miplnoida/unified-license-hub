@@ -329,6 +329,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_governance_kill_switches: {
+        Row: {
+          engaged_at: string | null
+          engaged_by: string | null
+          engaged_reason: string | null
+          is_engaged: boolean
+          released_at: string | null
+          released_by: string | null
+          released_note: string | null
+          scope_key: string
+          scope_label: string
+          updated_at: string
+        }
+        Insert: {
+          engaged_at?: string | null
+          engaged_by?: string | null
+          engaged_reason?: string | null
+          is_engaged?: boolean
+          released_at?: string | null
+          released_by?: string | null
+          released_note?: string | null
+          scope_key: string
+          scope_label: string
+          updated_at?: string
+        }
+        Update: {
+          engaged_at?: string | null
+          engaged_by?: string | null
+          engaged_reason?: string | null
+          is_engaged?: boolean
+          released_at?: string | null
+          released_by?: string | null
+          released_note?: string | null
+          scope_key?: string
+          scope_label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_governance_models: {
         Row: {
           approved_at: string | null
@@ -40488,6 +40527,7 @@ export type Database = {
         Returns: string
       }
       ai_gov_require: { Args: { _actions: string[] }; Returns: string }
+      ai_gov_stop_active: { Args: { _module: string }; Returns: Json }
       ai_gov_transition_allowed: {
         Args: {
           _from: Database["public"]["Enums"]["ai_gov_lifecycle"]
@@ -40524,6 +40564,10 @@ export type Database = {
           _version: string
         }
         Returns: string
+      }
+      ai_governance_kill_switch_set: {
+        Args: { _engage: boolean; _reason: string; _scope_key: string }
+        Returns: Json
       }
       ai_governance_model_save: {
         Args: {
