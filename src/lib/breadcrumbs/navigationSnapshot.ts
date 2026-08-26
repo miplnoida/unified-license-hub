@@ -149,6 +149,7 @@ export const navigationSnapshot: NavSnapshotItem[] = [
   { key: "nav_market_conduct_complaint_types", parentKey: "nav_adm_cfg_supervision", label: "Complaint Types", href: "/admin/complaint-types", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_market_conduct_complaints", parentKey: "nav_sup_conduct", label: "Complaints", href: "/complaints", itemType: "link", audience: "any", showInSidebar: true },
   { key: "nav_market_conduct_conduct_actions", parentKey: "nav_sup_conduct", label: "Conduct Actions", href: "/conduct/actions", itemType: "link", audience: "internal", showInSidebar: true },
+  { key: "nav_market_conduct_conduct_signals", parentKey: "nav_sup_conduct", label: "Conduct Signals", href: "/conduct/signals", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_market_conduct_conduct_alerts", parentKey: "nav_sup_conduct", label: "Conduct Alerts", href: "/conduct/alerts", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_market_conduct_conduct_dashboard", parentKey: "nav_sup_conduct", label: "Overview", href: "/conduct", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_market_conduct_conduct_entities", parentKey: "nav_sup_conduct", label: "Conduct Entities", href: "/conduct/entities", itemType: "link", audience: "internal", showInSidebar: true },

@@ -159,6 +159,7 @@ export const mainNavSections: NavSection[] = [
       { label: 'Conduct Dashboard', href: '/conduct', icon: <BarChart3 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Supervision Loop', href: '/conduct/supervision-loop', icon: <GitBranch className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Market Surveillance', href: '/conduct/surveillance', icon: <Radar className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
+      { label: 'Conduct Signals', href: '/conduct/signals', icon: <Radar className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Conduct Alerts', href: '/conduct/alerts', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Conduct Actions', href: '/conduct/actions', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },
       { label: 'Conduct Entities', href: '/conduct/entities', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'market_conduct' },

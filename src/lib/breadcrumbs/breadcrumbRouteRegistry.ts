@@ -181,6 +181,8 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   { pattern: '/conduct/investigations', label: 'Investigations', parent: '/conduct' },
   { pattern: '/conduct/investigations/:id', resolver: 'investigation', param: 'id', parent: '/conduct/investigations' },
   { pattern: '/conduct/surveillance', label: 'Surveillance', parent: '/conduct' },
+  { pattern: '/conduct/signals', label: 'Conduct signals', parent: '/conduct' },
+  { pattern: '/conduct/signals/:id', label: 'Signal', parent: '/conduct/signals' },
   { pattern: '/conduct/alerts', label: 'Conduct alerts', parent: '/conduct' },
   { pattern: '/conduct/actions', label: 'Conduct actions', parent: '/conduct' },
   { pattern: '/conduct/actions/:id', label: 'Conduct action', parent: '/conduct/actions' },
