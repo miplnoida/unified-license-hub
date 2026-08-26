@@ -128,8 +128,11 @@ export default function ManagementReporting() {
   const [sector, setSector] = useState('all');
   const [drilldownCode, setDrilldownCode] = useState<string | null>(null);
   const [packId, setPackId] = useState<string | null>(null);
-  const [packType, setPackType] = useState('SECTOR_PERIOD');
+  const [packType, setPackType] = useState('period_sector');
   const [packLabel, setPackLabel] = useState('');
+  const [packSubjectKey, setPackSubjectKey] = useState('');
+  const [regenerationReason, setRegenerationReason] = useState('');
+
 
   const scope: MIScope = useMemo(() => ({
     periodStart,
@@ -163,23 +166,45 @@ export default function ManagementReporting() {
     return [...rows].sort((a, b) => Math.abs(b.absolute_change) - Math.abs(a.absolute_change));
   }, [compare.data]);
 
+  const effectiveSubjectKey = packType === 'period_sector'
+    ? `${periodStart}:${periodEnd}`
+    : packSubjectKey.trim();
+
+  const existingPack = useMemo(
+    () => (packs.data ?? []).find((p) => p.pack_type === packType && p.subject_key === effectiveSubjectKey
+      && p.period_start === periodStart && p.period_end === periodEnd),
+    [packs.data, packType, effectiveSubjectKey, periodStart, periodEnd],
+  );
+
   const handleGeneratePack = async () => {
+    if (packType !== 'period_sector' && !effectiveSubjectKey) {
+      toast.error('Name the subject of this pack before generating it.');
+      return;
+    }
+    if (existingPack && regenerationReason.trim().length < 10) {
+      toast.error('A pack already exists for this subject and period. Record why it is being regenerated.');
+      return;
+    }
     try {
       await generatePack.mutateAsync({
         packType,
-        subjectKey: `${periodStart}:${periodEnd}`,
+        subjectKey: effectiveSubjectKey,
         subjectLabel: packLabel.trim() || `Management reporting ${periodStart} to ${periodEnd}`,
         periodStart,
         periodEnd,
         sectorId: scope.sectorId,
         regulatorId: null,
+        regenerationReason: existingPack ? regenerationReason.trim() : null,
+        existingPackId: existingPack?.id ?? null,
       });
       setPackLabel('');
+      setRegenerationReason('');
       toast.success('An evidence pack version has been generated and signed.');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'The evidence pack could not be generated.');
     }
   };
+
 
   const handleExport = async () => {
     const current = pack.data;
@@ -471,15 +496,28 @@ export default function ManagementReporting() {
                   <div className="grid gap-3 sm:grid-cols-3">
                     <div>
                       <Label>Pack type</Label>
-                      <Select value={packType} onValueChange={setPackType}>
+                      <Select
+                        value={packType}
+                        onValueChange={(v) => { setPackType(v); setRegenerationReason(''); }}
+                      >
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="SECTOR_PERIOD">Sector reporting period</SelectItem>
-                          <SelectItem value="MANAGEMENT_REPORT">Management report</SelectItem>
-                          <SelectItem value="BOARD_REPORT">Board report</SelectItem>
+                          <SelectItem value="period_sector">Sector reporting period</SelectItem>
+                          <SelectItem value="theme">Thematic pack</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
+                    {packType !== 'period_sector' && (
+                      <div>
+                        <Label htmlFor="pack-subject">Theme</Label>
+                        <Input
+                          id="pack-subject"
+                          value={packSubjectKey}
+                          onChange={(e) => setPackSubjectKey(e.target.value)}
+                          placeholder="fee_disclosure"
+                        />
+                      </div>
+                    )}
                     <div>
                       <Label htmlFor="pack-label">Pack label</Label>
                       <Input
@@ -489,15 +527,27 @@ export default function ManagementReporting() {
                         placeholder={`Management reporting ${periodStart} to ${periodEnd}`}
                       />
                     </div>
+                    {existingPack && (
+                      <div className="sm:col-span-2">
+                        <Label htmlFor="pack-reason">Reason for regenerating {existingPack.reference}</Label>
+                        <Input
+                          id="pack-reason"
+                          value={regenerationReason}
+                          onChange={(e) => setRegenerationReason(e.target.value)}
+                          placeholder="Why a further version of this pack is required"
+                        />
+                      </div>
+                    )}
                     <div className="flex items-end">
                       <Button onClick={handleGeneratePack} disabled={generatePack.isPending || !periodValid}>
                         {generatePack.isPending
                           ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           : <FileText className="mr-2 h-4 w-4" />}
-                        Generate pack version
+                        {existingPack ? 'Generate next version' : 'Generate pack version'}
                       </Button>
                     </div>
                   </div>
+
                 )}
 
                 {packs.isLoading ? (
