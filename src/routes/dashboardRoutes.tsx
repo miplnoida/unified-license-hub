@@ -107,6 +107,7 @@ const ConductSignals = lazy(() => import('@/pages/conduct/ConductSignals'));
 const ConductSignalDetail = lazy(() => import('@/pages/conduct/ConductSignalDetail'));
 const ConductPatterns = lazy(() => import('@/pages/conduct/ConductPatterns'));
 const ConductPatternDetail = lazy(() => import('@/pages/conduct/ConductPatternDetail'));
+const Conduct360 = lazy(() => import('@/pages/conduct/Conduct360'));
 
 
 const NewInternalComplaint = lazy(() => import('@/pages/complaints/NewInternalComplaint'));
@@ -277,6 +278,7 @@ export const dashboardRoutes = (
 
     <Route path="/admin/conduct/monitoring-rules" element={<M module="market_conduct"><MonitoringRules /></M>} />
     <Route path="/conduct/entities" element={<M module="market_conduct"><ConductEntitiesList /></M>} />
+    <Route path="/conduct/entities/:entityId/360" element={<M module="market_conduct"><Conduct360 /></M>} />
     <Route path="/conduct/entities/:id" element={<ConductEntityRedirect />} />
     <Route path="/conduct/supervision-loop" element={<M module="market_conduct"><SupervisionLoop /></M>} />
     <Route path="/conduct/work-queue" element={<M module="market_conduct"><ConductWorkQueue /></M>} />
