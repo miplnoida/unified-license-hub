@@ -118,7 +118,7 @@ BEGIN
 
   -- C. attention items demand a written supervisory basis
   BEGIN
-    PERFORM public.conduct_attention_create('Fee disclosure concentration','PATTERN','conduct_patterns','too short',
+    PERFORM public.conduct_attention_create('Fee disclosure concentration','complaint_pattern','conduct_patterns','too short',
       NULL,NULL,NULL,'fee_disclosure',ARRAY[_entity],_sector,_reg);
     INSERT INTO mc10 VALUES ('attention_basis_required', false, 'an attention item was accepted without a basis');
   EXCEPTION WHEN OTHERS THEN
@@ -127,9 +127,9 @@ BEGIN
 
   -- D. attention is recorded with a reference and an open status
   _res := public.conduct_attention_create(
-    'Fee disclosure concentration','PATTERN','conduct_patterns',
+    'Fee disclosure concentration','complaint_pattern','conduct_patterns',
     'Repeat fee disclosure complaints across the sector require supervisory attention and a planned response.',
-    NULL,NULL,NULL,'fee_disclosure',ARRAY[_entity],_sector,_reg,'high','priority');
+    NULL,NULL,NULL,'fee_disclosure',ARRAY[_entity],_sector,_reg,'high','urgent');
   _att := (_res->>'id')::uuid;
   INSERT INTO mc10 VALUES ('attention_recorded',
     _att IS NOT NULL AND (_res->>'reference') IS NOT NULL AND (_res->>'status') = 'OPEN',
@@ -406,7 +406,7 @@ BEGIN
   PERFORM set_config('request.jwt.claims', NULL, true);
   DECLARE _a1 boolean := false; _a2 boolean := false; _a3 boolean := false;
   BEGIN
-    BEGIN PERFORM public.conduct_attention_create('x','PATTERN','conduct_patterns',
+    BEGIN PERFORM public.conduct_attention_create('x','complaint_pattern','conduct_patterns',
       'anonymous attempt at creating a supervisory attention item',NULL,NULL,NULL,'fee_disclosure');
     EXCEPTION WHEN OTHERS THEN _a1 := true; END;
     BEGIN PERFORM public.conduct_plan_transition(_plan,'COMPLETED','anonymous attempt');
