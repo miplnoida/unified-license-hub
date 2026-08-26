@@ -2,7 +2,7 @@
 -- Asserts the canonical complaint workflow definition, the retirement of the
 -- historical 12-step workflow, and the governed workflow lifecycle contract.
 BEGIN;
-SELECT plan(22);
+SELECT plan(24);
 
 -- ---------------------------------------------------------------- definition
 SELECT is(
@@ -115,6 +115,11 @@ SELECT throws_ok(
 SELECT has_function('public', 'mc_complaint_workflow_sync', ARRAY['uuid','text']);
 SELECT has_function('public', 'complaint_workflow_state', ARRAY['uuid']);
 SELECT has_function('public', 'complaint_investigation_readiness', ARRAY['uuid']);
+SELECT ok(
+  position('status IN (''draft'',''open'',''submitted'')' in
+    pg_get_functiondef('public.complaint_rfi_cancel(uuid,text)'::regprocedure)) > 0,
+  'draft RFIs can be cancelled through the governed RFI lifecycle'
+);
 
 SELECT ok(
   (SELECT count(*) FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
