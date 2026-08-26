@@ -473,17 +473,48 @@ export function useUpdateWorkflow() {
   });
 }
 
+/**
+ * Governed hard delete. The browser has no DELETE privilege on
+ * `approval_workflows`; the server proves the workflow has zero instances and
+ * zero approval actions, otherwise it returns WORKFLOW_HAS_HISTORY_USE_RETIRE.
+ */
 export function useDeleteWorkflow() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('approval_workflows').delete().eq('id', id);
-      if (error) throw error;
-      await logAudit({ action: 'workflow_deleted', entityType: 'approval_workflow', entityId: id });
+      const { error } = await supabase.rpc('workflow_hard_delete' as any, { _workflow_id: id });
+      if (error) {
+        if (error.message?.includes('WORKFLOW_HAS_HISTORY_USE_RETIRE')) {
+          throw new Error(
+            'This workflow has case history and cannot be deleted. Retire it instead — retirement stops new cases while preserving every version, step and past case.',
+          );
+        }
+        throw error;
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['approval_workflows'] }),
   });
 }
+
+/**
+ * Governed retirement: stops new instances, preserves the definition, versions,
+ * steps, actions and all existing instance history, and records who retired it
+ * and why.
+ */
+export function useRetireWorkflow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const { error } = await supabase.rpc('workflow_retire' as any, {
+        _workflow_id: id,
+        _reason: reason,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['approval_workflows'] }),
+  });
+}
+
 
 export function useCreateStep() {
   const qc = useQueryClient();
