@@ -287,6 +287,9 @@ export const dashboardRoutes = (
     <Route path="/governance/ai/surfaces" element={<M module="ai_management"><AiSurfaces /></M>} />
     <Route path="/conduct/patterns" element={<M module="market_conduct"><ConductPatterns /></M>} />
     <Route path="/conduct/patterns/:id" element={<M module="market_conduct"><ConductPatternDetail /></M>} />
+    <Route path="/conduct/supervisory-intelligence" element={<M module="market_conduct"><SupervisoryIntelligence /></M>} />
+    <Route path="/conduct/emerging-risks" element={<M module="market_conduct"><EmergingRisksRegister /></M>} />
+    <Route path="/conduct/emerging-risks/:riskId" element={<M module="market_conduct"><EmergingRiskDetail /></M>} />
 
     <Route path="/conduct/alerts" element={<M module="market_conduct"><ConductAlerts /></M>} />
     <Route path="/conduct/surveillance" element={<M module="market_conduct"><SurveillanceWorkspace /></M>} />
