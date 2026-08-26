@@ -28,6 +28,8 @@ const ROUTE_CHUNKS: Record<string, Thunk> = {
   '/conduct/investigations': () => import('@/pages/conduct/Investigations'),
   '/conduct/alerts': () => import('@/pages/conduct/ConductAlerts'),
   '/conduct/signals': () => import('@/pages/conduct/ConductSignals'),
+  '/conduct/patterns': () => import('@/pages/conduct/ConductPatterns'),
+
   '/conduct/actions': () => import('@/pages/conduct/ConductActions'),
   '/conduct': () => import('@/pages/conduct/ConductDashboard'),
   '/prudential/dashboard': () => import('@/pages/prudential/PrudentialDashboard'),
