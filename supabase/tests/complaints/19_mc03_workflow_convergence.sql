@@ -118,21 +118,21 @@ SELECT has_function('public', 'complaint_investigation_readiness', ARRAY['uuid']
 
 SELECT ok(
   (SELECT count(*) FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
-    WHERE c.relname = 'complaints' AND t.tgname LIKE '%mc_complaint_workflow%') > 0,
+    WHERE c.relname = 'complaints' AND t.tgname LIKE 'mc_%_workflow') > 0,
   'complaint lifecycle trigger drives workflow progression server-side'
 );
 
 SELECT ok(
   (SELECT count(*) FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
     WHERE c.relname = 'complaint_jurisdiction_assessments'
-      AND t.tgname LIKE '%mc_complaint%') > 0,
+      AND t.tgname LIKE 'mc_%_workflow') > 0,
   'jurisdiction decision trigger drives workflow progression server-side'
 );
 
 SELECT ok(
   (SELECT count(*) FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
     WHERE c.relname = 'complaint_investigation_plans'
-      AND t.tgname LIKE '%mc_complaint%') > 0,
+      AND t.tgname LIKE 'mc_%_workflow') > 0,
   'plan approval trigger drives workflow progression server-side'
 );
 
