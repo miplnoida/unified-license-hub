@@ -24,7 +24,11 @@ export type CaseWorkSection =
   | 'investigation'
   | 'rfis'
   | 'classification'
-  | 'closure';
+  | 'outcome'
+  | 'redress'
+  | 'closure'
+  | 'review';
+
 
 export interface TrackingStep {
   step_key: string;
