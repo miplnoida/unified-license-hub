@@ -1,12 +1,11 @@
 /**
  * Guided "Current step" panel for the complaint workspace.
  *
- * This is the ONLY lifecycle controller in the complaint detail page. The
- * step, the available actions and their target steps all come from the
- * configured Complaint Management Workflow via
- * `get_complaint_tracking` / `get_complaint_available_actions`; the panel just
- * explains them and summarises supporting work (tasks, RFIs, closure/QA,
- * communications) as readiness information.
+ * MC-03: the complaint no longer carries a step-action controller. The canonical
+ * Market Conduct workflow advances on domain events, so this panel renders the
+ * read-only phase panel (`complaint_workflow_state`) plus supporting readiness
+ * (work items, information requests, closure/QA) and routes the officer to the
+ * one workspace where each decision is actually recorded.
  */
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,7 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, ArrowRight, Check, Circle, Clock, Loader2 } from 'lucide-react';
 import { useComplaintRfis } from '@/hooks/useComplaintRfis';
-import { WorkflowActionPanel } from '@/components/complaints/WorkflowActionPanel';
+import { ComplaintPhasePanel } from '@/components/complaints/ComplaintPhasePanel';
+
 import { complaintStatusLabel, complaintStatusVariant } from '@/lib/complaintStatus';
 import { formatDateOnly } from '@/lib/datetime';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
