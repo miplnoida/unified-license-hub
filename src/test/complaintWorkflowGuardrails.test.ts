@@ -55,9 +55,12 @@ describe('complaint workflow guardrails', () => {
     expect(src).not.toMatch(/from\('enforcement_case_events'\)\.insert/);
   });
 
-  it('ComplaintDetail delegates lifecycle to WorkflowActionPanel', () => {
+  it('ComplaintDetail delegates the phase to the read-only ComplaintPhasePanel', () => {
     const src = readFileSync('src/pages/complaints/ComplaintDetail.tsx', 'utf8');
-    expect(src).toContain('WorkflowActionPanel');
+    expect(src).toContain('ComplaintCurrentStepPanel');
+    // The retired step-action controller no longer owns the complaint lifecycle.
+    expect(src).not.toContain('WorkflowActionPanel');
+    expect(src).not.toContain('Complaint Management Workflow');
     // No direct lifecycle RPC calls left in the React file.
     expect(src).not.toMatch(/rpc\(['"]resolve_complaint['"]/);
     expect(src).not.toMatch(/rpc\(['"]close_complaint['"]/);
