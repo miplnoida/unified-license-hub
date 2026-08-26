@@ -203,7 +203,9 @@ export const dashboardRoutes = (
     <Route path="/complaints" element={<ExternalPortalOrModule module="complaint_management" area="complaints" capability={["can_submit_complaints", "can_view_status"]} allowedRoles={INTERNAL_ROLES}><ComplaintsList /></ExternalPortalOrModule>} />
     <Route path="/complaints/analytics" element={<M module="complaint_management"><ComplaintsAnalytics /></M>} />
     <Route path="/complaints/bulk-intake" element={<M module="complaint_management"><ComplaintBulkIntake /></M>} />
+    <Route path="/complaints/intake-queue" element={<M module="complaint_management"><ComplaintIntakeQueue /></M>} />
     <Route path="/complaints/duplicates" element={<M module="complaint_management"><DuplicateDetectionHub /></M>} />
+
     <Route path="/complaints/escalations" element={<M module="complaint_management"><EscalationHub /></M>} />
     <Route path="/complaints/rfi-approvals" element={<M module="complaint_management"><RfiApprovalQueue /></M>} />
     <Route path="/complaints/track" element={<ExternalPortalOrModule module="complaint_management" area="complaints" capability={["can_submit_complaints", "can_view_status"]} allowedRoles={INTERNAL_ROLES}><ComplaintTracking /></ExternalPortalOrModule>} />
