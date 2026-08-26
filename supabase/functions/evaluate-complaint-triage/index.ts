@@ -31,6 +31,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 import { logComplianceAudit } from "../_shared/audit.ts";
+import { requireUserPermission } from "../_shared/authz.ts";
+
 
 const FN_VERSION = "triage.v4";
 const SYSTEM_ACTOR = "00000000-0000-0000-0000-000000000000";
