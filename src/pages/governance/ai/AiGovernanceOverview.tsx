@@ -120,9 +120,8 @@ export default function AiGovernanceOverview() {
 
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm"><Link to="/governance/ai/activity">AI activity register</Link></Button>
-          <Button asChild variant="outline" size="sm"><Link to="/governance/ai/capabilities">Capabilities, models and instructions</Link></Button>
-          <Button asChild variant="outline" size="sm"><Link to="/governance/ai/assurance">Assurance reviews</Link></Button>
         </div>
+
 
         <Card>
           <CardHeader className="pb-3">
