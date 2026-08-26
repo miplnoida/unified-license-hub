@@ -134,8 +134,6 @@ export function ComplaintCurrentStepPanel({ complaintId, status, licenseeId, onO
   const waiting = rfiOk && closureOk
     ? deriveWaitingState({ actions, rfi, closure, closurePhase, tracking })
     : null;
-  const progress = stepProgress(tracking?.steps);
-  const task = yourTaskLine(actions);
 
   // Core data for this panel: workflow tracking + available actions.
   if (trackingQ.isLoading || (actionsQ.isLoading && !actionsQ.data)) {
