@@ -328,19 +328,19 @@ BEGIN
 
   -- V. an outcome requires a reasoned result and records follow-up
   BEGIN
-    PERFORM public.conduct_intervention_record_outcome(_iv,'partially_effective','short');
+    PERFORM public.conduct_intervention_record_outcome(_iv,'remediation_required','short');
     INSERT INTO mc10 VALUES ('outcome_rationale_required', false, 'an unexplained outcome was accepted');
   EXCEPTION WHEN OTHERS THEN
     INSERT INTO mc10 VALUES ('outcome_rationale_required', true, SQLERRM);
   END;
 
-  _res := public.conduct_intervention_record_outcome(_iv,'partially_effective',
+  _res := public.conduct_intervention_record_outcome(_iv,'remediation_required',
     'The entity supplied documentation showing partial remediation; disclosure templates remain outstanding.',
     'Fee tables corrected; pre-contract disclosure templates not yet updated.',
     'Updated disclosure templates to be filed.',
     '[]'::jsonb, (current_date + 45), 'Verify updated templates on filing.');
   INSERT INTO mc10 VALUES ('outcome_recorded',
-    (SELECT outcome_result FROM public.conduct_interventions WHERE id=_iv) = 'partially_effective'
+    (SELECT outcome_result FROM public.conduct_interventions WHERE id=_iv) = 'remediation_required'
     AND (SELECT followup_due_date FROM public.conduct_interventions WHERE id=_iv) IS NOT NULL
     AND EXISTS (SELECT 1 FROM public.conduct_intervention_events
                  WHERE intervention_id=_iv AND event_type IN ('OUTCOME','OUTCOME_RECORDED')),
