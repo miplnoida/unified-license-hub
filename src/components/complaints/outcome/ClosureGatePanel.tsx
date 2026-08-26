@@ -27,10 +27,11 @@ interface Props {
   onOpenRedress?: () => void;
 }
 
-type DialogMode = 'submit_qa' | 'qa_pass' | 'qa_return' | 'close' | null;
+type DialogMode = 'submit_qa' | 'qa_pass' | 'qa_return' | 'close' | 'letter' | null;
 
 export function ClosureGatePanel({ complaintId, complaintUpdatedAt, onOpenOutcome, onOpenRedress }: Props) {
-  const { closureReadinessQ, closureReviewsQ, submitForQa, recordQa, closeComplaint } = useComplaintOutcome(complaintId);
+  const { closureReadinessQ, closureReviewsQ, submitForQa, recordQa, closeComplaint, issueOutcomeLetter } =
+    useComplaintOutcome(complaintId);
   const [mode, setMode] = useState<DialogMode>(null);
   const [rationale, setRationale] = useState('');
   const [findings, setFindings] = useState('');
@@ -45,6 +46,7 @@ export function ClosureGatePanel({ complaintId, complaintUpdatedAt, onOpenOutcom
     else if (m.includes('closure_blocked')) toast.error('Closure is blocked — see the outstanding items listed above.');
     else if (m.includes('qa_not_required')) toast.error('A quality review is not required for this complaint.');
     else if (m.includes('outcome_not_recorded')) toast.error('The final outcome must be completed first.');
+    else if (m.includes('letter_body_required')) toast.error('Write the letter to the consumer before issuing it.');
     else if (m.includes('rationale_required')) toast.error('A written reason is required.');
     else if (m.includes('complaint_stale')) toast.error('This complaint changed elsewhere. Reload before continuing.');
     else toast.error(m || 'Action failed');
@@ -55,8 +57,10 @@ export function ClosureGatePanel({ complaintId, complaintUpdatedAt, onOpenOutcom
     if (mode === 'submit_qa') submitForQa.mutate({ note: rationale }, { onError, onSuccess: () => done('Sent for quality review') });
     if (mode === 'qa_pass') recordQa.mutate({ decision: 'qa_approved', findings, rationale }, { onError, onSuccess: () => done('Quality review passed') });
     if (mode === 'qa_return') recordQa.mutate({ decision: 'qa_returned', findings, rationale }, { onError, onSuccess: () => done('Returned for correction') });
+    if (mode === 'letter') issueOutcomeLetter.mutate({ subject: findings || undefined, body: rationale }, { onError, onSuccess: () => done('Outcome letter issued to the consumer') });
     if (mode === 'close') closeComplaint.mutate({ rationale, expectedUpdatedAt: complaintUpdatedAt ?? null }, { onError, onSuccess: () => done('Complaint closed') });
   };
+
 
   if (closureReadinessQ.isLoading) {
     return <Card><CardContent className="py-10 text-center text-sm text-muted-foreground"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Checking closure readiness…</CardContent></Card>;
