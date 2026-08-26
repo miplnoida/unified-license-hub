@@ -110,6 +110,7 @@ const SupervisoryIntelligence = lazy(() => import('@/pages/conduct/SupervisoryIn
 const EmergingRisksRegister = lazy(() => import('@/pages/conduct/EmergingRisksRegister'));
 const ConductPrioritisation = lazy(() => import('@/pages/conduct/ConductPrioritisation'));
 const InterventionsRegister = lazy(() => import('@/pages/conduct/InterventionsRegister'));
+const ManagementReporting = lazy(() => import('@/pages/conduct/ManagementReporting'));
 const InterventionDetail = lazy(() => import('@/pages/conduct/InterventionDetail'));
 const SupervisoryAttentionRegister = lazy(() => import('@/pages/conduct/SupervisoryAttentionRegister'));
 const SupervisoryAttentionDetail = lazy(() => import('@/pages/conduct/SupervisoryAttentionDetail'));
