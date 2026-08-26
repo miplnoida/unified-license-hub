@@ -34,17 +34,15 @@ export const CLASSIFICATIONS: Record<Classification, ClassMeta> = {
   },
   AI_SUGGESTION: {
     label: 'AI suggestion',
-    description: 'Advisory narrative for a supervisor to review.',
+    description: 'Advisory narrative prepared as drafting help. Requires human review before it is relied on.',
     chip: 'bg-warning/10 text-warning-foreground border-warning/30',
-    active: false,
-    note: 'Available in next phase',
+    active: true,
   },
   HUMAN_DECISION: {
     label: 'Human decision',
-    description: 'A decision recorded by an authorised supervisor.',
+    description: 'A decision recorded by an authorised supervisor, with their rationale.',
     chip: 'bg-success/10 text-success border-success/30',
-    active: false,
-    note: 'Available in next phase',
+    active: true,
   },
 };
 
@@ -70,7 +68,8 @@ export function ClassificationLegend() {
       <CardContent className="p-4">
         <p className="text-sm font-semibold">How to read this view</p>
         <p className="text-xs text-muted-foreground mt-1">
-          Everything below is regulatory data or a published rule outcome. No advisory content is shown in this phase.
+          Regulatory data and published rule outcomes are shown first. AI suggestions are separated below the facts and
+          only carry weight once a supervisor has recorded a decision on them.
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {(Object.keys(CLASSIFICATIONS) as Classification[]).map((key) => {
