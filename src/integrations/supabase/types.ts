@@ -10123,6 +10123,149 @@ export type Database = {
         }
         Relationships: []
       }
+      conduct_intervention_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          event_type: string
+          from_status: string | null
+          id: string
+          intervention_id: string
+          rationale: string | null
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          intervention_id: string
+          rationale?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          intervention_id?: string
+          rationale?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_intervention_events_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_interventions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_interventions: {
+        Row: {
+          activated_at: string | null
+          basis: string
+          completed_at: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_rationale: string | null
+          emerging_risk_id: string | null
+          expected_outcome: string | null
+          id: string
+          intervention_type: string
+          licensee_id: string | null
+          outcome_note: string | null
+          owner_id: string | null
+          planned_end: string | null
+          planned_start: string | null
+          priority_score_id: string | null
+          proposed_at: string
+          proposed_by: string
+          reference: string
+          regulator_id: string | null
+          sector_id: string | null
+          status: string
+          theme: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          basis: string
+          completed_at?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_rationale?: string | null
+          emerging_risk_id?: string | null
+          expected_outcome?: string | null
+          id?: string
+          intervention_type: string
+          licensee_id?: string | null
+          outcome_note?: string | null
+          owner_id?: string | null
+          planned_end?: string | null
+          planned_start?: string | null
+          priority_score_id?: string | null
+          proposed_at?: string
+          proposed_by: string
+          reference: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          status?: string
+          theme?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          basis?: string
+          completed_at?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_rationale?: string | null
+          emerging_risk_id?: string | null
+          expected_outcome?: string | null
+          id?: string
+          intervention_type?: string
+          licensee_id?: string | null
+          outcome_note?: string | null
+          owner_id?: string | null
+          planned_end?: string | null
+          planned_start?: string | null
+          priority_score_id?: string | null
+          proposed_at?: string
+          proposed_by?: string
+          reference?: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          status?: string
+          theme?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_interventions_emerging_risk_id_fkey"
+            columns: ["emerging_risk_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_emerging_risks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_interventions_priority_score_id_fkey"
+            columns: ["priority_score_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_priority_scores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conduct_interview_attachments: {
         Row: {
           created_at: string
@@ -10977,6 +11120,166 @@ export type Database = {
             columns: ["investigation_id"]
             isOneToOne: false
             referencedRelation: "v_conduct_investigation_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_priority_configs: {
+        Row: {
+          active: boolean
+          code: string
+          complaint_weight: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          emerging_risk_weight: number
+          id: string
+          name: string
+          pattern_weight: number
+          signal_weight: number
+          updated_at: string
+          window_days: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          complaint_weight?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          emerging_risk_weight?: number
+          id?: string
+          name: string
+          pattern_weight?: number
+          signal_weight?: number
+          updated_at?: string
+          window_days?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          complaint_weight?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          emerging_risk_weight?: number
+          id?: string
+          name?: string
+          pattern_weight?: number
+          signal_weight?: number
+          updated_at?: string
+          window_days?: number
+        }
+        Relationships: []
+      }
+      conduct_priority_runs: {
+        Row: {
+          all_sectors: boolean
+          computed_at: string
+          computed_by: string
+          config_id: string
+          entity_count: number
+          id: string
+          method: string
+          regulator_id: string | null
+          sector_id: string | null
+          sectors_in_view: string[]
+          window_days: number
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          all_sectors?: boolean
+          computed_at?: string
+          computed_by: string
+          config_id: string
+          entity_count?: number
+          id?: string
+          method: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          sectors_in_view?: string[]
+          window_days: number
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          all_sectors?: boolean
+          computed_at?: string
+          computed_by?: string
+          config_id?: string
+          entity_count?: number
+          id?: string
+          method?: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          sectors_in_view?: string[]
+          window_days?: number
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_priority_runs_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_priority_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_priority_scores: {
+        Row: {
+          complaint_count: number
+          created_at: string
+          drivers: Json
+          emerging_risk_count: number
+          id: string
+          licensee_id: string | null
+          licensee_name: string | null
+          pattern_count: number
+          rank: number
+          run_id: string
+          score: number
+          sector_id: string | null
+          signal_count: number
+        }
+        Insert: {
+          complaint_count?: number
+          created_at?: string
+          drivers?: Json
+          emerging_risk_count?: number
+          id?: string
+          licensee_id?: string | null
+          licensee_name?: string | null
+          pattern_count?: number
+          rank?: number
+          run_id: string
+          score?: number
+          sector_id?: string | null
+          signal_count?: number
+        }
+        Update: {
+          complaint_count?: number
+          created_at?: string
+          drivers?: Json
+          emerging_risk_count?: number
+          id?: string
+          licensee_id?: string | null
+          licensee_name?: string | null
+          pattern_count?: number
+          rank?: number
+          run_id?: string
+          score?: number
+          sector_id?: string | null
+          signal_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_priority_scores_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_priority_runs"
             referencedColumns: ["id"]
           },
         ]
@@ -43682,6 +43985,70 @@ export type Database = {
         }
         Returns: Json
       }
+      conduct_intervention_case: { Args: { _id: string }; Returns: Json }
+      conduct_intervention_decide: {
+        Args: { _decision: string; _id: string; _rationale: string }
+        Returns: Json
+      }
+      conduct_intervention_guard: {
+        Args: { _actions: string[]; _id: string }
+        Returns: {
+          activated_at: string | null
+          basis: string
+          completed_at: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_rationale: string | null
+          emerging_risk_id: string | null
+          expected_outcome: string | null
+          id: string
+          intervention_type: string
+          licensee_id: string | null
+          outcome_note: string | null
+          owner_id: string | null
+          planned_end: string | null
+          planned_start: string | null
+          priority_score_id: string | null
+          proposed_at: string
+          proposed_by: string
+          reference: string
+          regulator_id: string | null
+          sector_id: string | null
+          status: string
+          theme: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "conduct_interventions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      conduct_intervention_propose: {
+        Args: {
+          _basis: string
+          _emerging_risk_id?: string
+          _expected_outcome?: string
+          _intervention_type: string
+          _licensee_id?: string
+          _owner_id?: string
+          _planned_end?: string
+          _planned_start?: string
+          _priority_score_id?: string
+          _regulator_id?: string
+          _sector_id?: string
+          _theme?: string
+          _title: string
+        }
+        Returns: Json
+      }
+      conduct_intervention_transition: {
+        Args: { _id: string; _rationale: string; _to_status: string }
+        Returns: Json
+      }
       conduct_investigation_available_actions: {
         Args: { _investigation_id: string }
         Returns: Json
@@ -43747,6 +44114,23 @@ export type Database = {
       conduct_pattern_require: { Args: { _actions: string[] }; Returns: string }
       conduct_pattern_rule_upsert: { Args: { _payload: Json }; Returns: Json }
       conduct_pattern_run_all: { Args: { _as_of?: string }; Returns: Json }
+      conduct_planning_scope: {
+        Args: { _regulator_id: string; _sector_id: string; _uid: string }
+        Returns: string[]
+      }
+      conduct_priority_compute: {
+        Args: {
+          _config_code?: string
+          _regulator_id?: string
+          _sector_id?: string
+          _window_days?: number
+        }
+        Returns: Json
+      }
+      conduct_priority_register: {
+        Args: { _limit?: number; _run_id?: string }
+        Returns: Json
+      }
       conduct_related_cases: {
         Args: { _case_id: string; _case_type: string }
         Returns: Json
@@ -46927,6 +47311,7 @@ export type Database = {
       mark_expired_licenses: { Args: never; Returns: number }
       mark_prudential_actions_breached: { Args: never; Returns: number }
       mark_prudential_actions_overdue: { Args: never; Returns: number }
+      market_conduct_require: { Args: { _actions: string[] }; Returns: string }
       market_conduct_visible_sectors: {
         Args: { _regulator_id?: string; _user_id: string }
         Returns: string[]

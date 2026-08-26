@@ -58,8 +58,12 @@ export const patch = async (email: string, path: string, payload: unknown) =>
     method: 'PATCH', headers: { ...(await headers(email)), Prefer: 'return=representation' }, body: JSON.stringify(payload),
   }));
 
+export const del = async (email: string, path: string) =>
+  wrap(await fetch(`${URL_BASE}/rest/v1/${path}`, { method: 'DELETE', headers: await headers(email) }));
+
 export const fn = async (email: string, name: string, payload: unknown) =>
   wrap(await fetch(`${URL_BASE}/functions/v1/${name}`, { method: 'POST', headers: await headers(email), body: JSON.stringify(payload) }));
+
 
 export const denied = (r: Res) =>
   r.status === 401 || r.status === 403 ||
