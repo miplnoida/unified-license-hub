@@ -5,6 +5,7 @@
  * function name. Everything a supervisor reads comes through this module.
  */
 
+/** Entity-scoped advisory types (MC-07, Conduct 360). */
 export const ADVISORY_USE_CASES = [
   'SUPERVISORY_SUMMARY',
   'MATERIAL_CHANGE_EXPLANATION',
@@ -13,7 +14,23 @@ export const ADVISORY_USE_CASES = [
   'RISK_HYPOTHESIS',
 ] as const;
 
-export type AdvisoryUseCase = (typeof ADVISORY_USE_CASES)[number];
+/** Cross-entity advisory types for a sector theme (MC-09). */
+export const THEME_ADVISORY_USE_CASES = [
+  'CROSS_ENTITY_INTERPRETATION',
+  'THEME_MATERIAL_CHANGE',
+  'SECTOR_SUPERVISORY_QUESTIONS',
+] as const;
+
+/** Advisory types for an emerging conduct risk (MC-09). */
+export const EMERGING_RISK_ADVISORY_USE_CASES = [
+  'EMERGING_RISK_NARRATIVE',
+  'EMERGING_RISK_HYPOTHESIS',
+] as const;
+
+export type EntityAdvisoryUseCase = (typeof ADVISORY_USE_CASES)[number];
+export type ThemeAdvisoryUseCase = (typeof THEME_ADVISORY_USE_CASES)[number];
+export type EmergingRiskAdvisoryUseCase = (typeof EMERGING_RISK_ADVISORY_USE_CASES)[number];
+export type AdvisoryUseCase = EntityAdvisoryUseCase | ThemeAdvisoryUseCase | EmergingRiskAdvisoryUseCase;
 
 interface UseCaseMeta {
   label: string;
@@ -48,7 +65,33 @@ export const USE_CASE_META: Record<AdvisoryUseCase, UseCaseMeta> = {
     purpose: 'Possible explanations a supervisor could test against the entity’s records.',
     caveat: 'Hypothesis — not a risk rating or finding.',
   },
+  CROSS_ENTITY_INTERPRETATION: {
+    label: 'Cross-entity interpretation',
+    purpose: 'A narrative reading of the recorded position for this theme across the entities in scope.',
+    caveat: 'Interpretation of recorded facts only. It ranks no entity and reaches no sector conclusion.',
+  },
+  THEME_MATERIAL_CHANGE: {
+    label: 'Theme movement explanation',
+    purpose: 'What moved against the preceding window of equal length, and where the movement sits.',
+    caveat: 'Describes movement in recorded counts. Causation is not established.',
+  },
+  SECTOR_SUPERVISORY_QUESTIONS: {
+    label: 'Sector supervisory questions',
+    purpose: 'Draft questions a supervisor may consider putting to entities in scope of this theme.',
+    caveat: 'Working material only. No information request or correspondence is issued from here.',
+  },
+  EMERGING_RISK_NARRATIVE: {
+    label: 'Emerging risk narrative',
+    purpose: 'A narrative summary of the facts and assessments already recorded against this risk.',
+    caveat: 'Summary of recorded facts only. It sets no severity, status or systemic rating.',
+  },
+  EMERGING_RISK_HYPOTHESIS: {
+    label: 'Emerging risk hypothesis',
+    purpose: 'Possible explanations a supervisor could test against the linked records.',
+    caveat: 'Hypothesis — not a risk rating, finding or decision.',
+  },
 };
+
 
 export const ADVISORY_LABEL = 'AI suggestion — requires human review';
 
@@ -134,7 +177,14 @@ const SECTION_LABELS: Record<string, string> = {
   outcomes: 'Complaint outcome',
   product_channel: 'Product and channel',
   trends: 'Movement measure',
+  entities: 'Entity in scope',
+  linked_records: 'Linked record',
+  assessments: 'Supervisory assessment',
+  movement: 'Movement measure',
+  emerging_risk: 'Emerging conduct risk',
+  theme: 'Conduct theme',
 };
+
 
 export const citationSectionLabel = (section?: string | null): string => {
   if (!section) return 'Regulatory record';
