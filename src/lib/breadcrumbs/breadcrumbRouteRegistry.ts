@@ -189,6 +189,12 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   { pattern: '/conduct/findings/:id', label: 'Conduct finding', parent: '/conduct/findings' },
   { pattern: '/conduct/closure-approvals', label: 'Closure approvals', parent: '/conduct' },
   { pattern: '/conduct/supervision-loop', label: 'Supervision loop', parent: '/conduct' },
+  { pattern: '/conduct/attention', label: 'Supervisory attention', parent: '/conduct' },
+  { pattern: '/conduct/attention/:id', label: 'Attention item', parent: '/conduct/attention' },
+  { pattern: '/conduct/plans/:id', label: 'Supervisory plan', parent: '/conduct/attention' },
+  { pattern: '/conduct/interventions', label: 'Supervisory interventions', parent: '/conduct' },
+  { pattern: '/conduct/interventions/:id', label: 'Intervention', parent: '/conduct/interventions' },
+  { pattern: '/conduct/emerging-risks', label: 'Emerging conduct risks', parent: '/conduct' },
   { pattern: '/enforcement', label: 'Enforcement', parent: '/conduct' },
   { pattern: '/enforcement/:id', label: 'Enforcement action', parent: '/enforcement' },
 
