@@ -18,7 +18,13 @@ export type CaseSection =
   | 'history';
 
 
-export type CaseWorkSection = 'investigation' | 'rfis' | 'classification' | 'closure';
+export type CaseWorkSection =
+  | 'jurisdiction'
+  | 'triage'
+  | 'investigation'
+  | 'rfis'
+  | 'classification'
+  | 'closure';
 
 export interface TrackingStep {
   step_key: string;
