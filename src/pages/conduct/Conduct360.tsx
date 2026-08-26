@@ -12,6 +12,7 @@ import { Loader2, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
+import { EntityPlanningLinksCard } from '@/components/conduct/planning/EntityPlanningLinksCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -472,6 +473,9 @@ export default function Conduct360() {
                 Prepared from regulatory records on {formatDateTime(snapshot.generated_at)}
               </p>
             )}
+
+            {/* MC-10 — governed supervisory planning records for this entity */}
+            <EntityPlanningLinksCard licenseeId={entityId} />
 
             {/* AI advisory layer — separated from the fact layer above */}
             <AdvisoryPanel entityId={entityId} windowChoice={choice} canOperate={canOperateAdvisory} />
