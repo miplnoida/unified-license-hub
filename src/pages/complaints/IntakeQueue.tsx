@@ -34,12 +34,8 @@ const J_STATUS_LABEL: Record<string, string> = {
   DECIDED: 'Decision made',
 };
 
-const MATCH_LABEL: Record<string, string> = {
-  matched_current: 'Currently regulated',
-  matched_former: 'Formerly regulated',
-  unmatched: 'Unmatched',
-  suspected_unlicensed: 'Suspected unauthorised',
-};
+const MATCH_LABEL = RESPONDENT_MATCH_STATE_LABEL;
+
 
 const ANY = 'any';
 
