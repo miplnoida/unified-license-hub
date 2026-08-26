@@ -26,7 +26,8 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { requireUserPermission } from '../_shared/authz.ts';
 import {
-  ADVISORY_SCHEMA, INTEL_USE_CASE_CODES, buildSystemPrompt, buildUserPrompt,
+  INTEL_USE_CASE_CODES, buildAdvisorySchema, buildSystemPrompt, buildUserPrompt,
+  permittedReferenceTokens,
   type IntelUseCaseCode,
 } from './prompts.ts';
 import { checkGrounding, resolveCitations } from './grounding.ts';
@@ -288,7 +289,11 @@ Deno.serve(async (req) => {
         ],
         response_format: {
           type: 'json_schema',
-          json_schema: { name: 'conduct_intelligence_advisory', strict: true, schema: ADVISORY_SCHEMA },
+          json_schema: {
+            name: 'conduct_intelligence_advisory',
+            strict: true,
+            schema: buildAdvisorySchema(permittedReferenceTokens(context)),
+          },
         },
       }),
     });
