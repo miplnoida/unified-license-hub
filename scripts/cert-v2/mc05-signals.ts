@@ -20,7 +20,7 @@ async function raise(title: string) {
       source_type: 'supervisory_observation',
       signal_category: 'sales_practice',
       severity: 'high',
-      systemic_potential: 'possible',
+      systemic_potential: 'medium',
       rationale: 'Recurring supervisory observation warranting a conduct intelligence item.',
       licensee_id: LICENSEE,
       regulator_id: REGULATOR,
@@ -66,7 +66,7 @@ async function main() {
   const val = await rpc(OFFICER, 'conduct_signal_validate', {
     _signal_id: signalId,
     _rationale: 'Validated after review of complaint volumes and product disclosures.',
-    _severity: 'high', _systemic_potential: 'likely', _risk_score: 72,
+    _severity: 'high', _systemic_potential: 'high', _risk_score: 72,
   });
   record('D validate rejects insufficient rationale', !shortVal.ok, shortVal.text);
   record('D validate signal with rationale', val.ok, val.text);
