@@ -189,16 +189,30 @@ async function main() {
     // ---------------------------------------------------------------- O
     const evId = events[0]?.id;
     if (evId) {
+      // PostgREST answers 200/204 with an empty result when RLS matches no row,
+      // so the assertion is on the surviving data, not the status code.
+      const before = events[0]?.rationale;
       const editHistory = await patch(ADMIN, `conduct_intervention_events?id=eq.${evId}`, { rationale: 'tampered' });
-      record('O intervention history cannot be edited', !editHistory.ok, `HTTP ${editHistory.status}`);
+      const afterEdit = await rpc(ADMIN, 'conduct_intervention_case', { _id: ivId });
+      const stillThere = arr(afterEdit.body?.events).find((e: any) => e.id === evId);
+      record('O intervention history cannot be edited',
+        !editHistory.ok || (arr(editHistory.body).length === 0 && stillThere?.rationale === before),
+        `HTTP ${editHistory.status}, rows ${arr(editHistory.body).length}`);
+
       const delHistory = await del(ADMIN, `conduct_intervention_events?id=eq.${evId}`);
-      record('O intervention history cannot be deleted', !delHistory.ok, `HTTP ${delHistory.status}`);
+      const afterDel = await rpc(ADMIN, 'conduct_intervention_case', { _id: ivId });
+      record('O intervention history cannot be deleted',
+        arr(afterDel.body?.events).some((e: any) => e.id === evId),
+        `HTTP ${delHistory.status}, ${arr(afterDel.body?.events).length} events remain`);
     }
 
     // ---------------------------------------------------------------- P
     const directPatch = await patch(ADMIN, `conduct_interventions?id=eq.${ivId}`, { status: 'ACTIVE' });
+    const afterDirect = await rpc(ADMIN, 'conduct_intervention_case', { _id: ivId });
     record('P interventions cannot be edited directly, only through governed operations',
-      !directPatch.ok, `HTTP ${directPatch.status}`);
+      (!directPatch.ok || arr(directPatch.body).length === 0)
+        && afterDirect.body?.intervention?.status === 'COMPLETED',
+      `HTTP ${directPatch.status}, status now ${afterDirect.body?.intervention?.status}`);
   }
 
   const directInsert = await ins(ADMIN, 'conduct_priority_scores', {
