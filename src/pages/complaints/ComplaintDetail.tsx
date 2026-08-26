@@ -42,6 +42,11 @@ import { ComplaintClosureSection } from '@/components/complaints/ComplaintClosur
 import { ComplaintCurrentStepPanel } from '@/components/complaints/ComplaintCurrentStepPanel';
 import { ComplaintOverviewSummary } from '@/components/complaints/ComplaintOverviewSummary';
 import { ComplaintEntityCard } from '@/components/complaints/ComplaintEntityCard';
+import { OutcomeReviewPanel } from '@/components/complaints/outcome/OutcomeReviewPanel';
+import { RedressPanel } from '@/components/complaints/outcome/RedressPanel';
+import { ClosureGatePanel } from '@/components/complaints/outcome/ClosureGatePanel';
+import { ReconsiderationPanel } from '@/components/complaints/outcome/ReconsiderationPanel';
+
 
 import type { CaseSection, CaseWorkSection } from '@/lib/complaintWorkflow';
 
@@ -599,8 +604,12 @@ export default function ComplaintDetail() {
                 <TabsTrigger value="investigation">Investigation</TabsTrigger>
                 <TabsTrigger value="rfis">Information requests</TabsTrigger>
                 <TabsTrigger value="classification">Classification &amp; case setup</TabsTrigger>
+                <TabsTrigger value="outcome">Outcome</TabsTrigger>
+                <TabsTrigger value="redress">Redress</TabsTrigger>
                 <TabsTrigger value="closure">Closure &amp; QA</TabsTrigger>
+                <TabsTrigger value="review">Review history</TabsTrigger>
               </TabsList>
+
 
               <TabsContent value="jurisdiction" className="space-y-4">
                 <JurisdictionWorkspace complaintId={id!} />
@@ -669,7 +678,28 @@ export default function ComplaintDetail() {
                 />
               </TabsContent>
 
+              <TabsContent value="outcome" className="space-y-4">
+                <OutcomeReviewPanel
+                  complaintId={complaint.id}
+                  onOpenRedress={() => openCaseWork('redress')}
+                  onOpenClosure={() => openCaseWork('closure')}
+                />
+              </TabsContent>
+
+              <TabsContent value="redress" className="space-y-4">
+                <RedressPanel complaintId={complaint.id} />
+              </TabsContent>
+
               <TabsContent value="closure" className="space-y-4">
+                {/* Closure readiness, blockers and the quality-review requirement
+                    are all server-computed; nothing here re-derives them. */}
+                <ClosureGatePanel
+                  complaintId={complaint.id}
+                  complaintUpdatedAt={(complaint as any).updated_at ?? null}
+                  onOpenOutcome={() => openCaseWork('outcome')}
+                  onOpenRedress={() => openCaseWork('redress')}
+                />
+
                 <ComplaintClosureSection
 
                   complaintId={complaint.id}
@@ -678,6 +708,11 @@ export default function ComplaintDetail() {
                 />
 
               </TabsContent>
+
+              <TabsContent value="review" className="space-y-4">
+                <ReconsiderationPanel complaintId={complaint.id} complaintStatus={complaint.status} />
+              </TabsContent>
+
             </Tabs>
           </TabsContent>
 
