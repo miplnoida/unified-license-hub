@@ -146,7 +146,9 @@ export interface EvidencePackSummary {
   reference: string;
   pack_type: string;
   subject_id: string | null;
+  subject_key: string | null;
   subject_label: string | null;
+
   sector_id: string | null;
   period_start: string | null;
   period_end: string | null;
