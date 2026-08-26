@@ -8381,7 +8381,8 @@ export type Database = {
           ai_output: Json
           confidence: number | null
           created_at: string
-          entity_id: string
+          emerging_risk_id: string | null
+          entity_id: string | null
           generated_at: string
           generated_by: string | null
           human_output: Json | null
@@ -8403,6 +8404,9 @@ export type Database = {
           source_references: Json
           staleness_checked_at: string | null
           staleness_state: string
+          subject_key: string | null
+          subject_population: Json
+          subject_type: string
           superseded_by_id: string | null
           uncertainty: string | null
           updated_at: string
@@ -8414,7 +8418,8 @@ export type Database = {
           ai_output: Json
           confidence?: number | null
           created_at?: string
-          entity_id: string
+          emerging_risk_id?: string | null
+          entity_id?: string | null
           generated_at?: string
           generated_by?: string | null
           human_output?: Json | null
@@ -8436,6 +8441,9 @@ export type Database = {
           source_references?: Json
           staleness_checked_at?: string | null
           staleness_state?: string
+          subject_key?: string | null
+          subject_population?: Json
+          subject_type?: string
           superseded_by_id?: string | null
           uncertainty?: string | null
           updated_at?: string
@@ -8447,7 +8455,8 @@ export type Database = {
           ai_output?: Json
           confidence?: number | null
           created_at?: string
-          entity_id?: string
+          emerging_risk_id?: string | null
+          entity_id?: string | null
           generated_at?: string
           generated_by?: string | null
           human_output?: Json | null
@@ -8469,6 +8478,9 @@ export type Database = {
           source_references?: Json
           staleness_checked_at?: string | null
           staleness_state?: string
+          subject_key?: string | null
+          subject_population?: Json
+          subject_type?: string
           superseded_by_id?: string | null
           uncertainty?: string | null
           updated_at?: string
@@ -8477,6 +8489,13 @@ export type Database = {
           window_start?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "conduct_ai_insights_emerging_risk_id_fkey"
+            columns: ["emerging_risk_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_emerging_risks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conduct_ai_insights_insight_id_fkey"
             columns: ["insight_id"]
@@ -9374,6 +9393,59 @@ export type Database = {
             columns: ["rule_id"]
             isOneToOne: false
             referencedRelation: "conduct_monitoring_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_emerging_risk_assessments: {
+        Row: {
+          actions_considered: string | null
+          assessed_at: string
+          assessed_by: string | null
+          confidence: string
+          fact_fingerprint: string | null
+          id: string
+          judgement: string
+          next_review_date: string | null
+          risk_id: string
+          severity: string
+          systemic_potential: string
+          version: number
+        }
+        Insert: {
+          actions_considered?: string | null
+          assessed_at?: string
+          assessed_by?: string | null
+          confidence: string
+          fact_fingerprint?: string | null
+          id?: string
+          judgement: string
+          next_review_date?: string | null
+          risk_id: string
+          severity: string
+          systemic_potential: string
+          version: number
+        }
+        Update: {
+          actions_considered?: string | null
+          assessed_at?: string
+          assessed_by?: string | null
+          confidence?: string
+          fact_fingerprint?: string | null
+          id?: string
+          judgement?: string
+          next_review_date?: string | null
+          risk_id?: string
+          severity?: string
+          systemic_potential?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_emerging_risk_assessments_risk_id_fkey"
+            columns: ["risk_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_emerging_risks"
             referencedColumns: ["id"]
           },
         ]
@@ -43333,6 +43405,14 @@ export type Database = {
         Args: { _cluster_id: string; _note: string; _status: string }
         Returns: Json
       }
+      conduct_cross_entity_compare: {
+        Args: {
+          _regulator_id?: string
+          _sector_id?: string
+          _window_days?: number
+        }
+        Returns: Json
+      }
       conduct_cross_entity_snapshot: {
         Args: {
           _regulator_id?: string
@@ -43341,7 +43421,20 @@ export type Database = {
         }
         Returns: Json
       }
+      conduct_emerging_risk_assess: {
+        Args: { _payload: Json; _risk_id: string }
+        Returns: Json
+      }
       conduct_emerging_risk_create: { Args: { _payload: Json }; Returns: Json }
+      conduct_emerging_risk_followup: {
+        Args: {
+          _kind: string
+          _note?: string
+          _reference?: string
+          _risk_id: string
+        }
+        Returns: Json
+      }
       conduct_emerging_risk_guard: {
         Args: { _actions: string[]; _risk_id: string }
         Returns: {
@@ -43493,6 +43586,48 @@ export type Database = {
         }
         Returns: Json
       }
+      conduct_intel_ai_context: {
+        Args: {
+          _emerging_risk_id?: string
+          _regulator_id?: string
+          _sector_id?: string
+          _subject_key?: string
+          _subject_type: string
+          _use_case_code: string
+          _window_days?: number
+        }
+        Returns: Json
+      }
+      conduct_intel_ai_insight_record: {
+        Args: {
+          _ai_output: Json
+          _confidence?: number
+          _emerging_risk_id: string
+          _generated_by?: string
+          _limitations?: string[]
+          _model: string
+          _model_version: string
+          _prompt_template_version?: string
+          _provider: string
+          _regulator_id: string
+          _sector_id: string
+          _snapshot_fingerprint: string
+          _source_references: Json
+          _subject_key: string
+          _subject_population?: Json
+          _subject_type: string
+          _title?: string
+          _uncertainty?: string
+          _use_case_code: string
+          _window_end: string
+          _window_start: string
+        }
+        Returns: string
+      }
+      conduct_intel_ai_refresh_staleness: {
+        Args: { _insight_id: string }
+        Returns: Json
+      }
       conduct_intel_approve_report: {
         Args: { _report_id: string }
         Returns: undefined
@@ -43537,6 +43672,15 @@ export type Database = {
           _report_id: string
         }
         Returns: undefined
+      }
+      conduct_intel_theme_snapshot: {
+        Args: {
+          _regulator_id?: string
+          _sector_id?: string
+          _theme: string
+          _window_days?: number
+        }
+        Returns: Json
       }
       conduct_investigation_available_actions: {
         Args: { _investigation_id: string }
