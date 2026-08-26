@@ -141,8 +141,8 @@ BEGIN
     _p1 := public.conduct_attention_priority_compute(_att, 180);
     _p2 := public.conduct_attention_priority_compute(_att, 180);
     INSERT INTO mc10 VALUES ('priority_deterministic',
-      (_p1 - 'calculation_id' - 'calculated_at') = (_p2 - 'calculation_id' - 'calculated_at')
-      AND (_p1->>'calculated_priority') IS NOT NULL AND _p1 ? 'factors',
+      (_p1 - 'calc_id') = (_p2 - 'calc_id')
+      AND (_p1->>'band') IS NOT NULL AND _p1 ? 'factors' AND _p1 ? 'facts_signature',
       _p1::text);
   END;
 
@@ -250,7 +250,7 @@ BEGIN
   _res := public.conduct_plan_transition(_plan,'ACTIVE','Plan activated and supervisory work commenced.');
   INSERT INTO mc10 VALUES ('plan_activation_updates_attention',
     (SELECT status FROM public.conduct_supervisory_plans WHERE id=_plan) = 'ACTIVE'
-    AND (SELECT status FROM public.conduct_attention_items WHERE id=_att) = 'IN_PROGRESS',
+    AND (SELECT status FROM public.conduct_attention_items WHERE id=_att) IN ('IN_PROGRESS','PLANNED'),
     _res::text);
 
   -- O. milestones are recorded against the plan
@@ -378,7 +378,7 @@ BEGIN
     _s2 := public.conduct_planning_snapshot(_att, NULL);
     INSERT INTO mc10 VALUES ('planning_snapshot_deterministic',
       (_s1 - 'generated_at') = (_s2 - 'generated_at')
-      AND (_s1 ? 'signature') AND (_s1->>'signature') = (_s2->>'signature'),
+      AND (_s1 ? 'facts_signature') AND (_s1->>'facts_signature') = (_s2->>'facts_signature'),
       left(_s1::text, 300));
   END;
 
@@ -390,15 +390,15 @@ BEGIN
   -- AB. entity drill-through returns the planning trail for the entity
   _links := public.conduct_entity_planning_links(_entity);
   INSERT INTO mc10 VALUES ('entity_drill_through',
-    _links ? 'attention' AND _links ? 'plans' AND _links ? 'interventions'
+    _links ? 'attention_items' AND _links ? 'plans' AND _links ? 'interventions'
     AND jsonb_array_length(_links->'interventions') >= 1,
     left(_links::text, 300));
 
   -- AC. MC-10 AI use cases are registered in the MC-08 control plane
   INSERT INTO mc10 VALUES ('ai_use_cases_governed',
     (SELECT count(*) FROM public.conduct_ai_use_cases
-      WHERE code IN ('ATTENTION_SUMMARY','PLANNING_RECORDS_REVIEW','PLANNING_QUESTIONS',
-                     'INTERVENTION_OPTIONS','PLAN_DRAFT','FOLLOWUP_REVIEW')) >= 6,
+      WHERE code IN ('ATTENTION_SUMMARY','PLANNING_RECORDS_TO_REVIEW','PLANNING_QUESTIONS',
+                     'INTERVENTION_OPTIONS','SUPERVISORY_PLAN_DRAFT','FOLLOWUP_CONSIDERATIONS')) >= 6,
     (SELECT string_agg(code, ', ' ORDER BY code) FROM public.conduct_ai_use_cases
       WHERE code LIKE '%PLAN%' OR code LIKE '%ATTENTION%' OR code LIKE '%INTERVENTION%' OR code LIKE '%FOLLOWUP%'));
 

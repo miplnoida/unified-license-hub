@@ -14,7 +14,7 @@ SELECT is(
 
 -- 2 governance flags are locked on every use case
 SELECT ok(
-  (SELECT bool_and(allowed_source IN ('conduct_360_snapshot','conduct_intelligence_snapshot')
+  (SELECT bool_and(allowed_source IN ('conduct_360_snapshot','conduct_intelligence_snapshot','conduct_planning_snapshot')
               AND human_review_required
               AND citations_required
               AND NOT workflow_mutation_allowed
