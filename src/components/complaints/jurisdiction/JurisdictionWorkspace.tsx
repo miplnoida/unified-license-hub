@@ -240,7 +240,11 @@ export function JurisdictionWorkspace({ complaintId, onJurisdictionDecided }: Pr
     return <QueryErrorState message="Failed to load the jurisdiction assessment" onRetry={() => q.refetch()} />;
   }
 
-  const openInfoRequests: any[] = (data?.information_requests ?? []).filter((r: any) => !r.responded_at);
+  // Outstanding = the authoritative server state, never an inferred timestamp.
+  const openInfoRequests: any[] = (data?.information_requests ?? []).filter(
+    (r: any) => String(r.status ?? '').toUpperCase() === 'OPEN',
+  );
+
 
   return (
     <div className="space-y-4">
