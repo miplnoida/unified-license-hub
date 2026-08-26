@@ -26,7 +26,8 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { requireUserPermission } from '../_shared/authz.ts';
 import {
-  ADVISORY_SCHEMA, INTEL_USE_CASE_CODES, buildSystemPrompt, buildUserPrompt,
+  INTEL_USE_CASE_CODES, buildAdvisorySchema, buildSystemPrompt, buildUserPrompt,
+  permittedReferenceTokens,
   type IntelUseCaseCode,
 } from './prompts.ts';
 import { checkGrounding, resolveCitations } from './grounding.ts';
@@ -45,10 +46,14 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
-  // 1. Authority — an authorised market-conduct user. Regulator and supervisory
-  //    scope are additionally enforced inside the context RPC, which runs as the
-  //    caller.
-  const gate = await requireUserPermission(req, 'market_conduct', 'view');
+  // 1. Authority — generating an advisory is a supervisory analytical act, not a
+  //    read: it consumes a governed model on the regulator's behalf and leaves a
+  //    record in the AI activity register. Read-only officers (auditors, and
+  //    anyone holding market-conduct view alone) can read the facts and any
+  //    recorded advisory, but cannot commission a new one. Regulator and
+  //    supervisory scope are additionally enforced inside the context RPC, which
+  //    runs as the caller.
+  const gate = await requireUserPermission(req, 'market_conduct', 'run_conduct_analytics');
   if (!gate.ok) return gate.response;
   const { userId, authClient, adminClient } = gate;
 
@@ -288,7 +293,11 @@ Deno.serve(async (req) => {
         ],
         response_format: {
           type: 'json_schema',
-          json_schema: { name: 'conduct_intelligence_advisory', strict: true, schema: ADVISORY_SCHEMA },
+          json_schema: {
+            name: 'conduct_intelligence_advisory',
+            strict: true,
+            schema: buildAdvisorySchema(permittedReferenceTokens(context)),
+          },
         },
       }),
     });

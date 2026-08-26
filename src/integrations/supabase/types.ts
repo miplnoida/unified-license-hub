@@ -46927,6 +46927,10 @@ export type Database = {
       mark_expired_licenses: { Args: never; Returns: number }
       mark_prudential_actions_breached: { Args: never; Returns: number }
       mark_prudential_actions_overdue: { Args: never; Returns: number }
+      market_conduct_visible_sectors: {
+        Args: { _regulator_id?: string; _user_id: string }
+        Returns: string[]
+      }
       mc_complaint_derive_phase_event: {
         Args: { _complaint_id: string }
         Returns: string

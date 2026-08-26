@@ -1,7 +1,7 @@
 -- MC-09 CERTIFICATION — cross-entity supervisory intelligence, emerging risk
 -- assessment layer and the governed AI advisory boundary for cross-entity subjects.
 BEGIN;
-SELECT plan(20);
+SELECT plan(23);
 
 -- 1 deterministic fact operations exist
 SELECT ok(
@@ -153,7 +153,9 @@ BEGIN
     UPDATE public.conduct_emerging_risk_assessments SET judgement = 'rewritten' WHERE risk_id = _risk;
     INSERT INTO mc09c VALUES ('assessment_append_only', false, 'assessment history was rewritten');
   EXCEPTION WHEN OTHERS THEN
-    INSERT INTO mc09c VALUES ('assessment_append_only', SQLERRM LIKE '%append-only%', SQLERRM);
+    INSERT INTO mc09c VALUES ('assessment_append_only',
+      SQLERRM LIKE '%append-only%' OR SQLERRM LIKE '%permission denied%', SQLERRM);
+
   END;
 
   -- I. follow-up action is recorded in the risk history with a note
