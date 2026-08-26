@@ -44215,6 +44215,119 @@ export type Database = {
         Args: { _interview_id: string; _justification: string; _patch: Json }
         Returns: Json
       }
+      conduct_attention_assign: {
+        Args: {
+          _id: string
+          _owner_id?: string
+          _rationale?: string
+          _target_review_date?: string
+          _team_id?: string
+        }
+        Returns: Json
+      }
+      conduct_attention_create: {
+        Args: {
+          _emerging_risk_id?: string
+          _entity_ids?: string[]
+          _linked_evidence?: Json
+          _materiality?: string
+          _owner_id?: string
+          _regulator_id?: string
+          _sector_id?: string
+          _source_id?: string
+          _source_module: string
+          _source_reference?: string
+          _source_type: string
+          _supervisory_basis: string
+          _target_review_date?: string
+          _team_id?: string
+          _theme?: string
+          _title: string
+          _urgency?: string
+        }
+        Returns: Json
+      }
+      conduct_attention_guard: {
+        Args: { _actions: string[]; _id: string }
+        Returns: {
+          breadth: number
+          calculated_at: string | null
+          calculated_factors: Json
+          calculated_priority: string | null
+          calculated_score: number | null
+          closed_at: string | null
+          closed_by: string | null
+          confirmation_rationale: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          confirmed_priority: string | null
+          created_at: string
+          created_by: string | null
+          disposition: string | null
+          disposition_rationale: string | null
+          emerging_risk_id: string | null
+          entity_ids: string[]
+          facts_signature: string | null
+          id: string
+          identified_on: string
+          linked_evidence: Json
+          materiality: string
+          owner_id: string | null
+          priority_overridden: boolean
+          recurrence: number
+          reference: string
+          regulator_id: string | null
+          sector_id: string | null
+          sector_ids: string[]
+          source_id: string | null
+          source_module: string
+          source_reference: string | null
+          source_type: string
+          status: string
+          supervisory_basis: string
+          target_review_date: string | null
+          team_id: string | null
+          theme: string | null
+          title: string
+          updated_at: string
+          urgency: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "conduct_attention_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      conduct_attention_priority_compute: {
+        Args: { _id: string; _window_days?: number }
+        Returns: Json
+      }
+      conduct_attention_priority_confirm: {
+        Args: { _id: string; _priority: string; _rationale?: string }
+        Returns: Json
+      }
+      conduct_attention_reassess: {
+        Args: {
+          _assessment: string
+          _concern_state: string
+          _evidence?: Json
+          _id: string
+          _intervention_id?: string
+          _next_review_date?: string
+          _next_step: string
+        }
+        Returns: Json
+      }
+      conduct_attention_transition: {
+        Args: {
+          _disposition?: string
+          _id: string
+          _rationale: string
+          _to_status: string
+        }
+        Returns: Json
+      }
       conduct_closure_approve: {
         Args: { _closure_id: string; _decision_note?: string }
         Returns: undefined
@@ -44737,6 +44850,36 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      conduct_intervention_initiate: {
+        Args: {
+          _ai_insight_id?: string
+          _attention_id?: string
+          _basis: string
+          _catalogue_code: string
+          _emerging_risk_id?: string
+          _expected_outcome?: string
+          _licensee_id?: string
+          _owner_id?: string
+          _plan_id?: string
+          _planned_end?: string
+          _planned_start?: string
+          _purpose?: string
+          _team_id?: string
+          _theme?: string
+          _title: string
+        }
+        Returns: Json
+      }
+      conduct_intervention_link_canonical: {
+        Args: {
+          _id: string
+          _module: string
+          _record_id: string
+          _reference?: string
+          _route?: string
+        }
+        Returns: Json
+      }
       conduct_intervention_propose: {
         Args: {
           _basis: string
@@ -44752,6 +44895,30 @@ export type Database = {
           _sector_id?: string
           _theme?: string
           _title: string
+        }
+        Returns: Json
+      }
+      conduct_intervention_record_followup: {
+        Args: {
+          _completed?: boolean
+          _due_date?: string
+          _id: string
+          _note: string
+        }
+        Returns: Json
+      }
+      conduct_intervention_record_outcome: {
+        Args: {
+          _actual_end?: string
+          _actual_start?: string
+          _evidence?: Json
+          _findings?: string
+          _followup_due_date?: string
+          _followup_note?: string
+          _id: string
+          _outstanding_actions?: string
+          _rationale: string
+          _result: string
         }
         Returns: Json
       }
@@ -44824,9 +44991,120 @@ export type Database = {
       conduct_pattern_require: { Args: { _actions: string[] }; Returns: string }
       conduct_pattern_rule_upsert: { Args: { _payload: Json }; Returns: Json }
       conduct_pattern_run_all: { Args: { _as_of?: string }; Returns: Json }
+      conduct_plan_create: {
+        Args: {
+          _attention_id?: string
+          _emerging_risk_id?: string
+          _entity_ids?: string[]
+          _factual_basis: string
+          _lead_officer_id?: string
+          _next_review_date?: string
+          _objective?: string
+          _objective_ai_insight_id?: string
+          _objective_source?: string
+          _period_label?: string
+          _planning_period?: string
+          _regulator_id?: string
+          _scope?: string
+          _sector_id?: string
+          _start_date?: string
+          _target_completion?: string
+          _team_id?: string
+          _theme?: string
+          _title: string
+        }
+        Returns: Json
+      }
+      conduct_plan_guard: {
+        Args: { _actions: string[]; _id: string }
+        Returns: {
+          activated_at: string | null
+          approval_rationale: string | null
+          approved_at: string | null
+          approved_by: string | null
+          attention_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          emerging_risk_id: string | null
+          entity_ids: string[]
+          factual_basis: string
+          id: string
+          lead_officer_id: string | null
+          next_review_date: string | null
+          objective: string | null
+          objective_ai_insight_id: string | null
+          objective_source: string
+          outcome_summary: string | null
+          period_label: string | null
+          planning_period: string
+          priority: string | null
+          reference: string
+          regulator_id: string | null
+          scope: string | null
+          sector_id: string | null
+          sector_ids: string[]
+          start_date: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          target_completion: string | null
+          team_id: string | null
+          theme: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "conduct_supervisory_plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      conduct_plan_milestone_upsert: {
+        Args: {
+          _detail?: string
+          _due_date?: string
+          _milestone_id?: string
+          _plan_id: string
+          _status?: string
+          _title: string
+        }
+        Returns: Json
+      }
+      conduct_plan_transition: {
+        Args: { _id: string; _rationale: string; _to_status: string }
+        Returns: Json
+      }
+      conduct_plan_update: {
+        Args: {
+          _id: string
+          _lead_officer_id?: string
+          _next_review_date?: string
+          _objective?: string
+          _objective_ai_insight_id?: string
+          _objective_source?: string
+          _period_label?: string
+          _planning_period?: string
+          _scope?: string
+          _start_date?: string
+          _target_completion?: string
+          _team_id?: string
+          _title?: string
+        }
+        Returns: Json
+      }
+      conduct_planning_coverage: {
+        Args: { _regulator_id?: string; _sector_id?: string }
+        Returns: Json
+      }
       conduct_planning_scope: {
         Args: { _regulator_id: string; _sector_id: string; _uid: string }
         Returns: string[]
+      }
+      conduct_planning_snapshot: {
+        Args: { _attention_id?: string; _plan_id?: string }
+        Returns: Json
       }
       conduct_priority_compute: {
         Args: {
