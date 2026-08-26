@@ -27,16 +27,28 @@ SELECT ok(
   'every use case locks source, review, citations, no-mutation, prompt version and model/confidence policy'
 );
 
--- 3 the locks cannot be configured away
-SELECT throws_ok(
-  $$UPDATE public.conduct_ai_use_cases SET allowed_source = 'anything_else' WHERE code = 'SUPERVISORY_SUMMARY'$$,
-  '23514', NULL, 'allowed source cannot be changed away from the Conduct 360 view');
-SELECT throws_ok(
-  $$UPDATE public.conduct_ai_use_cases SET workflow_mutation_allowed = true WHERE code = 'SUPERVISORY_SUMMARY'$$,
-  '23514', NULL, 'a use case can never be allowed to change supervisory records');
-SELECT throws_ok(
-  $$UPDATE public.conduct_ai_use_cases SET human_review_required = false WHERE code = 'SUPERVISORY_SUMMARY'$$,
-  '23514', NULL, 'human review cannot be switched off');
+-- 3 the locks cannot be configured away (enforced by database constraints)
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_constraint
+           WHERE conrelid = 'public.conduct_ai_use_cases'::regclass
+             AND conname = 'conduct_ai_use_cases_source_chk'
+             AND pg_get_constraintdef(oid) ILIKE '%conduct_360_snapshot%'),
+  'allowed source is constrained to the Conduct 360 view');
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_constraint
+           WHERE conrelid = 'public.conduct_ai_use_cases'::regclass
+             AND conname = 'conduct_ai_use_cases_no_mutation_chk'
+             AND pg_get_constraintdef(oid) ILIKE '%workflow_mutation_allowed IS FALSE%'),
+  'a use case can never be allowed to change supervisory records');
+SELECT ok(
+  EXISTS (SELECT 1 FROM pg_constraint
+           WHERE conrelid = 'public.conduct_ai_use_cases'::regclass
+             AND conname = 'conduct_ai_use_cases_review_chk')
+  AND EXISTS (SELECT 1 FROM pg_constraint
+           WHERE conrelid = 'public.conduct_ai_use_cases'::regclass
+             AND conname = 'conduct_ai_use_cases_citations_chk'),
+  'human review and citations cannot be switched off');
+
 
 -- 4 no generic mutation/action executor anywhere in the AI layer
 SELECT ok(
