@@ -350,7 +350,7 @@ BEGIN
   _res := public.conduct_intervention_record_followup(_iv,'Updated disclosure templates received and reviewed.',
     NULL, true);
   INSERT INTO mc10 VALUES ('followup_tracked',
-    (SELECT followup_completed FROM public.conduct_interventions WHERE id=_iv) = true,
+    (SELECT followup_completed_at FROM public.conduct_interventions WHERE id=_iv) IS NOT NULL,
     _res::text);
 
   -- X. reassessment closes the loop back onto the attention item
