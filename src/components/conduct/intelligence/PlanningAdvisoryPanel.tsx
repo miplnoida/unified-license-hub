@@ -473,7 +473,7 @@ export function PlanningAdvisoryPanel({
               Record decision
             </Button>
           </DialogFooter>
-        </DialogFooter>
+        </DialogContent>
       </Dialog>
     </Card>
   );
