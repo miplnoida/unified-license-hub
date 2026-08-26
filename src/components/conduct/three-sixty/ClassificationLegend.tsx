@@ -1,11 +1,12 @@
 /**
- * MC-07.3 — Conduct 360 information classification.
+ * MC-07.3 / MC-07.5 — Conduct 360 information classification.
  *
- * Every card on the Conduct 360 view is tagged so a supervisor can tell
- * recorded regulatory data from a rule outcome. The advisory and decision
- * classes are declared now but carry no content in this phase.
+ * Every card on the Conduct 360 view is tagged so a supervisor can tell recorded
+ * regulatory data from a rule outcome, an AI suggestion, and a human decision.
  */
 import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+
 import { cn } from '@/lib/utils';
 
 export type Classification = 'FACT' | 'RULE_OUTCOME' | 'AI_SUGGESTION' | 'HUMAN_DECISION';
