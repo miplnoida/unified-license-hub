@@ -108,6 +108,15 @@ const ConductSignalDetail = lazy(() => import('@/pages/conduct/ConductSignalDeta
 const ConductPatterns = lazy(() => import('@/pages/conduct/ConductPatterns'));
 const AiGovernanceOverview = lazy(() => import('@/pages/governance/ai/AiGovernanceOverview'));
 const AiActivityRegister = lazy(() => import('@/pages/governance/ai/AiActivityRegister'));
+const AiActivityDetail = lazy(() => import('@/pages/governance/ai/AiActivityDetail'));
+const AiUseCases = lazy(() => import('@/pages/governance/ai/AiUseCases'));
+const AiUseCaseDetail = lazy(() => import('@/pages/governance/ai/AiUseCaseDetail'));
+const AiModels = lazy(() => import('@/pages/governance/ai/AiModels'));
+const AiInstructions = lazy(() => import('@/pages/governance/ai/AiInstructions'));
+const AiAssurance = lazy(() => import('@/pages/governance/ai/AiAssurance'));
+const AiAssuranceDetail = lazy(() => import('@/pages/governance/ai/AiAssuranceDetail'));
+const AiExceptions = lazy(() => import('@/pages/governance/ai/AiExceptions'));
+const AiSurfaces = lazy(() => import('@/pages/governance/ai/AiSurfaces'));
 const ConductPatternDetail = lazy(() => import('@/pages/conduct/ConductPatternDetail'));
 const Conduct360 = lazy(() => import('@/pages/conduct/Conduct360'));
 
