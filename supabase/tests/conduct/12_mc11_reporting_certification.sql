@@ -191,7 +191,7 @@ BEGIN
   -- F. period movement is reported against the same definitions
   _cmp := public.conduct_mi_period_compare(_ps, _pe, _sector, NULL);
   INSERT INTO mc11 VALUES ('movement_reported',
-    _cmp ? 'comparisons' AND _cmp ? 'current_period' AND _cmp ? 'prior_period'
+    _cmp ? 'comparisons' AND _cmp ? 'current_period' AND _cmp ? 'previous_period'
     AND (SELECT count(*) FROM jsonb_array_elements(_cmp -> 'comparisons') c
           WHERE NOT (c ? 'absolute_change') OR NOT (c ? 'metric_code')) = 0,
     left(_cmp::text, 300));
