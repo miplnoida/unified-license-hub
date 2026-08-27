@@ -44,9 +44,16 @@ vi.mock('@/integrations/supabase/client', () => ({
         return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { value: { application_review_enabled: true } }, error: null }) }) }) };
       }
 
+      if (table === 'services') {
+        // No explicit services.workflow_id mapping in these fixtures, so the
+        // resolver falls through to the taxonomy cascade.
+        return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { workflow_id: null }, error: null }) }) }) };
+      }
+
       if (table === 'categories' || table === 'sectors') {
         return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) };
       }
+
 
       throw new Error(`Unexpected table: ${table}`);
     }),
