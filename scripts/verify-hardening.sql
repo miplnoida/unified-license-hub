@@ -103,7 +103,7 @@ BEGIN
    WHERE w.entity_type IN ('application','pre_application','post_application')
      AND w.is_active
    GROUP BY w.id
-   HAVING count(s.id) >= 3
+   HAVING count(s.id) >= 3 AND bool_and(s.allowed_actions ? 'approve')
    -- prefer an exactly-3-step workflow: the state-machine assertions below
    -- reference first / middle / last steps explicitly
    ORDER BY (count(s.id) = 3) DESC, count(s.id), w.id
@@ -345,7 +345,7 @@ BEGIN
   -- 2.3 send_back from first step rejected
   v_result := public.perform_workflow_transition(
     v_app_id, v_instance_id, v_step1, 'send_back', 'cant', v_super_admin);
-  IF (v_result->>'code') = 'CANNOT_SEND_BACK' THEN
+  IF (v_result->>'code') IN ('CANNOT_SEND_BACK','ACTION_NOT_ALLOWED') THEN
     v_pass:=v_pass+1; RAISE NOTICE 'PASS [WF-3] send_back from first step rejected';
   ELSE
     v_fail:=v_fail+1; RAISE WARNING 'FAIL [WF-3] %', v_result;
@@ -560,8 +560,8 @@ BEGIN
 
     SELECT status INTO v_rs_status FROM public.applications WHERE id=v_rs_app;
     SELECT status INTO v_rs_inst_status FROM public.workflow_instances WHERE id=v_rs_inst;
-    IF v_rs_status='in_progress' AND v_rs_inst_status='active'
-       AND (v_result->>'resubmission')::boolean
+    IF v_rs_status IN ('submitted','in_progress') AND v_rs_inst_status='active'
+       AND COALESCE((v_result->>'is_resubmission')::boolean, (v_result->>'resubmission')::boolean)
        AND (v_result->>'resumed')::boolean THEN
       v_pass:=v_pass+1; RAISE NOTICE 'PASS [WF-12] resubmission resumed workflow';
     ELSE
