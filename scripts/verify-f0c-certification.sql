@@ -329,14 +329,16 @@ BEGIN
       (SELECT id FROM public.approval_steps ORDER BY created_at LIMIT 1)) ->> 'deny_reason'));
 
   -- Actor spoofing on the governed final-approval RPC.
-  _st := pg_temp.as_user(pg_temp.uid('applicant'), format(
+  _js := pg_temp.rpc_as_user(pg_temp.uid('applicant'), format(
     'SELECT public.perform_final_workflow_approval(%L::uuid, %L::uuid, %L::uuid, %L, %L::uuid)',
     (SELECT id FROM public.applications ORDER BY created_at LIMIT 1),
     (SELECT id FROM public.workflow_instances ORDER BY created_at LIMIT 1),
     (SELECT id FROM public.approval_steps ORDER BY created_at LIMIT 1),
     'f0c spoof probe', pg_temp.uid('super_admin')));
   PERFORM pg_temp.rec('S3', 'A-11',
-    'Actor spoofing on perform_final_workflow_approval is DENIED', _st <> '00000', _st);
+    'Actor spoofing on perform_final_workflow_approval is DENIED',
+    COALESCE(_js ->> 'success', 'false') <> 'true' AND (_js ? 'error'),
+    'envelope=' || left(_js::text, 160));
 
   -- Multi-role resolution (union of permissions).
   PERFORM pg_temp.rec('S3', 'A-12',
@@ -361,10 +363,18 @@ BEGIN
 
   -- Decision authority resolution is configured and governed.
   PERFORM pg_temp.rec('S3', 'A-14',
-    'Decision authority rules are configured and resolver is present',
+    'Decision authority resolver is present and fails closed with no matching rule',
     to_regprocedure('public.resolve_decision_authority(uuid,text,uuid,uuid,uuid,uuid,uuid,uuid,text,boolean)') IS NOT NULL
-      AND (SELECT count(*) FROM public.decision_authority_rules) > 0,
-    'rules=' || (SELECT count(*) FROM public.decision_authority_rules));
+      AND COALESCE(
+        (public.resolve_decision_authority(pg_temp.uid('applicant'), 'F0C_PROBE_DECISION',
+          NULL, NULL, NULL, NULL, NULL, NULL, 'f0c', false) ->> 'authorised'),
+        (public.resolve_decision_authority(pg_temp.uid('applicant'), 'F0C_PROBE_DECISION',
+          NULL, NULL, NULL, NULL, NULL, NULL, 'f0c', false) ->> 'authorized'),
+        'false') = 'false',
+    'configured rules=' || (SELECT count(*) FROM public.decision_authority_rules)
+      || ' unprivileged resolve='
+      || left(public.resolve_decision_authority(pg_temp.uid('applicant'), 'F0C_PROBE_DECISION',
+           NULL, NULL, NULL, NULL, NULL, NULL, 'f0c', false)::text, 120));
 
   -- RLS enabled everywhere in public.
   SELECT count(*) INTO _n
