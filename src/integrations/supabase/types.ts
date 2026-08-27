@@ -14135,6 +14135,165 @@ export type Database = {
           },
         ]
       }
+      decision_authority_observations: {
+        Row: {
+          actor_id: string | null
+          context: Json
+          created_at: string
+          decision_type: string
+          entity_id: string | null
+          evaluated_mode: string
+          id: string
+          reasons: Json
+          regulator_id: string | null
+          regulatory_function_id: string | null
+          rule_id: string | null
+          subject_reference: string | null
+          would_allow: boolean
+        }
+        Insert: {
+          actor_id?: string | null
+          context?: Json
+          created_at?: string
+          decision_type: string
+          entity_id?: string | null
+          evaluated_mode: string
+          id?: string
+          reasons?: Json
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          rule_id?: string | null
+          subject_reference?: string | null
+          would_allow: boolean
+        }
+        Update: {
+          actor_id?: string | null
+          context?: Json
+          created_at?: string
+          decision_type?: string
+          entity_id?: string | null
+          evaluated_mode?: string
+          id?: string
+          reasons?: Json
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          rule_id?: string | null
+          subject_reference?: string | null
+          would_allow?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decision_authority_observations_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "decision_authority_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      decision_authority_rules: {
+        Row: {
+          allow_delegation: boolean
+          committee_kind: string | null
+          created_at: string
+          created_by: string | null
+          decision_type: string
+          effective_from: string
+          effective_to: string | null
+          enforcement_mode: string
+          id: string
+          minimum_quorum: number | null
+          notes: string | null
+          operating_scope_id: string | null
+          regulator_id: string | null
+          regulatory_function_id: string | null
+          required_module_key: string | null
+          required_permission_key: string | null
+          requires_committee: boolean
+          requires_conflict_clearance: boolean
+          requires_maker_checker: boolean
+          sector_id: string | null
+          service_id: string | null
+          status: string
+          sub_sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          allow_delegation?: boolean
+          committee_kind?: string | null
+          created_at?: string
+          created_by?: string | null
+          decision_type: string
+          effective_from?: string
+          effective_to?: string | null
+          enforcement_mode?: string
+          id?: string
+          minimum_quorum?: number | null
+          notes?: string | null
+          operating_scope_id?: string | null
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          required_module_key?: string | null
+          required_permission_key?: string | null
+          requires_committee?: boolean
+          requires_conflict_clearance?: boolean
+          requires_maker_checker?: boolean
+          sector_id?: string | null
+          service_id?: string | null
+          status?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allow_delegation?: boolean
+          committee_kind?: string | null
+          created_at?: string
+          created_by?: string | null
+          decision_type?: string
+          effective_from?: string
+          effective_to?: string | null
+          enforcement_mode?: string
+          id?: string
+          minimum_quorum?: number | null
+          notes?: string | null
+          operating_scope_id?: string | null
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          required_module_key?: string | null
+          required_permission_key?: string | null
+          requires_committee?: boolean
+          requires_conflict_clearance?: boolean
+          requires_maker_checker?: boolean
+          sector_id?: string | null
+          service_id?: string | null
+          status?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decision_authority_rules_operating_scope_id_fkey"
+            columns: ["operating_scope_id"]
+            isOneToOne: false
+            referencedRelation: "regulator_operating_scopes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decision_authority_rules_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decision_authority_rules_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       decision_options: {
         Row: {
           applies_to: Json
@@ -31847,6 +32006,72 @@ export type Database = {
           },
         ]
       }
+      regulator_operating_scopes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          metadata: Json
+          name: string
+          parent_scope_id: string | null
+          regulator_id: string
+          scope_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          metadata?: Json
+          name: string
+          parent_scope_id?: string | null
+          regulator_id: string
+          scope_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          metadata?: Json
+          name?: string
+          parent_scope_id?: string | null
+          regulator_id?: string
+          scope_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulator_operating_scopes_parent_scope_id_fkey"
+            columns: ["parent_scope_id"]
+            isOneToOne: false
+            referencedRelation: "regulator_operating_scopes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulator_operating_scopes_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regulators: {
         Row: {
           code: string
@@ -46355,6 +46580,28 @@ export type Database = {
         Args: { _comment: string; _decision: string; _request_id: string }
         Returns: Json
       }
+      decision_authority_rule_upsert: {
+        Args: {
+          _allow_delegation?: boolean
+          _committee_kind?: string
+          _decision_type: string
+          _enforcement_mode?: string
+          _id?: string
+          _minimum_quorum?: number
+          _notes?: string
+          _regulator_id?: string
+          _regulatory_function_id?: string
+          _required_module_key?: string
+          _required_permission_key?: string
+          _requires_committee?: boolean
+          _requires_conflict_clearance?: boolean
+          _requires_maker_checker?: boolean
+          _sector_id?: string
+          _service_id?: string
+          _sub_sector_id?: string
+        }
+        Returns: string
+      }
       decision_gate_status: { Args: { _application_id: string }; Returns: Json }
       delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
       derive_communication_state: {
@@ -50896,6 +51143,21 @@ export type Database = {
         }
         Returns: Json
       }
+      regulator_operating_scope_upsert: {
+        Args: {
+          _code: string
+          _description?: string
+          _effective_from?: string
+          _effective_to?: string
+          _id?: string
+          _name: string
+          _parent_scope_id?: string
+          _regulator_id: string
+          _scope_type: string
+          _status?: string
+        }
+        Returns: string
+      }
       regulatory_assignment_scope_allows: {
         Args: {
           _actor_user_id: string
@@ -51308,6 +51570,21 @@ export type Database = {
       resolve_complaint_intake_regulator: {
         Args: { _candidate_regulator_id?: string; _complaint_id: string }
         Returns: string
+      }
+      resolve_decision_authority: {
+        Args: {
+          _actor_id: string
+          _decision_type: string
+          _entity_id?: string
+          _record?: boolean
+          _regulator_id?: string
+          _regulatory_function_id?: string
+          _sector_id?: string
+          _service_id?: string
+          _sub_sector_id?: string
+          _subject_reference?: string
+        }
+        Returns: Json
       }
       resolve_effective_threshold: {
         Args: {
