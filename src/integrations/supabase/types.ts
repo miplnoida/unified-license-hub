@@ -37611,6 +37611,33 @@ export type Database = {
         }
         Relationships: []
       }
+      sec_anon_execute_allowlist: {
+        Row: {
+          classification: string
+          created_at: string
+          function_name: string
+          id: string
+          justification: string
+          updated_at: string
+        }
+        Insert: {
+          classification?: string
+          created_at?: string
+          function_name: string
+          id?: string
+          justification: string
+          updated_at?: string
+        }
+        Update: {
+          classification?: string
+          created_at?: string
+          function_name?: string
+          id?: string
+          justification?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sec_legacy_permission_map: {
         Row: {
           legacy_permission_id: string
@@ -41812,6 +41839,18 @@ export type Database = {
           tags: string[] | null
           trigger_count: number | null
           version: number | null
+        }
+        Relationships: []
+      }
+      sec_anon_executable_functions: {
+        Row: {
+          allowlisted: boolean | null
+          classification: string | null
+          function_name: unknown
+          is_extension: boolean | null
+          justification: string | null
+          security_definer: boolean | null
+          signature: string | null
         }
         Relationships: []
       }
