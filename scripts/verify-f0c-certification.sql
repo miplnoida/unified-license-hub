@@ -240,13 +240,12 @@ DO $a$
 DECLARE _st text; _n bigint; _lic uuid;
 BEGIN
   -- Anonymous boundary.
+  _st := pg_temp.as_anon(
+    'DO $x$ BEGIN IF (SELECT count(*) FROM public.licensees) > 0 THEN RAISE EXCEPTION ''leak''; END IF; END $x$');
   PERFORM pg_temp.rec('S3', 'A-01',
-    'anon cannot read the licensee register',
-    pg_temp.count_as_user(NULL, 'x') IS NOT NULL
-      AND (SELECT COALESCE((SELECT 0), 0)) = 0
-      AND pg_temp.as_anon('SELECT count(*) FROM public.licensees') <> '00000'
-         OR (SELECT count(*) = 0 FROM (SELECT 1 WHERE false) z),
-    'anon select -> ' || pg_temp.as_anon('SELECT count(*) FROM public.licensees'));
+    'anon cannot read the licensee register', _st = '00000',
+    'anon visible rows = 0 (' || _st || ')');
+
 
   -- Role escalation.
   _st := pg_temp.as_user(pg_temp.uid('applicant'),
