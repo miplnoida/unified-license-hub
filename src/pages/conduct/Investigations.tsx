@@ -59,7 +59,7 @@ export default function Investigations() {
           description="Formal investigations opened from complaints, alerts, thematic reviews or supervisory judgment."
           actions={
             <div className="flex gap-2">
-              <Button variant="outline" asChild><Link to="/conduct/work-queue">Conduct work queue</Link></Button>
+              <Button data-rbac="market_conduct.manage_complaints" variant="outline" asChild><Link to="/conduct/work-queue">Conduct work queue</Link></Button>
               <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-1" />Open investigation</Button>
             </div>
           }

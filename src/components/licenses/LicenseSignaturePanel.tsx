@@ -200,7 +200,7 @@ export function LicenseSignaturePanel({ licenseId, onChanged }: Props) {
             This licence has no certificate document yet. Generate version 1 to enable signing and dispatch.
           </p>
           {canSign && (
-            <Button size="sm" onClick={handleGenerate} disabled={working}>
+            <Button data-rbac="license_management.edit" size="sm" onClick={handleGenerate} disabled={working}>
               {working ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileSignature className="h-4 w-4 mr-1" />}
               Generate Certificate
             </Button>

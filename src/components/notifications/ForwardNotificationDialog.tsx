@@ -6,6 +6,7 @@
  * the recipient. Nothing is sent to a licensee.
  */
 import { useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -113,10 +114,10 @@ export function ForwardNotificationDialog({ notification, open, onOpenChange }: 
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit} disabled={!selected || saving}>
+          <GuardedButton module="notification_management" action="dispatch" data-rbac="notification_management.dispatch" onClick={submit} disabled={!selected || saving}>
             {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
             Forward
-          </Button>
+          </GuardedButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

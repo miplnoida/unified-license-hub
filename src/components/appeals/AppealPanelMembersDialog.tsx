@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -178,7 +179,7 @@ export function AppealPanelMembersDialog({ panel, onOpenChange }: Props) {
           )}
 
           <div className="flex justify-end">
-            <Button size="sm" onClick={startAdd} disabled={isLoading}>
+            <Button data-rbac="license_appeals.create" size="sm" onClick={startAdd} disabled={isLoading}>
               <PlusCircle className="h-4 w-4 mr-2" /> Add member
             </Button>
           </div>
@@ -203,7 +204,7 @@ export function AppealPanelMembersDialog({ panel, onOpenChange }: Props) {
                 <div className="flex items-center gap-1">
                   {m.is_chair && <Badge variant="outline">Chair</Badge>}
                   {!m.is_chair && m.member_role !== 'observer' && (
-                    <Button
+                    <GuardedButton module="license_appeals" action="edit" data-rbac="license_appeals.edit"
                       variant="outline"
                       size="sm"
                       className="h-7 text-xs"
@@ -211,7 +212,7 @@ export function AppealPanelMembersDialog({ panel, onOpenChange }: Props) {
                       disabled={savePanelMember.isPending}
                     >
                       Make chair
-                    </Button>
+                    </GuardedButton>
                   )}
                   <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-200">Active</Badge>
 
@@ -297,7 +298,7 @@ export function AppealPanelMembersDialog({ panel, onOpenChange }: Props) {
                 <Label htmlFor="member-voting">Counts towards quorum and voting</Label>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" onClick={save} disabled={savePanelMember.isPending}>
+                <Button data-rbac="license_appeals.edit" size="sm" onClick={save} disabled={savePanelMember.isPending}>
                   {savePanelMember.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Save member
                 </Button>

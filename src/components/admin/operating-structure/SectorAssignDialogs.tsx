@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -271,7 +272,7 @@ export function SectorLeadDialog({ open, onOpenChange, sectorId, sectorName, onS
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit} disabled={!person || selected.length === 0 || saving}>Assign lead</Button>
+          <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit" onClick={submit} disabled={!person || selected.length === 0 || saving}>Assign lead</GuardedButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -501,7 +502,7 @@ export function PersonSectorResponsibilityDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit} disabled={!sectorId || selected.length === 0 || saving}>Save</Button>
+          <Button data-rbac="user_management.edit" onClick={submit} disabled={!sectorId || selected.length === 0 || saving}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

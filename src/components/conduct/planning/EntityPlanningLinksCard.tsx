@@ -171,7 +171,7 @@ export function EntityPlanningLinksCard({ licenseeId }: { licenseeId: string | u
             </p>
             <div className="flex flex-wrap gap-2">
               {risks.map((r) => (
-                <Button
+                <Button data-rbac="market_conduct.manage_complaints"
                   key={r.id}
                   variant="outline"
                   size="sm"

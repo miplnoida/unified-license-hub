@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -141,19 +142,19 @@ export function ThreadDetail({ threadId, embedded }: { threadId?: string; embedd
               <Download className="h-4 w-4 mr-1" />{exporting ? 'Preparing…' : 'Export PDF'}
             </Button>
             {isInternalUser && !closed && t.thread_state !== 'pending_response' && (
-              <Button size="sm" variant="outline" onClick={setPending} disabled={markPending.isPending}>
+              <Button data-rbac="notification_management.dispatch" size="sm" variant="outline" onClick={setPending} disabled={markPending.isPending}>
                 <Clock className="h-4 w-4 mr-1" />Await response
               </Button>
             )}
             {closed ? (
               isInternalUser && (
-                <Button size="sm" variant="outline" onClick={() => setReopenOpen(true)}>
+                <GuardedButton module="notification_management" action="dispatch" data-rbac="notification_management.dispatch" size="sm" variant="outline" onClick={() => setReopenOpen(true)}>
                   <RotateCcw className="h-4 w-4 mr-1" />Reopen
-                </Button>
+                </GuardedButton>
               )
             ) : (
               isInternalUser && (
-                <Button size="sm" onClick={() => setCloseOpen(true)}><CheckCircle2 className="h-4 w-4 mr-1" />Close thread</Button>
+                <GuardedButton module="notification_management" action="dispatch" data-rbac="notification_management.dispatch" size="sm" onClick={() => setCloseOpen(true)}><CheckCircle2 className="h-4 w-4 mr-1" />Close thread</GuardedButton>
               )
             )}
           </div>
@@ -197,7 +198,7 @@ export function ThreadDetail({ threadId, embedded }: { threadId?: string; embedd
             </span>
           ))}
           {isInternalUser && (
-            <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setAddOpen(true)}>
+            <Button data-rbac="notification_management.dispatch" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setAddOpen(true)}>
               <UserPlus className="h-3 w-3 mr-1" />Add colleague
             </Button>
           )}
@@ -255,7 +256,7 @@ export function ThreadDetail({ threadId, embedded }: { threadId?: string; embedd
           <Textarea rows={4} value={justification} onChange={(e) => setJustification(e.target.value)} placeholder="Justification / closing note" />
           <DialogFooter>
             <Button variant="outline" onClick={() => setCloseOpen(false)}>Cancel</Button>
-            <Button onClick={close} disabled={setState.isPending}>Close thread</Button>
+            <GuardedButton module="notification_management" action="dispatch" data-rbac="notification_management.dispatch" onClick={close} disabled={setState.isPending}>Close thread</GuardedButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -269,7 +270,7 @@ export function ThreadDetail({ threadId, embedded }: { threadId?: string; embedd
           <Textarea rows={4} value={reopenReason} onChange={(e) => setReopenReason(e.target.value)} placeholder="Reason for reopening" />
           <DialogFooter>
             <Button variant="outline" onClick={() => setReopenOpen(false)}>Cancel</Button>
-            <Button onClick={reopen} disabled={reopenThread.isPending || reopenReason.trim().length < 10}>Reopen thread</Button>
+            <GuardedButton module="notification_management" action="dispatch" data-rbac="notification_management.dispatch" onClick={reopen} disabled={reopenThread.isPending || reopenReason.trim().length < 10}>Reopen thread</GuardedButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -288,7 +289,7 @@ export function ThreadDetail({ threadId, embedded }: { threadId?: string; embedd
           </Select>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button onClick={addColleague} disabled={!newParticipant || addParticipant.isPending}>Add colleague</Button>
+            <Button data-rbac="notification_management.dispatch" onClick={addColleague} disabled={!newParticipant || addParticipant.isPending}>Add colleague</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

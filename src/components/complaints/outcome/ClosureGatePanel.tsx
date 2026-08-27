@@ -8,6 +8,7 @@
  * panel simply surfaces the refusal.
  */
 import { useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -113,8 +114,8 @@ export function ClosureGatePanel({ complaintId, complaintUpdatedAt, onOpenOutcom
             <div className="flex flex-wrap gap-2 pt-1">
               {onOpenOutcome && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={onOpenOutcome}>Go to outcome</Button>}
               {onOpenRedress && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={onOpenRedress}>Go to redress</Button>}
-              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setMode('letter')}>Issue outcome letter</Button>
-              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => closureReadinessQ.refetch()}>Re-check</Button>
+              <GuardedButton module="complaint_management" action="edit" data-rbac="complaint_management.edit" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setMode('letter')}>Issue outcome letter</GuardedButton>
+              <Button data-rbac="complaint_management.edit" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => closureReadinessQ.refetch()}>Re-check</Button>
             </div>
           )}
 
@@ -156,13 +157,13 @@ export function ClosureGatePanel({ complaintId, complaintUpdatedAt, onOpenOutcom
 
               {!closed && (
                 <div className="flex flex-wrap gap-2 pt-1">
-                  <Button size="sm" variant="outline" onClick={() => { setRationale(''); setMode('submit_qa'); }}>
+                  <Button data-rbac="complaint_management.view" size="sm" variant="outline" onClick={() => { setRationale(''); setMode('submit_qa'); }}>
                     <ClipboardCheck className="mr-1 h-3.5 w-3.5" />Send for quality review
                   </Button>
-                  <Button size="sm" onClick={() => { setRationale(''); setFindings(''); setMode('qa_pass'); }}>
+                  <Button data-rbac="complaint_management.edit" size="sm" onClick={() => { setRationale(''); setFindings(''); setMode('qa_pass'); }}>
                     <ShieldCheck className="mr-1 h-3.5 w-3.5" />Pass review
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => { setRationale(''); setFindings(''); setMode('qa_return'); }}>
+                  <Button data-rbac="complaint_management.edit" size="sm" variant="outline" onClick={() => { setRationale(''); setFindings(''); setMode('qa_return'); }}>
                     Return for correction
                   </Button>
                 </div>
@@ -185,9 +186,9 @@ export function ClosureGatePanel({ complaintId, complaintUpdatedAt, onOpenOutcom
               Closing records the closure decision and moves the case to its final step. Where a quality review is required, the
               officer who prepared the outcome cannot approve the closure.
             </p>
-            <Button size="sm" disabled={!ready} onClick={() => { setRationale(''); setMode('close'); }}>
+            <GuardedButton module="complaint_management" action="edit" data-rbac="complaint_management.edit" size="sm" disabled={!ready} onClick={() => { setRationale(''); setMode('close'); }}>
               Approve and close
-            </Button>
+            </GuardedButton>
             {!ready && <p className="text-xs text-muted-foreground">Closure becomes available once the checks above are clear.</p>}
           </CardContent>
         </Card>

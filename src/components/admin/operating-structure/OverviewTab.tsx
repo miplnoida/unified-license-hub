@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -95,8 +96,8 @@ export function OverviewTab({ onNavigate }: { onNavigate: (action: WarningAction
         <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0">
           <CardTitle className="text-base">Quick actions</CardTitle>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => onNavigate('coverage')}>Assign sector lead</Button>
-            <Button size="sm" variant="outline" onClick={() => setAddResp(true)}>Add staff responsibility</Button>
+            <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit" size="sm" variant="outline" onClick={() => onNavigate('coverage')}>Assign sector lead</GuardedButton>
+            <Button data-rbac="user_management.create" size="sm" variant="outline" onClick={() => setAddResp(true)}>Add staff responsibility</Button>
             <Button size="sm" variant="outline" onClick={() => onNavigate('panel')}>Manage decision bodies</Button>
           </div>
         </CardHeader>

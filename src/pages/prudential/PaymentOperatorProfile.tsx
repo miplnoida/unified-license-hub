@@ -77,7 +77,7 @@ export default function PaymentOperatorProfile() {
                 ? labelOf(OBSERVANCE_LEVELS, operator.pfmi_compliance_level)
                 : 'PFMI not assessed'}
             </Badge>
-            <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+            <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => setEditOpen(true)}>
               <Pencil className="h-4 w-4 mr-2" />Edit
             </Button>
             <Button size="sm" data-rbac="prudential_supervision.create" disabled={start.isPending}

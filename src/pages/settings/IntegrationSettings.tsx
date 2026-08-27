@@ -598,7 +598,7 @@ function ConfigureDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => { setReset(null); onClose(); }}>Cancel</Button>
-          <Button
+          <Button data-rbac="settings.edit"
             disabled={saving}
             onClick={() => {
               let mapping: unknown;
@@ -663,7 +663,7 @@ function RotateDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button disabled={saving || !secretRef.trim()} onClick={() => onSave(secretRef.trim(), prefix.trim())}>
+          <Button data-rbac="settings.edit" disabled={saving || !secretRef.trim()} onClick={() => onSave(secretRef.trim(), prefix.trim())}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Rotate
           </Button>
         </DialogFooter>

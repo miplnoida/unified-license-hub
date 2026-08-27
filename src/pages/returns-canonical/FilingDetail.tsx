@@ -14,6 +14,7 @@
  * which remain the authority regardless of what this UI shows.
  */
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Link, useParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -146,14 +147,14 @@ export default function FilingDetail() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button
+              <GuardedButton module="returns_management" action="workflow_action" data-rbac="returns_management.workflow_action"
                 size="sm"
                 variant="outline"
                 disabled={!assignee || busy}
                 onClick={() => runAction({ code: 'ASSIGN', label: 'Assign', variant: 'outline' })}
               >
                 <UserPlus className="mr-1 h-4 w-4" />Assign
-              </Button>
+              </GuardedButton>
             </div>
           }
         />
@@ -428,7 +429,7 @@ function RequestCard({
       ) : (
         <div className="mt-2 space-y-2">
           <Textarea rows={2} placeholder="Respond to this request…" value={text} onChange={(e) => setText(e.target.value)} />
-          <Button size="sm" disabled={text.trim().length < 10} onClick={() => onRespond(text.trim())}>Submit response</Button>
+          <Button data-rbac="returns_management.submit" size="sm" disabled={text.trim().length < 10} onClick={() => onRespond(text.trim())}>Submit response</Button>
         </div>
       )}
     </div>

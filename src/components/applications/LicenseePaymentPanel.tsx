@@ -346,7 +346,7 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
                       </>
                     )}
                   </Button>
-                  <Button variant="outline" size="lg" onClick={() => setOfflineOpen(true)} disabled={processing}>
+                  <Button data-rbac="application_management.edit" variant="outline" size="lg" onClick={() => setOfflineOpen(true)} disabled={processing}>
                     <Banknote className="h-4 w-4 mr-2" /> Paid Offline
                   </Button>
                 </div>

@@ -5,6 +5,7 @@
  * is opened against the then-published version of the template.
  */
 import { useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
@@ -106,7 +107,7 @@ export function DefinitionFormsDrawer({
 
         {canWrite && !adding && (
           <div className="flex justify-end">
-            <Button size="sm" onClick={startAdd}><Plus className="mr-2 h-4 w-4" />Assign form</Button>
+            <GuardedButton module="returns_management" action="workflow_action" data-rbac="returns_management.workflow_action" size="sm" onClick={startAdd}><Plus className="mr-2 h-4 w-4" />Assign form</GuardedButton>
           </div>
         )}
 
@@ -147,7 +148,7 @@ export function DefinitionFormsDrawer({
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => setAdding(false)}>Cancel</Button>
-              <Button size="sm" onClick={submitRow} disabled={saveDefinitionForm.isPending}>
+              <Button data-rbac="returns_management.edit" size="sm" onClick={submitRow} disabled={saveDefinitionForm.isPending}>
                 {saveDefinitionForm.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save
               </Button>
             </div>

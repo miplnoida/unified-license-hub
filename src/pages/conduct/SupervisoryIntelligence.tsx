@@ -217,7 +217,7 @@ export default function SupervisoryIntelligence() {
               </Select>
             </div>
             <div className="flex items-end">
-              <Button
+              <Button data-rbac="market_conduct.manage_complaints"
                 variant="outline"
                 className="w-full"
                 onClick={() => navigate('/conduct/emerging-risks')}
@@ -352,7 +352,7 @@ export default function SupervisoryIntelligence() {
                 <p className="text-xs text-muted-foreground">Prepared {formatDateTime(snapshot.generated_at)}.</p>
 
                 {canOperate && (
-                  <Button onClick={openRaise}>
+                  <Button data-rbac="market_conduct.manage_complaints" onClick={openRaise}>
                     <ShieldAlert className="mr-1.5 h-4 w-4" />
                     Raise an emerging risk from this position
                   </Button>
@@ -487,7 +487,7 @@ export default function SupervisoryIntelligence() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRaiseOpen(false)}>Cancel</Button>
-            <Button
+            <Button data-rbac="market_conduct.manage_complaints"
               onClick={submitRaise}
               disabled={createRisk.isPending || riskTitle.trim().length < 5 || riskBasis.trim().length < 10}
             >

@@ -286,7 +286,7 @@ export default function LicenseExpirySettings() {
               <div className="text-center py-12 text-muted-foreground">
                 <CalendarClock className="h-10 w-10 mx-auto mb-3 opacity-30" />
                 <p className="mb-4">No expiry rules configured yet.</p>
-                <Button size="sm" onClick={openAdd}><Plus className="h-4 w-4 mr-1" />Add your first rule</Button>
+                <Button data-rbac="settings.edit" size="sm" onClick={openAdd}><Plus className="h-4 w-4 mr-1" />Add your first rule</Button>
               </div>
             ) : (
               <div className="overflow-x-auto">

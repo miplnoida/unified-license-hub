@@ -9,6 +9,7 @@
  * database triggers.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -250,9 +251,9 @@ export default function SupportQueue() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {t.assigned_to !== user?.id && (
-                    <Button variant="outline" size="sm" onClick={() => patch(t.id, { assigned_to: user?.id })}>
+                    <GuardedButton module="support_management" action="assign" data-rbac="support_management.assign" variant="outline" size="sm" onClick={() => patch(t.id, { assigned_to: user?.id })}>
                       Assign to me
-                    </Button>
+                    </GuardedButton>
                   )}
                   <Select value={t.assigned_to ?? 'none'} onValueChange={(v) => patch(t.id, { assigned_to: v === 'none' ? null : v })}>
                     <SelectTrigger className="w-[190px]"><SelectValue placeholder="Assign to…" /></SelectTrigger>
@@ -347,18 +348,18 @@ export default function SupportQueue() {
                     <Label className="text-xs">Resolution notes</Label>
                     <Textarea rows={3} value={resolution} onChange={(e) => setResolution(e.target.value)} />
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => patch(t.id, { resolution_notes: resolution })}>
+                      <Button data-rbac="support_management.update" size="sm" variant="outline" onClick={() => patch(t.id, { resolution_notes: resolution })}>
                         Save notes
                       </Button>
                       {t.status !== 'resolved' && (
-                        <Button size="sm" onClick={() => patch(t.id, { status: 'resolved', resolution_notes: resolution })}>
+                        <Button data-rbac="support_management.update" size="sm" onClick={() => patch(t.id, { status: 'resolved', resolution_notes: resolution })}>
                           Mark resolved
                         </Button>
                       )}
                       {t.status !== 'closed' && (
-                        <Button size="sm" variant="secondary" onClick={() => patch(t.id, { status: 'closed', resolution_notes: resolution })}>
+                        <GuardedButton module="support_management" action="close" data-rbac="support_management.close" size="sm" variant="secondary" onClick={() => patch(t.id, { status: 'closed', resolution_notes: resolution })}>
                           Close ticket
-                        </Button>
+                        </GuardedButton>
                       )}
                     </div>
                   </div>

@@ -59,7 +59,7 @@ function TreeRow({ node, onSelect, onEdit, canEdit }: {
           )}
           {node.end_date && <Badge variant="outline" className="text-[11px]">Exited {node.end_date}</Badge>}
           {canEdit && (
-            <Button size="sm" variant="ghost" onClick={() => onEdit?.(node)}>Edit</Button>
+            <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" onClick={() => onEdit?.(node)}>Edit</Button>
           )}
         </div>
       </div>

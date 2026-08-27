@@ -114,7 +114,7 @@ export default function ConductPrioritisation() {
           actions={
             <div className="flex items-center gap-2">
               {!canOperate && <Badge variant="outline">View only</Badge>}
-              <Button variant="outline" onClick={() => navigate('/conduct/interventions')}>
+              <Button data-rbac="market_conduct.manage_complaints" variant="outline" onClick={() => navigate('/conduct/interventions')}>
                 Intervention register
               </Button>
             </div>
@@ -142,7 +142,7 @@ export default function ConductPrioritisation() {
             </div>
             <div className="flex items-end">
               {canOperate ? (
-                <Button className="w-full" onClick={runCompute} disabled={compute.isPending}>
+                <Button data-rbac="market_conduct.manage_complaints" className="w-full" onClick={runCompute} disabled={compute.isPending}>
                   <RefreshCw className={`mr-2 h-4 w-4 ${compute.isPending ? 'animate-spin' : ''}`} />
                   Compute prioritisation
                 </Button>
@@ -219,7 +219,7 @@ export default function ConductPrioritisation() {
                         <TableCell className="text-right font-mono text-xs font-semibold">{e.score}</TableCell>
                         <TableCell className="text-right">
                           {canOperate && (
-                            <Button size="sm" variant="outline" onClick={() => openPropose(e)}>
+                            <Button data-rbac="market_conduct.manage_complaints" size="sm" variant="outline" onClick={() => openPropose(e)}>
                               Propose intervention <ArrowRight className="ml-1 h-3 w-3" />
                             </Button>
                           )}
@@ -285,7 +285,7 @@ export default function ConductPrioritisation() {
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setTarget(null)}>Cancel</Button>
-              <Button onClick={submitPropose}
+              <Button data-rbac="market_conduct.manage_complaints" onClick={submitPropose}
                       disabled={propose.isPending || title.trim().length < 3 || basis.trim().length < 20}>
                 Propose for decision
               </Button>

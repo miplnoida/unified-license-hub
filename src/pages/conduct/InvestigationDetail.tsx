@@ -58,7 +58,7 @@ export default function InvestigationDetail() {
           actions={
             <div className="flex gap-2">
               <HistoryButton entityType="conduct_investigation" entityId={data.id} title="Investigation history" />
-              <Button variant="ghost" asChild>
+              <Button data-rbac="market_conduct.manage_complaints" variant="ghost" asChild>
                 <Link to="/conduct/work-queue"><ArrowLeft className="mr-1 h-4 w-4" />Work queue</Link>
               </Button>
             </div>

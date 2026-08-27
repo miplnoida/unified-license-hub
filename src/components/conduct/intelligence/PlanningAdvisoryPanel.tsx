@@ -146,7 +146,7 @@ function AdvisoryBody({
                 <p className="text-sm font-semibold">{nameOf(String(o.catalogue_code))}</p>
                 <Badge variant="outline" className="text-[10px]">Approved catalogue</Badge>
                 {canOperate && onAdoptOption && (
-                  <Button
+                  <Button data-rbac="market_conduct.manage_complaints"
                     size="sm"
                     variant="outline"
                     className="ml-auto"
@@ -468,7 +468,7 @@ export function PlanningAdvisoryPanel({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeReview}>Cancel</Button>
-            <Button onClick={submitReview} disabled={review.isPending}>
+            <Button data-rbac="market_conduct.manage_complaints" onClick={submitReview} disabled={review.isPending}>
               {review.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Record decision
             </Button>

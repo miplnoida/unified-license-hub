@@ -111,7 +111,7 @@ export function MandateAdminTab() {
                 ))}
               </SelectContent>
             </Select>
-            <Button size="sm" onClick={openCreate} disabled={!activeRegulator}>New mandate</Button>
+            <Button data-rbac="user_management.create" size="sm" onClick={openCreate} disabled={!activeRegulator}>New mandate</Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -126,7 +126,7 @@ export function MandateAdminTab() {
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant={m.status === 'active' ? 'default' : 'secondary'}>{m.status}</Badge>
-                <Button size="sm" variant="outline" onClick={() => openEdit(m)}>Edit</Button>
+                <Button data-rbac="user_management.edit" size="sm" variant="outline" onClick={() => openEdit(m)}>Edit</Button>
                 <Button
                   size="sm"
                   variant={m.status === 'active' ? 'destructive' : 'secondary'}

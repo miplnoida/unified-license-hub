@@ -223,7 +223,7 @@ export function SubmissionAcknowledgementPanel({
           <p className="text-sm text-muted-foreground">
             No acknowledgement has been generated for this submission yet.
           </p>
-          <Button
+          <Button data-rbac="application_management.edit"
             size="sm"
             variant="outline"
             disabled={ensure.isPending}
@@ -296,7 +296,7 @@ export function SubmissionAcknowledgementPanel({
             Download acknowledgement (PDF)
           </Button>
           {!ack.document_path && (
-            <Button
+            <Button data-rbac="application_management.edit"
               size="sm"
               variant="ghost"
               disabled={ensure.isPending}

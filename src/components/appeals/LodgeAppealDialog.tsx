@@ -89,7 +89,7 @@ export function LodgeAppealDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit} disabled={lodgeAppeal.isPending}>
+          <Button data-rbac="license_appeals.edit" onClick={submit} disabled={lodgeAppeal.isPending}>
             {lodgeAppeal.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Submit appeal
           </Button>

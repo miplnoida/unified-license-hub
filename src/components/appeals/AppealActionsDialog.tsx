@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -176,7 +177,7 @@ export function AppealActionsDialog({ appeal: selectedAppeal, onOpenChange }: Pr
                 <p className="text-sm">
                   This appeal has not been acknowledged yet. Acknowledge it to accept it for review.
                 </p>
-                <Button
+                <Button data-rbac="license_appeals.edit"
                   size="sm"
                   variant="outline"
                   onClick={async () => {
@@ -241,7 +242,7 @@ export function AppealActionsDialog({ appeal: selectedAppeal, onOpenChange }: Pr
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  <Button
+                  <Button data-rbac="license_appeals.edit"
                     size="sm"
                     onClick={() => decide('upheld')}
                     disabled={!remarksReady || !quorumMet || recordDecision.isPending}
@@ -251,7 +252,7 @@ export function AppealActionsDialog({ appeal: selectedAppeal, onOpenChange }: Pr
                       : <CheckCircle2 className="h-4 w-4 mr-2" />}
                     Consider appeal
                   </Button>
-                  <Button
+                  <GuardedButton module="license_appeals" action="decide" data-rbac="license_appeals.decide"
                     size="sm"
                     variant="destructive"
                     onClick={() => decide('dismissed')}
@@ -261,7 +262,7 @@ export function AppealActionsDialog({ appeal: selectedAppeal, onOpenChange }: Pr
                       ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       : <XCircle className="h-4 w-4 mr-2" />}
                     Decline appeal
-                  </Button>
+                  </GuardedButton>
                 </div>
               </div>
             </>
@@ -279,12 +280,12 @@ export function AppealActionsDialog({ appeal: selectedAppeal, onOpenChange }: Pr
                   This appeal was accepted, but application {application?.application_number} was not
                   put back under review. Reopen it now to complete the decision.
                 </p>
-                <Button size="sm" onClick={reopen} disabled={reinstateApplication.isPending}>
+                <GuardedButton module="license_appeals" action="edit" data-rbac="license_appeals.edit" size="sm" onClick={reopen} disabled={reinstateApplication.isPending}>
                   {reinstateApplication.isPending
                     ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     : <RotateCcw className="h-4 w-4 mr-2" />}
                   Reopen application
-                </Button>
+                </GuardedButton>
               </div>
             </>
           )}

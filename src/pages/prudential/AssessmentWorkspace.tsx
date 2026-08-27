@@ -218,7 +218,7 @@ export default function AssessmentWorkspace() {
                       {blockers.map((b) => (
                         <li key={b.code + b.label} className="flex items-center justify-between gap-2">
                           <span className="text-muted-foreground">{b.label}</span>
-                          <Button size="sm" variant="ghost" className="h-6 px-2 text-xs"
+                          <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" className="h-6 px-2 text-xs"
                             onClick={() => setSection('assessment', 'current')}>Resolve</Button>
                         </li>
                       ))}

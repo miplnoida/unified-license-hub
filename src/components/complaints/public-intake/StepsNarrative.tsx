@@ -556,7 +556,7 @@ export function ReviewSummary({
         <div key={group.step} className="space-y-1 border-t pt-3 first:border-t-0 first:pt-0">
           <div className="flex items-center justify-between gap-2">
             <h4 className="text-sm font-medium">{group.title}</h4>
-            <Button type="button" variant="ghost" size="sm" onClick={() => onEditStep(group.step)}>
+            <Button data-rbac="complaint_management.edit" type="button" variant="ghost" size="sm" onClick={() => onEditStep(group.step)}>
               Edit
             </Button>
           </div>

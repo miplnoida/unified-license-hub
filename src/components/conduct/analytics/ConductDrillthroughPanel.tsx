@@ -98,7 +98,7 @@ export function ConductDrillthroughPanel({ complaints, labels, onApplyFilters }:
               </p>
             </div>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={apply}>Apply to filters</Button>
+              <Button data-rbac="market_conduct.manage_complaints" size="sm" variant="outline" onClick={apply}>Apply to filters</Button>
               <Button size="sm" variant="ghost" asChild><Link to="/complaints">View in complaints list</Link></Button>
               <Button size="sm" variant="ghost" onClick={() => setSel(null)}>Clear</Button>
             </div>

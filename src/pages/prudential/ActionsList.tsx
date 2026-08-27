@@ -60,11 +60,11 @@ export default function ActionsList() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={overdue.isPending} onClick={() => overdue.mutate()}>
+            <Button data-rbac="prudential_supervision.edit" variant="outline" size="sm" disabled={overdue.isPending} onClick={() => overdue.mutate()}>
               {overdue.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
               Sweep overdue
             </Button>
-            <Button variant="outline" size="sm" disabled={breachSweep.isPending} onClick={() => breachSweep.mutate()}>
+            <Button data-rbac="prudential_supervision.edit" variant="outline" size="sm" disabled={breachSweep.isPending} onClick={() => breachSweep.mutate()}>
               {breachSweep.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <AlertTriangle className="h-4 w-4 mr-2" />}
               Sweep breaches
             </Button>

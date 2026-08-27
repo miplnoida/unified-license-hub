@@ -89,7 +89,7 @@ export function LineageViewer({ objectType = '', objectId = '', embedded = false
               <Label>Record ID</Label>
               <Input value={id} onChange={(e) => setId(e.target.value)} placeholder="UUID or reference" />
             </div>
-            <Button onClick={() => load()} disabled={loading}>
+            <Button data-rbac="audit_management.export" onClick={() => load()} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
               Trace lineage
             </Button>
@@ -97,7 +97,7 @@ export function LineageViewer({ objectType = '', objectId = '', embedded = false
         )}
 
         {embedded && !loaded && (
-          <Button onClick={() => load(objectType, objectId)} disabled={loading} variant="outline" size="sm">
+          <Button data-rbac="audit_management.export" onClick={() => load(objectType, objectId)} disabled={loading} variant="outline" size="sm">
             {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
             Load lineage
           </Button>

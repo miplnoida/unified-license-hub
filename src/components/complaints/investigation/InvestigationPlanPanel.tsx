@@ -101,7 +101,7 @@ export function InvestigationPlanPanel({ complaintId, workspace, onOpenSection }
                 {(gate.blockers ?? []).map((b, i) => <li key={i}>{b}</li>)}
               </ul>
               <div className="flex gap-2 pt-1">
-                <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onOpenSection('jurisdiction')}>
+                <Button data-rbac="complaint_management.edit" size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onOpenSection('jurisdiction')}>
                   Jurisdiction<ArrowRight className="h-3 w-3 ml-1" />
                 </Button>
                 <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onOpenSection('triage')}>

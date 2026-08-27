@@ -6,6 +6,7 @@
  * `notification_delivery_for`, which only returns the caller's own records.
  */
 import { useEffect, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { useNavigate } from 'react-router-dom';
 import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
@@ -128,9 +129,9 @@ export function NotificationDetailDrawer({
                 <Check className="h-3.5 w-3.5 mr-1.5" />Mark read
               </Button>
             )}
-            <Button size="sm" variant="outline" onClick={() => onForward(notification)}>
+            <GuardedButton module="notification_management" action="dispatch" data-rbac="notification_management.dispatch" size="sm" variant="outline" onClick={() => onForward(notification)}>
               <Forward className="h-3.5 w-3.5 mr-1.5" />Forward
-            </Button>
+            </GuardedButton>
             {status !== 'archived' && status !== 'dismissed' && !notification.system_required && (
               <Button
                 size="sm"

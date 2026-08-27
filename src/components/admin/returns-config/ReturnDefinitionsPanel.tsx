@@ -100,7 +100,7 @@ export function ReturnDefinitionsPanel({ canWrite }: { canWrite: boolean }) {
   return (
     <div className="space-y-3">
       <div className="flex justify-end">
-        {canWrite && <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />New return definition</Button>}
+        {canWrite && <Button data-rbac="returns_management.create" onClick={openCreate}><Plus className="mr-2 h-4 w-4" />New return definition</Button>}
       </div>
       <Card><CardContent className="overflow-x-auto p-0">
         {isLoading ? (
@@ -221,7 +221,7 @@ export function ReturnDefinitionsPanel({ canWrite }: { canWrite: boolean }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={submit} disabled={saveDefinition.isPending}>
+            <Button data-rbac="returns_management.edit" onClick={submit} disabled={saveDefinition.isPending}>
               {saveDefinition.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save definition
             </Button>
           </DialogFooter>
@@ -315,16 +315,16 @@ function DefinitionRow({
               <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
+              <DropdownMenuItem data-rbac="returns_management.edit" onClick={onEdit}>Edit</DropdownMenuItem>
               <DropdownMenuItem onClick={onForms}><ListChecks className="mr-2 h-4 w-4" />Assigned forms ({forms.length})</DropdownMenuItem>
               {definition.status !== 'ACTIVE' && definition.status !== 'RETIRED' && (
-                <DropdownMenuItem onClick={() => setStatus('ACTIVE')}>Activate</DropdownMenuItem>
+                <DropdownMenuItem data-rbac="returns_management.edit" onClick={() => setStatus('ACTIVE')}>Activate</DropdownMenuItem>
               )}
               {definition.status === 'ACTIVE' && (
-                <DropdownMenuItem onClick={() => setStatus('SUSPENDED')}>Suspend</DropdownMenuItem>
+                <DropdownMenuItem data-rbac="returns_management.edit" onClick={() => setStatus('SUSPENDED')}>Suspend</DropdownMenuItem>
               )}
               {definition.status !== 'RETIRED' && (
-                <DropdownMenuItem className="text-destructive" onClick={onRetire}>Retire…</DropdownMenuItem>
+                <DropdownMenuItem data-rbac="returns_management.edit" className="text-destructive" onClick={onRetire}>Retire…</DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>

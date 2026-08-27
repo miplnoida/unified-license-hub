@@ -663,7 +663,7 @@ export default function RoleManagement() {
                 </div>
                 <div className="flex items-center gap-2">
                   {canEdit && (
-                    <Button variant="outline" onClick={() => setMigrationOpen(true)}>
+                    <Button data-rbac="role_management.edit" variant="outline" onClick={() => setMigrationOpen(true)}>
                       <Sparkles className="h-4 w-4 mr-2" />Classify existing roles
                     </Button>
                   )}

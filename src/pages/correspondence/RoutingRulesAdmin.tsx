@@ -126,7 +126,7 @@ export default function RoutingRulesAdmin() {
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                  <Button onClick={submit} disabled={save.isPending}>Save rule</Button>
+                  <Button data-rbac="notification_management.dispatch" onClick={submit} disabled={save.isPending}>Save rule</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>

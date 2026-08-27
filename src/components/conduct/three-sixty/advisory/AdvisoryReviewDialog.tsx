@@ -124,7 +124,7 @@ export function AdvisoryReviewDialog({ open, onOpenChange, insight, action, subm
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={submitting || rationaleMissing || textMissing}>
+          <Button data-rbac="market_conduct.manage_complaints" onClick={handleSubmit} disabled={submitting || rationaleMissing || textMissing}>
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Record {meta.label.toLowerCase()} decision
           </Button>

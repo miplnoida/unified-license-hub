@@ -195,7 +195,7 @@ export function InvestigationTasksPanel({ complaintId, workspace }: Props) {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         {String(t.status).toUpperCase() !== 'IN_PROGRESS' && !closed && (
-                          <DropdownMenuItem
+                          <DropdownMenuItem data-rbac="complaint_management.edit"
                             onClick={() => run(saveMut.mutateAsync({
                               id: t.id, status: 'IN_PROGRESS', expected_row_version: t.row_version,
                             }), 'Work item updated')}
@@ -204,7 +204,7 @@ export function InvestigationTasksPanel({ complaintId, workspace }: Props) {
                           </DropdownMenuItem>
                         )}
                         {!closed && (
-                          <DropdownMenuItem
+                          <DropdownMenuItem data-rbac="complaint_management.edit"
                             onClick={async () => {
                               const res = await Swal.fire({
                                 title: 'Mark this work item done?',
@@ -223,7 +223,7 @@ export function InvestigationTasksPanel({ complaintId, workspace }: Props) {
                           </DropdownMenuItem>
                         )}
                         {!closed && (
-                          <DropdownMenuItem
+                          <DropdownMenuItem data-rbac="complaint_management.edit"
                             onClick={async () => {
                               const res = await Swal.fire({
                                 title: 'What is blocking this item?',
@@ -242,7 +242,7 @@ export function InvestigationTasksPanel({ complaintId, workspace }: Props) {
                           </DropdownMenuItem>
                         )}
                         {!closed && (
-                          <DropdownMenuItem
+                          <DropdownMenuItem data-rbac="complaint_management.edit"
                             onClick={() => run(saveMut.mutateAsync({
                               id: t.id, status: 'CANCELLED', expected_row_version: t.row_version,
                             }), 'Work item cancelled')}
@@ -251,7 +251,7 @@ export function InvestigationTasksPanel({ complaintId, workspace }: Props) {
                           </DropdownMenuItem>
                         )}
                         {closed && (
-                          <DropdownMenuItem
+                          <DropdownMenuItem data-rbac="complaint_management.edit"
                             onClick={() => run(saveMut.mutateAsync({
                               id: t.id, status: 'IN_PROGRESS', expected_row_version: t.row_version,
                             }), 'Work item reopened')}

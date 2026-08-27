@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -126,10 +127,10 @@ export function LicenseAppealPanel({
               <AppealTimeline appealId={existing.id} />
             </div>
             {canLodge && isAppealOpen(existing.status) && (
-              <Button variant="outline" size="sm" onClick={withdraw} disabled={withdrawAppeal.isPending}>
+              <GuardedButton module="license_appeals" action="edit" data-rbac="license_appeals.edit" variant="outline" size="sm" onClick={withdraw} disabled={withdrawAppeal.isPending}>
                 {withdrawAppeal.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Withdraw appeal
-              </Button>
+              </GuardedButton>
             )}
           </div>
         ) : (

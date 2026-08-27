@@ -203,7 +203,7 @@ export function EntityFilingForm({
             <Button variant="outline" disabled={saving} onClick={() => persist(liveData, 'IN_PROGRESS')}>
               <Save className="mr-2 h-4 w-4" />{saving ? 'Saving…' : 'Save draft'}
             </Button>
-            <Button
+            <Button data-rbac="licensee_management.edit"
               variant="secondary"
               disabled={saving}
               onClick={() => persist(liveData, 'COMPLETED')}

@@ -12,6 +12,7 @@
  *  - blocker "Resolve" links carry `?from=current` and show a detour banner.
  */
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, ArrowLeft, ArrowUpRight, Check, Circle, Loader2 } from 'lucide-react';
@@ -385,7 +386,7 @@ export default function FpaAssessmentWorkspace() {
                 </div>
                 <div className="flex gap-2">
                   {canRequestDeclaration(header.status) ? (
-                    <Button size="sm" variant="outline" onClick={() => setDeclarationOpen(true)}>
+                    <Button data-rbac="fit_and_proper.edit" size="sm" variant="outline" onClick={() => setDeclarationOpen(true)}>
                       Request declaration
                     </Button>
                   ) : null}
@@ -512,7 +513,7 @@ export default function FpaAssessmentWorkspace() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button size="sm" disabled={!committeeChoice || busy} onClick={assignCommittee}>Assign</Button>
+                    <GuardedButton module="fit_and_proper" action="workflow_action" data-rbac="fit_and_proper.workflow_action" size="sm" disabled={!committeeChoice || busy} onClick={assignCommittee}>Assign</GuardedButton>
                   </div>
                 ) : null}
 

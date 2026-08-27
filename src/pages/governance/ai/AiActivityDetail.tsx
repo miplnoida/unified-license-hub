@@ -257,7 +257,7 @@ export default function AiActivityDetail() {
         <Section
           title="Assurance"
           action={insightId && canAssure && assurance.length === 0 ? (
-            <Button size="sm" variant="outline" disabled={createAssurance.isPending}
+            <Button data-rbac="ai_management.edit" size="sm" variant="outline" disabled={createAssurance.isPending}
               onClick={() => createAssurance.mutate({ insightId })}>
               {createAssurance.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Start assurance review

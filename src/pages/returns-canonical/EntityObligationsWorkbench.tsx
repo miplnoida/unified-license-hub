@@ -57,7 +57,7 @@ export default function EntityObligationsWorkbench() {
           title="Reporting Obligations"
           description="Derive an entity's return obligations from the configured rules and manage its reporting periods"
           actions={entity ? (
-            <Button onClick={derive} disabled={deriveObligations.isPending}>
+            <Button data-rbac="returns_management.edit" onClick={derive} disabled={deriveObligations.isPending}>
               {deriveObligations.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
               Re-derive obligations
             </Button>
@@ -109,7 +109,7 @@ export default function EntityObligationsWorkbench() {
                             <Button variant="ghost" size="sm" onClick={() => setOpenObligation(openObligation === o.id ? null : o.id)}>
                               {openObligation === o.id ? 'Hide' : 'View'}
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => generate(o.id)} disabled={generatePeriods.isPending}>
+                            <Button data-rbac="returns_management.edit" variant="outline" size="sm" onClick={() => generate(o.id)} disabled={generatePeriods.isPending}>
                               <CalendarPlus className="mr-1 h-3.5 w-3.5" />Generate
                             </Button>
                           </TableCell>

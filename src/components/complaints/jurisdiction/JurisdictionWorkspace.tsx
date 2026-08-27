@@ -715,7 +715,7 @@ function OpenInfoRequest({ request, canRespond, pending, onRespond }: {
         <div className="space-y-2">
           <Textarea rows={2} value={summary} onChange={(e) => setSummary(e.target.value)}
                     placeholder="Summarise the response received" />
-          <Button size="sm" variant="outline" disabled={summary.trim().length < 5 || pending}
+          <Button data-rbac="complaint_management.edit" size="sm" variant="outline" disabled={summary.trim().length < 5 || pending}
                   onClick={() => { onRespond(summary); setSummary(''); }}>
             Record response
           </Button>

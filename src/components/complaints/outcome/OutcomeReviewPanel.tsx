@@ -305,11 +305,11 @@ export function OutcomeReviewPanel({ complaintId, onOpenRedress, onOpenClosure }
               </div>
 
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                <Button size="sm" variant="outline" disabled={!editable || saveOutcome.isPending}
+                <Button data-rbac="complaint_management.edit" size="sm" variant="outline" disabled={!editable || saveOutcome.isPending}
                   onClick={() => saveOutcome.mutate(form as any, { onSuccess: () => toast.success('Draft outcome saved'), onError })}>
                   {saveOutcome.isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}Save draft
                 </Button>
-                <Button size="sm" disabled={!editable || submitOutcome.isPending || saveOutcome.isPending}
+                <Button data-rbac="complaint_management.edit" size="sm" disabled={!editable || submitOutcome.isPending || saveOutcome.isPending}
                   onClick={() =>
                     saveOutcome.mutate(form as any, {
                       onError,

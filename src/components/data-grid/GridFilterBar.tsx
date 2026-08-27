@@ -62,7 +62,7 @@ export function GridFilterBar<T>({ columns, state, onChange }: GridFilterBarProp
     <div className="flex flex-wrap items-center gap-2">
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button data-rbac="report_management.create" variant="outline" size="sm" className="gap-2">
             <Filter className="h-3.5 w-3.5" />
             Filters
             {activeCount > 0 && <Badge variant="secondary" className="ml-1">{activeCount}</Badge>}

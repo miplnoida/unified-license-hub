@@ -157,7 +157,7 @@ function RfiCard({
               <ShieldCheck className="h-3 w-3" />
               Draft answers are private to your organisation until you submit for review.
             </p>
-            <Button onClick={doSubmit} disabled={submit.isPending}>
+            <Button data-rbac="complaint_management.submit" onClick={doSubmit} disabled={submit.isPending}>
               {submit.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
               Submit for review
             </Button>
@@ -313,7 +313,7 @@ function RfiItemRow({
             </div>
           )}
 
-          <Button size="sm" variant="secondary" onClick={() => persist(text, fileIds)} disabled={save.isPending}>
+          <Button data-rbac="complaint_management.edit" size="sm" variant="secondary" onClick={() => persist(text, fileIds)} disabled={save.isPending}>
             {save.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
             Save draft
           </Button>

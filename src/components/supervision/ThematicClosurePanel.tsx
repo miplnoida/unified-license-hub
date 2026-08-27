@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -177,10 +178,10 @@ export function ThematicClosurePanel({ reviewId, review, findings, actions, onCh
                 {rows.map(r => <option key={r.id} value={r.id}>v{r.version} · {REPORT_LABEL[r.status]}</option>)}
               </select>
             )}
-            <Button size="sm" variant="outline" onClick={() => { setSelectedId(null); setForm(EMPTY_FORM); }}>
+            <Button data-rbac="prudential_supervision.create" size="sm" variant="outline" onClick={() => { setSelectedId(null); setForm(EMPTY_FORM); }}>
               <FileText className="h-4 w-4 mr-1" /> New version
             </Button>
-            {selected && <Button size="sm" variant="outline" onClick={printReport}><Printer className="h-4 w-4 mr-1" /> Print / PDF</Button>}
+            {selected && <Button data-rbac="prudential_supervision.view" size="sm" variant="outline" onClick={printReport}><Printer className="h-4 w-4 mr-1" /> Print / PDF</Button>}
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -209,7 +210,7 @@ export function ThematicClosurePanel({ reviewId, review, findings, actions, onCh
 
           {editable && (
             <div className="flex flex-wrap gap-2 items-end">
-              <Button variant="outline" size="sm" onClick={prefill}>Prefill from findings & actions</Button>
+              <Button data-rbac="prudential_supervision.edit" variant="outline" size="sm" onClick={prefill}>Prefill from findings & actions</Button>
               <Button data-rbac="prudential_supervision.edit" size="sm" onClick={onSave} disabled={saveDraft.isPending}>
                 {saveDraft.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />} Save draft
               </Button>
@@ -312,13 +313,13 @@ export function ThematicClosurePanel({ reviewId, review, findings, actions, onCh
           <Textarea rows={4} value={rejectReason} onChange={e => setRejectReason(e.target.value)} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectTarget(null)}>Cancel</Button>
-            <Button variant="destructive" disabled={rejectReason.trim().length < 10}
+            <GuardedButton module="prudential_supervision" action="edit" data-rbac="prudential_supervision.edit" variant="destructive" disabled={rejectReason.trim().length < 10}
               onClick={() => run(async () => {
                 await rejectReport.mutateAsync({ _report_id: rejectTarget!.id, _reason: rejectReason.trim() });
                 setRejectTarget(null);
               }, 'Report rejected')}>
               Reject report
-            </Button>
+            </GuardedButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -424,13 +425,13 @@ function ClosureGateCard({ review, reviewId, approverOptions, readiness, onDone,
           <Textarea rows={4} value={rejectReason} onChange={e => setRejectReason(e.target.value)} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectOpen(false)}>Cancel</Button>
-            <Button variant="destructive" disabled={rejectReason.trim().length < 10}
+            <GuardedButton module="prudential_supervision" action="edit" data-rbac="prudential_supervision.edit" variant="destructive" disabled={rejectReason.trim().length < 10}
               onClick={() => run(async () => {
                 await rejectClosure.mutateAsync({ _review_id: reviewId, _reason: rejectReason.trim() });
                 setRejectOpen(false); setRejectReason('');
               }, 'Closure rejected')}>
               Reject closure
-            </Button>
+            </GuardedButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

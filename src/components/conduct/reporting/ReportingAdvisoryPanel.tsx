@@ -251,7 +251,7 @@ export function ReportingAdvisoryPanel({ scope, useCases, canOperate, pack = nul
                               </span>
                             )}
                             {canOperate && adoptable(narrative) && (
-                              <Button
+                              <Button data-rbac="market_conduct.manage_complaints"
                                 size="sm"
                                 variant="ghost"
                                 className="ml-auto h-7 text-xs"

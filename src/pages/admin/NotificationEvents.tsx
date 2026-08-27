@@ -283,7 +283,7 @@ export default function NotificationEvents() {
                             .catch((e: any) => toast.error(e?.message || 'Update failed'))
                         }
                       />
-                      <Button variant="outline" size="sm" onClick={() => openEdit(ev)}>
+                      <Button data-rbac="notification_management.dispatch" variant="outline" size="sm" onClick={() => openEdit(ev)}>
                         <Settings2 className="mr-2 h-4 w-4" /> Configure
                       </Button>
                     </div>
@@ -460,7 +460,7 @@ export default function NotificationEvents() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>Recipient rules</Label>
-                <Button
+                <Button data-rbac="notification_management.dispatch"
                   size="sm"
                   variant="outline"
                   onClick={() => setForm((prev) => ({ ...prev, rules: [...prev.rules, { type: '' }] }))}

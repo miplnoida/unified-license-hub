@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -246,7 +247,7 @@ export function InterviewRecordDialog({ mode, open, onOpenChange, investigationI
         <div className="flex items-center justify-between gap-2 border-t pt-3">
           <div>
             {mode === 'edit' && !locked && interview?.status !== 'cancelled' && (
-              <Button variant="ghost" className="text-destructive" onClick={cancelInterview} disabled={busy}>Cancel interview</Button>
+              <GuardedButton module="market_conduct" action="manage_complaints" data-rbac="market_conduct.manage_complaints" variant="ghost" className="text-destructive" onClick={cancelInterview} disabled={busy}>Cancel interview</GuardedButton>
             )}
           </div>
           <div className="flex gap-2">

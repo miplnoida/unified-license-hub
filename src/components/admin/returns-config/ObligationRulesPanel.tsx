@@ -117,7 +117,7 @@ export function ObligationRulesPanel({ canWrite }: { canWrite: boolean }) {
     <div className="space-y-3">
       <div className="flex justify-end">
         {canWrite && (
-          <Button onClick={openCreate} disabled={definitions.length === 0}>
+          <Button data-rbac="returns_management.create" onClick={openCreate} disabled={definitions.length === 0}>
             <Plus className="mr-2 h-4 w-4" />New obligation rule
           </Button>
         )}
@@ -247,7 +247,7 @@ export function ObligationRulesPanel({ canWrite }: { canWrite: boolean }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={submit} disabled={saveObligationRule.isPending}>
+            <Button data-rbac="returns_management.edit" onClick={submit} disabled={saveObligationRule.isPending}>
               {saveObligationRule.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save rule
             </Button>
           </DialogFooter>

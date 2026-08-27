@@ -61,7 +61,7 @@ export default function InterventionsRegister() {
           title="Supervisory Interventions"
           description="Planned supervisory action arising from recorded conduct facts. Each proposal carries a written basis and must be decided by a different officer with approval authority."
           actions={
-            <Button variant="outline" onClick={() => navigate('/conduct/prioritisation')}>
+            <Button data-rbac="market_conduct.manage_complaints" variant="outline" onClick={() => navigate('/conduct/prioritisation')}>
               Prioritisation
             </Button>
           }

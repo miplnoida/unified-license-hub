@@ -228,7 +228,7 @@ export default function LicenseAppealPanels() {
           data={panels || []}
           searchPlaceholder="Search panels..."
           actions={
-            <Button size="sm" onClick={startCreate} disabled={isLoading}>
+            <Button data-rbac="license_appeals.create" size="sm" onClick={startCreate} disabled={isLoading}>
               <PlusCircle className="h-4 w-4 mr-2" /> New panel
             </Button>
           }
@@ -349,7 +349,7 @@ export default function LicenseAppealPanels() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={save} disabled={saving || savePanel.isPending}>
+            <Button data-rbac="license_appeals.edit" onClick={save} disabled={saving || savePanel.isPending}>
               {(saving || savePanel.isPending) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save
             </Button>

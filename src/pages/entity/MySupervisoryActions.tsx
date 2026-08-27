@@ -62,7 +62,7 @@ export default function MySupervisoryActions() {
                   <Label>Your response <span className="text-destructive">*</span></Label>
                   <Textarea rows={4} value={narrative} onChange={(e) => setNarrative(e.target.value)} />
                   <div className="flex gap-2">
-                    <Button
+                    <Button data-rbac="licensee_management.edit"
                       size="sm"
                       disabled={narrative.trim().length < 5 || submit.isPending}
                       onClick={() =>
@@ -79,7 +79,7 @@ export default function MySupervisoryActions() {
                   </div>
                 </div>
               ) : (
-                <Button size="sm" variant="outline" onClick={() => { setOpenFor(a.id); setNarrative(''); }}>
+                <Button data-rbac="licensee_management.edit" size="sm" variant="outline" onClick={() => { setOpenFor(a.id); setNarrative(''); }}>
                   Respond
                 </Button>
               )}

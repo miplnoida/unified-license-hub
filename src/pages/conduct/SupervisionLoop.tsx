@@ -95,7 +95,7 @@ export default function SupervisionLoop() {
           title="Supervision Loop"
           description="Closed-loop conduct oversight — intake through resolution, enforcement, and recurrence monitoring"
           actions={
-            <Button onClick={exportReport} disabled={summaryQ.isLoading}>
+            <Button data-rbac="market_conduct.run_conduct_analytics" onClick={exportReport} disabled={summaryQ.isLoading}>
               <FileDown className="h-4 w-4 mr-1" /> Export Full Conduct Report
             </Button>
           }

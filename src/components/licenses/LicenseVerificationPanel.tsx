@@ -61,7 +61,7 @@ export default function LicenseVerificationPanel({ licenseId }: { licenseId: str
         <CardTitle className="flex items-center gap-2 text-base">
           <ClipboardCheck className="h-4 w-4 text-primary" />Verification
         </CardTitle>
-        <Button size="sm" variant="outline" onClick={() => setStartOpen(true)}>Start verification</Button>
+        <Button data-rbac="license_management.edit" size="sm" variant="outline" onClick={() => setStartOpen(true)}>Start verification</Button>
       </CardHeader>
       <CardContent className="space-y-5">
         {cases.length === 0 && (
@@ -86,7 +86,7 @@ export default function LicenseVerificationPanel({ licenseId }: { licenseId: str
                   </p>
                 </div>
                 {c.case.status === 'in_progress' && (
-                  <Button size="sm" disabled={op.isPending}
+                  <Button data-rbac="license_management.edit" size="sm" disabled={op.isPending}
                     onClick={() => run('complete', { case_id: c.case.id }, 'Verification case completed.')}>
                     <CheckCircle2 className="mr-1 h-4 w-4" />Complete
                   </Button>
@@ -104,7 +104,7 @@ export default function LicenseVerificationPanel({ licenseId }: { licenseId: str
                         ? <Badge variant="outline" className={RESULT_STYLES[i.result]}>{i.result.replace('_', ' ')}</Badge>
                         : <span className="text-xs text-muted-foreground">not recorded</span>}
                       {c.case.status === 'in_progress' && (
-                        <Button size="sm" variant="ghost" onClick={() => { setItem(i); setResult(i.result ?? 'satisfied'); setNote(i.note ?? ''); }}>
+                        <Button data-rbac="license_management.edit" size="sm" variant="ghost" onClick={() => { setItem(i); setResult(i.result ?? 'satisfied'); setNote(i.note ?? ''); }}>
                           Record
                         </Button>
                       )}
@@ -134,7 +134,7 @@ export default function LicenseVerificationPanel({ licenseId }: { licenseId: str
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setStartOpen(false)}>Cancel</Button>
-            <Button disabled={op.isPending}
+            <Button data-rbac="license_management.edit" disabled={op.isPending}
               onClick={() => run('start', { license_id: licenseId, matter_kind: matterKind }, 'Verification case opened.')}>
               {op.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Start
             </Button>
@@ -164,7 +164,7 @@ export default function LicenseVerificationPanel({ licenseId }: { licenseId: str
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setItem(null)}>Cancel</Button>
-            <Button disabled={op.isPending}
+            <Button data-rbac="license_management.edit" disabled={op.isPending}
               onClick={() => item && run('record_item', { item_id: item.id, result, note }, 'Verification item recorded.')}>
               {op.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save
             </Button>

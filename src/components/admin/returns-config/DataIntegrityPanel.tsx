@@ -41,7 +41,7 @@ export function DataIntegrityPanel() {
   return (
     <div className="space-y-3">
       <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+        <Button data-rbac="returns_management.edit" variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
           {isFetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
           Re-verify
         </Button>

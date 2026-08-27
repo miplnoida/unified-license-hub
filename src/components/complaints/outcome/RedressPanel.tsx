@@ -136,7 +136,7 @@ export function RedressPanel({ complaintId }: Props) {
           </div>
           <div className="flex items-center gap-2">
             {totalMonetary > 0 && <Badge variant="outline">Total {formatMoney(totalMonetary, rows.find((r) => r.currency)?.currency)}</Badge>}
-            <Button size="sm" disabled={!canAdd} onClick={() => setEditing({ ...EMPTY })}>
+            <Button data-rbac="complaint_management.create" size="sm" disabled={!canAdd} onClick={() => setEditing({ ...EMPTY })}>
               <Plus className="mr-1 h-3.5 w-3.5" />Add redress
             </Button>
           </div>
@@ -184,7 +184,7 @@ export function RedressPanel({ complaintId }: Props) {
                     {r.cancelled_reason && <div><p className="text-xs text-muted-foreground">Reason for cancellation</p><p className="whitespace-pre-wrap text-xs">{r.cancelled_reason}</p></div>}
 
                     <div className="flex flex-wrap gap-2 pt-1">
-                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={locked}
+                      <Button data-rbac="complaint_management.edit" size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={locked}
                         onClick={() => setEditing({
                           id: r.id,
                           redress_type_id: r.redress_type_id ?? '',
@@ -201,11 +201,11 @@ export function RedressPanel({ complaintId }: Props) {
                         })}>
                         <Pencil className="mr-1 h-3 w-3" />Edit
                       </Button>
-                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={locked || r.status === 'COMPLETED'}
+                      <Button data-rbac="complaint_management.edit" size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={locked || r.status === 'COMPLETED'}
                         onClick={() => { setNote(''); setNoteFor({ row: r, mode: 'complete' }); }}>
                         <Check className="mr-1 h-3 w-3" />Mark completed
                       </Button>
-                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={r.status !== 'COMPLETED'}
+                      <Button data-rbac="complaint_management.edit" size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={r.status !== 'COMPLETED'}
                         onClick={() => { setNote(''); setNoteFor({ row: r, mode: 'verify' }); }}>
                         <ShieldCheck className="mr-1 h-3 w-3" />Verify
                       </Button>
@@ -298,7 +298,7 @@ export function RedressPanel({ complaintId }: Props) {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button onClick={submitDraft} disabled={saveRedress.isPending}>
+            <Button data-rbac="complaint_management.edit" onClick={submitDraft} disabled={saveRedress.isPending}>
               {saveRedress.isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}Save
             </Button>
           </DialogFooter>

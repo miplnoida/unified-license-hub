@@ -3,6 +3,7 @@
  * Classes carry the activity permissions; schemes carry method + legal basis.
  */
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -92,22 +93,22 @@ export function AuthorizationSchemesTab({ canWrite, onHistory }: { canWrite: boo
   const StatusActions = ({ type, id, label, status }: { type: 'scheme' | 'class'; id: string; label: string; status: string }) => (
     <div className="flex flex-wrap items-center gap-1">
       {status !== 'active' && (
-        <Button size="sm" variant="ghost" disabled={!canWrite}
+        <GuardedButton module="settings" action="edit" data-rbac="settings.edit" size="sm" variant="ghost" disabled={!canWrite}
           onClick={() => setStatusReq({ entityType: type, entityId: id, label, currentStatus: status, targetStatus: 'active' })}>
           <CheckCircle2 className="mr-1 h-3.5 w-3.5" />Enable
-        </Button>
+        </GuardedButton>
       )}
       {status === 'active' && (
-        <Button size="sm" variant="ghost" disabled={!canWrite}
+        <GuardedButton module="settings" action="edit" data-rbac="settings.edit" size="sm" variant="ghost" disabled={!canWrite}
           onClick={() => setStatusReq({ entityType: type, entityId: id, label, currentStatus: status, targetStatus: 'disabled' })}>
           <Ban className="mr-1 h-3.5 w-3.5" />Disable
-        </Button>
+        </GuardedButton>
       )}
       {status !== 'retired' && (
-        <Button size="sm" variant="ghost" disabled={!canWrite}
+        <GuardedButton module="settings" action="edit" data-rbac="settings.edit" size="sm" variant="ghost" disabled={!canWrite}
           onClick={() => setStatusReq({ entityType: type, entityId: id, label, currentStatus: status, targetStatus: 'retired' })}>
           <Archive className="mr-1 h-3.5 w-3.5" />Retire
-        </Button>
+        </GuardedButton>
       )}
       <Button size="sm" variant="ghost" onClick={() => onHistory(id)}>
         <History className="mr-1 h-3.5 w-3.5" />History
@@ -139,7 +140,7 @@ export function AuthorizationSchemesTab({ canWrite, onHistory }: { canWrite: boo
             </CardTitle>
             <CardDescription className="flex flex-wrap items-center justify-between gap-2">
               <span>{bt.schemes.length} authorization scheme(s)</span>
-              <Button size="sm" variant="outline" disabled={!canWrite}
+              <Button data-rbac="settings.edit" size="sm" variant="outline" disabled={!canWrite}
                 onClick={() => setSchemeForm({
                   id: null, business_type_id: bt.id, code: '', name: '', local_legal_name: '',
                   authorization_method: 'LICENCE', market_scope: bt.market_scope || 'DOMESTIC',
@@ -165,7 +166,7 @@ export function AuthorizationSchemesTab({ canWrite, onHistory }: { canWrite: boo
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={ClassificationStatusBadgeTone(s.status) as any}>{s.status.toUpperCase()}</Badge>
-                    <Button size="sm" variant="ghost" disabled={!canWrite}
+                    <Button data-rbac="settings.edit" size="sm" variant="ghost" disabled={!canWrite}
                       onClick={() => setSchemeForm({
                         id: s.id, business_type_id: s.business_type_id, code: s.code, name: s.name,
                         local_legal_name: s.local_legal_name || '', authorization_method: s.authorization_method,
@@ -174,7 +175,7 @@ export function AuthorizationSchemesTab({ canWrite, onHistory }: { canWrite: boo
                       })}>
                       <Pencil className="mr-1 h-3.5 w-3.5" />Edit
                     </Button>
-                    <Button size="sm" variant="ghost" disabled={!canWrite}
+                    <Button data-rbac="settings.edit" size="sm" variant="ghost" disabled={!canWrite}
                       onClick={() => setClassForm({
                         id: null, scheme_id: s.id, local_class_code: '', name: '', description: '',
                         subject_form_code: 'none', customer_restriction: '', market_scope: s.market_scope,
@@ -197,7 +198,7 @@ export function AuthorizationSchemesTab({ canWrite, onHistory }: { canWrite: boo
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant={ClassificationStatusBadgeTone(c.status) as any}>{c.status.toUpperCase()}</Badge>
-                      <Button size="sm" variant="ghost" disabled={!canWrite}
+                      <Button data-rbac="settings.edit" size="sm" variant="ghost" disabled={!canWrite}
                         onClick={() => setClassForm({
                           id: c.id, scheme_id: c.scheme_id, local_class_code: c.local_class_code, name: c.name,
                           description: c.description || '', subject_form_code: c.subject_form_code || 'none',
@@ -252,7 +253,7 @@ export function AuthorizationSchemesTab({ canWrite, onHistory }: { canWrite: boo
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setSchemeForm(null)}>Cancel</Button>
-            <Button onClick={saveScheme}>Save</Button>
+            <Button data-rbac="settings.edit" onClick={saveScheme}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -307,7 +308,7 @@ export function AuthorizationSchemesTab({ canWrite, onHistory }: { canWrite: boo
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setClassForm(null)}>Cancel</Button>
-            <Button onClick={saveClass}>Save</Button>
+            <Button data-rbac="settings.edit" onClick={saveClass}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

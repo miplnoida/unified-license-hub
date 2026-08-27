@@ -143,7 +143,7 @@ export function StageActions({
                     {b.text}
                   </span>
                   {b.section && ctx!.onOpenSection && (
-                    <Button size="sm" variant="outline" className="h-6 px-2 text-xs"
+                    <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" className="h-6 px-2 text-xs"
                       onClick={() => ctx!.onOpenSection?.(b.section!)}>
                       Resolve
                     </Button>

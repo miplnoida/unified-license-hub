@@ -97,13 +97,13 @@ export default function LicenseDecisionAppealsPanel({ licenseId }: { licenseId: 
                   {r.appeal.status.replace(/_/g, ' ')}
                 </Badge>
                 {r.appeal.status === 'lodged' && (
-                  <Button size="sm" variant="outline" disabled={op.isPending}
+                  <Button data-rbac="license_management.edit" size="sm" variant="outline" disabled={op.isPending}
                     onClick={() => run('acknowledge', { appeal_id: r.appeal.id }, 'Appeal acknowledged.')}>
                     Acknowledge
                   </Button>
                 )}
                 {['lodged', 'under_review'].includes(r.appeal.status) && (
-                  <Button size="sm" onClick={() => setDetermine(r)}>Determine</Button>
+                  <Button data-rbac="license_management.edit" size="sm" onClick={() => setDetermine(r)}>Determine</Button>
                 )}
               </div>
             </div>
@@ -148,7 +148,7 @@ export default function LicenseDecisionAppealsPanel({ licenseId }: { licenseId: 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setLodgeOpen(false)}>Cancel</Button>
-            <Button disabled={op.isPending || !decisionId}
+            <Button data-rbac="license_management.edit" disabled={op.isPending || !decisionId}
               onClick={() => run('lodge', { decision_id: decisionId, grounds, relief_sought: relief }, 'Appeal lodged.')}>
               {op.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Lodge
             </Button>
@@ -179,7 +179,7 @@ export default function LicenseDecisionAppealsPanel({ licenseId }: { licenseId: 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDetermine(null)}>Cancel</Button>
-            <Button disabled={op.isPending}
+            <Button data-rbac="license_management.edit" disabled={op.isPending}
               onClick={() => determine && run('determine',
                 { appeal_id: determine.appeal.id, outcome, rationale }, 'Appeal determined.')}>
               {op.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Record determination

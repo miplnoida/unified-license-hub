@@ -117,7 +117,7 @@ export function RaiseAttentionFromRisk({ risk, canOperate }: Props) {
         )}
 
         {canOperate && (
-          <Button variant="outline" onClick={() => setOpen(true)}>
+          <Button data-rbac="market_conduct.manage_complaints" variant="outline" onClick={() => setOpen(true)}>
             <Target className="mr-1.5 h-4 w-4" /> Raise for supervisory attention
           </Button>
         )}
@@ -176,7 +176,7 @@ export function RaiseAttentionFromRisk({ risk, canOperate }: Props) {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button
+              <Button data-rbac="market_conduct.manage_complaints"
                 disabled={title.trim().length < 3 || basis.trim().length < 20 || create.isPending}
                 onClick={submit}
               >

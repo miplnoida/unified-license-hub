@@ -173,10 +173,10 @@ export function RuleTesterPanel({
             </Button>
             {result && (
               <>
-                <Button variant="outline" onClick={() => download(`rule-test-${ruleCode ?? 'rule'}.csv`, testRunCsv(result))}>
+                <Button data-rbac="rule_engine.export" variant="outline" onClick={() => download(`rule-test-${ruleCode ?? 'rule'}.csv`, testRunCsv(result))}>
                   <Download className="h-4 w-4 mr-2" /> Export CSV
                 </Button>
-                <Button variant="outline" onClick={() => download(`rule-test-${ruleCode ?? 'rule'}.json`, testRunJson(result), 'application/json')}>
+                <Button data-rbac="rule_engine.export" variant="outline" onClick={() => download(`rule-test-${ruleCode ?? 'rule'}.json`, testRunJson(result), 'application/json')}>
                   <Download className="h-4 w-4 mr-2" /> Export JSON
                 </Button>
               </>

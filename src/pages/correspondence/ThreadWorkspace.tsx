@@ -68,7 +68,7 @@ export default function ThreadWorkspace() {
           nextActionLabel={model.next_action}
           lastActivityAt={model.last_activity_at}
           actions={
-            <Button asChild variant="ghost">
+            <Button data-rbac="notification_management.dispatch" asChild variant="ghost">
               <Link to="/correspondence/inbox"><ArrowLeft className="mr-1 h-4 w-4" />Work queue</Link>
             </Button>
           }

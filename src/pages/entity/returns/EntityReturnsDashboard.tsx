@@ -66,7 +66,7 @@ export default function EntityReturnsDashboard() {
               <Button variant="outline" onClick={() => navigate('/entity/returns')}>
                 Go to Returns workspace<ArrowRight className="h-4 w-4 ml-2" />
               </Button>
-              <Button onClick={() => navigate('/entity/returns?new=1')}>
+              <Button data-rbac="returns_management.create" onClick={() => navigate('/entity/returns?new=1')}>
                 <Plus className="h-4 w-4 mr-1" />New Return
               </Button>
             </div>

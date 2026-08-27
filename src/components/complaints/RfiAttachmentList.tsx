@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSignedUrl } from '@/lib/secureFileUpload';
@@ -41,9 +42,9 @@ export function RfiAttachmentList({
             <Download className="h-3.5 w-3.5" />
           </Button>
           {onRemove && (
-            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onRemove(f.id)}>
+            <GuardedButton module="complaint_management" action="edit" data-rbac="complaint_management.edit" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onRemove(f.id)}>
               Remove
-            </Button>
+            </GuardedButton>
           )}
         </li>
       ))}

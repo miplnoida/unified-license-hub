@@ -142,10 +142,10 @@ export default function ConductWorkQueue() {
                 onKeyDown={(e) => { if (e.key === 'Enter') set('q', (e.target as HTMLInputElement).value); }}
               />
             </div>
-            <Button size="sm" variant={sort === 'priority' ? 'default' : 'outline'} onClick={() => set('sort', sort === 'priority' ? null : 'priority')}>
+            <Button data-rbac="market_conduct.manage_complaints" size="sm" variant={sort === 'priority' ? 'default' : 'outline'} onClick={() => set('sort', sort === 'priority' ? null : 'priority')}>
               Sort by priority
             </Button>
-            <Button size="sm" variant={includeClosed ? 'default' : 'outline'} onClick={() => set('closed', includeClosed ? null : '1')}>
+            <Button data-rbac="market_conduct.manage_complaints" size="sm" variant={includeClosed ? 'default' : 'outline'} onClick={() => set('closed', includeClosed ? null : '1')}>
               Include closed
             </Button>
             {(kindParam || slaParam || entityId || search || unassigned || includeClosed) && (

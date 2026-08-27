@@ -9,6 +9,7 @@
  * mutations happen through change-set and regulatory-request RPCs.
  */
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { useParams, Link } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Badge } from '@/components/ui/badge';
@@ -329,7 +330,7 @@ export default function EntityStructureHub() {
                     <Textarea rows={2} value={requestSummary} onChange={(e) => setRequestSummary(e.target.value)} />
                   </div>
                 </div>
-                <Button
+                <Button data-rbac="licensee_management.edit"
                   size="sm"
                   disabled={!newRequestType || start.isPending}
                   onClick={() => start.mutate(
@@ -404,18 +405,18 @@ export default function EntityStructureHub() {
                             <Button size="sm" variant="ghost" onClick={() => setOpenChangeSet(c.id)}><Eye className="h-4 w-4" /></Button>
                             {canReview && ['SUBMITTED', 'UNDER_REVIEW'].includes(status) && (
                               <>
-                                <Button
+                                <GuardedButton module="licensee_management" action="edit" data-rbac="licensee_management.edit"
                                   size="sm" variant="outline"
                                   onClick={() => transition.mutate({ id: c.id, action: 'APPROVE', notes: reviewNotes || undefined }, {
                                     onSuccess: () => toast.success('Change set approved'), onError: (e: any) => toast.error(e.message),
                                   })}
-                                >Approve</Button>
-                                <Button
+                                >Approve</GuardedButton>
+                                <GuardedButton module="licensee_management" action="edit" data-rbac="licensee_management.edit"
                                   size="sm" variant="ghost"
                                   onClick={() => transition.mutate({ id: c.id, action: 'REJECT', notes: reviewNotes || 'Rejected on review' }, {
                                     onSuccess: () => toast.success('Change set rejected'), onError: (e: any) => toast.error(e.message),
                                   })}
-                                >Reject</Button>
+                                >Reject</GuardedButton>
                               </>
                             )}
                             {canReview && status === 'APPROVED' && (

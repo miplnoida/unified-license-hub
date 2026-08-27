@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -345,7 +346,7 @@ export function SufficiencyPanel({ applicationId }: Props) {
                 Automated sufficiency checks have not been run yet. Run the checks to identify missing
                 information, warnings or blocking issues.
               </p>
-              <Button size="sm" onClick={run} disabled={running}>
+              <Button data-rbac="application_management.edit" size="sm" onClick={run} disabled={running}>
                 {running ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
                 Run automated checks
               </Button>
@@ -459,9 +460,9 @@ export function SufficiencyPanel({ applicationId }: Props) {
                                   </Button>
                                 )}
                                 {canAct && !exceptionStatusKnown && (
-                                  <Button size="sm" variant="outline" disabled>
+                                  <GuardedButton module="application_management" action="approve" data-rbac="application_management.approve" size="sm" variant="outline" disabled>
                                     Accept exception
-                                  </Button>
+                                  </GuardedButton>
                                 )}
                                 {canAct && exceptionStatusKnown && !ov && (
                                   <Button
@@ -574,7 +575,7 @@ export function SufficiencyPanel({ applicationId }: Props) {
           {previousDeterminations.length > 0 && (
             <Collapsible open={showHistory} onOpenChange={setShowHistory}>
               <CollapsibleTrigger asChild>
-                <Button size="sm" variant="ghost" className="text-xs">
+                <Button data-rbac="application_management.edit" size="sm" variant="ghost" className="text-xs">
                   <History className="h-3.5 w-3.5 mr-1.5" />
                   Previous determinations ({previousDeterminations.length}) — {showHistory ? 'Hide' : 'View'} history
                 </Button>

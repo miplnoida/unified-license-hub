@@ -7,6 +7,7 @@
  * is currently permitted to run. Suspending a surface stops it immediately.
  */
 import { useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -111,15 +112,15 @@ export default function AiSurfaces() {
                           <TableCell className="text-right">
                             {canGovern ? (
                               suspended ? (
-                                <Button size="sm" variant="outline"
+                                <GuardedButton module="ai_management" action="edit" data-rbac="ai_management.edit" size="sm" variant="outline"
                                   onClick={() => { setTarget({ surface: s, toState: 'ACTIVE' }); setReason(''); }}>
                                   Reinstate
-                                </Button>
+                                </GuardedButton>
                               ) : (
-                                <Button size="sm" variant="destructive"
+                                <GuardedButton module="ai_management" action="edit" data-rbac="ai_management.edit" size="sm" variant="destructive"
                                   onClick={() => { setTarget({ surface: s, toState: 'SUSPENDED' }); setReason(''); }}>
                                   Suspend
-                                </Button>
+                                </GuardedButton>
                               )
                             ) : (
                               <span className="text-xs text-muted-foreground">View only</span>
@@ -156,7 +157,7 @@ export default function AiSurfaces() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTarget(null)} disabled={transition.isPending}>Cancel</Button>
-            <Button onClick={submit} disabled={reasonMissing || transition.isPending}>
+            <Button data-rbac="ai_management.edit" onClick={submit} disabled={reasonMissing || transition.isPending}>
               {transition.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Record decision
             </Button>

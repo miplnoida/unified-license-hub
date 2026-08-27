@@ -420,7 +420,7 @@ export function RetryQueuePanel() {
             <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle className="text-base">Durable retry queue</CardTitle>
               <div className="flex gap-2">
-                <Button
+                <Button data-rbac="settings.view"
                   variant="outline" size="sm"
                   onClick={() => download(
                     'integration-retry-queue.csv',
@@ -544,7 +544,7 @@ export function RetryQueuePanel() {
           <Card>
             <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle className="text-base">Dead letter queue</CardTitle>
-              <Button
+              <Button data-rbac="settings.view"
                 variant="outline" size="sm"
                 onClick={() => download(
                   'integration-dead-letter.csv',

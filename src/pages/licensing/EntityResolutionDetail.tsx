@@ -16,6 +16,7 @@
  * `requires_maker_checker`.
  */
 import { useEffect, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Link, useParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -308,7 +309,7 @@ export default function EntityResolutionDetail() {
                     >
                       {makerChecker ? 'Recommend as new organisation' : 'Confirm as new organisation'}
                     </Button>
-                    <Button
+                    <Button data-rbac="registration_management.edit"
                       size="sm"
                       variant="outline"
                       className="gap-1.5"
@@ -317,7 +318,7 @@ export default function EntityResolutionDetail() {
                     >
                       <FileQuestion className="h-4 w-4" /> Request more evidence
                     </Button>
-                    <Button
+                    <Button data-rbac="registration_management.edit"
                       size="sm"
                       variant="outline"
                       className="gap-1.5"
@@ -391,15 +392,15 @@ export default function EntityResolutionDetail() {
                           placeholder="Record why you accept, return or need more evidence."
                         />
                         <div className="flex flex-wrap gap-2">
-                          <Button
+                          <GuardedButton module="registration_management" action="approve" data-rbac="registration_management.approve"
                             size="sm"
                             className="gap-1.5"
                             disabled={!detail.recommended_action || decide.isPending}
                             onClick={() => run('APPROVE', null, supervisorNotes)}
                           >
                             <ShieldCheck className="h-4 w-4" /> Approve recommendation
-                          </Button>
-                          <Button
+                          </GuardedButton>
+                          <Button data-rbac="registration_management.edit"
                             size="sm"
                             variant="outline"
                             className="gap-1.5"
@@ -408,7 +409,7 @@ export default function EntityResolutionDetail() {
                           >
                             <Undo2 className="h-4 w-4" /> Return for review
                           </Button>
-                          <Button
+                          <Button data-rbac="registration_management.edit"
                             size="sm"
                             variant="outline"
                             className="gap-1.5"
@@ -533,9 +534,9 @@ export default function EntityResolutionDetail() {
                     rows={2}
                     placeholder="Merge reason (required)"
                   />
-                  <Button size="sm" variant="destructive" onClick={doMerge} disabled={!selectedEntity || executeMerge.isPending}>
+                  <GuardedButton module="registration_management" action="edit" data-rbac="registration_management.edit" size="sm" variant="destructive" onClick={doMerge} disabled={!selectedEntity || executeMerge.isPending}>
                     Execute merge
-                  </Button>
+                  </GuardedButton>
                 </CardContent>
               </Card>
             )}
