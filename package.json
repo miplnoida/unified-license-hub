@@ -15,7 +15,8 @@
     "verify:anon-execute": "psql -v ON_ERROR_STOP=1 -f scripts/verify-anon-execute.sql",
     "verify:definer-guards": "psql -v ON_ERROR_STOP=1 -f scripts/verify-definer-guards.sql",
     "verify:breadcrumbs": "node scripts/verify-breadcrumb-coverage.mjs",
-    "gen:nav-snapshot": "node scripts/generate-nav-snapshot.mjs"
+    "gen:nav-snapshot": "node scripts/generate-nav-snapshot.mjs",
+    "verify:f0c": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f0c-certification.sql"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
