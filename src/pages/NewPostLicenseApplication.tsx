@@ -100,10 +100,21 @@ export default function NewPostLicenseApplication() {
   const accessGuard = useLicenseeAccessGuard();
   const { resolvedLicenseeId } = usePpoc();
 
+  const activeLicenseeId = selectedLicense?.licensee_id || resolvedLicenseeId || null;
+  const { data: openRequests = [] } = useOpenPostLicenseRequests(activeLicenseeId);
+
+  const duplicateRequest = useMemo(() => {
+    if (!selectedService || !selectedLicense) return undefined;
+    return openRequests.find(
+      r => r.service_id === selectedService && r.license_id === selectedLicense.license_id,
+    );
+  }, [openRequests, selectedService, selectedLicense]);
+
   const handleLicenseChange = (val: string) => {
     setSelectedLicenseId(val);
     setSelectedService('');
   };
+
 
   const handleProceed = async () => {
     if (!selectedLicense) {
