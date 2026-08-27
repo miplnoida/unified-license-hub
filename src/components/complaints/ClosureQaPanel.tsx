@@ -72,6 +72,15 @@ function resolveClosingAction(
   );
 }
 
+interface ReviewLike {
+  decision: string;
+}
+
+function hasQaApproval(reviews: ReviewLike[] | undefined | null): boolean {
+  return (reviews ?? []).some((r) => r.decision === 'qa_approved');
+}
+
+
 export function ClosureQaPanel({
   complaintId,
   readOnly = false,
