@@ -29739,6 +29739,214 @@ export type Database = {
           },
         ]
       }
+      provider_engagements: {
+        Row: {
+          capabilities: Json
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          nda_confirmed: boolean
+          provider_id: string
+          reference: string
+          regulator_id: string | null
+          regulatory_function_id: string | null
+          scope_sector_id: string | null
+          scope_sub_sector_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          capabilities?: Json
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          nda_confirmed?: boolean
+          provider_id: string
+          reference: string
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          scope_sector_id?: string | null
+          scope_sub_sector_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          capabilities?: Json
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          nda_confirmed?: boolean
+          provider_id?: string
+          reference?: string
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          scope_sector_id?: string | null
+          scope_sub_sector_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_engagements_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_engagements_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_engagements_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_work_package_events: {
+        Row: {
+          actor_context: string
+          actor_id: string | null
+          created_at: string
+          from_state: string | null
+          id: string
+          note: string | null
+          payload: Json
+          to_state: string
+          work_package_id: string
+        }
+        Insert: {
+          actor_context: string
+          actor_id?: string | null
+          created_at?: string
+          from_state?: string | null
+          id?: string
+          note?: string | null
+          payload?: Json
+          to_state: string
+          work_package_id: string
+        }
+        Update: {
+          actor_context?: string
+          actor_id?: string | null
+          created_at?: string
+          from_state?: string | null
+          id?: string
+          note?: string | null
+          payload?: Json
+          to_state?: string
+          work_package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_work_package_events_work_package_id_fkey"
+            columns: ["work_package_id"]
+            isOneToOne: false
+            referencedRelation: "provider_work_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_work_packages: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          assigned_member_id: string | null
+          closed_at: string | null
+          created_at: string
+          created_by: string | null
+          due_at: string | null
+          engagement_id: string
+          entity_id: string | null
+          id: string
+          instructions: string | null
+          permitted_data: Json
+          reference: string
+          service_task_id: string | null
+          state: string
+          subject_module: string
+          subject_record_id: string | null
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          assigned_member_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_at?: string | null
+          engagement_id: string
+          entity_id?: string | null
+          id?: string
+          instructions?: string | null
+          permitted_data?: Json
+          reference: string
+          service_task_id?: string | null
+          state?: string
+          subject_module: string
+          subject_record_id?: string | null
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          assigned_member_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_at?: string | null
+          engagement_id?: string
+          entity_id?: string | null
+          id?: string
+          instructions?: string | null
+          permitted_data?: Json
+          reference?: string
+          service_task_id?: string | null
+          state?: string
+          subject_module?: string
+          subject_record_id?: string | null
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_work_packages_assigned_member_id_fkey"
+            columns: ["assigned_member_id"]
+            isOneToOne: false
+            referencedRelation: "service_provider_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_work_packages_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "provider_engagements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_work_packages_service_task_id_fkey"
+            columns: ["service_task_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_service_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prudential_action_events: {
         Row: {
           action_id: string
@@ -32593,6 +32801,84 @@ export type Database = {
             columns: ["request_type_id"]
             isOneToOne: false
             referencedRelation: "regulatory_request_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regulatory_service_tasks: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effective_from: string
+          effective_to: string | null
+          execution_mode: string
+          id: string
+          name: string
+          permitted_data: Json
+          regulatory_function_id: string | null
+          required_capability_key: string | null
+          requires_internal_acceptance: boolean
+          sequence_order: number
+          service_id: string | null
+          sla_days: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          execution_mode?: string
+          id?: string
+          name: string
+          permitted_data?: Json
+          regulatory_function_id?: string | null
+          required_capability_key?: string | null
+          requires_internal_acceptance?: boolean
+          sequence_order?: number
+          service_id?: string | null
+          sla_days?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          execution_mode?: string
+          id?: string
+          name?: string
+          permitted_data?: Json
+          regulatory_function_id?: string | null
+          required_capability_key?: string | null
+          requires_internal_acceptance?: boolean
+          sequence_order?: number
+          service_id?: string | null
+          sla_days?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_service_tasks_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_service_tasks_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]
@@ -38311,32 +38597,180 @@ export type Database = {
         }
         Relationships: []
       }
-      services: {
+      service_provider_members: {
         Row: {
+          capabilities: Json
           created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
           id: string
-          name: string
-          sector_id: string
+          member_role: string
+          nda_accepted_at: string | null
+          provider_id: string
           status: string
-          sub_sector_id: string
+          updated_at: string
+          user_id: string
         }
         Insert: {
+          capabilities?: Json
           created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
           id?: string
-          name: string
-          sector_id: string
+          member_role?: string
+          nda_accepted_at?: string | null
+          provider_id: string
           status?: string
-          sub_sector_id: string
+          updated_at?: string
+          user_id: string
         }
         Update: {
+          capabilities?: Json
           created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
           id?: string
-          name?: string
-          sector_id?: string
+          member_role?: string
+          nda_accepted_at?: string | null
+          provider_id?: string
           status?: string
-          sub_sector_id?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "service_provider_members_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_providers: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          nda_reference: string | null
+          provider_type: string | null
+          security_clearance_confirmed: boolean
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          nda_reference?: string | null
+          provider_type?: string | null
+          security_clearance_confirmed?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          nda_reference?: string | null
+          provider_type?: string | null
+          security_clearance_confirmed?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          code: string | null
+          created_at: string
+          decision_type: string | null
+          description: string | null
+          document_checklist: Json
+          effective_from: string
+          effective_to: string | null
+          fee_reference: string | null
+          id: string
+          lifecycle_stage: string | null
+          name: string
+          regulator_id: string | null
+          regulatory_function_id: string | null
+          requires_fit_and_proper: boolean
+          sector_id: string
+          sla_days: number | null
+          status: string
+          sub_sector_id: string
+          updated_at: string
+          workflow_id: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          decision_type?: string | null
+          description?: string | null
+          document_checklist?: Json
+          effective_from?: string
+          effective_to?: string | null
+          fee_reference?: string | null
+          id?: string
+          lifecycle_stage?: string | null
+          name: string
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          requires_fit_and_proper?: boolean
+          sector_id: string
+          sla_days?: number | null
+          status?: string
+          sub_sector_id: string
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          decision_type?: string | null
+          description?: string | null
+          document_checklist?: Json
+          effective_from?: string
+          effective_to?: string | null
+          fee_reference?: string | null
+          id?: string
+          lifecycle_stage?: string | null
+          name?: string
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          requires_fit_and_proper?: boolean
+          sector_id?: string
+          sla_days?: number | null
+          status?: string
+          sub_sector_id?: string
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "services_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "services_sector_id_fkey"
             columns: ["sector_id"]
@@ -48619,6 +49053,7 @@ export type Database = {
         Returns: boolean
       }
       is_production_environment: { Args: never; Returns: boolean }
+      is_provider_member: { Args: { _user_id: string }; Returns: boolean }
       is_prudential_action_entity_user: {
         Args: { _action_id: string; _user: string }
         Returns: boolean
@@ -50073,6 +50508,19 @@ export type Database = {
         Returns: string[]
       }
       process_preview: { Args: { _payload?: Json }; Returns: Json }
+      provider_can_access_work_package: {
+        Args: { _user_id: string; _work_package_id: string }
+        Returns: boolean
+      }
+      provider_work_package_transition: {
+        Args: {
+          _action: string
+          _note?: string
+          _payload?: Json
+          _work_package_id: string
+        }
+        Returns: Json
+      }
       provision_application_entity: {
         Args: { _application_id: string }
         Returns: Json
@@ -51315,6 +51763,10 @@ export type Database = {
             }
             Returns: boolean
           }
+      regulatory_service_task_execution: {
+        Args: { _task_id: string }
+        Returns: Json
+      }
       regulatory_staff_identity_ok: {
         Args: { _user_id: string }
         Returns: boolean
