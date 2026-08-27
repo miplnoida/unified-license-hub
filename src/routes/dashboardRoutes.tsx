@@ -192,6 +192,8 @@ function ExternalPortalOrModule({
 export const dashboardRoutes = (
   <>
     <Route path="/dashboard" element={<P><Dashboard /></P>} />
+    {/* Checkpoint F: read-only aggregation of module work owned by the signed-in person. */}
+    <Route path="/my-work" element={<P><MyWork /></P>} />
 
     <Route path="/applications" element={<EP area="licensing" capability="can_view_status"><ApplicationsList /></EP>} />
     <Route path="/applications/new" element={<EP area="licensing" capability="can_submit"><NewApplication /></EP>} />
