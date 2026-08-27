@@ -47,8 +47,8 @@ begin
     values ('ZZ Test Approver Role', 'analyst')
     returning id into v_role;
 
-  insert into public.approval_workflows(name, entity_type, is_active)
-    values ('ZZ Test Workflow', 'pre_application', false)
+  insert into public.approval_workflows(name, entity_type, license_type, is_active)
+    values ('ZZ Test Workflow', 'pre_application', 'ZZ Test Licence Type', false)
     returning id into v_wf;
 
   insert into public.approval_steps(workflow_id, step_order, name, approver_role,
