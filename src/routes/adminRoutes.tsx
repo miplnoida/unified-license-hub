@@ -27,6 +27,7 @@ const ManageWebUsers = lazy(() => import('@/pages/admin/ManageWebUsers'));
 const RoleManagement = lazy(() => import('@/pages/admin/RoleManagement'));
 const PermissionCoverageReport = lazy(() => import('@/pages/admin/PermissionCoverageReport'));
 const OperatingStructure = lazy(() => import('@/pages/admin/OperatingStructure'));
+const PeopleAccess = lazy(() => import('@/pages/admin/PeopleAccess'));
 const AuditLogs = lazy(() => import('@/pages/admin/AuditLogs'));
 const ComplianceAuditLogs = lazy(() => import('@/pages/admin/ComplianceAuditLogs'));
 const IntegrationLogs = lazy(() => import('@/pages/admin/IntegrationLogs'));
