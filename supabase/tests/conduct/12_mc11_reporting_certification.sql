@@ -367,7 +367,7 @@ BEGIN
   END;
 
   -- W. a human reviewer accepts the narrative, and the decision is recorded
-  _res := public.conduct_ai_insight_review(_ins, 'ACCEPT',
+  _res := public.conduct_ai_insight_review(_ins, 'accept',
     'Figures checked against the published measures; wording is supported by the pack.');
   INSERT INTO mc11 VALUES ('human_review_recorded',
     (SELECT review_state FROM public.conduct_ai_insights WHERE insight_id = _ins) IN ('ACCEPTED','MODIFIED'),
