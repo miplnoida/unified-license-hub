@@ -399,7 +399,7 @@ BEGIN
   -- Z. the server re-checks whether a narrative still matches the figures
   _res := public.conduct_reporting_ai_refresh_staleness(_ins);
   INSERT INTO mc11 VALUES ('staleness_rechecked',
-    _res ? 'is_stale' AND (_res ->> 'is_stale') = 'false',
+    _res ? 'staleness_state' AND (_res ->> 'staleness_state') = 'CURRENT',
     _res::text);
 
   -- AA. the narrative register shows the narrative with its review trail
