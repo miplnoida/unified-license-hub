@@ -125,7 +125,7 @@ export function BatchDocumentUpload({
             entity_type: entityType,
             entity_id: entityId || null,
             bucket_name: 'secure-documents',
-            scan_status: 'clean',
+            scan_status: 'pending_scan',
             metadata: {
               original_name: item.file.name,
               upload_timestamp: new Date().toISOString(),
