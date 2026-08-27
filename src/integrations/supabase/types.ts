@@ -48420,6 +48420,14 @@ export type Database = {
         Returns: Json
       }
       fp_run_is_conclusive: { Args: { _run_id: string }; Returns: boolean }
+      fp_screening_config_save: {
+        Args: { _id: string; _payload: Json }
+        Returns: string
+      }
+      fp_screening_config_set_active: {
+        Args: { _id: string; _is_active: boolean }
+        Returns: undefined
+      }
       fp_screening_provider_status: {
         Args: never
         Returns: {
@@ -48436,6 +48444,7 @@ export type Database = {
           status: string
         }[]
       }
+      fp_screening_run_cancel: { Args: { _run_id: string }; Returns: undefined }
       fp_user_regulator_id: { Args: { _user_id: string }; Returns: string }
       generate_application_number: { Args: never; Returns: string }
       generate_complaint_duplicate_candidates: {
@@ -51964,6 +51973,16 @@ export type Database = {
       repair_application_workflow: {
         Args: { _application_id: string }
         Returns: Json
+      }
+      report_schedule_delete: { Args: { _id: string }; Returns: undefined }
+      report_schedule_save: {
+        Args: { _id: string; _payload: Json }
+        Returns: string
+      }
+      report_template_delete: { Args: { _id: string }; Returns: undefined }
+      report_template_save: {
+        Args: { _id: string; _payload: Json }
+        Returns: string
       }
       request_export_job: {
         Args: {
