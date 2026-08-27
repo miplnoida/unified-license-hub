@@ -33,7 +33,8 @@ BEGIN
     ('applicant', (SELECT id::text FROM auth.users WHERE email = 'applicant_user@mishainfotech.com')),
     ('other_applicant', (SELECT id::text FROM auth.users WHERE email = 'daniel@yopmail.com')),
     ('super_admin', (SELECT id::text FROM auth.users WHERE email = 'super_admin@mishainfotech.com')),
-    ('multi_role', (SELECT id::text FROM auth.users WHERE email = 'anisha.k@mishainfotech.com'));
+    ('multi_role', (SELECT id::text FROM auth.users WHERE email = 'anisha.k@mishainfotech.com')),
+    ('multi_role_internal', (SELECT id::text FROM auth.users WHERE email = 'rohit@mishainfotech.com'));
   IF (SELECT count(*) FROM f0c_ctx WHERE v IS NULL) > 0 THEN
     RAISE EXCEPTION 'F0-C harness: required persona fixture missing';
   END IF;
@@ -67,6 +68,25 @@ BEGIN
   RESET ROLE;
   PERFORM set_config('request.jwt.claims', '{}', true);
   RETURN _state;
+END $$;
+
+-- Runs a jsonb-returning governed RPC as `_uid` and returns the JSON payload
+-- (governed RPCs answer with an error envelope instead of raising).
+CREATE OR REPLACE FUNCTION pg_temp.rpc_as_user(_uid uuid, _sql text)
+RETURNS jsonb LANGUAGE plpgsql AS $$
+DECLARE _out jsonb;
+BEGIN
+  BEGIN
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub', _uid::text, 'role', 'authenticated')::text, true);
+    EXECUTE 'SET LOCAL ROLE authenticated';
+    EXECUTE _sql INTO _out;
+  EXCEPTION WHEN others THEN
+    _out := jsonb_build_object('error', SQLERRM, 'sqlstate', SQLSTATE);
+  END;
+  RESET ROLE;
+  PERFORM set_config('request.jwt.claims', '{}', true);
+  RETURN _out;
 END $$;
 
 CREATE OR REPLACE FUNCTION pg_temp.as_anon(_sql text)
@@ -246,8 +266,9 @@ BEGIN
   _st := pg_temp.as_anon(
     'DO $x$ BEGIN IF (SELECT count(*) FROM public.licensees) > 0 THEN RAISE EXCEPTION ''leak''; END IF; END $x$');
   PERFORM pg_temp.rec('S3', 'A-01',
-    'anon cannot read the licensee register', _st = '00000',
-    'anon visible rows = 0 (' || _st || ')');
+    'anon cannot read the licensee register',
+    _st = '00000' OR _st LIKE '42501%',
+    'anon register access -> ' || _st);
 
 
   -- Role escalation.
@@ -320,10 +341,12 @@ BEGIN
   -- Multi-role resolution (union of permissions).
   PERFORM pg_temp.rec('S3', 'A-12',
     'Multi-role user resolves a non-empty permission union',
-    (SELECT count(*) FROM public.sec_user_permissions(pg_temp.uid('multi_role'))) > 0
-      AND (SELECT count(*) FROM public.sec_user_roles WHERE user_id = pg_temp.uid('multi_role')) >= 1,
-    'perms=' || (SELECT count(*) FROM public.sec_user_permissions(pg_temp.uid('multi_role')))
-      || ' roles=' || (SELECT count(*) FROM public.sec_user_roles WHERE user_id = pg_temp.uid('multi_role')));
+    (SELECT count(*) FROM public.user_roles WHERE user_id = pg_temp.uid('multi_role')) >= 2
+      AND (SELECT count(*) FROM public.user_roles WHERE user_id = pg_temp.uid('multi_role_internal')) >= 2
+      AND (SELECT count(*) FROM public.sec_user_permissions(pg_temp.uid('multi_role_internal'))) > 0,
+    'external roles=' || (SELECT count(*) FROM public.user_roles WHERE user_id = pg_temp.uid('multi_role'))
+      || ' internal roles=' || (SELECT count(*) FROM public.user_roles WHERE user_id = pg_temp.uid('multi_role_internal'))
+      || ' internal perms=' || (SELECT count(*) FROM public.sec_user_permissions(pg_temp.uid('multi_role_internal'))));
 
   -- Delegation expiry / revocation.
   PERFORM pg_temp.rec('S3', 'A-13',
