@@ -128,7 +128,7 @@ export async function complaintTaskCreate(args: {
   return unwrap(data, error);
 }
 
-/** Set a complaint work-item status (pending / in_progress / completed / cancelled). */
+/** Set a complaint work-item status (NOT_STARTED / IN_PROGRESS / BLOCKED / COMPLETED / CANCELLED). */
 export async function complaintTaskSetStatus(taskId: string, status: string) {
   const { data, error } = await sb.rpc('complaint_task_set_status', {
     _task_id: taskId,
