@@ -1,0 +1,70 @@
+{
+  "gap": "GAP-F0-08",
+  "description": "Public-schema routines that may remain executable by the anon (unauthenticated) role. Every entry must be backed by a real pre-authentication journey. Extension-owned routines (pgtap, pg_trgm) are tracked separately as an environment-constrained residual.",
+  "allowlist": [
+    {
+      "function": "get_active_captcha",
+      "classification": "PUBLIC_RPC_REQUIRED",
+      "journey": "Login / registration captcha configuration",
+      "callers": [
+        "src/hooks/useCaptchaConfig.ts"
+      ]
+    },
+    {
+      "function": "check_applicant_name_exists",
+      "classification": "PUBLIC_RPC_REQUIRED",
+      "journey": "Unauthenticated registration duplicate-applicant guard",
+      "callers": [
+        "src/components/registration/useApplicantNameUniqueness.ts"
+      ]
+    },
+    {
+      "function": "check_primary_user_email_exists",
+      "classification": "PUBLIC_RPC_REQUIRED",
+      "journey": "Unauthenticated registration duplicate primary-user guard",
+      "callers": [
+        "src/components/registration/usePrimaryUserEmailUniqueness.ts"
+      ]
+    },
+    {
+      "function": "get_declaration_invitation_public",
+      "classification": "PUBLIC_RPC_REQUIRED",
+      "journey": "Token-scoped fit-and-proper declaration landing",
+      "callers": [
+        "src/pages/public/DeclarationLanding.tsx"
+      ]
+    },
+    {
+      "function": "verify_declaration_identity",
+      "classification": "PUBLIC_RPC_REQUIRED",
+      "journey": "Token-scoped declaration identity verification",
+      "callers": [
+        "src/pages/public/DeclarationLanding.tsx"
+      ]
+    },
+    {
+      "function": "get_fp_declaration_form_public",
+      "classification": "PUBLIC_RPC_REQUIRED",
+      "journey": "Token-scoped declaration questionnaire rendering",
+      "callers": [
+        "src/pages/public/declaration/DeclarationQuestionnaire.tsx"
+      ]
+    },
+    {
+      "function": "submit_declaration_form",
+      "classification": "PUBLIC_RPC_REQUIRED",
+      "journey": "Token-scoped declaration submission",
+      "callers": [
+        "src/pages/public/DeclarationLanding.tsx"
+      ]
+    },
+    {
+      "function": "get_public_complaint_tracking_v2",
+      "classification": "PUBLIC_RPC_REQUIRED",
+      "journey": "Account-free complaint tracking (reference + email)",
+      "callers": [
+        "src/components/complaints/ComplaintTrackingView.tsx"
+      ]
+    }
+  ]
+}
