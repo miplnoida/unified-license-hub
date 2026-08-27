@@ -133,7 +133,13 @@ export default function NewPostLicenseApplication() {
       toast.error('No published form is configured for this service.');
       return;
     }
+    if (duplicateRequest) {
+      toast.error('You already have an open request for this service on this licence.');
+      navigate(`/applications/${duplicateRequest.id}`);
+      return;
+    }
     if (!user) return;
+
 
     const licenseeId = selectedLicense.licensee_id || resolvedLicenseeId || null;
     if (licenseeId) {
