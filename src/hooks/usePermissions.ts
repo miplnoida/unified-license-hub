@@ -152,11 +152,20 @@ export function useUserDynamicPermissions() {
     if (denyPrefixes.some((p) => pathname === p || pathname.startsWith(p + '/'))) return false;
 
     if (pathname.startsWith('/entity/returns')) return true;
+    // Canonical (post-RDM) regulator returns surfaces. The queue and a single
+    // filing view are the only canonical paths an assignment-only regulator
+    // may open; row access is still enforced by `canViewAssignedReturn` + RLS.
+    if (pathname === '/returns/queue') return true;
+    if (pathname.startsWith('/returns/queue/')) return true;
+    if (pathname.startsWith('/returns/filings/')) return true;
+    if (pathname.startsWith('/returns/')) return false; // obligations, calendar, config
+    // Legacy admin returns surfaces (kept while the old routes still resolve).
     if (pathname === '/admin/returns' || pathname === '/admin/returns/queue') return true;
     if (pathname.startsWith('/admin/returns/queue/')) return true;
     if (pathname.startsWith('/admin/returns/view')) return true;
     if (pathname.startsWith('/admin/returns/')) return false; // any other returns admin path
     return false;
+
   };
 
   /**
