@@ -516,3 +516,18 @@ BEGIN
   END IF;
 END
 $sum$;
+
+-- ---------------------------------------------------------------------------
+-- F0C harness cleanup — remove the scratch upload and its scan history.
+-- ---------------------------------------------------------------------------
+DO $cleanup$
+DECLARE _fid uuid;
+BEGIN
+  SELECT id INTO _fid FROM public.file_uploads WHERE file_name = 'F0C_PROBE.bin';
+  IF _fid IS NOT NULL THEN
+    DELETE FROM public.file_upload_scan_events WHERE file_upload_id = _fid;
+    PERFORM set_config('app.workflow_mutation_context', 'trusted', true);
+    DELETE FROM public.file_uploads WHERE id = _fid;
+  END IF;
+END
+$cleanup$;
