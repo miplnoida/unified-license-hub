@@ -9,6 +9,7 @@ import { INTERNAL_ROLES } from '@/types/platform';
 import type { PortalArea, PortalCapability } from '@/lib/portalAccess';
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const MyWork = lazy(() => import('@/pages/MyWork'));
 const SupportCenter = lazy(() => import('@/pages/support/SupportCenter'));
 const LegacyReturnFilingRedirect = lazy(() => import('@/routes/LegacyReturnFilingRedirect'));
 const ApplicationsList = lazy(() => import('@/pages/applications/ApplicationsList'));
