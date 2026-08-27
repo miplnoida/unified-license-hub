@@ -10,6 +10,7 @@ const eqMock = vi.fn();
 const notMock = vi.fn();
 const selectMock = vi.fn();
 const fromMock = vi.fn();
+const rpcMock = vi.fn();
 
 vi.mock('@/lib/visibleApplications', () => ({
   loadVisibleApplications: (...args: any[]) => loadVisibleApplicationsMock(...args),
@@ -18,6 +19,7 @@ vi.mock('@/lib/visibleApplications', () => ({
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: (...args: any[]) => fromMock(...args),
+    rpc: (...args: any[]) => rpcMock(...args),
   },
 }));
 
