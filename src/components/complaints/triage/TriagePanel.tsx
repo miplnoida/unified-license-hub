@@ -332,6 +332,11 @@ export function TriagePanel({ complaintId, onOpenJurisdiction }: Props) {
               {confirm.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {changesRecommendation ? 'Confirm with changes' : 'Accept and confirm'}
             </Button>
+            {!rec && caps.can_triage && gateOpen && !confirmed && (
+              <p className="text-xs text-muted-foreground">
+                First supervisory confirmation — no automated recommendation to depart from.
+              </p>
+            )}
             {!caps.can_triage && (
               <p className="text-xs text-muted-foreground">You do not have triage authority on this complaint.</p>
             )}
