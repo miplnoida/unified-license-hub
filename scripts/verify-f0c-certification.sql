@@ -331,10 +331,10 @@ BEGIN
     to_regprocedure('public.expire_delegation_rules()') IS NOT NULL
       AND NOT EXISTS (
         SELECT 1 FROM public.delegation_rules
-        WHERE is_active AND valid_to IS NOT NULL AND valid_to < now()),
+        WHERE is_active AND effective_until IS NOT NULL AND effective_until < now()),
     'sweep present; stale-active='
       || (SELECT count(*) FROM public.delegation_rules
-          WHERE is_active AND valid_to IS NOT NULL AND valid_to < now()));
+          WHERE is_active AND effective_until IS NOT NULL AND effective_until < now()));
 
   -- Decision authority resolution is configured and governed.
   PERFORM pg_temp.rec('S3', 'A-14',
