@@ -40639,6 +40639,87 @@ export type Database = {
         }
         Relationships: []
       }
+      work_allocation_policies: {
+        Row: {
+          allocation_mode: string
+          allow_multi_function_officers: boolean
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          named_relationship_policy: string
+          notes: string | null
+          regulator_id: string | null
+          regulatory_function_id: string | null
+          require_independent_reviewer: boolean
+          risk_trigger: string | null
+          routing_mode: string
+          sector_id: string | null
+          service_id: string | null
+          status: string
+          sub_sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          allocation_mode?: string
+          allow_multi_function_officers?: boolean
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          named_relationship_policy?: string
+          notes?: string | null
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          require_independent_reviewer?: boolean
+          risk_trigger?: string | null
+          routing_mode?: string
+          sector_id?: string | null
+          service_id?: string | null
+          status?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allocation_mode?: string
+          allow_multi_function_officers?: boolean
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          named_relationship_policy?: string
+          notes?: string | null
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          require_independent_reviewer?: boolean
+          risk_trigger?: string | null
+          routing_mode?: string
+          sector_id?: string | null
+          service_id?: string | null
+          status?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_allocation_policies_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_allocation_policies_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       worker_invocation_tokens: {
         Row: {
           consumed_at: string | null
@@ -51694,6 +51775,16 @@ export type Database = {
           kind: string
         }[]
       }
+      resolve_work_allocation_policy: {
+        Args: {
+          _regulator_id?: string
+          _regulatory_function_id?: string
+          _sector_id?: string
+          _service_id?: string
+          _sub_sector_id?: string
+        }
+        Returns: Json
+      }
       restore_prudential_ratio: {
         Args: { _ratio_id: string }
         Returns: undefined
@@ -53267,6 +53358,36 @@ export type Database = {
           _module: string
         }
         Returns: undefined
+      }
+      work_allocation_can_take: {
+        Args: {
+          _entity_id?: string
+          _regulator_id?: string
+          _regulatory_function_id?: string
+          _sector_id?: string
+          _service_id?: string
+          _sub_sector_id?: string
+          _user_id: string
+        }
+        Returns: Json
+      }
+      work_allocation_policy_upsert: {
+        Args: {
+          _allocation_mode: string
+          _allow_multi_function_officers?: boolean
+          _id?: string
+          _named_relationship_policy: string
+          _notes?: string
+          _regulator_id?: string
+          _regulatory_function_id?: string
+          _require_independent_reviewer?: boolean
+          _risk_trigger?: string
+          _routing_mode: string
+          _sector_id?: string
+          _service_id?: string
+          _sub_sector_id?: string
+        }
+        Returns: string
       }
       worker_kick: { Args: { _function_name: string }; Returns: number }
       workflow_actor_sector_allowed: {
