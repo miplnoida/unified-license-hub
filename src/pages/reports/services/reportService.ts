@@ -338,47 +338,49 @@ export async function createReportSchedule(config: {
   recipients: string[];
   exportFormat: ExportFormat;
 }) {
-  await authorizedAction('report_management', 'configure', { op: 'create_schedule', report_slug: config.reportSlug });
-  const { data: { user } } = await supabase.auth.getUser();
   const next = calculateNextRunAt(config.frequency);
   // Resolve source: explicit > slug lookup. Never persist an empty source if avoidable.
   const resolvedSource = (config.source && isAllowedSource(config.source))
     ? config.source
     : (config.reportSlug ? REPORT_SLUG_SOURCE_MAP[config.reportSlug] || null : null);
-  const { error } = await supabase.from('report_schedules').insert({
-    report_id: config.reportId ?? null,
-    report_slug: config.reportSlug || null,
-    report_name: config.reportName,
-    source: resolvedSource,
-    filters_json: config.filters || {},
-    selected_columns: config.selectedColumns || [],
-    group_by: config.groupBy || null,
-    sort_by: config.sortBy || null,
-    sort_dir: config.sortDir || null,
-    schedule_type: config.frequency,
-    recipients: config.recipients,
-    export_format: config.exportFormat,
-    is_active: true,
-    created_by: user?.id,
-    next_run_at: next.toISOString(),
-  } as any);
+  // Atomic authorization: report_schedule_save enforces report_management
+  // permission and writes in one transaction, and stamps created_by server-side.
+  const { error } = await supabase.rpc('report_schedule_save', {
+    _id: null,
+    _payload: {
+      report_id: config.reportId ?? null,
+      report_slug: config.reportSlug || null,
+      report_name: config.reportName,
+      source: resolvedSource,
+      filters_json: config.filters || {},
+      selected_columns: config.selectedColumns || [],
+      group_by: config.groupBy || null,
+      sort_by: config.sortBy || null,
+      sort_dir: config.sortDir || null,
+      schedule_type: config.frequency,
+      recipients: config.recipients,
+      export_format: config.exportFormat,
+      is_active: true,
+      next_run_at: next.toISOString(),
+    } as any,
+  });
   if (error) throw error;
 }
 
 export async function updateReportSchedule(id: string, patch: Partial<{ isActive: boolean; frequency: ScheduleFrequency; recipients: string[]; exportFormat: ExportFormat }>) {
-  await authorizedAction('report_management', 'configure', { op: 'update_schedule', id });
   const update: Record<string, unknown> = {};
   if (patch.isActive !== undefined) update.is_active = patch.isActive;
   if (patch.frequency) { update.schedule_type = patch.frequency; update.next_run_at = calculateNextRunAt(patch.frequency).toISOString(); }
   if (patch.recipients) update.recipients = patch.recipients;
   if (patch.exportFormat) update.export_format = patch.exportFormat;
-  const { error } = await supabase.from('report_schedules').update(update).eq('id', id);
+  // Atomic authorization: permission + ownership enforced inside the RPC.
+  const { error } = await supabase.rpc('report_schedule_save', { _id: id, _payload: update as any });
   if (error) throw error;
 }
 
 export async function deleteReportSchedule(id: string) {
-  await authorizedAction('report_management', 'configure', { op: 'delete_schedule', id });
-  const { error } = await supabase.from('report_schedules').delete().eq('id', id);
+  // Atomic authorization: permission + ownership enforced inside the RPC.
+  const { error } = await supabase.rpc('report_schedule_delete', { _id: id });
   if (error) throw error;
 }
 
@@ -483,8 +485,6 @@ export async function saveTemplate(t: {
   sortDir?: SortDirection;
   visibility?: 'private' | 'shared';
 }) {
-  await authorizedAction('report_management', 'edit', { op: t.id ? 'update_template' : 'create_template', id: t.id });
-  const { data: { user } } = await supabase.auth.getUser();
   const payload = {
     name: t.name,
     description: t.description || null,
@@ -495,20 +495,19 @@ export async function saveTemplate(t: {
     sort_by: t.sortBy || null,
     sort_dir: t.sortDir || 'asc',
     visibility: t.visibility || 'private',
-    created_by: user?.id,
   };
-  if (t.id) {
-    const { error } = await supabase.from('report_templates' as any).update(payload).eq('id', t.id);
-    if (error) throw error;
-  } else {
-    const { error } = await supabase.from('report_templates' as any).insert(payload as any);
-    if (error) throw error;
-  }
+  // Atomic authorization: report_template_save enforces the report_management
+  // permission plus ownership and writes in one transaction.
+  const { error } = await supabase.rpc('report_template_save', {
+    _id: t.id ?? null,
+    _payload: payload as any,
+  });
+  if (error) throw error;
 }
 
 export async function deleteTemplate(id: string) {
-  await authorizedAction('report_management', 'edit', { op: 'delete_template', id });
-  const { error } = await supabase.from('report_templates' as any).delete().eq('id', id);
+  // Atomic authorization: permission + ownership enforced inside the RPC.
+  const { error } = await supabase.rpc('report_template_delete', { _id: id });
   if (error) throw error;
 }
 
