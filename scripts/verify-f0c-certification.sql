@@ -300,10 +300,12 @@ BEGIN
   -- Workflow step authority.
   PERFORM pg_temp.rec('S3', 'A-10',
     'Workflow step guard denies a persona not assigned to the step',
-    COALESCE(public.user_can_act_on_workflow_step(
+    (public.user_can_act_on_workflow_step(
       pg_temp.uid('applicant'),
-      (SELECT id FROM public.approval_steps ORDER BY created_at LIMIT 1)), false) = false,
-    'guard=false expected');
+      (SELECT id FROM public.approval_steps ORDER BY created_at LIMIT 1)) ->> 'can_act') = 'false',
+    'guard=' || (public.user_can_act_on_workflow_step(
+      pg_temp.uid('applicant'),
+      (SELECT id FROM public.approval_steps ORDER BY created_at LIMIT 1)) ->> 'deny_reason'));
 
   -- Actor spoofing on the governed final-approval RPC.
   _st := pg_temp.as_user(pg_temp.uid('applicant'), format(
