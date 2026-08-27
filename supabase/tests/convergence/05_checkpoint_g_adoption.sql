@@ -9,7 +9,7 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap;
 
-SELECT plan(22);
+SELECT plan(23);
 
 -- ---------- G: gates exist with the canonical contract ----------
 SELECT has_function('public', 'convergence_decision_gate',
