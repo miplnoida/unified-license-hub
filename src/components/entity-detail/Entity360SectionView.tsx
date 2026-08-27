@@ -73,7 +73,7 @@ export function Entity360SectionView({ entityId, section, asOf }: Entity360Secti
         rowDetails={(row) => {
           const verificationStatus = String(row['verification_status'] ?? '').toUpperCase();
           const showVerifyAction =
-            canWrite &&
+            !restricted &&
             section === 'identity' &&
             row.id != null &&
             (verificationStatus === 'PROVISIONAL' || verificationStatus === 'UNVERIFIED');
