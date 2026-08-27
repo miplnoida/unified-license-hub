@@ -5,7 +5,7 @@ import {
   SlidersHorizontal, DollarSign, CreditCard, BookOpen, Briefcase,
   CalendarCheck, LayoutGrid, Mail, CalendarDays, Clock, Timer, FileBarChart,
   Activity, ClipboardEdit, Database, ClipboardCheck, Microscope, History, Gavel, ShieldCheck, Radar, Sparkles,
-  ListChecks, GraduationCap, Network,
+  ListChecks, GraduationCap, Network, Inbox,
 } from 'lucide-react';
 import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
 import type { PermissionModule } from '@/lib/permissionModules';
@@ -70,6 +70,8 @@ export const mainNavSections: NavSection[] = [
     label: 'Main',
     items: [
       { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, roles: ALL_ROLES },
+      // My Work is a read-only aggregation of the signed-in person's module work.
+      { label: 'My Work', href: '/my-work', icon: <Inbox className="h-5 w-5" />, roles: ALL_ROLES },
     ],
   },
   {
@@ -100,6 +102,8 @@ export const mainNavSections: NavSection[] = [
       // Management does not implicitly get access to the coverage matrix.
       { label: 'Permission Coverage', href: '/admin/permission-coverage', icon: <Shield className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'role_management', requiredAction: 'view_coverage', adminOnly: true },
       { label: 'Operating Structure', href: '/admin/operating-structure', icon: <Shield className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'user_management', adminOnly: true },
+      // Read-only aggregation of existing access truth (Checkpoint F).
+      { label: 'People & Access', href: '/admin/people-access', icon: <Users className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'user_management', adminOnly: true },
     ],
   },
   {

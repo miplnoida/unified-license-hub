@@ -46742,6 +46742,29 @@ export type Database = {
         Args: { _purpose: string; _token: string }
         Returns: boolean
       }
+      convergence_decision_gate: {
+        Args: {
+          _decision_type: string
+          _entity_id?: string
+          _regulator_id?: string
+          _regulatory_function_id?: string
+          _sector_id?: string
+          _service_id?: string
+          _sub_sector_id?: string
+          _subject_reference?: string
+        }
+        Returns: Json
+      }
+      convergence_work_gate: {
+        Args: {
+          _entity_id?: string
+          _module: string
+          _regulator_id?: string
+          _regulatory_function_id?: string
+          _subject_reference?: string
+        }
+        Returns: Json
+      }
       copy_review_step_permissions: {
         Args: { _from_step: string; _to_step: string }
         Returns: number
@@ -49827,6 +49850,7 @@ export type Database = {
         }
       }
       mc03_require_gate: { Args: { _complaint_id: string }; Returns: Json }
+      my_work_queue: { Args: { _limit?: number }; Returns: Json }
       next_invoice_number: { Args: never; Returns: string }
       no_plan: { Args: never; Returns: boolean[] }
       normalize_entity_identifier: {
@@ -50391,6 +50415,18 @@ export type Database = {
       }
       pending_duplicate_count: { Args: never; Returns: number }
       pending_escalation_count: { Args: never; Returns: number }
+      people_access_entity_overview: {
+        Args: { _entity_id: string }
+        Returns: Json
+      }
+      people_access_internal_profile: {
+        Args: { _user_id: string }
+        Returns: Json
+      }
+      people_access_provider_overview: {
+        Args: { _provider_id: string }
+        Returns: Json
+      }
       perform_final_workflow_approval: {
         Args: {
           _actor_id: string

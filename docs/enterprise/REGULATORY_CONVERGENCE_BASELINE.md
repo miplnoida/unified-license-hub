@@ -124,7 +124,7 @@ historic decision rows (`license_decisions`, committee/panel snapshots);
 | C | Small-regulator work model (allocation policy + coverage resolver) | CERTIFIED 9/9 | `supabase/tests/convergence/02_checkpoint_c_work_model.sql` |
 | D | Regulatory service + task execution model | CERTIFIED | `supabase/tests/convergence/03_checkpoint_d_e_services_providers.sql` |
 | E | External service provider security context | CERTIFIED | same suite (19 assertions incl. grant invariants) |
-| F | People & Access + My Work aggregation surfaces | PENDING | — |
+| F | People & Access + My Work aggregation surfaces (read models only) | CERTIFIED 21/21 | `supabase/tests/convergence/04_checkpoint_f_people_access.sql` |
 | G | Module adoption of canonical resolvers | PENDING | — |
 | H | Regression + full convergence certification | PENDING | — |
 | I | Release decision | PENDING | — |
@@ -145,3 +145,30 @@ This project's Postgres default privileges grant full DML on newly created
 `public` tables to `anon` and `authenticated`. Every new table therefore needs an
 explicit `REVOKE ALL ... FROM anon, authenticated` followed by the intended
 narrow grants. Applied to all ten convergence tables.
+
+**Permanent guardrail (added in F).** `04_checkpoint_f_people_access.sql` fails
+certification if `anon` or `authenticated` holds direct `INSERT`/`UPDATE`/`DELETE`
+on any governed convergence table, if RLS is off on one of them, if `service_role`
+loses its write path, or if the approved governed RPC stops being executable.
+Any new governed convergence table must be added to that suite's
+`governed_tables` list. F did not alter privileges on pre-existing tables.
+
+---
+
+## 7. Checkpoint F — People & Access + My Work (read models)
+
+F adds **no tables, no permission engine and no generic work store**. It adds four
+read-only `STABLE SECURITY DEFINER` aggregations over existing truth, each
+re-checking the caller's canonical permissions and each tagged
+`is_authoritative_source: false`:
+
+| Read model | Aggregates |
+|---|---|
+| `people_access_internal_profile(uuid)` | wraps canonical `staff_responsibility_profile` (roles, teams, coverage, entity ownership, examinations, panels, committees) and adds effective permissions, delegations in/out, work-allocation coverage via `work_allocation_can_take`, provider-identity flag, access history |
+| `people_access_entity_overview(uuid)` | entity memberships + role capabilities, portal access, supervisory ownership, access history |
+| `people_access_provider_overview(uuid)` | provider, engagements (NDA/expiry), provider users, assigned packages, work-package event history — staff see all, provider members only what `provider_can_access_work_package` allows |
+| `my_work_queue(int)` | live union of assigned applications, investigated complaints, investigation tasks, conduct attention items, interventions, and provider submissions awaiting internal acceptance; provider identities see only their own scoped packages |
+
+Surfaces: `/admin/people-access` (Internal People / Entity Access / Service
+Providers) and `/my-work`. Both are read-only; every My Work row links back to the
+owning module, which remains the source of truth.
