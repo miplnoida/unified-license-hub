@@ -53,6 +53,7 @@ export const navigationSnapshot: NavSnapshotItem[] = [
   { key: "nav_administration_notification_history", parentKey: "nav_adm_notif_delivery", label: "Notification History", href: "/admin/notification-history", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_administration_notification_templates", parentKey: "nav_adm_notif_engine", label: "Templates", href: "/admin/notification-templates", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_administration_operating_structure", parentKey: "nav_adm_access", label: "Operating Structure", href: "/admin/operating-structure", itemType: "link", audience: "internal", showInSidebar: true },
+  { key: "nav_administration_people_access", parentKey: "nav_adm_access", label: "People & Access", href: "/admin/people-access", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_administration_ppoc_mappings", parentKey: "nav_adm_access", label: "PPOC Mappings", href: "/admin/ppoc-mappings", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_administration_settings", parentKey: "nav_adm_system", label: "Settings", href: "/settings", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_administration_sla_manager", parentKey: "nav_adm_wf_rules", label: "SLA Manager", href: "/admin/sla-manager", itemType: "link", audience: "internal", showInSidebar: false },
