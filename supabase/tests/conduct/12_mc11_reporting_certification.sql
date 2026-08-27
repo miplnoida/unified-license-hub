@@ -174,10 +174,10 @@ BEGIN
     _dd := public.conduct_mi_drilldown(_code, _ps, _pe, _sector, NULL, 500);
     _count := ((_d1 -> 'metrics') ->> _code)::integer;
     INSERT INTO mc11 VALUES ('drilldown_reconciles',
-      (_dd ->> 'total')::integer = _count
+      (_dd ->> 'value')::integer = _count
       AND jsonb_array_length(_dd -> 'records') = LEAST(_count, 500)
-      AND (_dd -> 'definition' ->> 'code') = _code,
-      format('metric=%s headline=%s drilldown=%s', _code, _count, _dd ->> 'total'));
+      AND (_dd -> 'metric' ->> 'code') = _code,
+      format('metric=%s headline=%s drilldown=%s', _code, _count, _dd ->> 'value'));
   END IF;
 
   -- E. an unknown measure cannot be drilled into
@@ -191,9 +191,9 @@ BEGIN
   -- F. period movement is reported against the same definitions
   _cmp := public.conduct_mi_period_compare(_ps, _pe, _sector, NULL);
   INSERT INTO mc11 VALUES ('movement_reported',
-    _cmp ? 'comparisons' AND _cmp ? 'current_period' AND _cmp ? 'prior_period'
+    _cmp ? 'comparisons' AND _cmp ? 'current_period' AND _cmp ? 'previous_period'
     AND (SELECT count(*) FROM jsonb_array_elements(_cmp -> 'comparisons') c
-          WHERE NOT (c ? 'absolute_change') OR NOT (c ? 'metric_code')) = 0,
+          WHERE NOT (c ? 'absolute_change') OR NOT (c ? 'code')) = 0,
     left(_cmp::text, 300));
 
   -- G. supervisory coverage is reported with its gaps
@@ -355,7 +355,7 @@ BEGIN
     jsonb_build_object('advisory_text',
       'Complaint volumes and supervisory responses are reported for the period under review.'),
     _ctx -> 'permitted_references',
-    'lovable', 'google/gemini-2.5-flash', 'v1', 'mc11.v1', 0.62, 'medium',
+    'lovable_ai_gateway', 'google/gemini-2.5-pro', 'google/gemini-2.5-pro', 'mc11.v1', 0.62, 'medium',
     ARRAY['Draft narrative for supervisory review only.'], _maker, NULL, NULL,
     'Certification management summary');
   BEGIN
@@ -367,10 +367,10 @@ BEGIN
   END;
 
   -- W. a human reviewer accepts the narrative, and the decision is recorded
-  _res := public.conduct_ai_insight_review(_ins, 'ACCEPT',
+  _res := public.conduct_ai_insight_review(_ins, 'accept',
     'Figures checked against the published measures; wording is supported by the pack.');
   INSERT INTO mc11 VALUES ('human_review_recorded',
-    (SELECT review_state FROM public.conduct_ai_insights WHERE insight_id = _ins) IN ('ACCEPTED','MODIFIED'),
+    (SELECT review_state FROM public.conduct_ai_insights WHERE id = _ins) IN ('ACCEPTED','MODIFIED'),
     _res::text);
 
   -- X. adoption records the section, the reviewer and the figures relied upon
@@ -382,7 +382,7 @@ BEGIN
                AND a.section = 'management_summary' AND a.adopted_by = _maker
                AND a.facts_signature = (_ctx ->> 'facts_signature')
                AND a.pack_id = _pack_id AND a.pack_version = 1
-               AND length(COALESCE(a.adopted_text,'')) > 10),
+               AND length(COALESCE(a.adopted_text::text,'')) > 10),
     _adopt::text);
 
   -- Y. an adoption is a record of a decision and cannot be edited afterwards
@@ -390,7 +390,7 @@ BEGIN
   BEGIN
     BEGIN
       UPDATE public.conduct_reporting_adopted_narratives
-         SET adopted_text = 'rewritten after the fact' WHERE id = _adopt;
+         SET adopted_text = '{"advisory_text":"rewritten after the fact"}'::jsonb WHERE id = _adopt;
     EXCEPTION WHEN OTHERS THEN _u2 := true;
     END;
     INSERT INTO mc11 VALUES ('adoption_immutable', _u2, format('update_blocked=%s', _u2));
@@ -399,14 +399,14 @@ BEGIN
   -- Z. the server re-checks whether a narrative still matches the figures
   _res := public.conduct_reporting_ai_refresh_staleness(_ins);
   INSERT INTO mc11 VALUES ('staleness_rechecked',
-    _res ? 'is_stale' AND (_res ->> 'is_stale') = 'false',
+    _res ? 'staleness_state' AND (_res ->> 'staleness_state') = 'CURRENT',
     _res::text);
 
   -- AA. the narrative register shows the narrative with its review trail
   _res := public.conduct_reporting_narratives_list(_ps, _pe, _sector, NULL, 50);
   INSERT INTO mc11 VALUES ('narrative_register_lists',
     EXISTS (SELECT 1 FROM jsonb_array_elements(_res -> 'narratives') n
-             WHERE (n ->> 'insight_id') = _ins::text
+             WHERE (n ->> 'id') = _ins::text
                AND jsonb_array_length(COALESCE(n -> 'adoptions','[]'::jsonb)) >= 1),
     left(_res::text, 300));
 
