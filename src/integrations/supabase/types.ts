@@ -14135,6 +14135,165 @@ export type Database = {
           },
         ]
       }
+      decision_authority_observations: {
+        Row: {
+          actor_id: string | null
+          context: Json
+          created_at: string
+          decision_type: string
+          entity_id: string | null
+          evaluated_mode: string
+          id: string
+          reasons: Json
+          regulator_id: string | null
+          regulatory_function_id: string | null
+          rule_id: string | null
+          subject_reference: string | null
+          would_allow: boolean
+        }
+        Insert: {
+          actor_id?: string | null
+          context?: Json
+          created_at?: string
+          decision_type: string
+          entity_id?: string | null
+          evaluated_mode: string
+          id?: string
+          reasons?: Json
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          rule_id?: string | null
+          subject_reference?: string | null
+          would_allow: boolean
+        }
+        Update: {
+          actor_id?: string | null
+          context?: Json
+          created_at?: string
+          decision_type?: string
+          entity_id?: string | null
+          evaluated_mode?: string
+          id?: string
+          reasons?: Json
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          rule_id?: string | null
+          subject_reference?: string | null
+          would_allow?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decision_authority_observations_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "decision_authority_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      decision_authority_rules: {
+        Row: {
+          allow_delegation: boolean
+          committee_kind: string | null
+          created_at: string
+          created_by: string | null
+          decision_type: string
+          effective_from: string
+          effective_to: string | null
+          enforcement_mode: string
+          id: string
+          minimum_quorum: number | null
+          notes: string | null
+          operating_scope_id: string | null
+          regulator_id: string | null
+          regulatory_function_id: string | null
+          required_module_key: string | null
+          required_permission_key: string | null
+          requires_committee: boolean
+          requires_conflict_clearance: boolean
+          requires_maker_checker: boolean
+          sector_id: string | null
+          service_id: string | null
+          status: string
+          sub_sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          allow_delegation?: boolean
+          committee_kind?: string | null
+          created_at?: string
+          created_by?: string | null
+          decision_type: string
+          effective_from?: string
+          effective_to?: string | null
+          enforcement_mode?: string
+          id?: string
+          minimum_quorum?: number | null
+          notes?: string | null
+          operating_scope_id?: string | null
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          required_module_key?: string | null
+          required_permission_key?: string | null
+          requires_committee?: boolean
+          requires_conflict_clearance?: boolean
+          requires_maker_checker?: boolean
+          sector_id?: string | null
+          service_id?: string | null
+          status?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allow_delegation?: boolean
+          committee_kind?: string | null
+          created_at?: string
+          created_by?: string | null
+          decision_type?: string
+          effective_from?: string
+          effective_to?: string | null
+          enforcement_mode?: string
+          id?: string
+          minimum_quorum?: number | null
+          notes?: string | null
+          operating_scope_id?: string | null
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          required_module_key?: string | null
+          required_permission_key?: string | null
+          requires_committee?: boolean
+          requires_conflict_clearance?: boolean
+          requires_maker_checker?: boolean
+          sector_id?: string | null
+          service_id?: string | null
+          status?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decision_authority_rules_operating_scope_id_fkey"
+            columns: ["operating_scope_id"]
+            isOneToOne: false
+            referencedRelation: "regulator_operating_scopes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decision_authority_rules_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decision_authority_rules_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       decision_options: {
         Row: {
           applies_to: Json
@@ -29580,6 +29739,214 @@ export type Database = {
           },
         ]
       }
+      provider_engagements: {
+        Row: {
+          capabilities: Json
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          nda_confirmed: boolean
+          provider_id: string
+          reference: string
+          regulator_id: string | null
+          regulatory_function_id: string | null
+          scope_sector_id: string | null
+          scope_sub_sector_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          capabilities?: Json
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          nda_confirmed?: boolean
+          provider_id: string
+          reference: string
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          scope_sector_id?: string | null
+          scope_sub_sector_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          capabilities?: Json
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          nda_confirmed?: boolean
+          provider_id?: string
+          reference?: string
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          scope_sector_id?: string | null
+          scope_sub_sector_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_engagements_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_engagements_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_engagements_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_work_package_events: {
+        Row: {
+          actor_context: string
+          actor_id: string | null
+          created_at: string
+          from_state: string | null
+          id: string
+          note: string | null
+          payload: Json
+          to_state: string
+          work_package_id: string
+        }
+        Insert: {
+          actor_context: string
+          actor_id?: string | null
+          created_at?: string
+          from_state?: string | null
+          id?: string
+          note?: string | null
+          payload?: Json
+          to_state: string
+          work_package_id: string
+        }
+        Update: {
+          actor_context?: string
+          actor_id?: string | null
+          created_at?: string
+          from_state?: string | null
+          id?: string
+          note?: string | null
+          payload?: Json
+          to_state?: string
+          work_package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_work_package_events_work_package_id_fkey"
+            columns: ["work_package_id"]
+            isOneToOne: false
+            referencedRelation: "provider_work_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_work_packages: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          assigned_member_id: string | null
+          closed_at: string | null
+          created_at: string
+          created_by: string | null
+          due_at: string | null
+          engagement_id: string
+          entity_id: string | null
+          id: string
+          instructions: string | null
+          permitted_data: Json
+          reference: string
+          service_task_id: string | null
+          state: string
+          subject_module: string
+          subject_record_id: string | null
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          assigned_member_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_at?: string | null
+          engagement_id: string
+          entity_id?: string | null
+          id?: string
+          instructions?: string | null
+          permitted_data?: Json
+          reference: string
+          service_task_id?: string | null
+          state?: string
+          subject_module: string
+          subject_record_id?: string | null
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          assigned_member_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_at?: string | null
+          engagement_id?: string
+          entity_id?: string | null
+          id?: string
+          instructions?: string | null
+          permitted_data?: Json
+          reference?: string
+          service_task_id?: string | null
+          state?: string
+          subject_module?: string
+          subject_record_id?: string | null
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_work_packages_assigned_member_id_fkey"
+            columns: ["assigned_member_id"]
+            isOneToOne: false
+            referencedRelation: "service_provider_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_work_packages_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "provider_engagements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_work_packages_service_task_id_fkey"
+            columns: ["service_task_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_service_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prudential_action_events: {
         Row: {
           action_id: string
@@ -31847,6 +32214,72 @@ export type Database = {
           },
         ]
       }
+      regulator_operating_scopes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          metadata: Json
+          name: string
+          parent_scope_id: string | null
+          regulator_id: string
+          scope_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          metadata?: Json
+          name: string
+          parent_scope_id?: string | null
+          regulator_id: string
+          scope_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          metadata?: Json
+          name?: string
+          parent_scope_id?: string | null
+          regulator_id?: string
+          scope_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulator_operating_scopes_parent_scope_id_fkey"
+            columns: ["parent_scope_id"]
+            isOneToOne: false
+            referencedRelation: "regulator_operating_scopes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulator_operating_scopes_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regulators: {
         Row: {
           code: string
@@ -32368,6 +32801,84 @@ export type Database = {
             columns: ["request_type_id"]
             isOneToOne: false
             referencedRelation: "regulatory_request_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regulatory_service_tasks: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effective_from: string
+          effective_to: string | null
+          execution_mode: string
+          id: string
+          name: string
+          permitted_data: Json
+          regulatory_function_id: string | null
+          required_capability_key: string | null
+          requires_internal_acceptance: boolean
+          sequence_order: number
+          service_id: string | null
+          sla_days: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          execution_mode?: string
+          id?: string
+          name: string
+          permitted_data?: Json
+          regulatory_function_id?: string | null
+          required_capability_key?: string | null
+          requires_internal_acceptance?: boolean
+          sequence_order?: number
+          service_id?: string | null
+          sla_days?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          execution_mode?: string
+          id?: string
+          name?: string
+          permitted_data?: Json
+          regulatory_function_id?: string | null
+          required_capability_key?: string | null
+          requires_internal_acceptance?: boolean
+          sequence_order?: number
+          service_id?: string | null
+          sla_days?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_service_tasks_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_service_tasks_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]
@@ -38086,32 +38597,180 @@ export type Database = {
         }
         Relationships: []
       }
-      services: {
+      service_provider_members: {
         Row: {
+          capabilities: Json
           created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
           id: string
-          name: string
-          sector_id: string
+          member_role: string
+          nda_accepted_at: string | null
+          provider_id: string
           status: string
-          sub_sector_id: string
+          updated_at: string
+          user_id: string
         }
         Insert: {
+          capabilities?: Json
           created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
           id?: string
-          name: string
-          sector_id: string
+          member_role?: string
+          nda_accepted_at?: string | null
+          provider_id: string
           status?: string
-          sub_sector_id: string
+          updated_at?: string
+          user_id: string
         }
         Update: {
+          capabilities?: Json
           created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
           id?: string
-          name?: string
-          sector_id?: string
+          member_role?: string
+          nda_accepted_at?: string | null
+          provider_id?: string
           status?: string
-          sub_sector_id?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "service_provider_members_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_providers: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          nda_reference: string | null
+          provider_type: string | null
+          security_clearance_confirmed: boolean
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          nda_reference?: string | null
+          provider_type?: string | null
+          security_clearance_confirmed?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          nda_reference?: string | null
+          provider_type?: string | null
+          security_clearance_confirmed?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          code: string | null
+          created_at: string
+          decision_type: string | null
+          description: string | null
+          document_checklist: Json
+          effective_from: string
+          effective_to: string | null
+          fee_reference: string | null
+          id: string
+          lifecycle_stage: string | null
+          name: string
+          regulator_id: string | null
+          regulatory_function_id: string | null
+          requires_fit_and_proper: boolean
+          sector_id: string
+          sla_days: number | null
+          status: string
+          sub_sector_id: string
+          updated_at: string
+          workflow_id: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          decision_type?: string | null
+          description?: string | null
+          document_checklist?: Json
+          effective_from?: string
+          effective_to?: string | null
+          fee_reference?: string | null
+          id?: string
+          lifecycle_stage?: string | null
+          name: string
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          requires_fit_and_proper?: boolean
+          sector_id: string
+          sla_days?: number | null
+          status?: string
+          sub_sector_id: string
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          decision_type?: string | null
+          description?: string | null
+          document_checklist?: Json
+          effective_from?: string
+          effective_to?: string | null
+          fee_reference?: string | null
+          id?: string
+          lifecycle_stage?: string | null
+          name?: string
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          requires_fit_and_proper?: boolean
+          sector_id?: string
+          sla_days?: number | null
+          status?: string
+          sub_sector_id?: string
+          updated_at?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "services_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "services_sector_id_fkey"
             columns: ["sector_id"]
@@ -40413,6 +41072,87 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      work_allocation_policies: {
+        Row: {
+          allocation_mode: string
+          allow_multi_function_officers: boolean
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          named_relationship_policy: string
+          notes: string | null
+          regulator_id: string | null
+          regulatory_function_id: string | null
+          require_independent_reviewer: boolean
+          risk_trigger: string | null
+          routing_mode: string
+          sector_id: string | null
+          service_id: string | null
+          status: string
+          sub_sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          allocation_mode?: string
+          allow_multi_function_officers?: boolean
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          named_relationship_policy?: string
+          notes?: string | null
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          require_independent_reviewer?: boolean
+          risk_trigger?: string | null
+          routing_mode?: string
+          sector_id?: string | null
+          service_id?: string | null
+          status?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allocation_mode?: string
+          allow_multi_function_officers?: boolean
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          named_relationship_policy?: string
+          notes?: string | null
+          regulator_id?: string | null
+          regulatory_function_id?: string | null
+          require_independent_reviewer?: boolean
+          risk_trigger?: string | null
+          routing_mode?: string
+          sector_id?: string | null
+          service_id?: string | null
+          status?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_allocation_policies_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_allocation_policies_regulatory_function_id_fkey"
+            columns: ["regulatory_function_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_functions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       worker_invocation_tokens: {
         Row: {
@@ -46355,6 +47095,28 @@ export type Database = {
         Args: { _comment: string; _decision: string; _request_id: string }
         Returns: Json
       }
+      decision_authority_rule_upsert: {
+        Args: {
+          _allow_delegation?: boolean
+          _committee_kind?: string
+          _decision_type: string
+          _enforcement_mode?: string
+          _id?: string
+          _minimum_quorum?: number
+          _notes?: string
+          _regulator_id?: string
+          _regulatory_function_id?: string
+          _required_module_key?: string
+          _required_permission_key?: string
+          _requires_committee?: boolean
+          _requires_conflict_clearance?: boolean
+          _requires_maker_checker?: boolean
+          _sector_id?: string
+          _service_id?: string
+          _sub_sector_id?: string
+        }
+        Returns: string
+      }
       decision_gate_status: { Args: { _application_id: string }; Returns: Json }
       delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
       derive_communication_state: {
@@ -48291,6 +49053,7 @@ export type Database = {
         Returns: boolean
       }
       is_production_environment: { Args: never; Returns: boolean }
+      is_provider_member: { Args: { _user_id: string }; Returns: boolean }
       is_prudential_action_entity_user: {
         Args: { _action_id: string; _user: string }
         Returns: boolean
@@ -49745,6 +50508,19 @@ export type Database = {
         Returns: string[]
       }
       process_preview: { Args: { _payload?: Json }; Returns: Json }
+      provider_can_access_work_package: {
+        Args: { _user_id: string; _work_package_id: string }
+        Returns: boolean
+      }
+      provider_work_package_transition: {
+        Args: {
+          _action: string
+          _note?: string
+          _payload?: Json
+          _work_package_id: string
+        }
+        Returns: Json
+      }
       provision_application_entity: {
         Args: { _application_id: string }
         Returns: Json
@@ -50896,6 +51672,21 @@ export type Database = {
         }
         Returns: Json
       }
+      regulator_operating_scope_upsert: {
+        Args: {
+          _code: string
+          _description?: string
+          _effective_from?: string
+          _effective_to?: string
+          _id?: string
+          _name: string
+          _parent_scope_id?: string
+          _regulator_id: string
+          _scope_type: string
+          _status?: string
+        }
+        Returns: string
+      }
       regulatory_assignment_scope_allows: {
         Args: {
           _actor_user_id: string
@@ -50972,6 +51763,10 @@ export type Database = {
             }
             Returns: boolean
           }
+      regulatory_service_task_execution: {
+        Args: { _task_id: string }
+        Returns: Json
+      }
       regulatory_staff_identity_ok: {
         Args: { _user_id: string }
         Returns: boolean
@@ -51309,6 +52104,21 @@ export type Database = {
         Args: { _candidate_regulator_id?: string; _complaint_id: string }
         Returns: string
       }
+      resolve_decision_authority: {
+        Args: {
+          _actor_id: string
+          _decision_type: string
+          _entity_id?: string
+          _record?: boolean
+          _regulator_id?: string
+          _regulatory_function_id?: string
+          _sector_id?: string
+          _service_id?: string
+          _sub_sector_id?: string
+          _subject_reference?: string
+        }
+        Returns: Json
+      }
       resolve_effective_threshold: {
         Args: {
           _as_of?: string
@@ -51416,6 +52226,16 @@ export type Database = {
           id: string
           kind: string
         }[]
+      }
+      resolve_work_allocation_policy: {
+        Args: {
+          _regulator_id?: string
+          _regulatory_function_id?: string
+          _sector_id?: string
+          _service_id?: string
+          _sub_sector_id?: string
+        }
+        Returns: Json
       }
       restore_prudential_ratio: {
         Args: { _ratio_id: string }
@@ -52990,6 +53810,36 @@ export type Database = {
           _module: string
         }
         Returns: undefined
+      }
+      work_allocation_can_take: {
+        Args: {
+          _entity_id?: string
+          _regulator_id?: string
+          _regulatory_function_id?: string
+          _sector_id?: string
+          _service_id?: string
+          _sub_sector_id?: string
+          _user_id: string
+        }
+        Returns: Json
+      }
+      work_allocation_policy_upsert: {
+        Args: {
+          _allocation_mode: string
+          _allow_multi_function_officers?: boolean
+          _id?: string
+          _named_relationship_policy: string
+          _notes?: string
+          _regulator_id?: string
+          _regulatory_function_id?: string
+          _require_independent_reviewer?: boolean
+          _risk_trigger?: string
+          _routing_mode: string
+          _sector_id?: string
+          _service_id?: string
+          _sub_sector_id?: string
+        }
+        Returns: string
       }
       worker_kick: { Args: { _function_name: string }; Returns: number }
       workflow_actor_sector_allowed: {
