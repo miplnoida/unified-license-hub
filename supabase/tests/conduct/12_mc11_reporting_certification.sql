@@ -406,7 +406,7 @@ BEGIN
   _res := public.conduct_reporting_narratives_list(_ps, _pe, _sector, NULL, 50);
   INSERT INTO mc11 VALUES ('narrative_register_lists',
     EXISTS (SELECT 1 FROM jsonb_array_elements(_res -> 'narratives') n
-             WHERE (n ->> 'insight_id') = _ins::text
+             WHERE (n ->> 'id') = _ins::text
                AND jsonb_array_length(COALESCE(n -> 'adoptions','[]'::jsonb)) >= 1),
     left(_res::text, 300));
 
