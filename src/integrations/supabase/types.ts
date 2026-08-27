@@ -47490,6 +47490,19 @@ export type Database = {
         }
         Returns: Json
       }
+      entity_identifier_reject_verification: {
+        Args: { _identifier_id: string; _reason: string }
+        Returns: Json
+      }
+      entity_identifier_verify: {
+        Args: {
+          _authoritative_source: string
+          _evidence_notes: string
+          _identifier_id: string
+          _verified_at?: string
+        }
+        Returns: Json
+      }
       entity_license_entitlements: {
         Args: { target_licensee_id?: string }
         Returns: {
