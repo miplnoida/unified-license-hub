@@ -48,7 +48,7 @@ begin
     returning id into v_role;
 
   insert into public.approval_workflows(name, entity_type, is_active)
-    values ('ZZ Test Workflow', 'application', false)
+    values ('ZZ Test Workflow', 'pre_application', false)
     returning id into v_wf;
 
   insert into public.approval_steps(workflow_id, step_order, name, approver_role,
