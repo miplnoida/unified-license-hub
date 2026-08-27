@@ -103,7 +103,10 @@ describe('resolveScheduleSource', () => {
   });
   it('resolves from slug when source missing', () => {
     expect(resolveScheduleSource({ report_slug: 'app-status' })).toBe('applications');
-    expect(resolveScheduleSource({ report_slug: 'ret-overdue' })).toBe('compliance_returns');
+    // Returns reporting reads the canonical filing register (`return_filings`),
+    // not the legacy `compliance_returns` table.
+    expect(resolveScheduleSource({ report_slug: 'ret-overdue' })).toBe('return_filings');
+
     expect(resolveScheduleSource({ report_slug: 'fee-collection' })).toBe('payments');
     expect(resolveScheduleSource({ report_slug: 'cmp-pending' })).toBe('complaints');
   });
