@@ -193,7 +193,7 @@ BEGIN
   INSERT INTO mc11 VALUES ('movement_reported',
     _cmp ? 'comparisons' AND _cmp ? 'current_period' AND _cmp ? 'previous_period'
     AND (SELECT count(*) FROM jsonb_array_elements(_cmp -> 'comparisons') c
-          WHERE NOT (c ? 'absolute_change') OR NOT (c ? 'metric_code')) = 0,
+          WHERE NOT (c ? 'absolute_change') OR NOT (c ? 'code')) = 0,
     left(_cmp::text, 300));
 
   -- G. supervisory coverage is reported with its gaps
