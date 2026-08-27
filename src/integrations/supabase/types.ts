@@ -49198,6 +49198,7 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_trusted_service_request: { Args: never; Returns: boolean }
       is_workflow_step_participant: {
         Args: { _user: string }
         Returns: boolean
@@ -52076,6 +52077,7 @@ export type Database = {
         Args: { _reason: string; _return_id: string }
         Returns: Json
       }
+      request_role: { Args: never; Returns: string }
       reset_application_for_provisioning: {
         Args: { _application_id: string }
         Returns: Json
