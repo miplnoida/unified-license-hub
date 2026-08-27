@@ -291,10 +291,9 @@ export default function FpaScreening() {
 
   const cancelRunMutation = useMutation({
     mutationFn: async (runId: string) => {
-      const { error } = await supabase
-        .from('fp_screening_runs')
-        .update({ status: 'failed', completed_at: new Date().toISOString() })
-        .eq('id', runId);
+      // Atomic authorization: the RPC enforces the screening permission and
+      // performs the cancellation in one transaction (no client pre-check).
+      const { error } = await supabase.rpc('fp_screening_run_cancel', { _run_id: runId });
       if (error) throw error;
 
       await logFpAction('fp.screening.run_cancelled', 'fp_screening_run', runId, {
@@ -311,12 +310,11 @@ export default function FpaScreening() {
 
   const toggleConfigMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
-      await authorizedAction('fit_and_proper_screening', 'edit', { config_id: id, is_active: isActive });
-      const { error } = await supabase
-        .from('fp_screening_configs')
-        .update({ is_active: isActive })
-        .eq('id', id);
+      // Atomic authorization: permission check + write live in the RPC.
+      const { error } = await supabase.rpc('fp_screening_config_set_active', {
+        _id: id,
+        _is_active: isActive,
+      });
       if (error) throw error;
 
     },
@@ -334,18 +332,19 @@ export default function FpaScreening() {
       if (!form.check_type) throw new Error('Check type is required.');
       const sortOrder = parseInt(form.sort_order, 10);
       if (isNaN(sortOrder)) throw new Error('Sort order must be a number.');
-      const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
-      await authorizedAction('fit_and_proper_screening', 'create', { key: form.key.trim() });
-      const { error } = await supabase.from('fp_screening_configs').insert({
-        key: form.key.trim(),
-        display_label: form.display_label.trim(),
-
-        description: form.description.trim() || null,
-        check_type: form.check_type,
-        provider: form.provider.trim() || null,
-        severity_default: form.severity_default,
-        sort_order: sortOrder,
-        is_active: form.is_active,
+      // Atomic authorization: permission check + insert live in the RPC.
+      const { error } = await supabase.rpc('fp_screening_config_save', {
+        _id: null,
+        _payload: {
+          key: form.key.trim(),
+          display_label: form.display_label.trim(),
+          description: form.description.trim() || null,
+          check_type: form.check_type,
+          provider: form.provider.trim() || null,
+          severity_default: form.severity_default,
+          sort_order: sortOrder,
+          is_active: form.is_active,
+        },
       });
       if (error) throw error;
     },

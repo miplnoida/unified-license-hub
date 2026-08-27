@@ -9,9 +9,17 @@ build when a function has none of the required markers.
 | Kind | Marker | Purpose |
 |------|--------|---------|
 | `user` | `requireUserPermission(req, module, action, scope?)` | User-invoked; JWT + `has_permission(user, module, action)` enforced. Optional per-record scope for cross-tenant isolation. |
-| `worker` | `requireWorkerInvocation(req)` | Scheduler / sweep / background job. Accepts `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>` (pg_cron) or `x-worker-token: <WORKER_INVOKE_TOKEN>` (ad-hoc admin invoke). |
+| `user` | `requireAuthenticatedUser(req)` | JWT enforced centrally with **no** module.action, because entitlement is a per-record DB predicate (e.g. `can_read_application`). Only valid when such a predicate is applied in-function. |
+| `worker` | `requireWorkerInvocation(req)` | Scheduler / sweep / background job / operator-only recovery. Accepts `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>` (pg_cron) or `x-worker-token: <WORKER_INVOKE_TOKEN>` (ad-hoc admin invoke). |
+| `worker` | `requireWorkerOrPrudentialUser(req, fn)` | Sweep that may also be triggered by a supervisor holding the prudential permission. |
+| `webhook` | `requireSignedWebhook(req, rawBody, secretEnv, headers)` | Inbound provider callback authenticated by HMAC-SHA256 over the raw body. Fail-closed when the secret is unset. |
+| `machine` | `requireSandboxCredential(req, secretEnv, headers)` | Machine-to-machine endpoint called by the Integration Manager connector runtime with a provider credential (not a Supabase JWT). Timing-safe compare, fail-closed. |
 | `public` | `markPublicFunction(reason)` | Explicitly public endpoint (OTP dispatch, public registry, developer-API path). The reason is required and documented. |
 | `api_key` | (function-specific) | External developer API using its own bearer key path. Documented in the map with kind=`api_key`. |
+
+A marker is never decoration: each one **is** the runtime control. Adding a
+marker to a function that does not enforce it is a review failure.
+
 
 ## Where the map lives
 

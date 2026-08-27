@@ -13,6 +13,7 @@
  * carries `sandbox: true` and the finding provenance records it.
  */
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { requireSandboxCredential } from '../_shared/sandboxAuth.ts';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -122,9 +123,6 @@ function amlBody(name: string, screeningId: string) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const expected = Deno.env.get('SCREENING_SANDBOX_KEY');
-  const auth = req.headers.get('Authorization') ?? '';
-  const presented = auth.startsWith('Bearer ') ? auth.slice(7) : '';
   const url = new URL(req.url);
   // Path shape: /functions/v1/screening-sandbox/<provider-path>
   const path = url.pathname.split('/screening-sandbox/')[1]?.replace(/^\/+/, '') ?? '';
@@ -133,9 +131,10 @@ Deno.serve(async (req) => {
     return json({ status: 'ok', sandbox: true, at: new Date().toISOString() });
   }
 
-  if (!expected || presented !== expected) {
-    return json({ error: 'Invalid screening provider credential' }, 401);
-  }
+  // Canonical gate: provider credential presented by the connector runtime,
+  // compared timing-safely against SCREENING_SANDBOX_KEY (fail-closed).
+  const gate = requireSandboxCredential(req, 'SCREENING_SANDBOX_KEY', corsHeaders);
+  if (!gate.ok) return gate.response;
 
   try {
     if (req.method === 'POST' && path === 'sanctions/search') {

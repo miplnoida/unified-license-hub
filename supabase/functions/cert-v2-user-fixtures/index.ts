@@ -13,6 +13,8 @@
 // ============================================================================
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { requireWorkerInvocation } from '../_shared/workerAuth.ts';
+
 
 const DOMAIN = 'mishainfotech.com';
 const SUPER_ADMIN_ROLE_KEY = 'super_admin';
@@ -73,7 +75,14 @@ const LEGACY_APP_ROLE: Record<string, string> = {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+  // Two independent controls: the caller must be an operator (service-role
+  // bearer or ops x-worker-token) AND the project must satisfy the
+  // non-production guard checked below. Never invokable from a browser session.
+  const gate = requireWorkerInvocation(req);
+  if (!gate.ok) return gate.response;
+
   try {
+
     const password = Deno.env.get('CERT_V2_DEFAULT_PASSWORD');
     const url = Deno.env.get('SUPABASE_URL')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;

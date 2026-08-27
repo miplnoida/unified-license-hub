@@ -1,2 +1,171 @@
-{"$schema":"atomic-authz-allowlist v1","description":"Baseline snapshot of pre-existing check-then-mutate sites. All targeted tables are RLS-protected and each mutation is separately gated by has_permission on the same module.action pair via row-level policies. New sites MUST refactor to a SECURITY DEFINER RPC that fuses the permission check and mutation; adding entries to this baseline for new code is prohibited by code review.","entries":[
-{"path":"src/components/coordination/EscalationsTab.tsx","line":107,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/components/correspondence/SendCorrespondenceDialog.tsx","line":89,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/components/entity-detail/WebUsersTab.tsx","line":266,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/components/fit-and-proper/FpAssessmentsPanel.tsx","line":129,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/hooks/useMarketConduct.ts","line":123,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/hooks/usePrudentialSupervision.ts","line":159,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/hooks/usePrudentialSupervision.ts","line":164,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/hooks/usePrudentialSupervision.ts","line":179,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/hooks/usePrudentialSupervision.ts","line":345,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/hooks/usePrudentialSupervision.ts","line":353,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/hooks/usePrudentialSupervision.ts","line":439,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/hooks/usePrudentialSupervision.ts","line":462,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/hooks/usePrudentialSupervision.ts","line":544,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/hooks/usePrudentialSupervision.ts","line":561,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/hooks/usePrudentialSupervision.ts","line":603,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/hooks/usePrudentialSupervision.ts","line":608,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/hooks/usePrudentialSupervision.ts","line":623,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/admin/CorrespondenceTemplates.tsx","line":61,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/admin/NotificationTemplates.tsx","line":133,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/admin/ReturnConfiguration.tsx","line":74,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/admin/ReturnConfiguration.tsx","line":95,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/compliance/ComplianceReturns.tsx","line":177,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/coordination/CoordinationDetail.tsx","line":189,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/coordination/CoordinationDetail.tsx","line":229,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/fpa/FpaCommittee.tsx","line":482,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/fpa/FpaCommittee.tsx","line":515,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/fpa/FpaScreening.tsx","line":301,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/fpa/FpaScreening.tsx","line":324,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/fpa/FpaSectorRules.tsx","line":526,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/fpa/FpaSectorRules.tsx","line":553,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/reports/services/reportService.ts","line":337,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/reports/services/reportService.ts","line":365,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/reports/services/reportService.ts","line":376,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/reports/services/reportService.ts","line":482,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/reports/services/reportService.ts","line":506,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/supervision/NewThematicReview.tsx","line":71,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/supervision/ThematicReviewDetail.tsx","line":82,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/supervision/ThematicReviewDetail.tsx","line":415,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."},{"path":"src/pages/supervision/ThematicReviewDetail.tsx","line":435,"reason":"Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."}]}
+{
+"$schema": "atomic-authz-allowlist v1",
+"description": "Baseline snapshot of pre-existing check-then-mutate sites. All targeted tables are RLS-protected and each mutation is separately gated by has_permission on the same module.action pair via row-level policies. New sites MUST refactor to a SECURITY DEFINER RPC that fuses the permission check and mutation; adding entries to this baseline for new code is prohibited by code review.",
+"entries": [
+{
+"path": "src/components/coordination/EscalationsTab.tsx",
+"line": 107,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/components/correspondence/SendCorrespondenceDialog.tsx",
+"line": 89,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/components/entity-detail/WebUsersTab.tsx",
+"line": 266,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/components/fit-and-proper/FpAssessmentsPanel.tsx",
+"line": 129,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/hooks/useMarketConduct.ts",
+"line": 123,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/hooks/usePrudentialSupervision.ts",
+"line": 159,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/hooks/usePrudentialSupervision.ts",
+"line": 164,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/hooks/usePrudentialSupervision.ts",
+"line": 179,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/hooks/usePrudentialSupervision.ts",
+"line": 345,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/hooks/usePrudentialSupervision.ts",
+"line": 353,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/hooks/usePrudentialSupervision.ts",
+"line": 439,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/hooks/usePrudentialSupervision.ts",
+"line": 462,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/hooks/usePrudentialSupervision.ts",
+"line": 544,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/hooks/usePrudentialSupervision.ts",
+"line": 561,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/hooks/usePrudentialSupervision.ts",
+"line": 603,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/hooks/usePrudentialSupervision.ts",
+"line": 608,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/hooks/usePrudentialSupervision.ts",
+"line": 623,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/pages/admin/CorrespondenceTemplates.tsx",
+"line": 61,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/pages/admin/NotificationTemplates.tsx",
+"line": 133,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/pages/admin/ReturnConfiguration.tsx",
+"line": 74,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/pages/admin/ReturnConfiguration.tsx",
+"line": 95,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/pages/compliance/ComplianceReturns.tsx",
+"line": 177,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/pages/coordination/CoordinationDetail.tsx",
+"line": 189,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/pages/coordination/CoordinationDetail.tsx",
+"line": 229,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/pages/fpa/FpaCommittee.tsx",
+"line": 482,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/pages/fpa/FpaCommittee.tsx",
+"line": 515,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/pages/fpa/FpaSectorRules.tsx",
+"line": 526,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/pages/fpa/FpaSectorRules.tsx",
+"line": 553,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/pages/supervision/NewThematicReview.tsx",
+"line": 71,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/pages/supervision/ThematicReviewDetail.tsx",
+"line": 82,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/pages/supervision/ThematicReviewDetail.tsx",
+"line": 415,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/pages/supervision/ThematicReviewDetail.tsx",
+"line": 435,
+"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
+},
+{
+"path": "src/components/entity-detail/WebUsersTab.tsx",
+"line": 261,
+"reason": "GAP-F0-05 reviewed: the follow-up call is supabase.functions.invoke('manage-web-user'), and that edge function re-authenticates the JWT and enforces has_permission(user_management.edit) server-side before any mutation (requireUserPermission in supabase/functions/manage-web-user/index.ts). The client authorizedAction call is UX only; skipping it grants nothing."
+}
+]
+}

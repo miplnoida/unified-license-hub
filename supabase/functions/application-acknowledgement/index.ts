@@ -22,6 +22,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { requireAuthenticatedUser } from "../_shared/authz.ts";
+
 
 const ACK_BUCKET = "documents";
 
@@ -156,23 +158,15 @@ Deno.serve(async (req) => {
   if (pre) return pre;
 
   try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader) return json(req, 401, { error: "Missing authorization header" });
+    // Canonical gate: JWT verified centrally (no module.action — entitlement to
+    // THIS application is decided below by the `can_read_application` predicate).
+    const gate = await requireAuthenticatedUser(req);
+    if (!gate.ok) return gate.response;
+    const user = { id: gate.userId };
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    // Verify the bearer locally against the project JWKS instead of calling
-    // auth.getUser(): that session round-trip fails with "session not found"
-    // after a refresh-token rotation and surfaced as a bogus 401.
-    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-    const { data: claimsData, error: authError } = await userClient.auth.getClaims(token);
-    if (authError || !claimsData?.claims?.sub) return json(req, 401, { error: "Invalid or expired token" });
-    const user = { id: String(claimsData.claims.sub) };
 
     const admin = createClient(supabaseUrl, serviceKey);
 

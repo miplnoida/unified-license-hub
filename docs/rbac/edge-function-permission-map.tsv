@@ -1,8 +1,11 @@
 function	kind	module	action	scope	notes
 add-application-remark	user	application_management	edit	recordId	Comment thread on application.
+application-acknowledgement	user	-	-	recordId	JWT via requireAuthenticatedUser; entitlement decided by can_read_application(application).
 approve-pre-licensee	user	registration_management	approve	recordId	Idempotent license/licensee creation on final approval.
 audit-export	user	audit_management	export	self-folder	Existing gate. Signed URLs restricted to caller.
+bootstrap-break-glass-admin	worker	-	-	-	Operator-only recovery: requireWorkerInvocation (service-role bearer or x-worker-token).
 bulk-intake	user	complaint_management	create	-	Batch complaint intake.
+cert-v2-user-fixtures	worker	-	-	-	Certification fixtures: requireWorkerInvocation AND cert_v2_guard_ok non-production guard.
 complaint-escalation-sweep	worker	-	-	-	pg_cron; requireWorkerInvocation.
 complaint-storage-cleanup	worker	-	-	-	pg_cron; orphaned staged evidence sweep.
 create-web-user	user	user_management	create	licenseeId	Licensee web-user provisioning.
@@ -13,7 +16,7 @@ document-extract	user	document_management	upload	-	AI document extraction pass.
 evaluate-application-sufficiency	user	application_management	edit	recordId	AI + rules sufficiency check.
 evaluate-complaint-triage	user	complaint_management	workflow_action	recordId	Triage engine.
 evaluate-conduct-monitoring	worker	-	-	-	Scheduled market-conduct rule sweep.
-evaluate-prudential-early-warnings	worker	-	-	-	Recompute EW view + dispatch.
+evaluate-prudential-early-warnings	worker	-	-	-	requireWorkerOrPrudentialUser (worker credential or prudential permission).
 evaluate-return-prudential	user	returns_management	view	returnId	Score submitted return.
 fp-ai-media-ingest	user	fit_and_proper	configure	-	Ingest media asset for AI review.
 fp-cycle-scheduler	user	fit_and_proper	execute	-	Kick a monitoring cycle.
@@ -28,12 +31,14 @@ get-licensee-registration	user	registration_management	view	licenseeId	Fetch lic
 license-expiry-reminders	worker	-	-	-	Daily license expiry sweep.
 list-web-users	user	user_management	view	licenseeId	Licensee web-user listing.
 manage-api-key	user	integration_management	configure	-	Rotate/inspect API keys.
+manage-captcha	public	settings	edit	-	verify action public for anonymous intake; set_secret/has_secret require has_permission(settings.edit).
 manage-web-user	user	user_management	edit	licenseeId	Update licensee web-user profile.
+notification-delivery-webhook	webhook	-	-	-	requireSignedWebhook: HMAC-SHA256 over raw body with NOTIFICATION_WEBHOOK_SECRET.
 notification-digest	worker	-	-	-	Daily/weekly digest builder.
 notification-failure-sweep	worker	-	-	-	Hourly admin alert for failed dispatches.
 notification-retry	user	notification_management	dispatch	-	Re-queue failed notification.
 notification-status	user	notification_management	view	-	Query dispatch status.
-overdue-action-sweep	worker	-	-	-	Overdue workflow actions.
+overdue-action-sweep	worker	-	-	-	requireWorkerOrPrudentialUser.
 overdue-returns-sweep	worker	-	-	-	Overdue returns notifier.
 perform-license-action	user	license_management	workflow_action	recordId	Wraps perform_license_transition RPC.
 perform-registration-workflow-action	user	registration_management	workflow_action	recordId	Wraps registration workflow RPC.
@@ -41,13 +46,14 @@ perform-return-workflow-action	user	returns_management	workflow_action	returnId	
 perform-workflow-action	user	application_management	workflow_action	recordId	Wraps perform_workflow_transition.
 process-notification-outbox	worker	-	-	-	Outbox drain worker.
 process-queue	worker	-	-	-	Generic job queue drain.
-prudential-monitoring-sweep	worker	-	-	-	Prudential thresholds sweep.
+prudential-monitoring-sweep	worker	-	-	-	requireWorkerOrPrudentialUser.
 public-registry	public	-	-	-	Public licensee directory read.
 register-pre-licensee	public	-	-	-	Public self-registration intake (OTP-gated).
 resubmit-return	user	returns_management	edit	returnId	Licensee resubmit after edit request.
 rfi-near-due-sweep	worker	-	-	-	RFI due-date reminders.
 risk-score-recompute	worker	-	-	-	Recompute entity risk scores.
 run-scheduled-reports	user	report_management	execute	-	Trigger scheduled report runs.
+screening-sandbox	machine	-	-	-	requireSandboxCredential: provider credential (SCREENING_SANDBOX_KEY) from the connector runtime.
 send-correspondence	user	correspondence_management	dispatch	-	Outbound correspondence send.
 send-notification	worker	-	-	-	Notification delivery worker.
 send-registration-otp	public	-	-	-	Public OTP dispatch.
