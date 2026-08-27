@@ -1,17 +1,32 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-/** Statuses that mean "this request is still in flight" for duplicate protection. */
+/**
+ * Statuses that mean "this request is still in flight" for duplicate protection.
+ * MUST mirror the server-side canonical set in
+ * `public.post_license_open_statuses()` (migration 20260827074048).
+ */
 const OPEN_STATUSES = [
   'draft',
+  'in_progress',
   'submitted',
   'under_review',
-  'pending_payment',
+  'pending_review',
+  'in_review',
+  'forwarded',
+  'awaiting_approval',
   'pending_approval',
-  'in_progress',
-  'rfi_raised',
+  'query_raised',
+  'info_requested',
+  'resubmission_requested',
+  'resubmission_required',
+  'returned_for_correction',
   'resubmitted',
+  'payment_pending',
+  'awaiting_payment',
+  'pending_payment',
 ];
+
 
 export interface OpenPostLicenseRequest {
   id: string;
