@@ -24,9 +24,13 @@ export function isOpaqueId(segment: string): boolean {
   if (!segment) return false;
   if (UUID_RE.test(segment)) return true;
   if (/^\d+$/.test(segment)) return true;
-  if (segment.length >= 20 && !segment.includes('-')) return true;
+  // Long token heuristic: only single-word, token-charset strings qualify.
+  // Human labels ("Licensing & Authorisation") contain spaces/punctuation and
+  // must never be mistaken for an identifier.
+  if (segment.length >= 20 && /^[0-9A-Za-z_]+$/.test(segment)) return true;
   return false;
 }
+
 
 export function humanizeSegment(segment: string): string {
   const clean = decodeURIComponent(segment).replace(/[-_]+/g, ' ').trim();
