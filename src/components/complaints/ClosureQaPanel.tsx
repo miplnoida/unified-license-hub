@@ -72,6 +72,15 @@ function resolveClosingAction(
   );
 }
 
+interface ReviewLike {
+  decision: string;
+}
+
+function hasQaApproved(reviews: ReviewLike[] | undefined | null): boolean {
+  return (reviews ?? []).some((r) => r.decision === 'qa_approved');
+}
+
+
 export function ClosureQaPanel({
   complaintId,
   readOnly = false,
@@ -287,6 +296,12 @@ export function ClosureQaPanel({
               )}
             </div>
           )}
+          {hasQaApproved(reviews) && closingAction && (
+            <p className="text-sm text-muted-foreground">
+              QA approved — the closure assessment passed quality review. Complete the fields
+              below and click <strong>Close complaint</strong> to finalise the case here.
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <Button data-rbac="complaint_management.edit"
               disabled={closeMut.isPending || actionsLoading || missing.length > 0 || !closingAction}
@@ -296,7 +311,13 @@ export function ClosureQaPanel({
             </Button>
             {!actionsLoading && !actionsError && !closingAction && (
               <span className="text-xs text-muted-foreground">
-                {availableActionLabels.length > 0 ? (
+                {hasQaApproved(reviews) ? (
+                  <>
+                    QA approved — the closure assessment passed quality review. The case is waiting
+                    for the remaining workflow/domain requirement before it can be finalised. Check
+                    the <strong>Current step</strong> tab for what is still needed.
+                  </>
+                ) : availableActionLabels.length > 0 ? (
                   <>
                     No closing action is configured for you at this step. Available to you:{' '}
                     <strong>{availableActionLabels.join(', ')}</strong> — use the{' '}
@@ -308,7 +329,9 @@ export function ClosureQaPanel({
               </span>
             )}
             {!closingAction && onGoToCurrentStep && !actionsLoading && (
-              <Button size="sm" variant="outline" onClick={onGoToCurrentStep}>Go to Current step</Button>
+              <Button size="sm" variant="outline" onClick={onGoToCurrentStep}>
+                {hasQaApproved(reviews) ? 'Review Current step' : 'Go to Current step'}
+              </Button>
             )}
           </div>
           {latest && (
