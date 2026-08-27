@@ -31,8 +31,8 @@ SELECT ok( NOT public.can_act_on_approval('11111111-0000-0000-0000-000000000005'
 
 -- 4. can_read_workflow_instance allows applicant on own application
 SELECT lives_ok($$
-  INSERT INTO public.applications(id, applicant_id, application_type)
-  VALUES ('aaaaaaaa-0000-0000-0000-000000000001','11111111-0000-0000-0000-000000000006','test')
+  INSERT INTO public.applications(id, applicant_id, license_type)
+  VALUES ('aaaaaaaa-0000-0000-0000-000000000001','11111111-0000-0000-0000-000000000006','ZZ Test Licence Type')
   ON CONFLICT DO NOTHING;
 $$, 'seed application for applicant');
 
