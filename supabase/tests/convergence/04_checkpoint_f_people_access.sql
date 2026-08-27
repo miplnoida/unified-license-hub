@@ -10,7 +10,7 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap;
 
-SELECT plan(20);
+SELECT plan(21);
 
 -- ---------- Guardrail: governed tables reject direct DML ----------
 CREATE TEMP TABLE governed_tables(name text) ON COMMIT DROP;
