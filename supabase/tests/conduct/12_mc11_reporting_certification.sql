@@ -390,7 +390,7 @@ BEGIN
   BEGIN
     BEGIN
       UPDATE public.conduct_reporting_adopted_narratives
-         SET adopted_text = 'rewritten after the fact' WHERE id = _adopt;
+         SET adopted_text = '{"advisory_text":"rewritten after the fact"}'::jsonb WHERE id = _adopt;
     EXCEPTION WHEN OTHERS THEN _u2 := true;
     END;
     INSERT INTO mc11 VALUES ('adoption_immutable', _u2, format('update_blocked=%s', _u2));
