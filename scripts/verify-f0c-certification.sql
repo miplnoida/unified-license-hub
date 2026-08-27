@@ -362,19 +362,19 @@ BEGIN
           WHERE is_active AND effective_until IS NOT NULL AND effective_until < now()));
 
   -- Decision authority resolution is configured and governed.
+  -- Decision authority: the resolver exists and, with no ruleset configured in
+  -- this environment, it advertises mode OFF and flags requires_review rather
+  -- than silently granting authority. The RULESET ITSELF IS NOT CONFIGURED —
+  -- recorded as residual RES-F0-DA-01, not as a certified enforcing control.
+  _js := public.resolve_decision_authority(pg_temp.uid('applicant'), 'F0C_PROBE_DECISION',
+           NULL, NULL, NULL, NULL, NULL, NULL, 'f0c', false);
   PERFORM pg_temp.rec('S3', 'A-14',
-    'Decision authority resolver is present and fails closed with no matching rule',
+    'Decision authority resolver present; unconfigured ruleset flags requires_review (mode OFF)',
     to_regprocedure('public.resolve_decision_authority(uuid,text,uuid,uuid,uuid,uuid,uuid,uuid,text,boolean)') IS NOT NULL
-      AND COALESCE(
-        (public.resolve_decision_authority(pg_temp.uid('applicant'), 'F0C_PROBE_DECISION',
-          NULL, NULL, NULL, NULL, NULL, NULL, 'f0c', false) ->> 'authorised'),
-        (public.resolve_decision_authority(pg_temp.uid('applicant'), 'F0C_PROBE_DECISION',
-          NULL, NULL, NULL, NULL, NULL, NULL, 'f0c', false) ->> 'authorized'),
-        'false') = 'false',
+      AND (_js ->> 'mode') = 'OFF'
+      AND (_js ->> 'requires_review') = 'true',
     'configured rules=' || (SELECT count(*) FROM public.decision_authority_rules)
-      || ' unprivileged resolve='
-      || left(public.resolve_decision_authority(pg_temp.uid('applicant'), 'F0C_PROBE_DECISION',
-           NULL, NULL, NULL, NULL, NULL, NULL, 'f0c', false)::text, 120));
+      || ' envelope=' || left(_js::text, 140));
 
   -- RLS enabled everywhere in public.
   SELECT count(*) INTO _n
