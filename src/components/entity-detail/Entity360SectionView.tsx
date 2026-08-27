@@ -11,6 +11,7 @@ import { EnterpriseDataGrid } from '@/components/data-grid';
 import { formatDate } from '@/lib/presentation/format';
 import { useEntity360Section, type E360SectionKey } from '@/hooks/useEntity360';
 import { RegisterIdentifierDialog } from './RegisterIdentifierDialog';
+import { VerifyIdentifierDialog } from './VerifyIdentifierDialog';
 import {
   resolveSectionColumns, sectionRowTitle, SECTION_BY_KEY,
   type SectionRow,
