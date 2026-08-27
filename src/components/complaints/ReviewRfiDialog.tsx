@@ -230,7 +230,7 @@ export function ReviewRfiDialog({ open, onOpenChange, rfi, canApprove, onDone }:
               <div className="flex items-center justify-between">
                 <Label>Questions</Label>
                 {editable && (
-                  <Button
+                  <Button data-rbac="complaint_management.create"
                     type="button"
                     variant="outline"
                     size="sm"
@@ -321,7 +321,7 @@ export function ReviewRfiDialog({ open, onOpenChange, rfi, canApprove, onDone }:
         <DialogFooter className="flex-wrap gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
           {editable && (
-            <Button variant="outline" onClick={() => saveChanges()} disabled={busy}>
+            <Button data-rbac="complaint_management.edit" variant="outline" onClick={() => saveChanges()} disabled={busy}>
               <Save className="h-4 w-4 mr-1" />Save changes
             </Button>
           )}

@@ -122,7 +122,7 @@ function SectorCard({
           <Button size="sm" variant="outline" onClick={onLead}>
             {sector.lead ? 'Change lead' : 'Set lead'}
           </Button>
-          <Button size="sm" variant="ghost" onClick={onManage}>Manage</Button>
+          <Button data-rbac="user_management.edit" size="sm" variant="ghost" onClick={onManage}>Manage</Button>
         </div>
       </CardHeader>
       <CardContent className="text-sm">

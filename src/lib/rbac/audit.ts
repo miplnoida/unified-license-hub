@@ -119,6 +119,120 @@ const PUBLIC_ALLOW_PATTERNS: RegExp[] = [
 ];
 
 
+
+/**
+ * Scoped action classification register (GAP-F0-01).
+ *
+ * Every entry is an explicit `file + exact label` pair — there are NO
+ * wildcards and NO directory-level exemptions. Each entry records WHY the
+ * action needs no RBAC permission gate:
+ *
+ *  - `public-by-design`   Public-by-design entry point (registration / public services / captcha) — anonymous by intent; backend abuse control = CAPTCHA + rate limit + registration RPC validation.
+ *  - `own-record`         Acts only on the signed-in user's own record (own notification, own invoice/acknowledgement, own RFI attachment) — scoped server-side by RLS.
+ *  - `non-mutating`       Non-mutating: navigation, disclosure, tab/filter or read-only drill-down control.
+ *  - `scanner-artifact`   Scanner artifact: label is a JSX expression, not a business action.
+ *
+ * State-changing, privilege-sensitive actions are NEVER listed here; they are
+ * wrapped in <GuardedButton>/<PermissionGate> or carry a data-rbac marker.
+ */
+export type ActionClassKind = 'public-by-design' | 'own-record' | 'non-mutating' | 'scanner-artifact';
+
+export const SCOPED_ACTION_CLASSES: Array<{ file: string; kind: ActionClassKind; labels: string[] }> = [
+  { file: "src/components/landing/LandingNav.tsx", kind: 'public-by-design', labels: ["apply / register"] },
+  { file: "src/components/shared/CaptchaWidget.tsx", kind: 'public-by-design', labels: ["retry security verification"] },
+  { file: "src/pages/PublicComplaintTracking.tsx", kind: 'public-by-design', labels: ["make a new complaint"] },
+  { file: "src/pages/public/ApplicantGuidance.tsx", kind: 'public-by-design', labels: ["connect to existing entity", "start new application"] },
+  { file: "src/pages/public/LicenseeServiceDetail.tsx", kind: 'public-by-design', labels: ["connect to existing entity"] },
+  { file: "src/pages/public/LicenseeServices.tsx", kind: 'public-by-design', labels: ["connect to an existing entity", "start a new application"] },
+  { file: "src/pages/public/PublicHelp.tsx", kind: 'public-by-design', labels: ["connect to existing entity", "start a new application"] },
+  { file: "src/pages/public/PublicLicenseeDetail.tsx", kind: 'public-by-design', labels: ["request / connect portal access"] },
+  { file: "src/pages/registration/EntityIdentification.tsx", kind: 'public-by-design', labels: ["change details", "create an account", "create provisional entity and request access", "identify entity", "request access to this entity"] },
+  { file: "src/pages/registration/UserAccountStep.tsx", kind: 'public-by-design', labels: ["create account and continue"] },
+  { file: "src/components/applications/LicenseePaymentPanel.tsx", kind: 'own-record', labels: ["download invoice"] },
+  { file: "src/components/applications/PaymentVerificationDialog.tsx", kind: 'own-record', labels: ["download invoice"] },
+  { file: "src/components/applications/SubmissionAcknowledgementPanel.tsx", kind: 'own-record', labels: ["download acknowledgement (pdf)"] },
+  { file: "src/components/notifications/NotificationDetailDrawer.tsx", kind: 'own-record', labels: ["archive", "mark read"] },
+  { file: "src/components/registration-builder/FormPreview.tsx", kind: 'own-record', labels: ["verify email"] },
+  { file: "src/pages/entity/complaint-rfis/MyComplaintRfis.tsx", kind: 'own-record', labels: ["attach document", "attach document (optional)"] },
+  { file: "src/pages/notifications/NotificationCenter.tsx", kind: 'own-record', labels: ["archive", "dismiss", "export", "export selected", "mark read"] },
+  { file: "src/components/admin/operating-structure/AccessStatusNote.tsx", kind: 'non-mutating', labels: ["review access"] },
+  { file: "src/components/admin/operating-structure/OverviewTab.tsx", kind: 'non-mutating', labels: ["manage decision bodies"] },
+  { file: "src/components/admin/operating-structure/RegulatorsAdminTab.tsx", kind: 'non-mutating', labels: ["full regulator management"] },
+  { file: "src/components/admin/returns-config/ReturnDefinitionsPanel.tsx", kind: 'non-mutating', labels: ["assigned forms ( )"] },
+  { file: "src/components/appeals/LicenseAppealPanel.tsx", kind: 'non-mutating', labels: ["lodge an appeal"] },
+  { file: "src/components/applications/SubmissionAcknowledgementPanel.tsx", kind: 'non-mutating', labels: ["check again"] },
+  { file: "src/components/complaints/investigation/InvestigationPlanPanel.tsx", kind: 'non-mutating', labels: ["triage"] },
+  { file: "src/components/conduct/supervision-loop/UnresolvedRisksPanel.tsx", kind: 'non-mutating', labels: ["action required"] },
+  { file: "src/components/conduct/three-sixty/advisory/AdvisoryCard.tsx", kind: 'non-mutating', labels: ["check freshness", "decision history ( )"] },
+  { file: "src/components/conduct/three-sixty/advisory/AdvisoryProvenance.tsx", kind: 'non-mutating', labels: ["technical provenance"] },
+  { file: "src/components/data-grid/EnterpriseDataGrid.tsx", kind: 'non-mutating', labels: ["columns"] },
+  { file: "src/components/entity-detail/Entity360Header.tsx", kind: 'non-mutating', labels: ["public register", "structure workspace"] },
+  { file: "src/components/entity-detail/Entity360TimelinePanel.tsx", kind: 'non-mutating', labels: ["show all domains"] },
+  { file: "src/components/form-builder/VersionDiffViewer.tsx", kind: 'non-mutating', labels: ["list", "side by side"] },
+  { file: "src/components/landing/AlreadyRegulatedSection.tsx", kind: 'non-mutating', labels: ["need access to an existing entity?"] },
+  { file: "src/components/licenses/LicenseDecisionAppealsPanel.tsx", kind: 'non-mutating', labels: ["lodge appeal"] },
+  { file: "src/components/prudential/RiskScoreExplainer.tsx", kind: 'non-mutating', labels: ["review ( )"] },
+  { file: "src/components/prudential/examination/ExaminationStageActions.tsx", kind: 'non-mutating', labels: ["more actions"] },
+  { file: "src/components/prudential/examination/TeamPanel.tsx", kind: 'non-mutating', labels: ["additional details (optional)"] },
+  { file: "src/components/registration/PendingAuthorityScreen.tsx", kind: 'non-mutating', labels: ["check status"] },
+  { file: "src/components/returns/NotificationDispatchDetailDrawer.tsx", kind: 'non-mutating', labels: ["payload", "technical details"] },
+  { file: "src/pages/NewApplication.tsx", kind: 'non-mutating', labels: ["continue to payment", "continue to review"] },
+  { file: "src/pages/admin/ModuleRuleTester.tsx", kind: 'non-mutating', labels: ["rule library"] },
+  { file: "src/pages/admin/OperatingStructure.tsx", kind: 'non-mutating', labels: ["advanced"] },
+  { file: "src/pages/admin/RuleEditor.tsx", kind: 'non-mutating', labels: ["library"] },
+  { file: "src/pages/admin/RuleLibrary.tsx", kind: 'non-mutating', labels: ["reset filters"] },
+  { file: "src/pages/admin/conduct/MonitoringRules.tsx", kind: 'non-mutating', labels: ["versions"] },
+  { file: "src/pages/appeals/MyAppeals.tsx", kind: 'non-mutating', labels: ["lodge an appeal"] },
+  { file: "src/pages/complaints/BulkIntake.tsx", kind: 'non-mutating', labels: ["rows"] },
+  { file: "src/pages/complaints/rfi-approvals/RfiApprovalQueue.tsx", kind: 'non-mutating', labels: ["review"] },
+  { file: "src/pages/conduct/ConductActions.tsx", kind: 'non-mutating', labels: ["overdue only"] },
+  { file: "src/pages/conduct/ConductEntitiesList.tsx", kind: 'non-mutating', labels: ["conduct 360"] },
+  { file: "src/pages/conduct/InvestigationClosureQueue.tsx", kind: 'non-mutating', labels: ["review"] },
+  { file: "src/pages/conduct/SurveillanceWorkspace.tsx", kind: 'non-mutating', labels: ["review"] },
+  { file: "src/pages/enforcement/EnforcementWorkspace.tsx", kind: 'non-mutating', labels: ["enforcement queue"] },
+  { file: "src/pages/entities/EntityDirectory.tsx", kind: 'non-mutating', labels: ["search registry"] },
+  { file: "src/pages/entities/EntityStructureHub.tsx", kind: 'non-mutating', labels: ["entity 360"] },
+  { file: "src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx", kind: 'non-mutating', labels: ["previous form"] },
+  { file: "src/pages/fpa/FpaAssessmentWorkspace.tsx", kind: 'non-mutating', labels: ["f&p processes"] },
+  { file: "src/pages/fpa/FpaIndividualProfile.tsx", kind: 'non-mutating', labels: ["reassessment scheduler"] },
+  { file: "src/pages/governance/ai/AiActivityDetail.tsx", kind: 'non-mutating', labels: ["activity register"] },
+  { file: "src/pages/governance/ai/AiAssuranceDetail.tsx", kind: 'non-mutating', labels: ["all assurance reviews"] },
+  { file: "src/pages/governance/ai/AiGovernanceOverview.tsx", kind: 'non-mutating', labels: ["ai activity register"] },
+  { file: "src/pages/governance/ai/AiInstructions.tsx", kind: 'non-mutating', labels: ["full instruction as held on the server"] },
+  { file: "src/pages/governance/ai/AiUseCaseDetail.tsx", kind: 'non-mutating', labels: ["all capabilities"] },
+  { file: "src/pages/licensing/EntityResolutionDetail.tsx", kind: 'non-mutating', labels: ["preview impact"] },
+  { file: "src/pages/licensing/EntityResolutionQueue.tsx", kind: 'non-mutating', labels: ["review"] },
+  { file: "src/pages/prudential/AssessmentWorkspace.tsx", kind: 'non-mutating', labels: ["prudential work"] },
+  { file: "src/pages/prudential/ExaminationWorkspace.tsx", kind: 'non-mutating', labels: ["examinations"] },
+  { file: "src/pages/prudential/FinancialGroupProfile.tsx", kind: 'non-mutating', labels: ["all groups", "methodology"] },
+  { file: "src/pages/prudential/PaymentOperatorProfile.tsx", kind: 'non-mutating', labels: ["oversight"] },
+  { file: "src/pages/public/ApplicantGuidance.tsx", kind: 'non-mutating', labels: ["guidance", "help / contact", "licensee services"] },
+  { file: "src/pages/public/LicenseeServiceDetail.tsx", kind: 'non-mutating', labels: ["help / contact", "regulatory guidance"] },
+  { file: "src/pages/public/LicenseeServices.tsx", kind: 'non-mutating', labels: ["guidance", "help / contact"] },
+  { file: "src/pages/public/PublicComplaintIntake.tsx", kind: 'non-mutating', labels: ["already made a complaint? track it here"] },
+  { file: "src/pages/public/PublicHelp.tsx", kind: 'non-mutating', labels: ["licensee services"] },
+  { file: "src/pages/public/PublicLicenseeDetail.tsx", kind: 'non-mutating', labels: ["licensee services"] },
+  { file: "src/pages/returns-canonical/EntityPicker.tsx", kind: 'non-mutating', labels: ["change entity"] },
+  { file: "src/pages/supervision/ThematicClosureQueue.tsx", kind: 'non-mutating', labels: ["review report"] },
+  { file: "src/components/appeals/InternalUserMultiSelect.tsx", kind: 'scanner-artifact', labels: ["{selected.length === 0 ? placeholder : `$ selected`}"] },
+  { file: "src/components/forms/EmailFieldControl.tsx", kind: 'scanner-artifact', labels: ["{cooldown > 0 ? `resend in $ s` : 'resend code'}", "{cooldown > 0 ? `resend in $ s` : 'verify email'}"] },
+  { file: "src/components/prudential/examination/DataRequestsPanel.tsx", kind: 'scanner-artifact', labels: ["( )"] },
+  { file: "src/components/rbac/RoleMigrationRunnerDialog.tsx", kind: 'scanner-artifact', labels: ["{running ? 'running\u2026' : `classify $ role$ `}"] },
+  { file: "src/pages/admin/NotificationTemplates.tsx", kind: 'scanner-artifact', labels: ["{`{{$ }}`}"] },
+  { file: "src/pages/applications/ApplicationQueue.tsx", kind: 'scanner-artifact', labels: ["{t.countkey && counts ? ( ) : null}"] },
+  { file: "src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx", kind: 'scanner-artifact', labels: [". {status === 'issue' && ( )}"] },
+  { file: "src/pages/fpa/FpaAssessmentWorkspace.tsx", kind: 'scanner-artifact', labels: ["{a.requires_reason && pendingaction?.code !== a.code ? a.label : `confirm: $ `}"] },
+  { file: "src/pages/registration/RegistrationJourneyChoice.tsx", kind: 'scanner-artifact', labels: ["{journey_cta[j.key] ?? `continue \u2014 $ `}"] },
+];
+
+function classifyScoped(relFile: string, label: string): ActionClassKind | null {
+  const low = label.toLowerCase();
+  for (const entry of SCOPED_ACTION_CLASSES) {
+    if (entry.file === relFile && entry.labels.includes(low)) return entry.kind;
+  }
+  return null;
+}
+
 const SKIP_FILES = new Set([
   'components/auth/GuardedButton.tsx',
   'components/auth/PermissionGate.tsx',
@@ -224,7 +338,9 @@ export function scanFile(file: string): ActionSite[] {
     const line = text.slice(0, idx).split('\n').length;
     const reason = findWrappingGate(text, idx);
     const lowered = label.toLowerCase();
+    const scoped = classifyScoped(rel, label);
     const isPublic =
+      !!scoped ||
       PUBLIC_ALLOW_LABELS.has(lowered) ||
       PUBLIC_ALLOW_PATTERNS.some((rx) => rx.test(lowered));
     // Extract explicit module + action from a nearby data-rbac attribute.
@@ -249,7 +365,7 @@ export function scanFile(file: string): ActionSite[] {
       module,
       action,
       protected: !!reason || isPublic,
-      reason: reason || (isPublic ? 'public-allow' : ''),
+      reason: reason || (scoped ?? (isPublic ? 'public-allow' : '')),
     });
   }
   // 2. <GuardedButton ...>Label</GuardedButton> — inherently protected
@@ -295,7 +411,9 @@ export function scanFile(file: string): ActionSite[] {
       module = mod || null; action = act || null;
     }
     const lowered = label.toLowerCase();
+    const scoped = classifyScoped(rel, label);
     const isPublic =
+      !!scoped ||
       PUBLIC_ALLOW_LABELS.has(lowered) ||
       PUBLIC_ALLOW_PATTERNS.some((rx) => rx.test(lowered));
     sites.push({
@@ -303,7 +421,7 @@ export function scanFile(file: string): ActionSite[] {
       category: categorize(label),
       module, action,
       protected: explicit || isPublic,
-      reason: explicit ? 'data-rbac' : (isPublic ? 'public-allow' : ''),
+      reason: explicit ? 'data-rbac' : (scoped ?? (isPublic ? 'public-allow' : '')),
     });
   }
   // 4. <ContextMenuItem ...>Label</ContextMenuItem> — treat like Button
@@ -333,7 +451,9 @@ export function scanFile(file: string): ActionSite[] {
       module = mod || null; action = act || null;
     }
     const lowered = label.toLowerCase();
+    const scoped = classifyScoped(rel, label);
     const isPublic =
+      !!scoped ||
       PUBLIC_ALLOW_LABELS.has(lowered) ||
       PUBLIC_ALLOW_PATTERNS.some((rx) => rx.test(lowered));
     sites.push({
@@ -341,7 +461,7 @@ export function scanFile(file: string): ActionSite[] {
       category: categorize(label),
       module, action,
       protected: explicit || isPublic,
-      reason: explicit ? 'data-rbac' : (isPublic ? 'public-allow' : ''),
+      reason: explicit ? 'data-rbac' : (scoped ?? (isPublic ? 'public-allow' : '')),
     });
   }
   return sites;

@@ -96,7 +96,7 @@ export default function EntityReportingCalendar() {
                             {r.filing_id ? (
                               <Button variant="ghost" size="sm" onClick={() => navigate(`/returns/filings/${r.filing_id}`)}>Open</Button>
                             ) : (
-                              <Button variant="outline" size="sm" onClick={() => start(r.period_id)} disabled={openFiling.isPending}>
+                              <Button data-rbac="returns_management.edit" variant="outline" size="sm" onClick={() => start(r.period_id)} disabled={openFiling.isPending}>
                                 <FilePlus2 className="mr-1 h-3.5 w-3.5" />Start filing
                               </Button>
                             )}

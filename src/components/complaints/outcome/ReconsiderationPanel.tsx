@@ -7,6 +7,7 @@
  * record stays visible as history.
  */
 import { useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -112,7 +113,7 @@ export function ReconsiderationPanel({ complaintId, complaintStatus }: Props) {
               Handled separately from the original complaint. The original outcome and closure record stay unchanged.
             </p>
           </div>
-          <Button size="sm" disabled={!isClosed} onClick={() => setNewOpen(true)}>
+          <Button data-rbac="complaint_management.edit" size="sm" disabled={!isClosed} onClick={() => setNewOpen(true)}>
             <Plus className="mr-1 h-3.5 w-3.5" />Record a request
           </Button>
         </CardHeader>
@@ -166,10 +167,10 @@ export function ReconsiderationPanel({ complaintId, complaintStatus }: Props) {
                   {!v.decision && (
                     <div className="flex flex-wrap gap-2 pt-1">
                       {!v.admissibility_decision && (
-                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs"
+                        <GuardedButton module="complaint_management" action="edit" data-rbac="complaint_management.edit" size="sm" variant="outline" className="h-7 px-2 text-xs"
                           onClick={() => { setRationale(''); setChoice('ADMISSIBLE'); setAction({ row: v, mode: 'admissibility' }); }}>
                           Decide admissibility
-                        </Button>
+                        </GuardedButton>
                       )}
                       {v.admissibility_decision === 'ADMISSIBLE' && (
                         <Button size="sm" variant="outline" className="h-7 px-2 text-xs"
@@ -178,7 +179,7 @@ export function ReconsiderationPanel({ complaintId, complaintStatus }: Props) {
                         </Button>
                       )}
                       {v.status === 'UNDER_REVIEW' && (
-                        <Button size="sm" className="h-7 px-2 text-xs"
+                        <Button data-rbac="complaint_management.edit" size="sm" className="h-7 px-2 text-xs"
                           onClick={() => { setRationale(''); setChoice('UPHELD'); setAction({ row: v, mode: 'decision' }); }}>
                           <Gavel className="mr-1 h-3 w-3" />Record review decision
                         </Button>
@@ -231,7 +232,7 @@ export function ReconsiderationPanel({ complaintId, complaintStatus }: Props) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewOpen(false)}>Cancel</Button>
-            <Button onClick={submitNew} disabled={requestReconsideration.isPending}>
+            <Button data-rbac="complaint_management.edit" onClick={submitNew} disabled={requestReconsideration.isPending}>
               {requestReconsideration.isPending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}Record request
             </Button>
           </DialogFooter>

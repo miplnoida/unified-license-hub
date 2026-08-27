@@ -81,7 +81,7 @@ export default function AiInstructions() {
           title="AI Instructions"
           description="The instruction versions the regulator has released, including the permitted fact scope, required caveats, citation expectations, prohibited behaviours and confidence expectations."
           actions={canAuthor ? (
-            <Button size="sm" onClick={() => setForm({ ...EMPTY })}>
+            <Button data-rbac="ai_management.edit" size="sm" onClick={() => setForm({ ...EMPTY })}>
               <Plus className="mr-1 h-4 w-4" /> Register an instruction version
             </Button>
           ) : <Badge variant="outline">Read only</Badge>}
@@ -185,10 +185,10 @@ export default function AiInstructions() {
                     authoredByCurrentUser={authored}
                   />
                   {canAuthor && (
-                    <Button size="sm" variant="outline" onClick={() => nextVersionFrom(i)}>Create new version</Button>
+                    <Button data-rbac="ai_management.create" size="sm" variant="outline" onClick={() => nextVersionFrom(i)}>Create new version</Button>
                   )}
                   {canAuthor && !released && (
-                    <Button
+                    <Button data-rbac="ai_management.edit"
                       size="sm" variant="ghost"
                       onClick={() => setForm({
                         id: i.id, templateCode: i.template_code, version: i.version, title: i.title,
@@ -270,7 +270,7 @@ export default function AiInstructions() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setForm(null)} disabled={save.isPending}>Cancel</Button>
-            <Button onClick={submit} disabled={!canSubmit || save.isPending}>
+            <Button data-rbac="ai_management.edit" onClick={submit} disabled={!canSubmit || save.isPending}>
               {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save as draft
             </Button>

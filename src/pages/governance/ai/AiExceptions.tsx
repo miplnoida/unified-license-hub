@@ -154,7 +154,7 @@ export default function AiExceptions() {
                               <Link to={`/governance/ai/activity/${e.activity_kind}/${e.activity_id}`}>Open</Link>
                             </Button>
                             {canOpenReview && (
-                              <Button
+                              <Button data-rbac="ai_management.edit"
                                 size="sm" variant="outline" disabled={createAssurance.isPending}
                                 onClick={() => createAssurance.mutate({ insightId })}
                               >

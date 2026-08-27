@@ -1,4 +1,5 @@
 import { COLLAB_REVIEW_ENABLED } from '@/lib/featureFlags';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -1257,14 +1258,14 @@ export default function ApplicationDetail() {
                               />
                             </div>
                             <div className="flex flex-col sm:flex-row sm:justify-end gap-2 pt-2">
-                              <Button
+                              <GuardedButton module="application_management" action="edit" data-rbac="application_management.edit"
                                 variant="destructive"
                                 onClick={handleCancel}
                                 disabled={processing}
                                 className="w-full sm:w-auto"
                               >
                                 <Ban className="h-4 w-4 mr-2" />Cancel Application
-                              </Button>
+                              </GuardedButton>
                               <Button
                                 data-rbac="application_management.edit"
                                 variant="outline"

@@ -11,6 +11,7 @@
  * unverifiable claim as Disputed with a mandatory reason.
  */
 import { useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2, ShieldCheck, ShieldX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -137,12 +138,12 @@ export function VerifyIdentifierDialog({
   return (
     <>
       <div className="flex items-center gap-2">
-        <Button size="sm" variant="outline" onClick={() => setMode('verify')}>
+        <Button data-rbac="licensee_management.edit" size="sm" variant="outline" onClick={() => setMode('verify')}>
           <ShieldCheck className="mr-1 h-4 w-4" /> Verify
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => setMode('reject')}>
+        <GuardedButton module="licensee_management" action="edit" data-rbac="licensee_management.edit" size="sm" variant="ghost" onClick={() => setMode('reject')}>
           <ShieldX className="mr-1 h-4 w-4" /> Reject
-        </Button>
+        </GuardedButton>
       </div>
 
       <Dialog open={mode === 'verify'} onOpenChange={(o) => { if (!o) close(); }}>
@@ -179,7 +180,7 @@ export function VerifyIdentifierDialog({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={close} disabled={submitting}>Cancel</Button>
-            <Button
+            <Button data-rbac="licensee_management.edit"
               onClick={submitVerify}
               disabled={submitting || !source.trim() || !notes.trim()}
             >
@@ -211,14 +212,14 @@ export function VerifyIdentifierDialog({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={close} disabled={submitting}>Cancel</Button>
-            <Button
+            <GuardedButton module="licensee_management" action="edit" data-rbac="licensee_management.edit"
               variant="destructive"
               onClick={submitReject}
               disabled={submitting || !reason.trim()}
             >
               {submitting && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
               Reject verification
-            </Button>
+            </GuardedButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

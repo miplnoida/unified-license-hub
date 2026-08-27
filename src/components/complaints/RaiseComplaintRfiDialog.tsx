@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -196,7 +197,7 @@ export function RaiseComplaintRfiDialog({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label>Questions</Label>
-              <Button type="button" variant="outline" size="sm" onClick={() => setQuestions((qs) => [...qs, emptyQuestion()])}>
+              <Button data-rbac="complaint_management.create" type="button" variant="outline" size="sm" onClick={() => setQuestions((qs) => [...qs, emptyQuestion()])}>
                 <Plus className="h-4 w-4 mr-1" />Add question
               </Button>
             </div>
@@ -251,17 +252,17 @@ export function RaiseComplaintRfiDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           {approvalRequired ? (
             <>
-              <Button variant="outline" onClick={() => submit('draft')} disabled={busy || !licenseeId}>
+              <Button data-rbac="complaint_management.edit" variant="outline" onClick={() => submit('draft')} disabled={busy || !licenseeId}>
                 Save draft
               </Button>
-              <Button onClick={() => submit('approval')} disabled={busy || !licenseeId}>
+              <Button data-rbac="complaint_management.submit" onClick={() => submit('approval')} disabled={busy || !licenseeId}>
                 {busy && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Submit for approval
               </Button>
             </>
           ) : (
-            <Button onClick={() => submit('dispatch')} disabled={busy || !licenseeId}>
+            <GuardedButton module="complaint_management" action="edit" data-rbac="complaint_management.edit" onClick={() => submit('dispatch')} disabled={busy || !licenseeId}>
               {busy && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Issue request
-            </Button>
+            </GuardedButton>
           )}
         </DialogFooter>
       </DialogContent>

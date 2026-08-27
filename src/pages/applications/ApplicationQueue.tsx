@@ -214,7 +214,7 @@ export default function ApplicationQueue() {
           description="Server-derived stage, priority, service level and next required action for every licensing case."
           actions={
             canManage ? (
-              <Button size="sm" disabled={selected.size === 0} onClick={() => setBulkOpen(true)}>
+              <Button data-rbac="application_management.edit" size="sm" disabled={selected.size === 0} onClick={() => setBulkOpen(true)}>
                 <Users className="mr-2 h-4 w-4" />
                 Triage {selected.size > 0 ? `(${selected.size})` : ''}
               </Button>

@@ -345,7 +345,7 @@ export default function ManagementReporting() {
                               <TableCell className="text-right font-mono text-sm">{value}</TableCell>
                               <TableCell>
                                 {def?.drilldown_supported !== false && (
-                                  <Button
+                                  <Button data-rbac="market_conduct.manage_complaints"
                                     variant="ghost"
                                     size="sm"
                                     className="h-7 text-xs"
@@ -601,7 +601,7 @@ export default function ManagementReporting() {
                           : 'Loading the pack version.'}
                       </CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" onClick={handleExport} disabled={!pack.data || logExport.isPending}>
+                    <Button data-rbac="market_conduct.run_conduct_analytics" variant="outline" size="sm" onClick={handleExport} disabled={!pack.data || logExport.isPending}>
                       <Download className="mr-1.5 h-3.5 w-3.5" />
                       Export and record
                     </Button>

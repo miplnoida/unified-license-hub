@@ -88,7 +88,7 @@ export function EntityConductTimeline({ entityId, entityName, events, isLoading,
             {canAnnotate && entityId && (
               <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm" variant="outline">
+                  <Button data-rbac="market_conduct.manage_complaints" size="sm" variant="outline">
                     <MessageSquarePlus className="h-3.5 w-3.5 mr-1" /> Annotate
                   </Button>
                 </DialogTrigger>
@@ -113,7 +113,7 @@ export function EntityConductTimeline({ entityId, entityName, events, isLoading,
                   </div>
                   <DialogFooter>
                     <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-                    <Button onClick={submit} disabled={save.isPending}>
+                    <Button data-rbac="market_conduct.manage_complaints" onClick={submit} disabled={save.isPending}>
                       {save.isPending && <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />}Save
                     </Button>
                   </DialogFooter>

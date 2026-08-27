@@ -121,7 +121,7 @@ export function LifecycleActions({
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setTarget(null)} disabled={pending}>Cancel</Button>
-            <Button onClick={submit} disabled={pending || reasonMissing}>
+            <Button data-rbac="ai_management.edit" onClick={submit} disabled={pending || reasonMissing}>
               {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Record status change
             </Button>

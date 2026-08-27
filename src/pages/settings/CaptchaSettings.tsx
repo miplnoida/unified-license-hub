@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -267,7 +268,7 @@ export default function CaptchaSettings() {
               <CardTitle className="text-base">Provider configurations</CardTitle>
               <CardDescription>Only one configuration can be active at a time.</CardDescription>
             </div>
-            <Button onClick={openCreate} size="sm">
+            <Button data-rbac="settings.edit" onClick={openCreate} size="sm">
               <Plus className="mr-2 h-4 w-4" /> Add configuration
             </Button>
           </CardHeader>
@@ -314,11 +315,11 @@ export default function CaptchaSettings() {
                       </TableCell>
                       <TableCell className="space-x-2 text-right">
                         {!config.is_active && (
-                          <Button variant="outline" size="sm" onClick={() => activate(config.id)}>
+                          <GuardedButton module="settings" action="edit" data-rbac="settings.edit" variant="outline" size="sm" onClick={() => activate(config.id)}>
                             Activate
-                          </Button>
+                          </GuardedButton>
                         )}
-                        <Button variant="outline" size="sm" onClick={() => openEdit(config)}>
+                        <Button data-rbac="settings.edit" variant="outline" size="sm" onClick={() => openEdit(config)}>
                           Edit
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => remove(config)}>
@@ -450,7 +451,7 @@ export default function CaptchaSettings() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={save} disabled={saving}>
+            <Button data-rbac="settings.edit" onClick={save} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save
             </Button>

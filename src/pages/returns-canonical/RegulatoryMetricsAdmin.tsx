@@ -72,7 +72,7 @@ export default function RegulatoryMetricsAdmin() {
         <PageHeader
           title="Returns Configuration"
           description="Return definitions, obligation rules and the regulatory metric catalogue"
-          actions={<Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />New metric</Button>}
+          actions={<Button data-rbac="returns_management.create" onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />New metric</Button>}
         />
 
         <Tabs defaultValue="metrics">
@@ -196,7 +196,7 @@ export default function RegulatoryMetricsAdmin() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={submit} disabled={saveMetric.isPending}>
+            <Button data-rbac="returns_management.edit" onClick={submit} disabled={saveMetric.isPending}>
               {saveMetric.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save metric
             </Button>
           </DialogFooter>

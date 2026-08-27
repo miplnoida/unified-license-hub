@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { ArrowLeft, RefreshCw, Plus, Trash2, AlertTriangle, Building2 } from 'lucide-react';
@@ -143,7 +144,7 @@ export default function FinancialGroupProfile() {
             </Select>
           </div>
           {canEdit && (
-            <Button
+            <Button data-rbac="prudential_supervision.edit"
               variant="outline"
               onClick={() => activePeriod && recompute.mutate(activePeriod)}
               disabled={!activePeriod || recompute.isPending}
@@ -223,7 +224,7 @@ export default function FinancialGroupProfile() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Parent / subsidiary structure</CardTitle>
               {canEdit && (
-                <Button size="sm" onClick={() => setMemberDialog({ member_role: 'subsidiary', consolidation_treatment: 'full' })}>
+                <Button data-rbac="prudential_supervision.create" size="sm" onClick={() => setMemberDialog({ member_role: 'subsidiary', consolidation_treatment: 'full' })}>
                   <Plus className="mr-2 h-4 w-4" />Add member
                 </Button>
               )}
@@ -284,7 +285,7 @@ export default function FinancialGroupProfile() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Exposure matrix</CardTitle>
               {canEdit && (
-                <Button size="sm" onClick={() => setExposureDialog({ exposure_type: 'loan', period_key: activePeriod, amount: 0 })}>
+                <Button data-rbac="prudential_supervision.edit" size="sm" onClick={() => setExposureDialog({ exposure_type: 'loan', period_key: activePeriod, amount: 0 })}>
                   <Plus className="mr-2 h-4 w-4" />Record exposure
                 </Button>
               )}
@@ -328,7 +329,7 @@ export default function FinancialGroupProfile() {
                           <TableCell className="text-xs text-muted-foreground">{e.source}</TableCell>
                           {canEdit && (
                             <TableCell className="text-right">
-                              <Button size="sm" variant="ghost" onClick={() => setExposureDialog(e)}>Edit</Button>
+                              <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" onClick={() => setExposureDialog(e)}>Edit</Button>
                               <Button size="sm" variant="ghost" onClick={() => deleteExposure.mutate(e.id)}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
@@ -492,16 +493,16 @@ export default function FinancialGroupProfile() {
           )}
           <DialogFooter className="justify-between">
             {memberDialog?.id && (
-              <Button
+              <GuardedButton module="prudential_supervision" action="edit" data-rbac="prudential_supervision.edit"
                 variant="ghost"
                 onClick={() => { removeMember.mutate(memberDialog.id); setMemberDialog(null); }}
               >
                 <Trash2 className="mr-2 h-4 w-4 text-destructive" />Remove
-              </Button>
+              </GuardedButton>
             )}
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setMemberDialog(null)}>Cancel</Button>
-              <Button
+              <Button data-rbac="prudential_supervision.edit"
                 disabled={!memberDialog?.licensee_id || saveMember.isPending}
                 onClick={async () => { await saveMember.mutateAsync(memberDialog); setMemberDialog(null); }}
               >Save</Button>
@@ -582,7 +583,7 @@ export default function FinancialGroupProfile() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setExposureDialog(null)}>Cancel</Button>
-            <Button
+            <Button data-rbac="prudential_supervision.edit"
               disabled={
                 !exposureDialog?.from_entity_id || !exposureDialog?.to_entity_id ||
                 exposureDialog?.from_entity_id === exposureDialog?.to_entity_id ||

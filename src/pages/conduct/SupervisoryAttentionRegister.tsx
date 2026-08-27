@@ -152,7 +152,7 @@ export default function SupervisoryAttentionRegister() {
         title="Supervisory attention"
         description="What has been raised for supervisory attention, how it was prioritised, and the planned response."
         actions={canOperate ? (
-          <Button onClick={() => setOpen(true)}>
+          <Button data-rbac="market_conduct.manage_complaints" onClick={() => setOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Raise attention item
           </Button>
         ) : undefined}
@@ -536,7 +536,7 @@ export default function SupervisoryAttentionRegister() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button
+            <Button data-rbac="market_conduct.manage_complaints"
               onClick={submit}
               disabled={create.isPending || title.trim().length < 3 || basis.trim().length < 20}
             >

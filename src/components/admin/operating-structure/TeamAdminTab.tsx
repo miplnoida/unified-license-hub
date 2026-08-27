@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -115,7 +116,7 @@ export function TeamAdminTab() {
       <Card className="lg:col-span-1">
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle>Teams</CardTitle>
-          <Button size="sm" onClick={openCreate}>New team</Button>
+          <Button data-rbac="user_management.create" size="sm" onClick={openCreate}>New team</Button>
         </CardHeader>
         <CardContent className="max-h-[560px] space-y-1 overflow-auto">
           {(teams.data || []).map((t: any) => (
@@ -154,7 +155,7 @@ export function TeamAdminTab() {
           </div>
           {team && (
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => openEdit(team)}>Edit</Button>
+              <Button data-rbac="user_management.edit" size="sm" variant="outline" onClick={() => openEdit(team)}>Edit</Button>
               <Button
                 size="sm"
                 variant={team.status === 'active' ? 'destructive' : 'secondary'}
@@ -198,7 +199,7 @@ export function TeamAdminTab() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button
+                <Button data-rbac="user_management.create"
                   size="sm"
                   disabled={!memberUser}
                   onClick={() =>
@@ -239,13 +240,13 @@ export function TeamAdminTab() {
                         </SelectContent>
                       </Select>
                       {m.status === 'active' && (
-                        <Button
+                        <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit"
                           size="sm"
                           variant="outline"
                           onClick={() => act(() => endMember.mutateAsync({ membershipId: m.id }), 'Membership ended')}
                         >
                           End
-                        </Button>
+                        </GuardedButton>
                       )}
                     </div>
                   </div>
@@ -274,7 +275,7 @@ export function TeamAdminTab() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button
+                <Button data-rbac="user_management.edit"
                   size="sm"
                   disabled={!mandateId}
                   onClick={() =>
@@ -292,7 +293,7 @@ export function TeamAdminTab() {
                         {fnName(m?.regulatory_function_id)}{' '}
                         <span className="text-xs text-muted-foreground">{m?.responsibility_type}</span>
                       </span>
-                      <Button
+                      <Button data-rbac="user_management.edit"
                         size="sm"
                         variant="outline"
                         onClick={() => act(() => endTeamMandate.mutateAsync({ id: l.id }), 'Mandate detached')}

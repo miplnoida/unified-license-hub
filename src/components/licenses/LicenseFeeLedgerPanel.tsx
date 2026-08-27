@@ -6,6 +6,7 @@
  * permission, maker/checker on verification, and a written waiver rationale.
  */
 import { useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -133,15 +134,15 @@ export default function LicenseFeeLedgerPanel({ licenseId }: { licenseId: string
                   </TableCell>
                   <TableCell className="space-x-2 text-right">
                     {r.status === 'due' && (
-                      <Button size="sm" variant="outline" onClick={() => setTarget({ row: r, operation: 'record_payment' })}>
+                      <Button data-rbac="license_management.edit" size="sm" variant="outline" onClick={() => setTarget({ row: r, operation: 'record_payment' })}>
                         Record payment
                       </Button>
                     )}
                     {r.status === 'paid' && (
-                      <Button size="sm" onClick={() => setTarget({ row: r, operation: 'verify_payment' })}>Verify</Button>
+                      <Button data-rbac="license_management.edit" size="sm" onClick={() => setTarget({ row: r, operation: 'verify_payment' })}>Verify</Button>
                     )}
                     {['due', 'paid'].includes(r.status) && (
-                      <Button size="sm" variant="ghost" onClick={() => setTarget({ row: r, operation: 'waive' })}>Waive</Button>
+                      <GuardedButton module="license_management" action="edit" data-rbac="license_management.edit" size="sm" variant="ghost" onClick={() => setTarget({ row: r, operation: 'waive' })}>Waive</GuardedButton>
                     )}
                     {['verified', 'waived', 'void'].includes(r.status) && (
                       <span className="text-xs text-muted-foreground">Closed</span>

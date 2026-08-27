@@ -5,6 +5,7 @@
  * shown as effectively unavailable rather than being rewritten.
  */
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -121,30 +122,30 @@ export function ClassificationStructureTab({ canWrite, onHistory }: { canWrite: 
   const StatusActions = ({ type, id, label, status }: { type: 'sector' | 'business_type'; id: string; label: string; status: string }) => (
     <div className="flex flex-wrap items-center gap-1">
       {status !== 'active' && (
-        <Button size="sm" variant="ghost" disabled={!canWrite}
+        <GuardedButton module="settings" action="edit" data-rbac="settings.edit" size="sm" variant="ghost" disabled={!canWrite}
           onClick={() => setStatusReq({ entityType: type, entityId: id, label, currentStatus: status, targetStatus: 'active' })}>
           <CheckCircle2 className="mr-1 h-3.5 w-3.5" />Enable
-        </Button>
+        </GuardedButton>
       )}
       {status === 'active' && (
-        <Button size="sm" variant="ghost" disabled={!canWrite}
+        <GuardedButton module="settings" action="edit" data-rbac="settings.edit" size="sm" variant="ghost" disabled={!canWrite}
           onClick={() => setStatusReq({ entityType: type, entityId: id, label, currentStatus: status, targetStatus: 'disabled' })}>
           <Ban className="mr-1 h-3.5 w-3.5" />Disable
-        </Button>
+        </GuardedButton>
       )}
       {status !== 'retired' && (
-        <Button size="sm" variant="ghost" disabled={!canWrite}
+        <GuardedButton module="settings" action="edit" data-rbac="settings.edit" size="sm" variant="ghost" disabled={!canWrite}
           onClick={() => setStatusReq({ entityType: type, entityId: id, label, currentStatus: status, targetStatus: 'retired' })}>
           <Archive className="mr-1 h-3.5 w-3.5" />Retire
-        </Button>
+        </GuardedButton>
       )}
       <Button size="sm" variant="ghost" onClick={() => onHistory(id)}>
         <History className="mr-1 h-3.5 w-3.5" />History
       </Button>
       {status === 'draft' && (
-        <Button size="sm" variant="ghost" disabled={!canWrite} onClick={() => deleteDraft(type, id, label)}>
+        <GuardedButton module="settings" action="edit" data-rbac="settings.edit" size="sm" variant="ghost" disabled={!canWrite} onClick={() => deleteDraft(type, id, label)}>
           <Trash2 className="mr-1 h-3.5 w-3.5" />Delete draft
-        </Button>
+        </GuardedButton>
       )}
     </div>
   );
@@ -170,7 +171,7 @@ export function ClassificationStructureTab({ canWrite, onHistory }: { canWrite: 
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={ClassificationStatusBadgeTone(bt.status) as any}>{bt.status.toUpperCase()}</Badge>
-          <Button size="sm" variant="ghost" disabled={!canWrite}
+          <Button data-rbac="settings.edit" size="sm" variant="ghost" disabled={!canWrite}
             onClick={() => setBtForm({
               id: bt.id, sector_id: bt.sector_id, code: bt.code, name: bt.name,
               local_legal_name: bt.local_legal_name || '', subject_form_code: bt.subject_form_code || 'none',
@@ -192,7 +193,7 @@ export function ClassificationStructureTab({ canWrite, onHistory }: { canWrite: 
           Sector family → local regulatory sector → regulated business type. Authorization schemes and classes are
           managed on the Authorization Schemes tab.
         </p>
-        <Button size="sm" disabled={!canWrite} onClick={() => setSectorForm({ ...emptySector })}>
+        <Button data-rbac="settings.edit" size="sm" disabled={!canWrite} onClick={() => setSectorForm({ ...emptySector })}>
           <Plus className="mr-1 h-4 w-4" />Add local sector
         </Button>
       </div>
@@ -233,7 +234,7 @@ export function ClassificationStructureTab({ canWrite, onHistory }: { canWrite: 
                         <Badge variant={ClassificationStatusBadgeTone(sector.status) as any}>
                           {(sector.status === 'inactive' ? 'disabled' : sector.status).toUpperCase()}
                         </Badge>
-                        <Button size="sm" variant="ghost" disabled={!canWrite}
+                        <Button data-rbac="settings.edit" size="sm" variant="ghost" disabled={!canWrite}
                           onClick={() => setSectorForm({
                             id: sector.id, code: sector.code || '', name: sector.name,
                             family_code: sector.family_code || 'none', display_group: sector.display_group || '',
@@ -241,7 +242,7 @@ export function ClassificationStructureTab({ canWrite, onHistory }: { canWrite: 
                           })}>
                           <Pencil className="mr-1 h-3.5 w-3.5" />Edit
                         </Button>
-                        <Button size="sm" variant="ghost" disabled={!canWrite}
+                        <Button data-rbac="settings.edit" size="sm" variant="ghost" disabled={!canWrite}
                           onClick={() => setBtForm(emptyBt(sector.id))}>
                           <Plus className="mr-1 h-3.5 w-3.5" />Add business type
                         </Button>
@@ -296,7 +297,7 @@ export function ClassificationStructureTab({ canWrite, onHistory }: { canWrite: 
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setSectorForm(null)}>Cancel</Button>
-            <Button onClick={saveSector}>Save</Button>
+            <Button data-rbac="settings.edit" onClick={saveSector}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -359,7 +360,7 @@ export function ClassificationStructureTab({ canWrite, onHistory }: { canWrite: 
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setBtForm(null)}>Cancel</Button>
-            <Button onClick={saveBt}>Save</Button>
+            <Button data-rbac="settings.edit" onClick={saveBt}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

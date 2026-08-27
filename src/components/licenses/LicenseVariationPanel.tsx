@@ -6,6 +6,7 @@
  * fee/verification gates before a variation can be approved.
  */
 import { useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -133,7 +134,7 @@ export default function LicenseVariationPanel({ licenseId }: { licenseId: string
                   {v.variation.status.replace(/_/g, ' ')}
                 </Badge>
                 {['requested', 'under_assessment'].includes(v.variation.status) && (
-                  <Button size="sm" onClick={() => setDecide(v)}>Decide</Button>
+                  <GuardedButton module="license_management" action="approve" data-rbac="license_management.approve" size="sm" onClick={() => setDecide(v)}>Decide</GuardedButton>
                 )}
               </div>
             </div>
@@ -199,7 +200,7 @@ export default function LicenseVariationPanel({ licenseId }: { licenseId: string
                   </div>
                 </div>
               ))}
-              <Button variant="outline" size="sm"
+              <Button data-rbac="license_management.create" variant="outline" size="sm"
                 onClick={() => setItems([...items, { field_key: '', label: '', current_value: '', requested_value: '' }])}>
                 <Plus className="mr-1 h-4 w-4" />Add change
               </Button>
@@ -241,7 +242,7 @@ export default function LicenseVariationPanel({ licenseId }: { licenseId: string
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDecide(null)}>Cancel</Button>
-            <Button onClick={submitDecision} disabled={op.isPending}>
+            <Button data-rbac="license_management.edit" onClick={submitDecision} disabled={op.isPending}>
               {op.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Record decision
             </Button>
           </DialogFooter>

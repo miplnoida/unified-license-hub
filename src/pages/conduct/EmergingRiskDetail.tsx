@@ -243,17 +243,17 @@ export default function EmergingRiskDetail() {
 
         {canAct && (
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => setAssessOpen(true)}>
+            <Button data-rbac="market_conduct.manage_complaints" onClick={() => setAssessOpen(true)}>
               <ClipboardCheck className="mr-1.5 h-4 w-4" /> Record an assessment
             </Button>
-            <Button variant="outline" onClick={() => setLinkOpen(true)}>
+            <Button data-rbac="market_conduct.manage_complaints" variant="outline" onClick={() => setLinkOpen(true)}>
               <Link2 className="mr-1.5 h-4 w-4" /> Link a record
             </Button>
-            <Button variant="outline" onClick={() => setFollowOpen(true)}>
+            <Button data-rbac="market_conduct.manage_complaints" variant="outline" onClick={() => setFollowOpen(true)}>
               <ShieldAlert className="mr-1.5 h-4 w-4" /> Record supervisory follow-up
             </Button>
             {nextStates.length > 0 && (
-              <Button variant="outline" onClick={() => setStatusOpen(true)}>
+              <Button data-rbac="market_conduct.manage_complaints" variant="outline" onClick={() => setStatusOpen(true)}>
                 Change status
               </Button>
             )}
@@ -501,7 +501,7 @@ export default function EmergingRiskDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setStatusOpen(false)}>Cancel</Button>
-            <Button onClick={submitStatus} disabled={transition.isPending || !nextStatus || statusRationale.trim().length < 10}>
+            <Button data-rbac="market_conduct.manage_complaints" onClick={submitStatus} disabled={transition.isPending || !nextStatus || statusRationale.trim().length < 10}>
               {transition.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Record change
             </Button>
@@ -570,7 +570,7 @@ export default function EmergingRiskDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAssessOpen(false)}>Cancel</Button>
-            <Button onClick={submitAssessment} disabled={assess.isPending || judgement.trim().length < 20}>
+            <Button data-rbac="market_conduct.manage_complaints" onClick={submitAssessment} disabled={assess.isPending || judgement.trim().length < 20}>
               {assess.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Record assessment
             </Button>
@@ -613,7 +613,7 @@ export default function EmergingRiskDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setLinkOpen(false)}>Cancel</Button>
-            <Button onClick={submitLink} disabled={link.isPending || recordId.trim().length < 8}>
+            <Button data-rbac="market_conduct.manage_complaints" onClick={submitLink} disabled={link.isPending || recordId.trim().length < 8}>
               {link.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Link record
             </Button>
@@ -653,7 +653,7 @@ export default function EmergingRiskDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setFollowOpen(false)}>Cancel</Button>
-            <Button onClick={submitFollowUp} disabled={followUp.isPending || followNote.trim().length < 10}>
+            <Button data-rbac="market_conduct.manage_complaints" onClick={submitFollowUp} disabled={followUp.isPending || followNote.trim().length < 10}>
               {followUp.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
               Record follow-up
             </Button>

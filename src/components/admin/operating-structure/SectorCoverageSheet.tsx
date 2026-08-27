@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -74,7 +75,7 @@ export function SectorCoverageSheet({
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Supporting staff
                 </p>
-                <Button size="sm" onClick={() => setStaffDialog({ open: true, userId: null })}>
+                <Button data-rbac="user_management.create" size="sm" onClick={() => setStaffDialog({ open: true, userId: null })}>
                   + Add supporting staff
                 </Button>
               </div>
@@ -89,20 +90,20 @@ export function SectorCoverageSheet({
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      <Button
+                      <Button data-rbac="user_management.edit"
                         size="sm"
                         variant="outline"
                         onClick={() => setStaffDialog({ open: true, userId: p.userId })}
                       >
                         Edit
                       </Button>
-                      <Button
+                      <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit"
                         size="sm"
                         variant="ghost"
                         onClick={() => removePerson(p.areas.map((a) => a.portfolioId))}
                       >
                         Remove
-                      </Button>
+                      </GuardedButton>
                     </div>
                   </div>
                 ))}

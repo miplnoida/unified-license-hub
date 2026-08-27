@@ -4,6 +4,7 @@
  * here (created via the metric formula pipeline, not this panel).
  */
 import { useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -96,7 +97,7 @@ export function RegulatoryMetricsPanel({ canWrite }: { canWrite: boolean }) {
   return (
     <div className="space-y-3">
       <div className="flex justify-end">
-        {canWrite && <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />New metric</Button>}
+        {canWrite && <Button data-rbac="returns_management.create" onClick={openCreate}><Plus className="mr-2 h-4 w-4" />New metric</Button>}
       </div>
       <Card><CardContent className="overflow-x-auto p-0">
         {isLoading ? (
@@ -126,7 +127,7 @@ export function RegulatoryMetricsPanel({ canWrite }: { canWrite: boolean }) {
                   {canWrite && (
                     <TableCell>
                       {m.is_active && (
-                        <Button variant="outline" size="sm" onClick={() => deactivate(m)}>Deactivate</Button>
+                        <GuardedButton module="returns_management" action="edit" data-rbac="returns_management.edit" variant="outline" size="sm" onClick={() => deactivate(m)}>Deactivate</GuardedButton>
                       )}
                     </TableCell>
                   )}
@@ -239,7 +240,7 @@ export function RegulatoryMetricsPanel({ canWrite }: { canWrite: boolean }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={submit} disabled={saveMetric.isPending}>
+            <Button data-rbac="returns_management.edit" onClick={submit} disabled={saveMetric.isPending}>
               {saveMetric.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save metric
             </Button>
           </DialogFooter>

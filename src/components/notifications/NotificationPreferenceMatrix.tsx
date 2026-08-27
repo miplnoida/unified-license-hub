@@ -287,7 +287,7 @@ export function NotificationPreferenceMatrix() {
           <Button variant="outline" onClick={reset} disabled={!isDirty || save.isPending}>
             <RotateCcw className="mr-2 h-4 w-4" />Reset
           </Button>
-          <Button onClick={onSave} disabled={!isDirty || save.isPending}>
+          <Button data-rbac="notification_management.dispatch" onClick={onSave} disabled={!isDirty || save.isPending}>
             {save.isPending
               ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               : <Save className="mr-2 h-4 w-4" />}

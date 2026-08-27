@@ -9,6 +9,7 @@
  *   Complaint — individual consumer case (linked, never merged)
  */
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Link, useParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -105,19 +106,19 @@ export default function ConductSignalDetail() {
               {!canManage && <Badge variant="outline">View only</Badge>}
               {canManage && open && (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => setAction('assign')}>Assign owner</Button>
+                  <GuardedButton module="market_conduct" action="manage_complaints" data-rbac="market_conduct.manage_complaints" variant="outline" size="sm" onClick={() => setAction('assign')}>Assign owner</GuardedButton>
                   {['new', 'under_review'].includes(s.status) && (
-                    <Button size="sm" onClick={() => setAction('validate')}>Validate</Button>
+                    <Button data-rbac="market_conduct.manage_complaints" size="sm" onClick={() => setAction('validate')}>Validate</Button>
                   )}
-                  <Button variant="outline" size="sm" onClick={() => setAction('dismiss')}>Dismiss</Button>
+                  <Button data-rbac="market_conduct.manage_complaints" variant="outline" size="sm" onClick={() => setAction('dismiss')}>Dismiss</Button>
                   {s.status === 'validated' && canEscalate && !s.escalated_alert_id && (
-                    <Button size="sm" onClick={() => setAction('escalate')}>Escalate to alert</Button>
+                    <Button data-rbac="market_conduct.manage_complaints" size="sm" onClick={() => setAction('escalate')}>Escalate to alert</Button>
                   )}
-                  <Button variant="outline" size="sm" onClick={() => setAction('link_alert')}>Link existing alert</Button>
+                  <Button data-rbac="market_conduct.manage_complaints" variant="outline" size="sm" onClick={() => setAction('link_alert')}>Link existing alert</Button>
                 </>
               )}
               {canManage && reopenable && (
-                <Button variant="outline" size="sm" onClick={() => setAction('reopen')}>Reopen</Button>
+                <GuardedButton module="market_conduct" action="manage_complaints" data-rbac="market_conduct.manage_complaints" variant="outline" size="sm" onClick={() => setAction('reopen')}>Reopen</GuardedButton>
               )}
             </div>
           }
@@ -370,7 +371,7 @@ function EvidenceCard({ items, canManage, onLink }: {
             Items held in the conduct evidence repository. Evidence is stored once and attached where it is relevant.
           </CardDescription>
         </div>
-        {canManage && <Button variant="outline" size="sm" onClick={onLink}>Attach evidence</Button>}
+        {canManage && <Button data-rbac="market_conduct.manage_complaints" variant="outline" size="sm" onClick={onLink}>Attach evidence</Button>}
       </CardHeader>
       <CardContent className="p-0">
         {items.length === 0 ? (
@@ -476,10 +477,10 @@ function ActionDialogs({ signalId, entityId, currentOwnerId, currentSeverity, cu
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={dismissAll}>Cancel</Button>
-            <Button disabled={!owner || busy} onClick={async () => {
+            <GuardedButton module="market_conduct" action="manage_complaints" data-rbac="market_conduct.manage_complaints" disabled={!owner || busy} onClick={async () => {
               await assign.mutateAsync({ id: signalId, ownerId: owner, note: note.trim() || undefined });
               dismissAll();
-            }}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Assign</Button>
+            }}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Assign</GuardedButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -526,7 +527,7 @@ function ActionDialogs({ signalId, entityId, currentOwnerId, currentSeverity, cu
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={dismissAll}>Cancel</Button>
-            <Button disabled={reason.trim().length < 20 || busy} onClick={async () => {
+            <Button data-rbac="market_conduct.manage_complaints" disabled={reason.trim().length < 20 || busy} onClick={async () => {
               await validate.mutateAsync({
                 id: signalId, rationale: reason.trim(), severity, systemicPotential: systemic,
                 riskScore: riskScore.trim() === '' ? null : Number(riskScore),
@@ -592,7 +593,7 @@ function ActionDialogs({ signalId, entityId, currentOwnerId, currentSeverity, cu
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={dismissAll}>Cancel</Button>
-            <Button disabled={reason.trim().length < 20 || busy} onClick={async () => {
+            <Button data-rbac="market_conduct.manage_complaints" disabled={reason.trim().length < 20 || busy} onClick={async () => {
               await escalate.mutateAsync({ id: signalId, rationale: reason.trim(), severity });
               dismissAll();
             }}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Escalate</Button>
@@ -642,7 +643,7 @@ function ActionDialogs({ signalId, entityId, currentOwnerId, currentSeverity, cu
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={dismissAll}>Cancel</Button>
-            <Button disabled={!alertId || alertId === 'none' || reason.trim().length < 10 || busy} onClick={async () => {
+            <Button data-rbac="market_conduct.manage_complaints" disabled={!alertId || alertId === 'none' || reason.trim().length < 10 || busy} onClick={async () => {
               await linkAlert.mutateAsync({ id: signalId, alertId, rationale: reason.trim(), linkType });
               dismissAll();
             }}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Link alert</Button>
@@ -684,7 +685,7 @@ function ActionDialogs({ signalId, entityId, currentOwnerId, currentSeverity, cu
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={dismissAll}>Cancel</Button>
-            <Button disabled={!evidenceId || evidenceId === 'none' || busy} onClick={async () => {
+            <Button data-rbac="market_conduct.manage_complaints" disabled={!evidenceId || evidenceId === 'none' || busy} onClick={async () => {
               await linkEvidence.mutateAsync({ id: signalId, evidenceId, note: note.trim() || undefined });
               dismissAll();
             }}>{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Attach</Button>

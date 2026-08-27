@@ -169,7 +169,7 @@ export default function LicenseConditionsPanel({
                         ) : ['satisfied', 'waived', 'closed'].includes(c.status) ? (
                           <span className="text-xs text-muted-foreground">Concluded</span>
                         ) : (
-                          <Button size="sm" variant="outline" onClick={() => { setEvidenceTarget(c); setSummary(''); }}>
+                          <Button data-rbac="license_management.edit" size="sm" variant="outline" onClick={() => { setEvidenceTarget(c); setSummary(''); }}>
                             <Upload className="mr-1 h-3.5 w-3.5" />Submit evidence
                           </Button>
                         )}
@@ -232,7 +232,7 @@ export default function LicenseConditionsPanel({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEvidenceTarget(null)}>Cancel</Button>
-            <Button disabled={summary.trim().length < 5 || submitEvidence.isPending} onClick={runSubmitEvidence}>
+            <Button data-rbac="license_management.edit" disabled={summary.trim().length < 5 || submitEvidence.isPending} onClick={runSubmitEvidence}>
               {submitEvidence.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
               Submit for review
             </Button>

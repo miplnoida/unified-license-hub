@@ -369,7 +369,7 @@ function ExprEditor({
           )}
         </div>
       ))}
-      <Button type="button" variant="outline" size="sm" onClick={addTerm}>
+      <Button data-rbac="prudential_supervision.create" type="button" variant="outline" size="sm" onClick={addTerm}>
         <Plus className="h-4 w-4 mr-2" />Add {depth > 0 ? 'value in group' : 'value'}
       </Button>
     </div>

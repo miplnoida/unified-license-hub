@@ -7,6 +7,7 @@
  * consumer actually picked a business from our register.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -69,9 +70,9 @@ function RespondentCard({
           {index === 0 ? 'The business or person your complaint is about' : `Also involved (${index + 1})`}
         </h3>
         {canRemove && (
-          <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
+          <GuardedButton module="complaint_management" action="edit" data-rbac="complaint_management.edit" type="button" variant="ghost" size="sm" onClick={onRemove}>
             <Trash2 className="mr-1 h-3.5 w-3.5" /> Remove
-          </Button>
+          </GuardedButton>
         )}
       </div>
 
@@ -117,7 +118,7 @@ function RespondentCard({
           {respondent.licensee_id && (
             <div className="flex items-center justify-between rounded border bg-muted/40 px-3 py-2 text-sm">
               <span className="font-medium">{respondent.selected_name}</span>
-              <Button
+              <Button data-rbac="complaint_management.edit"
                 type="button"
                 variant="ghost"
                 size="sm"
@@ -323,7 +324,7 @@ export function StepRespondents({
 
       <FieldError id="respondents" error={errors.respondents} />
 
-      <Button
+      <Button data-rbac="complaint_management.edit"
         type="button"
         variant="outline"
         onClick={() => patch({ respondents: [...s.respondents, newRespondent('regulated')] })}

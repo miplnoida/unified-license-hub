@@ -142,11 +142,11 @@ export default function EntityFilingWorkspace() {
           backLabel="Back to returns"
           actions={canEdit ? (
             <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleValidate} disabled={validateFiling.isPending}>
+              <Button data-rbac="returns_management.edit" variant="outline" size="sm" onClick={handleValidate} disabled={validateFiling.isPending}>
                 <ShieldCheck className="mr-1 h-4 w-4" />Validate
               </Button>
               {capabilities.canSubmit && (
-                <Button
+                <Button data-rbac="returns_management.submit"
                   size="sm"
                   onClick={() => setActiveStep(REVIEW_STEP)}
                   variant={readyToSubmit ? 'default' : 'outline'}
@@ -249,7 +249,7 @@ export default function EntityFilingWorkspace() {
                     </Button>
                   );
                 })}
-                <Button
+                <Button data-rbac="returns_management.submit"
                   type="button"
                   size="sm"
                   variant={isReviewStep ? 'default' : 'outline'}
@@ -425,11 +425,11 @@ export default function EntityFilingWorkspace() {
 
                   {canEdit && (
                     <div className="flex flex-wrap justify-end gap-2">
-                      <Button variant="outline" onClick={handleValidate} disabled={validateFiling.isPending}>
+                      <Button data-rbac="returns_management.edit" variant="outline" onClick={handleValidate} disabled={validateFiling.isPending}>
                         <ShieldCheck className="mr-2 h-4 w-4" />Validate return
                       </Button>
                       {capabilities.canSubmit && (
-                        <Button
+                        <Button data-rbac="returns_management.submit"
                           onClick={handleSubmit}
                           disabled={
                             submitFiling.isPending
@@ -535,7 +535,7 @@ function RequestRow({
       ) : canRespond ? (
         <div className="mt-2 space-y-2">
           <Textarea rows={2} placeholder="Respond to this request…" value={text} onChange={(e) => setText(e.target.value)} />
-          <Button size="sm" disabled={text.trim().length < 10} onClick={() => onRespond(text.trim())}>Submit response</Button>
+          <Button data-rbac="returns_management.submit" size="sm" disabled={text.trim().length < 10} onClick={() => onRespond(text.trim())}>Submit response</Button>
         </div>
       ) : (
         <p className="mt-2 text-xs text-muted-foreground">Awaiting a response.</p>

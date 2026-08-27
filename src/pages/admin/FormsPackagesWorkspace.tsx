@@ -11,6 +11,7 @@
  * Every write is a governed RPC; nothing here writes the Wave B tables directly.
  */
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -81,7 +82,7 @@ function FieldSemanticsTab({ canWrite }: { canWrite: boolean }) {
               </Select>
             </div>
             {canWrite && (
-              <Button
+              <Button data-rbac="form_management.create"
                 variant="outline" size="sm"
                 disabled={backfillFieldDefinitions.isPending}
                 onClick={() => backfillFieldDefinitions.mutate(templateId === NONE ? null : templateId, {
@@ -94,7 +95,7 @@ function FieldSemanticsTab({ canWrite }: { canWrite: boolean }) {
               </Button>
             )}
             {canWrite && (
-              <Button size="sm" onClick={() => setNewConcept({ code: '', name: '', domain: NONE, sensitivity: 'INTERNAL' })}>
+              <Button data-rbac="form_management.create" size="sm" onClick={() => setNewConcept({ code: '', name: '', domain: NONE, sensitivity: 'INTERNAL' })}>
                 <Plus className="mr-1.5 h-3.5 w-3.5" /> New concept
               </Button>
             )}
@@ -201,7 +202,7 @@ function FieldSemanticsTab({ canWrite }: { canWrite: boolean }) {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewConcept(null)}>Cancel</Button>
-            <Button
+            <Button data-rbac="form_management.create"
               disabled={!newConcept?.code || !newConcept?.name || save.isPending}
               onClick={() => newConcept && save.mutate(
                 {
@@ -249,7 +250,7 @@ function PackagesTab({ canWrite, canPublish }: { canWrite: boolean; canPublish: 
         </CardHeader>
         <CardContent className="space-y-2">
           {canWrite && (
-            <Button size="sm" className="w-full" onClick={() => setDraft({ code: '', name: '', description: '' })}>
+            <Button data-rbac="form_management.create" size="sm" className="w-full" onClick={() => setDraft({ code: '', name: '', description: '' })}>
               <Plus className="mr-1.5 h-3.5 w-3.5" /> New package
             </Button>
           )}
@@ -297,7 +298,7 @@ function PackagesTab({ canWrite, canPublish }: { canWrite: boolean; canPublish: 
                 <Switch checked={addRequired} onCheckedChange={setAddRequired} id="req" />
                 <Label htmlFor="req" className="text-xs">Mandatory</Label>
               </div>
-              <Button
+              <Button data-rbac="form_management.create"
                 size="sm"
                 disabled={addTemplate === NONE || saveItem.isPending}
                 onClick={() => saveItem.mutate(
@@ -308,7 +309,7 @@ function PackagesTab({ canWrite, canPublish }: { canWrite: boolean; canPublish: 
                 Add
               </Button>
               {canPublish && active.status !== 'published' && (
-                <Button
+                <GuardedButton module="form_management" action="edit" data-rbac="form_management.edit"
                   size="sm" variant="outline"
                   onClick={() => savePackage.mutate(
                     { id: active.id, code: active.code, name: active.name, status: 'published' },
@@ -316,7 +317,7 @@ function PackagesTab({ canWrite, canPublish }: { canWrite: boolean; canPublish: 
                   )}
                 >
                   Publish package
-                </Button>
+                </GuardedButton>
               )}
             </div>
           )}
@@ -384,7 +385,7 @@ function PackagesTab({ canWrite, canPublish }: { canWrite: boolean; canPublish: 
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setDraft(null)}>Cancel</Button>
-            <Button
+            <Button data-rbac="form_management.create"
               disabled={!draft?.code || !draft?.name || savePackage.isPending}
               onClick={() => draft && savePackage.mutate(
                 { code: draft.code, name: draft.name, description: draft.description, status: 'draft' },
@@ -422,7 +423,7 @@ function ApplicabilityTab({ canWrite }: { canWrite: boolean }) {
         </CardHeader>
         <CardContent className="space-y-3">
           {canWrite && (
-            <Button size="sm" onClick={() => setDraft({ package_id: NONE, lifecycle_key: '', application_type: '', license_type: '', request_type_key: '', priority: '0' })}>
+            <Button data-rbac="form_management.create" size="sm" onClick={() => setDraft({ package_id: NONE, lifecycle_key: '', application_type: '', license_type: '', request_type_key: '', priority: '0' })}>
               <Plus className="mr-1.5 h-3.5 w-3.5" /> New rule
             </Button>
           )}
@@ -484,7 +485,7 @@ function ApplicabilityTab({ canWrite }: { canWrite: boolean }) {
               </div>
             ))}
           </div>
-          <Button size="sm" onClick={() => preview.mutate(ctx)} disabled={preview.isPending}>
+          <Button data-rbac="form_management.edit" size="sm" onClick={() => preview.mutate(ctx)} disabled={preview.isPending}>
             {preview.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />} Resolve
           </Button>
           {preview.data && (
@@ -539,7 +540,7 @@ function ApplicabilityTab({ canWrite }: { canWrite: boolean }) {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setDraft(null)}>Cancel</Button>
-            <Button
+            <Button data-rbac="form_management.edit"
               disabled={!draft || draft.package_id === NONE || saveRule.isPending}
               onClick={() => draft && saveRule.mutate(
                 {
@@ -633,7 +634,7 @@ function MigrationWorkbenchTab({ canWrite }: { canWrite: boolean }) {
                   <TableCell className="font-mono text-xs">{t.field_count}</TableCell>
                   {canWrite && (
                     <TableCell className="text-right">
-                      <Button
+                      <Button data-rbac="form_management.edit"
                         size="sm" variant="outline"
                         disabled={!t.suggested_purpose_key || decide.isPending}
                         onClick={() => decide.mutate(
@@ -666,7 +667,7 @@ function MigrationWorkbenchTab({ canWrite }: { canWrite: boolean }) {
         </CardHeader>
         <CardContent className="space-y-3">
           {canWrite && (
-            <Button
+            <Button data-rbac="form_management.edit"
               size="sm" variant="outline"
               disabled={backfillApplicationRequirements.isPending}
               onClick={() => backfillApplicationRequirements.mutate(null, {
@@ -703,7 +704,7 @@ function MigrationWorkbenchTab({ canWrite }: { canWrite: boolean }) {
                     <TableCell><Badge variant="outline" className="text-xs">{a.classification}</Badge></TableCell>
                     {canWrite && (
                       <TableCell className="text-right">
-                        <Button
+                        <Button data-rbac="form_management.edit"
                           size="sm" variant="ghost"
                           disabled={decide.isPending}
                           onClick={() => decide.mutate(

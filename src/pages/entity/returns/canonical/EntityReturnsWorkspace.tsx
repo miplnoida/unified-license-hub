@@ -125,7 +125,7 @@ export default function EntityReturnsWorkspace() {
                   </SelectContent>
                 </Select>
               )}
-              <Button onClick={() => setNewReturnOpen(true)}>
+              <Button data-rbac="returns_management.create" onClick={() => setNewReturnOpen(true)}>
                 <Plus className="mr-1 h-4 w-4" />New Return
               </Button>
             </div>
@@ -174,7 +174,7 @@ export default function EntityReturnsWorkspace() {
                 ) : myFilings.length === 0 ? (
                   <div className="space-y-3 py-12 text-center">
                     <p className="text-sm text-muted-foreground">You have not started any returns yet.</p>
-                    <Button onClick={() => setNewReturnOpen(true)} disabled={!entityId}>
+                    <Button data-rbac="returns_management.create" onClick={() => setNewReturnOpen(true)} disabled={!entityId}>
                       <Plus className="mr-1 h-4 w-4" />New Return
                     </Button>
                   </div>

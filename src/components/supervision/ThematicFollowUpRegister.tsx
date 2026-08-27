@@ -139,7 +139,7 @@ export function ThematicFollowUpRegister({ reviewId, rows, onChange }: Props) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setVerifyTarget(null)}>Cancel</Button>
-            <Button
+            <Button data-rbac="prudential_supervision.edit"
               disabled={['verified', 'not_satisfied'].includes(vStatus) && vNotes.trim().length < 10}
               onClick={() => run(() => verify.mutateAsync({
                 _action_id: verifyTarget.id, _verification_status: vStatus,
@@ -161,7 +161,7 @@ export function ThematicFollowUpRegister({ reviewId, rows, onChange }: Props) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setExtendTarget(null)}>Cancel</Button>
-            <Button disabled={!newDue || extReason.trim().length < 10}
+            <Button data-rbac="prudential_supervision.edit" disabled={!newDue || extReason.trim().length < 10}
               onClick={() => run(() => extend.mutateAsync({ _action_id: extendTarget.id, _new_due_date: newDue, _reason: extReason.trim() }),
                 'Due date extended', () => setExtendTarget(null))}>
               Extend
@@ -180,7 +180,7 @@ export function ThematicFollowUpRegister({ reviewId, rows, onChange }: Props) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setFollowTarget(null)}>Cancel</Button>
-            <Button onClick={() => run(() => setFollowUp.mutateAsync({
+            <Button data-rbac="prudential_supervision.edit" onClick={() => run(() => setFollowUp.mutateAsync({
               _action_id: followTarget.id,
               _follow_up_due_date: followDate || null,
               _responsible_officer_id: followTarget.responsible_officer_id || null,

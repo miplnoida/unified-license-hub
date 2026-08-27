@@ -186,7 +186,7 @@ export function RegisterIdentifierDialog({ entityId }: RegisterIdentifierDialogP
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline">
+        <Button data-rbac="licensee_management.create" size="sm" variant="outline">
           <Plus className="mr-1 h-4 w-4" /> Add identifier
         </Button>
       </DialogTrigger>

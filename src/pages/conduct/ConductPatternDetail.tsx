@@ -126,27 +126,27 @@ export default function ConductPatternDetail() {
               {!canManage && <Badge variant="outline">View only</Badge>}
               {canManage && (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => setAction('review')}>
+                  <Button data-rbac="market_conduct.manage_complaints" variant="outline" size="sm" onClick={() => setAction('review')}>
                     Record review decision
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setAction('link_evidence')}>
+                  <Button data-rbac="market_conduct.manage_complaints" variant="outline" size="sm" onClick={() => setAction('link_evidence')}>
                     Attach evidence
                   </Button>
                   {raisedSignal ? (
-                    <Button variant="ghost" size="sm" asChild>
+                    <Button data-rbac="market_conduct.manage_complaints" variant="ghost" size="sm" asChild>
                       <Link to={`/conduct/signals/${raisedSignal.id}`}>
                         Signal {raisedSignal.reference} raised <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
                       </Link>
                     </Button>
                   ) : (
-                    <Button size="sm" onClick={() => setAction('raise_signal')}>Raise conduct signal</Button>
+                    <Button data-rbac="market_conduct.manage_complaints" size="sm" onClick={() => setAction('raise_signal')}>Raise conduct signal</Button>
                   )}
                   {raisedAlert ? (
-                    <Button variant="ghost" size="sm" asChild>
+                    <Button data-rbac="market_conduct.manage_complaints" variant="ghost" size="sm" asChild>
                       <Link to="/conduct/alerts">Alert already raised <ArrowUpRight className="ml-1 h-3.5 w-3.5" /></Link>
                     </Button>
                   ) : (
-                    <Button size="sm" variant="secondary" onClick={() => setAction('raise_alert')}>
+                    <Button data-rbac="market_conduct.manage_complaints" size="sm" variant="secondary" onClick={() => setAction('raise_alert')}>
                       Raise conduct alert
                     </Button>
                   )}
@@ -393,7 +393,7 @@ function EvidenceCard({ items, canManage, onLink }: {
             Items held in the conduct evidence repository. Evidence is stored once and attached where it is relevant.
           </CardDescription>
         </div>
-        {canManage && <Button variant="outline" size="sm" onClick={onLink}>Attach evidence</Button>}
+        {canManage && <Button data-rbac="market_conduct.manage_complaints" variant="outline" size="sm" onClick={onLink}>Attach evidence</Button>}
       </CardHeader>
       <CardContent className="p-0">
         {items.length === 0 ? (
@@ -591,7 +591,7 @@ function PatternActions({ clusterId, status, entityId, action, close }: {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={dismissAll} disabled={busy}>Cancel</Button>
-            <Button
+            <Button data-rbac="market_conduct.manage_complaints"
               disabled={note.trim().length < 10 || busy}
               onClick={async () => {
                 await review.mutateAsync({ id: clusterId, status: decision, note: note.trim() });
@@ -638,7 +638,7 @@ function PatternActions({ clusterId, status, entityId, action, close }: {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={dismissAll} disabled={busy}>Cancel</Button>
-            <Button
+            <Button data-rbac="market_conduct.manage_complaints"
               disabled={!evidenceId || evidenceId === 'none' || busy}
               onClick={async () => {
                 await linkEvidence.mutateAsync({ id: clusterId, evidenceId, note: note.trim() || undefined });
@@ -672,7 +672,7 @@ function PatternActions({ clusterId, status, entityId, action, close }: {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={dismissAll} disabled={busy}>Cancel</Button>
-            <Button
+            <Button data-rbac="market_conduct.manage_complaints"
               disabled={note.trim().length < 10 || busy}
               onClick={async () => {
                 await raiseSignal.mutateAsync({ id: clusterId, rationale: note.trim() });
@@ -706,7 +706,7 @@ function PatternActions({ clusterId, status, entityId, action, close }: {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={dismissAll} disabled={busy}>Cancel</Button>
-            <Button
+            <Button data-rbac="market_conduct.manage_complaints"
               disabled={note.trim().length < 10 || busy}
               onClick={async () => {
                 await raiseAlert.mutateAsync({ id: clusterId, rationale: note.trim() });

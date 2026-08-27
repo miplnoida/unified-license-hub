@@ -56,7 +56,7 @@ export default function FinancialGroupsList() {
         {canManage && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" />New group</Button>
+              <Button data-rbac="prudential_supervision.create"><Plus className="mr-2 h-4 w-4" />New group</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Create financial group</DialogTitle></DialogHeader>

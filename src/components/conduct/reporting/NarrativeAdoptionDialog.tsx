@@ -121,7 +121,7 @@ export function NarrativeAdoptionDialog({ open, onOpenChange, narrative, submitt
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={submitting || sectionMissing || rationaleMissing}>
+          <Button data-rbac="market_conduct.manage_complaints" onClick={handleSubmit} disabled={submitting || sectionMissing || rationaleMissing}>
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Adopt into report
           </Button>

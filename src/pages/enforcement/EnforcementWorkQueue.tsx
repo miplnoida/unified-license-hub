@@ -172,7 +172,7 @@ export default function EnforcementWorkQueue() {
                   onKeyDown={(e) => { if (e.key === 'Enter') set('q', (e.target as HTMLInputElement).value); }}
                 />
               </div>
-              <Button size="sm" variant={includeClosed ? 'default' : 'outline'} onClick={() => set('closed', includeClosed ? null : '1')}>
+              <Button data-rbac="enforcement_management.edit" size="sm" variant={includeClosed ? 'default' : 'outline'} onClick={() => set('closed', includeClosed ? null : '1')}>
                 Include closed
               </Button>
               {(stageParam || sourceParam || slaParam || entityId || search || includeClosed) && (

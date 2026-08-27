@@ -118,7 +118,7 @@ export function ComplaintPhasePanel({ complaintId, onOpenSection }: Props) {
           <div className="rounded-md border border-primary/40 bg-primary/5 p-3">
             <p className="text-sm font-medium">{s.next_action}</p>
             {section && (
-              <Button
+              <Button data-rbac="complaint_management.edit"
                 size="sm"
                 variant="outline"
                 className="mt-2 h-7 px-2 text-xs"

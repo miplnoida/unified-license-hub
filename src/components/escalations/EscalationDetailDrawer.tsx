@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -114,14 +115,14 @@ export function EscalationDetailDrawer({ id, onOpenChange }: Props) {
                       <div className="text-xs text-muted-foreground mt-1">{narrative.trim().length}/50 characters</div>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" disabled={busy || narrative.trim().length < 50}
+                      <Button data-rbac="complaint_management.edit" size="sm" disabled={busy || narrative.trim().length < 50}
                         onClick={() => resolve.mutate({ id: e.id, narrative, rootCause })}>
                         {resolve.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}Resolve
                       </Button>
-                      <Button size="sm" variant="outline" disabled={busy || narrative.trim().length < 50}
+                      <GuardedButton module="complaint_management" action="edit" data-rbac="complaint_management.edit" size="sm" variant="outline" disabled={busy || narrative.trim().length < 50}
                         onClick={() => resolve.mutate({ id: e.id, narrative, rootCause, close: true })}>
                         Resolve &amp; close
-                      </Button>
+                      </GuardedButton>
                     </div>
                   </CardContent>
                 </Card>

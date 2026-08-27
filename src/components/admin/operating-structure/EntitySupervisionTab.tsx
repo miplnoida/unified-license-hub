@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -225,7 +226,7 @@ export function EntitySupervisionTab() {
           <CardTitle>Entity supervision ({rows.length})</CardTitle>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm">Assign supervision</Button>
+              <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit" size="sm">Assign supervision</GuardedButton>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader><DialogTitle>Assign entity supervision</DialogTitle></DialogHeader>
@@ -317,7 +318,7 @@ export function EntitySupervisionTab() {
                 staff. The governed routine rejects only missing permission, wrong scope, ineligible
                 or expired team membership, portfolio restriction, or lead = alternate.
               </p>
-              <Button onClick={submit} disabled={assign.isPending}>Assign</Button>
+              <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit" onClick={submit} disabled={assign.isPending}>Assign</GuardedButton>
             </DialogContent>
           </Dialog>
         </CardHeader>
@@ -385,8 +386,8 @@ export function EntitySupervisionTab() {
                     <td className="p-2">
                       {a.status === 'active' && (
                         <div className="flex gap-1">
-                          <Button size="sm" variant="outline" onClick={() => openTransfer(a)}>Transfer</Button>
-                          <Button size="sm" variant="ghost" onClick={() => closeAssignment(a.id)}>End</Button>
+                          <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit" size="sm" variant="outline" onClick={() => openTransfer(a)}>Transfer</GuardedButton>
+                          <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit" size="sm" variant="ghost" onClick={() => closeAssignment(a.id)}>End</GuardedButton>
                         </div>
                       )}
                     </td>
@@ -466,9 +467,9 @@ export function EntitySupervisionTab() {
               </p>
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" onClick={() => setTransferFor(null)}>Cancel</Button>
-                <Button onClick={submitTransfer} disabled={transfer.isPending || !tReason.trim()}>
+                <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit" onClick={submitTransfer} disabled={transfer.isPending || !tReason.trim()}>
                   Transfer supervision
-                </Button>
+                </GuardedButton>
               </div>
             </div>
           )}

@@ -213,12 +213,12 @@ export default function InterventionDetail() {
 
         <div className="flex flex-wrap gap-2">
           {iv.status === 'PROPOSED' && canApprove && (
-            <Button onClick={() => { setDecideRationale(''); setDecideOpen(true); }}>
+            <Button data-rbac="market_conduct.manage_complaints" onClick={() => { setDecideRationale(''); setDecideOpen(true); }}>
               Record an endorsement decision
             </Button>
           )}
           {canAct && nextOptions.length > 0 && (
-            <Button
+            <Button data-rbac="market_conduct.manage_complaints"
               variant="outline"
               onClick={() => { setNextStatus(''); setStatusRationale(''); setStatusOpen(true); }}
             >
@@ -226,20 +226,20 @@ export default function InterventionDetail() {
             </Button>
           )}
           {canAct && (iv.status === 'ACTIVE' || iv.status === 'ENDORSED') && (
-            <Button variant="outline" onClick={() => setOutcomeOpen(true)}>Record the outcome</Button>
+            <Button data-rbac="market_conduct.manage_complaints" variant="outline" onClick={() => setOutcomeOpen(true)}>Record the outcome</Button>
           )}
           {canOperate && iv.outcome_result && !iv.followup_completed_at && (
-            <Button variant="outline" onClick={() => { setFuNote(''); setFuDue(iv.followup_due_date ?? ''); setFuComplete(false); setFuOpen(true); }}>
+            <Button data-rbac="market_conduct.manage_complaints" variant="outline" onClick={() => { setFuNote(''); setFuDue(iv.followup_due_date ?? ''); setFuComplete(false); setFuOpen(true); }}>
               Record follow-up
             </Button>
           )}
           {canOperate && cat?.canonical_module && !iv.canonical_record_id && (
-            <Button variant="outline" onClick={() => setLinkOpen(true)}>
+            <Button data-rbac="market_conduct.manage_complaints" variant="outline" onClick={() => setLinkOpen(true)}>
               Link the {cat.canonical_module} record
             </Button>
           )}
           {canOperate && data?.attention && iv.outcome_result && (
-            <Button variant="outline" onClick={() => { setAssessment(''); setRaOpen(true); }}>
+            <Button data-rbac="market_conduct.manage_complaints" variant="outline" onClick={() => { setAssessment(''); setRaOpen(true); }}>
               Reassess the concern
             </Button>
           )}
@@ -588,7 +588,7 @@ export default function InterventionDetail() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDecideOpen(false)}>Cancel</Button>
-              <Button
+              <Button data-rbac="market_conduct.manage_complaints"
                 disabled={decideRationale.trim().length < 20 || decide.isPending}
                 onClick={() => {
                   decide.mutate(
@@ -633,7 +633,7 @@ export default function InterventionDetail() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setStatusOpen(false)}>Cancel</Button>
-              <Button
+              <Button data-rbac="market_conduct.manage_complaints"
                 disabled={!nextStatus || statusRationale.trim().length < 20 || transition.isPending}
                 onClick={() => {
                   transition.mutate(
@@ -707,7 +707,7 @@ export default function InterventionDetail() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOutcomeOpen(false)}>Cancel</Button>
-              <Button
+              <Button data-rbac="market_conduct.manage_complaints"
                 disabled={!result || outRationale.trim().length < 20 || outcome.isPending}
                 onClick={() => {
                   outcome.mutate(
@@ -766,7 +766,7 @@ export default function InterventionDetail() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setFuOpen(false)}>Cancel</Button>
-              <Button
+              <Button data-rbac="market_conduct.manage_complaints"
                 disabled={fuNote.trim().length < 20 || followup.isPending}
                 onClick={() => {
                   followup.mutate(
@@ -811,7 +811,7 @@ export default function InterventionDetail() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setLinkOpen(false)}>Cancel</Button>
-              <Button
+              <Button data-rbac="market_conduct.manage_complaints"
                 disabled={linkRecordId.trim().length < 10 || linkCanonical.isPending}
                 onClick={() => {
                   linkCanonical.mutate(
@@ -879,7 +879,7 @@ export default function InterventionDetail() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setRaOpen(false)}>Cancel</Button>
-              <Button
+              <Button data-rbac="market_conduct.manage_complaints"
                 disabled={assessment.trim().length < 20 || reassess.isPending}
                 onClick={() => {
                   reassess.mutate(

@@ -189,18 +189,18 @@ export default function SupervisoryPlanDetail() {
         {canAct && (
           <div className="flex flex-wrap gap-2">
             {offeredOptions.length > 0 && (
-              <Button onClick={() => { setNextStatus(''); setStatusRationale(''); setStatusOpen(true); }}>
+              <Button data-rbac="market_conduct.manage_complaints" onClick={() => { setNextStatus(''); setStatusRationale(''); setStatusOpen(true); }}>
                 <Flag className="mr-1.5 h-4 w-4" /> Change status
               </Button>
             )}
-            <Button
+            <Button data-rbac="market_conduct.manage_complaints"
               variant="outline"
               onClick={() => { setMsId(null); setMsTitle(''); setMsDetail(''); setMsDue(''); setMsOpen(true); }}
             >
               <Plus className="mr-1.5 h-4 w-4" /> Add a milestone
             </Button>
             {(plan.status === 'APPROVED' || plan.status === 'ACTIVE') && (
-              <Button variant="outline" onClick={() => setIvOpen(true)}>
+              <Button data-rbac="market_conduct.manage_complaints" variant="outline" onClick={() => setIvOpen(true)}>
                 Raise an intervention under this plan
               </Button>
             )}
@@ -372,7 +372,7 @@ export default function SupervisoryPlanDetail() {
                           </TableCell>
                           {canAct && (
                             <TableCell className="space-x-1 text-right">
-                              <Button
+                              <Button data-rbac="market_conduct.manage_complaints"
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
@@ -383,7 +383,7 @@ export default function SupervisoryPlanDetail() {
                                 Edit
                               </Button>
                               {m.status === 'OPEN' && (
-                                <Button
+                                <Button data-rbac="market_conduct.manage_complaints"
                                   variant="outline"
                                   size="sm"
                                   disabled={milestone.isPending}
@@ -553,7 +553,7 @@ export default function SupervisoryPlanDetail() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setStatusOpen(false)}>Cancel</Button>
-              <Button
+              <Button data-rbac="market_conduct.manage_complaints"
                 disabled={!nextStatus || statusRationale.trim().length < 20 || transition.isPending}
                 onClick={() => {
                   transition.mutate(
@@ -595,7 +595,7 @@ export default function SupervisoryPlanDetail() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setMsOpen(false)}>Cancel</Button>
-              <Button
+              <Button data-rbac="market_conduct.manage_complaints"
                 disabled={msTitle.trim().length < 3 || milestone.isPending}
                 onClick={() => {
                   milestone.mutate(
@@ -677,7 +677,7 @@ export default function SupervisoryPlanDetail() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIvOpen(false)}>Cancel</Button>
-              <Button
+              <Button data-rbac="market_conduct.manage_complaints"
                 disabled={!ivCode || ivTitle.trim().length < 3 || ivBasis.trim().length < 20 || initiate.isPending}
                 onClick={() => {
                   initiate.mutate(

@@ -214,7 +214,7 @@ export function MessageThreadPanel({
           {drafts.map((d) => (
             <div key={d.id} className="flex items-center gap-2 text-xs">
               <span className="line-clamp-1 flex-1 text-muted-foreground">{htmlToPlainText(d.body) || 'Empty draft'}</span>
-              <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => editDraft(d)}>
+              <Button data-rbac="notification_management.dispatch" size="sm" variant="ghost" className="h-6 px-2" onClick={() => editDraft(d)}>
                 <Pencil className="h-3 w-3 mr-1" />Edit
               </Button>
               <Button size="sm" variant="ghost" className="h-6 px-2 text-destructive" onClick={() => removeDraft(d.id)}>
@@ -294,8 +294,8 @@ export function MessageThreadPanel({
               <Button size="sm" variant="ghost" onClick={() => setPreview((p) => !p)} disabled={busy || !plain}>
                 {preview ? 'Edit' : 'Preview'}
               </Button>
-              <Button size="sm" variant="outline" onClick={() => submit(true)} disabled={busy}>Save draft</Button>
-              <Button size="sm" onClick={() => submit(false)} disabled={busy}>
+              <Button data-rbac="notification_management.dispatch" size="sm" variant="outline" onClick={() => submit(true)} disabled={busy}>Save draft</Button>
+              <Button data-rbac="notification_management.view" size="sm" onClick={() => submit(false)} disabled={busy}>
                 {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
                 Send
               </Button>

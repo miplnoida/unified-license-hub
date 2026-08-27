@@ -197,7 +197,7 @@ export default function PfmiAssessmentWizard() {
                       onClick={() => setIndex(i => Math.max(0, i - 1))}>
                       <ArrowLeft className="h-4 w-4 mr-2" />Previous
                     </Button>
-                    <Button size="sm" variant="outline" disabled={index >= applicable.length - 1}
+                    <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" disabled={index >= applicable.length - 1}
                       onClick={async () => {
                         if (!completed) await saveCurrent();
                         setIndex(i => Math.min(applicable.length - 1, i + 1));

@@ -8,6 +8,7 @@
  * configured closing workflow action, so the complaint status actually moves.
  */
 import { useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -384,9 +385,9 @@ export function ClosureQaPanel({
                   <p className="text-muted-foreground">
                     Issue the outcome letter here to satisfy this requirement automatically.
                   </p>
-                  <Button size="sm" variant="outline" onClick={() => setLetterOpen(true)}>
+                  <GuardedButton module="complaint_management" action="edit" data-rbac="complaint_management.edit" size="sm" variant="outline" onClick={() => setLetterOpen(true)}>
                     <Send className="h-4 w-4" />Issue outcome letter
-                  </Button>
+                  </GuardedButton>
                 </div>
               )}
             </div>
@@ -421,7 +422,7 @@ export function ClosureQaPanel({
               {checkingReadiness ? 'Checking readiness…' : 'Close complaint'}
             </Button>
             {onGoToCurrentStep && readinessBlockers.length > 0 && !outcomeLetterMissing && (
-              <Button size="sm" variant="outline" onClick={onGoToCurrentStep}>
+              <Button data-rbac="complaint_management.edit" size="sm" variant="outline" onClick={onGoToCurrentStep}>
                 Review Current step
               </Button>
             )}
@@ -511,13 +512,13 @@ export function ClosureQaPanel({
             <Button variant="outline" onClick={() => setLetterOpen(false)} disabled={issueLetterMut.isPending}>
               Cancel
             </Button>
-            <Button
+            <GuardedButton module="complaint_management" action="edit" data-rbac="complaint_management.edit"
               onClick={() => issueLetterMut.mutate()}
               disabled={letterBody.trim().length < 20 || issueLetterMut.isPending}
             >
               {issueLetterMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Issue letter
-            </Button>
+            </GuardedButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

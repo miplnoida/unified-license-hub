@@ -121,10 +121,10 @@ export function ModuleTesterPanel({ family, ruleId }: Props) {
             </Button>
             {result && (
               <>
-                <Button variant="outline" onClick={() => download(`${result.rule_code}-test.csv`, moduleTestCsv(result))}>
+                <Button data-rbac="rule_engine.export" variant="outline" onClick={() => download(`${result.rule_code}-test.csv`, moduleTestCsv(result))}>
                   <Download className="mr-2 h-4 w-4" />CSV
                 </Button>
-                <Button variant="outline" onClick={() => download(`${result.rule_code}-test.json`, moduleTestJson(result))}>
+                <Button data-rbac="rule_engine.export" variant="outline" onClick={() => download(`${result.rule_code}-test.json`, moduleTestJson(result))}>
                   <Download className="mr-2 h-4 w-4" />JSON
                 </Button>
               </>

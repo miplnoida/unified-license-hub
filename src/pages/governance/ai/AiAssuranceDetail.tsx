@@ -6,6 +6,7 @@
  * output, provenance and the supervisor's decision are untouched.
  */
 import { useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Link, useParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -251,7 +252,7 @@ export default function AiAssuranceDetail() {
                     </Select>
                   </div>
                   <div className="flex items-end">
-                    <Button
+                    <Button data-rbac="ai_management.edit"
                       size="sm"
                       disabled={!rAction.trim() || remediation.isPending}
                       onClick={() => remediation.mutate({
@@ -310,13 +311,13 @@ export default function AiAssuranceDetail() {
                   <Textarea id="closure" rows={4} value={closureNote} onChange={(e) => setClosureNote(e.target.value)}
                     placeholder="Record the evidence and reasoning that support this conclusion." />
                 </div>
-                <Button
+                <GuardedButton module="ai_management" action="approve" data-rbac="ai_management.approve"
                   disabled={!conclusion || closureNote.trim().length < 10 || conclude.isPending}
                   onClick={() => conclude.mutate({ reviewId: review.id, conclusion, closureNote: closureNote.trim() })}
                 >
                   {conclude.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Conclude review
-                </Button>
+                </GuardedButton>
               </>
             ) : (
               <p className="text-sm text-muted-foreground">

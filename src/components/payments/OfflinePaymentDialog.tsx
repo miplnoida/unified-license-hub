@@ -190,7 +190,7 @@ export function OfflinePaymentDialog({
           {!paymentId ? (
             <>
               <Button variant="outline" onClick={close} disabled={submitting}>Cancel</Button>
-              <Button
+              <Button data-rbac="fee_management.edit"
                 onClick={submit}
                 disabled={
                   submitting ||

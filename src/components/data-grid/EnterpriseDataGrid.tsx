@@ -194,7 +194,7 @@ export function EnterpriseDataGrid<T>({
             </DropdownMenu>
           )}
           {enableExport && (
-            <Button variant="outline" size="sm" onClick={handleExport} className="gap-2" disabled={total === 0}>
+            <Button data-rbac="report_management.export" variant="outline" size="sm" onClick={handleExport} className="gap-2" disabled={total === 0}>
               <Download className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Export</span>
             </Button>

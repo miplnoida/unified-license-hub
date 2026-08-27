@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -172,7 +173,7 @@ export function StaffResponsibilityTab() {
               <CardTitle>{p?.user?.full_name || 'Select a member of staff'}</CardTitle>
               {p?.user?.email && <p className="text-xs text-muted-foreground">{p.user.email}</p>}
             </div>
-            {selected && <Button size="sm" onClick={openDrawer}>Edit responsibilities</Button>}
+            {selected && <Button data-rbac="user_management.edit" size="sm" onClick={openDrawer}>Edit responsibilities</Button>}
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <Block title="Roles (what they may do)" items={(p.roles || []).map((r: any) => r.name)} />
@@ -242,7 +243,7 @@ export function StaffResponsibilityTab() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button
+              <Button data-rbac="user_management.create"
                 size="sm"
                 disabled={!teamPick || !selected}
                 onClick={() =>
@@ -260,13 +261,13 @@ export function StaffResponsibilityTab() {
                   {teamName(m.team_id) || 'Team'}{' '}
                   <span className="text-xs text-muted-foreground">{m.member_role}</span>
                 </span>
-                <Button
+                <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit"
                   size="sm"
                   variant="outline"
                   onClick={() => act(() => endMember.mutateAsync({ membershipId: m.id }), 'Membership ended')}
                 >
                   End
-                </Button>
+                </GuardedButton>
               </div>
             ))}
             {myMemberships.length === 0 && (
@@ -317,7 +318,7 @@ export function StaffResponsibilityTab() {
                 <Label className="text-xs">Notes</Label>
                 <Textarea rows={2} value={pf.notes} onChange={(e) => setPf({ ...pf, notes: e.target.value })} />
               </div>
-              <Button size="sm" disabled={!selected || !pf.regulatorId || !pf.functionId} onClick={addPortfolio}>
+              <Button data-rbac="user_management.create" size="sm" disabled={!selected || !pf.regulatorId || !pf.functionId} onClick={addPortfolio}>
                 Add responsibility
               </Button>
             </div>
@@ -335,13 +336,13 @@ export function StaffResponsibilityTab() {
                         {x.team_id ? ` · ${teamName(x.team_id)}` : ''} · from {formatDateTime(x.effective_from)}
                       </p>
                     </div>
-                    <Button
+                    <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit"
                       size="sm"
                       variant="outline"
                       onClick={() => act(() => endPortfolio.mutateAsync({ portfolioId: x.id }), 'Responsibility ended')}
                     >
                       End
-                    </Button>
+                    </GuardedButton>
                   </div>
 
                   <div className="flex flex-wrap gap-1">
@@ -390,7 +391,7 @@ export function StaffResponsibilityTab() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button size="sm" variant="secondary" onClick={() => addCoverage(x.id)}>Add</Button>
+                    <Button data-rbac="user_management.create" size="sm" variant="secondary" onClick={() => addCoverage(x.id)}>Add</Button>
                   </div>
                 </div>
               );

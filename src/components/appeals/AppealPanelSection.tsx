@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -249,7 +250,7 @@ export function AppealPanelSection({ appeal }: Props) {
               </Select>
             </div>
           </div>
-          <Button
+          <GuardedButton module="license_appeals" action="edit" data-rbac="license_appeals.edit"
             size="sm"
             onClick={refer}
             disabled={
@@ -259,7 +260,7 @@ export function AppealPanelSection({ appeal }: Props) {
           >
             {(assignPanel.isPending || caseFileLoading) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Refer &amp; constitute panel
-          </Button>
+          </GuardedButton>
           {caseFileLoading ? (
             <p className="text-xs text-muted-foreground">Checking the appeal case file…</p>
           ) : !caseFileReady ? (
@@ -351,7 +352,7 @@ export function AppealPanelSection({ appeal }: Props) {
                   <p className="whitespace-pre-wrap rounded-md bg-muted/50 p-2 text-sm">
                     {appeal.hearing_notes || 'No minutes recorded'}
                   </p>
-                  <Button
+                  <Button data-rbac="license_appeals.edit"
                     size="sm"
                     variant="outline"
                     onClick={() => { setMinutes(appeal.hearing_notes || ''); setAmending(true); }}

@@ -179,7 +179,7 @@ export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" className="pl-8" />
           </div>
           {canWrite && (
-            <Button size="sm" onClick={openCreate} className="gap-1.5">
+            <Button data-rbac="settings.edit" size="sm" onClick={openCreate} className="gap-1.5">
               <Plus className="h-4 w-4" /> Add
             </Button>
           )}
@@ -303,7 +303,7 @@ export function MetadataTablePanel({ schema, contextValues, schemeId, canWrite }
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={save} disabled={create.isPending || update.isPending}>Save</Button>
+            <Button data-rbac="settings.edit" onClick={save} disabled={create.isPending || update.isPending}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -7,6 +7,7 @@
  * completes it. Every referral and opinion stays visible as history.
  */
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -162,9 +163,9 @@ export function LegalReferralPanel({
           <Scale className="h-4 w-4" /> Legal &amp; specialist referrals
         </CardTitle>
         {canRefer && (
-          <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+          <GuardedButton module="application_management" action="workflow_action" data-rbac="application_management.workflow_action" size="sm" variant="outline" onClick={() => setOpen(true)}>
             <Plus className="h-4 w-4 mr-1" /> Refer for review
-          </Button>
+          </GuardedButton>
         )}
       </CardHeader>
       <CardContent className="space-y-3">
@@ -217,19 +218,19 @@ export function LegalReferralPanel({
 
                 <div className="flex flex-wrap gap-2 pt-1">
                   {(isLegalReviewer || isAssignee) && r.status === 'referred' && (
-                    <Button size="sm" variant="outline" disabled={updateReferral.isPending} onClick={() => transition(r, 'in_review')}>
+                    <GuardedButton module="application_management" action="approve" data-rbac="application_management.approve" size="sm" variant="outline" disabled={updateReferral.isPending} onClick={() => transition(r, 'in_review')}>
                       Accept review
-                    </Button>
+                    </GuardedButton>
                   )}
                   {(isLegalReviewer || isAssignee) && r.status === 'in_review' && (
-                    <Button size="sm" disabled={updateReferral.isPending} onClick={() => transition(r, 'returned')}>
+                    <Button data-rbac="application_management.edit" size="sm" disabled={updateReferral.isPending} onClick={() => transition(r, 'returned')}>
                       Return opinion to case
                     </Button>
                   )}
                   {canRefer && r.status === 'returned' && (
-                    <Button size="sm" variant="outline" disabled={updateReferral.isPending} onClick={() => setCompleting(r)}>
+                    <GuardedButton module="application_management" action="edit" data-rbac="application_management.edit" size="sm" variant="outline" disabled={updateReferral.isPending} onClick={() => setCompleting(r)}>
                       Close referral
-                    </Button>
+                    </GuardedButton>
                   )}
                   {canRefer && ['referred', 'in_review'].includes(r.status) && (
                     <Button size="sm" variant="ghost" disabled={updateReferral.isPending} onClick={() => transition(r, 'cancelled')}>
@@ -284,7 +285,7 @@ export function LegalReferralPanel({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={submitReferral} disabled={createReferral.isPending}>
+            <Button data-rbac="application_management.edit" onClick={submitReferral} disabled={createReferral.isPending}>
               {createReferral.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Raise referral
             </Button>
@@ -306,13 +307,13 @@ export function LegalReferralPanel({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCompleting(null)}>Cancel</Button>
-            <Button
+            <GuardedButton module="application_management" action="edit" data-rbac="application_management.edit"
               onClick={() => completing && transition(completing, 'completed', completionNotes.trim() || null)}
               disabled={updateReferral.isPending}
             >
               {updateReferral.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Close referral
-            </Button>
+            </GuardedButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

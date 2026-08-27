@@ -130,7 +130,7 @@ export function OperatorTable({ onlyType, onOpenAssessment }: Props) {
                   </TableCell>
                   <TableCell className="text-right font-mono">{r.open_incidents ?? 0}</TableCell>
                   <TableCell className="text-right space-x-2 whitespace-nowrap">
-                    <Button size="sm" variant="outline"
+                    <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline"
                       onClick={() => { setEditing(r); setDialogOpen(true); }}>Edit</Button>
                     <Button size="sm" data-rbac="prudential_supervision.create"
                       disabled={start.isPending} onClick={() => startAssessment(r.id)}>

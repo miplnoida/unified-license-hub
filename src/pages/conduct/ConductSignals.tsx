@@ -90,7 +90,7 @@ export default function ConductSignals() {
           title="Conduct Signals"
           description="Supervisory intelligence items raised from complaints, outcomes, observations, alerts or return data. A signal is assessed, validated, dismissed or escalated into an alert — it never replaces the consumer case or the alert it relates to."
           actions={canManage ? (
-            <Button onClick={() => setRaiseOpen(true)} className="gap-2">
+            <Button data-rbac="market_conduct.manage_complaints" onClick={() => setRaiseOpen(true)} className="gap-2">
               <Plus className="h-4 w-4" /> Raise signal
             </Button>
           ) : (
@@ -317,7 +317,7 @@ function RaiseSignalDialog({ open, onOpenChange }: { open: boolean; onOpenChange
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button disabled={!valid || create.isPending} onClick={submit}>
+          <Button data-rbac="market_conduct.manage_complaints" disabled={!valid || create.isPending} onClick={submit}>
             {create.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Raise signal
           </Button>
         </DialogFooter>

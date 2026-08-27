@@ -84,7 +84,7 @@ export default function AiModels() {
           title="AI Models"
           description="Models the regulator has assessed and versioned, with their intended purpose, data-handling classification, external-data capability and approval status."
           actions={canAuthor ? (
-            <Button size="sm" onClick={() => setForm({ ...EMPTY })}>
+            <Button data-rbac="ai_management.edit" size="sm" onClick={() => setForm({ ...EMPTY })}>
               <Plus className="mr-1 h-4 w-4" /> Register a model version
             </Button>
           ) : <Badge variant="outline">Read only</Badge>}
@@ -165,10 +165,10 @@ export default function AiModels() {
                     authoredByCurrentUser={authored}
                   />
                   {canAuthor && (
-                    <Button size="sm" variant="outline" onClick={() => newVersionFrom(m)}>Create new version</Button>
+                    <Button data-rbac="ai_management.create" size="sm" variant="outline" onClick={() => newVersionFrom(m)}>Create new version</Button>
                   )}
                   {canAuthor && !released && (
-                    <Button
+                    <Button data-rbac="ai_management.edit"
                       size="sm"
                       variant="ghost"
                       onClick={() => setForm({
@@ -245,7 +245,7 @@ export default function AiModels() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setForm(null)} disabled={save.isPending}>Cancel</Button>
-            <Button onClick={submit} disabled={!canSubmit || save.isPending}>
+            <Button data-rbac="ai_management.edit" onClick={submit} disabled={!canSubmit || save.isPending}>
               {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save as draft
             </Button>

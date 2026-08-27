@@ -248,7 +248,7 @@ export default function ComplaintInvestigationTab({ complaintId, onOpenSection }
           {historical.length > 0 && (
             <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="px-2 text-xs">
+                <Button data-rbac="complaint_management.edit" variant="ghost" size="sm" className="px-2 text-xs">
                   Correspondence on this case ({historical.length})
                   <ChevronDown className={`h-3.5 w-3.5 ml-1 transition-transform ${historyOpen ? 'rotate-180' : ''}`} />
                 </Button>

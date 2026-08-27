@@ -245,7 +245,7 @@ export default function SupervisoryAttentionDetail() {
         actions={(
           <div className="flex flex-wrap gap-2">
             {canAct && (
-              <Button variant="outline" onClick={runCompute} disabled={compute.isPending}>
+              <Button data-rbac="market_conduct.manage_complaints" variant="outline" onClick={runCompute} disabled={compute.isPending}>
                 {compute.isPending
                   ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   : <Calculator className="mr-2 h-4 w-4" />}
@@ -253,12 +253,12 @@ export default function SupervisoryAttentionDetail() {
               </Button>
             )}
             {canAct && item.calculated_priority && (
-              <Button onClick={() => { setConfirmBand(item.calculated_priority as PriorityBand); setConfirmOpen(true); }}>
+              <Button data-rbac="market_conduct.manage_complaints" onClick={() => { setConfirmBand(item.calculated_priority as PriorityBand); setConfirmOpen(true); }}>
                 <ShieldCheck className="mr-2 h-4 w-4" /> Confirm priority
               </Button>
             )}
             {canAct && ATTENTION_NEXT_STATUS[item.status].length > 0 && (
-              <Button variant="outline" onClick={() => setStatusOpen(true)}>Change status</Button>
+              <Button data-rbac="market_conduct.manage_complaints" variant="outline" onClick={() => setStatusOpen(true)}>Change status</Button>
             )}
           </div>
         )}
@@ -378,7 +378,7 @@ export default function SupervisoryAttentionDetail() {
                 <div className="flex gap-2">
                   <Input id="review-date" type="date" value={reviewDate}
                     onChange={(e) => setReviewDate(e.target.value)} />
-                  <Button variant="outline" onClick={submitAssign} disabled={!reviewDate || assign.isPending}>
+                  <Button data-rbac="market_conduct.manage_complaints" variant="outline" onClick={submitAssign} disabled={!reviewDate || assign.isPending}>
                     Save
                   </Button>
                 </div>
@@ -406,7 +406,7 @@ export default function SupervisoryAttentionDetail() {
                 </CardDescription>
               </div>
               {canAct && (
-                <Button size="sm" variant="outline" className="ml-auto" onClick={() => setPlanOpen(true)}>
+                <Button data-rbac="market_conduct.manage_complaints" size="sm" variant="outline" className="ml-auto" onClick={() => setPlanOpen(true)}>
                   Create plan
                 </Button>
               )}
@@ -452,7 +452,7 @@ export default function SupervisoryAttentionDetail() {
                 </CardDescription>
               </div>
               {canAct && (
-                <Button size="sm" variant="outline" className="ml-auto" onClick={() => setIvOpen(true)}>
+                <Button data-rbac="market_conduct.manage_complaints" size="sm" variant="outline" className="ml-auto" onClick={() => setIvOpen(true)}>
                   Initiate intervention
                 </Button>
               )}
@@ -512,7 +512,7 @@ export default function SupervisoryAttentionDetail() {
                 </CardDescription>
               </div>
               {canAct && (
-                <Button size="sm" variant="outline" className="ml-auto" onClick={() => setReassessOpen(true)}>
+                <Button data-rbac="market_conduct.manage_complaints" size="sm" variant="outline" className="ml-auto" onClick={() => setReassessOpen(true)}>
                   Record reassessment
                 </Button>
               )}
@@ -626,7 +626,7 @@ export default function SupervisoryAttentionDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
-            <Button onClick={submitConfirm}
+            <Button data-rbac="market_conduct.manage_complaints" onClick={submitConfirm}
               disabled={confirm.isPending || !confirmBand || confirmRationale.trim().length < 10}>
               {confirm.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Confirm priority
@@ -671,7 +671,7 @@ export default function SupervisoryAttentionDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setStatusOpen(false)}>Cancel</Button>
-            <Button onClick={submitStatus}
+            <Button data-rbac="market_conduct.manage_complaints" onClick={submitStatus}
               disabled={transition.isPending || !nextStatus || statusRationale.trim().length < 10
                 || (nextStatus === 'CLOSED' && disposition.trim().length < 3)}>
               {transition.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -730,7 +730,7 @@ export default function SupervisoryAttentionDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPlanOpen(false)}>Cancel</Button>
-            <Button onClick={submitPlan} disabled={createPlan.isPending || planTitle.trim().length < 3}>
+            <Button data-rbac="market_conduct.manage_complaints" onClick={submitPlan} disabled={createPlan.isPending || planTitle.trim().length < 3}>
               {createPlan.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create draft plan
             </Button>
@@ -807,7 +807,7 @@ export default function SupervisoryAttentionDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIvOpen(false)}>Cancel</Button>
-            <Button onClick={submitIntervention}
+            <Button data-rbac="market_conduct.manage_complaints" onClick={submitIntervention}
               disabled={initiate.isPending || !ivCode || ivTitle.trim().length < 3 || ivBasis.trim().length < 20}>
               {initiate.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Initiate
@@ -864,7 +864,7 @@ export default function SupervisoryAttentionDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReassessOpen(false)}>Cancel</Button>
-            <Button onClick={submitReassess} disabled={reassess.isPending || assessment.trim().length < 20}>
+            <Button data-rbac="market_conduct.manage_complaints" onClick={submitReassess} disabled={reassess.isPending || assessment.trim().length < 20}>
               {reassess.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Record reassessment
             </Button>

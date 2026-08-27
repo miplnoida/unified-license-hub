@@ -59,7 +59,7 @@ export function GroupEwiPanel({ alerts, onAcknowledge, canAct }: {
             </div>
             <Badge variant="outline" className="text-[11px]">{a.status}</Badge>
             {canAct && a.status === 'open' && (
-              <Button size="sm" variant="outline" onClick={() => onAcknowledge?.(a.id)}>Acknowledge</Button>
+              <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => onAcknowledge?.(a.id)}>Acknowledge</Button>
             )}
           </div>
         );

@@ -137,14 +137,14 @@ export function AppealParticipationPanel({ appealId, onFinaliseHint }: Props) {
                   <SelectItem value="recused">Recused</SelectItem>
                 </SelectContent>
               </Select>
-              <Button className="mt-2" size="sm" variant="outline" onClick={() => record.mutate()} disabled={record.isPending}>
+              <Button data-rbac="license_appeals.edit" className="mt-2" size="sm" variant="outline" onClick={() => record.mutate()} disabled={record.isPending}>
                 Record participation
               </Button>
             </div>
             <div>
               <Label className="text-xs">Declare a conflict (recuses you)</Label>
               <Textarea rows={2} value={conflictNote} onChange={(e) => setConflictNote(e.target.value)} placeholder="Describe the conflict on this matter" />
-              <Button
+              <Button data-rbac="license_appeals.edit"
                 className="mt-2"
                 size="sm"
                 variant="outline"
@@ -176,7 +176,7 @@ export function AppealParticipationPanel({ appealId, onFinaliseHint }: Props) {
               </Select>
               <Label className="text-xs">Rationale (optional)</Label>
               <Textarea rows={2} value={rationale} onChange={(e) => setRationale(e.target.value)} />
-              <Button size="sm" onClick={() => cast.mutate()} disabled={cast.isPending || !vote}>
+              <Button data-rbac="license_appeals.edit" size="sm" onClick={() => cast.mutate()} disabled={cast.isPending || !vote}>
                 Cast vote
               </Button>
             </div>

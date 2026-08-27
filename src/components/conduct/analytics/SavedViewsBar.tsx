@@ -46,7 +46,7 @@ export function SavedViewsBar({ currentConfig, activeViewId, onLoad }: Props) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-72">
             {views.length === 0 ? (
-              <DropdownMenuItem disabled>No saved views yet</DropdownMenuItem>
+              <DropdownMenuItem data-rbac="market_conduct.manage_complaints" disabled>No saved views yet</DropdownMenuItem>
             ) : views.map((v) => (
               <DropdownMenuItem key={v.id} onClick={() => onLoad(v)} className="flex items-center gap-2">
                 <span className="flex-1 truncate">{v.name}</span>
@@ -57,13 +57,13 @@ export function SavedViewsBar({ currentConfig, activeViewId, onLoad }: Props) {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <Button data-rbac="market_conduct.manage_complaints" variant="outline" size="sm" onClick={() => setOpen(true)}>
           <BookmarkPlus className="h-3.5 w-3.5 mr-1" /> Save current
         </Button>
 
         {active && (
           <>
-            <Button
+            <Button data-rbac="market_conduct.manage_complaints"
               variant="ghost" size="sm"
               onClick={() => save.mutate({ id: active.id, name: active.name, is_shared: active.is_shared, is_default: active.is_default, config: currentConfig })}
             >
@@ -105,7 +105,7 @@ export function SavedViewsBar({ currentConfig, activeViewId, onLoad }: Props) {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={submit} disabled={!name.trim() || save.isPending}>Save view</Button>
+              <Button data-rbac="market_conduct.manage_complaints" onClick={submit} disabled={!name.trim() || save.isPending}>Save view</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

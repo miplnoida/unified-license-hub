@@ -6,6 +6,7 @@
  * governed RPC; the UI never writes `entity_user_memberships` directly.
  */
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -126,34 +127,34 @@ export default function EntityMemberships() {
                       <TableCell className="text-xs">{formatDateTime(m.requested_at)}</TableCell>
                       <TableCell className="text-right space-x-1">
                         {canVerify && ['REQUESTED', 'PENDING_VERIFICATION'].includes(m.status) && (
-                          <Button size="sm" variant="outline" disabled={verify.isPending}
+                          <Button data-rbac="licensee_management.edit" size="sm" variant="outline" disabled={verify.isPending}
                             onClick={() => act(() => verify.mutateAsync({ id: m.id }), 'Evidence verified.')}>
                             Verify
                           </Button>
                         )}
                         {canApprove && ['VERIFIED', 'REQUESTED'].includes(m.status) && (
-                          <Button size="sm" className="gap-1" disabled={approve.isPending}
+                          <GuardedButton module="licensee_management" action="edit" data-rbac="licensee_management.edit" size="sm" className="gap-1" disabled={approve.isPending}
                             onClick={() => act(() => approve.mutateAsync(m.id), 'Membership approved.')}>
                             <UserCheck className="h-4 w-4" /> Approve
-                          </Button>
+                          </GuardedButton>
                         )}
                         {canApprove && !['APPROVED', 'REJECTED', 'REVOKED'].includes(m.status) && (
-                          <Button size="sm" variant="outline" disabled={reject.isPending}
+                          <GuardedButton module="licensee_management" action="edit" data-rbac="licensee_management.edit" size="sm" variant="outline" disabled={reject.isPending}
                             onClick={async () => {
                               const reason = await askReason('Reject membership request');
                               if (reason) act(() => reject.mutateAsync({ id: m.id, reason }), 'Membership rejected.');
                             }}>
                             Reject
-                          </Button>
+                          </GuardedButton>
                         )}
                         {canRevoke && m.status === 'APPROVED' && (
-                          <Button size="sm" variant="destructive" disabled={revoke.isPending}
+                          <GuardedButton module="licensee_management" action="edit" data-rbac="licensee_management.edit" size="sm" variant="destructive" disabled={revoke.isPending}
                             onClick={async () => {
                               const reason = await askReason('Revoke membership');
                               if (reason) act(() => revoke.mutateAsync({ id: m.id, reason }), 'Membership revoked.');
                             }}>
                             Revoke
-                          </Button>
+                          </GuardedButton>
                         )}
                       </TableCell>
                     </TableRow>

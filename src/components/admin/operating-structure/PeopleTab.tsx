@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -180,7 +181,7 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
                     <Badge key={i} variant="outline">{r.name}</Badge>
                   ))}
                   {(p.roles || []).length === 0 && <span className="text-sm text-muted-foreground">None</span>}
-                  <Button asChild size="sm" variant="ghost">
+                  <Button data-rbac="user_management.edit" asChild size="sm" variant="ghost">
                     <Link to="/admin/users">Manage roles</Link>
                   </Button>
                 </div>
@@ -193,7 +194,7 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
               <Card>
                 <CardHeader className="flex-row items-center justify-between space-y-0">
                   <CardTitle className="text-base">Responsibilities</CardTitle>
-                  <Button size="sm" onClick={() => setChoice(true)}>
+                  <Button data-rbac="user_management.create" size="sm" onClick={() => setChoice(true)}>
                     Add responsibility
                   </Button>
 
@@ -216,16 +217,16 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
                       <p className="text-sm">{effectiveRange(x.effective_from, x.effective_to)}</p>
                       <p className="mt-1 text-xs text-muted-foreground">{regName(x.regulator_id)}</p>
                       <div className="mt-2 flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => setRespDialog({ open: true, portfolioId: x.id })}>
+                        <Button data-rbac="user_management.edit" size="sm" variant="outline" onClick={() => setRespDialog({ open: true, portfolioId: x.id })}>
                           Edit
                         </Button>
-                        <Button
+                        <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit"
                           size="sm"
                           variant="ghost"
                           onClick={() => act(() => endPortfolio.mutateAsync({ portfolioId: x.id }), 'Responsibility ended')}
                         >
                           End
-                        </Button>
+                        </GuardedButton>
                       </div>
                     </div>
                   ))}
@@ -240,7 +241,7 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
               <Card>
                 <CardHeader className="flex-row items-center justify-between space-y-0">
                   <CardTitle className="text-base">Organisational units</CardTitle>
-                  <Button size="sm" onClick={() => openTeamDialog()}>Add unit membership</Button>
+                  <Button data-rbac="user_management.create" size="sm" onClick={() => openTeamDialog()}>Add unit membership</Button>
                 </CardHeader>
                 <CardContent className="space-y-1">
                   {myMemberships.map((m: any) => (
@@ -253,14 +254,14 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
                         </span>
                       </span>
                       <span className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => openTeamDialog(m)}>Change role</Button>
-                        <Button
+                        <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit" size="sm" variant="outline" onClick={() => openTeamDialog(m)}>Change role</GuardedButton>
+                        <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit"
                           size="sm"
                           variant="ghost"
                           onClick={() => act(() => endMember.mutateAsync({ membershipId: m.id }), 'Membership ended')}
                         >
                           End
-                        </Button>
+                        </GuardedButton>
                       </span>
                     </div>
                   ))}
@@ -313,7 +314,7 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
             <DialogTitle>What is this person responsible for?</DialogTitle>
           </DialogHeader>
           <div className="grid gap-2">
-            <Button
+            <Button data-rbac="user_management.edit"
               variant="outline"
               className="h-auto flex-col items-start gap-1 py-3 text-left"
               onClick={() => { setChoice(false); setSectorResp(true); }}
@@ -323,7 +324,7 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
                 Full sector responsibility, or selected areas of work within one sector.
               </span>
             </Button>
-            <Button
+            <Button data-rbac="user_management.edit"
               variant="outline"
               className="h-auto flex-col items-start gap-1 py-3 text-left"
               onClick={() => { setChoice(false); setRespDialog({ open: true, portfolioId: null }); }}
@@ -381,7 +382,7 @@ export function PeopleTab({ initialUserId }: { initialUserId?: string | null }) 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTeamDialog({ open: false, membershipId: null })}>Cancel</Button>
-            <Button onClick={submitTeam} disabled={!teamPick}>Save</Button>
+            <Button data-rbac="user_management.edit" onClick={submitTeam} disabled={!teamPick}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

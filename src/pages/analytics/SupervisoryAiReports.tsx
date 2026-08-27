@@ -638,7 +638,7 @@ export default function SupervisoryAiReports() {
             <Collapsible open={moreOpen} onOpenChange={setMoreOpen}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+                  <Button data-rbac="report_management.create" variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
                     <SlidersHorizontal className="h-3.5 w-3.5" />
                     More filters
                     {!moreOpen && advancedActive > 0 && (

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -197,7 +198,7 @@ export function PanelsCommitteesTab() {
                 >
                   {p.is_active ? 'Deactivate panel' : 'Activate panel'}
                 </Button>
-                <Button
+                <Button data-rbac="user_management.create"
                   size="sm"
                   variant="outline"
                   onClick={() => setMemberDialog({ open: true, kind: 'panel', id: p.id, name: p.name })}
@@ -310,7 +311,7 @@ export function PanelsCommitteesTab() {
             <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Reference the instrument or board decision that establishes this rule" />
           </div>
           <div className="sm:col-span-2">
-            <Button onClick={save} disabled={setPolicy.isPending}>Record policy</Button>
+            <Button data-rbac="user_management.edit" onClick={save} disabled={setPolicy.isPending}>Record policy</Button>
           </div>
           {(policies.data || []).length > 0 && (
             <div className="sm:col-span-2 space-y-1 text-sm">
@@ -363,14 +364,14 @@ export function PanelsCommitteesTab() {
                   >
                     {c.is_active ? 'Deactivate committee' : 'Activate committee'}
                   </Button>
-                  <Button
+                  <Button data-rbac="user_management.create"
                     size="sm"
                     variant="outline"
                     onClick={() => setMemberDialog({ open: true, kind: 'committee', id: c.id, name: c.name })}
                   >
                     + Add member
                   </Button>
-                  <Button
+                  <Button data-rbac="user_management.edit"
                     size="sm"
                     variant="outline"
                     onClick={() =>
@@ -473,7 +474,7 @@ export function PanelsCommitteesTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRuleDialog(null)}>Cancel</Button>
-            <Button
+            <Button data-rbac="user_management.edit"
               disabled={committeeMut.updateCommittee.isPending}
               onClick={async () => {
                 if (!ruleDialog) return;
@@ -557,7 +558,7 @@ export function PanelsCommitteesTab() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setMemberDialog(null)}>Cancel</Button>
-            <Button
+            <Button data-rbac="user_management.create"
               onClick={async () => {
                 await addMember();
                 setMemberDialog(null);
@@ -587,9 +588,9 @@ function MemberLine({
         {label}
         {hint && <span className="ml-1 text-xs text-muted-foreground">{hint}</span>}
       </span>
-      <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={onRemove}>
+      <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={onRemove}>
         Remove
-      </Button>
+      </GuardedButton>
     </div>
   );
 }

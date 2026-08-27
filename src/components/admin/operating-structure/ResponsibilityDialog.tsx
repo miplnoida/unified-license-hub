@@ -454,7 +454,7 @@ export function ResponsibilityDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={editing ? submitEdit : submitBatch} disabled={!canSave}>Save</Button>
+          <Button data-rbac="user_management.edit" onClick={editing ? submitEdit : submitBatch} disabled={!canSave}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

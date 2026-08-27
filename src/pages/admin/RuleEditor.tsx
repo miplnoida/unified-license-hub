@@ -471,7 +471,7 @@ export default function RuleEditor() {
                         </Button>
                       </div>
                     ))}
-                    <Button variant="outline" size="sm" onClick={() => setC({ predicates: [...preds, { field: '', operator: 'eq', value: '' }] })}>
+                    <Button data-rbac="rule_engine.edit" variant="outline" size="sm" onClick={() => setC({ predicates: [...preds, { field: '', operator: 'eq', value: '' }] })}>
                       <Plus className="h-4 w-4 mr-1" /> Add condition
                     </Button>
                   </div>

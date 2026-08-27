@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -87,13 +88,13 @@ export function RegulatorsAdminTab() {
               </Badge>
               <span className="ml-auto flex gap-2">
                 {r.active ? (
-                  <Button size="sm" variant="outline" onClick={() => setStatus(r, 'inactive')}>
+                  <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit" size="sm" variant="outline" onClick={() => setStatus(r, 'inactive')}>
                     Deactivate
-                  </Button>
+                  </GuardedButton>
                 ) : (
-                  <Button size="sm" variant="outline" onClick={() => setStatus(r, 'active')}>
+                  <GuardedButton module="user_management" action="edit" data-rbac="user_management.edit" size="sm" variant="outline" onClick={() => setStatus(r, 'active')}>
                     Activate
-                  </Button>
+                  </GuardedButton>
                 )}
               </span>
             </div>

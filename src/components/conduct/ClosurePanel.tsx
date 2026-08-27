@@ -248,7 +248,7 @@ export function ClosurePanel({
             </p>
           </div>
           <div className="flex gap-2">
-            {current && <Button size="sm" variant="outline" onClick={printMemo}><Printer className="h-4 w-4 mr-1" />Print / PDF</Button>}
+            {current && <Button data-rbac="market_conduct.run_conduct_analytics" size="sm" variant="outline" onClick={printMemo}><Printer className="h-4 w-4 mr-1" />Print / PDF</Button>}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
