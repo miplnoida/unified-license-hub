@@ -472,6 +472,10 @@ BEGIN
   END IF;
 
   -- 2.10 final approve completes workflow + creates license/licensee
+  -- Licence provisioning is payment-gated by design, so seed a completed payment.
+  INSERT INTO public.payments (application_id, user_id, amount, currency, status, payment_method, paid_at)
+  VALUES (v_app_id, v_applicant_a, 1000, 'INR', 'completed', 'simulated', now());
+
   SELECT count(*) INTO v_lic_count_before FROM public.licenses WHERE application_id=v_app_id;
   v_result := public.perform_final_workflow_approval(
     v_app_id, v_instance_id, v_step3, 'final approval comments', v_super_admin);
@@ -673,6 +677,7 @@ BEGIN
   BEGIN DELETE FROM public.notifications WHERE entity_id=v_app_id::text; EXCEPTION WHEN OTHERS THEN NULL; END;
   BEGIN DELETE FROM public.audit_logs    WHERE entity_id=v_app_id::text; EXCEPTION WHEN OTHERS THEN NULL; END;
   BEGIN DELETE FROM public.approval_actions WHERE application_id=v_app_id; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN DELETE FROM public.payments WHERE application_id=v_app_id; EXCEPTION WHEN OTHERS THEN NULL; END;
   BEGIN DELETE FROM public.licensees WHERE license_id IN (SELECT id FROM public.licenses WHERE application_id=v_app_id); EXCEPTION WHEN OTHERS THEN NULL; END;
   BEGIN DELETE FROM public.licenses  WHERE application_id=v_app_id; EXCEPTION WHEN OTHERS THEN NULL; END;
   BEGIN DELETE FROM public.workflow_instances WHERE entity_id=v_app_id; EXCEPTION WHEN OTHERS THEN NULL; END;
