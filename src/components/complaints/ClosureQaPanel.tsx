@@ -333,15 +333,16 @@ export function ClosureQaPanel({
               <Label htmlFor="cq-ev" className="font-normal">Evidence is complete</Label>
             </div>
           </div>
-          {missing.length > 0 && (
+          {blocked && (
             <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
               <p className="font-medium">What's still needed before you can close this complaint</p>
               <ul className="mt-1 list-disc pl-5 text-muted-foreground">
                 {missing.map((m) => <li key={m}>{m}</li>)}
+                {readinessBlockers.map((b) => <li key={b}>{b}</li>)}
               </ul>
             </div>
           )}
-          {actionsError && (
+          {closingAction && actionsError && (
             <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm flex flex-wrap items-center gap-2">
               <span>We couldn’t check the available workflow actions.</span>
               {onRetryActions && (
@@ -349,44 +350,34 @@ export function ClosureQaPanel({
               )}
             </div>
           )}
-          {hasQaApproved(reviews) && closingAction && (
+          {readinessQ.isError && !closingAction && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm flex flex-wrap items-center gap-2">
+              <span>We couldn’t check whether this complaint is ready for closure.</span>
+              <Button size="sm" variant="outline" onClick={() => readinessQ.refetch()}>Retry</Button>
+            </div>
+          )}
+          {hasQaApproved(reviews) && !blocked && (
             <p className="text-sm text-muted-foreground">
-              QA approved — the closure assessment passed quality review. Complete the fields
-              below and click <strong>Close complaint</strong> to finalise the case here.
+              QA approved — the closure assessment passed quality review. Click{' '}
+              <strong>Close complaint</strong> to finalise the case here.
             </p>
           )}
           <div className="flex flex-wrap items-center gap-2">
             <Button data-rbac="complaint_management.edit"
-              disabled={closeMut.isPending || actionsLoading || missing.length > 0 || !closingAction}
+              disabled={closeMut.isPending || checkingReadiness || (closingAction ? actionsLoading : false) || blocked}
               onClick={() => closeMut.mutate()}>
-              {(closeMut.isPending || actionsLoading) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {actionsLoading ? 'Checking workflow…' : 'Close complaint'}
+              {(closeMut.isPending || checkingReadiness || (closingAction && actionsLoading)) && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              {checkingReadiness ? 'Checking readiness…' : 'Close complaint'}
             </Button>
-            {!actionsLoading && !actionsError && !closingAction && (
-              <span className="text-xs text-muted-foreground">
-                {hasQaApproved(reviews) ? (
-                  <>
-                    QA approved — the closure assessment passed quality review. The case is waiting
-                    for the remaining workflow/domain requirement before it can be finalised. Check
-                    the <strong>Current step</strong> tab for what is still needed.
-                  </>
-                ) : availableActionLabels.length > 0 ? (
-                  <>
-                    No closing action is configured for you at this step. Available to you:{' '}
-                    <strong>{availableActionLabels.join(', ')}</strong> — use the{' '}
-                    <strong>Current step</strong> tab.
-                  </>
-                ) : (
-                  <>No workflow action is available to you right now — use the <strong>Current step</strong> tab.</>
-                )}
-              </span>
-            )}
-            {!closingAction && onGoToCurrentStep && !actionsLoading && (
+            {onGoToCurrentStep && readinessBlockers.length > 0 && (
               <Button size="sm" variant="outline" onClick={onGoToCurrentStep}>
-                {hasQaApproved(reviews) ? 'Review Current step' : 'Go to Current step'}
+                Review Current step
               </Button>
             )}
           </div>
+
           {latest && (
             <p className="text-xs text-muted-foreground">
               Latest decision: <strong>{latestLabel.label}</strong>
