@@ -1,6 +1,6 @@
 # Permission Coverage Matrix
 
-_Generated 2026-08-27T19:57:04.952Z. Do not edit by hand — run `bunx tsx scripts/generate-permission-coverage.ts`._
+_Generated 2026-08-27T19:58:49.791Z. Do not edit by hand — run `bunx tsx scripts/generate-permission-coverage.ts`._
 
 **Total permissions:** 378  `|`  **Orphaned:** 172
 
@@ -756,7 +756,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `edit` | 🟢 Enforced | — | — | 1 (`src/components/admin/returns-config/RegulatoryMetricsPanel.tsx:130`) | — | 6 (`supabase/migrations/20260721130151_b2c61ac4-8750-4e43-bff6-7bfc4d22a859.sql:70` + 5 more) | — | — |
 | `export` | 🟢 Enforced | — | — | 1 (`src/pages/returns-mgmt/ViewReturns.tsx:273`) | — | 1 (`src/pages/returns-mgmt/ViewReturns.tsx:282`) | — | — |
 | `manage_config` | 🟢 Enforced | — | — | 1 (`src/pages/admin/ReportingMetricsConfig.tsx:16`) | — | 3 (`supabase/migrations/20260810100752_fcd3150a-7dd7-4c4b-ac32-164bcab76a03.sql:7` + 2 more) | — | — |
-| `reject` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260722075014_e42adb56-18bf-42f0-84ce-dfa0160e4338.sql:24`) | — | — |
+| `reject` | 🟢 Enforced | — | — | 1 (`src/pages/returns-mgmt/ReturnDetail.tsx:750`) | — | 1 (`supabase/migrations/20260722075014_e42adb56-18bf-42f0-84ce-dfa0160e4338.sql:24`) | — | — |
 | `respond_rfi` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `review` | 🔵 Backend only | — | — | — | — | 2 (`supabase/migrations/20260820162947_d5106a5c-02b7-4ea0-a642-a31398d87cdd.sql:96` + 1 more) | — | — |
 | `submit` | 🔵 Backend only | — | — | — | — | 2 (`supabase/migrations/20260820170449_9b085eec-a9dc-4a8b-862c-6bca839a3e30.sql:13` + 1 more) | — | — |
@@ -764,7 +764,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `view` | 🟢 Enforced | 14 (`src/config/navigation.tsx:134` + 13 more) | 23 (`src/routes/adminRoutes.tsx:162` + 22 more) | 1 (`src/pages/returns-mgmt/ReturnDetail.tsx:624`) | — | 9 (`supabase/migrations/20260721141525_300d7d82-4892-466f-a30b-9d06b022ff65.sql:37` + 8 more) | — | — |
 | `view_all_entities` | 🔵 Backend only | — | — | — | — | 7 (`supabase/migrations/20260721060408_d89cea7e-35ef-40d2-b766-b34234a99258.sql:163` + 6 more) | — | — |
 | `view_status` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `workflow_action` | 🟢 Enforced | — | — | 4 (`src/pages/returns-canonical/FilingDetail.tsx:150` + 3 more) | — | 3 (`supabase/functions/perform-return-workflow-action/authz_test.ts:17` + 2 more) | — | — |
+| `workflow_action` | 🟢 Enforced | — | — | 3 (`src/pages/returns-canonical/FilingDetail.tsx:150` + 2 more) | — | 3 (`supabase/functions/perform-return-workflow-action/authz_test.ts:17` + 2 more) | — | — |
 
 ## `role_management`
 

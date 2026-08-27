@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-27T19:57:04.952Z",
+  "generatedAt": "2026-08-27T19:58:49.791Z",
   "rows": [
     {
       "module": "admin_dashboard",
@@ -13724,8 +13724,18 @@
       "action": "reject",
       "menu": [],
       "route": [],
-      "button": [],
+      "button": [
+        {
+          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
+          "line": 750
+        }
+      ],
       "marker": [
+        {
+          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
+          "line": 755,
+          "detail": "data-rbac marker (audit signal only)"
+        },
         {
           "file": "src/components/collab-review/CollaborativeReview.tsx",
           "line": 339,
@@ -14143,10 +14153,6 @@
         },
         {
           "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
-          "line": 750
-        },
-        {
-          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
           "line": 877
         },
         {
@@ -14158,11 +14164,6 @@
         {
           "file": "src/pages/returns-canonical/FilingDetail.tsx",
           "line": 150,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/pages/returns-mgmt/ReturnDetail.tsx",
-          "line": 755,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
