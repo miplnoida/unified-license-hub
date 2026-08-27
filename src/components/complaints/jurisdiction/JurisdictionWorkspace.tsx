@@ -334,8 +334,9 @@ export function JurisdictionWorkspace({ complaintId, onJurisdictionDecided }: Pr
               <p className="text-xs text-muted-foreground">
                 Open the assessment to record each jurisdiction factor against the rules in effect.
               </p>
-              <Button size="sm" disabled={!caps.can_assess || startMut.isPending}
-                      onClick={() => startMut.mutate()} data-rbac="complaint_management.assess_jurisdiction">
+              <Button data-rbac="complaint_management.assess_jurisdiction" size="sm" disabled={!caps.can_assess || startMut.isPending}
+                      onClick={() => startMut.mutate()}>
+
                 {startMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Start assessment
               </Button>
