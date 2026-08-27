@@ -18,8 +18,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Send } from 'lucide-react';
 import { QueryErrorState } from '@/components/complaints/QueryErrorState';
 import { closureDecisionLabel, type WorkflowAction } from '@/lib/complaintWorkflow';
 import { formatDateTime } from '@/lib/datetime';
@@ -116,6 +117,9 @@ export function ClosureQaPanel({
   const [outcome, setOutcome] = useState('');
   const [commRef, setCommRef] = useState('');
   const [evidenceComplete, setEvidenceComplete] = useState(false);
+  const [letterOpen, setLetterOpen] = useState(false);
+  const [letterSubject, setLetterSubject] = useState('');
+  const [letterBody, setLetterBody] = useState('');
 
   const closureQ = useQuery({
     queryKey: ['complaint_closure_reviews', complaintId],
@@ -155,6 +159,35 @@ export function ClosureQaPanel({
 
   const closingAction = resolveClosingAction(availableActions, terminalStepKeys);
   const alreadyClosed = status === 'closed' || status === 'resolved' || status === 'withdrawn';
+
+  const issueLetterMut = useMutation({
+    mutationFn: async () => {
+      const { error } = await (supabase as any).rpc('complaint_outcome_letter_issue', {
+        _complaint_id: complaintId,
+        _subject: letterSubject.trim() || null,
+        _body: letterBody.trim(),
+      });
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      setLetterOpen(false);
+      setLetterSubject('');
+      setLetterBody('');
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['mc04_closure_readiness', complaintId] }),
+        qc.invalidateQueries({ queryKey: ['complaint_correspondence', complaintId] }),
+      ]);
+      toast.success('Outcome letter issued. Closure readiness has been refreshed.');
+    },
+    onError: (e: unknown) => {
+      const message = String((e as any)?.message ?? '');
+      toast.error(
+        message.includes('letter_body_required')
+          ? 'Write an outcome letter of at least 20 characters.'
+          : message || 'Could not issue the outcome letter.',
+      );
+    },
+  });
 
   const closeMut = useMutation({
     mutationFn: async () => {
@@ -247,6 +280,9 @@ export function ClosureQaPanel({
     !closingAction && readiness && readiness.readiness !== 'READY_FOR_CLOSURE'
       ? readiness.blockers ?? []
       : [];
+  const outcomeLetterMissing = readinessBlockers.some((blocker) =>
+    blocker.toLowerCase().includes('outcome letter'),
+  );
   const blocked = missing.length > 0 || readinessBlockers.length > 0;
   const checkingReadiness = !closingAction && readinessQ.isLoading;
 
@@ -324,8 +360,11 @@ export function ClosureQaPanel({
               </Select>
             </div>
             <div>
-              <Label htmlFor="cq-comm">Final communication reference</Label>
+              <Label htmlFor="cq-comm">Final communication reference (optional)</Label>
               <Input id="cq-comm" value={commRef} onChange={(e) => setCommRef(e.target.value)} />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Audit reference only. Entering a reference does not issue the required outcome letter.
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Checkbox id="cq-ev" checked={evidenceComplete}
@@ -340,6 +379,16 @@ export function ClosureQaPanel({
                 {missing.map((m) => <li key={m}>{m}</li>)}
                 {readinessBlockers.map((b) => <li key={b}>{b}</li>)}
               </ul>
+              {outcomeLetterMissing && (
+                <div className="mt-3 space-y-2 border-t border-warning/30 pt-3">
+                  <p className="text-muted-foreground">
+                    Issue the outcome letter here to satisfy this requirement automatically.
+                  </p>
+                  <Button size="sm" variant="outline" onClick={() => setLetterOpen(true)}>
+                    <Send className="h-4 w-4" />Issue outcome letter
+                  </Button>
+                </div>
+              )}
             </div>
           )}
           {closingAction && actionsError && (
@@ -371,7 +420,7 @@ export function ClosureQaPanel({
               )}
               {checkingReadiness ? 'Checking readiness…' : 'Close complaint'}
             </Button>
-            {onGoToCurrentStep && readinessBlockers.length > 0 && (
+            {onGoToCurrentStep && readinessBlockers.length > 0 && !outcomeLetterMissing && (
               <Button size="sm" variant="outline" onClick={onGoToCurrentStep}>
                 Review Current step
               </Button>
@@ -430,6 +479,48 @@ export function ClosureQaPanel({
           ))}
         </CardContent>
       </Card>
+
+      <Dialog open={letterOpen} onOpenChange={setLetterOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Issue outcome letter to the consumer</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="cq-letter-subject">Letter subject (optional)</Label>
+              <Input
+                id="cq-letter-subject"
+                value={letterSubject}
+                onChange={(event) => setLetterSubject(event.target.value)}
+                placeholder="Outcome of your complaint"
+              />
+            </div>
+            <div>
+              <Label htmlFor="cq-letter-body">Letter to the consumer</Label>
+              <Textarea
+                id="cq-letter-body"
+                rows={8}
+                value={letterBody}
+                onChange={(event) => setLetterBody(event.target.value)}
+                placeholder="Explain the outcome, the reasons for it and any remedy the consumer will receive."
+              />
+              <p className="mt-1 text-xs text-muted-foreground">{letterBody.trim().length}/20 characters minimum</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLetterOpen(false)} disabled={issueLetterMut.isPending}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => issueLetterMut.mutate()}
+              disabled={letterBody.trim().length < 20 || issueLetterMut.isPending}
+            >
+              {issueLetterMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Issue letter
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
