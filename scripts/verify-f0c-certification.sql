@@ -13,6 +13,9 @@
 \set ON_ERROR_STOP on
 SET client_min_messages = warning;
 
+DROP TABLE IF EXISTS f0c_results;
+DROP TABLE IF EXISTS f0c_ctx;
+
 CREATE TEMP TABLE f0c_results (
   seq serial,
   stage text,
