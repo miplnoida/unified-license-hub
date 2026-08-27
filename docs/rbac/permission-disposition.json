@@ -1,0 +1,1041 @@
+{
+  "generatedFrom": "src/lib/rbac/catalog.json",
+  "counts": {
+    "reserved-granular": 130,
+    "future-module": 42
+  },
+  "rows": [
+    {
+      "module": "ai_management",
+      "action": "create",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "ai_management",
+      "action": "execute",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "aml_supervision",
+      "action": "approve",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "aml_supervision",
+      "action": "edit",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "application_management",
+      "action": "delete",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "application_management",
+      "action": "manage_config",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "application_management",
+      "action": "reject",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_management",
+      "action": "analytics",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_management",
+      "action": "approve",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_management",
+      "action": "assess_jurisdiction",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_management",
+      "action": "assign",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_management",
+      "action": "close",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_management",
+      "action": "decide_jurisdiction",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_management",
+      "action": "escalate",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_management",
+      "action": "investigate",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_management",
+      "action": "override_triage",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_management",
+      "action": "refer",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_management",
+      "action": "resolve",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_management",
+      "action": "retry_triage",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_management",
+      "action": "review_vulnerability",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_management",
+      "action": "submit",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_management",
+      "action": "upload_documents",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_management",
+      "action": "view_status",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_type",
+      "action": "create",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "complaint_type",
+      "action": "edit",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "compliance_management",
+      "action": "create",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "compliance_management",
+      "action": "delete",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "compliance_management",
+      "action": "manage_config",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "compliance_management",
+      "action": "respond",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "compliance_management",
+      "action": "view_audit_logs",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "coordination_cases",
+      "action": "approve",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_cases",
+      "action": "create",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_cases",
+      "action": "edit",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_cases",
+      "action": "override",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_cases",
+      "action": "view",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_escalations",
+      "action": "approve",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_escalations",
+      "action": "create",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_escalations",
+      "action": "edit",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_escalations",
+      "action": "override",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_escalations",
+      "action": "view",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_flags",
+      "action": "approve",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_flags",
+      "action": "create",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_flags",
+      "action": "edit",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_flags",
+      "action": "override",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_flags",
+      "action": "view",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_messages",
+      "action": "approve",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_messages",
+      "action": "create",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_messages",
+      "action": "edit",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_messages",
+      "action": "override",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_messages",
+      "action": "view",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination",
+      "action": "admin",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "coordination",
+      "action": "create",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "coordination",
+      "action": "delete",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "enforcement_management",
+      "action": "close",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "enforcement_management",
+      "action": "delete",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "enforcement_management",
+      "action": "edit",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "enforcement_management",
+      "action": "impose_sanction",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "enforcement_management",
+      "action": "issue_notice",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "entity_membership",
+      "action": "manage",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "entity_membership",
+      "action": "request",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "entity_structure",
+      "action": "apply",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "entity_structure",
+      "action": "approve",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "entity_structure",
+      "action": "propose",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "entity_structure",
+      "action": "review",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "entity_structure",
+      "action": "view_history",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "executive_oversight",
+      "action": "drill_into_cases",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "executive_oversight",
+      "action": "receive_ai_insights",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "executive_oversight",
+      "action": "view_all_dashboards",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "executive_oversight",
+      "action": "view_all_reports",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "executive_oversight",
+      "action": "view_cross_module_audit",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "fee_management",
+      "action": "create",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_appeals",
+      "action": "approve",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_appeals",
+      "action": "create",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_appeals",
+      "action": "edit",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_appeals",
+      "action": "override",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_appeals",
+      "action": "view",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_committee",
+      "action": "provide_rationale",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_conditions",
+      "action": "override",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_conditions",
+      "action": "view",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_determinations",
+      "action": "create",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_determinations",
+      "action": "edit",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_determinations",
+      "action": "override",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_initiation",
+      "action": "manage_initiation_types",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_initiation",
+      "action": "view",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_monitoring",
+      "action": "approve",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_monitoring",
+      "action": "override",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_monitoring",
+      "action": "view",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_screening",
+      "action": "create",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_screening",
+      "action": "issue_determination",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_screening",
+      "action": "manage_conditions_monitoring",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper_screening",
+      "action": "run_ai_analysis",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper",
+      "action": "admin",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper",
+      "action": "delete",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper",
+      "action": "update",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper",
+      "action": "view_status",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "form_management",
+      "action": "manage_applicability",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "form_management",
+      "action": "manage_packages",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "inspection_management",
+      "action": "create",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "inspection_management",
+      "action": "delete",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "integration_management",
+      "action": "test_connection",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "integration_management",
+      "action": "view",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "integration_management",
+      "action": "view_health",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "license_appeals",
+      "action": "view_all_entities",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "license_management",
+      "action": "create",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "license_management",
+      "action": "delete",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "license_management",
+      "action": "manage_config",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "licensee_management",
+      "action": "create",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "licensee_management",
+      "action": "delete",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "licensee_management",
+      "action": "manage_pre_license",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "licensee_management",
+      "action": "manage_products_channels",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "licensing",
+      "action": "add_legal_notes",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "licensing",
+      "action": "approve",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "licensing",
+      "action": "conditional_approve",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "licensing",
+      "action": "flag_concern",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "licensing",
+      "action": "issue_digital_license",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "licensing",
+      "action": "override_ai_recommendation",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "licensing",
+      "action": "recommend_conditions",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "licensing",
+      "action": "reject",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "licensing",
+      "action": "respond_rfi",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "licensing",
+      "action": "sign_enforcement_order",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "licensing",
+      "action": "upload_documents",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "licensing",
+      "action": "view_status",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "market_conduct_investigation",
+      "action": "access_investigation_workspace",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "market_conduct_investigation",
+      "action": "conduct_interviews",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "market_conduct_investigation",
+      "action": "manage_evidence_repository",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "market_conduct_investigation",
+      "action": "prepare_investigation_report",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "market_conduct_investigation",
+      "action": "view",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "market_conduct",
+      "action": "issue_enforcement_action",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "notification_management",
+      "action": "manage_events",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "notification_management",
+      "action": "manage_templates",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "operational_resilience",
+      "action": "approve",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "operational_resilience",
+      "action": "edit",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "operational_resilience",
+      "action": "view_confidential",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "prudential_payment_systems",
+      "action": "conduct_pfmi_assessment",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "prudential_payment_systems",
+      "action": "manage_payment_workflow",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "prudential_payment_systems",
+      "action": "oversee_msb",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "prudential_payment_systems",
+      "action": "supervise_fmi",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "prudential_payment_systems",
+      "action": "view",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "prudential_supervision",
+      "action": "delete",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "prudential_supervision",
+      "action": "manage_examination",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "prudential_supervision",
+      "action": "review_returns",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "prudential_supervision",
+      "action": "run_analytics",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "prudential_supervision",
+      "action": "set_ewi_rules",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "prudential_supervision",
+      "action": "signoff_workpaper",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "registration_management",
+      "action": "create",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "registration_management",
+      "action": "reject",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "regulatory_data_model",
+      "action": "manage",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "regulatory_data_model",
+      "action": "view",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "regulatory_requests",
+      "action": "approve",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "regulatory_requests",
+      "action": "assign",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "regulatory_requests",
+      "action": "close",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "regulatory_requests",
+      "action": "create",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "regulatory_requests",
+      "action": "reject",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "regulatory_requests",
+      "action": "review",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "returns_management",
+      "action": "create",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "returns_management",
+      "action": "respond_rfi",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "returns_management",
+      "action": "upload_documents",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "returns_management",
+      "action": "view_status",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "role_management",
+      "action": "assign_role",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "rule_engine",
+      "action": "manage_alerts",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "rule_engine",
+      "action": "manage_tasks",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "rule_engine",
+      "action": "restore_versions",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "rule_engine",
+      "action": "test",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "rule_engine",
+      "action": "view_alerts",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "rule_engine",
+      "action": "view_executions",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "rule_engine",
+      "action": "view_tasks",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "rule_engine",
+      "action": "view_versions",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "support_management",
+      "action": "resolve",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "support_management",
+      "action": "respond",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "support_management",
+      "action": "update",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "workflow_management",
+      "action": "create",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "workflow_management",
+      "action": "delete",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    }
+  ]
+}
