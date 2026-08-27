@@ -260,7 +260,7 @@ $d4$;
 -- ===========================================================================
 
 DO $a$
-DECLARE _st text; _n bigint; _lic uuid;
+DECLARE _st text; _n bigint; _lic uuid; _js jsonb;
 BEGIN
   -- Anonymous boundary.
   _st := pg_temp.as_anon(
