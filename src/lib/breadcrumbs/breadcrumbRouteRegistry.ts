@@ -282,4 +282,33 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   { pattern: '/settings/license-expiry', label: 'Licence expiry', parent: '/settings' },
   { pattern: '/settings/payments', label: 'Payments', parent: '/settings' },
   { pattern: '/settings/schedule', label: 'Schedule', parent: '/settings' },
+
+  // ------------------------------------------- market conduct (non-menu surfaces)
+  { pattern: '/conduct/patterns', label: 'Conduct patterns', parent: '/conduct' },
+  { pattern: '/conduct/patterns/:id', label: 'Pattern', parent: '/conduct/patterns' },
+  { pattern: '/conduct/prioritisation', label: 'Prioritisation', parent: '/conduct' },
+  { pattern: '/conduct/reporting', label: 'Conduct reporting', parent: '/conduct' },
+  { pattern: '/conduct/supervisory-intelligence', label: 'Supervisory intelligence', parent: '/conduct' },
+  { pattern: '/conduct/emerging-risks/:riskId', label: 'Emerging risk', parent: '/conduct/emerging-risks' },
+  { pattern: '/conduct/entities/:entityId/360', resolver: 'entity', param: 'entityId', parent: '/conduct/entities' },
+
+  // ------------------------------------------------------------- AI governance
+  { pattern: '/governance/ai', label: 'AI governance', parent: '/dashboard' },
+  { pattern: '/governance/ai/models', label: 'Models', parent: '/governance/ai' },
+  { pattern: '/governance/ai/surfaces', label: 'Surfaces', parent: '/governance/ai' },
+  { pattern: '/governance/ai/instructions', label: 'Instructions', parent: '/governance/ai' },
+  { pattern: '/governance/ai/use-cases', label: 'Use cases', parent: '/governance/ai' },
+  { pattern: '/governance/ai/use-cases/:code', label: 'Use case', parent: '/governance/ai/use-cases' },
+  { pattern: '/governance/ai/assurance', label: 'Assurance reviews', parent: '/governance/ai' },
+  { pattern: '/governance/ai/assurance/:id', label: 'Assurance review', parent: '/governance/ai/assurance' },
+  { pattern: '/governance/ai/activity', label: 'Activity log', parent: '/governance/ai' },
+  { pattern: '/governance/ai/activity/:kind/:id', label: 'Activity record', parent: '/governance/ai/activity' },
+  { pattern: '/governance/ai/exceptions', label: 'Exceptions', parent: '/governance/ai' },
+
+  // ----------------------------------------------- work, complaints & support
+  { pattern: '/my-work', label: 'My work', parent: '/dashboard' },
+  { pattern: '/complaints/file', label: 'File a complaint', parent: '/complaints' },
+  { pattern: '/complaints/intake-queue', label: 'Intake queue', parent: '/complaints' },
+  { pattern: '/support', label: 'Support', parent: '/dashboard' },
+  { pattern: '/admin/support', label: 'Support administration', parent: '/admin' },
 ];
