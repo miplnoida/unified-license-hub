@@ -21,6 +21,8 @@ import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useLicenseEntitlements, type LicenseEntitlement } from '@/hooks/useLicenseEntitlements';
+import { useOpenPostLicenseRequests } from '@/hooks/useOpenPostLicenseRequests';
+
 
 /**
  * Post-licence services are entitlements of an EXISTING licence.
@@ -98,10 +100,21 @@ export default function NewPostLicenseApplication() {
   const accessGuard = useLicenseeAccessGuard();
   const { resolvedLicenseeId } = usePpoc();
 
+  const activeLicenseeId = selectedLicense?.licensee_id || resolvedLicenseeId || null;
+  const { data: openRequests = [] } = useOpenPostLicenseRequests(activeLicenseeId);
+
+  const duplicateRequest = useMemo(() => {
+    if (!selectedService || !selectedLicense) return undefined;
+    return openRequests.find(
+      r => r.service_id === selectedService && r.license_id === selectedLicense.license_id,
+    );
+  }, [openRequests, selectedService, selectedLicense]);
+
   const handleLicenseChange = (val: string) => {
     setSelectedLicenseId(val);
     setSelectedService('');
   };
+
 
   const handleProceed = async () => {
     if (!selectedLicense) {
@@ -120,7 +133,13 @@ export default function NewPostLicenseApplication() {
       toast.error('No published form is configured for this service.');
       return;
     }
+    if (duplicateRequest) {
+      toast.error('You already have an open request for this service on this licence.');
+      navigate(`/applications/${duplicateRequest.id}`);
+      return;
+    }
     if (!user) return;
+
 
     const licenseeId = selectedLicense.licensee_id || resolvedLicenseeId || null;
     if (licenseeId) {
@@ -309,16 +328,35 @@ export default function NewPostLicenseApplication() {
                 </div>
               )}
 
+
+              {duplicateRequest && (
+                <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                  <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                  <div className="text-sm space-y-2">
+                    <p className="font-medium text-destructive">Request already in progress</p>
+                    <p className="text-muted-foreground">
+                      An open request for this service already exists on this licence
+                      (status: {duplicateRequest.status.replace(/_/g, ' ')}). Continue that request
+                      instead of creating a duplicate.
+                    </p>
+                    <Button variant="outline" size="sm" onClick={() => navigate(`/applications/${duplicateRequest.id}`)}>
+                      Open existing request
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-end pt-4 border-t">
                 <Button
                   onClick={handleProceed}
-                  disabled={!selectedLicense || !selectedService || matchedTemplates.length === 0 || creating || licenseGate.isBlocked}
+                  disabled={!selectedLicense || !selectedService || matchedTemplates.length === 0 || creating || licenseGate.isBlocked || !!duplicateRequest}
                 >
                   {creating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                   Proceed to Application
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
+
             </CardContent>
           </Card>
         )}
