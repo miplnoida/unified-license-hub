@@ -242,6 +242,14 @@ export function ClosureQaPanel({
   if (rationale.trim().length < 10) missing.push('Write a rationale of at least 10 characters.');
   if (!outcome) missing.push('Choose an outcome.');
   if (!evidenceComplete) missing.push('Confirm that evidence is complete.');
+  // Server-side blockers only apply to the domain closure path.
+  const readinessBlockers =
+    !closingAction && readiness && readiness.readiness !== 'READY_FOR_CLOSURE'
+      ? readiness.blockers ?? []
+      : [];
+  const blocked = missing.length > 0 || readinessBlockers.length > 0;
+  const checkingReadiness = !closingAction && readinessQ.isLoading;
+
 
   return (
     <div className="space-y-4">
