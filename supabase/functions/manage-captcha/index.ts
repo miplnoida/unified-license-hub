@@ -188,6 +188,9 @@ Deno.serve(async (req) => {
     }
 
     // ---------- admin actions ----------
+    // Canonical RBAC authority: `has_permission(settings.edit)`. Legacy
+    // app_role string matching is deliberately NOT used — it bypasses the
+    // dynamic permission catalogue that governs every other admin surface.
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return json({ ok: false, code: 'UNAUTHORIZED', error: 'Unauthorized' }, 401);
@@ -199,11 +202,15 @@ Deno.serve(async (req) => {
     }
     const userId = claims.claims.sub as string;
 
-    const { data: roleRows } = await admin.from('user_roles').select('role').eq('user_id', userId);
-    const roles = (roleRows ?? []).map((r: { role: string }) => r.role);
-    if (!roles.some((r) => r === 'admin' || r === 'super_admin')) {
+    const { data: allowed, error: permErr } = await admin.rpc('has_permission', {
+      _user_id: userId,
+      _module: 'settings',
+      _action: 'edit',
+    });
+    if (permErr || allowed !== true) {
       return json({ ok: false, code: 'FORBIDDEN', error: 'Forbidden' }, 403);
     }
+
 
     const configurationId = String(body.configuration_id ?? '');
     if (!configurationId) {
