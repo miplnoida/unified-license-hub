@@ -664,6 +664,59 @@ async function regulatorTeam(
   const { data } = await admin.from("profiles").select("id").eq("regulator_id", regulatorId);
   return (data || []).map((r: any) => r.id).filter(Boolean);
 }
+/**
+ * Canonical complainant recipient resolution for the Consumer Complaint lifecycle.
+ *
+ * Order of authority:
+ *  1. a registered complainant user id (payload, then the complaint record),
+ *  2. the complainant email held on the complaint record,
+ *  3. the complainant party record's email.
+ *
+ * Public complainants have no profile row, so they are emitted as a direct
+ * `email:<address>` recipient — the same mechanism registration emails use.
+ * Returns an empty array when the complaint holds no addressable complainant,
+ * which the caller records as an explicit no-recipient outcome.
+ */
+async function complainantRecipients(
+  admin: SupabaseClient,
+  ctx: { entity_type?: string; entity_id?: string; payload: Record<string, any> },
+): Promise<string[]> {
+  const payloadUser = ctx.payload?.complainant_id || ctx.payload?.complainant_user_id;
+  if (payloadUser) return [String(payloadUser)];
+
+  const payloadEmail = typeof ctx.payload?.complainant_email === "string"
+    ? ctx.payload.complainant_email.trim().toLowerCase()
+    : "";
+
+  const complaintId = ctx.entity_type === "complaint"
+    ? ctx.entity_id
+    : (ctx.payload?.complaint_id ? String(ctx.payload.complaint_id) : null);
+
+  if (complaintId) {
+    const { data: complaint } = await admin
+      .from("complaints")
+      .select("complainant_id, email")
+      .eq("id", String(complaintId))
+      .maybeSingle();
+    if (complaint?.complainant_id) return [String(complaint.complainant_id)];
+    const recordEmail = typeof complaint?.email === "string" ? complaint.email.trim().toLowerCase() : "";
+    if (recordEmail && recordEmail.includes("@")) return [`email:${recordEmail}`];
+
+    const { data: parties } = await admin
+      .from("complaint_parties")
+      .select("email, party_role")
+      .eq("complaint_id", String(complaintId))
+      .eq("party_role", "complainant")
+      .not("email", "is", null)
+      .limit(1);
+    const partyEmail = typeof parties?.[0]?.email === "string" ? parties[0].email.trim().toLowerCase() : "";
+    if (partyEmail && partyEmail.includes("@")) return [`email:${partyEmail}`];
+  }
+
+  if (payloadEmail && payloadEmail.includes("@")) return [`email:${payloadEmail}`];
+  return [];
+}
+
 
 async function resolveRecipients(
   admin: SupabaseClient,
@@ -833,10 +886,25 @@ async function resolveRecipients(
           break;
         }
         case "custom_email": {
-          const email = typeof rule.email === "string" ? rule.email.trim().toLowerCase() : "";
-          if (email) out.add(`email:${email}`);
+          // Two supported shapes: a literal address configured in the workflow
+          // designer, or a payload key naming the address (used by the seeded
+          // complaint configs, e.g. {"type":"custom_email","key":"complainant_email"}).
+          const literal = typeof rule.email === "string" ? rule.email.trim().toLowerCase() : "";
+          const fromPayload = typeof rule.key === "string" && typeof ctx.payload?.[rule.key] === "string"
+            ? String(ctx.payload[rule.key]).trim().toLowerCase()
+            : "";
+          const email = literal || fromPayload;
+          if (email && email.includes("@")) out.add(`email:${email}`);
           break;
         }
+        case "complainant": {
+          // Single reusable complainant resolver. Registered complainants resolve
+          // to their portal user; public/email-only complainants resolve to a
+          // direct-email recipient. No fake profile rows are ever created.
+          (await complainantRecipients(admin, ctx as any)).forEach((u) => out.add(u));
+          break;
+        }
+
         case "thread_participants": {
           const threadId = ctx.payload?.thread_id
             || (ctx.entity_type === "correspondence_thread" ? ctx.entity_id : null);
@@ -1189,6 +1257,27 @@ Deno.serve(async (req) => {
       console.log("dispatch-notification-event", { event_key: dispatchCfg.eventKey, entity_type, entity_id, recipient_count: recipients.length });
 
       const channels: string[] = Array.isArray(dispatchCfg.cfg.channels) && dispatchCfg.cfg.channels.length ? dispatchCfg.cfg.channels : ["in_app"];
+
+      // Audit invariant: an event that resolves nobody must leave a visible,
+      // explicit no-recipient record instead of silently producing nothing.
+      if (recipients.length === 0) {
+        summary.skipped++;
+        await admin.from("notification_dispatch_log").insert({
+          event_key: dispatchCfg.eventKey,
+          entity_type: entity_type || null,
+          entity_id: entity_id || null,
+          recipient_user_id: null,
+          channel: channels[0] || "in_app",
+          dedupe_key: [dispatchCfg.eventKey, entity_type || "-", entity_id || "-", "no-recipient", Date.now()].join("|"),
+          status: "skipped",
+          queued_at: new Date().toISOString(),
+          provider: (channels[0] || "in_app") === "email" ? "smtp" : "in_app",
+          error: "no_recipient_resolved",
+          error_details: { reason: "no_recipient_resolved", rules },
+        });
+        continue;
+      }
+
       const dedupeWindow = Math.max(0, Number(dispatchCfg.cfg.dedupe_window_seconds) || 60);
       const dedupeBucket = reminder_window
         ? `rw:${reminder_window}`
