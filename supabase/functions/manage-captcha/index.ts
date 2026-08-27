@@ -13,6 +13,13 @@
  */
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { markPublicFunction } from '../_shared/publicFunction.ts';
+
+// The `verify` action MUST stay reachable without a session: it is what an
+// anonymous public applicant calls to solve the CAPTCHA before registering.
+// Every other action re-authenticates and requires `settings.edit` below.
+markPublicFunction('Anonymous CAPTCHA token verification for public intake; admin actions require settings.edit');
+
 
 const VERIFY_URLS: Record<string, string> = {
   recaptcha_v2: 'https://www.google.com/recaptcha/api/siteverify',
