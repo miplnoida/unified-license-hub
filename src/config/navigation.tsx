@@ -70,6 +70,8 @@ export const mainNavSections: NavSection[] = [
     label: 'Main',
     items: [
       { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, roles: ALL_ROLES },
+      // My Work is a read-only aggregation of the signed-in person's module work.
+      { label: 'My Work', href: '/my-work', icon: <Inbox className="h-5 w-5" />, roles: ALL_ROLES },
     ],
   },
   {
