@@ -44,7 +44,8 @@ SELECT is(
 
 SELECT is(
   (SELECT count(*)::int FROM governed_tables g
-     WHERE NOT relrowsecurity FROM pg_class c WHERE c.oid = ('public.' || g.name)::regclass),
+     JOIN pg_class c ON c.oid = ('public.' || g.name)::regclass
+    WHERE NOT c.relrowsecurity),
   0,
   'GUARDRAIL: every governed convergence table has RLS enabled');
 
