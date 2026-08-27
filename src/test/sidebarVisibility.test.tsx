@@ -75,13 +75,29 @@ vi.mock('@/hooks/usePermissions', () => {
   };
 });
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 import { Sidebar } from '@/components/layout/Sidebar';
 
+/**
+ * The Sidebar consumes TanStack Query (navigation sections + security
+ * context), exactly as the runtime app does under `App.tsx`'s provider.
+ * Each persona gets a fresh, isolated client with retries disabled so no
+ * cache state leaks between personas.
+ */
 function renderSidebar() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0, staleTime: 0, refetchOnWindowFocus: false },
+      mutations: { retry: false },
+    },
+  });
   return render(
-    <MemoryRouter>
-      <Sidebar />
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
