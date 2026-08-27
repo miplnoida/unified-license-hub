@@ -70,21 +70,39 @@ export function Entity360SectionView({ entityId, section, asOf }: Entity360Secti
         syncUrlState={false}
         exportFileName={`entity-${section}`}
         maxBodyHeight="60vh"
-        rowDetails={(row) => (
-          <div className="space-y-2">
-            <p className="text-sm font-semibold">{sectionRowTitle(def, row)}</p>
-            <DefinitionList
-              columns={3}
-              items={columns
-                .filter((c) => c.accessor)
-                .map((c) => ({
-                  label: c.header,
-                  value: c.cell ? c.cell(row) : String(c.accessor!(row) ?? '—'),
-                  hideWhenEmpty: true,
-                }))}
-            />
-          </div>
-        )}
+        rowDetails={(row) => {
+          const verificationStatus = String(row['verification_status'] ?? '').toUpperCase();
+          const showVerifyAction =
+            canWrite &&
+            section === 'identity' &&
+            row.id != null &&
+            (verificationStatus === 'PROVISIONAL' || verificationStatus === 'UNVERIFIED');
+          return (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">{sectionRowTitle(def, row)}</p>
+              <DefinitionList
+                columns={3}
+                items={columns
+                  .filter((c) => c.accessor)
+                  .map((c) => ({
+                    label: c.header,
+                    value: c.cell ? c.cell(row) : String(c.accessor!(row) ?? '—'),
+                    hideWhenEmpty: true,
+                  }))}
+              />
+              {showVerifyAction && (
+                <div className="border-t border-[var(--border)] pt-3">
+                  <VerifyIdentifierDialog
+                    entityId={entityId}
+                    identifierId={String(row.id)}
+                    identifierLabel={sectionRowTitle(def, row)}
+                    isPrimary={Boolean(row['is_primary'])}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        }}
       />
     </section>
   );
