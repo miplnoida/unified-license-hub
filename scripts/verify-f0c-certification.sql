@@ -299,15 +299,16 @@ BEGIN
     'Workflow step guard denies a persona not assigned to the step',
     COALESCE(public.user_can_act_on_workflow_step(
       pg_temp.uid('applicant'),
-      (SELECT id FROM public.workflow_steps ORDER BY created_at LIMIT 1)), false) = false,
+      (SELECT id FROM public.approval_steps ORDER BY created_at LIMIT 1)), false) = false,
     'guard=false expected');
 
   -- Actor spoofing on the governed final-approval RPC.
   _st := pg_temp.as_user(pg_temp.uid('applicant'), format(
-    'SELECT public.perform_final_workflow_approval(%L::uuid, %L::uuid, %L::uuid, %L)',
+    'SELECT public.perform_final_workflow_approval(%L::uuid, %L::uuid, %L::uuid, %L, %L::uuid)',
     (SELECT id FROM public.applications ORDER BY created_at LIMIT 1),
-    (SELECT id FROM public.workflow_steps ORDER BY created_at LIMIT 1),
-    pg_temp.uid('super_admin'), 'f0c spoof probe'));
+    (SELECT id FROM public.workflow_instances ORDER BY created_at LIMIT 1),
+    (SELECT id FROM public.approval_steps ORDER BY created_at LIMIT 1),
+    'f0c spoof probe', pg_temp.uid('super_admin')));
   PERFORM pg_temp.rec('S3', 'A-11',
     'Actor spoofing on perform_final_workflow_approval is DENIED', _st <> '00000', _st);
 
