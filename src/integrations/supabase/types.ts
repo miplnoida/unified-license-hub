@@ -50550,6 +50550,7 @@ export type Database = {
         }
         Returns: string
       }
+      post_license_open_statuses: { Args: never; Returns: string[] }
       ppoc_accessible_license_ids: {
         Args: { _user_id: string }
         Returns: string[]

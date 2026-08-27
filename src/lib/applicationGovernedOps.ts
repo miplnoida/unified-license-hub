@@ -96,6 +96,22 @@ export const applicationCreateDraft = (input: {
   });
 
 /**
+ * Recognise the server-side post-licence duplicate guard
+ * (`DUPLICATE_POST_LICENSE_REQUEST: <application id>`) and return the id of the
+ * existing open request, so callers can offer "open existing request" instead of
+ * surfacing a raw database error.
+ */
+export function getDuplicatePostLicenseRequestId(err: unknown): string | null {
+  const message = String((err as { message?: string } | null)?.message ?? err ?? '');
+  if (!message.includes('DUPLICATE_POST_LICENSE_REQUEST')) return null;
+  const match = message.match(
+    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+  );
+  return match ? match[0] : '';
+}
+
+
+/**
  * Close an open application RFI. The database records the closing officer and
  * timestamp, reverts a parked application to `under_review` and audits.
  */

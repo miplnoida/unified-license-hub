@@ -14,7 +14,7 @@ import { useServices } from '@/hooks/useMasterConfig';
 import { useFormTemplates } from '@/hooks/useFormTemplates';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
-import { applicationCreateDraft } from '@/lib/applicationGovernedOps';
+import { applicationCreateDraft, getDuplicatePostLicenseRequestId } from '@/lib/applicationGovernedOps';
 import { logAudit } from '@/hooks/useAuditLog';
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
@@ -188,7 +188,14 @@ export default function NewPostLicenseApplication() {
       toast.success('Application created as draft.');
       navigate(`/post-licensee/applications/${(data as any).id}/forms?service=${encodeURIComponent(serviceObj?.name || '')}`);
     } catch (err: any) {
+      const duplicateId = getDuplicatePostLicenseRequestId(err);
+      if (duplicateId !== null) {
+        toast.error('You already have an open request for this service on this licence.');
+        if (duplicateId) navigate(`/applications/${duplicateId}`);
+        return;
+      }
       toast.error('Failed to create application: ' + (err.message || 'Unknown error'));
+
     } finally {
       setCreating(false);
     }
