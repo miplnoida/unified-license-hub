@@ -43,6 +43,12 @@ declare
   v_stranger uuid := '00000000-0000-0000-0000-0000000095b2';
   v_auth jsonb;
 begin
+  -- Persona seeding needs the privileged certification runner (auth schema).
+  insert into auth.users(id, email)
+    values (v_approver, 'zz-approver@certification.test'),
+           (v_stranger, 'zz-stranger@certification.test')
+    on conflict do nothing;
+
   insert into public.roles(name, system_role)
     values ('ZZ Test Approver Role', 'analyst')
     returning id into v_role;
