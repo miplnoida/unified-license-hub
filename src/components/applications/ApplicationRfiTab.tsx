@@ -376,7 +376,7 @@ function RfiItemRow({
             entity_type: 'rfi_response',
             entity_id: item.id,
             bucket_name: 'secure-documents',
-            scan_status: 'clean',
+            scan_status: 'pending_scan',
             metadata: { rfi_id: rfiId, rfi_item_id: item.id },
           })
           .select('id')

@@ -19678,6 +19678,47 @@ export type Database = {
           },
         ]
       }
+      file_upload_scan_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          detail: string | null
+          file_upload_id: string
+          from_status: string | null
+          id: string
+          provider: string | null
+          to_status: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: string | null
+          file_upload_id: string
+          from_status?: string | null
+          id?: string
+          provider?: string | null
+          to_status: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: string | null
+          file_upload_id?: string
+          from_status?: string | null
+          id?: string
+          provider?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_upload_scan_events_file_upload_id_fkey"
+            columns: ["file_upload_id"]
+            isOneToOne: false
+            referencedRelation: "file_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       file_uploads: {
         Row: {
           access_count: number
@@ -19695,7 +19736,10 @@ export type Database = {
           last_accessed_at: string | null
           metadata: Json | null
           mime_type: string
+          scan_detail: string | null
+          scan_provider: string | null
           scan_status: string
+          scanned_at: string | null
           updated_at: string
           uploaded_by: string | null
         }
@@ -19715,7 +19759,10 @@ export type Database = {
           last_accessed_at?: string | null
           metadata?: Json | null
           mime_type: string
+          scan_detail?: string | null
+          scan_provider?: string | null
           scan_status?: string
+          scanned_at?: string | null
           updated_at?: string
           uploaded_by?: string | null
         }
@@ -19735,7 +19782,10 @@ export type Database = {
           last_accessed_at?: string | null
           metadata?: Json | null
           mime_type?: string
+          scan_detail?: string | null
+          scan_provider?: string | null
           scan_status?: string
+          scanned_at?: string | null
           updated_at?: string
           uploaded_by?: string | null
         }
@@ -41865,6 +41915,14 @@ export type Database = {
         }
         Relationships: []
       }
+      sec_file_scan_posture: {
+        Row: {
+          files: number | null
+          quarantined: number | null
+          scan_status: string | null
+        }
+        Relationships: []
+      }
       sec_permission_parity: {
         Row: {
           action_key: string | null
@@ -48078,6 +48136,19 @@ export type Database = {
       fail:
         | { Args: never; Returns: string }
         | { Args: { "": string }; Returns: string }
+      file_upload_record_scan: {
+        Args: {
+          _detail?: string
+          _file_upload_id: string
+          _provider?: string
+          _verdict: string
+        }
+        Returns: Json
+      }
+      file_upload_release_state: {
+        Args: { _file_path?: string; _file_upload_id?: string }
+        Returns: Json
+      }
       finalize_complaint_with_attachments: {
         Args: { p_complaint_id: string; p_file_upload_ids: string[] }
         Returns: Json

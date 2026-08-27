@@ -118,7 +118,7 @@ export async function secureUpload(
       entity_type: entityType,
       entity_id: entityId || null,
       bucket_name: 'secure-documents',
-      scan_status: 'clean',
+      scan_status: 'pending_scan',
       metadata: {
         original_name: file.name,
         upload_timestamp: new Date().toISOString(),
@@ -141,6 +141,34 @@ export async function secureUpload(
 }
 
 /**
+ * Scan-release state for a stored file. Files are released only once the
+ * scanning worker has recorded a clean verdict (legacy pre-scanner rows aside).
+ */
+const SCAN_BLOCK_MESSAGES: Record<string, string> = {
+  pending_scan: 'This file is queued for malware scanning and cannot be opened yet.',
+  scanning: 'This file is being scanned for malware. Try again shortly.',
+  suspicious: 'This file was flagged as suspicious and has been quarantined.',
+  infected: 'This file failed the malware scan and has been quarantined.',
+  quarantined: 'This file is quarantined and cannot be downloaded.',
+  scan_error: 'This file could not be scanned, so access is blocked. Contact support.',
+};
+
+export async function getReleaseState(
+  ref: { fileUploadId?: string; filePath?: string },
+): Promise<{ known: boolean; released: boolean; scanStatus: string }> {
+  const { data, error } = await supabase.rpc('file_upload_release_state' as any, {
+    _file_upload_id: ref.fileUploadId ?? null,
+    _file_path: ref.filePath ?? null,
+  });
+  if (error || !data) {
+    // No governed record (e.g. legacy bucket objects) - nothing to gate on.
+    return { known: false, released: true, scanStatus: 'unknown' };
+  }
+  const row = data as { released?: boolean; scan_status?: string };
+  return { known: true, released: !!row.released, scanStatus: row.scan_status ?? 'unknown' };
+}
+
+/**
  * Generate a time-limited signed URL for a file in the private bucket.
  * Default expiry: 5 minutes.
  */
@@ -148,6 +176,12 @@ export async function getSignedUrl(
   filePath: string,
   expiresIn: number = SIGNED_URL_EXPIRY,
 ): Promise<{ url: string | null; error?: string }> {
+  // Fail closed: never hand out a URL for a file that has not cleared malware scanning.
+  const release = await getReleaseState({ filePath });
+  if (release.known && !release.released) {
+    return { url: null, error: SCAN_BLOCK_MESSAGES[release.scanStatus] ?? 'This file is still being scanned for malware.' };
+  }
+
   const { data, error } = await supabase.storage
     .from('secure-documents')
     .createSignedUrl(filePath, expiresIn);

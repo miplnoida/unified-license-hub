@@ -56,7 +56,7 @@ export async function uploadFormFile(
       entity_type: 'form_field',
       entity_id: applicationId || null,
       bucket_name: 'secure-documents',
-      scan_status: 'clean',
+      scan_status: 'pending_scan',
       metadata: { original_name: file.name },
     } as any)
     .select('id')

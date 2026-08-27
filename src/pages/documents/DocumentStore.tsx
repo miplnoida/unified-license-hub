@@ -70,7 +70,7 @@ export default function DocumentStore() {
         entity_type: d.entity_type,
         entity_id: d.entity_id,
         bucket_name: 'documents', // legacy bucket
-        scan_status: 'clean',
+        scan_status: 'legacy_unverified',
         access_count: 0,
         created_at: d.created_at,
       });

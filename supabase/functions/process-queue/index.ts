@@ -195,9 +195,90 @@ async function processFileJob(supabase: any, job: QueueJob) {
   const { file_upload_id, operation } = job.payload as any;
   console.log(`[FILE JOB ${job.id}] Processing file ${file_upload_id}: ${operation}`);
 
-  // Update scan status
-  await supabase
+  const scannerUrl = Deno.env.get("FILE_SCAN_PROVIDER_URL");
+  const scannerName = Deno.env.get("FILE_SCAN_PROVIDER_NAME") ?? "external-scanner";
+
+  // Fail closed: without a commissioned scanner we must NOT release the file.
+  if (!scannerUrl) {
+    await supabase.rpc("file_upload_record_scan", {
+      _file_upload_id: file_upload_id,
+      _verdict: "scan_error",
+      _provider: null,
+      _detail: "no malware scanning provider configured (FILE_SCAN_PROVIDER_URL unset)",
+    });
+    console.error(`[FILE JOB ${job.id}] no scanner configured - file held unreleased`);
+    return;
+  }
+
+  await supabase.rpc("file_upload_record_scan", {
+    _file_upload_id: file_upload_id,
+    _verdict: "scanning",
+    _provider: scannerName,
+    _detail: null,
+  });
+
+  const { data: row } = await supabase
     .from("file_uploads")
-    .update({ scan_status: "clean" } as any)
-    .eq("id", file_upload_id);
+    .select("file_path, bucket_name, file_name, mime_type")
+    .eq("id", file_upload_id)
+    .maybeSingle();
+
+  if (!row) {
+    console.error(`[FILE JOB ${job.id}] file_uploads row not found`);
+    return;
+  }
+
+  try {
+    const { data: blob, error: dlError } = await supabase.storage
+      .from(row.bucket_name || "secure-documents")
+      .download(row.file_path);
+    if (dlError || !blob) throw new Error(dlError?.message ?? "download failed");
+
+    const response = await fetch(scannerUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": row.mime_type || "application/octet-stream",
+        "X-File-Name": row.file_name ?? "upload",
+        ...(Deno.env.get("FILE_SCAN_PROVIDER_KEY")
+          ? { Authorization: `Bearer ${Deno.env.get("FILE_SCAN_PROVIDER_KEY")}` }
+          : {}),
+      },
+      body: await blob.arrayBuffer(),
+    });
+
+    const body = await response.text();
+    if (!response.ok) {
+      throw new Error(`scanner responded ${response.status}: ${body}`);
+    }
+
+    let verdict = "scan_error";
+    let detail = body.slice(0, 500);
+    try {
+      const parsed = JSON.parse(body) as { infected?: boolean; verdict?: string; detail?: string };
+      if (typeof parsed.infected === "boolean") {
+        verdict = parsed.infected ? "infected" : "clean";
+      } else if (parsed.verdict && ["clean", "infected", "suspicious"].includes(parsed.verdict)) {
+        verdict = parsed.verdict;
+      }
+      detail = parsed.detail ?? detail;
+    } catch {
+      // non-JSON scanner response: keep scan_error (fail closed)
+    }
+
+    await supabase.rpc("file_upload_record_scan", {
+      _file_upload_id: file_upload_id,
+      _verdict: verdict,
+      _provider: verdict === "clean" ? scannerName : scannerName,
+      _detail: detail,
+    });
+    console.log(`[FILE JOB ${job.id}] scan verdict: ${verdict}`);
+  } catch (err) {
+    await supabase.rpc("file_upload_record_scan", {
+      _file_upload_id: file_upload_id,
+      _verdict: "scan_error",
+      _provider: scannerName,
+      _detail: err instanceof Error ? err.message.slice(0, 500) : "unknown scan failure",
+    });
+    console.error(`[FILE JOB ${job.id}] scan failed:`, err);
+  }
 }
