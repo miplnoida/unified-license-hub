@@ -66,10 +66,14 @@ SELECT ok(
   NOT EXISTS (SELECT 1 FROM information_schema.role_table_grants
     WHERE table_schema='public' AND table_name='prudential_assessments' AND grantee='anon'),
   'anon has no grants on prudential_assessments');
+-- MC-12: prudential assessments are an authoritative regulatory store. Browser
+-- roles hold no direct DML; every mutation goes through governed SECURITY
+-- DEFINER operations (see docs/rbac/a1-certification.md).
 SELECT ok(
-  EXISTS (SELECT 1 FROM information_schema.role_table_grants
+  NOT EXISTS (SELECT 1 FROM information_schema.role_table_grants
     WHERE table_schema='public' AND table_name='prudential_assessments'
-      AND grantee='authenticated' AND privilege_type='INSERT'),
-  'authenticated has INSERT on prudential_assessments');
+      AND grantee IN ('authenticated','anon')
+      AND privilege_type IN ('INSERT','UPDATE','DELETE')),
+  'browser roles hold no direct DML on prudential_assessments');
 
 ROLLBACK;

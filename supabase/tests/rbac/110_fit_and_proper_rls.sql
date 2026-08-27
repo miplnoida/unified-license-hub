@@ -51,10 +51,14 @@ SELECT ok(
   NOT EXISTS (SELECT 1 FROM information_schema.role_table_grants
     WHERE table_schema='public' AND table_name='fp_assessments' AND grantee='anon'),
   'anon has no grants on fp_assessments');
+-- MC-12: fit-and-proper assessments carry sensitive personal data and are an
+-- authoritative store. Browser roles hold no direct DML; mutations flow through
+-- governed SECURITY DEFINER operations only.
 SELECT ok(
-  EXISTS (SELECT 1 FROM information_schema.role_table_grants
+  NOT EXISTS (SELECT 1 FROM information_schema.role_table_grants
     WHERE table_schema='public' AND table_name='fp_assessments'
-      AND grantee='authenticated' AND privilege_type='INSERT'),
-  'authenticated has INSERT on fp_assessments');
+      AND grantee IN ('authenticated','anon')
+      AND privilege_type IN ('INSERT','UPDATE','DELETE')),
+  'browser roles hold no direct DML on fp_assessments');
 
 ROLLBACK;

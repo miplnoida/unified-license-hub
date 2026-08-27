@@ -12,14 +12,21 @@ select is(
   0,
   'no transition function grants reject to internal staff without role match');
 
--- Every transition function audits denials.
+-- Every transition entrypoint audits denials, either directly or in the
+-- `_internal` implementation it delegates to (registration splits actor
+-- resolution from the transition body).
 select is(
-  (select count(*)::int from pg_proc
-    where proname in ('perform_workflow_transition','perform_registration_workflow_transition',
-                      'perform_return_workflow_transition','perform_final_workflow_approval')
-      and prosrc like '%log_workflow_authz_denial%'),
+  (select count(*)::int from (
+     select e.name from (values ('perform_workflow_transition'),
+                               ('perform_registration_workflow_transition'),
+                               ('perform_return_workflow_transition'),
+                               ('perform_final_workflow_approval')) e(name)
+      where exists (
+        select 1 from pg_proc p
+         where p.proname in (e.name, e.name || '_internal')
+           and p.prosrc like '%log_workflow_authz_denial%')) audited),
   4,
-  'all four transition functions audit authorization denials');
+  'all four transition entrypoints audit authorization denials');
 
 -- System-role equivalence is opt-in per step.
 select ok(
@@ -36,12 +43,18 @@ declare
   v_stranger uuid := '00000000-0000-0000-0000-0000000095b2';
   v_auth jsonb;
 begin
+  -- Persona seeding needs the privileged certification runner (auth schema).
+  insert into auth.users(id, email)
+    values (v_approver, 'zz-approver@certification.test'),
+           (v_stranger, 'zz-stranger@certification.test')
+    on conflict do nothing;
+
   insert into public.roles(name, system_role)
     values ('ZZ Test Approver Role', 'analyst')
     returning id into v_role;
 
-  insert into public.approval_workflows(name, entity_type, is_active)
-    values ('ZZ Test Workflow', 'application', false)
+  insert into public.approval_workflows(name, entity_type, license_type, is_active)
+    values ('ZZ Test Workflow', 'pre_application', 'ZZ Test Licence Type', false)
     returning id into v_wf;
 
   insert into public.approval_steps(workflow_id, step_order, name, approver_role,

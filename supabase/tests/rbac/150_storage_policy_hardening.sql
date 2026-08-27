@@ -5,7 +5,7 @@
 -- these assertions lock the SQL surface so regressions surface immediately.
 
 BEGIN;
-SELECT plan(20);
+SELECT plan(21);
 
 -- ─── documents ─────────────────────────────────────────────────────────────
 SELECT ok(
@@ -36,9 +36,19 @@ SELECT ok(
 );
 
 -- ─── fp-evidence ───────────────────────────────────────────────────────────
+-- MC-12: read access is now object-scoped through fp_can_read_evidence_object,
+-- which is strictly narrower than the previous module-wide check: condition
+-- evidence resolves to the individual, everything else still requires
+-- fit_and_proper.view.
 SELECT ok(
-  (SELECT qual FROM pg_policies WHERE policyname='fp_evidence_read') LIKE '%fit_and_proper%',
-  'fp_evidence_read gates on fit_and_proper permission'
+  (SELECT qual FROM pg_policies WHERE policyname='fp_evidence_read')
+    LIKE '%fp_can_read_evidence_object%',
+  'fp_evidence_read delegates to the object-scoped F&P evidence gate'
+);
+SELECT ok(
+  (SELECT prosrc FROM pg_proc WHERE proname='fp_can_read_evidence_object') LIKE '%fit_and_proper%'
+  AND (SELECT prosrc FROM pg_proc WHERE proname='fp_can_read_evidence_object') LIKE '%can_read_fp_individual%',
+  'the F&P evidence gate resolves fit_and_proper permission and individual scope'
 );
 SELECT ok(
   (SELECT with_check FROM pg_policies WHERE policyname='fp_evidence_write') LIKE '%upload_documents%',

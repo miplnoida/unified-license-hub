@@ -12,22 +12,21 @@ SELECT plan(14);
 
 -- ----------------------------------------------------------------------
 -- Fixtures
+--
+-- MC-12: always use a dedicated, empty role. Re-using an arbitrary existing
+-- role made the dependency assertions non-deterministic, because that role may
+-- already hold `view`/`edit` on the probe module.
 -- ----------------------------------------------------------------------
-CREATE TEMP TABLE _t_roles_seed AS
-SELECT id AS role_id
-FROM public.roles
-LIMIT 1;
+CREATE TEMP TABLE _t_roles_seed (role_id uuid);
 
 DO $$
 DECLARE
   v_role uuid;
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM _t_roles_seed) THEN
-    INSERT INTO public.roles (name, description, system_role, role_type, dashboard_tier)
-    VALUES ('_pgtap_role_mgmt', 'pgTAP fixture', 'analyst', 'internal', 'operational')
-    RETURNING id INTO v_role;
-    INSERT INTO _t_roles_seed VALUES (v_role);
-  END IF;
+  INSERT INTO public.roles (name, description, system_role, role_type, dashboard_tier)
+  VALUES ('_pgtap_permission_dependencies', 'pgTAP fixture', 'analyst', 'internal', 'operational')
+  RETURNING id INTO v_role;
+  INSERT INTO _t_roles_seed VALUES (v_role);
 END$$;
 
 -- Pick a module that has both `view` and `edit` in the live catalog.
