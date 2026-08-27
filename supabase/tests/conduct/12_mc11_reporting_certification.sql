@@ -382,7 +382,7 @@ BEGIN
                AND a.section = 'management_summary' AND a.adopted_by = _maker
                AND a.facts_signature = (_ctx ->> 'facts_signature')
                AND a.pack_id = _pack_id AND a.pack_version = 1
-               AND length(COALESCE(a.adopted_text,'')) > 10),
+               AND length(COALESCE(a.adopted_text::text,'')) > 10),
     _adopt::text);
 
   -- Y. an adoption is a record of a decision and cannot be edited afterwards
