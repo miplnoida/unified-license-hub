@@ -373,9 +373,9 @@ export const dashboardRoutes = (
     {/* RDM-ENTITY-001 Wave A — entity registry, resolution and membership */}
     <Route path="/entities" element={<M module="licensee_management"><EntityDirectory /></M>} />
     {/* Canonical regulated-entity profile = Enterprise Entity 360. */}
-    <Route path="/entities/:entityId" element={<M module="license_management"><Entity360Detail /></M>} />
+    <Route path="/entities/:entityId" element={<M module="licensee_management"><Entity360Detail /></M>} />
     {/* Structural mutation workspace (Wave B) lives inside the entity profile. */}
-    <Route path="/entities/:entityId/structure" element={<M module="license_management"><EntityStructureHub /></M>} />
+    <Route path="/entities/:entityId/structure" element={<M module="licensee_management"><EntityStructureHub /></M>} />
     {/* Compatibility URL for existing bookmarks — redirects to the canonical profile. */}
     <Route path="/entities/:entityId/360" element={<Entity360Redirect />} />
     <Route path="/licensing/entity-resolution" element={<M module="entity_resolution"><EntityResolutionQueue /></M>} />
