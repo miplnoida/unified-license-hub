@@ -204,7 +204,7 @@ export default function DelegationRules() {
       return;
     }
     try {
-      await authorizedAction('delegation', 'create', { from_user_id: fromUserId, to_user_id: toUserId, editing: !!editingRuleId });
+      await authorizedAction('workflow_management', 'manage_config', { from_user_id: fromUserId, to_user_id: toUserId, editing: !!editingRuleId });
     } catch (e: any) {
       toast.error(e?.message || 'Not authorized to create delegation rules');
       return;
@@ -329,7 +329,7 @@ export default function DelegationRules() {
             <div className="flex justify-end">
               <Dialog open={delegateDialogOpen} onOpenChange={(o) => { setDelegateDialogOpen(o); if (!o) resetDelegateForm(); }}>
                 <DialogTrigger asChild>
-                  <Button data-rbac="delegation.create" onClick={() => resetDelegateForm()}><Calendar className="h-4 w-4 mr-2" />New Role Transfer</Button>
+                  <Button data-rbac="workflow_management.manage_config" onClick={() => resetDelegateForm()}><Calendar className="h-4 w-4 mr-2" />New Role Transfer</Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                   <DialogHeader>

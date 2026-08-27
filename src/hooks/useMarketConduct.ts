@@ -199,7 +199,7 @@ export function useToggleEvidenceRestriction() {
 export async function logEvidenceAccess(evidenceId: string, action: 'view' | 'download', reason?: string) {
   try {
     if (action === 'download') {
-      await authorizedAction('conduct_management', 'export', { evidence_id: evidenceId, reason });
+      await authorizedAction('market_conduct', 'export', { evidence_id: evidenceId, reason });
     }
     await sb.rpc('log_conduct_evidence_access', { _evidence_id: evidenceId, _action: action, _reason: reason ?? null });
     await audit('EXPORT', 'conduct_evidence', evidenceId, null, { action }, reason);

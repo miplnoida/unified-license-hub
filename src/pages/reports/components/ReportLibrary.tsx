@@ -109,7 +109,7 @@ export function ReportLibrary({ onPreview, onSchedule }: Props) {
             {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Button data-rbac="report_management.edit"
+        <Button data-rbac="report_management.create"
           type="button"
           variant={showFavsOnly ? 'default' : 'outline'}
           onClick={() => setShowFavsOnly((v) => !v)}
@@ -143,7 +143,7 @@ export function ReportLibrary({ onPreview, onSchedule }: Props) {
                     {d.exportFormats.map((f) => <Badge key={f} variant="outline" className="text-[10px] uppercase">{f}</Badge>)}
                   </div>
                   <div className="flex gap-2">
-                    <Button data-rbac="report_management.edit" size="sm" variant="outline" onClick={() => onSchedule(d)}>
+                    <Button data-rbac="report_management.create" size="sm" variant="outline" onClick={() => onSchedule(d)}>
                       <Calendar className="h-3 w-3 mr-1" />Schedule
                     </Button>
                     <Button size="sm" onClick={() => handleGenerate(d)} disabled={busyId === d.id}>

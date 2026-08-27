@@ -274,7 +274,7 @@ export function AdHocReportBuilder({ onPreview }: Props) {
             {grouped.advanced.length > 0 && (
               <Collapsible>
                 <CollapsibleTrigger asChild>
-                  <Button data-rbac="report_management.edit" type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground">
+                  <Button data-rbac="report_management.create" type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground">
                     <ChevronDown className="h-3 w-3 mr-1" />
                     {GROUP_LABELS.advanced} ({grouped.advanced.length})
                   </Button>

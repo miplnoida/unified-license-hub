@@ -232,11 +232,11 @@ export function ThematicClosurePanel({ reviewId, review, findings, actions, onCh
 
           {selected?.status === 'in_review' && (
             <div className="flex gap-2 pt-2 border-t">
-              <Button data-rbac="prudential_supervision.approve" size="sm"
+              <Button data-rbac="prudential_supervision.workflow_action" size="sm"
                 onClick={() => run(() => approveReport.mutateAsync({ _report_id: selected.id }), 'Report approved')}>
                 <CheckCircle2 className="h-4 w-4 mr-1" /> Approve report
               </Button>
-              <Button data-rbac="prudential_supervision.approve" size="sm" variant="outline" onClick={() => { setRejectTarget(selected); setRejectReason(''); }}>
+              <Button data-rbac="prudential_supervision.workflow_action" size="sm" variant="outline" onClick={() => { setRejectTarget(selected); setRejectReason(''); }}>
                 <XCircle className="h-4 w-4 mr-1" /> Reject
               </Button>
             </div>
@@ -244,7 +244,7 @@ export function ThematicClosurePanel({ reviewId, review, findings, actions, onCh
 
           {selected?.status === 'approved' && (
             <div className="pt-2 border-t">
-              <Button data-rbac="prudential_supervision.approve" size="sm"
+              <Button data-rbac="prudential_supervision.workflow_action" size="sm"
                 onClick={() => run(async () => {
                   const staged = await publishReport.mutateAsync({ _report_id: selected.id });
                   toast.info(`${staged ?? 0} supervisory letter(s) staged`);
@@ -407,11 +407,11 @@ function ClosureGateCard({ review, reviewId, approverOptions, readiness, onDone,
 
         {review.closure_state === 'pending_approval' && (
           <div className="flex gap-2 pt-2 border-t">
-            <Button data-rbac="prudential_supervision.approve" size="sm"
+            <Button data-rbac="prudential_supervision.workflow_action" size="sm"
               onClick={() => run(() => approveClosure.mutateAsync({ _review_id: reviewId, _note: null }), 'Closure approved — review closed')}>
               <CheckCircle2 className="h-4 w-4 mr-1" /> Approve closure
             </Button>
-            <Button data-rbac="prudential_supervision.approve" size="sm" variant="outline" onClick={() => setRejectOpen(true)}>
+            <Button data-rbac="prudential_supervision.workflow_action" size="sm" variant="outline" onClick={() => setRejectOpen(true)}>
               <XCircle className="h-4 w-4 mr-1" /> Reject closure
             </Button>
           </div>

@@ -12,9 +12,9 @@ create-web-user	user	user_management	create	licenseeId	Licensee web-user provisi
 developer-api	api_key	-	-	-	Existing bearer-API-key auth path.
 dispatch-license-certificate	user	license_management	manage_certificates	recordId	Send generated certificate.
 dispatch-notification-event	worker	-	-	-	Internal orchestrator; invoked by other functions/cron, or by an authenticated user session for client-fired business events.
-document-extract	user	document_management	upload	-	AI document extraction pass.
+document-extract	user	application_management	edit	-	AI document extraction pass.
 evaluate-application-sufficiency	user	application_management	edit	recordId	AI + rules sufficiency check.
-evaluate-complaint-triage	user	complaint_management	workflow_action	recordId	Triage engine.
+evaluate-complaint-triage	user	complaint_management	triage	recordId	Triage engine.
 evaluate-conduct-monitoring	worker	-	-	-	Scheduled market-conduct rule sweep.
 evaluate-prudential-early-warnings	worker	-	-	-	requireWorkerOrPrudentialUser (worker credential or prudential permission).
 evaluate-return-prudential	user	returns_management	view	returnId	Score submitted return.
@@ -30,7 +30,7 @@ generate-return-analysis	user	returns_management	view	returnId	AI narrative for 
 get-licensee-registration	user	registration_management	view	licenseeId	Fetch licensee registration record.
 license-expiry-reminders	worker	-	-	-	Daily license expiry sweep.
 list-web-users	user	user_management	view	licenseeId	Licensee web-user listing.
-manage-api-key	user	integration_management	configure	-	Rotate/inspect API keys.
+manage-api-key	user	integration_management	manage	-	Rotate/inspect API keys.
 manage-captcha	public	settings	edit	-	verify action public for anonymous intake; set_secret/has_secret require has_permission(settings.edit).
 manage-web-user	user	user_management	edit	licenseeId	Update licensee web-user profile.
 notification-delivery-webhook	webhook	-	-	-	requireSignedWebhook: HMAC-SHA256 over raw body with NOTIFICATION_WEBHOOK_SECRET.
@@ -59,7 +59,7 @@ send-notification	worker	-	-	-	Notification delivery worker.
 send-registration-otp	public	-	-	-	Public OTP dispatch.
 sign-license-certificate	user	license_management	manage_certificates	recordId	Officer signature on certificate.
 sla-escalation-sweep	worker	-	-	-	SLA escalation sweep.
-test-smtp-email	user	notification_management	configure	-	Admin SMTP diagnostic.
+test-smtp-email	user	notification_management	test_send	-	Admin SMTP diagnostic.
 toggle-user-status	user	user_management	edit	licenseeId	Enable/disable licensee web user.
-verify-and-submit	user	application_management	submit	recordId	Final application submission.
+verify-and-submit	user	licensing	submit	recordId	Final application submission.
 verify-registration-otp	public	-	-	-	Public OTP verify.

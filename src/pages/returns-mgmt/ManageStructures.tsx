@@ -42,7 +42,7 @@ export default function ManageStructures() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader title="Manage Structures" description="Define and manage return template structures." actions={<Button data-rbac="returns_management.configure"><Plus className="h-4 w-4 mr-2" />New Structure</Button>} />
+        <PageHeader title="Manage Structures" description="Define and manage return template structures." actions={<Button data-rbac="returns_management.manage_config"><Plus className="h-4 w-4 mr-2" />New Structure</Button>} />
         <div className="animate-slide-up delay-100">
           <DataTableShell columns={columns} data={data} searchPlaceholder="Search structures..." />
         </div>

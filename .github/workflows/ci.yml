@@ -57,6 +57,15 @@ jobs:
           echo "enforced:false count = $count"
           [ "$count" -eq 0 ]
 
+      - name: RBAC catalogue integrity (no invalid refs, all orphans dispositioned)
+        run: bunx vitest run src/test/rbac/catalogueIntegrity.test.ts
+
+      - name: RBAC disposition register is up to date
+        run: |
+          set -euo pipefail
+          bunx tsx scripts/generate-permission-disposition.ts
+          git diff --exit-code -- docs/rbac/permission-disposition.json docs/rbac/permission-disposition.md
+
       - name: Authorize service unit tests
         run: bunx vitest run src/test/authorize.test.ts
 

@@ -36,7 +36,7 @@ export default function RfiApprovalQueue() {
   const { data: settings } = useComplaintRfiSettings();
   const setRequired = useSetComplaintRfiApprovalRequired();
   const canApprove = useCan('complaint_management', 'approve_rfi');
-  const canConfigure = useCan('complaint_management', 'configure');
+  const canConfigure = useCan('complaint_management', 'edit');
   const { user } = useAuth();
   const [params, setParams] = useSearchParams();
   const [active, setActive] = useState<ComplaintRfi | null>(null);
@@ -141,7 +141,7 @@ export default function RfiApprovalQueue() {
             <Label htmlFor="rfi-gate" className="text-xs">Require approval before dispatch</Label>
             <Switch
               id="rfi-gate"
-              data-rbac="complaint_management.configure"
+              data-rbac="complaint_management.edit"
               checked={settings?.approval_required ?? true}
               onCheckedChange={toggle}
               disabled={setRequired.isPending}

@@ -82,7 +82,7 @@ export default function ConductRiskTaxonomy() {
         <PageHeader
           title="Conduct Risk Taxonomy"
           description="Categorise conduct risks used across complaints, alerts, and thematic monitoring."
-          actions={<Button data-rbac="market_conduct.create" onClick={() => { reset(); setOpen(true); }}><PlusCircle className="h-4 w-4 mr-2" />Add Category</Button>}
+          actions={<Button data-rbac="market_conduct.edit" onClick={() => { reset(); setOpen(true); }}><PlusCircle className="h-4 w-4 mr-2" />Add Category</Button>}
         />
         <Card>
           <CardContent className="p-0">

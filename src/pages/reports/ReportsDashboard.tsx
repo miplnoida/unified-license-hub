@@ -38,7 +38,7 @@ export default function ReportsDashboard() {
           description="Generate, schedule, and export reports across all modules."
           actions={
             <div className="flex gap-2">
-              <Button data-rbac="report_management.configure" variant="outline" onClick={() => { setTab('schedules'); setScheduleDialogOpen(true); }}>
+              <Button data-rbac="report_management.create" variant="outline" onClick={() => { setTab('schedules'); setScheduleDialogOpen(true); }}>
                 <Mail className="h-4 w-4 mr-2" />Schedule Report
               </Button>
               <Button data-rbac="report_management.create" onClick={() => setTab('builder')}>

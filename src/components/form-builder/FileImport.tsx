@@ -1845,7 +1845,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, butto
   const handleLegacyConfirm = async () => {
     if (!legacyPreview) return;
     try {
-      await authorizedAction('form_management', 'import', { mode: 'legacy', sections: legacyPreview.length });
+      await authorizedAction('form_management', 'create', { mode: 'legacy', sections: legacyPreview.length });
     } catch (e: any) {
       toast.error(e?.message || 'Not authorized to import forms.');
       return;
@@ -1865,7 +1865,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, butto
       return;
     }
     try {
-      await authorizedAction('form_management', 'import', { mode: 'multi_sheet', sheets: filtered.sheets.length });
+      await authorizedAction('form_management', 'create', { mode: 'multi_sheet', sheets: filtered.sheets.length });
     } catch (e: any) {
       toast.error(e?.message || 'Not authorized to import forms.');
       return;
@@ -1933,7 +1933,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, butto
                 )}
 
                 {step === 'select_sheets' && multiResult && !onMultiSheetImport && (
-                  <Button data-rbac="form_management.import"
+                  <Button data-rbac="form_management.create"
                     size="sm"
                     onClick={() => {
                       const allSections = selectedSheets.flatMap(s => s.sections);
@@ -1955,7 +1955,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, butto
                 )}
 
                 {step === 'preview' && legacyPreview && (
-                  <Button data-rbac="form_management.import" size="sm" onClick={handleLegacyConfirm} disabled={legacyPreview.reduce((a, s) => a + s.fields.length, 0) === 0}>
+                  <Button data-rbac="form_management.create" size="sm" onClick={handleLegacyConfirm} disabled={legacyPreview.reduce((a, s) => a + s.fields.length, 0) === 0}>
                     Import {legacyPreview.reduce((a, s) => a + s.fields.length, 0)} Field(s)
                   </Button>
                 )}
@@ -2214,7 +2214,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, butto
 
               {/* Step 2 → direct confirm if no multi-sheet handler, treat as legacy merge */}
               {step === 'select_sheets' && multiResult && !onMultiSheetImport && (
-                <Button data-rbac="form_management.import"
+                <Button data-rbac="form_management.create"
                   onClick={() => {
                     const allSections = selectedSheets.flatMap(s => s.sections);
                     onImport(allSections);
@@ -2237,7 +2237,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, butto
 
               {/* Step 3 → confirm legacy */}
               {step === 'preview' && legacyPreview && (
-                <Button data-rbac="form_management.import" onClick={handleLegacyConfirm} disabled={legacyPreview.reduce((a, s) => a + s.fields.length, 0) === 0}>
+                <Button data-rbac="form_management.create" onClick={handleLegacyConfirm} disabled={legacyPreview.reduce((a, s) => a + s.fields.length, 0) === 0}>
                   Import {legacyPreview.reduce((a, s) => a + s.fields.length, 0)} Field(s)
                 </Button>
               )}

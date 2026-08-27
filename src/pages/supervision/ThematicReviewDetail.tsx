@@ -426,7 +426,7 @@ function FindingsTab({ reviewId, rows, entities, onChange }: any) {
     if (!form.title.trim()) return;
     setSaving(true);
     const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
-    try { await authorizedAction('market_conduct', 'create', { review_id: reviewId, finding_title: form.title }); }
+    try { await authorizedAction('market_conduct', 'initiate_thematic_review', { review_id: reviewId, finding_title: form.title }); }
     catch (e: any) { toast.error(e?.message || 'Not authorized'); setSaving(false); return; }
     let data: any = null; let error: any = null;
     try {

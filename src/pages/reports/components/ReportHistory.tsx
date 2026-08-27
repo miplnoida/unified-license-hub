@@ -175,7 +175,7 @@ export function ReportHistory({ onPreview }: Props) {
                         {f.value.toUpperCase()}
                       </Button>
                     ))}
-                    <Button data-rbac="report_management.edit" size="sm" variant="outline" disabled={rerunId === r.id} onClick={() => handleRerun(r)}>
+                    <Button data-rbac="report_management.create" size="sm" variant="outline" disabled={rerunId === r.id} onClick={() => handleRerun(r)}>
                       <RefreshCw className={`h-3 w-3 mr-1 ${rerunId === r.id ? 'animate-spin' : ''}`} />Re-run
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => setConfirmId(r.id)}><Trash2 className="h-3 w-3" /></Button>

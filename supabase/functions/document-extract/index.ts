@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
   const pre = handleCorsPreflight(req);
   if (pre) return pre;
 
-  const __authzGate = await requireUserPermission(req, "document_management", "upload");
+  const __authzGate = await requireUserPermission(req, "application_management", "edit");
   if (!__authzGate.ok) return __authzGate.response;
   const cors = buildCorsHeaders(req);
 

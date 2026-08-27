@@ -178,7 +178,7 @@ export function BatchDocumentUpload({
             className="hidden"
             onChange={(e) => addFiles(e.target.files)}
           />
-          <Button data-rbac="settings.create"
+          <Button data-rbac="settings.edit"
             variant="outline"
             type="button"
             onClick={() => inputRef.current?.click()}

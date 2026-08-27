@@ -67,7 +67,7 @@ export default function MailSms() {
                 <div className="space-y-2"><Label>Recipient</Label><Input placeholder="Enter email or phone number..." /></div>
                 <div className="space-y-2"><Label>Subject</Label><Input placeholder="Message subject..." /></div>
                 <div className="space-y-2"><Label>Message</Label><Textarea placeholder="Type your message..." rows={6} /></div>
-                <Button data-rbac="notification_management.create"><Send className="h-4 w-4 mr-2" />Send Message</Button>
+                <Button data-rbac="notification_management.dispatch"><Send className="h-4 w-4 mr-2" />Send Message</Button>
               </CardContent>
             </Card>
           </TabsContent>

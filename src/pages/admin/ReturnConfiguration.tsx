@@ -71,7 +71,7 @@ export default function ReturnConfiguration() {
     if (!name.trim()) { toast.error('Name is required'); return; }
     setSaving(true);
     try {
-      await authorizedAction('returns_management', 'configure', { config_id: editing?.id ?? null, name: name.trim() });
+      await authorizedAction('returns_management', 'manage_config', { config_id: editing?.id ?? null, name: name.trim() });
     } catch (e: any) { toast.error(e?.message ?? 'Not authorized'); setSaving(false); return; }
     const payload: any = {
       name: name.trim(), frequency, due_day: parseInt(dueDay),
@@ -92,7 +92,7 @@ export default function ReturnConfiguration() {
 
   const handleDelete = async (id: string) => {
     try {
-      await authorizedAction('returns_management', 'configure', { config_id: id, action: 'delete' });
+      await authorizedAction('returns_management', 'manage_config', { config_id: id, action: 'delete' });
     } catch (e: any) { toast.error(e?.message ?? 'Not authorized'); return; }
     const { error } = await supabase.from('return_configurations' as any).delete().eq('id', id);
     if (error) { toast.error(error.message); return; }
@@ -109,7 +109,7 @@ export default function ReturnConfiguration() {
           description="Configure compliance return schedules scoped to the active regulator."
           actions={
             <Dialog open={dialogOpen} onOpenChange={v => { setDialogOpen(v); if (!v) resetForm(); }}>
-              <DialogTrigger asChild><Button data-rbac="returns_management.configure"><PlusCircle className="h-4 w-4 mr-2" />Add Configuration</Button></DialogTrigger>
+              <DialogTrigger asChild><Button data-rbac="returns_management.manage_config"><PlusCircle className="h-4 w-4 mr-2" />Add Configuration</Button></DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>{editing ? 'Edit' : 'New'} Return Configuration</DialogTitle></DialogHeader>
                 <div className="space-y-4">

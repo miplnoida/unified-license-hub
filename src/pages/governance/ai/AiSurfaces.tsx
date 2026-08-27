@@ -27,7 +27,7 @@ import { formatDateTime } from '@/lib/datetime';
 import { useCan } from '@/hooks/useCan';
 
 export default function AiSurfaces() {
-  const canGovern = useCan('ai_management', 'configure') || useCan('ai_management', 'approve');
+  const canGovern = useCan('ai_management', 'edit') || useCan('ai_management', 'approve');
   const { data: surfaces = [], isLoading } = useAiSurfaces();
   const transition = useAiSurfaceTransition();
 
