@@ -109,8 +109,13 @@ describe('edge function: perform-workflow-action', () => {
   });
 
   it('passes raw_action straight to perform_workflow_transition', () => {
-    expect(edgeSrc).toMatch(/_action_type:\s*raw_action/);
+    // The edge function forwards the caller's action verbatim: it binds
+    // `effective_action = raw_action` (no alias table) and passes that as
+    // `_action_type`. Assert both halves so an alias could not sneak back in.
+    expect(edgeSrc).toMatch(/const\s+effective_action\s*=\s*raw_action/);
+    expect(edgeSrc).toMatch(/_action_type:\s*(effective_action|raw_action)/);
   });
+
 
   it('dispatches a distinct event_key per action', () => {
     expect(edgeSrc).toMatch(/application\.returned_for_correction/);
