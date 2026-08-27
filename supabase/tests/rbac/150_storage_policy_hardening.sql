@@ -5,7 +5,7 @@
 -- these assertions lock the SQL surface so regressions surface immediately.
 
 BEGIN;
-SELECT plan(20);
+SELECT plan(21);
 
 -- ─── documents ─────────────────────────────────────────────────────────────
 SELECT ok(

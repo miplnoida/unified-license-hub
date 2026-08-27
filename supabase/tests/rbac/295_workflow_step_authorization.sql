@@ -12,14 +12,21 @@ select is(
   0,
   'no transition function grants reject to internal staff without role match');
 
--- Every transition function audits denials.
+-- Every transition entrypoint audits denials, either directly or in the
+-- `_internal` implementation it delegates to (registration splits actor
+-- resolution from the transition body).
 select is(
-  (select count(*)::int from pg_proc
-    where proname in ('perform_workflow_transition','perform_registration_workflow_transition',
-                      'perform_return_workflow_transition','perform_final_workflow_approval')
-      and prosrc like '%log_workflow_authz_denial%'),
+  (select count(*)::int from (
+     select e.name from (values ('perform_workflow_transition'),
+                               ('perform_registration_workflow_transition'),
+                               ('perform_return_workflow_transition'),
+                               ('perform_final_workflow_approval')) e(name)
+      where exists (
+        select 1 from pg_proc p
+         where p.proname in (e.name, e.name || '_internal')
+           and p.prosrc like '%log_workflow_authz_denial%')) audited),
   4,
-  'all four transition functions audit authorization denials');
+  'all four transition entrypoints audit authorization denials');
 
 -- System-role equivalence is opt-in per step.
 select ok(
