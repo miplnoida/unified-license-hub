@@ -95,7 +95,7 @@ export function Entity360SectionView({ entityId, section, asOf }: Entity360Secti
                   <VerifyIdentifierDialog
                     entityId={entityId}
                     identifierId={String(row.id)}
-                    identifierLabel={sectionRowTitle(def, row)}
+                    identifierLabel={String(sectionRowTitle(def, row) ?? 'identifier')}
                     isPrimary={Boolean(row['is_primary'])}
                   />
                 </div>
