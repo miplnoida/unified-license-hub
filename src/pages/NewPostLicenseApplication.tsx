@@ -21,6 +21,8 @@ import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useLicenseEntitlements, type LicenseEntitlement } from '@/hooks/useLicenseEntitlements';
+import { useOpenPostLicenseRequests } from '@/hooks/useOpenPostLicenseRequests';
+
 
 /**
  * Post-licence services are entitlements of an EXISTING licence.
