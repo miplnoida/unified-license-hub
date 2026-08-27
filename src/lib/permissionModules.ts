@@ -113,6 +113,10 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/return-config', 'returns_management'],
   ['/admin/returns', 'returns_management'],
   ['/returns-management', 'returns_management'],
+  // Canonical (post-RDM) regulator returns surfaces: queue, filing detail,
+  // obligations workbench and reporting calendar.
+  ['/returns', 'returns_management'],
+
   // External regulated-entity returns surface (audience: external). Mapping is
   // additive — it only makes path→module resolution consistent for the gate,
   // sidebar and search; entitlement stays enforced by RLS/RPC predicates.
