@@ -133,11 +133,54 @@ export function ClosureQaPanel({
   const reviews = closureQ.data;
   const isLoading = closureQ.isLoading;
 
+  // Canonical, domain-driven closure gate. Market Conduct complaints are closed
+  // through `complaint_close`, not through a configured step action, so the
+  // server's readiness verdict is what decides whether closing is possible.
+  const readinessQ = useQuery({
+    queryKey: ['mc04_closure_readiness', complaintId],
+    staleTime: 15_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc('complaint_closure_readiness', {
+        _complaint_id: complaintId,
+      });
+      if (error) throw error;
+      const d = (data ?? {}) as any;
+      return {
+        readiness: (d?.readiness ?? 'NOT_READY') as string,
+        blockers: (d?.blockers ?? []) as string[],
+      };
+    },
+  });
+  const readiness = readinessQ.data;
+
   const closingAction = resolveClosingAction(availableActions, terminalStepKeys);
   const alreadyClosed = status === 'closed' || status === 'resolved' || status === 'withdrawn';
 
   const closeMut = useMutation({
     mutationFn: async () => {
+      if (!closingAction) {
+        // Domain closure: records the closure review, closes the complaint and
+        // syncs the phase server-side in one governed call.
+        const { data: c, error: cErr } = await supabase
+          .from('complaints')
+          .select('updated_at')
+          .eq('id', complaintId)
+          .maybeSingle();
+        if (cErr) throw cErr;
+
+        const { error } = await (supabase as any).rpc('complaint_close', {
+          _complaint_id: complaintId,
+          _payload: {
+            resolution_summary: resolution || null,
+            rationale: rationale || null,
+            final_communication_ref: commRef || null,
+          },
+          _expected_updated_at: (c as any)?.updated_at ?? null,
+        });
+        if (error) throw error;
+        return;
+      }
+
       // 1) record the closure assessment (append-only history)
       const { error: recErr } = await supabase.rpc('complaint_record_closure_review', {
         _complaint_id: complaintId,
@@ -151,8 +194,6 @@ export function ClosureQaPanel({
         _reviewer_id: null,
       });
       if (recErr) throw recErr;
-
-      if (!closingAction) return;
 
       // 2) perform the configured closing workflow action
       const { data: tracking, error: trackErr } = await (supabase as any).rpc('get_complaint_tracking', {
@@ -180,13 +221,17 @@ export function ClosureQaPanel({
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['complaint_closure_reviews', complaintId] });
+      qc.invalidateQueries({ queryKey: ['mc04_closure_readiness', complaintId] });
+      qc.invalidateQueries({ queryKey: ['mc04_closure_reviews', complaintId] });
       qc.invalidateQueries({ queryKey: ['complaint', complaintId] });
       qc.invalidateQueries({ queryKey: ['complaint_actions', complaintId] });
       qc.invalidateQueries({ queryKey: ['complaint_tracking', complaintId] });
+      qc.invalidateQueries({ queryKey: ['complaint_workflow_state', complaintId] });
       toast.success('Complaint closed');
     },
     onError: (e) => toast.error(friendlyRecordError(e)),
   });
+
 
   const latest = reviews?.[0] as any | undefined;
   const latestLabel = closureDecisionLabel(latest?.decision);
