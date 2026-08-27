@@ -174,10 +174,10 @@ BEGIN
     _dd := public.conduct_mi_drilldown(_code, _ps, _pe, _sector, NULL, 500);
     _count := ((_d1 -> 'metrics') ->> _code)::integer;
     INSERT INTO mc11 VALUES ('drilldown_reconciles',
-      (_dd ->> 'total')::integer = _count
+      (_dd ->> 'value')::integer = _count
       AND jsonb_array_length(_dd -> 'records') = LEAST(_count, 500)
-      AND (_dd -> 'definition' ->> 'code') = _code,
-      format('metric=%s headline=%s drilldown=%s', _code, _count, _dd ->> 'total'));
+      AND (_dd -> 'metric' ->> 'code') = _code,
+      format('metric=%s headline=%s drilldown=%s', _code, _count, _dd ->> 'value'));
   END IF;
 
   -- E. an unknown measure cannot be drilled into
