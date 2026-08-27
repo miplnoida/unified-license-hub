@@ -37,8 +37,8 @@ describe('useLicenseeMetrics queryFn', () => {
       if (fn === 'returns_entity_summary') {
         return Promise.resolve({
           data: {
-            total: 3, draft: 0, pending_review: 1, correction_requested: 0,
-            accepted: 1, overdue: 1, due_soon: 0, upcoming: [],
+            total: 1, draft: 0, pending_review: 1, correction_requested: 0,
+            accepted: 0, overdue: 1, due_soon: 0, upcoming: [],
           },
           error: null,
         });
