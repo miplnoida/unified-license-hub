@@ -112,3 +112,36 @@ historic decision rows (`license_decisions`, committee/panel snapshots);
 - Lifecycle-config `decision_authority` text keys must be mapped to canonical
   decision-authority rules per deployment; unmapped values stay advisory.
 - Historic `license_decisions.authority` free-text values are not back-classified.
+
+---
+
+## 6. Convergence checkpoint progress
+
+| Checkpoint | Scope | Status | Evidence |
+|---|---|---|---|
+| A | Repository truth baseline + gap register | DONE | this document |
+| B | Regulatory authority + decision authority resolver (`OFF / OBSERVE_ONLY / ENFORCED`) | CERTIFIED 9/9 | `supabase/tests/convergence/01_checkpoint_b_decision_authority.sql` |
+| C | Small-regulator work model (allocation policy + coverage resolver) | CERTIFIED 9/9 | `supabase/tests/convergence/02_checkpoint_c_work_model.sql` |
+| D | Regulatory service + task execution model | CERTIFIED | `supabase/tests/convergence/03_checkpoint_d_e_services_providers.sql` |
+| E | External service provider security context | CERTIFIED | same suite (19 assertions incl. grant invariants) |
+| F | People & Access + My Work aggregation surfaces | PENDING | — |
+| G | Module adoption of canonical resolvers | PENDING | — |
+| H | Regression + full convergence certification | PENDING | — |
+| I | Release decision | PENDING | — |
+
+### Invariants proven so far
+- Unconfigured deployments keep today's behaviour (allocation default
+  `HYBRID`/`MANUAL`; unknown task defaults to `INTERNAL_ONLY`).
+- Coverage never equals permission, and never equals decision authority.
+- Every externally executable task must end in internal acceptance; providers
+  cannot accept their own work or take any decision action.
+- Provider visibility is bounded by active provider + active membership +
+  in-date NDA-confirmed engagement + non-closed assigned work package.
+- All convergence tables are read-only to signed-in users and invisible to
+  anonymous callers; authoritative writes only via governed RPCs.
+
+### Platform finding (applies beyond this programme)
+This project's Postgres default privileges grant full DML on newly created
+`public` tables to `anon` and `authenticated`. Every new table therefore needs an
+explicit `REVOKE ALL ... FROM anon, authenticated` followed by the intended
+narrow grants. Applied to all ten convergence tables.
