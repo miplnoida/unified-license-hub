@@ -192,7 +192,7 @@ export function MasterDataImportDialog({
 
   const handleImport = async () => {
     try {
-      await authorizedAction('master_data_management', 'import', { entity, rows: validRows.length });
+      await authorizedAction('settings', 'edit', { entity, rows: validRows.length });
     } catch (e: any) {
       toast({ title: 'Not authorized', description: e?.message || 'You lack permission to import master data.', variant: 'destructive' });
       return;
@@ -232,7 +232,7 @@ export function MasterDataImportDialog({
             <Button data-rbac="settings.export" variant="outline" onClick={() => downloadSampleExcel(entity)}>
               <FileSpreadsheet className="h-4 w-4 mr-2" />Download Sample Excel
             </Button>
-            <Button data-rbac="settings.import" variant="outline" onClick={() => inputRef.current?.click()}>
+            <Button data-rbac="settings.edit" variant="outline" onClick={() => inputRef.current?.click()}>
               <Upload className="h-4 w-4 mr-2" />Choose Excel File
             </Button>
             <input ref={inputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFile} />
@@ -289,7 +289,7 @@ export function MasterDataImportDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={importing}>Cancel</Button>
-          <Button data-rbac="master_data_management.import" onClick={handleImport} disabled={!canImport || importing}>
+          <Button data-rbac="settings.edit" onClick={handleImport} disabled={!canImport || importing}>
             {importing ? 'Importing...' : `Import ${validRows.length} row(s)`}
           </Button>
         </DialogFooter>

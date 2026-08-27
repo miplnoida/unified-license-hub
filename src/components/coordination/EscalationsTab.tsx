@@ -104,7 +104,7 @@ export function EscalationsTab({
 
   const update = useMutation({
     mutationFn: async ({ id, patch, action, justification }: { id: string; patch: Record<string, unknown>; action: string; justification?: string }) => {
-      await authorizedAction('coordination', 'edit', { escalation_id: id, action });
+      await authorizedAction('coordination', 'update', { escalation_id: id, action });
       const before = (escalations ?? []).find((e: any) => e.id === id) ?? null;
       const { error } = await supabase.from('coordination_escalations').update(patch).eq('id', id);
       if (error) throw error;
@@ -134,7 +134,7 @@ export function EscalationsTab({
         {canParticipate && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button data-rbac="coordination.edit" size="sm"><ArrowUp className="h-4 w-4 mr-2" /> Raise Escalation</Button>
+              <Button data-rbac="coordination.update" size="sm"><ArrowUp className="h-4 w-4 mr-2" /> Raise Escalation</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Raise Escalation</DialogTitle></DialogHeader>
@@ -172,7 +172,7 @@ export function EscalationsTab({
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button data-rbac="coordination.edit" onClick={() => raise.mutate()} disabled={raise.isPending || form.reason.trim().length < 10}>
+                <Button data-rbac="coordination.update" onClick={() => raise.mutate()} disabled={raise.isPending || form.reason.trim().length < 10}>
                   {raise.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Raise
                 </Button>
               </DialogFooter>
@@ -221,18 +221,18 @@ export function EscalationsTab({
               {canAct && (e.status === 'open' || e.status === 'in_review') && (
                 <div className="flex flex-wrap gap-2 pt-2 border-t">
                   {e.status === 'open' && (
-                    <Button data-rbac="coordination.edit" size="sm" variant="outline" onClick={() => update.mutate({
+                    <Button data-rbac="coordination.update" size="sm" variant="outline" onClick={() => update.mutate({
                       id: e.id, patch: { status: 'in_review' },
                       action: 'coordination.escalation.in_review',
                     })}>Mark under review</Button>
                   )}
-                  <Button data-rbac="coordination.edit" size="sm" variant="outline" onClick={() => { setActionFor({ id: e.id, mode: 'assign' }); setActionForm({ ...actionForm, assigned_to: e.assigned_to || 'none' }); }}>
+                  <Button data-rbac="coordination.update" size="sm" variant="outline" onClick={() => { setActionFor({ id: e.id, mode: 'assign' }); setActionForm({ ...actionForm, assigned_to: e.assigned_to || 'none' }); }}>
                     Reassign
                   </Button>
-                  <Button data-rbac="coordination.edit" size="sm" onClick={() => { setActionFor({ id: e.id, mode: 'resolve' }); setActionForm({ outcome: 'cleared', rationale: '', assigned_to: 'none', status: 'in_review' }); }}>
+                  <Button data-rbac="coordination.update" size="sm" onClick={() => { setActionFor({ id: e.id, mode: 'resolve' }); setActionForm({ outcome: 'cleared', rationale: '', assigned_to: 'none', status: 'in_review' }); }}>
                     Resolve
                   </Button>
-                  <Button data-rbac="coordination.edit" size="sm" variant="ghost" onClick={() => { setActionFor({ id: e.id, mode: 'withdraw' }); setActionForm({ outcome: 'withdrawn', rationale: '', assigned_to: 'none', status: 'in_review' }); }}>
+                  <Button data-rbac="coordination.update" size="sm" variant="ghost" onClick={() => { setActionFor({ id: e.id, mode: 'withdraw' }); setActionForm({ outcome: 'withdrawn', rationale: '', assigned_to: 'none', status: 'in_review' }); }}>
                     Withdraw
                   </Button>
                 </div>

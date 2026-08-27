@@ -48,7 +48,7 @@ export function ReviewApprovalPanel({ threadId, status }: { threadId: string; st
         <Button data-rbac="correspondence_management.approve" size="sm" onClick={() => act('approve')} disabled={busy}>
           {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}Approve response
         </Button>
-        <Button data-rbac="correspondence_management.reject" size="sm" variant="outline" onClick={() => act('reject')} disabled={busy}>
+        <Button data-rbac="correspondence_management.approve" size="sm" variant="outline" onClick={() => act('reject')} disabled={busy}>
           <RotateCcw className="h-4 w-4 mr-1" />Send back for revision
         </Button>
         <Button data-rbac="correspondence_management.approve" size="sm" variant="destructive" className="ml-auto" onClick={closeThread} disabled={busy}>

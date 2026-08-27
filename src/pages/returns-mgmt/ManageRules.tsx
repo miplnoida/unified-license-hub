@@ -42,7 +42,7 @@ export default function ManageRules() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader title="Manage Rules" description="Configure business rules for return processing and validation." actions={<Button data-rbac="returns_management.configure"><Plus className="h-4 w-4 mr-2" />Add Rule</Button>} />
+        <PageHeader title="Manage Rules" description="Configure business rules for return processing and validation." actions={<Button data-rbac="returns_management.manage_config"><Plus className="h-4 w-4 mr-2" />Add Rule</Button>} />
         <div className="animate-slide-up delay-100">
           <DataTableShell columns={columns} data={data} searchPlaceholder="Search rules..." />
         </div>

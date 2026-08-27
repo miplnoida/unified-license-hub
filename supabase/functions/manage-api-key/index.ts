@@ -6,7 +6,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
 
-  const __authzGate = await requireUserPermission(req, "integration_management", "configure");
+  const __authzGate = await requireUserPermission(req, "integration_management", "manage");
   if (!__authzGate.ok) return __authzGate.response;
   try {
     const authHeader = req.headers.get('Authorization');

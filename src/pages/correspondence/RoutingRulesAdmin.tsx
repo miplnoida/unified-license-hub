@@ -58,7 +58,7 @@ export default function RoutingRulesAdmin() {
           description="Configurable business rules for automatic classification and routing. Manual overrides are always available on each case."
           actions={
             <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild><Button data-rbac="settings.create"><Plus className="h-4 w-4 mr-2" />New rule</Button></DialogTrigger>
+              <DialogTrigger asChild><Button data-rbac="settings.edit"><Plus className="h-4 w-4 mr-2" />New rule</Button></DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader><DialogTitle>New routing rule</DialogTitle></DialogHeader>
                 <div className="space-y-3">
@@ -161,7 +161,7 @@ export default function RoutingRulesAdmin() {
                       <TableCell className="text-sm">{r.sla_days} d</TableCell>
                       <TableCell><Switch checked={r.is_active} onCheckedChange={() => toggle(r)} /></TableCell>
                       <TableCell className="text-right">
-                        <Button data-rbac="settings.delete" size="sm" variant="ghost" onClick={() => remove(r.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                        <Button data-rbac="settings.edit" size="sm" variant="ghost" onClick={() => remove(r.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                       </TableCell>
                     </TableRow>
                   ))}

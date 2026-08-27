@@ -39,7 +39,7 @@ const REMEDIATION_STATES = ['OPEN', 'IN_PROGRESS', 'COMPLETED', 'NOT_REQUIRED'];
 
 export default function AiAssuranceDetail() {
   const { id = '' } = useParams();
-  const canAssure = useCan('ai_management', 'assure') || useCan('audit_management', 'create');
+  const canAssure = useCan('ai_management', 'assure') || useCan('ai_management', 'approve');
   const { data: review, isLoading } = useAssuranceReview(id);
   const { data: assessments = [] } = useAssuranceAssessments(id);
   const { data: insight } = useConductAiInsight(review?.conduct_ai_insight_id ?? null);

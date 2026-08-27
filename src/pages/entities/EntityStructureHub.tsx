@@ -78,7 +78,7 @@ function ChangeSetSheet({ id, onClose }: { id: string | null; onClose: () => voi
 
 export default function EntityStructureHub() {
   const { entityId } = useParams<{ entityId: string }>();
-  const canReview = useCan('licensee_management', 'approve');
+  const canReview = useCan('licensee_management', 'edit');
   const canEdit = useCan('licensee_management', 'edit');
 
   const { data: dto, isLoading: dtoLoading } = useEntityDto(entityId);

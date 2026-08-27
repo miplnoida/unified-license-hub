@@ -239,7 +239,7 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
           {rows.length > PAGE_SIZE && (
             <div className="flex items-center justify-end gap-2 text-xs print:hidden">
               <span className="text-muted-foreground">Page {page + 1} of {totalPages}</span>
-              <Button data-rbac="report_management.edit" size="sm" variant="outline" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Prev</Button>
+              <Button data-rbac="report_management.create" size="sm" variant="outline" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Prev</Button>
               <Button size="sm" variant="outline" disabled={page + 1 >= totalPages} onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}>Next</Button>
             </div>
           )}

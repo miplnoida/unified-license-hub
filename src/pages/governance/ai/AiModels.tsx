@@ -42,7 +42,7 @@ const EMPTY: FormState = {
 
 export default function AiModels() {
   const { user } = useAuth();
-  const canAuthor = useCan('ai_management', 'configure') || useCan('ai_management', 'approve');
+  const canAuthor = useCan('ai_management', 'edit') || useCan('ai_management', 'approve');
   const { data: models = [], isLoading } = useAiModels();
   const { data: useCases = [] } = useAiUseCases();
   const save = useAiModelSave();

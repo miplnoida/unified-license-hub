@@ -33,7 +33,7 @@ import { formatDate, formatDateTime } from '@/lib/datetime';
 import { useCan } from '@/hooks/useCan';
 
 export default function AiAssurance() {
-  const canAssure = useCan('ai_management', 'assure') || useCan('audit_management', 'create');
+  const canAssure = useCan('ai_management', 'assure') || useCan('ai_management', 'approve');
   const { data: reviews = [], isLoading } = useAssuranceReviews();
   const { data: useCases = [] } = useAiUseCases();
   const { data: reviewable = [] } = useAiActivity({ outcome: 'SUCCESS', limit: 100 });

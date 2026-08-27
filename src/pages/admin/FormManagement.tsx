@@ -241,7 +241,7 @@ export default function FormManagement() {
   const doBulkDelete = async (ids: string[]) => {
     setBulkLoading(true);
     try {
-      await authorizedAction('form_management', 'delete', { ids, count: ids.length });
+      await authorizedAction('form_management', 'retire', { ids, count: ids.length });
     } catch (e: any) {
       setBulkLoading(false);
       toast.error(e?.message || 'Not authorized to delete form templates.');
@@ -292,7 +292,7 @@ export default function FormManagement() {
       destructive: true,
       onConfirm: async () => {
         try {
-          await authorizedAction('form_management', 'delete', { id });
+          await authorizedAction('form_management', 'retire', { id });
         } catch (e: any) {
           toast.error(e?.message || 'Not authorized to delete form templates.');
           return;
@@ -375,11 +375,11 @@ export default function FormManagement() {
           actions={
             <div className="flex items-center gap-2">
               {activeTab === 'returns' && canEditForms && (
-                <Button data-rbac="form_management.import"
+                <Button data-rbac="form_management.create"
                   variant="outline"
                   onClick={async () => {
                     try {
-                      await authorizedAction('form_management', 'import', { entry: 'excel_nav' });
+                      await authorizedAction('form_management', 'create', { entry: 'excel_nav' });
                       navigate(`/admin/forms/create?type=returns&import=excel`);
                     } catch (e: any) {
                       toast.error(e?.message || 'Not authorized to import forms.');
@@ -500,7 +500,7 @@ export default function FormManagement() {
                         </Button>
                       )}
                       {canEditForms && (
-                        <Button data-rbac="form_management.delete"
+                        <Button data-rbac="form_management.retire"
                           size="sm"
                           variant="destructive"
                           onClick={handleBulkDelete}

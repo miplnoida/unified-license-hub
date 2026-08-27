@@ -194,6 +194,26 @@ function classifySqlContext(text: string, pos: number): SqlContext {
   return { kind: 'rpc', detail: 'function body' };
 }
 
+/**
+ * Canonical SQL authorization primitives. All of them terminate in
+ * `has_permission(user, module, action)` server-side, so a literal reference
+ * inside a migration is real backend enforcement.
+ *
+ * Deliberately narrow: only `('module', 'action')` literal pairs are
+ * recognised. A dynamic/variable pair is NOT counted — it must not be able to
+ * hide a missing gate.
+ */
+const SQL_AUTHZ_PATTERNS: RegExp[] = [
+  // has_permission(auth.uid(), 'module', 'action')
+  /\bhas_permission\s*\(\s*[^,()]+,\s*'([a-z0-9_]+)'\s*,\s*'([a-z0-9_]+)'\s*\)/gi,
+  // sec_has_permission(auth.uid(), 'module', 'action')
+  /\bsec_has_permission\s*\(\s*[^,()]+,\s*'([a-z0-9_]+)'\s*,\s*'([a-z0-9_]+)'\s*\)/gi,
+  // has_scoped_permission(auth.uid(), 'module', 'action', …)
+  /\bhas_scoped_permission\s*\(\s*[^,()]+,\s*'([a-z0-9_]+)'\s*,\s*'([a-z0-9_]+)'/gi,
+  // enforce_permission('module', 'action') — used inside governed RPC bodies
+  /\benforce_permission\s*\(\s*'([a-z0-9_]+)'\s*,\s*'([a-z0-9_]+)'\s*\)/gi,
+];
+
 function scanSql(
   root: string,
   registerWithKind: (
@@ -204,22 +224,110 @@ function scanSql(
   ) => void,
 ) {
   const files = walk(join(root, 'supabase/migrations'), ['.sql']);
-  const re = /has_permission\s*\(\s*[^,]+,\s*'([a-z0-9_]+)'\s*,\s*'([a-z0-9_]+)'\s*\)/gi;
+  for (const file of files) {
+    const text = readOr(file);
+    for (const re of SQL_AUTHZ_PATTERNS) {
+      re.lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(text)) !== null) {
+        const ctx = classifySqlContext(text, m.index);
+        registerWithKind(
+          m[1],
+          m[2],
+          { file: relTo(root, file), line: lineOf(text, m.index), detail: ctx.detail },
+          ctx.kind,
+        );
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Edge-function scanner — `requireUserPermission(req, 'module', 'action')`
+// is the canonical edge gate (see docs/rbac/edge-function-authorization.md).
+// It calls has_permission() server-side, so it counts as backend enforcement.
+// ---------------------------------------------------------------------------
+
+function scanEdgeFunctions(
+  root: string,
+  register: (m: string, a: string, ref: SurfaceReference, kind: SurfaceKey) => void,
+) {
+  const files = walk(join(root, 'supabase/functions'), ['.ts']);
+  const re =
+    /requireUserPermission\s*\(\s*[A-Za-z0-9_.]+\s*,\s*['"]([a-z0-9_]+)['"]\s*,\s*['"]([a-z0-9_]+)['"]/g;
   for (const file of files) {
     const text = readOr(file);
     re.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = re.exec(text)) !== null) {
-      const ctx = classifySqlContext(text, m.index);
-      registerWithKind(
+      register(
         m[1],
         m[2],
-        { file: relTo(root, file), line: lineOf(text, m.index), detail: ctx.detail },
-        ctx.kind,
+        {
+          file: relTo(root, file),
+          line: lineOf(text, m.index),
+          detail: 'edge function gate (requireUserPermission)',
+        },
+        'rpc',
       );
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Frontend authorization-helper scanner.
+//
+//  - `authorizedAction` / `authorizedExport` call the SECURITY DEFINER
+//    `enforce_action` RPC → server-side enforcement (backend surface).
+//  - `useCan` / `hasPermission` are frontend gates → UI surface only.
+// ---------------------------------------------------------------------------
+
+function scanAuthzHelpers(
+  root: string,
+  register: (m: string, a: string, ref: SurfaceReference, kind: SurfaceKey) => void,
+) {
+  const files = [
+    ...walk(join(root, 'src/pages'), ['.ts', '.tsx']),
+    ...walk(join(root, 'src/components'), ['.ts', '.tsx']),
+    ...walk(join(root, 'src/hooks'), ['.ts', '.tsx']),
+    ...walk(join(root, 'src/lib'), ['.ts', '.tsx']),
+    ...walk(join(root, 'src/routes'), ['.ts', '.tsx']),
+  ];
+  const serverRe =
+    /\bauthorized(?:Action|Export)\s*\(\s*['"]([a-z0-9_]+)['"]\s*,\s*['"]([a-z0-9_]+)['"]/g;
+  const uiRe =
+    /\b(?:useCan|hasPermission)\s*\(\s*['"]([a-z0-9_]+)['"]\s*,\s*['"]([a-z0-9_]+)['"]/g;
+  for (const file of files) {
+    const rel = relTo(root, file);
+    // Skip the helper definitions themselves.
+    if (/src\/lib\/rbac\/authorized(Action|Export)\.ts$/.test(rel)) continue;
+    const text = readOr(file);
+    serverRe.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = serverRe.exec(text)) !== null) {
+      register(
+        m[1],
+        m[2],
+        {
+          file: rel,
+          line: lineOf(text, m.index),
+          detail: 'enforce_action RPC (server-enforced)',
+        },
+        'rpc',
+      );
+    }
+    uiRe.lastIndex = 0;
+    while ((m = uiRe.exec(text)) !== null) {
+      register(
+        m[1],
+        m[2],
+        { file: rel, line: lineOf(text, m.index), detail: 'frontend gate (useCan/hasPermission)' },
+        'button',
+      );
+    }
+  }
+}
+
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -269,6 +377,8 @@ export function buildCoverage(
   scanButtons(projectRoot, register);
   scanReports(projectRoot, regKind('report'));
   scanSql(projectRoot, register);
+  scanEdgeFunctions(projectRoot, register);
+  scanAuthzHelpers(projectRoot, register);
 
   const finalRows = [...rows.values()].map((r) => ({
     ...r,

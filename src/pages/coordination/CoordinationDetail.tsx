@@ -186,7 +186,7 @@ export default function CoordinationDetail() {
       if (status === 'blocked' && (!note || note.trim().length < 5)) {
         throw new Error('Block requires a note (min 5 chars)');
       }
-      await authorizedAction('coordination', 'edit', { participant_id: id, clearance_status: status });
+      await authorizedAction('coordination', 'update', { participant_id: id, clearance_status: status });
       const before = (participants ?? []).find((p: any) => p.id === id) ?? null;
       const { error } = await supabase
         .from('coordination_participants')
@@ -226,7 +226,7 @@ export default function CoordinationDetail() {
       if (closeRationale.trim().length < 10) {
         throw new Error('Closure rationale must be at least 10 characters');
       }
-      await authorizedAction('coordination', 'edit', { case_id: caseId, action: 'close' });
+      await authorizedAction('coordination', 'update', { case_id: caseId, action: 'close' });
       const { error } = await supabase
         .from('coordination_cases')
         .update({
@@ -293,7 +293,7 @@ export default function CoordinationDetail() {
               {isOwner && caseRow.status !== 'closed' && (
                 <Dialog open={closeOpen} onOpenChange={setCloseOpen}>
                   <DialogTrigger asChild>
-                    <Button data-rbac="coordination.edit" variant="outline" size="sm">Close Case</Button>
+                    <Button data-rbac="coordination.update" variant="outline" size="sm">Close Case</Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader><DialogTitle>Close Coordination Case</DialogTitle></DialogHeader>
@@ -324,7 +324,7 @@ export default function CoordinationDetail() {
                     </div>
                     <DialogFooter>
                       <Button variant="ghost" onClick={() => setCloseOpen(false)}>Cancel</Button>
-                      <Button data-rbac="coordination.edit"
+                      <Button data-rbac="coordination.update"
                         onClick={() => closeCase.mutate()}
                         disabled={closeCase.isPending || closeRationale.trim().length < 10}
                       >
@@ -392,7 +392,7 @@ export default function CoordinationDetail() {
             {me && (
               <div className="flex gap-2">
                 <Textarea value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Post a message to all participants…" rows={2} />
-                <Button data-rbac="coordination.edit" onClick={() => postMessage.mutate()} disabled={!msg.trim() || postMessage.isPending}>Post</Button>
+                <Button data-rbac="coordination.update" onClick={() => postMessage.mutate()} disabled={!msg.trim() || postMessage.isPending}>Post</Button>
               </div>
             )}
           </TabsContent>
@@ -482,7 +482,7 @@ function ParticipantsTab({
         {isOwner && (
           <Dialog open={inviting} onOpenChange={setInviting}>
             <DialogTrigger asChild>
-              <Button data-rbac="coordination.edit" size="sm"><UserPlus className="h-4 w-4 mr-2" /> Invite</Button>
+              <Button data-rbac="coordination.update" size="sm"><UserPlus className="h-4 w-4 mr-2" /> Invite</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Invite Participant</DialogTitle></DialogHeader>
@@ -513,7 +513,7 @@ function ParticipantsTab({
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setInviting(false)}>Cancel</Button>
-                <Button data-rbac="coordination.edit" onClick={() => invite.mutate()} disabled={!selectedUserId || invite.isPending}>
+                <Button data-rbac="coordination.update" onClick={() => invite.mutate()} disabled={!selectedUserId || invite.isPending}>
                   {invite.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Invite
                 </Button>
               </DialogFooter>
@@ -548,7 +548,7 @@ function ParticipantsTab({
                   <Button size="sm" variant="outline" onClick={() => onClearanceChange(p.id, 'cleared', noteById[p.id])}>
                     <CheckCircle2 className="h-3 w-3 mr-1 text-green-600" /> Clear
                   </Button>
-                  <Button data-rbac="coordination.edit" size="sm" variant="outline" onClick={() => onClearanceChange(p.id, 'blocked', noteById[p.id])}>
+                  <Button data-rbac="coordination.update" size="sm" variant="outline" onClick={() => onClearanceChange(p.id, 'blocked', noteById[p.id])}>
                     <XCircle className="h-3 w-3 mr-1 text-red-600" /> Block
                   </Button>
                 </div>
@@ -625,7 +625,7 @@ function FlagsTab({ caseId, flags, canPost, currentUserId }: {
         {canPost && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button data-rbac="coordination.edit" size="sm"><Flag className="h-4 w-4 mr-2" /> Raise Flag</Button>
+              <Button data-rbac="coordination.update" size="sm"><Flag className="h-4 w-4 mr-2" /> Raise Flag</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Raise Flag</DialogTitle></DialogHeader>
@@ -663,7 +663,7 @@ function FlagsTab({ caseId, flags, canPost, currentUserId }: {
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button data-rbac="coordination.edit" onClick={() => create.mutate()} disabled={create.isPending}>
+                <Button data-rbac="coordination.update" onClick={() => create.mutate()} disabled={create.isPending}>
                   {create.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Raise
                 </Button>
               </DialogFooter>
@@ -690,7 +690,7 @@ function FlagsTab({ caseId, flags, canPost, currentUserId }: {
                 </div>
               </div>
               {canPost && f.status !== 'resolved' && (
-                <Button data-rbac="coordination.edit" variant="outline" size="sm" onClick={() => resolve.mutate(f.id)}>Resolve</Button>
+                <Button data-rbac="coordination.update" variant="outline" size="sm" onClick={() => resolve.mutate(f.id)}>Resolve</Button>
               )}
             </div>
           </div>

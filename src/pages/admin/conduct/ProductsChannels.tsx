@@ -87,7 +87,7 @@ function ProductsPanel() {
   return (
     <Card>
       <CardContent className="p-4 space-y-3">
-        <div className="flex justify-end"><Button data-rbac="market_conduct.create" size="sm" onClick={() => { reset(); setOpen(true); }}><PlusCircle className="h-4 w-4 mr-2" />Add Product</Button></div>
+        <div className="flex justify-end"><Button data-rbac="market_conduct.edit" size="sm" onClick={() => { reset(); setOpen(true); }}><PlusCircle className="h-4 w-4 mr-2" />Add Product</Button></div>
         <Table>
           <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Sector</TableHead><TableHead>Sub-Sector</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
           <TableBody>
@@ -178,7 +178,7 @@ function ChannelsPanel() {
   return (
     <Card>
       <CardContent className="p-4 space-y-3">
-        <div className="flex justify-end"><Button data-rbac="market_conduct.create" size="sm" onClick={() => { reset(); setOpen(true); }}><PlusCircle className="h-4 w-4 mr-2" />Add Channel</Button></div>
+        <div className="flex justify-end"><Button data-rbac="market_conduct.edit" size="sm" onClick={() => { reset(); setOpen(true); }}><PlusCircle className="h-4 w-4 mr-2" />Add Channel</Button></div>
         <Table>
           <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Kind</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
           <TableBody>

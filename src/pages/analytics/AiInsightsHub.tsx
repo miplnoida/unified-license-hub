@@ -157,9 +157,9 @@ export default function AiInsightsHub() {
                         value={justification[i.id] ?? ''}
                         onChange={(e) => setJustification((p) => ({ ...p, [i.id]: e.target.value }))} />
                       <div className="flex gap-2">
-                        <Button size="sm" data-rbac="analytics.edit" onClick={() => act(i, 'accept')}>Accept</Button>
-                        <Button size="sm" variant="outline" data-rbac="analytics.edit" onClick={() => act(i, 'reject')}>Reject</Button>
-                        <Button size="sm" variant="outline" data-rbac="analytics.edit" onClick={() => act(i, 'escalate')}>Escalate</Button>
+                        <Button size="sm" data-rbac="ai_management.approve" onClick={() => act(i, 'accept')}>Accept</Button>
+                        <Button size="sm" variant="outline" data-rbac="ai_management.approve" onClick={() => act(i, 'reject')}>Reject</Button>
+                        <Button size="sm" variant="outline" data-rbac="ai_management.approve" onClick={() => act(i, 'escalate')}>Escalate</Button>
                       </div>
                     </div>
                   ) : (

@@ -61,7 +61,7 @@ export default function ConductActions() {
           title="Remediation Register"
           description="Supervisory remediation obligations arising from complaints, findings, investigations, thematic reviews, monitoring and enforcement. Evidence must be submitted and reviewed before a requirement can be satisfied."
           actions={
-            <Button data-rbac="conduct_management.create" onClick={() => setIssueOpen(true)}>
+            <Button data-rbac="market_conduct.issue_enforcement_action" onClick={() => setIssueOpen(true)}>
               <Plus className="mr-1 h-4 w-4" /> Issue requirement
             </Button>
           }

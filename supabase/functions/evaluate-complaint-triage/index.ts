@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
 
     if (!isServiceCall) {
       // Centralised JWT + module gate (module.action authority in Postgres).
-      const gate = await requireUserPermission(req, 'complaint_management', 'workflow_action');
+      const gate = await requireUserPermission(req, 'complaint_management', 'triage');
       if (!gate.ok) return gate.response;
       actorId = gate.userId;
 

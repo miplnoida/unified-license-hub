@@ -685,7 +685,7 @@ export function JurisdictionWorkspace({ complaintId, onJurisdictionDecided }: Pr
                 <Label className="text-xs">Reopen this assessment (recorded with a reason)</Label>
                 <Textarea rows={2} value={reopenReason} onChange={(e) => setReopenReason(e.target.value)} />
                 <Button size="sm" variant="outline"
-                        data-rbac="complaint_management.reopen_jurisdiction"
+                        data-rbac="complaint_management.decide_jurisdiction"
                         disabled={reopenReason.trim().length < 10 || reopenMut.isPending}
                         onClick={() => reopenMut.mutate()}>
                   Reopen assessment

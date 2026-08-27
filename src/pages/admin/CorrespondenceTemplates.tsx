@@ -114,7 +114,7 @@ export default function CorrespondenceTemplates() {
           </div>
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
             <DialogTrigger asChild>
-              <Button data-rbac="settings.create" onClick={() => setEditing({ ...EMPTY })}>
+              <Button data-rbac="settings.edit" onClick={() => setEditing({ ...EMPTY })}>
                 <Plus className="h-4 w-4 mr-1" /> New template
               </Button>
             </DialogTrigger>

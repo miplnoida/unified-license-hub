@@ -747,12 +747,12 @@ export default function ReturnDetail() {
                     Allow Edit
                   </Button>
                 </PermissionGate>
-                <PermissionGate module="returns_management" action="reject">
+                <PermissionGate module="returns_management" action="workflow_action">
                   <Button
                     variant="outline"
                     className="border-destructive text-destructive hover:bg-destructive/10"
                     disabled={decideEditRequest.isPending}
-                    data-rbac="returns_management.reject"
+                    data-rbac="returns_management.workflow_action"
                     onClick={async () => {
                       if (!editDecisionComment.trim()) {
                         toast.error('Please provide a reason for denying the request.');
@@ -874,9 +874,9 @@ export default function ReturnDetail() {
                             Approve Return
                           </Button>
                         </PermissionGate>
-                        <PermissionGate module="returns_management" action="reject">
+                        <PermissionGate module="returns_management" action="workflow_action">
                           <Button variant="outline" onClick={handleRequestEdit} disabled={!!submitting}
-                            data-rbac="returns_management.reject"
+                            data-rbac="returns_management.workflow_action"
                             className="border-amber-500 text-amber-700 hover:bg-amber-50">
                             {submitting === 'request_edit'
                               ? <Loader2 className="h-4 w-4 animate-spin mr-2" />

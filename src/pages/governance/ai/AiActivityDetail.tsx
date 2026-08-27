@@ -38,7 +38,7 @@ export default function AiActivityDetail() {
   const { data: attempts = [] } = useAttemptsForInsight(insightId);
   const { data: assurance = [] } = useAssuranceForInsight(insightId);
   const { data: useCases = [] } = useAiUseCases();
-  const canAssure = useCan('ai_management', 'assure') || useCan('audit_management', 'create');
+  const canAssure = useCan('ai_management', 'assure') || useCan('ai_management', 'approve');
   const createAssurance = useAssuranceCreate();
 
   const loading = (isAttempt && attemptLoading) || (!!insightId && insightLoading);

@@ -69,7 +69,7 @@ export default function NewThematicReview() {
     setSaving(true);
     try {
       const { authorizedAction } = await import('@/lib/rbac/authorizedAction');
-      await authorizedAction('market_conduct', 'create', { review_title: form.title });
+      await authorizedAction('market_conduct', 'initiate_thematic_review', { review_title: form.title });
       const { data: user } = await supabase.auth.getUser();
 
       const tr = await thematicReviewCreate({

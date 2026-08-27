@@ -534,7 +534,7 @@ function CalendarTab() {
   const importCsv = async (file: File) => {
     if (!active) return;
     try {
-      await authorizedAction('settings', 'import', { profile_id: active.id, file: file.name });
+      await authorizedAction('settings', 'edit', { profile_id: active.id, file: file.name });
     } catch (e: any) {
       toast({ title: 'Not authorized', description: e?.message ?? '', variant: 'destructive' });
       return;
@@ -719,7 +719,7 @@ function CalendarTab() {
                   <Label>Public Holidays</Label>
                   <div>
                     <input id="hcsv" type="file" accept=".csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) importCsv(f); e.currentTarget.value = ''; }} />
-                    <Button data-rbac="settings.import" variant="outline" size="sm" onClick={() => document.getElementById('hcsv')?.click()}>
+                    <Button data-rbac="settings.edit" variant="outline" size="sm" onClick={() => document.getElementById('hcsv')?.click()}>
                       <Upload className="h-4 w-4 mr-2" /> Import CSV
                     </Button>
                   </div>
