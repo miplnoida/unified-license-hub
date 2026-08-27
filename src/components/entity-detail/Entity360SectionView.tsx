@@ -10,6 +10,7 @@ import { DefinitionList } from '@/components/presentation/DefinitionList';
 import { EnterpriseDataGrid } from '@/components/data-grid';
 import { formatDate } from '@/lib/presentation/format';
 import { useEntity360Section, type E360SectionKey } from '@/hooks/useEntity360';
+import { RegisterIdentifierDialog } from './RegisterIdentifierDialog';
 import {
   resolveSectionColumns, sectionRowTitle, SECTION_BY_KEY,
   type SectionRow,
@@ -39,9 +40,14 @@ export function Entity360SectionView({ entityId, section, asOf }: Entity360Secti
           <h2 className="text-lg font-semibold leading-tight">{label}</h2>
           <p className="text-sm text-muted-foreground">{def?.purpose}</p>
         </div>
-        {effectiveAsOf && (
-          <p className="text-xs text-muted-foreground">Recorded state as at {formatDate(effectiveAsOf)}</p>
-        )}
+        <div className="flex items-center gap-3">
+          {effectiveAsOf && (
+            <p className="text-xs text-muted-foreground">Recorded state as at {formatDate(effectiveAsOf)}</p>
+          )}
+          {section === 'identity' && !restricted && !effectiveAsOf && (
+            <RegisterIdentifierDialog entityId={entityId} />
+          )}
+        </div>
       </div>
 
       <EnterpriseDataGrid<SectionRow>

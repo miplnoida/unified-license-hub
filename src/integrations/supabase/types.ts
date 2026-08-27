@@ -47479,6 +47479,17 @@ export type Database = {
         Args: { _application_id?: string; _license_id: string }
         Returns: string
       }
+      entity_identifier_register: {
+        Args: {
+          _entity_id: string
+          _identifier_type_key: string
+          _identifier_value: string
+          _is_primary?: boolean
+          _issuer_key?: string
+          _jurisdiction_id?: string
+        }
+        Returns: Json
+      }
       entity_license_entitlements: {
         Args: { target_licensee_id?: string }
         Returns: {
