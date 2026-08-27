@@ -355,7 +355,7 @@ BEGIN
     jsonb_build_object('advisory_text',
       'Complaint volumes and supervisory responses are reported for the period under review.'),
     _ctx -> 'permitted_references',
-    'lovable', 'google/gemini-2.5-flash', 'v1', 'mc11.v1', 0.62, 'medium',
+    'lovable_ai_gateway', 'google/gemini-2.5-pro', 'google/gemini-2.5-pro', 'mc11.v1', 0.62, 'medium',
     ARRAY['Draft narrative for supervisory review only.'], _maker, NULL, NULL,
     'Certification management summary');
   BEGIN
