@@ -113,6 +113,10 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/return-config', 'returns_management'],
   ['/admin/returns', 'returns_management'],
   ['/returns-management', 'returns_management'],
+  // Canonical (post-RDM) regulator returns surfaces: queue, filing detail,
+  // obligations workbench and reporting calendar.
+  ['/returns', 'returns_management'],
+
   // External regulated-entity returns surface (audience: external). Mapping is
   // additive — it only makes path→module resolution consistent for the gate,
   // sidebar and search; entitlement stays enforced by RLS/RPC predicates.
@@ -186,12 +190,39 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/correspondence-templates', 'settings'],
   ['/admin/correspondence-routing', 'settings'],
   ['/correspondence', 'notification_management'],
+
+  // ─── Configuration hubs & engine consoles (guard truth, GAP-F0-03) ──────
+  // Specific-before-general: the lifecycle hub is a licence surface, every
+  // other /admin/config/* hub is a settings surface.
+  ['/admin/config/lifecycle', 'license_management'],
+  ['/admin/config', 'settings'],
+  ['/admin/workflow-engine', 'settings'],
+  ['/admin/notification-engine', 'settings'],
+  ['/admin/security-audit', 'settings'],
+  ['/admin/regulatory-data-model', 'settings'],
+  ['/admin/forms-packages', 'form_management'],
+  ['/admin/support', 'support_management'],
+  ['/admin/prudential/operations', 'prudential_supervision'],
+
+  // ─── Licensing / licence lifecycle surfaces ────────────────────────────
+  ['/licensing/regulatory-requests', 'license_management'],
+  ['/licensing/onboarding-oversight', 'onboarding'],
+  ['/licenses/lifecycle', 'license_management'],
+  ['/preview', 'form_management'],
+
+  // ─── Supervision & AI governance ───────────────────────────────────────
+  ['/supervision/team-performance', 'prudential_supervision'],
+  ['/supervision/thematic-closure-approvals', 'market_conduct'],
+  ['/governance/ai', 'ai_management'],
   // NOTE: no generic ['/admin', 'settings'] catch-all. Unknown /admin/* paths
   // are treated as protected-but-unmapped and denied by canAccessPath.
 ];
 
 /** Resolve the required module for a given path, or null if unmapped. */
 export function getModuleForPath(pathname: string): PermissionModule | null {
+  // Exact match only — an `/admin` prefix entry would silently map every
+  // unknown /admin/* path to the admin dashboard and defeat deny-by-default.
+  if (pathname === '/admin') return 'admin_dashboard';
   for (const [prefix, mod] of ROUTE_MODULE_MAP) {
     if (pathname === prefix || pathname.startsWith(prefix + '/')) {
       return mod;
@@ -199,6 +230,7 @@ export function getModuleForPath(pathname: string): PermissionModule | null {
   }
   return null;
 }
+
 
 /**
  * Path prefixes that constitute the internal / admin surface. An unmapped

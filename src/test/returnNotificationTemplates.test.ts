@@ -49,6 +49,9 @@ describe('return notification template utilities', () => {
     expect(html).toContain('View Return');
     expect(html).toContain('support@example.com');
     expect(html).toContain('Please do not reply to this email');
-    expect(html).toContain('max-width:520px');
+    // Branded shell is a 600px table with a mobile breakpoint.
+    expect(html).toContain('max-width:600px');
+    expect(html).toContain('@media only screen and (max-width:620px)');
+
   });
 });

@@ -10,6 +10,7 @@ const eqMock = vi.fn();
 const notMock = vi.fn();
 const selectMock = vi.fn();
 const fromMock = vi.fn();
+const rpcMock = vi.fn();
 
 vi.mock('@/lib/visibleApplications', () => ({
   loadVisibleApplications: (...args: any[]) => loadVisibleApplicationsMock(...args),
@@ -18,6 +19,7 @@ vi.mock('@/lib/visibleApplications', () => ({
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: (...args: any[]) => fromMock(...args),
+    rpc: (...args: any[]) => rpcMock(...args),
   },
 }));
 
@@ -28,6 +30,21 @@ describe('useLicenseeMetrics queryFn', () => {
 
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     loadVisibleApplicationsMock.mockRejectedValue(new Error('rpc failed'));
+
+    // Canonical returns summary is served by the governed `returns_entity_summary`
+    // RPC; the harness must mirror the runtime client surface (from + rpc).
+    rpcMock.mockImplementation((fn: string) => {
+      if (fn === 'returns_entity_summary') {
+        return Promise.resolve({
+          data: {
+            total: 1, draft: 0, pending_review: 1, correction_requested: 0,
+            accepted: 0, overdue: 1, due_soon: 0, upcoming: [],
+          },
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
 
     const queryByTable = (table: string) => {
       if (table === 'licensees') {

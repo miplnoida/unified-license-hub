@@ -54,10 +54,15 @@ vi.mock('@/hooks/usePermissions', () => {
   };
   const isAssignmentAllowedReturnsPath = (p: string) => {
     if (!state.hasAssignment) return false;
+    // Mirrors the canonical allow-list in `useUserDynamicPermissions`:
+    // the canonical `/returns/queue` surface plus the legacy admin queue.
+    if (p === '/returns/queue' || p.startsWith('/returns/queue/')) return true;
+    if (p.startsWith('/returns/filings/')) return true;
     if (p === '/admin/returns' || p === '/admin/returns/queue') return true;
     if (p.startsWith('/admin/returns/queue/')) return true;
     return false;
   };
+
   return {
     useUserDynamicPermissions: () => ({
       hasPermission,
@@ -75,13 +80,29 @@ vi.mock('@/hooks/usePermissions', () => {
   };
 });
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 import { Sidebar } from '@/components/layout/Sidebar';
 
+/**
+ * The Sidebar consumes TanStack Query (navigation sections + security
+ * context), exactly as the runtime app does under `App.tsx`'s provider.
+ * Each persona gets a fresh, isolated client with retries disabled so no
+ * cache state leaks between personas.
+ */
 function renderSidebar() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0, staleTime: 0, refetchOnWindowFocus: false },
+      mutations: { retry: false },
+    },
+  });
   return render(
-    <MemoryRouter>
-      <Sidebar />
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -107,6 +128,7 @@ function has(label: string): boolean {
 // Modules the "Legacy Admin" persona holds .view on (matches the migrated role)
 const ALL_KNOWN_VIEW: Record<string, string[]> = {};
 for (const m of [
+  'admin_dashboard',
   'application_management', 'license_management', 'registration_management',
   'returns_management', 'complaint_management', 'complaint_type',
   'user_management', 'role_management', 'report_management', 'fee_management',
@@ -115,6 +137,7 @@ for (const m of [
   'market_conduct', 'coordination', 'prudential_supervision',
   'notification_management',
 ]) {
+
   ALL_KNOWN_VIEW[m] = ['view'];
 }
 
