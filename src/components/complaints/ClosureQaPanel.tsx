@@ -133,11 +133,54 @@ export function ClosureQaPanel({
   const reviews = closureQ.data;
   const isLoading = closureQ.isLoading;
 
+  // Canonical, domain-driven closure gate. Market Conduct complaints are closed
+  // through `complaint_close`, not through a configured step action, so the
+  // server's readiness verdict is what decides whether closing is possible.
+  const readinessQ = useQuery({
+    queryKey: ['mc04_closure_readiness', complaintId],
+    staleTime: 15_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc('complaint_closure_readiness', {
+        _complaint_id: complaintId,
+      });
+      if (error) throw error;
+      const d = (data ?? {}) as any;
+      return {
+        readiness: (d?.readiness ?? 'NOT_READY') as string,
+        blockers: (d?.blockers ?? []) as string[],
+      };
+    },
+  });
+  const readiness = readinessQ.data;
+
   const closingAction = resolveClosingAction(availableActions, terminalStepKeys);
   const alreadyClosed = status === 'closed' || status === 'resolved' || status === 'withdrawn';
 
   const closeMut = useMutation({
     mutationFn: async () => {
+      if (!closingAction) {
+        // Domain closure: records the closure review, closes the complaint and
+        // syncs the phase server-side in one governed call.
+        const { data: c, error: cErr } = await supabase
+          .from('complaints')
+          .select('updated_at')
+          .eq('id', complaintId)
+          .maybeSingle();
+        if (cErr) throw cErr;
+
+        const { error } = await (supabase as any).rpc('complaint_close', {
+          _complaint_id: complaintId,
+          _payload: {
+            resolution_summary: resolution || null,
+            rationale: rationale || null,
+            final_communication_ref: commRef || null,
+          },
+          _expected_updated_at: (c as any)?.updated_at ?? null,
+        });
+        if (error) throw error;
+        return;
+      }
+
       // 1) record the closure assessment (append-only history)
       const { error: recErr } = await supabase.rpc('complaint_record_closure_review', {
         _complaint_id: complaintId,
@@ -151,8 +194,6 @@ export function ClosureQaPanel({
         _reviewer_id: null,
       });
       if (recErr) throw recErr;
-
-      if (!closingAction) return;
 
       // 2) perform the configured closing workflow action
       const { data: tracking, error: trackErr } = await (supabase as any).rpc('get_complaint_tracking', {
@@ -180,13 +221,17 @@ export function ClosureQaPanel({
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['complaint_closure_reviews', complaintId] });
+      qc.invalidateQueries({ queryKey: ['mc04_closure_readiness', complaintId] });
+      qc.invalidateQueries({ queryKey: ['mc04_closure_reviews', complaintId] });
       qc.invalidateQueries({ queryKey: ['complaint', complaintId] });
       qc.invalidateQueries({ queryKey: ['complaint_actions', complaintId] });
       qc.invalidateQueries({ queryKey: ['complaint_tracking', complaintId] });
+      qc.invalidateQueries({ queryKey: ['complaint_workflow_state', complaintId] });
       toast.success('Complaint closed');
     },
     onError: (e) => toast.error(friendlyRecordError(e)),
   });
+
 
   const latest = reviews?.[0] as any | undefined;
   const latestLabel = closureDecisionLabel(latest?.decision);
@@ -197,6 +242,14 @@ export function ClosureQaPanel({
   if (rationale.trim().length < 10) missing.push('Write a rationale of at least 10 characters.');
   if (!outcome) missing.push('Choose an outcome.');
   if (!evidenceComplete) missing.push('Confirm that evidence is complete.');
+  // Server-side blockers only apply to the domain closure path.
+  const readinessBlockers =
+    !closingAction && readiness && readiness.readiness !== 'READY_FOR_CLOSURE'
+      ? readiness.blockers ?? []
+      : [];
+  const blocked = missing.length > 0 || readinessBlockers.length > 0;
+  const checkingReadiness = !closingAction && readinessQ.isLoading;
+
 
   return (
     <div className="space-y-4">
@@ -280,15 +333,16 @@ export function ClosureQaPanel({
               <Label htmlFor="cq-ev" className="font-normal">Evidence is complete</Label>
             </div>
           </div>
-          {missing.length > 0 && (
+          {blocked && (
             <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
               <p className="font-medium">What's still needed before you can close this complaint</p>
               <ul className="mt-1 list-disc pl-5 text-muted-foreground">
                 {missing.map((m) => <li key={m}>{m}</li>)}
+                {readinessBlockers.map((b) => <li key={b}>{b}</li>)}
               </ul>
             </div>
           )}
-          {actionsError && (
+          {closingAction && actionsError && (
             <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm flex flex-wrap items-center gap-2">
               <span>We couldn’t check the available workflow actions.</span>
               {onRetryActions && (
@@ -296,44 +350,34 @@ export function ClosureQaPanel({
               )}
             </div>
           )}
-          {hasQaApproved(reviews) && closingAction && (
+          {readinessQ.isError && !closingAction && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm flex flex-wrap items-center gap-2">
+              <span>We couldn’t check whether this complaint is ready for closure.</span>
+              <Button size="sm" variant="outline" onClick={() => readinessQ.refetch()}>Retry</Button>
+            </div>
+          )}
+          {hasQaApproved(reviews) && !blocked && (
             <p className="text-sm text-muted-foreground">
-              QA approved — the closure assessment passed quality review. Complete the fields
-              below and click <strong>Close complaint</strong> to finalise the case here.
+              QA approved — the closure assessment passed quality review. Click{' '}
+              <strong>Close complaint</strong> to finalise the case here.
             </p>
           )}
           <div className="flex flex-wrap items-center gap-2">
             <Button data-rbac="complaint_management.edit"
-              disabled={closeMut.isPending || actionsLoading || missing.length > 0 || !closingAction}
+              disabled={closeMut.isPending || checkingReadiness || (closingAction ? actionsLoading : false) || blocked}
               onClick={() => closeMut.mutate()}>
-              {(closeMut.isPending || actionsLoading) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {actionsLoading ? 'Checking workflow…' : 'Close complaint'}
+              {(closeMut.isPending || checkingReadiness || (closingAction && actionsLoading)) && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              {checkingReadiness ? 'Checking readiness…' : 'Close complaint'}
             </Button>
-            {!actionsLoading && !actionsError && !closingAction && (
-              <span className="text-xs text-muted-foreground">
-                {hasQaApproved(reviews) ? (
-                  <>
-                    QA approved — the closure assessment passed quality review. The case is waiting
-                    for the remaining workflow/domain requirement before it can be finalised. Check
-                    the <strong>Current step</strong> tab for what is still needed.
-                  </>
-                ) : availableActionLabels.length > 0 ? (
-                  <>
-                    No closing action is configured for you at this step. Available to you:{' '}
-                    <strong>{availableActionLabels.join(', ')}</strong> — use the{' '}
-                    <strong>Current step</strong> tab.
-                  </>
-                ) : (
-                  <>No workflow action is available to you right now — use the <strong>Current step</strong> tab.</>
-                )}
-              </span>
-            )}
-            {!closingAction && onGoToCurrentStep && !actionsLoading && (
+            {onGoToCurrentStep && readinessBlockers.length > 0 && (
               <Button size="sm" variant="outline" onClick={onGoToCurrentStep}>
-                {hasQaApproved(reviews) ? 'Review Current step' : 'Go to Current step'}
+                Review Current step
               </Button>
             )}
           </div>
+
           {latest && (
             <p className="text-xs text-muted-foreground">
               Latest decision: <strong>{latestLabel.label}</strong>
