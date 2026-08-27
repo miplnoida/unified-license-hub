@@ -15,6 +15,7 @@
 // ============================================================================
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { requireWorkerInvocation } from '../_shared/workerAuth.ts';
 
 const TARGET_EMAIL = 'rohit@mishainfotech.com';
 const TARGET_NAME = 'Rohit (Break-glass Super Administrator)';
@@ -29,7 +30,15 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
+  // Recovery is an OPERATOR action, never a browser action: the caller must
+  // present the service-role bearer (pg_cron / platform) or the ops
+  // `x-worker-token`. Without this the endpoint is anonymously invokable and
+  // can re-converge the privileged account on demand.
+  const gate = requireWorkerInvocation(req);
+  if (!gate.ok) return gate.response;
+
   try {
+
     // Rotated secret takes precedence; the original name is kept as a fallback
     // so an un-rotated project keeps working.
     const password =
