@@ -1257,6 +1257,27 @@ Deno.serve(async (req) => {
       console.log("dispatch-notification-event", { event_key: dispatchCfg.eventKey, entity_type, entity_id, recipient_count: recipients.length });
 
       const channels: string[] = Array.isArray(dispatchCfg.cfg.channels) && dispatchCfg.cfg.channels.length ? dispatchCfg.cfg.channels : ["in_app"];
+
+      // Audit invariant: an event that resolves nobody must leave a visible,
+      // explicit no-recipient record instead of silently producing nothing.
+      if (recipients.length === 0) {
+        summary.skipped++;
+        await admin.from("notification_dispatch_log").insert({
+          event_key: dispatchCfg.eventKey,
+          entity_type: entity_type || null,
+          entity_id: entity_id || null,
+          recipient_user_id: null,
+          channel: channels[0] || "in_app",
+          dedupe_key: [dispatchCfg.eventKey, entity_type || "-", entity_id || "-", "no-recipient", Date.now()].join("|"),
+          status: "skipped",
+          queued_at: new Date().toISOString(),
+          provider: (channels[0] || "in_app") === "email" ? "smtp" : "in_app",
+          error: "no_recipient_resolved",
+          error_details: { reason: "no_recipient_resolved", rules },
+        });
+        continue;
+      }
+
       const dedupeWindow = Math.max(0, Number(dispatchCfg.cfg.dedupe_window_seconds) || 60);
       const dedupeBucket = reminder_window
         ? `rw:${reminder_window}`
