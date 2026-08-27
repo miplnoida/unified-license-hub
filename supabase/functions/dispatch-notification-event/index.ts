@@ -833,10 +833,25 @@ async function resolveRecipients(
           break;
         }
         case "custom_email": {
-          const email = typeof rule.email === "string" ? rule.email.trim().toLowerCase() : "";
-          if (email) out.add(`email:${email}`);
+          // Two supported shapes: a literal address configured in the workflow
+          // designer, or a payload key naming the address (used by the seeded
+          // complaint configs, e.g. {"type":"custom_email","key":"complainant_email"}).
+          const literal = typeof rule.email === "string" ? rule.email.trim().toLowerCase() : "";
+          const fromPayload = typeof rule.key === "string" && typeof ctx.payload?.[rule.key] === "string"
+            ? String(ctx.payload[rule.key]).trim().toLowerCase()
+            : "";
+          const email = literal || fromPayload;
+          if (email && email.includes("@")) out.add(`email:${email}`);
           break;
         }
+        case "complainant": {
+          // Single reusable complainant resolver. Registered complainants resolve
+          // to their portal user; public/email-only complainants resolve to a
+          // direct-email recipient. No fake profile rows are ever created.
+          (await complainantRecipients(admin, ctx as any)).forEach((u) => out.add(u));
+          break;
+        }
+
         case "thread_participants": {
           const threadId = ctx.payload?.thread_id
             || (ctx.entity_type === "correspondence_thread" ? ctx.entity_id : null);
