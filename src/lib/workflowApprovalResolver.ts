@@ -147,7 +147,32 @@ async function matchWorkflowForApplication(
     subSectorId = (cat as any)?.sub_sector_id ?? undefined;
   }
 
+  // EXPLICIT SERVICE MAPPING (highest precedence): services.workflow_id.
+  // Mirrors public._resolve_application_workflow so a service mapped to a
+  // canonical reusable workflow is not treated as "stale" by
+  // resolveAttachedActiveWorkflow.
+  if (serviceId) {
+    const { data: svc } = await supabase
+      .from('services')
+      .select('workflow_id')
+      .eq('id', serviceId)
+      .maybeSingle();
+    const mappedId = (svc as any)?.workflow_id as string | undefined;
+    if (mappedId) {
+      const { data: mapped } = await supabase
+        .from('approval_workflows')
+        .select('id, is_active, license_type, entity_type')
+        .eq('id', mappedId)
+        .maybeSingle();
+      const m = mapped as any;
+      if (m?.id && m.is_active && entityTypes.includes(m.entity_type)) {
+        return m as any;
+      }
+    }
+  }
+
   if (effectiveRegulator) {
+
     // TAXONOMY-FIRST: don't filter by license_type at the SQL level. Pre/post
     // license workflows are scoped by Sector > Sub-Sector > Category > Service,
     // not by the application's taxonomy-triple license_type string.
