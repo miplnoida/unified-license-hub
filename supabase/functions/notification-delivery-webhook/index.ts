@@ -48,18 +48,13 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ ok: false, error: "method_not_allowed" }, 405);
 
-  const secret = Deno.env.get("NOTIFICATION_WEBHOOK_SECRET") || "";
   const raw = await req.text();
 
-  if (!secret) {
-    console.warn("[delivery-webhook] no secret configured; callback ignored");
-    return json({ ok: false, error: "webhook_not_configured" }, 401);
-  }
-  const supplied = (req.headers.get("x-signature") || "").replace(/^sha256=/, "").toLowerCase();
-  const expected = await hmacHex(secret, raw);
-  if (!supplied || !timingSafeEqual(supplied, expected)) {
-    return json({ ok: false, error: "invalid_signature" }, 401);
-  }
+  // Canonical gate: HMAC-SHA256 over the raw body against
+  // NOTIFICATION_WEBHOOK_SECRET. Fail-closed on unset secret / bad signature.
+  const gate = await requireSignedWebhook(req, raw, "NOTIFICATION_WEBHOOK_SECRET", corsHeaders);
+  if (!gate.ok) return gate.response;
+
 
   let body: any;
   try {
