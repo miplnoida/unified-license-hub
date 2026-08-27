@@ -1,8 +1,8 @@
 # Permission Coverage Matrix
 
-_Generated 2026-08-27T19:55:37.770Z. Do not edit by hand — run `bunx tsx scripts/generate-permission-coverage.ts`._
+_Generated 2026-08-27T19:57:04.952Z. Do not edit by hand — run `bunx tsx scripts/generate-permission-coverage.ts`._
 
-**Total permissions:** 395  `|`  **Orphaned:** 189
+**Total permissions:** 378  `|`  **Orphaned:** 172
 
 Coverage classes:
 
@@ -21,7 +21,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `ai_management` | `execute` |
 | `aml_supervision` | `approve` |
 | `aml_supervision` | `edit` |
-| `analytics` | `edit` |
 | `application_management` | `delete` |
 | `application_management` | `manage_config` |
 | `application_management` | `reject` |
@@ -30,13 +29,11 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `complaint_management` | `assess_jurisdiction` |
 | `complaint_management` | `assign` |
 | `complaint_management` | `close` |
-| `complaint_management` | `configure` |
 | `complaint_management` | `decide_jurisdiction` |
 | `complaint_management` | `escalate` |
 | `complaint_management` | `investigate` |
 | `complaint_management` | `override_triage` |
 | `complaint_management` | `refer` |
-| `complaint_management` | `reopen_jurisdiction` |
 | `complaint_management` | `resolve` |
 | `complaint_management` | `retry_triage` |
 | `complaint_management` | `review_vulnerability` |
@@ -50,11 +47,9 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `compliance_management` | `manage_config` |
 | `compliance_management` | `respond` |
 | `compliance_management` | `view_audit_logs` |
-| `conduct_management` | `create` |
 | `coordination` | `admin` |
 | `coordination` | `create` |
 | `coordination` | `delete` |
-| `coordination` | `edit` |
 | `coordination_cases` | `approve` |
 | `coordination_cases` | `create` |
 | `coordination_cases` | `edit` |
@@ -75,8 +70,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `coordination_messages` | `edit` |
 | `coordination_messages` | `override` |
 | `coordination_messages` | `view` |
-| `correspondence_management` | `reject` |
-| `delegation` | `create` |
 | `enforcement_management` | `close` |
 | `enforcement_management` | `delete` |
 | `enforcement_management` | `edit` |
@@ -119,8 +112,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `fit_and_proper_screening` | `issue_determination` |
 | `fit_and_proper_screening` | `manage_conditions_monitoring` |
 | `fit_and_proper_screening` | `run_ai_analysis` |
-| `form_management` | `delete` |
-| `form_management` | `import` |
 | `form_management` | `manage_applicability` |
 | `form_management` | `manage_packages` |
 | `inspection_management` | `create` |
@@ -148,15 +139,12 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `licensing` | `sign_enforcement_order` |
 | `licensing` | `upload_documents` |
 | `licensing` | `view_status` |
-| `market_conduct` | `create` |
 | `market_conduct` | `issue_enforcement_action` |
 | `market_conduct_investigation` | `access_investigation_workspace` |
 | `market_conduct_investigation` | `conduct_interviews` |
 | `market_conduct_investigation` | `manage_evidence_repository` |
 | `market_conduct_investigation` | `prepare_investigation_report` |
 | `market_conduct_investigation` | `view` |
-| `master_data_management` | `import` |
-| `notification_management` | `create` |
 | `notification_management` | `manage_events` |
 | `notification_management` | `manage_templates` |
 | `operational_resilience` | `approve` |
@@ -167,7 +155,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `prudential_payment_systems` | `oversee_msb` |
 | `prudential_payment_systems` | `supervise_fmi` |
 | `prudential_payment_systems` | `view` |
-| `prudential_supervision` | `approve` |
 | `prudential_supervision` | `delete` |
 | `prudential_supervision` | `manage_examination` |
 | `prudential_supervision` | `review_returns` |
@@ -184,7 +171,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `regulatory_requests` | `create` |
 | `regulatory_requests` | `reject` |
 | `regulatory_requests` | `review` |
-| `returns_management` | `configure` |
 | `returns_management` | `create` |
 | `returns_management` | `respond_rfi` |
 | `returns_management` | `upload_documents` |
@@ -198,9 +184,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `rule_engine` | `view_executions` |
 | `rule_engine` | `view_tasks` |
 | `rule_engine` | `view_versions` |
-| `settings` | `create` |
-| `settings` | `delete` |
-| `settings` | `import` |
 | `support_management` | `resolve` |
 | `support_management` | `respond` |
 | `support_management` | `update` |
@@ -232,12 +215,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `edit` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `view` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260820113520_31dcf25b-2e29-432d-ac14-16939cf924d4.sql:29`) | — | — |
 | `view_confidential` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260820113520_31dcf25b-2e29-432d-ac14-16939cf924d4.sql:30`) | — | — |
-
-## `analytics`
-
-| Action | Coverage | Menu | Route | Button | RLS | RPC | Storage | Report |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `edit` | 🔴 Orphaned | — | — | — | — | — | — | — |
 
 ## `application_management`
 
@@ -276,7 +253,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `assess_jurisdiction` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `assign` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `close` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `configure` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `create` | 🔵 Backend only | — | — | — | — | 1 (`supabase/functions/bulk-intake/index.ts:31`) | — | — |
 | `decide_jurisdiction` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `edit` | 🟡 UI only | — | — | 10 (`src/components/complaints/ClosureQaPanel.tsx:388` + 9 more) | — | — | — | — |
@@ -284,7 +260,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `investigate` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `override_triage` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `refer` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `reopen_jurisdiction` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `resolve` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `retry_triage` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `review_vulnerability` | 🔴 Orphaned | — | — | — | — | — | — | — |
@@ -317,12 +292,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `view_audit_logs` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `workflow_action` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260721132502_e2949718-03fe-4a4c-8520-a5f0a32ce4c4.sql:63`) | — | — |
 
-## `conduct_management`
-
-| Action | Coverage | Menu | Route | Button | RLS | RPC | Storage | Report |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `create` | 🔴 Orphaned | — | — | — | — | — | — | — |
-
 ## `coordination`
 
 | Action | Coverage | Menu | Route | Button | RLS | RPC | Storage | Report |
@@ -330,7 +299,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `admin` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `create` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `delete` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `edit` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `update` | 🔵 Backend only | — | — | — | — | 6 (`supabase/migrations/20260820141538_ea56b357-4913-45f6-9ac1-6f45539c9b9a.sql:335` + 5 more) | — | — |
 | `view` | 🟢 Enforced | 1 (`src/config/navigation.tsx:319`) | 2 (`src/routes/dashboardRoutes.tsx:264` + 1 more) | — | — | 1 (`supabase/migrations/20260820113520_31dcf25b-2e29-432d-ac14-16939cf924d4.sql:40`) | — | — |
 
@@ -382,13 +350,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `dispatch` | 🔵 Backend only | — | — | — | — | 1 (`supabase/functions/send-correspondence/index.ts:54`) | — | — |
 | `edit` | 🔵 Backend only | — | — | — | — | 2 (`supabase/migrations/20260803054937_ec0af289-292d-4821-9fe8-5eb094025c82.sql:225` + 1 more) | — | — |
 | `export` | 🔵 Backend only | — | — | — | — | 1 (`src/pages/correspondence/CorrespondenceRecords.tsx:28`) | — | — |
-| `reject` | 🔴 Orphaned | — | — | — | — | — | — | — |
-
-## `delegation`
-
-| Action | Coverage | Menu | Route | Button | RLS | RPC | Storage | Report |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `create` | 🔴 Orphaned | — | — | — | — | — | — | — |
 
 ## `employee_management`
 
@@ -574,9 +535,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | Action | Coverage | Menu | Route | Button | RLS | RPC | Storage | Report |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `create` | 🔵 Backend only | — | — | — | — | 3 (`src/pages/admin/FormManagement.tsx:382` + 2 more) | — | — |
-| `delete` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `edit` | 🟡 UI only | — | — | 4 (`src/pages/admin/FormsPackagesWorkspace.tsx:312` + 3 more) | — | — | — | — |
-| `import` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `manage_applicability` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `manage_packages` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `publish` | 🟢 Enforced | — | — | 1 (`src/pages/admin/FormsPackagesWorkspace.tsx:771`) | — | 2 (`src/pages/admin/FormManagement.tsx:170` + 1 more) | — | — |
@@ -669,7 +628,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | Action | Coverage | Menu | Route | Button | RLS | RPC | Storage | Report |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `approve` | 🟢 Enforced | — | — | 4 (`src/pages/conduct/Conduct360.tsx:71` + 3 more) | — | 2 (`supabase/migrations/20260821180454_256ec8d6-b79f-4a9c-a096-15113c67752b.sql:219` + 1 more) | — | — |
-| `create` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `edit` | 🔵 Backend only | — | — | — | — | 5 (`supabase/migrations/20260821180250_d037756f-df51-4738-9c2a-abf93d603bea.sql:101` + 4 more) | — | — |
 | `export` | 🔵 Backend only | — | — | — | — | 1 (`src/hooks/useMarketConduct.ts:202`) | — | — |
 | `initiate_investigation` | 🟢 Enforced | — | — | 1 (`src/pages/conduct/ConductSignalDetail.tsx:57`) | — | 2 (`supabase/migrations/20260807134539_05bf7b6b-ec2e-4bde-9dee-d7f5b33c23ab.sql:377` + 1 more) | — | — |
@@ -690,17 +648,10 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `prepare_investigation_report` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `view` | 🔴 Orphaned | — | — | — | — | — | — | — |
 
-## `master_data_management`
-
-| Action | Coverage | Menu | Route | Button | RLS | RPC | Storage | Report |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `import` | 🔴 Orphaned | — | — | — | — | — | — | — |
-
 ## `notification_management`
 
 | Action | Coverage | Menu | Route | Button | RLS | RPC | Storage | Report |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `create` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `dispatch` | 🟢 Enforced | — | — | 6 (`src/components/correspondence/ThreadDetail.tsx:151` + 5 more) | — | 3 (`supabase/migrations/20260803045339_9bcbbe6c-9ccd-4fce-a580-af0e064ab739.sql:295` + 2 more) | — | — |
 | `manage_events` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `manage_templates` | 🔴 Orphaned | — | — | — | — | — | — | — |
@@ -738,7 +689,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 
 | Action | Coverage | Menu | Route | Button | RLS | RPC | Storage | Report |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `approve` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `conduct_onsite_examination` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260806072210_326e2fa8-8627-40f3-98e0-345ad5b0c48c.sql:24`) | — | — |
 | `create` | 🟢 Enforced | — | — | 2 (`src/pages/prudential/AssessmentWorkspace.tsx:387` + 1 more) | — | 2 (`supabase/migrations/20260721134322_6ceea271-7e8d-461a-a620-9538b7df2b88.sql:53` + 1 more) | — | — |
 | `delete` | 🔴 Orphaned | — | — | — | — | — | — | — |
@@ -802,7 +752,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | Action | Coverage | Menu | Route | Button | RLS | RPC | Storage | Report |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `approve` | 🟡 UI only | — | — | 2 (`src/pages/returns-mgmt/ReturnDetail.tsx:725` + 1 more) | — | — | — | — |
-| `configure` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `create` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `edit` | 🟢 Enforced | — | — | 1 (`src/components/admin/returns-config/RegulatoryMetricsPanel.tsx:130`) | — | 6 (`supabase/migrations/20260721130151_b2c61ac4-8750-4e43-bff6-7bfc4d22a859.sql:70` + 5 more) | — | — |
 | `export` | 🟢 Enforced | — | — | 1 (`src/pages/returns-mgmt/ViewReturns.tsx:273`) | — | 1 (`src/pages/returns-mgmt/ViewReturns.tsx:282`) | — | — |
@@ -862,11 +811,8 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 
 | Action | Coverage | Menu | Route | Button | RLS | RPC | Storage | Report |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `create` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `delete` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `edit` | 🟢 Enforced | — | — | 15 (`src/pages/settings/CaptchaSettings.tsx:318` + 14 more) | — | 9 (`supabase/migrations/20260804065012_08abb314-e1b4-4aa5-a533-1e5230fd16c5.sql:200` + 8 more) | — | — |
 | `export` | 🔵 Backend only | — | — | — | — | 2 (`src/pages/settings/DataManagementSettings.tsx:67` + 1 more) | — | — |
-| `import` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `view` | 🟢 Enforced | 15 (`src/config/navigation.tsx:83` + 14 more) | 29 (`src/routes/adminRoutes.tsx:108` + 28 more) | — | — | 1 (`supabase/migrations/20260804065012_08abb314-e1b4-4aa5-a533-1e5230fd16c5.sql:302`) | — | — |
 
 ## `support_management`

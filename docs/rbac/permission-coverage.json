@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-27T19:55:37.770Z",
+  "generatedAt": "2026-08-27T19:57:04.952Z",
   "rows": [
     {
       "module": "admin_dashboard",
@@ -92,6 +92,21 @@
         }
       ],
       "marker": [
+        {
+          "file": "src/pages/analytics/AiInsightsHub.tsx",
+          "line": 160,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/analytics/AiInsightsHub.tsx",
+          "line": 161,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/analytics/AiInsightsHub.tsx",
+          "line": 162,
+          "detail": "data-rbac marker (audit signal only)"
+        },
         {
           "file": "src/pages/governance/ai/AiAssuranceDetail.tsx",
           "line": 314,
@@ -419,35 +434,6 @@
       "storage": [],
       "report": [],
       "orphaned": false
-    },
-    {
-      "module": "analytics",
-      "action": "edit",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [
-        {
-          "file": "src/pages/analytics/AiInsightsHub.tsx",
-          "line": 160,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/pages/analytics/AiInsightsHub.tsx",
-          "line": 161,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/pages/analytics/AiInsightsHub.tsx",
-          "line": 162,
-          "detail": "data-rbac marker (audit signal only)"
-        }
-      ],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
     },
     {
       "module": "application_management",
@@ -1697,25 +1683,6 @@
     },
     {
       "module": "complaint_management",
-      "action": "configure",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [
-        {
-          "file": "src/pages/complaints/rfi-approvals/RfiApprovalQueue.tsx",
-          "line": 144,
-          "detail": "data-rbac marker (audit signal only)"
-        }
-      ],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
-    },
-    {
-      "module": "complaint_management",
       "action": "create",
       "menu": [],
       "route": [],
@@ -1774,6 +1741,11 @@
         {
           "file": "src/components/complaints/jurisdiction/JurisdictionWorkspace.tsx",
           "line": 618,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/complaints/jurisdiction/JurisdictionWorkspace.tsx",
+          "line": 688,
           "detail": "data-rbac marker (audit signal only)"
         }
       ],
@@ -1875,6 +1847,11 @@
         {
           "file": "src/pages/complaints/escalations/EscalationRulesAdmin.tsx",
           "line": 67,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/complaints/rfi-approvals/RfiApprovalQueue.tsx",
+          "line": 144,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -2337,25 +2314,6 @@
       "route": [],
       "button": [],
       "marker": [],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
-    },
-    {
-      "module": "complaint_management",
-      "action": "reopen_jurisdiction",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [
-        {
-          "file": "src/components/complaints/jurisdiction/JurisdictionWorkspace.tsx",
-          "line": 688,
-          "detail": "data-rbac marker (audit signal only)"
-        }
-      ],
       "rls": [],
       "rpc": [],
       "storage": [],
@@ -2841,30 +2799,6 @@
       "orphaned": false
     },
     {
-      "module": "conduct_management",
-      "action": "create",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [
-        {
-          "file": "src/pages/conduct/ConductActions.tsx",
-          "line": 64,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/components/conduct/IssueActionDialog.tsx",
-          "line": 150,
-          "detail": "data-rbac marker (audit signal only)"
-        }
-      ],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
-    },
-    {
       "module": "coordination",
       "action": "admin",
       "menu": [],
@@ -2916,7 +2850,7 @@
     },
     {
       "module": "coordination",
-      "action": "edit",
+      "action": "update",
       "menu": [],
       "route": [],
       "button": [],
@@ -2997,19 +2931,6 @@
           "detail": "data-rbac marker (audit signal only)"
         }
       ],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
-    },
-    {
-      "module": "coordination",
-      "action": "update",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [],
       "rls": [],
       "rpc": [
         {
@@ -3374,6 +3295,11 @@
         },
         {
           "file": "src/components/correspondence/ReviewApprovalPanel.tsx",
+          "line": 51,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/correspondence/ReviewApprovalPanel.tsx",
           "line": 54,
           "detail": "data-rbac marker (audit signal only)"
         },
@@ -3487,44 +3413,6 @@
       "storage": [],
       "report": [],
       "orphaned": false
-    },
-    {
-      "module": "correspondence_management",
-      "action": "reject",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [
-        {
-          "file": "src/components/correspondence/ReviewApprovalPanel.tsx",
-          "line": 51,
-          "detail": "data-rbac marker (audit signal only)"
-        }
-      ],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
-    },
-    {
-      "module": "delegation",
-      "action": "create",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [
-        {
-          "file": "src/pages/delegation/DelegationRules.tsx",
-          "line": 332,
-          "detail": "data-rbac marker (audit signal only)"
-        }
-      ],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
     },
     {
       "module": "employee_management",
@@ -6670,6 +6558,11 @@
       "marker": [
         {
           "file": "src/pages/admin/FormManagement.tsx",
+          "line": 378,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/admin/FormManagement.tsx",
           "line": 393,
           "detail": "data-rbac marker (audit signal only)"
         },
@@ -6735,7 +6628,17 @@
         },
         {
           "file": "src/components/form-builder/FileImport.tsx",
+          "line": 1936,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/form-builder/FileImport.tsx",
           "line": 1952,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/form-builder/FileImport.tsx",
+          "line": 1958,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -6745,7 +6648,17 @@
         },
         {
           "file": "src/components/form-builder/FileImport.tsx",
+          "line": 2217,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/form-builder/FileImport.tsx",
           "line": 2233,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/form-builder/FileImport.tsx",
+          "line": 2240,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -6775,25 +6688,6 @@
       "storage": [],
       "report": [],
       "orphaned": false
-    },
-    {
-      "module": "form_management",
-      "action": "delete",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [
-        {
-          "file": "src/pages/admin/FormManagement.tsx",
-          "line": 503,
-          "detail": "data-rbac marker (audit signal only)"
-        }
-      ],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
     },
     {
       "module": "form_management",
@@ -6976,45 +6870,6 @@
     },
     {
       "module": "form_management",
-      "action": "import",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [
-        {
-          "file": "src/pages/admin/FormManagement.tsx",
-          "line": 378,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/components/form-builder/FileImport.tsx",
-          "line": 1936,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/components/form-builder/FileImport.tsx",
-          "line": 1958,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/components/form-builder/FileImport.tsx",
-          "line": 2217,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/components/form-builder/FileImport.tsx",
-          "line": 2240,
-          "detail": "data-rbac marker (audit signal only)"
-        }
-      ],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
-    },
-    {
-      "module": "form_management",
       "action": "manage_applicability",
       "menu": [],
       "route": [],
@@ -7081,7 +6936,13 @@
       "menu": [],
       "route": [],
       "button": [],
-      "marker": [],
+      "marker": [
+        {
+          "file": "src/pages/admin/FormManagement.tsx",
+          "line": 503,
+          "detail": "data-rbac marker (audit signal only)"
+        }
+      ],
       "rls": [],
       "rpc": [
         {
@@ -9228,35 +9089,6 @@
     },
     {
       "module": "market_conduct",
-      "action": "create",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [
-        {
-          "file": "src/pages/admin/conduct/ProductsChannels.tsx",
-          "line": 90,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/pages/admin/conduct/ProductsChannels.tsx",
-          "line": 181,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/pages/admin/conduct/RiskTaxonomy.tsx",
-          "line": 85,
-          "detail": "data-rbac marker (audit signal only)"
-        }
-      ],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
-    },
-    {
-      "module": "market_conduct",
       "action": "edit",
       "menu": [],
       "route": [],
@@ -9280,6 +9112,21 @@
         {
           "file": "src/pages/admin/conduct/MonitoringRules.tsx",
           "line": 196,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/admin/conduct/ProductsChannels.tsx",
+          "line": 90,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/admin/conduct/ProductsChannels.tsx",
+          "line": 181,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/admin/conduct/RiskTaxonomy.tsx",
+          "line": 85,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -9545,7 +9392,18 @@
       "menu": [],
       "route": [],
       "button": [],
-      "marker": [],
+      "marker": [
+        {
+          "file": "src/pages/conduct/ConductActions.tsx",
+          "line": 64,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/conduct/IssueActionDialog.tsx",
+          "line": 150,
+          "detail": "data-rbac marker (audit signal only)"
+        }
+      ],
       "rls": [],
       "rpc": [],
       "storage": [],
@@ -10635,59 +10493,6 @@
       "orphaned": true
     },
     {
-      "module": "master_data_management",
-      "action": "import",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [
-        {
-          "file": "src/pages/admin/MasterConfiguration.tsx",
-          "line": 259,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/pages/admin/MasterDataManagement.tsx",
-          "line": 258,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/components/admin/MasterDataImportDialog.tsx",
-          "line": 292,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/components/admin/MasterDataItemsImportDialog.tsx",
-          "line": 224,
-          "detail": "data-rbac marker (audit signal only)"
-        }
-      ],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
-    },
-    {
-      "module": "notification_management",
-      "action": "create",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [
-        {
-          "file": "src/pages/MailSms.tsx",
-          "line": 70,
-          "detail": "data-rbac marker (audit signal only)"
-        }
-      ],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
-    },
-    {
       "module": "notification_management",
       "action": "dispatch",
       "menu": [],
@@ -10719,6 +10524,11 @@
         }
       ],
       "marker": [
+        {
+          "file": "src/pages/MailSms.tsx",
+          "line": 70,
+          "detail": "data-rbac marker (audit signal only)"
+        },
         {
           "file": "src/pages/admin/NotificationEvents.tsx",
           "line": 286,
@@ -11162,45 +10972,6 @@
       "route": [],
       "button": [],
       "marker": [],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
-    },
-    {
-      "module": "prudential_supervision",
-      "action": "approve",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [
-        {
-          "file": "src/components/supervision/ThematicClosurePanel.tsx",
-          "line": 235,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/components/supervision/ThematicClosurePanel.tsx",
-          "line": 239,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/components/supervision/ThematicClosurePanel.tsx",
-          "line": 247,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/components/supervision/ThematicClosurePanel.tsx",
-          "line": 410,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/components/supervision/ThematicClosurePanel.tsx",
-          "line": 414,
-          "detail": "data-rbac marker (audit signal only)"
-        }
-      ],
       "rls": [],
       "rpc": [],
       "storage": [],
@@ -12624,6 +12395,31 @@
           "file": "src/components/prudential/examination/WorkpapersPanel.tsx",
           "line": 103,
           "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/supervision/ThematicClosurePanel.tsx",
+          "line": 235,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/supervision/ThematicClosurePanel.tsx",
+          "line": 239,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/supervision/ThematicClosurePanel.tsx",
+          "line": 247,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/supervision/ThematicClosurePanel.tsx",
+          "line": 410,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/supervision/ThematicClosurePanel.tsx",
+          "line": 414,
+          "detail": "data-rbac marker (audit signal only)"
         }
       ],
       "rls": [],
@@ -13505,45 +13301,6 @@
     },
     {
       "module": "returns_management",
-      "action": "configure",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [
-        {
-          "file": "src/pages/admin/ReturnConfiguration.tsx",
-          "line": 112,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/pages/returns-mgmt/ManageRules.tsx",
-          "line": 45,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/pages/returns-mgmt/ManageScheduling.tsx",
-          "line": 48,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/pages/returns-mgmt/ManageStructures.tsx",
-          "line": 45,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/pages/returns-mgmt/ReturnGroups.tsx",
-          "line": 45,
-          "detail": "data-rbac marker (audit signal only)"
-        }
-      ],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
-    },
-    {
-      "module": "returns_management",
       "action": "create",
       "menu": [],
       "route": [],
@@ -13913,7 +13670,33 @@
           "detail": "frontend gate (useCan/hasPermission)"
         }
       ],
-      "marker": [],
+      "marker": [
+        {
+          "file": "src/pages/admin/ReturnConfiguration.tsx",
+          "line": 112,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/returns-mgmt/ManageRules.tsx",
+          "line": 45,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/returns-mgmt/ManageScheduling.tsx",
+          "line": 48,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/returns-mgmt/ManageStructures.tsx",
+          "line": 45,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/returns-mgmt/ReturnGroups.tsx",
+          "line": 45,
+          "detail": "data-rbac marker (audit signal only)"
+        }
+      ],
       "rls": [],
       "rpc": [
         {
@@ -15201,54 +14984,6 @@
     },
     {
       "module": "settings",
-      "action": "create",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [
-        {
-          "file": "src/pages/admin/CorrespondenceTemplates.tsx",
-          "line": 117,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/pages/correspondence/RoutingRulesAdmin.tsx",
-          "line": 61,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/components/shared/BatchDocumentUpload.tsx",
-          "line": 181,
-          "detail": "data-rbac marker (audit signal only)"
-        }
-      ],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
-    },
-    {
-      "module": "settings",
-      "action": "delete",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [
-        {
-          "file": "src/pages/correspondence/RoutingRulesAdmin.tsx",
-          "line": 164,
-          "detail": "data-rbac marker (audit signal only)"
-        }
-      ],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
-    },
-    {
-      "module": "settings",
       "action": "edit",
       "menu": [],
       "route": [],
@@ -15333,12 +15068,22 @@
         },
         {
           "file": "src/pages/admin/CorrespondenceTemplates.tsx",
+          "line": 117,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/admin/CorrespondenceTemplates.tsx",
           "line": 191,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/admin/MasterConfiguration.tsx",
           "line": 256,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/admin/MasterConfiguration.tsx",
+          "line": 259,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -15353,7 +15098,27 @@
         },
         {
           "file": "src/pages/admin/MasterDataManagement.tsx",
+          "line": 258,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/admin/MasterDataManagement.tsx",
           "line": 261,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/admin/SlaManager.tsx",
+          "line": 722,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/correspondence/RoutingRulesAdmin.tsx",
+          "line": 61,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/correspondence/RoutingRulesAdmin.tsx",
+          "line": 164,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -15507,6 +15272,26 @@
           "detail": "data-rbac marker (audit signal only)"
         },
         {
+          "file": "src/components/admin/MasterDataImportDialog.tsx",
+          "line": 235,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/admin/MasterDataImportDialog.tsx",
+          "line": 292,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/admin/MasterDataItemsImportDialog.tsx",
+          "line": 165,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/admin/MasterDataItemsImportDialog.tsx",
+          "line": 224,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
           "file": "src/components/admin/classification/AuthorizationSchemesTab.tsx",
           "line": 96,
           "detail": "data-rbac marker (audit signal only)"
@@ -15633,6 +15418,11 @@
         },
         {
           "file": "src/components/shared/BatchDocumentUpload.tsx",
+          "line": 181,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/shared/BatchDocumentUpload.tsx",
           "line": 189,
           "detail": "data-rbac marker (audit signal only)"
         }
@@ -15738,35 +15528,6 @@
       "storage": [],
       "report": [],
       "orphaned": false
-    },
-    {
-      "module": "settings",
-      "action": "import",
-      "menu": [],
-      "route": [],
-      "button": [],
-      "marker": [
-        {
-          "file": "src/pages/admin/SlaManager.tsx",
-          "line": 722,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/components/admin/MasterDataImportDialog.tsx",
-          "line": 235,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/components/admin/MasterDataItemsImportDialog.tsx",
-          "line": 165,
-          "detail": "data-rbac marker (audit signal only)"
-        }
-      ],
-      "rls": [],
-      "rpc": [],
-      "storage": [],
-      "report": [],
-      "orphaned": true
     },
     {
       "module": "settings",
@@ -16829,7 +16590,13 @@
       "menu": [],
       "route": [],
       "button": [],
-      "marker": [],
+      "marker": [
+        {
+          "file": "src/pages/delegation/DelegationRules.tsx",
+          "line": 332,
+          "detail": "data-rbac marker (audit signal only)"
+        }
+      ],
       "rls": [],
       "rpc": [
         {
@@ -17023,5 +16790,5 @@
       "orphaned": false
     }
   ],
-  "orphanedCount": 189
+  "orphanedCount": 172
 }
