@@ -13,6 +13,8 @@
 // ============================================================================
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { requireWorkerInvocation } from '../_shared/workerAuth.ts';
+
 
 const DOMAIN = 'mishainfotech.com';
 const SUPER_ADMIN_ROLE_KEY = 'super_admin';
