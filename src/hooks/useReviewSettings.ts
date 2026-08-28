@@ -36,7 +36,6 @@ export function useSaveReviewSettings() {
   return useMutation({
     mutationFn: async (settings: ReviewSettings) => {
       await siteSettingSave('review_settings', settings);
-      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['site_settings', 'review_settings'] });

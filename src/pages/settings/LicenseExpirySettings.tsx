@@ -193,7 +193,6 @@ export default function LicenseExpirySettings() {
     setSaving(true);
     try {
       await siteSettingSave('license_expiry', payload);
-      if (error) throw error;
       qc.invalidateQueries({ queryKey: ['license_expiry_config'] });
       qc.invalidateQueries({ queryKey: ['license_expiry_status'] });
       toast.success('License expiry settings saved');

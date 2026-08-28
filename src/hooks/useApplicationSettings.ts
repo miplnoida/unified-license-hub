@@ -59,7 +59,6 @@ export function useSaveApplicationSettings() {
   return useMutation({
     mutationFn: async (settings: ApplicationSettings) => {
       await siteSettingSave('application_settings', settings);
-      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['site_settings', 'application_settings'] });

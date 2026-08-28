@@ -94,7 +94,6 @@ export function useSaveEmailSmsSettings() {
       };
 
       await siteSettingSave('email_sms_settings', merged);
-      if (error) throw error;
       return merged;
     },
     onSuccess: () => {

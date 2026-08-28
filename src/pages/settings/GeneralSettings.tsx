@@ -29,7 +29,6 @@ export default function GeneralSettings() {
     setSaving(true);
     try {
       await siteSettingSave('general', form);
-      if (error) throw error;
       sessionStorage.removeItem('site_settings_cache');
       await refreshSettings();
       toast.success('General settings saved successfully');

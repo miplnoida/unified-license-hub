@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { siteSettingSave } from '@/lib/configWriter';
+import { configRetire, configSave } from '@/lib/configWriter';
 import { useToast } from '@/hooks/use-toast';
 import { formatDateTime } from '@/lib/datetime';
 import {
@@ -83,11 +84,13 @@ export default function CaptchaSettings() {
       return;
     }
     setSavingToggle(true);
-    await siteSettingSave('captcha_enabled', next);
-    setSavingToggle(false);
-    if (error) {
-      toast({ title: 'Could not save', description: error.message, variant: 'destructive' });
+    try {
+      await siteSettingSave('captcha_enabled', next);
+    } catch (error: any) {
+      toast({ title: 'Could not save', description: error?.message, variant: 'destructive' });
       return;
+    } finally {
+      setSavingToggle(false);
     }
     setEnabled(next);
     invalidate();
@@ -146,21 +149,12 @@ export default function CaptchaSettings() {
         expected_action: form.provider === 'recaptcha_v3' ? (form.expected_action.trim() || null) : null,
       };
 
-      if (configurationId) {
-        const { error } = await supabase
-          .from('captcha_configurations')
-          .update(payload)
-          .eq('id', configurationId);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase
-          .from('captcha_configurations')
-          .insert(payload)
-          .select('id')
-          .single();
-        if (error) throw error;
-        configurationId = data.id;
-      }
+      // GAP-F1-03: governed configuration writer (settings.edit + audit).
+      const saved = await configSave<{ id: string }>('captcha_configurations', payload, {
+        id: configurationId ?? null,
+        entityLabel: 'captcha configuration',
+      });
+      configurationId = saved.id;
 
       if (form.secret_key.trim()) {
         const { data: result, error: fnError } = await supabase.functions.invoke('manage-captcha', {
@@ -211,13 +205,14 @@ export default function CaptchaSettings() {
       });
       return;
     }
-    const { error } = await supabase.from('captcha_configurations').delete().eq('id', config.id);
-    if (error) {
-      toast({ title: 'Could not delete', description: error.message, variant: 'destructive' });
+    try {
+      await configRetire('captcha_configurations', config.id, { entityLabel: 'captcha configuration' });
+    } catch (error: any) {
+      toast({ title: 'Could not retire', description: error?.message, variant: 'destructive' });
       return;
     }
     invalidate();
-    toast({ title: 'Configuration deleted' });
+    toast({ title: 'Configuration retired' });
   };
 
   return (
