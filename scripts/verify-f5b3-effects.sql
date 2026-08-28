@@ -413,12 +413,19 @@ BEGIN
     _cs_status := _cs.status;
 
     SELECT count(*) INTO _items FROM public.entity_change_items i WHERE i.change_set_id = _cs.id;
-    SELECT jsonb_build_object('effect', e.result, 'change_set', e.change_set_id)
+    SELECT jsonb_build_object('result_ref', e.result_ref, 'before', e.evidence_before,
+                              'after', e.evidence_after, 'provenance', e.provenance,
+                              'application_id', e.application_id, 'service_id', e.service_id,
+                              'handler', e.handler, 'canonical_target', e.canonical_target)
       INTO _cs_prov FROM public.post_license_effects e
      WHERE e.application_id = (_fx->>'application_id')::uuid;
 
+    -- canonical name state must be the current legal name carrying change-set provenance
     SELECT n.name INTO _name_after FROM public.organization_names n
-     WHERE n.entity_id = _entity AND n.name = _probe LIMIT 1;
+     WHERE n.source_change_set_id = _cs.id AND n.name = _probe AND n.is_current LIMIT 1;
+    IF _name_after IS NULL THEN
+      SELECT re.legal_name INTO _name_after FROM public.regulated_entities re WHERE re.id = _entity;
+    END IF;
 
     RAISE EXCEPTION 'F5B3_ROLLBACK';
   EXCEPTION WHEN others THEN
@@ -445,7 +452,15 @@ BEGIN
   PERFORM pg_temp.rec('E','E-04','canonical entity state changes as a result of the approval',
     _name_after = _probe, 'organization_name=' || coalesce(_name_after,'null'));
   PERFORM pg_temp.rec('E','E-05','the effect ledger carries change-set provenance back to the F5 application',
-    coalesce(_cs_prov->>'change_set','') <> '', 'provenance=' || coalesce(_cs_prov::text,'null'));
+    coalesce(_cs_prov->>'result_ref','') = coalesce(_cs.id::text,'x')
+      AND _cs_prov->>'application_id' = (_fx->>'application_id')
+      AND coalesce(_cs_prov->>'handler','') <> ''
+      AND coalesce(_cs_prov->>'canonical_target','') <> '',
+    'provenance=' || coalesce(_cs_prov::text,'null'));
+  PERFORM pg_temp.rec('E','E-06','the effect ledger records before/after evidence for the entity change',
+    _cs_prov->'before' IS NOT NULL AND _cs_prov->'after' IS NOT NULL
+      AND _cs_prov->>'before' <> _cs_prov->>'after',
+    'before=' || coalesce(_cs_prov->>'before','null') || ' after=' || coalesce(_cs_prov->>'after','null'));
 END $e$;
 
 -- ===========================================================================
@@ -508,7 +523,8 @@ END $f$;
 -- ===========================================================================
 DO $g$
 DECLARE
-  _lic uuid; _svc uuid; _officer uuid; _fx jsonb; _plan jsonb; _res text; _effects int;
+  _lic uuid; _svc uuid; _officer uuid; _fx jsonb; _plan jsonb; _res jsonb; _effects int;
+  _raised text := NULL; _app_status text; _wf_status text; _actions int;
   _harness text := NULL;
 BEGIN
   _officer := pg_temp.f5b3_officer();
@@ -526,14 +542,17 @@ BEGIN
       json_build_object('sub',_officer::text,'role','authenticated')::text, true);
     _plan := public.post_license_effect_plan((_fx->>'application_id')::uuid);
     BEGIN
-      PERFORM public.perform_final_workflow_approval((_fx->>'application_id')::uuid,
+      _res := public.perform_final_workflow_approval((_fx->>'application_id')::uuid,
                 (_fx->>'instance_id')::uuid, (_fx->>'step_id')::uuid, 'F5-B3 fp probe', _officer);
-      _res := 'NOT_BLOCKED';
     EXCEPTION WHEN others THEN
-      _res := SQLSTATE || ': ' || left(SQLERRM,120);
+      _raised := SQLSTATE || ': ' || left(SQLERRM,120);
     END;
     SELECT count(*) INTO _effects FROM public.post_license_effects
      WHERE application_id = (_fx->>'application_id')::uuid;
+    SELECT a.status INTO _app_status FROM public.applications a WHERE a.id = (_fx->>'application_id')::uuid;
+    SELECT w.status INTO _wf_status FROM public.workflow_instances w WHERE w.id = (_fx->>'instance_id')::uuid;
+    SELECT count(*) INTO _actions FROM public.approval_actions aa
+     WHERE aa.application_id = (_fx->>'application_id')::uuid AND aa.action = 'approve_final';
 
     RAISE EXCEPTION 'F5B3_ROLLBACK';
   EXCEPTION WHEN others THEN
@@ -550,9 +569,22 @@ BEGIN
     _plan->>'state' = 'BLOCKED' AND (_plan->>'fp_required')::boolean
       AND _plan->>'code' = 'FP_DETERMINATION_REQUIRED',
     'state=' || coalesce(_plan->>'state','null') || ' code=' || coalesce(_plan->>'code','null'));
-  PERFORM pg_temp.rec('G','G-02','the blocked structural effect is never applied and approval is refused',
-    _res <> 'NOT_BLOCKED' AND _effects = 0,
-    'approval=' || coalesce(_res,'null') || ' effects=' || coalesce(_effects::text,'null'));
+  PERFORM pg_temp.rec('G','G-02','the blocked structural effect is never applied and the decision is refused',
+    (_raised IS NOT NULL OR coalesce(_res->>'success','false') <> 'true') AND _effects = 0,
+    'raised=' || coalesce(_raised,'-') || ' success=' || coalesce(_res->>'success','null')
+    || ' effects=' || coalesce(_effects::text,'null'));
+  PERFORM pg_temp.rec('G','G-03','the refusal is a stable governed blocked result the caller can distinguish',
+    _raised IS NOT NULL OR (coalesce(_res->>'blocked','false') = 'true'
+      AND _res->>'application_id' = (_fx->>'application_id')
+      AND _res->>'plan_state' = 'BLOCKED'
+      AND _res->>'code' = 'FP_DETERMINATION_REQUIRED'
+      AND jsonb_typeof(_res->'blockers') = 'array'
+      AND jsonb_array_length(_res->'blockers') > 0),
+    'result=' || left(coalesce(_res::text,'null'),200));
+  PERFORM pg_temp.rec('G','G-04','no application, workflow or decision mutation survives the refused F&P decision',
+    _app_status IS DISTINCT FROM 'approved' AND _wf_status IS DISTINCT FROM 'completed' AND _actions = 0,
+    'app=' || coalesce(_app_status,'null') || ' wf=' || coalesce(_wf_status,'null')
+    || ' approve_final_actions=' || coalesce(_actions::text,'null'));
 END $g$;
 
 -- ===========================================================================
@@ -561,7 +593,8 @@ END $g$;
 DO $h$
 DECLARE
   _lic uuid; _svc uuid; _unsupported uuid; _officer uuid; _fx jsonb; _fx2 jsonb;
-  _plan_unsupported jsonb; _plan_unknown jsonb; _res_unsupported text;
+  _plan_unsupported jsonb; _plan_unknown jsonb; _res_unsupported jsonb;
+  _raised_unsupported text := NULL; _unsup_effects int; _unsup_app text; _unsup_wf text;
   _rejected_effects int; _exec_state text; _insert_state text; _map_state text;
   _harness text := NULL;
 BEGIN
@@ -581,12 +614,16 @@ BEGIN
       json_build_object('sub',_officer::text,'role','authenticated')::text, true);
     _plan_unsupported := public.post_license_effect_plan((_fx->>'application_id')::uuid);
     BEGIN
-      PERFORM public.perform_final_workflow_approval((_fx->>'application_id')::uuid,
+      _res_unsupported := public.perform_final_workflow_approval((_fx->>'application_id')::uuid,
                 (_fx->>'instance_id')::uuid, (_fx->>'step_id')::uuid, 'F5-B3 unsupported probe', _officer);
-      _res_unsupported := 'NOT_BLOCKED';
     EXCEPTION WHEN others THEN
-      _res_unsupported := SQLSTATE || ': ' || left(SQLERRM,120);
+      _raised_unsupported := SQLSTATE || ': ' || left(SQLERRM,120);
     END;
+    SELECT count(*) INTO _unsup_effects FROM public.post_license_effects
+     WHERE application_id = (_fx->>'application_id')::uuid;
+    SELECT a.status INTO _unsup_app FROM public.applications a WHERE a.id = (_fx->>'application_id')::uuid;
+    SELECT w.status INTO _unsup_wf FROM public.workflow_instances w WHERE w.id = (_fx->>'instance_id')::uuid;
+
 
     -- rejected / non-approved filing must never carry an effect
     _fx2 := pg_temp.f5b3_fixture(_lic, _svc, _officer, 'rejected');
@@ -625,7 +662,19 @@ BEGIN
     _plan_unsupported->>'state' IN ('PRODUCT_GAP','BUSINESS_CONFIGURATION_REQUIRED'),
     'state=' || coalesce(_plan_unsupported->>'state','null'));
   PERFORM pg_temp.rec('H','H-02','an unsupported service can never be approved into a fabricated effect',
-    _res_unsupported <> 'NOT_BLOCKED', 'approval=' || coalesce(_res_unsupported,'null'));
+    (_raised_unsupported IS NOT NULL OR coalesce(_res_unsupported->>'success','false') <> 'true')
+      AND _unsup_effects = 0,
+    'raised=' || coalesce(_raised_unsupported,'-') || ' success=' || coalesce(_res_unsupported->>'success','null')
+    || ' effects=' || coalesce(_unsup_effects::text,'null'));
+  PERFORM pg_temp.rec('H','H-02b','the product-gap refusal is a governed blocked result carrying the plan state',
+    _raised_unsupported IS NOT NULL OR (coalesce(_res_unsupported->>'blocked','false') = 'true'
+      AND _res_unsupported->>'application_id' = (_fx->>'application_id')
+      AND _res_unsupported->>'plan_state' = _plan_unsupported->>'state'
+      AND coalesce(_res_unsupported->>'code','') = coalesce(_plan_unsupported->>'code','x')),
+    'result=' || left(coalesce(_res_unsupported::text,'null'),200));
+  PERFORM pg_temp.rec('H','H-02c','no application or workflow mutation survives the refused product-gap decision',
+    _unsup_app IS DISTINCT FROM 'approved' AND _unsup_wf IS DISTINCT FROM 'completed',
+    'app=' || coalesce(_unsup_app,'null') || ' wf=' || coalesce(_unsup_wf,'null'));
   PERFORM pg_temp.rec('H','H-03','an unknown application fails closed rather than defaulting to an effect',
     _plan_unknown->>'state' = 'FAIL_CLOSED', 'state=' || coalesce(_plan_unknown->>'state','null'));
   PERFORM pg_temp.rec('H','H-04','a rejected/non-approved filing produces no regulatory effect',
