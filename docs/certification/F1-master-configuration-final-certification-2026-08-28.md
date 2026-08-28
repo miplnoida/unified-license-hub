@@ -251,3 +251,160 @@ and three dimensions below threshold — **freeze withheld**.
    all F0 protected gates including `verify:f0c`.
 
 **F1 NOT CERTIFIED — RETURN TO F1-B**
+
+---
+
+# F1-C RETRY — FINAL CERTIFICATION & FREEZE (2026-08-28)
+
+- Stage: F1-C retry (certification and freeze attempt #2)
+- HEAD at certification: `8501ad24d`
+- Authoritative inputs:
+  - this report (F1-C attempt #1)
+  - `docs/certification/F1-B2-decision-authority-and-grant-remediation-2026-08-28.md`
+- Mode: certification only — no remediation performed in this pass.
+
+## FINAL VERDICT (RETRY)
+
+**F1 NOT CERTIFIED — RETURN TO F1-B**
+
+Every requested gate is green and both former blockers are proved closed.
+Certification is withheld because re-proving blocker 1 (governed-table
+privilege posture) exposed a **new HIGH privilege defect on two governed
+configuration tables that were outside the F1-B2 remediation scope**. Per the
+Track-A charter this pass did not remediate it.
+
+| Defect | Severity | Area | Status |
+| --- | --- | --- | --- |
+| DEF-F1-C2-01 — `anon` and `authenticated` hold destructive privileges on `license_fee_bindings` / `license_verification_templates` / `license_fee_process_settings` | HIGH | Governance / RBAC posture | OPEN |
+
+Former blockers DEF-F1-C-01 and DEF-F1-C-02 are **CLOSED** (re-proved below).
+
+## 1. Rebaseline at HEAD `8501ad24d`
+
+No F0 or F1 protected contract changed after F1-B2: the only tree delta is the
+F1-B2 grant/lifecycle migration and its evidence document.
+
+| Gate | Expected | Result |
+| --- | --- | --- |
+| `scripts/verify-f1c-certification.sql` | 86/86 | **PASS — 86 TESTED_PASS / 0 TESTED_FAIL / 0 N-A** |
+| F1 pgTAP (`supabase/tests/config/`) | 15/15 | **PASS — ok=15 not_ok=0 errors=0** |
+| `verify:service-completeness` | pass | **PASS — 0 unexplained gaps** |
+| Frontend suite | full | **PASS — 139 files / 1277 tests** |
+| Typecheck | clean | **PASS** |
+| Build | clean | **PASS** |
+| `verify:f0c` | pass | **PASS — 34 TESTED_PASS / 0 TESTED_FAIL** |
+| `verify:hardening` | pass | **PASS — 31 passed / 0 failed** |
+| `verify:anon-execute` | pass | **PASS — 8 allowlisted, 0 defects** |
+| `verify:definer-guards` | pass | **PASS** |
+| `verify:breadcrumbs` | pass | **PASS — 0 uncovered** |
+
+## 2. Former blocker DEF-F1-C-01 — governed configuration grants: CLOSED, with a new adjacent defect
+
+Proved closed for the tables the defect named:
+
+| Surface | `anon` | `authenticated` | Result |
+| --- | --- | --- | --- |
+| `service_config_expectations` | no privileges | SELECT only | PASS |
+| `config_change_log` | no privileges | SELECT only | PASS |
+| `service_configuration_completeness` | no privileges | SELECT only | PASS |
+| all 31 governed registry tables | no SELECT off the public read allowlist (`I-08` off-allowlist = 0) | no INSERT/UPDATE/DELETE (`I-02` leaking tables = 0) | PASS |
+
+**New defect DEF-F1-C2-01.** A privilege census that also covers `TRUNCATE`
+(the F1-C gate checks only INSERT/UPDATE/DELETE) shows:
+
+| Table | Role | Residual privileges |
+| --- | --- | --- |
+| `license_fee_bindings` | `anon` | INSERT, UPDATE, DELETE, TRUNCATE |
+| `license_verification_templates` | `anon` | INSERT, UPDATE, DELETE, TRUNCATE |
+| `license_fee_bindings` | `authenticated` | TRUNCATE |
+| `license_verification_templates` | `authenticated` | TRUNCATE |
+| `license_fee_process_settings` | `authenticated` | TRUNCATE |
+
+Empirical proof (transaction, rolled back, `SET LOCAL ROLE anon`):
+
+- `TRUNCATE public.license_fee_bindings` passes the privilege check and fails
+  only on an incidental foreign-key reference (`0A000`, not `42501`) — the
+  privilege *is* held.
+- `TRUNCATE public.license_verification_templates` behaves identically.
+- Row-level DML is contained: RLS on all three tables exposes SELECT to
+  internal staff only, and anon DELETE affects zero rows.
+
+Why this is HIGH: PostgreSQL RLS does not apply to `TRUNCATE`, so the only
+thing preventing anonymous destruction of two governed configuration registries
+today is an incidental FK reference, not the governance model. The F1 claim
+"governed configuration tables expose no unauthorized direct DML" therefore does
+not hold as stated.
+
+Recommended F1-B3 fix (not applied here): `REVOKE ALL ON public.license_fee_bindings,
+public.license_verification_templates FROM anon;` plus `REVOKE TRUNCATE ... FROM
+authenticated` on the three tables, and extend `verify-f1c-certification.sql`
+assertions `I-02`/`I-08` to include `TRUNCATE`, `REFERENCES` and `TRIGGER`.
+
+## 3. Former blocker DEF-F1-C-02 — Decision Authority lifecycle: CLOSED
+
+Proved end-to-end against `public.resolve_decision_authority` with a temporary
+ENFORCED certification rule inside a rolled-back transaction:
+
+| Step | Observed | Expected | Result |
+| --- | --- | --- | --- |
+| create `status='active'`, `ENFORCED` | `mode=ENFORCED`, `allowed=false` | rule applies | PASS |
+| `status='retired'` | `mode=OFF`, `allowed=true`, `requires_review=true` | resolver OFF, behaviour preserved | PASS |
+| `status='active'` (reactivate) | `mode=ENFORCED`, `allowed=false` | rule applies again | PASS |
+| observations | 3 rows for the certification decision type | every evaluation recorded | PASS |
+| `config_change_log` for `decision_authority_rules` | 8 rows before and after | audit retained | PASS |
+| post-rollback | 0 certification rules remain | no artefact leaks | PASS |
+
+Vocabulary is canonical `active` / `retired` end-to-end: CHECK constraint, data,
+`decision_authority_rule_set_status`, `useDecisionAuthority.ts`, resolver filter,
+`DecisionAuthorityManager.tsx`, tests. Conflict validation and effective-date
+validation remain covered by F1 pgTAP (15/15).
+
+## 4. Production baseline confirmation
+
+| Baseline item | Required | Observed | Result |
+| --- | --- | --- | --- |
+| Unexplained service configuration gaps | 0 | 0 | PASS |
+| `BUSINESS_CONFIGURATION_REQUIRED` items visible | 9 | 9 | PASS |
+| — renewal service standards (SLA) | 8 | 8 | PASS |
+| — renewal fee | 1 | 1 | PASS |
+| Items silently represented as configured | 0 | 0 | PASS |
+| Invented fee / SLA values | 0 | 0 | PASS |
+| ENFORCED Decision Authority rules | 0 | 0 | PASS |
+| OBSERVE_ONLY baseline rules | 10 | 10 (all `active`) | PASS |
+| Invented regulator policy | none | none | PASS |
+
+Completeness census across 136 services × 5 dimensions: workflow 136 satisfied;
+forms/documents 136 satisfied; decision authority 136 via shared fallback; fee
+122 satisfied / 5 fallback / 8 N-A / 1 business-configuration-required; SLA 128
+satisfied / 8 business-configuration-required.
+
+## 5. Freeze status
+
+F1 protected contracts are **NOT frozen** in this pass. Freeze requires 0
+Critical/High product gaps; DEF-F1-C2-01 is HIGH and open. The contracts staged
+for freeze once it is closed are unchanged:
+
+- governed configuration writer/registry model (`config_save` / `config_retire` /
+  `config_delete`, `config_governed_tables`);
+- configuration audit model (`config_change_log`, `config_change_history`);
+- public configuration read allowlist (`config_public_read_allowlist`);
+- service completeness expectations, view and permanent gate;
+- Decision Authority rules, resolver, lifecycle, observations and operator
+  configuration surface.
+
+F0 remains frozen and unaffected: all F0 protected gates including `verify:f0c`
+are green at this HEAD and no F0 artefact was touched.
+
+## 6. Gap register disposition
+
+| Gap | Disposition |
+| --- | --- |
+| GAP-F1-01 Decision Authority | CLOSED |
+| GAP-F1-02 Anonymous configuration reads | CLOSED for governed registries; DEF-F1-C2-01 open on 2 licence-fee/verification tables |
+| GAP-F1-03 Governed configuration writes | CLOSED for row-level DML; TRUNCATE posture open (DEF-F1-C2-01) |
+| GAP-F1-04 Service completeness | CLOSED — 9 BUSINESS_CONFIGURATION_REQUIRED recorded |
+| GAP-F1-05 … GAP-F1-09 | CLOSED |
+
+## FINAL VERDICT
+
+**F1 NOT CERTIFIED — RETURN TO F1-B**
