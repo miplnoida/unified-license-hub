@@ -509,7 +509,8 @@ BEGIN
 
   -- Satisfied form/document requirement (forms_documents gate -> PASS).
   SELECT fv.template_id, fv.id INTO v_tpl_id, v_tpl_version
-    FROM public.application_form_versions fv
+    FROM public.form_versions fv
+    JOIN public.form_templates ft ON ft.id = fv.template_id
    ORDER BY fv.created_at
    LIMIT 1;
   IF v_tpl_version IS NOT NULL THEN
