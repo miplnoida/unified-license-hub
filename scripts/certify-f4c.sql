@@ -45,16 +45,21 @@ $$;
 
 -- act as an end user (auth.uid() derived from the JWT claim)
 CREATE OR REPLACE FUNCTION pg_temp.as_uid(_uid uuid) RETURNS void LANGUAGE sql AS $$
-  SELECT set_config('request.jwt.claims',
-    json_build_object('sub', _uid::text, 'role', 'authenticated')::text, true);
+  -- Identity switches always drop any trusted mutation context left behind by
+  -- fixture seeding: governed probes must run exactly as a real caller would.
+  SELECT set_config('app.workflow_mutation_context', '', true),
+         set_config('request.jwt.claims',
+           json_build_object('sub', _uid::text, 'role', 'authenticated')::text, true);
 $$;
 
 CREATE OR REPLACE FUNCTION pg_temp.as_service() RETURNS void LANGUAGE sql AS $$
-  SELECT set_config('request.jwt.claims', '{"role":"service_role"}', true);
+  SELECT set_config('app.workflow_mutation_context', '', true),
+         set_config('request.jwt.claims', '{"role":"service_role"}', true);
 $$;
 
 CREATE OR REPLACE FUNCTION pg_temp.as_nobody() RETURNS void LANGUAGE sql AS $$
-  SELECT set_config('request.jwt.claims', '{}', true);
+  SELECT set_config('app.workflow_mutation_context', '', true),
+         set_config('request.jwt.claims', '{}', true);
 $$;
 
 -- create_application_draft as a given user, returning either the row id or the error code
@@ -95,7 +100,7 @@ $$;
 DO $fixtures$
 DECLARE
   v_super uuid; v_analyst uuid; v_x uuid; v_y uuid;
-  v_entity uuid; v_role_id uuid;
+  v_entity uuid; v_role_id uuid; v_unrelated uuid;
   v_wf uuid; v_s1 uuid; v_s2 uuid; v_s3 uuid;
   v_reg uuid; v_app uuid; v_lic uuid;
   v_cat record;
@@ -137,6 +142,22 @@ BEGIN
                       WHERE r.licensee_id = l.id AND r.is_current)
    ORDER BY l.created_at LIMIT 1;
   PERFORM pg_temp.put('entity', v_entity);
+
+  -- Genuinely unrelated user: not the owner, not an entity member, and without
+  -- any staff authority over applications (application_management.edit).
+  SELECT ur.user_id INTO v_unrelated
+    FROM public.user_roles ur
+   WHERE ur.user_id <> v_x
+     AND NOT public.is_super_admin(ur.user_id)
+     AND NOT public.has_permission(ur.user_id, 'application_management', 'edit')
+     AND NOT EXISTS (SELECT 1 FROM public.entity_user_memberships m
+                      WHERE m.user_id = ur.user_id AND m.entity_id = v_entity
+                        AND m.status = 'APPROVED')
+   ORDER BY ur.user_id LIMIT 1;
+  IF v_unrelated IS NULL THEN
+    RAISE EXCEPTION 'F4-C fixtures unavailable: no unrelated non-staff user for withdrawal authority probe';
+  END IF;
+  PERFORM pg_temp.put('unrelated', v_unrelated);
 
   -- Synthetic three-step licensing workflow bound to the certification licence type.
   SELECT approver_role_id INTO v_role_id FROM public.approval_steps
@@ -748,6 +769,7 @@ END $e$;
 DO $f$
 DECLARE
   v_x uuid := pg_temp.get('x'); v_y uuid := pg_temp.get('y');
+  v_unrelated uuid := pg_temp.get('unrelated');
   v_entity uuid := pg_temp.get('entity');
   v_wf uuid := pg_temp.get('wf'); v_s1 uuid := pg_temp.get('s1');
   v_app uuid; v_inst uuid; v_res jsonb; v_n int; v_status text;
@@ -761,8 +783,8 @@ BEGIN
   INSERT INTO public.workflow_instances (workflow_id, entity_type, entity_id, current_step_id, status)
   VALUES (v_wf, 'application', v_app, v_s1, 'active') RETURNING id INTO v_inst;
 
-  -- unrelated user denied
-  PERFORM pg_temp.as_uid(v_y);
+  -- unrelated user denied (no ownership, no membership, no staff authority)
+  PERFORM pg_temp.as_uid(v_unrelated);
   v_res := public.withdraw_application(v_app, 'not my application');
   PERFORM pg_temp.rec('F','F-01','an unrelated user cannot withdraw the application',
     (v_res->>'code') = 'FORBIDDEN', 'code=' || coalesce(v_res->>'code','null'));
