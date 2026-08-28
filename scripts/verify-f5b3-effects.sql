@@ -413,7 +413,10 @@ BEGIN
     _cs_status := _cs.status;
 
     SELECT count(*) INTO _items FROM public.entity_change_items i WHERE i.change_set_id = _cs.id;
-    SELECT jsonb_build_object('effect', e.result, 'change_set', e.change_set_id)
+    SELECT jsonb_build_object('result_ref', e.result_ref, 'before', e.evidence_before,
+                              'after', e.evidence_after, 'provenance', e.provenance,
+                              'application_id', e.application_id, 'service_id', e.service_id,
+                              'handler', e.handler, 'canonical_target', e.canonical_target)
       INTO _cs_prov FROM public.post_license_effects e
      WHERE e.application_id = (_fx->>'application_id')::uuid;
 
