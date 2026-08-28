@@ -76,11 +76,33 @@ entity is mandatorily bound to an `ORGANIZATION` party:
   proves this empirically by inserting an entity with no binding and asserting it
   is converged (probe rolled back).
 
-### 3.3 Uniqueness and ownership keys (GAP-F2-04)
+### 3.3 Uniqueness and ownership keys (GAP-F2-04, revised by F2-B.1)
 
-Unique indexes: lowercased e-mail on `profiles` and `pre_license_users`,
-lowercased entity legal name for non-merged entities, and one entity binding per
-registration. The gate empirically proves a duplicate entity name is rejected.
+Unique keys: lowercased e-mail on `profiles` and `pre_license_users`, and one
+entity binding per registration.
+
+Legal name is **not** entity identity. The earlier global uniqueness rule on the
+normalised `licensees.name` was removed in F2-B.1: two genuinely distinct
+entities may lawfully carry the same registered or display name, and treating
+name equality as definitive identity produced false merges and blocked valid
+registrations. Sameness is adjudicated instead by:
+
+- authoritative identifiers in `entity_identifiers`, each enforced inside its own
+  declared uniqueness scope (`GLOBAL`, `JURISDICTION`, `REGULATOR`, `ISSUER`);
+- the existing entity-resolution / duplicate-detection workflow, which surfaces
+  name-similar candidates for supervisory decision rather than silently blocking.
+
+The gate proves both directions empirically: two distinct entities with the same
+normalised legal name coexist and each keeps its own canonical organisation
+record (C-05, C-06); a duplicate authoritative identifier is still rejected with
+`23505` inside its scope (C-07, C-08).
+
+No fabricated identity data. `licensees_ensure_party_binding` no longer invents an
+"Unnamed entity" name; an entity with no valid name is refused with an explicit
+validation error (`23514`) and leaves no party behind, additionally guarded by the
+validated `licensees_name_present_chk` constraint. Valid creation still atomically
+produces exactly one `ORGANIZATION` party binding (B-08…B-14).
+
 
 ### 3.4 Token handling (GAP-F2-06)
 
