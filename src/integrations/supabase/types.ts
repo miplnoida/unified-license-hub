@@ -32977,6 +32977,197 @@ export type Database = {
         }
         Relationships: []
       }
+      regulated_establishment_events: {
+        Row: {
+          actor_id: string | null
+          application_id: string | null
+          created_at: string
+          effect_id: string | null
+          effective_date: string | null
+          establishment_id: string
+          event_type: string
+          id: string
+          payload: Json
+          service_code: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          application_id?: string | null
+          created_at?: string
+          effect_id?: string | null
+          effective_date?: string | null
+          establishment_id: string
+          event_type: string
+          id?: string
+          payload?: Json
+          service_code?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          application_id?: string | null
+          created_at?: string
+          effect_id?: string | null
+          effective_date?: string | null
+          establishment_id?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          service_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulated_establishment_events_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulated_establishment_events_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulated_establishment_events_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulated_establishment_events_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "regulated_establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regulated_establishments: {
+        Row: {
+          address: Json
+          address_text: string | null
+          closed_on: string | null
+          closure_application_id: string | null
+          closure_effect_id: string | null
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          establishment_reference: string
+          establishment_type: string
+          id: string
+          license_id: string | null
+          name: string
+          opened_on: string | null
+          source_application_id: string | null
+          source_effect_id: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          address?: Json
+          address_text?: string | null
+          closed_on?: string | null
+          closure_application_id?: string | null
+          closure_effect_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          establishment_reference: string
+          establishment_type?: string
+          id?: string
+          license_id?: string | null
+          name: string
+          opened_on?: string | null
+          source_application_id?: string | null
+          source_effect_id?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          address?: Json
+          address_text?: string | null
+          closed_on?: string | null
+          closure_application_id?: string | null
+          closure_effect_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          establishment_reference?: string
+          establishment_type?: string
+          id?: string
+          license_id?: string | null
+          name?: string
+          opened_on?: string | null
+          source_application_id?: string | null
+          source_effect_id?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulated_establishments_closure_application_id_fkey"
+            columns: ["closure_application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulated_establishments_closure_application_id_fkey"
+            columns: ["closure_application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulated_establishments_closure_application_id_fkey"
+            columns: ["closure_application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulated_establishments_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulated_establishments_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulated_establishments_source_application_id_fkey"
+            columns: ["source_application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulated_establishments_source_application_id_fkey"
+            columns: ["source_application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulated_establishments_source_application_id_fkey"
+            columns: ["source_application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regulator_mandate_enforcement: {
         Row: {
           activated_at: string | null
@@ -51111,6 +51302,7 @@ export type Database = {
       }
       mc03_require_gate: { Args: { _complaint_id: string }; Returns: Json }
       my_work_queue: { Args: { _limit?: number }; Returns: Json }
+      next_establishment_reference: { Args: never; Returns: string }
       next_invoice_number: { Args: never; Returns: string }
       no_plan: { Args: never; Returns: boolean[] }
       normalize_entity_identifier: {
@@ -51808,6 +52000,10 @@ export type Database = {
         Returns: string
       }
       post_license_effect_plan: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
+      post_license_establishment_input: {
         Args: { _application_id: string }
         Returns: Json
       }
@@ -54202,6 +54398,10 @@ export type Database = {
           _provider_message_id?: string
           _status: string
         }
+        Returns: Json
+      }
+      set_application_establishment_target: {
+        Args: { _application_id: string; _establishment_id: string }
         Returns: Json
       }
       set_conduct_signal_disposition: {
