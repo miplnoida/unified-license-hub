@@ -16,11 +16,8 @@ DECLARE
   v_fail int := 0;
   v_pass int := 0;
   v_msg text;
-
-  PROCEDURE_PLACEHOLDER boolean;
-
-  FUNCTION_MISSING text;
 BEGIN
+
   -- helper-free inline assertions -------------------------------------------
 
   -- F4-01: the ungoverned manual-approval path is gone.
