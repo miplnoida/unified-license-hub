@@ -83,3 +83,38 @@ export function useServiceExpectations() {
     },
   });
 }
+
+/**
+ * Marker recorded in an expectation's justification when the remaining gap is a
+ * regulator policy decision that the platform deliberately does not invent.
+ */
+export const BUSINESS_CONFIGURATION_REQUIRED = 'BUSINESS_CONFIGURATION_REQUIRED';
+
+/** The active expectation that explains a given incomplete row, if any. */
+export function findExpectation(
+  row: Pick<IncompleteRow, 'service_id' | 'dimension'>,
+  expectations: ServiceExpectation[],
+): ServiceExpectation | null {
+  return (
+    expectations.find(
+      (e) => e.is_active && e.dimension === row.dimension && e.service_id === row.service_id,
+    ) ?? null
+  );
+}
+
+/** True when the row is awaiting a regulator business-configuration decision. */
+export function isBusinessConfigurationRequired(
+  row: Pick<IncompleteRow, 'service_id' | 'dimension'>,
+  expectations: ServiceExpectation[],
+): boolean {
+  const exp = findExpectation(row, expectations);
+  return !!exp?.justification?.includes(BUSINESS_CONFIGURATION_REQUIRED);
+}
+
+/** How many incomplete rows are BUSINESS_CONFIGURATION_REQUIRED. */
+export function countBusinessConfigurationRequired(
+  rows: Pick<IncompleteRow, 'service_id' | 'dimension'>[],
+  expectations: ServiceExpectation[],
+): number {
+  return rows.filter((r) => isBusinessConfigurationRequired(r, expectations)).length;
+}
