@@ -504,8 +504,7 @@ BEGIN
 
   IF v_reg_id IS NOT NULL THEN
     INSERT INTO public.registration_licensing_handoffs (registration_id, application_id, registration_reference, detail)
-    VALUES (v_reg_id, v_app_id, 'VRF-HARDENING', jsonb_build_object('source','verify-hardening'))
-    ON CONFLICT (application_id) DO NOTHING;
+    VALUES (v_reg_id, v_app_id, 'VRF-HARDENING', jsonb_build_object('source','verify-hardening'));
   END IF;
 
   -- Satisfied form/document requirement (forms_documents gate -> PASS).
