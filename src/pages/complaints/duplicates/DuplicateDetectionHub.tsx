@@ -25,9 +25,28 @@ export default function DuplicateDetectionHub() {
   });
 
 
+  // GAP-F1-06: the detection window is configured in
+  // `complaint_duplicate_scoring_config.time_window_days` — never hard-coded here.
+  const { data: scoringConfig } = useQuery({
+    queryKey: ['complaint_duplicate_scoring_config', 'window'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('complaint_duplicate_scoring_config')
+        .select('time_window_days')
+        .eq('active', true)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { time_window_days: number } | null;
+    },
+    staleTime: 60_000,
+  });
+
   const detect = useMutation({
     mutationFn: async () => {
-      const { data, error } = await (supabase as any).rpc('detect_complaint_duplicates', { _complaint_id: null, _window_days: 30 });
+      const { data, error } = await (supabase as any).rpc('detect_complaint_duplicates', {
+        _complaint_id: null,
+        _window_days: scoringConfig?.time_window_days ?? null,
+      });
       if (error) throw error;
       return data as { detected: number };
     },
