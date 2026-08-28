@@ -548,6 +548,111 @@ END
 $s5$;
 
 -- ===========================================================================
+-- S6 — GOVERNED CONFIGURATION PRIVILEGE CONTRACT (F1-B3, DEF-F1-C2-01)
+--
+-- Derived entirely from public.config_governed_tables +
+-- public.config_public_read_allowlist. No table names are hard-coded.
+-- ===========================================================================
+DO $s6$
+DECLARE _n int; _detail text; _res text; _probe text;
+BEGIN
+  -- P-01: anon holds no privilege at all outside allowlisted SELECT
+  WITH viol AS (
+    SELECT g.table_name, p.priv
+      FROM public.config_governed_tables g
+      CROSS JOIN (VALUES ('SELECT'),('INSERT'),('UPDATE'),('DELETE'),('TRUNCATE'),('REFERENCES'),('TRIGGER'),('MAINTAIN')) p(priv)
+     WHERE to_regclass('public.' || quote_ident(g.table_name)) IS NOT NULL
+       AND has_table_privilege('anon', 'public.' || quote_ident(g.table_name), p.priv)
+       AND NOT (p.priv = 'SELECT'
+                AND EXISTS (SELECT 1 FROM public.config_public_read_allowlist a
+                             WHERE a.table_name = g.table_name))
+  )
+  SELECT count(*), coalesce(string_agg(DISTINCT table_name || '/' || priv, ', '), 'none')
+    INTO _n, _detail FROM viol;
+  PERFORM pg_temp.rec('S6','P-01','anon holds no privilege on governed configuration outside allowlisted SELECT',
+    _n = 0, 'violations=' || _n || ' [' || left(_detail, 400) || ']');
+
+  -- P-02: authenticated holds no write/structural privilege anywhere governed
+  WITH viol AS (
+    SELECT g.table_name, p.priv
+      FROM public.config_governed_tables g
+      CROSS JOIN (VALUES ('INSERT'),('UPDATE'),('DELETE'),('TRUNCATE'),('REFERENCES'),('TRIGGER'),('MAINTAIN')) p(priv)
+     WHERE to_regclass('public.' || quote_ident(g.table_name)) IS NOT NULL
+       AND has_table_privilege('authenticated', 'public.' || quote_ident(g.table_name), p.priv)
+  )
+  SELECT count(*), coalesce(string_agg(DISTINCT table_name || '/' || priv, ', '), 'none')
+    INTO _n, _detail FROM viol;
+  PERFORM pg_temp.rec('S6','P-02','signed-in users hold no INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER on governed configuration',
+    _n = 0, 'violations=' || _n || ' [' || left(_detail, 400) || ']');
+
+  -- P-03: PUBLIC pseudo-role carries no inherited governed privilege
+  WITH viol AS (
+    SELECT c.relname, a.privilege_type
+      FROM pg_class c
+      JOIN pg_namespace ns ON ns.oid = c.relnamespace
+      CROSS JOIN LATERAL aclexplode(c.relacl) a
+     WHERE ns.nspname = 'public'
+       AND c.relname IN (SELECT table_name FROM public.config_governed_tables)
+       AND a.grantee = 0
+  )
+  SELECT count(*), coalesce(string_agg(DISTINCT relname || '/' || privilege_type, ', '), 'none')
+    INTO _n, _detail FROM viol;
+  PERFORM pg_temp.rec('S6','P-03','no governed configuration privilege is inherited through PUBLIC',
+    _n = 0, 'violations=' || _n || ' [' || left(_detail, 300) || ']');
+
+  -- P-04: service_role retains privileged backend access everywhere governed
+  SELECT count(*) INTO _n FROM public.config_governed_tables g
+   WHERE to_regclass('public.' || quote_ident(g.table_name)) IS NOT NULL
+     AND NOT (has_table_privilege('service_role', 'public.' || quote_ident(g.table_name), 'SELECT')
+              AND has_table_privilege('service_role', 'public.' || quote_ident(g.table_name), 'UPDATE'));
+  PERFORM pg_temp.rec('S6','P-04','trusted backend role keeps required access on every governed registry',
+    _n = 0, 'missing=' || _n);
+
+  -- Representative empirical negative probes, table chosen from the registry
+  SELECT g.table_name INTO _probe
+    FROM public.config_governed_tables g
+   WHERE to_regclass('public.' || quote_ident(g.table_name)) IS NOT NULL
+   ORDER BY g.table_name LIMIT 1;
+
+  _res := pg_temp.as_anon(format('TRUNCATE public.%I', _probe));
+  PERFORM pg_temp.rec('S6','P-05','anon TRUNCATE on a governed registry is refused with 42501',
+    _res LIKE '42501%', _probe || ' -> ' || _res);
+
+  _res := pg_temp.as_user(pg_temp.uid('applicant'), format('TRUNCATE public.%I', _probe));
+  PERFORM pg_temp.rec('S6','P-06','signed-in TRUNCATE on a governed registry is refused with 42501',
+    _res LIKE '42501%', _probe || ' -> ' || _res);
+
+  _res := pg_temp.as_anon(format('DELETE FROM public.%I WHERE false', _probe));
+  PERFORM pg_temp.rec('S6','P-07','anon direct DELETE on a governed registry is refused with 42501',
+    _res LIKE '42501%', _probe || ' -> ' || _res);
+
+  _res := pg_temp.as_anon(format('UPDATE public.%I SET id = id WHERE false', _probe));
+  PERFORM pg_temp.rec('S6','P-08','anon direct UPDATE on a governed registry is refused with 42501',
+    _res LIKE '42501%', _probe || ' -> ' || _res);
+
+  -- Formerly leaking registries (DEF-F1-C2-01) proven closed by name
+  WITH known(t) AS (VALUES ('license_fee_bindings'),('license_verification_templates'),('license_fee_process_settings'))
+  SELECT count(*), coalesce(string_agg(t, ', '), 'none') INTO _n, _detail
+    FROM known
+   WHERE to_regclass('public.' || quote_ident(t)) IS NOT NULL
+     AND (has_table_privilege('anon', 'public.' || quote_ident(t), 'INSERT')
+       OR has_table_privilege('anon', 'public.' || quote_ident(t), 'UPDATE')
+       OR has_table_privilege('anon', 'public.' || quote_ident(t), 'DELETE')
+       OR has_table_privilege('anon', 'public.' || quote_ident(t), 'TRUNCATE')
+       OR has_table_privilege('authenticated', 'public.' || quote_ident(t), 'TRUNCATE'));
+  PERFORM pg_temp.rec('S6','P-09','DEF-F1-C2-01 registries carry no destructive anon or signed-in TRUNCATE privilege',
+    _n = 0, 'still leaking=' || _n || ' [' || _detail || ']');
+
+  -- Legitimate operator reads survive the lockdown
+  SELECT count(*) INTO _n FROM public.config_governed_tables g
+   WHERE to_regclass('public.' || quote_ident(g.table_name)) IS NOT NULL
+     AND has_table_privilege('authenticated', 'public.' || quote_ident(g.table_name), 'SELECT');
+  PERFORM pg_temp.rec('S6','P-10','internal operator read surfaces retain SELECT on governed configuration',
+    _n >= 20, 'readable registries=' || _n);
+END
+$s6$;
+
+-- ===========================================================================
 -- EVIDENCE
 -- ===========================================================================
 \pset border 2
