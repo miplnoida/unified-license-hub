@@ -85,38 +85,20 @@ async function fetchBestApplicationForApplicant(admin: ReturnType<typeof createC
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
-
-  const __authzGate = await requireUserPermission(req, "registration_management", "view");
-  if (!__authzGate.ok) return __authzGate.response;
   }
 
-  try {
-    const authHeader = req.headers.get("Authorization") || req.headers.get("authorization") || "";
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+  // Authentication + permission authorization MUST happen before any
+  // service-role access (F3-B / GAP-F3-02: the gate previously sat inside the
+  // OPTIONS branch and was unreachable).
+  const __authzGate = await requireUserPermission(req, "registration_management", "view");
+  if (!__authzGate.ok) return __authzGate.response;
 
+  try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const admin = createClient(supabaseUrl, serviceKey);
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const token = authHeader.replace(/^Bearer\s+/i, "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-    const userId = claimsData?.claims?.sub as string | undefined;
-    if (claimsError || !userId) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const userId = __authzGate.userId;
 
     const internalRoles = ["admin", "super_admin", "supervisor", "licensing_officer", "analyst", "legal_compliance"] as const;
     const roleChecks = await Promise.all(
@@ -130,6 +112,8 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+
 
 
     const body = await req.json().catch(() => ({}));

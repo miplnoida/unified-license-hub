@@ -32271,6 +32271,65 @@ export type Database = {
           },
         ]
       }
+      registration_licensing_handoffs: {
+        Row: {
+          application_id: string | null
+          created_at: string
+          detail: Json
+          id: string
+          registration_id: string
+          registration_reference: string | null
+          updated_at: string
+        }
+        Insert: {
+          application_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          registration_id: string
+          registration_reference?: string | null
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          registration_id?: string
+          registration_reference?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_licensing_handoffs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_licensing_handoffs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_licensing_handoffs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_licensing_handoffs_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: true
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       registrations: {
         Row: {
           applicant_name: string
@@ -52238,6 +52297,25 @@ export type Database = {
         }
         Returns: string
       }
+      registration_applicant_apply_edit: {
+        Args: { _payload: Json; _registration_id: string }
+        Returns: Json
+      }
+      registration_applicant_editable_fields: { Args: never; Returns: string[] }
+      registration_applicant_resubmit: {
+        Args: {
+          _form_data?: Json
+          _form_id?: string
+          _payload?: Json
+          _registration_id: string
+        }
+        Returns: Json
+      }
+      registration_applicant_withdraw: {
+        Args: { _reason: string; _registration_id: string }
+        Returns: Json
+      }
+      registration_binding_coverage: { Args: never; Returns: Json }
       registration_journey_register: {
         Args: { _filters?: Json; _limit?: number; _offset?: number }
         Returns: {
@@ -52253,6 +52331,11 @@ export type Database = {
           user_id: string
         }[]
       }
+      registration_licensing_handoff: {
+        Args: { _registration_id: string }
+        Returns: Json
+      }
+      registration_status_vocabulary: { Args: never; Returns: string[] }
       regulated_activity_set_status: {
         Args: { _id: string; _reason: string; _status: string }
         Returns: undefined
