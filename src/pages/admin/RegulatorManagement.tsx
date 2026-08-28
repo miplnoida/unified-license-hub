@@ -19,6 +19,7 @@ import { useSectors, useMasterMutations } from '@/hooks/useMasterConfig';
 import { useForms } from '@/hooks/useForms';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { configSave } from '@/lib/configWriter';
 import type { Regulator } from '@/contexts/RegulatorContext';
 
 function useRegulatorStats(regulatorId: string | null) {
@@ -124,11 +125,11 @@ export default function RegulatorManagement() {
         await upsert.mutateAsync({ id: editId, name, code, description, status });
       } else {
         // For new regulators, we need to get the ID back
-        const { data, error } = await (supabase.from('regulators' as any).insert({
+        // GAP-F1-03: governed writer returns the created row (audited).
+        const created = await configSave<{ id: string }>('regulators', {
           name, code, description: description || null, status,
-        } as any).select('id').single() as any);
-        if (error) throw error;
-        regulatorId = data.id;
+        }, { entityLabel: 'regulator' });
+        regulatorId = created.id;
         queryClient.invalidateQueries({ queryKey: ['regulators'] });
       }
 
@@ -140,10 +141,10 @@ export default function RegulatorManagement() {
         const toAssign = selectedSectorIds.filter(id => !previouslyAssigned.includes(id));
 
         for (const sid of toUnassign) {
-          await (supabase.from('sectors' as any).update({ regulator_id: null } as any).eq('id', sid) as any);
+          await configSave('sectors', { regulator_id: null }, { id: sid, entityLabel: 'sector assignment' });
         }
         for (const sid of toAssign) {
-          await (supabase.from('sectors' as any).update({ regulator_id: regulatorId } as any).eq('id', sid) as any);
+          await configSave('sectors', { regulator_id: regulatorId }, { id: sid, entityLabel: 'sector assignment' });
         }
         queryClient.invalidateQueries({ queryKey: ['sectors'] });
       }

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Regulator } from '@/contexts/RegulatorContext';
+import { configRetire, configSave } from '@/lib/configWriter';
 
 export function useAllRegulators() {
   return useQuery({
@@ -16,28 +17,19 @@ export function useAllRegulators() {
 export function useRegulatorMutations() {
   const qc = useQueryClient();
 
+  // GAP-F1-03: governed writer enforces `settings.edit` and audits before/after.
   const upsert = useMutation({
     mutationFn: async (row: { id?: string; name: string; code: string; description?: string; status: string }) => {
-      if (row.id) {
-        const { error } = await (supabase.from('regulators' as any).update({
-          name: row.name, code: row.code, description: row.description || null, status: row.status,
-        } as any).eq('id', row.id) as any);
-        if (error) throw error;
-      } else {
-        const { error } = await (supabase.from('regulators' as any).insert({
-          name: row.name, code: row.code, description: row.description || null, status: row.status,
-        } as any) as any);
-        if (error) throw error;
-      }
+      await configSave('regulators', {
+        name: row.name, code: row.code, description: row.description || null, status: row.status,
+      }, { id: row.id ?? null, entityLabel: 'regulator' });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['regulators'] }); },
   });
 
+  // Regulators are referenced by historical records — retire, never hard delete.
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await (supabase.from('regulators' as any).delete().eq('id', id) as any);
-      if (error) throw error;
-    },
+    mutationFn: async (id: string) => { await configRetire('regulators', id, { entityLabel: 'regulator' }); },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['regulators'] }); },
   });
 

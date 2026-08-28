@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { siteSettingSave } from '@/lib/configWriter';
 
 export interface SmtpSettings {
   host: string;
@@ -92,10 +93,7 @@ export function useSaveEmailSmsSettings() {
         },
       };
 
-      const { error } = await (supabase
-        .from('site_settings' as any)
-        .upsert({ key: 'email_sms_settings', value: merged }, { onConflict: 'key' }) as any);
-      if (error) throw error;
+      await siteSettingSave('email_sms_settings', merged);
       return merged;
     },
     onSuccess: () => {

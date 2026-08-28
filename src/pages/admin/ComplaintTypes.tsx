@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
+import { configSave } from '@/lib/configWriter';
 import { PlusCircle, Pencil, Loader2, Tags } from 'lucide-react';
 
 interface ComplaintType {
@@ -72,21 +73,23 @@ export default function ComplaintTypes() {
     }
     setSaving(true);
 
-    if (editing) {
-      const { error } = await supabase
-        .from('complaint_types')
-        .update({ name: name.trim(), description: description.trim() || null, is_active: isActive, updated_at: new Date().toISOString() } as any)
-        .eq('id', editing.id);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      await logAudit({ action: 'complaint_type_updated', entityType: 'complaint_type', entityId: editing.id });
-      toast.success('Complaint type updated');
-    } else {
-      const { error } = await supabase
-        .from('complaint_types')
-        .insert({ name: name.trim(), description: description.trim() || null, is_active: isActive } as any);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      await logAudit({ action: 'complaint_type_created', entityType: 'complaint_type' });
-      toast.success('Complaint type created');
+    // GAP-F1-03: governed configuration writer (complaint_type.create/edit + audit).
+    try {
+      const saved = await configSave<{ id: string }>('complaint_types', {
+        name: name.trim(),
+        description: description.trim() || null,
+        is_active: isActive,
+      }, { id: editing?.id ?? null, entityLabel: 'complaint type' });
+      await logAudit({
+        action: editing ? 'complaint_type_updated' : 'complaint_type_created',
+        entityType: 'complaint_type',
+        entityId: editing?.id ?? saved?.id,
+      });
+      toast.success(editing ? 'Complaint type updated' : 'Complaint type created');
+    } catch (error: any) {
+      toast.error(error?.message ?? 'Could not save complaint type');
+      setSaving(false);
+      return;
     }
 
     setSaving(false);

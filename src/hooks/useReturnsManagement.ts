@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { toast } from 'sonner';
+import { configDelete, configRetire, configSave } from '@/lib/configWriter';
 import { legacyReturnCreate, legacyReturnSaveDraft, legacyReturnSubmit, legacyReturnDeleteDraft } from '@/lib/supervisoryGovernedOps';
 
 
@@ -23,24 +24,21 @@ export function useMutateReturnType() {
   return {
     create: useMutation({
       mutationFn: async (payload: any) => {
-        const { error } = await (supabase as any).from('return_types').insert(payload);
-        if (error) throw error;
+        await configSave('return_types', payload, { entityLabel: 'return type' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['return_types'] }); toast.success('Return type created'); },
       onError: (e: any) => toast.error(e.message),
     }),
     update: useMutation({
       mutationFn: async ({ id, ...payload }: any) => {
-        const { error } = await (supabase as any).from('return_types').update(payload).eq('id', id);
-        if (error) throw error;
+        await configSave('return_types', payload, { id, entityLabel: 'return type' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['return_types'] }); toast.success('Return type updated'); },
       onError: (e: any) => toast.error(e.message),
     }),
     remove: useMutation({
       mutationFn: async (id: string) => {
-        const { error } = await (supabase as any).from('return_types').delete().eq('id', id);
-        if (error) throw error;
+        await configRetire('return_types', id, { entityLabel: 'return type' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['return_types'] }); toast.success('Deleted'); },
       onError: (e: any) => toast.error(e.message),
@@ -77,25 +75,21 @@ export function useMutateReturnConfig() {
   return {
     create: useMutation({
       mutationFn: async (payload: any) => {
-        const { data, error } = await (supabase as any).from('return_configs').insert(payload).select().single();
-        if (error) throw error;
-        return data;
+        return await configSave('return_configs', payload, { entityLabel: 'return configuration' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['return_configs'] }); toast.success('Configuration created'); },
       onError: (e: any) => toast.error(e.message),
     }),
     update: useMutation({
       mutationFn: async ({ id, ...payload }: any) => {
-        const { error } = await (supabase as any).from('return_configs').update(payload).eq('id', id);
-        if (error) throw error;
+        await configSave('return_configs', payload, { id, entityLabel: 'return configuration' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['return_configs'] }); toast.success('Configuration updated'); },
       onError: (e: any) => toast.error(e.message),
     }),
     remove: useMutation({
       mutationFn: async (id: string) => {
-        const { error } = await (supabase as any).from('return_configs').delete().eq('id', id);
-        if (error) throw error;
+        await configRetire('return_configs', id, { entityLabel: 'return configuration' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['return_configs'] }); toast.success('Deleted'); },
       onError: (e: any) => toast.error(e.message),
@@ -121,19 +115,21 @@ export function useMutateReturnConfigForms() {
   return {
     upsert: useMutation({
       mutationFn: async ({ configId, forms }: { configId: string; forms: any[] }) => {
-        // Delete existing
-        await (supabase as any).from('return_config_forms').delete().eq('return_configuration_id', configId);
-        if (forms.length > 0) {
-          const { error } = await (supabase as any).from('return_config_forms').insert(
-            forms.map((f, i) => ({
-              return_configuration_id: configId,
-              form_id: f.form_id,
-              tab_name: f.tab_name || 'General',
-              display_order: f.display_order ?? i,
-              status: 'active',
-            }))
-          );
-          if (error) throw error;
+        // GAP-F1-03: replace the assignment set through the governed writer so
+        // each removal/addition carries before/after audit evidence.
+        const { data: existing } = await (supabase as any)
+          .from('return_config_forms').select('id').eq('return_configuration_id', configId);
+        for (const row of (existing ?? []) as { id: string }[]) {
+          await configDelete('return_config_forms', row.id, { entityLabel: 'return form assignment' });
+        }
+        for (const [i, f] of forms.entries()) {
+          await configSave('return_config_forms', {
+            return_configuration_id: configId,
+            form_id: f.form_id,
+            tab_name: f.tab_name || 'General',
+            display_order: f.display_order ?? i,
+            status: 'active',
+          }, { entityLabel: 'return form assignment' });
         }
       },
       onSuccess: (_, v) => { qc.invalidateQueries({ queryKey: ['return_config_forms', v.configId] }); toast.success('Forms assigned'); },
@@ -521,24 +517,21 @@ export function useMutateCutoffConfig() {
   return {
     create: useMutation({
       mutationFn: async (payload: any) => {
-        const { error } = await (supabase as any).from('return_cutoff_config').insert(payload);
-        if (error) throw error;
+        await configSave('return_cutoff_config', payload, { entityLabel: 'cutoff configuration' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['return_cutoff_config'] }); toast.success('Cutoff config created'); },
       onError: (e: any) => toast.error(e.message),
     }),
     update: useMutation({
       mutationFn: async ({ id, ...payload }: any) => {
-        const { error } = await (supabase as any).from('return_cutoff_config').update(payload).eq('id', id);
-        if (error) throw error;
+        await configSave('return_cutoff_config', payload, { id, entityLabel: 'cutoff configuration' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['return_cutoff_config'] }); toast.success('Updated'); },
       onError: (e: any) => toast.error(e.message),
     }),
     remove: useMutation({
       mutationFn: async (id: string) => {
-        const { error } = await (supabase as any).from('return_cutoff_config').delete().eq('id', id);
-        if (error) throw error;
+        await configDelete('return_cutoff_config', id, { entityLabel: 'cutoff configuration' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['return_cutoff_config'] }); toast.success('Deleted'); },
       onError: (e: any) => toast.error(e.message),
@@ -563,25 +556,21 @@ export function useMutateLateFee() {
   return {
     create: useMutation({
       mutationFn: async (payload: any) => {
-        const { data, error } = await (supabase as any).from('late_fee_structures').insert(payload).select().single();
-        if (error) throw error;
-        return data;
+        return await configSave('late_fee_structures', payload, { entityLabel: 'late fee structure' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['late_fee_structures'] }); toast.success('Late fee created'); },
       onError: (e: any) => toast.error(e.message),
     }),
     update: useMutation({
       mutationFn: async ({ id, ...payload }: any) => {
-        const { error } = await (supabase as any).from('late_fee_structures').update(payload).eq('id', id);
-        if (error) throw error;
+        await configSave('late_fee_structures', payload, { id, entityLabel: 'late fee structure' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['late_fee_structures'] }); toast.success('Updated'); },
       onError: (e: any) => toast.error(e.message),
     }),
     remove: useMutation({
       mutationFn: async (id: string) => {
-        const { error } = await (supabase as any).from('late_fee_structures').delete().eq('id', id);
-        if (error) throw error;
+        await configRetire('late_fee_structures', id, { entityLabel: 'late fee structure' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['late_fee_structures'] }); toast.success('Deleted'); },
       onError: (e: any) => toast.error(e.message),
@@ -607,24 +596,21 @@ export function useMutatePenaltyTier() {
   return {
     create: useMutation({
       mutationFn: async (payload: any) => {
-        const { error } = await (supabase as any).from('late_fee_penalty_tiers').insert(payload);
-        if (error) throw error;
+        await configSave('late_fee_penalty_tiers', payload, { entityLabel: 'penalty tier' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['late_fee_penalty_tiers'] }); toast.success('Tier added'); },
       onError: (e: any) => toast.error(e.message),
     }),
     update: useMutation({
       mutationFn: async ({ id, ...payload }: any) => {
-        const { error } = await (supabase as any).from('late_fee_penalty_tiers').update(payload).eq('id', id);
-        if (error) throw error;
+        await configSave('late_fee_penalty_tiers', payload, { id, entityLabel: 'penalty tier' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['late_fee_penalty_tiers'] }); toast.success('Tier updated'); },
       onError: (e: any) => toast.error(e.message),
     }),
     remove: useMutation({
       mutationFn: async (id: string) => {
-        const { error } = await (supabase as any).from('late_fee_penalty_tiers').delete().eq('id', id);
-        if (error) throw error;
+        await configDelete('late_fee_penalty_tiers', id, { entityLabel: 'penalty tier' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['late_fee_penalty_tiers'] }); toast.success('Tier deleted'); },
       onError: (e: any) => toast.error(e.message),
@@ -649,24 +635,21 @@ export function useMutateReturnNotifTemplate() {
   return {
     create: useMutation({
       mutationFn: async (payload: any) => {
-        const { error } = await (supabase as any).from('return_notification_templates').insert(payload);
-        if (error) throw error;
+        await configSave('return_notification_templates', payload, { entityLabel: 'notification template' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['return_notification_templates'] }); toast.success('Template created'); },
       onError: (e: any) => toast.error(e.message),
     }),
     update: useMutation({
       mutationFn: async ({ id, ...payload }: any) => {
-        const { error } = await (supabase as any).from('return_notification_templates').update(payload).eq('id', id);
-        if (error) throw error;
+        await configSave('return_notification_templates', payload, { id, entityLabel: 'notification template' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['return_notification_templates'] }); toast.success('Template updated'); },
       onError: (e: any) => toast.error(e.message),
     }),
     remove: useMutation({
       mutationFn: async (id: string) => {
-        const { error } = await (supabase as any).from('return_notification_templates').delete().eq('id', id);
-        if (error) throw error;
+        await configRetire('return_notification_templates', id, { entityLabel: 'notification template' });
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['return_notification_templates'] }); toast.success('Deleted'); },
       onError: (e: any) => toast.error(e.message),
@@ -710,11 +693,7 @@ export function useMutateReturnEventConfig() {
   return {
     update: useMutation({
       mutationFn: async ({ id, ...payload }: any) => {
-        const { error } = await (supabase as any)
-          .from('notification_event_configs')
-          .update(payload)
-          .eq('id', id);
-        if (error) throw error;
+        await configSave('notification_event_configs', payload, { id, entityLabel: 'notification event configuration' });
       },
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: ['return_event_configs'] });

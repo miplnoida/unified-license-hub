@@ -10,6 +10,7 @@ import { Save, ArrowLeft, Upload, Loader2, Plus, Trash2, ImageIcon, X } from 'lu
 import { useNavigate } from 'react-router-dom';
 import { useSiteSettings, BrandingSettings as BrandingType, FooterSettings, HeaderMenuItem } from '@/contexts/SiteSettingsContext';
 import { supabase } from '@/integrations/supabase/client';
+import { siteSettingSave } from '@/lib/configWriter';
 import { toast } from 'sonner';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -70,8 +71,8 @@ export default function BrandingSettingsPage() {
   }, [branding, footer, header_menu]);
 
   const upsert = async (key: string, value: any) => {
-    const { error } = await (supabase.from('site_settings' as any).upsert({ key, value }, { onConflict: 'key' }) as any);
-    if (error) throw error;
+    // GAP-F1-03: governed writer (settings.edit + audit).
+    await siteSettingSave(key, value);
   };
 
   const handleSave = async () => {

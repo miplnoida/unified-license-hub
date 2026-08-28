@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { siteSettingSave } from '@/lib/configWriter';
 
 export interface ReviewSettings {
   registration_review_enabled: boolean;
@@ -34,10 +35,7 @@ export function useSaveReviewSettings() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (settings: ReviewSettings) => {
-      const { error } = await (supabase
-        .from('site_settings' as any)
-        .upsert({ key: 'review_settings', value: settings }, { onConflict: 'key' }) as any);
-      if (error) throw error;
+      await siteSettingSave('review_settings', settings);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['site_settings', 'review_settings'] });

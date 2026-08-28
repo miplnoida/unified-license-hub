@@ -12,6 +12,7 @@ import { Save, ArrowLeft, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSiteSettings, GeneralSettings as GeneralType } from '@/contexts/SiteSettingsContext';
 import { supabase } from '@/integrations/supabase/client';
+import { siteSettingSave } from '@/lib/configWriter';
 import { toast } from 'sonner';
 
 export default function GeneralSettings() {
@@ -27,8 +28,7 @@ export default function GeneralSettings() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { error } = await (supabase.from('site_settings' as any).upsert({ key: 'general', value: form }, { onConflict: 'key' }) as any);
-      if (error) throw error;
+      await siteSettingSave('general', form);
       sessionStorage.removeItem('site_settings_cache');
       await refreshSettings();
       toast.success('General settings saved successfully');

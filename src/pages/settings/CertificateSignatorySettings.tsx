@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, Loader2, Save, Upload, Trash2, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { siteSettingSave } from '@/lib/configWriter';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -168,11 +169,8 @@ export default function CertificateSignatorySettings() {
         name: form.name.trim(),
         title: form.title.trim(),
       };
-      const { error } = await (supabase.from('site_settings' as any).upsert(
-        { key: SETTINGS_KEY, value },
-        { onConflict: 'key' },
-      ) as any);
-      if (error) throw error;
+      // GAP-F1-03: governed writer (settings.edit + audit).
+      await siteSettingSave(SETTINGS_KEY, value);
 
       await supabase.from('audit_logs' as any).insert({
         user_id: user?.id || null,

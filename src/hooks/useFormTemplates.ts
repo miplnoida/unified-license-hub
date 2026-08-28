@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { configSave } from '@/lib/configWriter';
 import type { FormSection, FormField, ConditionalRule } from '@/types/formBuilder';
 import { migrateSectionsToRows, syncSectionFields } from '@/lib/formRows';
 import { dispatchNotificationEvent } from '@/lib/notificationEvents';
@@ -313,19 +314,15 @@ async function ensureReturnConfigForTemplate(templateId: string) {
   let cfgId: string | undefined = (match as any)?.id;
 
   if (!cfgId) {
-    const { data: created, error: cErr } = await (supabase as any)
-      .from('return_configs')
-      .insert({
-        name: t.name,
-        sector_id: t.sector_id ?? null,
-        subsector_id: t.sub_sector_id ?? null,
-        return_type_id: t.return_type_id,
-        status: 'active',
-      })
-      .select('id')
-      .maybeSingle();
-    if (cErr) throw cErr;
-    cfgId = (created as any)?.id;
+    // GAP-F1-03: governed configuration writer (RBAC + before/after audit).
+    const created = await configSave<{ id: string }>('return_configs', {
+      name: t.name,
+      sector_id: t.sector_id ?? null,
+      subsector_id: t.sub_sector_id ?? null,
+      return_type_id: t.return_type_id,
+      status: 'active',
+    }, { entityLabel: 'return configuration' });
+    cfgId = created?.id;
   }
   if (!cfgId) return;
 
@@ -336,13 +333,13 @@ async function ensureReturnConfigForTemplate(templateId: string) {
     .eq('form_id', templateId)
     .maybeSingle();
   if (!linked) {
-    await (supabase as any).from('return_config_forms').insert({
+    await configSave('return_config_forms', {
       return_configuration_id: cfgId,
       form_id: templateId,
       tab_name: 'General',
       display_order: 0,
       status: 'active',
-    });
+    }, { entityLabel: 'return form assignment' });
   }
 }
 

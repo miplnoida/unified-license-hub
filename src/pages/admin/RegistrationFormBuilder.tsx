@@ -18,6 +18,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
+import { configRetire, configSave } from '@/lib/configWriter';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import {
@@ -319,19 +320,15 @@ export default function RegistrationFormBuilder() {
     };
 
 
-    if (editing) {
-      const { error } = await supabase
-        .from('registration_form_configs')
-        .update(payload)
-        .eq('id', editing.id);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success('Configuration updated');
-    } else {
-      const { error } = await supabase
-        .from('registration_form_configs')
-        .insert(payload);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success('Configuration created');
+    // GAP-F1-03: governed configuration writer (RBAC + before/after audit).
+    try {
+      await configSave('registration_form_configs', payload as unknown as Record<string, unknown>, {
+        id: editing?.id ?? null,
+        entityLabel: 'registration form configuration',
+      });
+      toast.success(editing ? 'Configuration updated' : 'Configuration created');
+    } catch (error: any) {
+      toast.error(error?.message ?? 'Could not save configuration'); setSaving(false); return;
     }
 
     setSaving(false);
@@ -340,10 +337,14 @@ export default function RegistrationFormBuilder() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Delete this configuration?')) return;
-    const { error } = await supabase.from('registration_form_configs').delete().eq('id', id);
-    if (error) toast.error(error.message);
-    else { toast.success('Deleted'); loadAll(); }
+    if (!confirm('Retire this configuration?')) return;
+    // Submitted registrations reference their configuration — retire, never delete.
+    try {
+      await configRetire('registration_form_configs', id, { entityLabel: 'registration form configuration' });
+      toast.success('Retired'); loadAll();
+    } catch (error: any) {
+      toast.error(error?.message ?? 'Could not retire configuration');
+    }
   }
 
   async function handleToggle(id: string, field: string, value: boolean) {
@@ -363,15 +364,14 @@ export default function RegistrationFormBuilder() {
       });
       if (!result.isConfirmed) return;
     }
-    const { error } = await supabase
-      .from('registration_form_configs')
-      .update({ [field]: value })
-      .eq('id', id);
-    if (error) {
-      toast.error(error.message);
-    } else {
+    try {
+      await configSave('registration_form_configs', { [field]: value }, {
+        id, entityLabel: 'registration form configuration',
+      });
       toast.success(field === 'is_active' ? (value ? 'Activated' : 'Deactivated') : 'Updated');
       loadAll();
+    } catch (error: any) {
+      toast.error(error?.message ?? 'Could not update configuration');
     }
   }
 

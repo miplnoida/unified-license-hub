@@ -15,6 +15,7 @@ import {
 import { Save, ArrowLeft, Loader2, Plus, Trash2, Eye, Pencil, CalendarClock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { siteSettingSave } from '@/lib/configWriter';
 import { toast } from 'sonner';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import {
@@ -191,10 +192,7 @@ export default function LicenseExpirySettings() {
     };
     setSaving(true);
     try {
-      const { error } = await (supabase
-        .from('site_settings' as any)
-        .upsert({ key: 'license_expiry', value: payload }, { onConflict: 'key' }) as any);
-      if (error) throw error;
+      await siteSettingSave('license_expiry', payload);
       qc.invalidateQueries({ queryKey: ['license_expiry_config'] });
       qc.invalidateQueries({ queryKey: ['license_expiry_status'] });
       toast.success('License expiry settings saved');

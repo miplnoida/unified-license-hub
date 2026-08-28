@@ -15,6 +15,7 @@ import { authorizedAction } from '@/lib/rbac/authorizedAction';
 import { useSectors, useSubSectors } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
+import { configRetire, configSave } from '@/lib/configWriter';
 import { PlusCircle, Pencil, Trash2, Loader2 } from 'lucide-react';
 
 interface ReturnConfig {
@@ -78,14 +79,17 @@ export default function ReturnConfiguration() {
       sector_id: sectorId || null, sub_sector_id: subSectorId || null, is_active: isActive,
       regulator_id: activeRegulatorId || null,
     };
-    if (editing) {
-      const { error } = await supabase.from('return_configurations' as any).update(payload).eq('id', editing.id);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success('Configuration updated');
-    } else {
-      const { error } = await supabase.from('return_configurations' as any).insert(payload);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success('Configuration created');
+    // GAP-F1-03: governed configuration writer (returns_management + audit).
+    try {
+      await configSave('return_configurations', payload, {
+        id: editing?.id ?? null,
+        entityLabel: 'return configuration',
+      });
+      toast.success(editing ? 'Configuration updated' : 'Configuration created');
+    } catch (error: any) {
+      toast.error(error?.message ?? 'Could not save configuration');
+      setSaving(false);
+      return;
     }
     setSaving(false); setDialogOpen(false); resetForm(); loadConfigs();
   };
@@ -94,9 +98,14 @@ export default function ReturnConfiguration() {
     try {
       await authorizedAction('returns_management', 'manage_config', { config_id: id, action: 'delete' });
     } catch (e: any) { toast.error(e?.message ?? 'Not authorized'); return; }
-    const { error } = await supabase.from('return_configurations' as any).delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Deleted'); loadConfigs();
+    // Return configurations are referenced by filed returns — retire, never delete.
+    try {
+      await configRetire('return_configurations', id, { entityLabel: 'return configuration' });
+    } catch (error: any) {
+      toast.error(error?.message ?? 'Could not retire configuration');
+      return;
+    }
+    toast.success('Configuration retired'); loadConfigs();
   };
 
   const getSectorName = (id: string | null) => sectors.find(s => s.id === id)?.name || '—';
