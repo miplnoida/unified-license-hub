@@ -15,7 +15,13 @@
 
 \set ON_ERROR_STOP on
 SET client_min_messages = notice;
-SET row_security = off;  -- sandbox_exec has BYPASSRLS; required for seed/cleanup.
+-- DEF-F5-B3R-01: never set row_security at SESSION level. The managed pooler
+-- reuses backends, so a session-level `SET row_security = off` survives this
+-- script (especially when it aborts on failure) and poisons later verification
+-- sessions -- it made anonymous allow-listed reads fail with 42501
+-- ("query would be affected by row-level security policy"), i.e. F2-B P-05.
+-- Each DO block below instead sets it TRANSACTION-LOCAL via set_config(...,true).
+SET row_security = on;
 
 DO $verify$
 DECLARE
@@ -77,6 +83,8 @@ DECLARE
   v_total bigint;
   v_internal_drafts int;
 BEGIN
+  -- transaction-local only: reverts when this statement's transaction ends
+  PERFORM set_config('row_security', 'off', true);
   RAISE NOTICE '=========================================================';
   RAISE NOTICE '  HARDENING VERIFICATION';
   RAISE NOTICE '=========================================================';
@@ -780,6 +788,8 @@ DECLARE
   v_n int;
   v_detail text;
 BEGIN
+  -- transaction-local only: reverts when this statement's transaction ends
+  PERFORM set_config('row_security', 'off', true);
   -- 1. no browser-role DML on the F5-sensitive licence/config estate
   SELECT count(*), coalesce(string_agg(t.tbl || ' ' || r.rolename || '/' || p.priv, ', '), 'none')
     INTO v_n, v_detail

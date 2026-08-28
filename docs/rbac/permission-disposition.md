@@ -11,11 +11,11 @@ is granted to any role, role template or user, so none of them widens access.
 | Disposition | Count | Meaning |
 | --- | --- | --- |
 | legacy-alias | 0 | Kept so historic database access rules resolve. |
-| reserved-granular | 130 | Live module, finer-grained action reserved for later split-out. |
+| reserved-granular | 127 | Live module, finer-grained action reserved for later split-out. |
 | future-module | 42 | Module catalogued ahead of its surface being built. |
 | manual | 0 | Reviewed case-by-case (see rationale). |
 
-Total orphans: **172**
+Total orphans: **169**
 
 | Permission | Disposition | Rationale |
 | --- | --- | --- |
@@ -79,8 +79,6 @@ Total orphans: **172**
 | `enforcement_management.issue_notice` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `entity_membership.manage` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `entity_membership.request` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
-| `entity_structure.apply` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
-| `entity_structure.approve` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `entity_structure.propose` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `entity_structure.review` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `entity_structure.view_history` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
@@ -124,7 +122,6 @@ Total orphans: **172**
 | `license_appeals.view_all_entities` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `license_management.create` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `license_management.delete` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
-| `license_management.manage_config` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `licensee_management.create` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `licensee_management.delete` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `licensee_management.manage_pre_license` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |

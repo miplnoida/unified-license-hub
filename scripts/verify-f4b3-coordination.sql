@@ -16,6 +16,9 @@
 -- Usage: psql -v ON_ERROR_STOP=1 -f scripts/verify-f4b3-coordination.sql
 -- ============================================================================
 \set ON_ERROR_STOP on
+-- DEF-F5-B3R-01: pooled backends can arrive with a leaked row_security=off.
+-- Every gate restores the default explicitly so RLS probes are deterministic.
+SET row_security = on;
 SET client_min_messages = warning;
 
 BEGIN;
@@ -51,14 +54,43 @@ CREATE OR REPLACE FUNCTION pg_temp.as_nobody() RETURNS void LANGUAGE sql AS $$
 $$;
 
 -- Latest audit row for a coordination entity.
+--
+-- DEF-F5-B3R-02: `ORDER BY created_at DESC, ctid DESC` was NOT deterministic.
+-- Every audit row written inside this transaction shares created_at, and heap
+-- ctid order is not insertion order (rolled-back earlier runs leave reusable
+-- free space, so a newer row can land on a lower ctid). That made B2/B4/C2
+-- intermittently read a *later* transition than the one under test.
+--
+-- The gate now uses an explicit watermark: every audit row already seen (or
+-- pre-existing) is recorded in coord_audit_seen, and aud() returns the single
+-- row this step newly produced.
+CREATE TEMP TABLE coord_audit_seen (id uuid PRIMARY KEY) ON COMMIT DROP;
+
 CREATE OR REPLACE FUNCTION pg_temp.aud(_etype text, _eid uuid)
-RETURNS public.audit_logs LANGUAGE sql STABLE AS $$
-  -- created_at is identical for every row written inside one transaction, so
-  -- physical insert order (ctid) is the tiebreaker for "latest".
-  SELECT (a).* FROM (
-    SELECT a FROM public.audit_logs a
-     WHERE a.entity_type = _etype AND a.entity_id = _eid::text
-     ORDER BY a.created_at DESC, a.ctid DESC LIMIT 1) s;
+RETURNS public.audit_logs LANGUAGE plpgsql AS $$
+DECLARE r public.audit_logs;
+BEGIN
+  SELECT a.* INTO r
+    FROM public.audit_logs a
+   WHERE a.entity_type = _etype
+     AND a.entity_id = _eid::text
+     AND NOT EXISTS (SELECT 1 FROM coord_audit_seen s WHERE s.id = a.id)
+   ORDER BY a.created_at DESC
+   LIMIT 1;
+  IF r.id IS NOT NULL THEN
+    INSERT INTO coord_audit_seen (id) VALUES (r.id) ON CONFLICT DO NOTHING;
+  END IF;
+  RETURN r;
+END $$;
+
+-- Marks every audit row currently present for an entity as already observed,
+-- so a subsequent aud() call can only return rows produced afterwards.
+CREATE OR REPLACE FUNCTION pg_temp.aud_mark(_etype text, _eid uuid)
+RETURNS void LANGUAGE sql AS $$
+  INSERT INTO coord_audit_seen (id)
+  SELECT a.id FROM public.audit_logs a
+   WHERE a.entity_type = _etype AND a.entity_id = _eid::text
+  ON CONFLICT DO NOTHING;
 $$;
 
 CREATE OR REPLACE FUNCTION pg_temp.coord_state(_app uuid) RETURNS text LANGUAGE sql STABLE AS $$
@@ -270,6 +302,10 @@ BEGIN
   RESET ROLE;
   PERFORM pg_temp.put('flag2', v_flag2);
   PERFORM pg_temp.rec('D','D3','second flag raise succeeds', v_flag2 IS NOT NULL, v_flag2::text);
+  -- DEF-F5-B3R-02: watermark the raise row so E3 can only observe the audit row
+  -- produced by the withdraw transition itself (created_at ties are unavoidable
+  -- inside one transaction).
+  PERFORM pg_temp.aud_mark('coordination_flag', v_flag2);
 END $d$;
 
 -- ===========================================================================
@@ -280,6 +316,7 @@ DECLARE
   v_app uuid := pg_temp.get('app'); v_owner uuid := pg_temp.get('owner');
   v_state text; v_before jsonb; v_after jsonb; v_n int; v_a public.audit_logs;
   v_flag uuid := pg_temp.get('flag'); v_flag2 uuid := pg_temp.get('flag2');
+  v_case uuid := pg_temp.get('case'); v_app_rows int; v_row_status text;
 BEGIN
   v_state := pg_temp.coord_state(v_app);
   v_n := pg_temp.coord_blockers(v_app);
@@ -294,13 +331,19 @@ BEGIN
   UPDATE public.coordination_flags
      SET status = 'resolved', resolved_at = now(), resolved_by = v_owner
    WHERE id = v_flag;
+  GET DIAGNOSTICS v_app_rows = ROW_COUNT;
   RESET ROLE;
 
+  SELECT status INTO v_row_status FROM public.coordination_flags WHERE id = v_flag;
   v_a := pg_temp.aud('coordination_flag', v_flag);
   PERFORM pg_temp.rec('E','E2','flag resolve succeeds and audits coordination.flag.resolved',
-    v_a.action = 'coordination.flag.resolved' AND v_a.user_id = v_owner
-      AND v_a.old_value->>'status' = 'open' AND v_a.new_value->>'status' = 'resolved',
-    COALESCE(v_a.action,'<none>'));
+    v_app_rows = 1 AND v_row_status = 'resolved'
+      AND v_a.action = 'coordination.flag.resolved' AND v_a.user_id = v_owner
+      AND v_a.old_value->>'status' = 'open' AND v_a.new_value->>'status' = 'resolved'
+      AND v_a.metadata->>'case_id' = v_case::text
+      AND v_a.metadata->>'linked_application_id' = v_app::text,
+    'rows=' || v_app_rows || ' status=' || COALESCE(v_row_status,'NULL')
+      || ' ' || COALESCE(v_a.action,'<none>'));
 
   -- canonical withdraw
   PERFORM pg_temp.as_uid(v_owner);
@@ -308,13 +351,19 @@ BEGIN
   UPDATE public.coordination_flags
      SET status = 'withdrawn', resolved_at = now(), resolved_by = v_owner
    WHERE id = v_flag2;
+  GET DIAGNOSTICS v_app_rows = ROW_COUNT;
   RESET ROLE;
 
+  SELECT status INTO v_row_status FROM public.coordination_flags WHERE id = v_flag2;
   v_a := pg_temp.aud('coordination_flag', v_flag2);
   PERFORM pg_temp.rec('E','E3','flag withdraw succeeds and audits coordination.flag.withdrawn',
-    v_a.action = 'coordination.flag.withdrawn' AND v_a.user_id = v_owner
-      AND v_a.new_value->>'status' = 'withdrawn',
-    COALESCE(v_a.action,'<none>'));
+    v_app_rows = 1 AND v_row_status = 'withdrawn'
+      AND v_a.action = 'coordination.flag.withdrawn' AND v_a.user_id = v_owner
+      AND v_a.old_value->>'status' = 'open' AND v_a.new_value->>'status' = 'withdrawn'
+      AND v_a.metadata->>'case_id' = v_case::text
+      AND v_a.metadata->>'linked_application_id' = v_app::text,
+    'rows=' || v_app_rows || ' status=' || COALESCE(v_row_status,'NULL')
+      || ' ' || COALESCE(v_a.action,'<none>'));
 
   v_state := pg_temp.coord_state(v_app);
   v_n := pg_temp.coord_blockers(v_app);

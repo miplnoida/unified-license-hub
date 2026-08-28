@@ -18,9 +18,12 @@
 
 \set ON_ERROR_STOP on
 SET client_min_messages = warning;
-SET row_security = off;
+SET row_security = on;
 
 BEGIN;
+-- DEF-F5-B3R-01: transaction-local, reverted by the closing ROLLBACK. A
+-- session-level SET here leaked into pooled sessions and broke F2-B P-05.
+SET LOCAL row_security = off;
 
 CREATE TEMP TABLE f4c_results (
   seq serial, stage text, id text, descr text, passed boolean, detail text

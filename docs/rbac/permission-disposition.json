@@ -1,7 +1,7 @@
 {
   "generatedFrom": "src/lib/rbac/catalog.json",
   "counts": {
-    "reserved-granular": 130,
+    "reserved-granular": 127,
     "future-module": 42
   },
   "rows": [
@@ -362,18 +362,6 @@
     {
       "module": "entity_membership",
       "action": "request",
-      "disposition": "reserved-granular",
-      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
-    },
-    {
-      "module": "entity_structure",
-      "action": "apply",
-      "disposition": "reserved-granular",
-      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
-    },
-    {
-      "module": "entity_structure",
-      "action": "approve",
       "disposition": "reserved-granular",
       "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
     },
