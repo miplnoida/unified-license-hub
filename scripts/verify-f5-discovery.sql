@@ -247,3 +247,24 @@ SELECT p.proname, p.prosecdef, r.rolname
  ORDER BY 1, 3;
 
 \echo '== F5 DISCOVERY CENSUS COMPLETE (no writes performed) =='
+
+-- =====================================================================
+-- SECTION K: post_application workflow estate (incl. generic fallback)
+-- =====================================================================
+SELECT 'K1_post_application_workflows' AS probe, w.name, w.is_active,
+       count(st.id) AS steps,
+       (SELECT count(*) FROM public.services s WHERE s.workflow_id = w.id) AS services_bound
+FROM public.approval_workflows w
+LEFT JOIN public.approval_steps st ON st.workflow_id = w.id
+WHERE w.entity_type = 'post_application'
+GROUP BY w.id, w.name, w.is_active
+ORDER BY w.name;
+
+-- =====================================================================
+-- SECTION L: F&P linkage evidence (application <-> assessment)
+-- =====================================================================
+SELECT 'L1_fp_linkage' AS probe,
+       (SELECT count(*) FROM public.application_fp_links) AS app_fp_links,
+       (SELECT count(*) FROM public.fp_assessments)      AS assessments,
+       (SELECT count(*) FROM public.fp_determinations)   AS determinations,
+       (SELECT count(*) FROM public.fp_individuals)      AS individuals;
