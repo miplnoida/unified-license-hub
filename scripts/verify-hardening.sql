@@ -483,6 +483,58 @@ BEGIN
   INSERT INTO public.payments (application_id, user_id, amount, currency, status, payment_method, paid_at)
   VALUES (v_app_id, v_applicant_a, 1000, 'INR', 'completed', 'simulated', now());
 
+  -- F4-B licensing readiness is fail-closed: an initial licence decision needs an
+  -- approved F3 registration handoff, satisfied form/document requirements and a
+  -- cleared fit & proper position. Seed those facts for the fixture application
+  -- (this proves the gates, it does not weaken them — WF-9c below re-asserts that
+  -- an unseeded application is still refused).
+  INSERT INTO public.registrations (
+    user_id, sector_id, sub_sector_id, category_id, applicant_name,
+    first_name, last_name, telephone, email, status
+  )
+  SELECT v_applicant_a, c.sector_id, c.sub_sector_id, c.id,
+         'VRF Hardening Fixture', 'VRF', 'Fixture', '0000000000',
+         'vrf-hardening+' || substring(gen_random_uuid()::text,1,8) || '@example.test',
+         'approved'
+    FROM public.categories c
+   WHERE c.sector_id IS NOT NULL AND c.sub_sector_id IS NOT NULL
+   ORDER BY c.created_at
+   LIMIT 1
+  RETURNING id INTO v_reg_id;
+
+  IF v_reg_id IS NOT NULL THEN
+    INSERT INTO public.registration_licensing_handoffs (registration_id, application_id, registration_reference, detail)
+    VALUES (v_reg_id, v_app_id, 'VRF-HARDENING', jsonb_build_object('source','verify-hardening'))
+    ON CONFLICT (application_id) DO NOTHING;
+  END IF;
+
+  -- Satisfied form/document requirement (forms_documents gate -> PASS).
+  SELECT fv.template_id, fv.id INTO v_tpl_id, v_tpl_version
+    FROM public.application_form_versions fv
+   ORDER BY fv.created_at
+   LIMIT 1;
+  IF v_tpl_version IS NOT NULL THEN
+    INSERT INTO public.application_form_requirements (
+      application_id, template_id, form_version_id, is_required, sequence, status)
+    VALUES (v_app_id, v_tpl_id, v_tpl_version, true, 0, 'COMPLETED');
+  END IF;
+
+  -- Cleared fit & proper assessment linked to the application (F&P gate -> PASS).
+  INSERT INTO public.fp_individuals (full_name, status)
+  VALUES ('VRF Hardening Individual', 'active')
+  RETURNING id INTO v_fp_individual;
+
+  INSERT INTO public.fp_assessments (individual_id, assessment_type, status)
+  VALUES (v_fp_individual, 'initial', 'completed')
+  RETURNING id INTO v_fp_assessment;
+
+  INSERT INTO public.fp_determinations (assessment_id, individual_id, outcome, rationale, determined_by, is_current)
+  VALUES (v_fp_assessment, v_fp_individual, 'approved', 'verify-hardening fixture', v_super_admin, true);
+
+  INSERT INTO public.application_fp_links (application_id, assessment_id, is_required)
+  VALUES (v_app_id, v_fp_assessment, true);
+
+
   SELECT count(*) INTO v_lic_count_before FROM public.licenses WHERE application_id=v_app_id;
   v_result := public.perform_final_workflow_approval(
     v_app_id, v_instance_id, v_step3, 'final approval comments', v_super_admin);
