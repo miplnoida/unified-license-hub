@@ -552,7 +552,7 @@ BEGIN
     OR public.request_role() NOT IN ('anon','authenticated')
     OR (v_uid IS NOT NULL AND v_reg.user_id = v_uid)
     OR (v_uid IS NOT NULL AND (
-          public.has_permission(v_uid, 'registration_review', 'approve')
+          public.has_permission(v_uid, 'registration_management', 'approve') -- F3-B2 DEF-F3-C-01: canonical catalogued permission
           OR public.has_permission(v_uid, 'registration_management', 'workflow_action')))
   ) THEN
     RAISE EXCEPTION 'not authorised to start a registration workflow' USING ERRCODE = '42501';

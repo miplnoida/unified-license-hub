@@ -55,6 +55,7 @@ import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { useReviewValueResolver } from '@/components/registration/useReviewValueResolver';
 import { useApplicantNameUniqueness } from '@/components/registration/useApplicantNameUniqueness';
+import { neutraliseRegistrationSubmitError } from '@/lib/registrationDuplicateMessage';
 import { usePrimaryUserEmailUniqueness } from '@/components/registration/usePrimaryUserEmailUniqueness';
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
 import { isPrimaryEmailField, isValidEmail, normalizeEmailValue } from '@/lib/primaryEmailValidation';
@@ -1135,17 +1136,18 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
         const errMsg = typeof error === 'object' && error.message ? error.message : String(error);
         // The verification id is single-use server-side: force a fresh challenge.
         setField('captchaVerificationId', null);
-        toast.error(errMsg || 'Registration failed. Please try again.');
+        toast.error(neutraliseRegistrationSubmitError(errMsg));
         setSubmitting(false);
         return;
       }
 
       if (data?.error) {
         setField('captchaVerificationId', null);
-        toast.error(data.error);
+        toast.error(neutraliseRegistrationSubmitError(data.error));
         setSubmitting(false);
         return;
       }
+
 
       if (data?.warning) toast.warning(data.warning);
 

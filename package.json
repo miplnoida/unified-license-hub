@@ -20,8 +20,8 @@
     "verify:f0c": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f0c-certification.sql",
     "verify:f1c": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f1c-certification.sql",
     "verify:f2b": "bash -c 'set -o pipefail; mkdir -p artifacts && psql -v ON_ERROR_STOP=1 -f scripts/verify-f2b-remediation.sql 2>&1 | tee artifacts/verify-f2b-latest.log'",
-    "verify:f3b": "bash -c 'set -o pipefail; mkdir -p artifacts && psql -v ON_ERROR_STOP=1 -f scripts/verify-f3b-remediation.sql 2>&1 | tee artifacts/verify-f3b-latest.log'"
-
+    "verify:f3b": "bash -c 'set -o pipefail; mkdir -p artifacts && psql -v ON_ERROR_STOP=1 -f scripts/verify-f3b-remediation.sql 2>&1 | tee artifacts/verify-f3b-latest.log'",
+    "verify:permission-refs": "psql -v ON_ERROR_STOP=1 -f scripts/verify-permission-references.sql"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

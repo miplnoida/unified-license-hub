@@ -5,9 +5,6 @@ import { ApplicantInfoSection } from './ApplicantInfoSection';
 import { AddressSection, type AddressData } from './AddressSection';
 import { useCategories } from '@/hooks/useMasterConfig';
 import type { RegistrationFormData } from '@/hooks/useRegistrationForm';
-import { supabase } from '@/integrations/supabase/client';
-import { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 
 interface Props {
   form: RegistrationFormData;
@@ -57,51 +54,13 @@ export function EntityDetailsStep({
   const selectedCategory = allCategories.find(c => c.id === form.categoryId);
   const conditionalFields = selectedCategory ? getConditionalFields(form.categoryId, selectedCategory.name) : [];
 
-  const [regNumStatus, setRegNumStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
-  const [applicantNameStatus, setApplicantNameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  // F3-B2: the pre-authentication applicant-name and registration-number
+  // existence probes were retired. They ran on an unauthenticated page and are
+  // name/reference enumeration oracles (GAP-F3-14); the applicant-name RPC is
+  // no longer anon-executable, so the call could only ever fail. Duplicate and
+  // entity-resolution authority is server-side (governed intake + `registrations`
+  // uniqueness), surfaced as a neutral submission-time message.
 
-  // Check applicant name uniqueness
-  useEffect(() => {
-    if (updateMode || !form.applicantName.trim()) {
-      setApplicantNameStatus('idle');
-      return;
-    }
-    const timer = setTimeout(async () => {
-      setApplicantNameStatus('checking');
-      try {
-        const { data, error } = await supabase.rpc('check_applicant_name_exists' as any, {
-          p_name: form.applicantName.trim(),
-        });
-        if (error) { setApplicantNameStatus('idle'); return; }
-        setApplicantNameStatus(data === true ? 'taken' : 'available');
-      } catch {
-        setApplicantNameStatus('idle');
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [form.applicantName, updateMode]);
-
-  // Check registration number uniqueness
-  useEffect(() => {
-    if (updateMode || !form.registrationNumber.trim()) {
-      setRegNumStatus('idle');
-      return;
-    }
-    const timer = setTimeout(async () => {
-      setRegNumStatus('checking');
-      try {
-        const { data } = await supabase
-          .from('registrations' as any)
-          .select('id')
-          .eq('registration_number', form.registrationNumber.trim())
-          .limit(1);
-        setRegNumStatus(data && data.length > 0 ? 'taken' : 'available');
-      } catch {
-        setRegNumStatus('idle');
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [form.registrationNumber, updateMode]);
 
   return (
     <div className="space-y-6">
@@ -120,35 +79,28 @@ export function EntityDetailsStep({
         applicantNameAlt={form.applicantNameAlt}
         onChange={setField}
         errors={errors}
-        applicantNameStatus={applicantNameStatus}
       />
 
-      {/* Registration Number with uniqueness check */}
+
       <div className="form-section">
         <h3 className="text-lg font-semibold text-foreground">Business Registration</h3>
         <div className="grid md:grid-cols-2 gap-6 pt-2">
           <div className="space-y-2">
             <Label htmlFor="registrationNumber">Business Registration Number</Label>
-            <div className="relative">
-              <Input
-                id="registrationNumber"
-                value={form.registrationNumber}
-                onChange={e => setField('registrationNumber', e.target.value)}
-                placeholder="Enter registration number"
-                className={errors.registrationNumber ? 'border-destructive pr-10' : 'pr-10'}
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                {regNumStatus === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                {regNumStatus === 'available' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                {regNumStatus === 'taken' && <XCircle className="h-4 w-4 text-destructive" />}
-              </div>
-            </div>
-            {regNumStatus === 'taken' && (
-              <p className="text-sm text-destructive">This registration number is already registered</p>
+            <Input
+              id="registrationNumber"
+              value={form.registrationNumber}
+              onChange={e => setField('registrationNumber', e.target.value)}
+              placeholder="Enter registration number"
+              className={errors.registrationNumber ? 'border-destructive' : ''}
+            />
+            {errors.registrationNumber && (
+              <p className="text-sm text-destructive">{errors.registrationNumber}</p>
             )}
           </div>
         </div>
       </div>
+
 
       {/* Conditional fields based on category */}
       {conditionalFields.length > 0 && (

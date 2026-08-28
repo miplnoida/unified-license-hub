@@ -1,6 +1,6 @@
 {
   "gap": "GAP-F0-08",
-  "description": "Public-schema routines that may remain executable by the anon (unauthenticated) role. Every entry must be backed by a real pre-authentication journey. Extension-owned routines (pgtap, pg_trgm) are tracked separately as an environment-constrained residual.",
+  "description": "Public-schema routines that may remain executable by the anon (unauthenticated) role. Every entry must be backed by a real pre-authentication journey. Extension-owned routines (pgtap, pg_trgm) are tracked separately as an environment-constrained residual. F3-B2: check_applicant_name_exists was retired (anon EXECUTE revoked, pre-auth caller removed) \u2014 it was an applicant-name enumeration oracle.",
   "allowlist": [
     {
       "function": "get_active_captcha",
@@ -8,14 +8,6 @@
       "journey": "Login / registration captcha configuration",
       "callers": [
         "src/hooks/useCaptchaConfig.ts"
-      ]
-    },
-    {
-      "function": "check_applicant_name_exists",
-      "classification": "PUBLIC_RPC_REQUIRED",
-      "journey": "Unauthenticated registration duplicate-applicant guard",
-      "callers": [
-        "src/components/registration/useApplicantNameUniqueness.ts"
       ]
     },
     {

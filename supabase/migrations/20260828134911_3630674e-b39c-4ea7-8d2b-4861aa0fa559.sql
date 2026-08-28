@@ -1,0 +1,1 @@
+ALTER VIEW public.sec_invalid_permission_references SET (security_invoker = on);

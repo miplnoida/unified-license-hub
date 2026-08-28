@@ -42361,6 +42361,14 @@ export type Database = {
         }
         Relationships: []
       }
+      sec_invalid_permission_references: {
+        Row: {
+          module_key: string | null
+          permission_key: string | null
+          routine: string | null
+        }
+        Relationships: []
+      }
       sec_permission_parity: {
         Row: {
           action_key: string | null
