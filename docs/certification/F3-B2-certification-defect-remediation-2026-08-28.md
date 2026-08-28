@@ -2,7 +2,7 @@
 
 Date: 2026-08-28
 Baseline HEAD at start: `10f7eee9cfa4e3ec05ff1d59a30cfeb42a48ae98`
-HEAD at completion: `0be6740e355ad7e80ee2f3c6ac300eaca780e5cf`
+HEAD at completion: `374f0b156e45d74ac1d4ad79bbc3685d6f0e9f2d` (plus this document)
 Authoritative input: `docs/certification/F3-registration-final-certification-2026-08-28.md`
 
 Scope: **only** the two items raised by F3-C attempt 1. No general F3 scope was
@@ -96,7 +96,7 @@ pre-authentication.
 | `verify:definer-guards` | PASS |
 | `verify:service-completeness` | PASS |
 | edge authz coverage | user=47 worker=27 webhook=1 machine=1 public=7 — every function gated |
-| `tsgo --noEmit` | clean |
+| `tsc --noEmit` / `tsgo --noEmit` | clean (dead applicant-name status branches removed from `PreLicenseeRegistration.tsx`) |
 | `npm run build` | success |
 
 ---
