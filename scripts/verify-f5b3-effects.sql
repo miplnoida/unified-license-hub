@@ -589,7 +589,8 @@ END $g$;
 DO $h$
 DECLARE
   _lic uuid; _svc uuid; _unsupported uuid; _officer uuid; _fx jsonb; _fx2 jsonb;
-  _plan_unsupported jsonb; _plan_unknown jsonb; _res_unsupported text;
+  _plan_unsupported jsonb; _plan_unknown jsonb; _res_unsupported jsonb;
+  _raised_unsupported text := NULL; _unsup_effects int; _unsup_app text; _unsup_wf text;
   _rejected_effects int; _exec_state text; _insert_state text; _map_state text;
   _harness text := NULL;
 BEGIN
