@@ -588,14 +588,12 @@ function CalendarTab() {
       return;
     }
     try {
-      const existingDates = new Set(holidays.map(h => h.holiday_date));
       for (const row of valid) {
         const existing = holidays.find(h => h.holiday_date === row.holiday_date);
         await configSave('business_calendar_holidays', row, {
           id: existing?.id ?? null,
           entityLabel: 'calendar holiday',
         });
-        existingDates.add(row.holiday_date);
       }
     } catch (error: any) {
       toast({ title: 'Import failed', description: error?.message, variant: 'destructive' }); return;
