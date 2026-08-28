@@ -1,9 +1,9 @@
 # RBAC Action Coverage Audit
 
-_Generated: 2026-08-28T15:04:42.554Z_
+_Generated: 2026-08-28T15:13:55.716Z_
 
 **Total action sites scanned:** 2045
-**Protected:** 2044
+**Protected:** 2045
 **Coverage:** 100%
 
 Any row with **Protected = No** must be wrapped in `<PermissionGate module="..." action="...">` or replaced with `<GuardedButton module="..." action="...">` — or, if intentionally public (login, cancel, close, back, …), added to the allow-list in `scripts/rbac-audit.ts`.
@@ -12,7 +12,7 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 
 | Category | Total | Protected | Coverage |
 |---|---:|---:|---:|
-| Action | 1248 | 1247 | 100% |
+| Action | 1248 | 1248 | 100% |
 | Create | 224 | 224 | 100% |
 | View | 137 | 137 | 100% |
 | Save | 114 | 114 | 100% |
@@ -216,7 +216,7 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/applications/ApplicationUploadPanel | Choose file | application_management.import | Yes | src/components/applications/ApplicationUploadPanel.tsx | 174 |
 | components/applications/ApplicationUploadPanel | Remove | application_management.edit | Yes | src/components/applications/ApplicationUploadPanel.tsx | 193 |
 | components/applications/ApplicationUploadPanel | Import into application | application_management.import | Yes | src/components/applications/ApplicationUploadPanel.tsx | 208 |
-| components/applications/ApplicationWithdrawalPanel | Withdraw Application | — | No | src/components/applications/ApplicationWithdrawalPanel.tsx | 189 |
+| components/applications/ApplicationWithdrawalPanel | Withdraw Application | application_management.edit | Yes | src/components/applications/ApplicationWithdrawalPanel.tsx | 189 |
 | components/applications/ConfigurableDecisionActions | Cancel | — | Yes | src/components/applications/ConfigurableDecisionActions.tsx | 273 |
 | components/applications/ConfigurableDecisionActions | Confirm | — | Yes | src/components/applications/ConfigurableDecisionActions.tsx | 276 |
 | components/applications/DecisionDocumentPreview | Print | application_management.view | Yes | src/components/applications/DecisionDocumentPreview.tsx | 496 |

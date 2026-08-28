@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T15:04:44.163Z",
+  "generatedAt": "2026-08-28T15:13:56.698Z",
   "rows": [
     {
       "module": "admin_dashboard",
@@ -853,6 +853,11 @@
         },
         {
           "file": "src/components/applications/ApplicationUploadPanel.tsx",
+          "line": 193,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/components/applications/ApplicationWithdrawalPanel.tsx",
           "line": 193,
           "detail": "data-rbac marker (audit signal only)"
         },

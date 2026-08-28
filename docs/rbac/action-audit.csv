@@ -172,7 +172,7 @@
 "components/applications/ApplicationUploadPanel","Choose file","application_management.import","Yes","src/components/applications/ApplicationUploadPanel.tsx","174"
 "components/applications/ApplicationUploadPanel","Remove","application_management.edit","Yes","src/components/applications/ApplicationUploadPanel.tsx","193"
 "components/applications/ApplicationUploadPanel","Import into application","application_management.import","Yes","src/components/applications/ApplicationUploadPanel.tsx","208"
-"components/applications/ApplicationWithdrawalPanel","Withdraw Application","","No","src/components/applications/ApplicationWithdrawalPanel.tsx","189"
+"components/applications/ApplicationWithdrawalPanel","Withdraw Application","application_management.edit","Yes","src/components/applications/ApplicationWithdrawalPanel.tsx","189"
 "components/applications/ConfigurableDecisionActions","Cancel","","Yes","src/components/applications/ConfigurableDecisionActions.tsx","273"
 "components/applications/ConfigurableDecisionActions","Confirm","","Yes","src/components/applications/ConfigurableDecisionActions.tsx","276"
 "components/applications/DecisionDocumentPreview","Print","application_management.view","Yes","src/components/applications/DecisionDocumentPreview.tsx","496"

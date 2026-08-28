@@ -1,6 +1,6 @@
 # Permission Coverage Matrix
 
-_Generated 2026-08-28T15:04:44.163Z. Do not edit by hand — run `bunx tsx scripts/generate-permission-coverage.ts`._
+_Generated 2026-08-28T15:13:56.698Z. Do not edit by hand — run `bunx tsx scripts/generate-permission-coverage.ts`._
 
 **Total permissions:** 378  `|`  **Orphaned:** 172
 
