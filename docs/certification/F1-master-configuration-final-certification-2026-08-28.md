@@ -13,6 +13,11 @@
 
 **F1 NOT CERTIFIED — RETURN TO F1-B**
 
+> **Superseded by F1-B2 (2026-08-28).** Both defects were remediated and proved
+> closed in
+> `docs/certification/F1-B2-decision-authority-and-grant-remediation-2026-08-28.md`.
+> This report remains the authoritative record of the failed F1-C attempt.
+
 Two material defects were proven empirically during certification. Per the
 Track-A charter, certification does not silently remediate material defects, so
 no product or schema change was made in this pass.
@@ -103,15 +108,17 @@ Proven:
   window; the rule simply never left `active`.
 - `S3 D-13` — reactivate could not be certified for the same reason.
 
-Additionally, `src/pages/admin/DecisionAuthorityManager.tsx` contains a
-corrupted status identifier: the retired branch uses the literal `'nd'`
-(`changeStatus(r, 'nd')`, `rules.filter(r => r.status !== 'active')`,
-`Rule nd` toast), which is neither a constraint value nor an RPC value. The
-operator retire button therefore cannot succeed under any vocabulary.
+**Correction (F1-B2, 2026-08-28):** this report originally also claimed that
+`src/pages/admin/DecisionAuthorityManager.tsx` contained a corrupted `'nd'`
+status identifier. That was **false** — an artefact of a certification search
+command that used ripgrep's `-r` (replace) flag, which rewrote the matched text
+`retire` to `n` in the output. Source truth is that the screen has always used
+`'active'` / `'retired'` correctly. The single root cause of DEF-F1-C-02 was the
+table check constraint.
 
-Remediation belongs in F1-B: settle on one status vocabulary end to end
-(constraint, RPC, hook, screen), repair the `'nd'` identifier, and re-prove
-retire → resolution `OFF` → reactivate.
+Remediation belongs in F1-B: align the constraint with the canonical
+`'active'` / `'retired'` vocabulary already used by the RPC, hook, resolver and
+screen, then re-prove retire → resolution `OFF` → reactivate.
 
 ## 4. Certified surfaces (evidence held, pending the two defects)
 
@@ -235,10 +242,10 @@ and three dimensions below threshold — **freeze withheld**.
 1. DEF-F1-C-01 — revoke surplus `anon`/`authenticated` privileges on
    `public.service_config_expectations` and `public.config_change_log`,
    retaining only the reads the operator screens need plus `service_role`.
-2. DEF-F1-C-02 — unify the Decision Authority status vocabulary across the
-   check constraint, `decision_authority_rule_set_status`,
-   `useDecisionAuthority.ts` and `DecisionAuthorityManager.tsx`, and repair the
-   corrupted `'nd'` identifier in the manager screen.
+2. DEF-F1-C-02 — align the `decision_authority_rules_status_chk` constraint
+   with the canonical `'active'` / `'retired'` vocabulary already used by
+   `decision_authority_rule_set_status`, `useDecisionAuthority.ts` and
+   `DecisionAuthorityManager.tsx`.
 3. Re-run: F1 pgTAP, `scripts/verify-f1c-certification.sql` (expect 81/81),
    `verify:service-completeness`, the full frontend suite, build/typecheck and
    all F0 protected gates including `verify:f0c`.
