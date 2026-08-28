@@ -22,6 +22,9 @@ CREATE TEMP TABLE f5b1_results (
   seq serial, section text, id text, descr text, passed boolean, detail text
 );
 
+DROP FUNCTION IF EXISTS pg_temp.rec(text,text,text,boolean,text);
+DROP FUNCTION IF EXISTS pg_temp.as_anon(text);
+DROP FUNCTION IF EXISTS pg_temp.as_user(uuid,text);
 CREATE OR REPLACE FUNCTION pg_temp.rec(_s text, _id text, _d text, _ok boolean, _detail text)
 RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
@@ -516,3 +519,6 @@ BEGIN
 END $r$;
 
 DROP TABLE IF EXISTS f5b1_results;
+DROP FUNCTION IF EXISTS pg_temp.rec(text,text,text,boolean,text);
+DROP FUNCTION IF EXISTS pg_temp.as_anon(text);
+DROP FUNCTION IF EXISTS pg_temp.as_user(uuid,text);
