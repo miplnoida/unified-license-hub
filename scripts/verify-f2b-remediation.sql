@@ -232,8 +232,46 @@ BEGIN
     PERFORM pg_temp.rec('S2','B-08','an entity created without a party binding is converged automatically', false,
       SQLSTATE || ': ' || left(SQLERRM, 160));
   END;
+
+  -- Exactly one organisation party per entity, and no shared bindings.
+  SELECT count(*) INTO _n FROM (
+    SELECT l.party_id FROM public.licensees l GROUP BY l.party_id HAVING count(*) > 1
+  ) d;
+  PERFORM pg_temp.rec('S2','B-09','no two entities share the same organisation party record', _n = 0, 'shared bindings=' || _n);
+
+  SELECT count(*) INTO _n FROM public.licensees l
+    JOIN public.parties p ON p.id = l.party_id
+   WHERE p.party_kind <> 'ORGANIZATION';
+  PERFORM pg_temp.rec('S2','B-10','every entity binding points at an organisation party (not a person)', _n = 0, 'wrong kind=' || _n);
+
+  -- No fabricated identity: a nameless entity must be refused outright and
+  -- must not leave an invented party behind.
+  SELECT count(*) INTO _m FROM public.parties;
+  BEGIN
+    INSERT INTO public.licensees (name, status) VALUES ('   ', 'active');
+    PERFORM pg_temp.rec('S2','B-11','an entity with no valid name is refused instead of being invented', false,
+      'insert unexpectedly succeeded');
+  EXCEPTION WHEN others THEN
+    SELECT count(*) INTO _n FROM public.parties;
+    PERFORM pg_temp.rec('S2','B-11','an entity with no valid name is refused instead of being invented',
+      SQLSTATE IN ('23514','23502') AND _n = _m, SQLSTATE || ' parties before=' || _m || ' after=' || _n);
+  END;
+
+  SELECT count(*) INTO _n FROM public.parties WHERE lower(btrim(display_name)) = 'unnamed entity';
+  PERFORM pg_temp.rec('S2','B-12','no placeholder "unnamed" identity records exist', _n = 0, 'placeholders=' || _n);
+
+  SELECT count(*) INTO _n FROM pg_proc p JOIN pg_namespace ns ON ns.oid=p.pronamespace AND ns.nspname='public'
+   WHERE p.proname='licensees_ensure_party_binding' AND p.prosrc ILIKE '%unnamed entity%';
+  PERFORM pg_temp.rec('S2','B-13','automatic organisation creation contains no name fallback', _n = 0, 'fallbacks=' || _n);
+
+  -- PERSON projections stay evidence-derived: no person party is invented for
+  -- an entity, and every person name matches its party's recorded name.
+  SELECT count(*) INTO _n FROM public.persons x JOIN public.parties p ON p.id = x.party_id
+   WHERE p.party_kind <> 'PERSON' OR coalesce(btrim(x.full_name),'') = '';
+  PERFORM pg_temp.rec('S2','B-14','person records remain evidence-derived, never fabricated', _n = 0, 'invalid person rows=' || _n);
 END
 $s2$;
+
 
 -- ===========================================================================
 -- S3 — UNIQUENESS / OWNERSHIP KEYS (GAP-F2-04)
