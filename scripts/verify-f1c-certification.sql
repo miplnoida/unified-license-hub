@@ -249,8 +249,6 @@ BEGIN
                                 'service_config_expectations','config_change_log'])
   LOOP
     _res := pg_temp.as_anon(format('SELECT count(*) FROM public.%I', _t));
-    EXECUTE format('SELECT coalesce((SELECT %s), 0)',
-      format('SELECT count(*) FROM public.%I', _t)) INTO _n;
     _rows := pg_temp.val_as_anon(format('SELECT count(*)::text FROM public.%I', _t));
     PERFORM pg_temp.rec('S2','A-' || _t, 'anon sees no rows in ' || _t,
       _res LIKE '42501%' OR _rows IN ('0','ERR'), 'statement=' || _res || ' rows=' || _rows);
