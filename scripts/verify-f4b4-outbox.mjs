@@ -23,7 +23,7 @@ if (!URL_BASE || !TOKEN) {
 }
 const TAG = 'CERT-F4B4';
 
-const sql = (q) => execFileSync('psql', ['-At', '-F', '\t', '-c', q], { encoding: 'utf8' }).trim();
+const sql = (q) => execFileSync('psql', ['-At', '-q', '-F', '\t', '-c', q], { encoding: 'utf8' }).trim();
 const rows = (q) => sql(q).split('\n').filter(Boolean).map((l) => l.split('\t'));
 const one = (q) => sql(q);
 
