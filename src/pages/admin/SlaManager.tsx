@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { configDelete, configRetire, configSave } from '@/lib/configWriter';
 import { authorizedAction } from '@/lib/rbac/authorizedAction';
 import { logAudit } from '@/hooks/useAuditLog';
 import { Trash2, Plus, Upload, GitBranch, ExternalLink, AlertTriangle, Info, RefreshCw, Eye } from 'lucide-react';
@@ -233,19 +234,22 @@ function SlaConfigTab() {
     if (err) { toast({ title: 'Invalid SLA', description: err, variant: 'destructive' }); return; }
 
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from('sla_configurations').update({
-      process_type: row.process_type,
-      stage_name: row.stage_name,
-      sla_duration: row.sla_duration,
-      sla_unit: row.sla_unit,
-      warning_threshold_pct: row.warning_threshold_pct,
-      pause_conditions: row.pause_conditions,
-      escalation_recipient: row.escalation_recipient,
-      active: row.active,
-      updated_by: user?.id ?? null,
-    }).eq('id', row.id);
-
-    if (error) { toast({ title: 'Save failed', description: error.message, variant: 'destructive' }); return; }
+    // GAP-F1-03: governed configuration writer (workflow_management.manage_config + audit).
+    try {
+      await configSave('sla_configurations', {
+        process_type: row.process_type,
+        stage_name: row.stage_name,
+        sla_duration: row.sla_duration,
+        sla_unit: row.sla_unit,
+        warning_threshold_pct: row.warning_threshold_pct,
+        pause_conditions: row.pause_conditions,
+        escalation_recipient: row.escalation_recipient,
+        active: row.active,
+        updated_by: user?.id ?? null,
+      }, { id: row.id, entityLabel: 'SLA configuration' });
+    } catch (error: any) {
+      toast({ title: 'Save failed', description: error?.message, variant: 'destructive' }); return;
+    }
     lastPersisted.current[id] = snapshot;
 
     await logAudit({
@@ -274,9 +278,12 @@ function SlaConfigTab() {
       created_by: user?.id ?? null,
       updated_by: user?.id ?? null,
     };
-    const { data, error } = await supabase.from('sla_configurations').insert(draft).select().single();
-    if (error) { toast({ title: 'Add failed', description: error.message, variant: 'destructive' }); return; }
-    const newRow = data as unknown as SlaRow;
+    let newRow: SlaRow;
+    try {
+      newRow = await configSave<SlaRow>('sla_configurations', draft, { entityLabel: 'SLA configuration' });
+    } catch (error: any) {
+      toast({ title: 'Add failed', description: error?.message, variant: 'destructive' }); return;
+    }
     setRows(prev => {
       const next = [...prev, newRow];
       syncLatest(next);
@@ -288,8 +295,12 @@ function SlaConfigTab() {
 
   const deleteRow = async (id: string) => {
     if (!confirm('Delete this SLA configuration?')) return;
-    const { error } = await supabase.from('sla_configurations').delete().eq('id', id);
-    if (error) { toast({ title: 'Delete failed', description: error.message, variant: 'destructive' }); return; }
+    // SLA rows are referenced by historical breach evidence — retire, never delete.
+    try {
+      await configRetire('sla_configurations', id, { entityLabel: 'SLA configuration' });
+    } catch (error: any) {
+      toast({ title: 'Delete failed', description: error?.message, variant: 'destructive' }); return;
+    }
     setRows(prev => {
       const next = prev.filter(r => r.id !== id);
       syncLatest(next);
@@ -481,16 +492,19 @@ function CalendarTab() {
     const err = validateProfile(active);
     if (err) { toast({ title: 'Invalid calendar', description: err, variant: 'destructive' }); return; }
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from('business_calendar_profiles').update({
-      name: active.name,
-      description: active.description,
-      working_days: active.working_days,
-      working_start_time: active.working_start_time,
-      working_end_time: active.working_end_time,
-      timezone: active.timezone,
-      updated_by: user?.id ?? null,
-    }).eq('id', active.id);
-    if (error) { toast({ title: 'Save failed', description: error.message, variant: 'destructive' }); return; }
+    try {
+      await configSave('business_calendar_profiles', {
+        name: active.name,
+        description: active.description,
+        working_days: active.working_days,
+        working_start_time: active.working_start_time,
+        working_end_time: active.working_end_time,
+        timezone: active.timezone,
+        updated_by: user?.id ?? null,
+      }, { id: active.id, entityLabel: 'calendar profile' });
+    } catch (error: any) {
+      toast({ title: 'Save failed', description: error?.message, variant: 'destructive' }); return;
+    }
     await logAudit({ action: 'ADMIN_CALENDAR_UPDATED', entityType: 'business_calendar_profile', entityId: active.id, newValue: active as unknown as Record<string, unknown> });
     toast({ title: 'Calendar saved', description: active.name });
   };
@@ -498,9 +512,14 @@ function CalendarTab() {
   const createProfile = async () => {
     if (!newProfileName.trim()) return;
     const { data: { user } } = await supabase.auth.getUser();
-    const { data, error } = await supabase.from('business_calendar_profiles')
-      .insert({ name: newProfileName.trim(), created_by: user?.id ?? null }).select().single();
-    if (error) { toast({ title: 'Create failed', description: error.message, variant: 'destructive' }); return; }
+    let data: { id: string };
+    try {
+      data = await configSave<{ id: string }>('business_calendar_profiles',
+        { name: newProfileName.trim(), created_by: user?.id ?? null },
+        { entityLabel: 'calendar profile' });
+    } catch (error: any) {
+      toast({ title: 'Create failed', description: error?.message, variant: 'destructive' }); return;
+    }
     setNewProfileName('');
     await load();
     setActiveId((data as { id: string }).id);
@@ -518,16 +537,24 @@ function CalendarTab() {
     const d = new Date(newHolidayDate);
     if (isNaN(d.getTime())) { toast({ title: 'Invalid date', variant: 'destructive' }); return; }
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from('business_calendar_holidays')
-      .insert({ profile_id: active.id, holiday_date: newHolidayDate, name: newHolidayName.trim(), created_by: user?.id ?? null });
-    if (error) { toast({ title: 'Add failed', description: error.message, variant: 'destructive' }); return; }
+    try {
+      await configSave('business_calendar_holidays',
+        { profile_id: active.id, holiday_date: newHolidayDate, name: newHolidayName.trim(), created_by: user?.id ?? null },
+        { entityLabel: 'calendar holiday' });
+    } catch (error: any) {
+      toast({ title: 'Add failed', description: error?.message, variant: 'destructive' }); return;
+    }
     setNewHolidayDate(''); setNewHolidayName('');
     loadHolidays(active.id);
     await logAudit({ action: 'ADMIN_CALENDAR_UPDATED', entityType: 'business_calendar_holidays', entityId: active.id, metadata: { added: newHolidayDate } });
   };
 
   const deleteHoliday = async (id: string) => {
-    await supabase.from('business_calendar_holidays').delete().eq('id', id);
+    try {
+      await configDelete('business_calendar_holidays', id, { entityLabel: 'calendar holiday' });
+    } catch (error: any) {
+      toast({ title: 'Delete failed', description: error?.message, variant: 'destructive' }); return;
+    }
     if (active) loadHolidays(active.id);
   };
 
@@ -560,8 +587,19 @@ function CalendarTab() {
       });
       return;
     }
-    const { error } = await supabase.from('business_calendar_holidays').upsert(valid, { onConflict: 'profile_id,holiday_date' });
-    if (error) { toast({ title: 'Import failed', description: error.message, variant: 'destructive' }); return; }
+    try {
+      const existingDates = new Set(holidays.map(h => h.holiday_date));
+      for (const row of valid) {
+        const existing = holidays.find(h => h.holiday_date === row.holiday_date);
+        await configSave('business_calendar_holidays', row, {
+          id: existing?.id ?? null,
+          entityLabel: 'calendar holiday',
+        });
+        existingDates.add(row.holiday_date);
+      }
+    } catch (error: any) {
+      toast({ title: 'Import failed', description: error?.message, variant: 'destructive' }); return;
+    }
     loadHolidays(active.id);
     if (invalid.length) {
       toast({
@@ -801,11 +839,12 @@ function EscalationTab() {
         created_by: user?.id ?? null,
         updated_by: user?.id ?? null,
       }));
-      const { error } = await supabase
-        .from('sla_escalation_tiers')
-        .upsert(inserts, { onConflict: 'process_type,tier', ignoreDuplicates: true });
-      if (error) {
-        toast({ title: 'Failed to prepare escalation tiers', description: error.message, variant: 'destructive' });
+      try {
+        for (const row of inserts) {
+          await configSave('sla_escalation_tiers', row, { entityLabel: 'escalation tier' });
+        }
+      } catch (error: any) {
+        toast({ title: 'Failed to prepare escalation tiers', description: error?.message, variant: 'destructive' });
         setSeeding(false);
         return;
       }
@@ -841,13 +880,16 @@ function EscalationTab() {
     if (lastPersisted.current[id] === snapshot) return;
 
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from('sla_escalation_tiers').update({
-      delay_days: t.delay_days,
-      recipients: t.recipients,
-      notify_roles: t.notify_roles,
-      updated_by: user?.id ?? null,
-    }).eq('id', id);
-    if (error) { toast({ title: 'Save failed', description: error.message, variant: 'destructive' }); return; }
+    try {
+      await configSave('sla_escalation_tiers', {
+        delay_days: t.delay_days,
+        recipients: t.recipients,
+        notify_roles: t.notify_roles,
+        updated_by: user?.id ?? null,
+      }, { id, entityLabel: 'escalation tier' });
+    } catch (error: any) {
+      toast({ title: 'Save failed', description: error?.message, variant: 'destructive' }); return;
+    }
     lastPersisted.current[id] = snapshot;
 
     await logAudit({
