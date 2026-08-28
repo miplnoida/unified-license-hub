@@ -191,17 +191,18 @@ describe('Service Completeness screen', () => {
     wrap(<ServiceCompletenessReport />);
     expect(screen.getByText('Service Configuration Completeness')).toBeInTheDocument();
     expect(screen.getByText('Service standard (SLA)')).toBeInTheDocument();
-    expect(screen.getByText('Missing required')).toBeInTheDocument();
+    expect(screen.getAllByText('Missing required').length).toBeGreaterThan(0);
     expect(screen.getAllByText('9').length).toBeGreaterThan(0);
   });
 
   it('reports the BUSINESS_CONFIGURATION_REQUIRED items on the gaps tab', async () => {
     wrap(<ServiceCompletenessReport />);
-    fireEvent.click(screen.getByRole('tab', { name: /missing configuration/i }));
+    const tab = screen.getByRole('tab', { name: /missing configuration/i });
+    fireEvent.pointerDown(tab, { pointerId: 1, isPrimary: true, button: 0 });
+    fireEvent.mouseDown(tab, { button: 0 });
+    fireEvent.click(tab);
     await waitFor(() => {
-      const description = screen
-        .getAllByText((_, node) => !!node?.textContent?.match(/9 of these are recorded as BUSINESS_CONFIGURATION_REQUIRED/i));
-      expect(description.length).toBeGreaterThan(0);
+      expect(document.body.textContent).toMatch(/9 of these are recorded as BUSINESS_CONFIGURATION_REQUIRED/i);
     });
     expect(screen.getAllByText('BUSINESS_CONFIGURATION_REQUIRED').length).toBe(9);
   });
