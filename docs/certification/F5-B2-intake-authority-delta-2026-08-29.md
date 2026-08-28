@@ -34,6 +34,6 @@ Date: 2026-08-29  •  Status: **CLOSED (44/44 PASS, zero residue)**  •  Gate:
 - F (3): zero residue for probe applications, memberships and catalogue services.
 
 ## Migration
-`supabase/migrations/20260829000000_f5_b2_delta_authority.sql`
+`supabase/migrations/20260828193758_aa63b852-befe-4dd1-a13a-67f485fcf3b0.sql`
 
 STOP — F5-B3 not started.
