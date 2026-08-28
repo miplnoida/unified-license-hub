@@ -191,8 +191,17 @@ BEGIN
   RETURNING id INTO v_reg;
   PERFORM pg_temp.put('reg', v_reg);
 
-  INSERT INTO public.registration_licensing_handoffs (registration_id, registration_reference, detail)
-  VALUES (v_reg, 'CERT-F4C', jsonb_build_object('source','certify-f4c'));
+  -- The F3 side owns the handoff row and its application (application_id is
+  -- NOT NULL by contract); F4 may only resolve it, never duplicate it.
+  PERFORM set_config('app.workflow_mutation_context','trusted',true);
+  INSERT INTO public.applications (application_number, applicant_id, license_type, status, data)
+  VALUES ('CERT-F4C-HO-' || substring(gen_random_uuid()::text,1,8), v_x,
+          'CERT-F4C-NONE', 'draft', jsonb_build_object('registration_id', v_reg))
+  RETURNING id INTO v_app;
+  PERFORM pg_temp.put('app_handoff_seed', v_app);
+
+  INSERT INTO public.registration_licensing_handoffs (registration_id, application_id, registration_reference, detail)
+  VALUES (v_reg, v_app, 'CERT-F4C', jsonb_build_object('source','certify-f4c'));
 END $fixtures$;
 
 
@@ -218,8 +227,8 @@ BEGIN
 
   -- A-03: the owning applicant creates exactly one application.
   r3 := pg_temp.draft(v_x, 'CERT-F4C-NONE', jsonb_build_object('registration_id', v_reg));
-  PERFORM pg_temp.rec('A','A-03','approved handoff creates the licence application',
-    r3 NOT LIKE 'ERR:%', 'result=' || r3);
+  PERFORM pg_temp.rec('A','A-03','approved handoff resolves to exactly one licence application',
+    r3 = pg_temp.get('app_handoff_seed')::text, 'result=' || r3);
 
   IF r3 NOT LIKE 'ERR:%' THEN
     PERFORM pg_temp.put('app_handoff', r3::uuid);
