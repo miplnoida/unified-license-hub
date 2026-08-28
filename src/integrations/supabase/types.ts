@@ -13138,6 +13138,27 @@ export type Database = {
         }
         Relationships: []
       }
+      config_public_read_allowlist: {
+        Row: {
+          created_at: string
+          journey: string
+          justification: string
+          table_name: string
+        }
+        Insert: {
+          created_at?: string
+          journey: string
+          justification: string
+          table_name: string
+        }
+        Update: {
+          created_at?: string
+          journey?: string
+          justification?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       coordination_cases: {
         Row: {
           clearance_required: boolean
