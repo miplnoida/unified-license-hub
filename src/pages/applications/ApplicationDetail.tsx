@@ -73,6 +73,7 @@ import { CaseThreadsPanel } from '@/components/correspondence/CaseThreadsPanel';
 import { CommunicationTimeline } from '@/components/notifications/CommunicationTimeline';
 import { formatDateTime } from '@/lib/datetime';
 import { ApplicationCaseHeader } from '@/components/applications/ApplicationCaseHeader';
+import { ApplicationWithdrawalPanel } from '@/components/applications/ApplicationWithdrawalPanel';
 import { ApplicationCurrentStepSummary } from '@/components/applications/ApplicationCurrentStepSummary';
 import { useApplicationCase } from '@/hooks/useApplicationCaseModels';
 
@@ -839,6 +840,20 @@ export default function ApplicationDetail() {
             canLodge={isOwner}
           />
         )}
+
+        {/* F4-B2 — governed applicant withdrawal (withdraw_application RPC only).
+            The component hides itself unless the signed-in user owns the
+            application and the server-held status is non-terminal. */}
+        <ApplicationWithdrawalPanel
+          applicationId={app.id}
+          applicationNumber={app.application_number}
+          status={app.status}
+          applicantId={app.applicant_id}
+          entityId={(app as any).entity_id ?? null}
+          applicationData={appData as Record<string, unknown>}
+          onWithdrawn={() => loadData()}
+        />
+
 
 
 

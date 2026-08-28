@@ -169,3 +169,18 @@ export const applicationClassificationUpdate = (input: {
     _license_type: input.licenseType ?? null,
   });
 
+
+/**
+ * F4-B2 — governed applicant withdrawal.
+ *
+ * The database derives the actor, verifies applicant ownership (or entity
+ * membership / `application_management.edit`), refuses terminal states, requires
+ * a reason, cancels the workflow instance, records the approval action, audits
+ * and notifies. The browser must NEVER update `applications.status` for a
+ * withdrawal.
+ */
+export const applicationWithdraw = (applicationId: string, reason: string) =>
+  call<{ success: boolean; application_id: string; status?: string; already_processed?: boolean }>(
+    'withdraw_application',
+    { _application_id: applicationId, _reason: reason },
+  );

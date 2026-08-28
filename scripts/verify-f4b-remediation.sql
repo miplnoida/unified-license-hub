@@ -197,6 +197,35 @@ BEGIN
   ELSE v_pass := v_pass + 1; RAISE NOTICE 'PASS F4-14: governed withdrawal available';
   END IF;
 
+  -- F4-15 (F4-B2): withdrawal remains server-authoritative — reason mandatory,
+  -- terminal states refused, and never callable anonymously.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname='withdraw_application'
+       AND pg_get_functiondef(p.oid) LIKE '%REASON_REQUIRED%'
+  ) THEN
+    v_fail := v_fail + 1; RAISE WARNING 'FAIL F4-15: withdraw_application does not enforce a withdrawal reason';
+  ELSE v_pass := v_pass + 1; RAISE NOTICE 'PASS F4-15: withdrawal reason is mandatory server-side';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname='withdraw_application'
+       AND pg_get_functiondef(p.oid) LIKE '%INVALID_STATUS%'
+       AND pg_get_functiondef(p.oid) LIKE '%''approved'',''rejected'',''cancelled''%'
+  ) THEN
+    v_fail := v_fail + 1; RAISE WARNING 'FAIL F4-15: withdraw_application does not refuse terminal application states';
+  ELSE v_pass := v_pass + 1; RAISE NOTICE 'PASS F4-15: terminal application states cannot be withdrawn';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM information_schema.routine_privileges
+     WHERE routine_schema='public' AND routine_name='withdraw_application' AND grantee='anon'
+  ) THEN
+    v_fail := v_fail + 1; RAISE WARNING 'FAIL F4-15: withdraw_application is callable by anon';
+  ELSE v_pass := v_pass + 1; RAISE NOTICE 'PASS F4-15: withdrawal is not anonymously callable';
+  END IF;
+
   RAISE NOTICE '---------------------------------------------';
   RAISE NOTICE 'F4-B VERIFICATION: % passed, % failed', v_pass, v_fail;
 
