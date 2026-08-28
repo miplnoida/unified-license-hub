@@ -14,7 +14,6 @@ const registry = JSON.parse(readFileSync('scripts/anon-execute-allowlist.json', 
 };
 
 const EXPECTED = [
-  'check_applicant_name_exists',
   'check_primary_user_email_exists',
   'get_active_captcha',
   'get_declaration_invitation_public',

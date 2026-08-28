@@ -45,12 +45,12 @@ pre-authentication surface, not from what happened to be granted:
   at fire time; the tables whose column defaults call generators are not
   anon-insertable.
 
-### Certified allowlist (8 routines)
+### Certified allowlist (8 routines at F0-C; 7 from F3-B2)
 
 | Routine | Journey |
 | --- | --- |
 | `get_active_captcha` | Login/registration captcha configuration |
-| `check_applicant_name_exists` | Registration duplicate-applicant guard |
+| ~~`check_applicant_name_exists`~~ | **Retired by F3-B2 (2026-08-28).** anon EXECUTE revoked and the pre-auth caller removed — it was an applicant-name enumeration oracle (GAP-F3-14). Removed from `scripts/anon-execute-allowlist.json`; the certified allowlist is now 7 routines. |
 | `check_primary_user_email_exists` | Registration duplicate primary-user guard |
 | `get_declaration_invitation_public` | Token-scoped F&P declaration landing |
 | `verify_declaration_identity` | Token-scoped declaration identity check |

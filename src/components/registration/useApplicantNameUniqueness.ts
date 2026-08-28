@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useMemo } from 'react';
 import type { RegField, RegFormSchema } from '@/types/registrationForm';
 
 export type ApplicantNameStatus = 'idle' | 'checking' | 'available' | 'taken';
@@ -21,39 +20,26 @@ export function resolveApplicantNameField(schema?: RegFormSchema): RegField | nu
 }
 
 /**
- * Debounced uniqueness check for the dynamic Applicant Name field.
- * Returns the current status and the resolved field's name (so callers can
- * display errors against the right key).
+ * Applicant-name field resolution for the public registration form.
+ *
+ * F3-B2: the pre-authentication existence probe was **retired**. It called
+ * `check_applicant_name_exists` from an unauthenticated page, which is an
+ * applicant/entity-name enumeration oracle (GAP-F3-14); anon EXECUTE on that
+ * routine is revoked, so the call could only ever fail. Duplicate and
+ * entity-resolution authority now lives entirely server-side (governed intake
+ * + `registrations` uniqueness/binding rules), and the applicant sees a neutral
+ * message at submission time if the server detects a duplicate or a resolution
+ * requirement.
+ *
+ * The hook remains as the single source of applicant-name field resolution;
+ * `status` is intentionally always `idle` (no client-side existence signal).
  */
 export function useApplicantNameUniqueness(
   schema: RegFormSchema | undefined,
-  data: Record<string, unknown>,
+  _data: Record<string, unknown>,
 ) {
   const field = useMemo(() => resolveApplicantNameField(schema), [schema]);
   const fieldName = field?.fieldName;
-  const value = fieldName ? String(data[fieldName] ?? '').trim() : '';
-  const [status, setStatus] = useState<ApplicantNameStatus>('idle');
-
-  useEffect(() => {
-    if (!fieldName || !value) {
-      setStatus('idle');
-      return;
-    }
-    setStatus('checking');
-    const timer = setTimeout(async () => {
-      try {
-        const { data: exists, error } = await supabase.rpc(
-          'check_applicant_name_exists' as any,
-          { p_name: value },
-        );
-        if (error) { setStatus('idle'); return; }
-        setStatus(exists === true ? 'taken' : 'available');
-      } catch {
-        setStatus('idle');
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [fieldName, value]);
-
-  return { status, fieldName, field, value };
+  const status: ApplicantNameStatus = 'idle';
+  return { status, fieldName, field, value: '' };
 }
