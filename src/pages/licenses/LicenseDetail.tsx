@@ -512,6 +512,9 @@ export default function LicenseDetail() {
         data: {
           ...(renewalLicenseeId ? { licensee_id: renewalLicenseeId } : {}),
           type: 'post_license',
+          // F5-B2 delta: bind the renewal to its licence so server-side intake
+          // classifies it as a genuine post-licence (F5) filing.
+          license_id: license.id,
           sector_id: license.sector_id,
           sub_sector_id: license.sub_sector_id,
           category_id: license.category_id,
