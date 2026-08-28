@@ -621,7 +621,7 @@ BEGIN
   PERFORM pg_temp.rec('D','D-09','final approval written to the audit trail', v_n >= 1, 'audit=' || v_n);
 
   SELECT count(*) INTO v_n FROM public.notifications
-   WHERE related_entity_id = v_full::text AND title ILIKE 'Application Approved%';
+   WHERE entity_id = v_full::text AND title ILIKE 'Application Approved%';
   PERFORM pg_temp.rec('D','D-10','applicant notified of the decision', v_n >= 1, 'notifications=' || v_n);
 
   -- retry / repeated final approval
@@ -789,7 +789,7 @@ BEGIN
    WHERE entity_id = v_app::text AND action='application_withdrawn';
   PERFORM pg_temp.rec('F','F-06','withdrawal written to the audit trail', v_n >= 1, 'audit=' || v_n);
 
-  SELECT count(*) INTO v_n FROM public.notifications WHERE related_entity_id = v_app::text
+  SELECT count(*) INTO v_n FROM public.notifications WHERE entity_id = v_app::text
      AND title ILIKE 'Application Withdrawn%';
   PERFORM pg_temp.rec('F','F-07','applicant notified of the withdrawal', v_n >= 1, 'notifications=' || v_n);
 

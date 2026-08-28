@@ -83,8 +83,8 @@ Deno.serve(async (req) => {
           entity_type: 'fp_assessment',
           entity_id: created.id,
           action: 'fp.assessment.cycle.opened',
-          module: 'fit_and_proper',
-          new_values: { role_id: r.id, individual_id: r.individual_id, cycle_months: cycleMonths },
+          new_value: { role_id: r.id, individual_id: r.individual_id, cycle_months: cycleMonths },
+          metadata: { module: 'fit_and_proper' },
         });
 
         // Fire a notification so assessors know a cycle-triggered assessment was opened.

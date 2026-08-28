@@ -58,21 +58,30 @@ Deno.serve(async (req) => {
     try {
       if (row.channel === "in_app") {
         if (!row.recipient_user_id) throw new Error("in_app_row_missing_user");
+        // Canonical `public.notifications` write contract: entity_type / entity_id
+        // (text). `dedupe_key` is keyed on the outbox row so a repeated worker
+        // invocation of the same row can never create a duplicate notification.
         const { error: insErr } = await admin.from("notifications").insert({
           user_id: row.recipient_user_id,
           title: row.subject || row.event_key,
           message: row.body || "",
           type: "system",
-          related_entity_type: row.entity_type,
-          related_entity_id: row.entity_id,
+          channel: "in_app",
+          entity_type: row.entity_type ?? null,
+          entity_id: row.entity_id ? String(row.entity_id) : null,
+          event_key: row.event_key,
+          correlation_id: row.correlation_id ?? null,
+          dedupe_key: `outbox:${row.id}`,
           metadata: {
             event_key: row.event_key,
             correlation_id: row.correlation_id,
             action_history_id: row.action_history_id,
+            outbox_id: row.id,
             ...(row.payload || {}),
           },
         });
-        if (insErr) throw insErr;
+        // Idempotent: the dedupe unique index means the notification already exists.
+        if (insErr && (insErr as any).code !== "23505") throw insErr;
       } else if (row.channel === "email") {
         const dispatchRes = await admin.functions.invoke("dispatch-notification-event", {
           body: {

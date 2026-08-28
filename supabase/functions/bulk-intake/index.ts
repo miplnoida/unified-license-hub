@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
       entity_type: "application",
       entity_id: null,
       user_id: originatorId,
-      new_values: { workflow_type: workflowTypeKey, created, total: rows.length },
+      new_value: { workflow_type: workflowTypeKey, created, total: rows.length },
     });
 
     return json({ created, total: rows.length, rows: results });
