@@ -206,18 +206,33 @@ BEGIN
   PERFORM pg_temp.rec('S1','C-15','duplicate configuration is rejected by the writer',
     _txt LIKE 'ERR%', _txt);
 
-  -- C-16 audit trail is append-only for signed-in users. RLS exposes no row to
-  -- an UPDATE/DELETE, so the statement is a no-op rather than an error; the
-  -- append-only trigger is the second line of defence (proved by C-19).
+  -- C-16 audit trail is append-only for signed-in users. The privilege itself is
+  -- revoked (not merely filtered by RLS), and the append-only trigger is the
+  -- second line of defence (proved by C-19).
   SELECT count(*) INTO _n FROM public.config_change_log WHERE table_name = 'complaint_types';
   _res := pg_temp.as_user(_sa, $q$ UPDATE public.config_change_log SET reason = 'tampered' $q$);
   PERFORM pg_temp.rec('S1','C-16','configuration audit log cannot be rewritten by a signed-in user',
-    NOT EXISTS (SELECT 1 FROM public.config_change_log WHERE reason = 'tampered'),
-    'statement=' || _res || ' tampered rows=0');
+    _res LIKE '42501%' AND NOT EXISTS (SELECT 1 FROM public.config_change_log WHERE reason = 'tampered'),
+    'statement=' || _res);
   _res := pg_temp.as_user(_sa, $q$ DELETE FROM public.config_change_log $q$);
   PERFORM pg_temp.rec('S1','C-17','configuration audit log cannot be erased by a signed-in user',
-    (SELECT count(*) FROM public.config_change_log WHERE table_name = 'complaint_types') = _n,
+    _res LIKE '42501%'
+    AND (SELECT count(*) FROM public.config_change_log WHERE table_name = 'complaint_types') = _n,
     'statement=' || _res || ' surviving entries=' || _n);
+
+  -- C-20 DEF-F1-C-01: expectations are governed-writer only, denied by privilege
+  _res := pg_temp.as_user(_sa,
+    $q$ UPDATE public.service_config_expectations SET updated_at = now() $q$);
+  PERFORM pg_temp.rec('S1','C-20','direct UPDATE on service expectations is revoked by privilege',
+    _res LIKE '42501%', _res);
+  _res := pg_temp.as_user(_sa, $q$ DELETE FROM public.service_config_expectations $q$);
+  PERFORM pg_temp.rec('S1','C-21','direct DELETE on service expectations is revoked by privilege',
+    _res LIKE '42501%', _res);
+  _res := pg_temp.as_user(_sa,
+    $q$ INSERT INTO public.config_change_log(table_name, record_id, action)
+        VALUES ('sectors', gen_random_uuid(), 'CREATE') $q$);
+  PERFORM pg_temp.rec('S1','C-22','signed-in users cannot forge audit entries directly',
+    _res LIKE '42501%', _res);
   BEGIN
     UPDATE public.config_change_log SET reason = 'tampered' WHERE record_id = _id;
     _res := 'NOT BLOCKED';
@@ -379,6 +394,18 @@ BEGIN
   -- `config_change_log` is append-only by design (proved by C-16/C-17).
   SELECT count(*) INTO _n FROM public.decision_authority_rules WHERE decision_type LIKE 'f1c_certification%';
   PERFORM pg_temp.rec('S3','D-15','temporary certification authority rule rolled back', _n = 0, 'remaining=' || _n);
+
+  -- D-18 canonical status vocabulary is 'active' / 'retired' end to end
+  SELECT count(*) INTO _n FROM pg_constraint
+   WHERE conrelid = 'public.decision_authority_rules'::regclass
+     AND conname = 'decision_authority_rules_status_chk'
+     AND pg_get_constraintdef(oid) ILIKE '%''active''%'
+     AND pg_get_constraintdef(oid) ILIKE '%''retired''%';
+  PERFORM pg_temp.rec('S3','D-18','the status constraint uses the canonical active/retired vocabulary',
+    _n = 1, 'matching constraints=' || _n);
+  SELECT count(*) INTO _n FROM public.decision_authority_rules
+   WHERE status NOT IN ('active','retired');
+  PERFORM pg_temp.rec('S3','D-19','no rule holds a legacy status value', _n = 0, 'legacy rows=' || _n);
 
   -- D-16 no invented production regulator policy: nothing is ENFORCED
   SELECT count(*) INTO _n FROM public.decision_authority_rules
