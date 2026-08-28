@@ -54,6 +54,13 @@ DECLARE
   v_licensee_id uuid;
   v_action_count int; v_action_count2 int;
 
+  -- F4 readiness fixture (registration handoff / forms / fit & proper)
+  v_reg_id uuid;
+  v_fp_individual uuid;
+  v_fp_assessment uuid;
+  v_tpl_id uuid; v_tpl_version uuid;
+
+
   -- License/licensee bookkeeping
   v_lic_count_before int; v_lic_count_after int;
   v_seat_count_before int; v_seat_count_after int;
