@@ -74,91 +74,108 @@ END $$;
 -- SECTION A — governed surface exists with the expected security contract
 -- ===========================================================================
 DO $a$
-DECLARE _n int; _detail text;
+DECLARE _n int; _fn text; _detail text; _total int := 0; _anon int := 0; _auth int := 0;
 BEGIN
-  -- A-01/02/03 the three canonical routines exist, definer, search_path pinned
-  FOR _detail IN
+  FOR _fn IN
     SELECT x FROM (VALUES
       ('service_license_compatible'),
       ('resolve_post_license_intake_context'),
-      ('can_submit_application')) t(x)
+      ('can_submit_application'),
+      ('post_license_service_applicability'),
+      ('is_post_license_filing')) t(x)
   LOOP
     SELECT count(*) INTO _n
       FROM pg_proc p
      WHERE p.pronamespace = 'public'::regnamespace
-       AND p.proname = _detail
+       AND p.proname = _fn
        AND p.prosecdef
        AND array_to_string(coalesce(p.proconfig,'{}'), ',') ILIKE '%search_path%';
-    PERFORM pg_temp.rec('A','A-' || _detail,
-      'public.' || _detail || ' exists as SECURITY DEFINER with a pinned search_path',
+    PERFORM pg_temp.rec('A','A-' || _fn,
+      'public.' || _fn || ' exists as SECURITY DEFINER with a pinned search_path',
       _n = 1, 'matches=' || _n);
   END LOOP;
 
-  -- A-04 no browser-facing routine is executable by unauthenticated visitors
-  SELECT count(*), coalesce(string_agg(t.fn, ', '), 'none') INTO _n, _detail
-    FROM (VALUES ('public.service_license_compatible(uuid,uuid)'),
-                 ('public.resolve_post_license_intake_context(uuid,uuid)'),
-                 ('public.can_submit_application(uuid)')) t(fn)
-   WHERE has_function_privilege('anon', t.fn, 'EXECUTE');
-  PERFORM pg_temp.rec('A','A-04','anon cannot execute the F5-B2 intake routines',
-    _n = 0, 'anon-executable=' || _n || ' [' || _detail || ']');
+  -- the canonical F5 stage vocabulary is exactly post_license + renewal
+  PERFORM pg_temp.rec('A','A-stages',
+    'the supported F5 lifecycle stages are exactly post_license and renewal',
+    (SELECT public.post_license_service_stages()) @> ARRAY['post_license','renewal']
+    AND array_length(public.post_license_service_stages(),1) = 2,
+    'stages=' || array_to_string(public.post_license_service_stages(), ','));
 
-  -- A-05 signed-in users can execute them (the app depends on it)
-  SELECT count(*) INTO _n
-    FROM (VALUES ('public.service_license_compatible(uuid,uuid)'),
-                 ('public.resolve_post_license_intake_context(uuid,uuid)'),
-                 ('public.can_submit_application(uuid)')) t(fn)
-   WHERE has_function_privilege('authenticated', t.fn, 'EXECUTE');
+  FOR _fn IN
+    SELECT x FROM (VALUES
+      ('public.service_license_compatible(uuid,uuid)'),
+      ('public.resolve_post_license_intake_context(uuid,uuid)'),
+      ('public.can_submit_application(uuid)'),
+      ('public.post_license_service_applicability(uuid,uuid)'),
+      ('public.is_post_license_filing(uuid,uuid)')) t(x)
+  LOOP
+    _total := _total + 1;
+    IF has_function_privilege('anon', _fn, 'EXECUTE') THEN _anon := _anon + 1; END IF;
+    IF has_function_privilege('authenticated', _fn, 'EXECUTE') THEN _auth := _auth + 1; END IF;
+  END LOOP;
+
+  PERFORM pg_temp.rec('A','A-04','anon cannot execute the F5-B2 intake routines',
+    _anon = 0, 'anon-executable=' || _anon || '/' || _total);
   PERFORM pg_temp.rec('A','A-05','authenticated can execute the F5-B2 intake routines',
-    _n = 3, 'executable=' || _n || '/3');
+    _auth = _total, 'executable=' || _auth || '/' || _total);
 END $a$;
 
 -- ===========================================================================
--- SECTION B — source contract of the two governed intake RPCs
+-- SECTION B — source contract of the governed intake RPCs
 -- ===========================================================================
 DO $b$
-DECLARE _src text; _ok boolean;
+DECLARE _src text; _sub text; _can text; _ok boolean;
 BEGIN
   SELECT pg_get_functiondef(oid) INTO _src FROM pg_proc
    WHERE pronamespace='public'::regnamespace AND proname='submit_application';
+  SELECT pg_get_functiondef(oid) INTO _can FROM pg_proc
+   WHERE pronamespace='public'::regnamespace AND proname='can_submit_application';
+  SELECT pg_get_functiondef(oid) INTO _sub FROM pg_proc
+   WHERE pronamespace='public'::regnamespace AND proname='create_application_draft';
 
   -- B-01 GAP-F5-02: creator-only blocker removed
   _ok := _src NOT ILIKE '%You do not own this application%';
   PERFORM pg_temp.rec('B','B-01','submit_application no longer refuses non-creators outright',
     _ok, CASE WHEN _ok THEN 'creator-only refusal absent' ELSE 'creator-only refusal still present' END);
 
-  -- B-02 GAP-F5-02: authority derived from entity membership capability
-  _ok := _src ILIKE '%entity_membership_capability%';
-  PERFORM pg_temp.rec('B','B-02','submit_application derives authority from entity `submit` capability',
-    _ok, CASE WHEN _ok THEN 'capability check present' ELSE 'capability check missing' END);
+  -- B-02 GAP-F5-02: authority delegated through the governed predicate, which
+  --      itself derives authority from the entity `submit` capability
+  _ok := _src ILIKE '%can_submit_application%'
+         AND _can ILIKE '%entity_membership_capability%';
+  PERFORM pg_temp.rec('B','B-02','submit_application derives authority from the governed entity `submit` capability predicate',
+    _ok, 'submit->predicate=' || (_src ILIKE '%can_submit_application%')::text
+         || ' predicate->capability=' || (_can ILIKE '%entity_membership_capability%')::text);
+
+  -- B-02b F5-B2 DELTA: delegation is gated on canonical F5 classification
+  _ok := _can ILIKE '%is_post_license_filing%';
+  PERFORM pg_temp.rec('B','B-02b','can_submit_application gates delegation on canonical F5 classification',
+    _ok, CASE WHEN _ok THEN 'classification gate present' ELSE 'classification gate missing' END);
 
   -- B-03 GAP-F5-01: taxonomy re-derived from the licence at submission
   _ok := _src ILIKE '%resolve_post_license_intake_context%';
   PERFORM pg_temp.rec('B','B-03','submit_application re-derives taxonomy from the licence',
     _ok, CASE WHEN _ok THEN 'canonical resolver used' ELSE 'canonical resolver missing' END);
 
-  -- B-04 GAP-F5-15: compatibility enforced server-side at submission
-  _ok := _src ILIKE '%service_license_compatible%';
-  PERFORM pg_temp.rec('B','B-04','submit_application enforces service<->licence compatibility',
-    _ok, CASE WHEN _ok THEN 'compatibility gate present' ELSE 'compatibility gate missing' END);
+  -- B-04 GAP-F5-15: applicability enforced server-side at submission
+  _ok := _src ILIKE '%post_license_service_applicability%';
+  PERFORM pg_temp.rec('B','B-04','submit_application enforces the F5 service applicability predicate',
+    _ok, CASE WHEN _ok THEN 'applicability gate present' ELSE 'applicability gate missing' END);
 
   -- B-05 audit trail records the submitting authority
   _ok := _src ILIKE '%submission_authority%';
   PERFORM pg_temp.rec('B','B-05','submit_application records submitting authority in the audit trail',
     _ok, CASE WHEN _ok THEN 'submission_authority recorded' ELSE 'submission_authority missing' END);
 
-  SELECT pg_get_functiondef(oid) INTO _src FROM pg_proc
-   WHERE pronamespace='public'::regnamespace AND proname='create_application_draft';
-
   -- B-06 GAP-F5-01 at intake
-  _ok := _src ILIKE '%resolve_post_license_intake_context%';
+  _ok := _sub ILIKE '%resolve_post_license_intake_context%';
   PERFORM pg_temp.rec('B','B-06','create_application_draft binds taxonomy from the licence',
     _ok, CASE WHEN _ok THEN 'canonical resolver used' ELSE 'canonical resolver missing' END);
 
   -- B-07 GAP-F5-15 at intake
-  _ok := _src ILIKE '%service_license_compatible%';
-  PERFORM pg_temp.rec('B','B-07','create_application_draft enforces service<->licence compatibility',
-    _ok, CASE WHEN _ok THEN 'compatibility gate present' ELSE 'compatibility gate missing' END);
+  _ok := _sub ILIKE '%post_license_service_applicability%';
+  PERFORM pg_temp.rec('B','B-07','create_application_draft enforces the F5 service applicability predicate',
+    _ok, CASE WHEN _ok THEN 'applicability gate present' ELSE 'applicability gate missing' END);
 END $b$;
 
 -- ===========================================================================
@@ -178,7 +195,8 @@ BEGIN
      LIMIT 5
   LOOP
     SELECT s.id INTO _same FROM public.services s
-     WHERE s.sub_sector_id = _lic.sub_sector_id AND s.status = 'active' LIMIT 1;
+     WHERE s.sub_sector_id = _lic.sub_sector_id AND s.status = 'active'
+       AND lower(s.lifecycle_stage) = ANY (public.post_license_service_stages()) LIMIT 1;
     SELECT s.id INTO _other FROM public.services s
      WHERE s.sub_sector_id IS DISTINCT FROM _lic.sub_sector_id AND s.status = 'active' LIMIT 1;
 
@@ -194,35 +212,49 @@ BEGIN
     END IF;
   END LOOP;
 
-  PERFORM pg_temp.rec('C','C-01','in-scope services are compatible with their licence',
+  PERFORM pg_temp.rec('C','C-01','in-scope genuine F5 services are compatible with their licence',
     _tested > 0 AND _ok_ct = _tested, 'licences=' || _tested || ' compatible=' || _ok_ct);
-  PERFORM pg_temp.rec('C','C-02','out-of-scope services are refused for every sampled licence',
+  PERFORM pg_temp.rec('C','C-02','different-sub-sector services are refused for every sampled licence',
     _bad = '', coalesce(nullif(_bad,''), 'no violations'));
 
   -- C-03 null / unknown arguments are refused, never defaulted to allow
-  PERFORM pg_temp.rec('C','C-03','null and unknown identifiers are refused',
+  PERFORM pg_temp.rec('C','C-03','null and unknown identifiers are refused (fail closed)',
     public.service_license_compatible(NULL, NULL) = false
-    AND public.service_license_compatible(gen_random_uuid(), gen_random_uuid()) = false,
+    AND public.service_license_compatible(gen_random_uuid(), gen_random_uuid()) = false
+    AND public.is_post_license_filing(NULL, NULL) = false,
     'null=' || public.service_license_compatible(NULL, NULL)::text
     || ' unknown=' || public.service_license_compatible(gen_random_uuid(), gen_random_uuid())::text);
+
+  -- C-04 governed codes distinguish a missing licence from a missing service
+  PERFORM pg_temp.rec('C','C-04','governed applicability codes are stable for missing bindings',
+    public.post_license_service_applicability(NULL, NULL) = 'LICENSE_REQUIRED'
+    AND public.post_license_service_applicability(NULL, gen_random_uuid()) = 'LICENSE_NOT_FOUND',
+    'null/null=' || public.post_license_service_applicability(NULL, NULL)
+    || ' null/unknown=' || public.post_license_service_applicability(NULL, gen_random_uuid()));
 END $c$;
 
 -- ===========================================================================
--- SECTION D — empirical delegated submission authority (GAP-F5-02)
--- Rollback-safe: all fixtures created inside a savepoint that is released.
+-- SECTION D — empirical submission authority (GAP-F5-02) + F5-B2 DELTA
+-- Proves delegated authority is an F5 capability and does NOT reach F4 initial
+-- licensing. Rollback-safe: fixtures live in an implicit savepoint that is
+-- always discarded.
 -- ===========================================================================
 DO $d$
 DECLARE
   _lic public.licenses;
+  _svc uuid;
   _owner uuid;
   _delegate uuid;
   _viewer uuid;
-  _app_id uuid;
+  _foreign uuid;
+  _other_entity uuid;
+  _f5_app uuid;
+  _f4_app uuid;
   _filing_role uuid;
   _viewer_role uuid;
-  _res text;
-  _r_owner boolean; _r_delegate boolean; _r_viewer boolean;
-  _c_viewer text; _c_delegate text;
+  _r_owner boolean; _r_delegate boolean; _r_viewer boolean; _r_foreign boolean;
+  _r_f4_owner boolean; _r_f4_delegate boolean;
+  _c_viewer text; _c_delegate text; _c_f4_delegate text; _c_foreign text;
   _harness text := NULL;
 BEGIN
   -- the membership table is keyed on public.licensees, so only a licence whose
@@ -230,7 +262,14 @@ BEGIN
   SELECT l.* INTO _lic FROM public.licenses l
    WHERE l.sub_sector_id IS NOT NULL
      AND EXISTS (SELECT 1 FROM public.licensees x WHERE x.id = l.holder_id)
+     AND EXISTS (SELECT 1 FROM public.services s
+                  WHERE s.sub_sector_id = l.sub_sector_id AND s.status='active'
+                    AND lower(s.lifecycle_stage) = ANY (public.post_license_service_stages()))
    ORDER BY l.issued_at DESC LIMIT 1;
+
+  SELECT s.id INTO _svc FROM public.services s
+   WHERE s.sub_sector_id = _lic.sub_sector_id AND s.status='active'
+     AND lower(s.lifecycle_stage) = ANY (public.post_license_service_stages()) LIMIT 1;
 
   SELECT id INTO _filing_role FROM public.entity_membership_roles WHERE key = 'FILING_USER';
   SELECT id INTO _viewer_role FROM public.entity_membership_roles WHERE key = 'VIEWER';
@@ -239,40 +278,62 @@ BEGIN
   SELECT p.id INTO _delegate FROM public.profiles p WHERE p.id <> _owner ORDER BY p.created_at LIMIT 1;
   SELECT p.id INTO _viewer FROM public.profiles p
    WHERE p.id NOT IN (_owner, _delegate) ORDER BY p.created_at LIMIT 1;
+  SELECT p.id INTO _foreign FROM public.profiles p
+   WHERE p.id NOT IN (_owner, _delegate, _viewer) ORDER BY p.created_at LIMIT 1;
+  SELECT x.id INTO _other_entity FROM public.licensees x
+   WHERE x.id <> _lic.holder_id AND x.merged_into_entity_id IS NULL LIMIT 1;
 
-  IF _lic.id IS NULL OR _filing_role IS NULL OR _viewer_role IS NULL
-     OR _owner IS NULL OR _delegate IS NULL OR _viewer IS NULL THEN
-    PERFORM pg_temp.rec('D','D-00','fixtures available for the delegated-authority proof',
+  IF _lic.id IS NULL OR _svc IS NULL OR _filing_role IS NULL OR _viewer_role IS NULL
+     OR _owner IS NULL OR _delegate IS NULL OR _viewer IS NULL OR _foreign IS NULL
+     OR _other_entity IS NULL THEN
+    PERFORM pg_temp.rec('D','D-00','fixtures available for the authority proof',
       false, 'insufficient fixtures in the live estate');
     RETURN;
   END IF;
 
   BEGIN
-    -- implicit savepoint: every fixture below is discarded by the raise at the end
     INSERT INTO public.entity_user_memberships
       (user_id, entity_id, membership_role_id, status, approved_at, effective_from,
        authority_evidence_reference)
-    VALUES (_delegate, _lic.holder_id, _filing_role, 'APPROVED', now(), now(), 'F5-B2 probe'),
-           (_viewer,   _lic.holder_id, _viewer_role, 'APPROVED', now(), now(), 'F5-B2 probe');
+    VALUES (_delegate, _lic.holder_id,  _filing_role, 'APPROVED', now(), now(), 'F5-B2 probe'),
+           (_viewer,   _lic.holder_id,  _viewer_role, 'APPROVED', now(), now(), 'F5-B2 probe'),
+           (_foreign,  _other_entity,   _filing_role, 'APPROVED', now(), now(), 'F5-B2 probe');
 
+    -- genuine F5 filing: licence bound + applicable F5 service
     INSERT INTO public.applications (applicant_id, license_type, status, data, entity_id, regulator_id)
-    VALUES (_owner, 'F5-B2 probe', 'draft',
+    VALUES (_owner, 'F5-B2 probe f5', 'draft',
             jsonb_build_object('type','post_license','license_id', _lic.id,
-                               'licensee_id', _lic.holder_id),
+                               'service_id', _svc, 'licensee_id', _lic.holder_id),
             _lic.holder_id, _lic.regulator_id)
-    RETURNING id INTO _app_id;
+    RETURNING id INTO _f5_app;
 
-    _r_owner    := pg_temp.bool_as_user(_owner,    format('public.can_submit_application(%L)', _app_id));
-    _r_delegate := pg_temp.bool_as_user(_delegate, format('public.can_submit_application(%L)', _app_id));
-    _r_viewer   := pg_temp.bool_as_user(_viewer,   format('public.can_submit_application(%L)', _app_id));
+    -- F4 initial licensing filing: no licence, no service
+    INSERT INTO public.applications (applicant_id, license_type, status, data, entity_id, regulator_id)
+    VALUES (_owner, 'F5-B2 probe f4', 'draft',
+            jsonb_build_object('sector_id', _lic.sector_id, 'sub_sector_id', _lic.sub_sector_id),
+            _lic.holder_id, _lic.regulator_id)
+    RETURNING id INTO _f4_app;
+
+    _r_owner    := pg_temp.bool_as_user(_owner,    format('public.can_submit_application(%L)', _f5_app));
+    _r_delegate := pg_temp.bool_as_user(_delegate, format('public.can_submit_application(%L)', _f5_app));
+    _r_viewer   := pg_temp.bool_as_user(_viewer,   format('public.can_submit_application(%L)', _f5_app));
+    _r_foreign  := pg_temp.bool_as_user(_foreign,  format('public.can_submit_application(%L)', _f5_app));
+
+    _r_f4_owner    := pg_temp.bool_as_user(_owner,    format('public.can_submit_application(%L)', _f4_app));
+    _r_f4_delegate := pg_temp.bool_as_user(_delegate, format('public.can_submit_application(%L)', _f4_app));
 
     PERFORM set_config('request.jwt.claims',
       json_build_object('sub', _viewer::text, 'role','authenticated')::text, true);
-    SELECT (public.submit_application(_app_id)->>'code') INTO _c_viewer;
+    SELECT (public.submit_application(_f5_app)->>'code') INTO _c_viewer;
+
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub', _foreign::text, 'role','authenticated')::text, true);
+    SELECT (public.submit_application(_f5_app)->>'code') INTO _c_foreign;
 
     PERFORM set_config('request.jwt.claims',
       json_build_object('sub', _delegate::text, 'role','authenticated')::text, true);
-    SELECT (public.submit_application(_app_id)->>'code') INTO _c_delegate;
+    SELECT (public.submit_application(_f5_app)->>'code') INTO _c_delegate;
+    SELECT (public.submit_application(_f4_app)->>'code') INTO _c_f4_delegate;
     PERFORM set_config('request.jwt.claims', '{}', true);
 
     RAISE EXCEPTION 'F5B2_ROLLBACK';
@@ -284,25 +345,38 @@ BEGIN
   END;
 
   IF _harness IS NOT NULL THEN
-    PERFORM pg_temp.rec('D','D-99','delegated-authority probe executed without harness error',
+    PERFORM pg_temp.rec('D','D-99','authority probe executed without harness error',
       false, _harness);
     RETURN;
   END IF;
 
-  PERFORM pg_temp.rec('D','D-01','the filing creator may submit',
+  PERFORM pg_temp.rec('D','D-01','F5: the filing creator may submit',
     _r_owner IS TRUE, 'creator=' || coalesce(_r_owner::text,'null'));
-  PERFORM pg_temp.rec('D','D-02','an approved entity delegate with the submit capability may submit',
+  PERFORM pg_temp.rec('D','D-02','F5: an approved same-entity delegate with the submit capability may submit',
     _r_delegate IS TRUE, 'delegate=' || coalesce(_r_delegate::text,'null'));
-  PERFORM pg_temp.rec('D','D-03','a view-only entity member may not submit',
+  PERFORM pg_temp.rec('D','D-03','F5: a same-entity view-only member may not submit',
     _r_viewer IS FALSE, 'viewer=' || coalesce(_r_viewer::text,'null'));
-  PERFORM pg_temp.rec('D','D-04','submit_application refuses a view-only entity member',
+  PERFORM pg_temp.rec('D','D-04','F5: submit_application refuses a view-only entity member',
     _c_viewer = 'FORBIDDEN', 'code=' || coalesce(_c_viewer,'null'));
-  PERFORM pg_temp.rec('D','D-05','the entity delegate clears the authority gate (blocked only by later controls)',
+  PERFORM pg_temp.rec('D','D-05','F5: the delegate clears the authority gate (blocked only by later controls)',
     coalesce(_c_delegate,'') <> 'FORBIDDEN', 'code=' || coalesce(_c_delegate,'success'));
+  PERFORM pg_temp.rec('D','D-06','F5: a cross-entity delegate is denied',
+    _r_foreign IS FALSE AND _c_foreign = 'FORBIDDEN',
+    'predicate=' || coalesce(_r_foreign::text,'null') || ' code=' || coalesce(_c_foreign,'null'));
+
+  -- PERMANENT F4 NON-REGRESSION ASSERTION.
+  -- F5 delegated submission authority MUST NOT apply to F4 initial licensing.
+  -- This is asserted here directly and is not inferred from certify:f3c or
+  -- verify:f4b passing.
+  PERFORM pg_temp.rec('D','D-07','F4 NON-REGRESSION: the original applicant of an initial application may still submit',
+    _r_f4_owner IS TRUE, 'applicant=' || coalesce(_r_f4_owner::text,'null'));
+  PERFORM pg_temp.rec('D','D-08','F4 NON-REGRESSION: a submit-capable same-entity delegate may NOT submit an initial (F4) application',
+    _r_f4_delegate IS FALSE AND _c_f4_delegate = 'FORBIDDEN',
+    'predicate=' || coalesce(_r_f4_delegate::text,'null') || ' code=' || coalesce(_c_f4_delegate,'null'));
 END $d$;
 
 -- ===========================================================================
--- SECTION E — empirical canonical taxonomy binding at intake (GAP-F5-01)
+-- SECTION E — empirical canonical taxonomy binding + classification hardening
 -- ===========================================================================
 DO $e$
 DECLARE
@@ -310,10 +384,20 @@ DECLARE
   _member uuid;
   _svc uuid;
   _bad_svc uuid;
+  _pre_svc uuid;
+  _inactive_svc uuid;
+  _retired_svc uuid;
+  _wrong_reg_svc uuid;
+  _other_reg uuid;
   _app public.applications;
   _stored jsonb;
   _res_incompat text;
   _res_mismatch text;
+  _res_prelicence text;
+  _res_no_service text;
+  _res_forged text;
+  _draft_count int;
+  _app_pre text; _app_inactive text; _app_retired text; _app_wrong_reg text; _app_other_sub text;
   _harness text := NULL;
 BEGIN
   SELECT l.* INTO _lic
@@ -322,12 +406,13 @@ BEGIN
    WHERE l.sub_sector_id IS NOT NULL
      AND lower(l.status) = 'active'
      AND EXISTS (SELECT 1 FROM public.services s
-                  WHERE s.sub_sector_id = l.sub_sector_id AND s.status='active')
+                  WHERE s.sub_sector_id = l.sub_sector_id AND s.status='active'
+                    AND lower(s.lifecycle_stage) = ANY (public.post_license_service_stages()))
    ORDER BY l.issued_at DESC LIMIT 1;
 
   IF _lic.id IS NULL THEN
     PERFORM pg_temp.rec('E','E-00','fixtures available for the canonical-binding proof',
-      false, 'no active licence with an approved member and in-scope services');
+      false, 'no active licence with an approved member and in-scope F5 services');
     RETURN;
   END IF;
 
@@ -335,12 +420,43 @@ BEGIN
    WHERE m.entity_id = _lic.holder_id AND m.status = 'APPROVED' LIMIT 1;
 
   SELECT s.id INTO _svc FROM public.services s
-   WHERE s.sub_sector_id = _lic.sub_sector_id AND s.status='active' LIMIT 1;
+   WHERE s.sub_sector_id = _lic.sub_sector_id AND s.status='active'
+     AND lower(s.lifecycle_stage) = ANY (public.post_license_service_stages()) LIMIT 1;
   SELECT s.id INTO _bad_svc FROM public.services s
-   WHERE s.sub_sector_id IS DISTINCT FROM _lic.sub_sector_id AND s.status='active' LIMIT 1;
+   WHERE s.sub_sector_id IS DISTINCT FROM _lic.sub_sector_id AND s.status='active'
+     AND lower(s.lifecycle_stage) = ANY (public.post_license_service_stages()) LIMIT 1;
+  SELECT r.id INTO _other_reg FROM public.regulators r
+   WHERE r.id IS DISTINCT FROM public._resolve_effective_regulator(
+           _lic.regulator_id, _lic.sector_id, _lic.category_id) LIMIT 1;
 
   BEGIN
-    -- implicit savepoint: role grant, draft and probes are all discarded below
+    -- Synthetic catalogue fixtures, all discarded with the savepoint. Each one
+    -- differs from a genuine F5 service in exactly ONE dimension.
+    INSERT INTO public.services (sector_id, sub_sector_id, name, status, lifecycle_stage, effective_from)
+    VALUES (_lic.sector_id, _lic.sub_sector_id, 'F5-B2 probe pre-licence', 'active', 'pre_license', now())
+    RETURNING id INTO _pre_svc;
+
+    INSERT INTO public.services (sector_id, sub_sector_id, name, status, lifecycle_stage, effective_from)
+    VALUES (_lic.sector_id, _lic.sub_sector_id, 'F5-B2 probe inactive', 'inactive', 'post_license', now())
+    RETURNING id INTO _inactive_svc;
+
+    INSERT INTO public.services (sector_id, sub_sector_id, name, status, lifecycle_stage, effective_from, effective_to)
+    VALUES (_lic.sector_id, _lic.sub_sector_id, 'F5-B2 probe retired', 'active', 'post_license',
+            now() - interval '2 years', now() - interval '1 day')
+    RETURNING id INTO _retired_svc;
+
+    INSERT INTO public.services (sector_id, sub_sector_id, name, status, lifecycle_stage, effective_from, regulator_id)
+    VALUES (_lic.sector_id, _lic.sub_sector_id, 'F5-B2 probe wrong regulator', 'active', 'post_license',
+            now(), _other_reg)
+    RETURNING id INTO _wrong_reg_svc;
+
+    _app_pre       := public.post_license_service_applicability(_pre_svc, _lic.id);
+    _app_inactive  := public.post_license_service_applicability(_inactive_svc, _lic.id);
+    _app_retired   := public.post_license_service_applicability(_retired_svc, _lic.id);
+    _app_wrong_reg := public.post_license_service_applicability(_wrong_reg_svc, _lic.id);
+    _app_other_sub := CASE WHEN _bad_svc IS NULL THEN 'NO_FIXTURE'
+                           ELSE public.post_license_service_applicability(_bad_svc, _lic.id) END;
+
     INSERT INTO public.user_roles (user_id, role)
     VALUES (_member, 'licensee_primary'::public.app_role)
     ON CONFLICT (user_id, role) DO NOTHING;
@@ -360,6 +476,7 @@ BEGIN
       ),
       NULL);
     _stored := _app.data;
+    PERFORM set_config('request.jwt.claims', '{}', true);
 
     IF _bad_svc IS NOT NULL THEN
       _res_incompat := pg_temp.as_user(_member, format(
@@ -371,10 +488,30 @@ BEGIN
     _res_mismatch := pg_temp.as_user(_member, format(
       'SELECT public.create_application_draft(%L, %L::jsonb, NULL)',
       'F5-B2 mismatch probe',
-      jsonb_build_object('type','post_license','license_id', _lic.id,
+      jsonb_build_object('type','post_license','license_id', _lic.id, 'service_id', _svc,
                          'licensee_id', gen_random_uuid())::text));
 
-    PERFORM set_config('request.jwt.claims', '{}', true);
+    -- an arbitrary (non-F5) service id must NOT be able to classify a filing as F5
+    _res_prelicence := pg_temp.as_user(_member, format(
+      'SELECT public.create_application_draft(%L, %L::jsonb, NULL)',
+      'F5-B2 prelicence probe',
+      jsonb_build_object('type','post_license','license_id', _lic.id, 'service_id', _pre_svc)::text));
+
+    -- forged type=post_license with no licence and no service
+    _res_forged := pg_temp.as_user(_member, format(
+      'SELECT public.create_application_draft(%L, %L::jsonb, NULL)',
+      'F5-B2 forged probe',
+      jsonb_build_object('type','post_license')::text));
+
+    -- licence bound but no service
+    _res_no_service := pg_temp.as_user(_member, format(
+      'SELECT public.create_application_draft(%L, %L::jsonb, NULL)',
+      'F5-B2 no-service probe',
+      jsonb_build_object('type','post_license','license_id', _lic.id)::text));
+
+    SELECT count(*) INTO _draft_count FROM public.applications
+     WHERE license_type IN ('F5-B2 prelicence probe','F5-B2 forged probe','F5-B2 no-service probe');
+
     RAISE EXCEPTION 'F5B2_ROLLBACK';
   EXCEPTION WHEN others THEN
     IF SQLERRM <> 'F5B2_ROLLBACK' THEN
@@ -402,12 +539,34 @@ BEGIN
     'entity=' || coalesce(_app.entity_id::text,'null')
     || ' holder=' || coalesce(_lic.holder_id::text,'null'));
 
-  PERFORM pg_temp.rec('E','E-03','an out-of-scope service is refused at draft creation',
+  PERFORM pg_temp.rec('E','E-03','a different-sub-sector F5 service is refused at draft creation',
     _res_incompat ILIKE '%SERVICE_LICENSE_INCOMPATIBLE%',
     'result=' || coalesce(_res_incompat,'no fixture'));
 
   PERFORM pg_temp.rec('E','E-04','a mismatched entity claim is refused at draft creation',
     _res_mismatch ILIKE '%LICENSE_ENTITY_MISMATCH%', 'result=' || coalesce(_res_mismatch,'null'));
+
+  -- F5-B2 DELTA: lifecycle-stage applicability
+  PERFORM pg_temp.rec('E','E-05','a same-sub-sector PRE-LICENCE service is not an F5 service',
+    _app_pre = 'POST_LICENSE_SERVICE_NOT_APPLICABLE', 'code=' || coalesce(_app_pre,'null'));
+  PERFORM pg_temp.rec('E','E-06','an inactive F5 service is not applicable',
+    _app_inactive = 'POST_LICENSE_SERVICE_NOT_APPLICABLE', 'code=' || coalesce(_app_inactive,'null'));
+  PERFORM pg_temp.rec('E','E-07','an effectively retired (expired) F5 service is not applicable',
+    _app_retired = 'POST_LICENSE_SERVICE_NOT_APPLICABLE', 'code=' || coalesce(_app_retired,'null'));
+  PERFORM pg_temp.rec('E','E-08','a wrong-regulator service is incompatible with the licence',
+    _app_wrong_reg = 'SERVICE_LICENSE_INCOMPATIBLE', 'code=' || coalesce(_app_wrong_reg,'null'));
+  PERFORM pg_temp.rec('E','E-09','a different-sub-sector F5 service is incompatible',
+    _app_other_sub = 'SERVICE_LICENSE_INCOMPATIBLE', 'code=' || coalesce(_app_other_sub,'null'));
+
+  PERFORM pg_temp.rec('E','E-10','an arbitrary non-F5 service id cannot classify a filing as F5',
+    _res_prelicence ILIKE '%POST_LICENSE_SERVICE_NOT_APPLICABLE%',
+    'result=' || coalesce(_res_prelicence,'null'));
+  PERFORM pg_temp.rec('E','E-11','a forged type=post_license with no licence or service is denied',
+    _res_forged ILIKE '%LICENSE_REQUIRED%', 'result=' || coalesce(_res_forged,'null'));
+  PERFORM pg_temp.rec('E','E-12','a licence-bound filing with no service is denied',
+    _res_no_service ILIKE '%POST_LICENSE_SERVICE_REQUIRED%', 'result=' || coalesce(_res_no_service,'null'));
+  PERFORM pg_temp.rec('E','E-13','no draft falls through to initial licensing when an F5 claim is refused',
+    _draft_count = 0, 'drafts_created=' || coalesce(_draft_count::text,'null'));
 END $e$;
 
 -- ===========================================================================
@@ -423,6 +582,9 @@ BEGIN
   SELECT count(*) INTO _n FROM public.entity_user_memberships m
    WHERE m.authority_evidence_reference = 'F5-B2 probe';
   PERFORM pg_temp.rec('F','F-02','no probe membership survives the run', _n = 0, 'residue=' || _n);
+
+  SELECT count(*) INTO _n FROM public.services WHERE name LIKE 'F5-B2 probe%';
+  PERFORM pg_temp.rec('F','F-03','no probe catalogue service survives the run', _n = 0, 'residue=' || _n);
 END $f$;
 
 -- ===========================================================================
