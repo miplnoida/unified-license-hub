@@ -19,7 +19,7 @@
     "verify:service-completeness": "psql -v ON_ERROR_STOP=1 -f scripts/verify-service-completeness.sql",
     "verify:f0c": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f0c-certification.sql",
     "verify:f1c": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f1c-certification.sql",
-    "verify:f2b": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f2b-remediation.sql"
+    "verify:f2b": "bash -c 'set -o pipefail; mkdir -p artifacts && psql -v ON_ERROR_STOP=1 -f scripts/verify-f2b-remediation.sql 2>&1 | tee artifacts/verify-f2b-latest.log'"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

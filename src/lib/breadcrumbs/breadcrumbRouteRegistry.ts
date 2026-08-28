@@ -21,6 +21,7 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   { pattern: '/register/entity', label: 'Entity registration', parent: '/register', audience: 'public' },
   { pattern: '/register/applicant', label: 'Applicant registration', parent: '/register', audience: 'public' },
   { pattern: '/register/account', label: 'Account details', parent: '/register', audience: 'public' },
+  { pattern: '/register/authority-pending', label: 'Authority pending', parent: '/register', audience: 'public' },
   { pattern: '/register/legacy', label: 'Legacy registration', parent: '/register', audience: 'public' },
   { pattern: '/forgot-password', label: 'Forgot password', parent: '/login', audience: 'public' },
   { pattern: '/reset-password', label: 'Reset password', parent: '/login', audience: 'public' },

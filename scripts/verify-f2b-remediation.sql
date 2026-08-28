@@ -464,7 +464,7 @@ $s6$;
 -- S7 — CAPABILITY / DATA REGISTERS AND HANDOFF (GAP-F2-09, GAP-F2-10)
 -- ===========================================================================
 DO $s7$
-DECLARE _n int; _detail text; _entity uuid; _res jsonb;
+DECLARE _n int; _m int; _detail text; _entity uuid; _res jsonb;
 BEGIN
   SELECT count(*) INTO _n FROM public.identity_capability_register;
   PERFORM pg_temp.rec('S7','G-01','every identity capability is classified as wired, backlog or demoted', _n >= 7, 'classified=' || _n);
@@ -482,15 +482,22 @@ BEGIN
   SELECT count(*) INTO _n FROM public.identity_data_remediation_register;
   PERFORM pg_temp.rec('S7','G-04','known identity data issues are recorded with an owner note', _n >= 2, 'findings=' || _n);
 
-  -- Register counts must still reflect live data (no stale evidence).
+  -- Register counts must still reflect live data (no stale evidence). This is an
+  -- intentional live-data integrity assertion, so the live count and the recorded
+  -- count are read in ONE statement: comparing them across two statements left a
+  -- race window against concurrent application writes (DEF-F2-C-02).
   -- Excludes the rolled-back convergence probe row created in S2.
-  SELECT count(*) INTO _n FROM public.licensees l
-   WHERE l.name NOT LIKE 'F2B CONVERGENCE PROBE %'
-     AND NOT EXISTS (SELECT 1 FROM public.entity_user_memberships m WHERE m.entity_id=l.id)
-     AND NOT EXISTS (SELECT 1 FROM public.entity_user_access a WHERE a.entity_id=l.id);
+  SELECT live, recorded INTO _n, _m FROM (
+    SELECT (SELECT count(*) FROM public.licensees l
+             WHERE l.name NOT LIKE 'F2B CONVERGENCE PROBE %'
+               AND NOT EXISTS (SELECT 1 FROM public.entity_user_memberships m WHERE m.entity_id=l.id)
+               AND NOT EXISTS (SELECT 1 FROM public.entity_user_access a WHERE a.entity_id=l.id)) AS live,
+           (SELECT observed_count FROM public.identity_data_remediation_register
+             WHERE finding_key='ENTITY_WITHOUT_OWNING_HUMAN') AS recorded
+  ) s;
   PERFORM pg_temp.rec('S7','G-05','the recorded entities-without-an-owning-human count matches live data',
-    _n = (SELECT observed_count FROM public.identity_data_remediation_register WHERE finding_key='ENTITY_WITHOUT_OWNING_HUMAN'),
-    'live=' || _n);
+    _n = _m, 'live=' || _n || ' recorded=' || coalesce(_m::text,'<not recorded>'));
+
 
   SELECT count(*) INTO _n FROM pg_proc p JOIN pg_namespace ns ON ns.oid=p.pronamespace AND ns.nspname='public'
    WHERE p.proname='onboarding_registration_handoff_ready';
@@ -528,16 +535,25 @@ SELECT stage, id, descr,
 FROM f2b_results ORDER BY seq;
 
 DO $sum$
-DECLARE _p int; _f int; _n int;
+DECLARE _p int; _f int; _n int; _r record;
 BEGIN
   SELECT count(*) FILTER (WHERE passed), count(*) FILTER (WHERE passed IS FALSE), count(*) FILTER (WHERE passed IS NULL)
     INTO _p, _f, _n FROM f2b_results;
+  -- Every failure is named in the summary output so any run (including a
+  -- non-reproducible one) identifies the exact assertion (DEF-F2-C-02).
+  FOR _r IN SELECT stage, id, descr, detail FROM f2b_results WHERE passed IS FALSE ORDER BY seq LOOP
+    RAISE WARNING 'F2-B FAILED ASSERTION [% %] % -- %', _r.stage, _r.id, _r.descr, _r.detail;
+  END LOOP;
+  FOR _r IN SELECT stage, id, descr, detail FROM f2b_results WHERE passed IS NULL ORDER BY seq LOOP
+    RAISE WARNING 'F2-B NOT-APPLICABLE ASSERTION [% %] % -- %', _r.stage, _r.id, _r.descr, _r.detail;
+  END LOOP;
   RAISE WARNING 'F2-B EVIDENCE SUMMARY: % TESTED_PASS / % TESTED_FAIL / % N-A', _p, _f, _n;
   IF _f > 0 THEN
     RAISE EXCEPTION 'F2-B remediation gate FAILED: % assertion(s) failed', _f;
   END IF;
 END
 $sum$;
+
 
 -- Probe inserts (S2/S3) are intentionally discarded.
 ROLLBACK;
