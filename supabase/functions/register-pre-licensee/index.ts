@@ -336,18 +336,24 @@ Deno.serve(async (req) => {
     //   EXACT_MATCH    → binds the registration to the existing canonical entity
     //   POSSIBLE_MATCH → governed resolution case, binding pending resolution
     //   NO_MATCH       → governed provisional entity, binding provisional
-    try {
-      const { data: resolveData, error: resolveError } = await supabaseAdmin.rpc(
-        "onboarding_form_first_resolve_service",
-        { _registration_id: regData.id },
-      );
-      if (resolveError) {
-        console.error("FORM_FIRST resolution failed:", resolveError.message);
-      } else {
-        console.log("FORM_FIRST resolution outcome:", JSON.stringify(resolveData));
+    // Retried once: an unbound registration is a governance defect
+    // (GAP-F3-18 — mandatory entity binding).
+    let bindingOutcome: unknown = null;
+    for (let attempt = 0; attempt < 2 && !bindingOutcome; attempt++) {
+      try {
+        const { data: resolveData, error: resolveError } = await supabaseAdmin.rpc(
+          "onboarding_form_first_resolve_service",
+          { _registration_id: regData.id },
+        );
+        if (resolveError) {
+          console.error("FORM_FIRST resolution failed:", resolveError.message);
+        } else {
+          bindingOutcome = resolveData ?? null;
+          console.log("FORM_FIRST resolution outcome:", JSON.stringify(resolveData));
+        }
+      } catch (resolveErr) {
+        console.error("FORM_FIRST resolution threw:", resolveErr);
       }
-    } catch (resolveErr) {
-      console.error("FORM_FIRST resolution threw:", resolveErr);
     }
 
     try {
@@ -366,7 +372,12 @@ Deno.serve(async (req) => {
     let categoryName = "";
     let regulatorId: string | null = null;
 
-    // 2b. Create a draft application pre-populated with selected sector/sub-sector/category
+    // Taxonomy labels for notification content only.
+    //
+    // F3 BOUNDARY (GAP-F3-05): registration intake MUST NOT create a licensing
+    // application. The canonical F4 handoff artefact is produced only on final
+    // registration approval, by the governed
+    // `registration_licensing_handoff_ensure` server path.
     try {
       const [{ data: sectorRow }, { data: subSectorRow }, { data: categoryRow }] = await Promise.all([
         supabaseAdmin.from("sectors").select("id,name,regulator_id").eq("id", sector_id).maybeSingle(),
@@ -378,73 +389,12 @@ Deno.serve(async (req) => {
       subSectorName = subSectorRow?.name || "";
       categoryName = categoryRow?.name || "";
       regulatorId = sectorRow?.regulator_id || null;
-      const licenseType = [sectorName, subSectorName, categoryName].filter(Boolean).join(" - ");
-
-      // Match form templates using the same priority logic as NewApplication
-      const { data: publishedTemplates } = await supabaseAdmin
-        .from("form_templates")
-        .select("id, sector_id, sub_sector_id, category_id, status, form_type")
-        .eq("status", "published")
-        .in("form_type", ["pre_license", "application"]);
-
-      let matched: { id: string }[] = [];
-      const all = publishedTemplates || [];
-      const byCat = all.filter(t => t.category_id === category_id);
-      if (byCat.length) matched = byCat;
-      else {
-        const bySub = all.filter(t => t.sub_sector_id === sub_sector_id && !t.category_id);
-        if (bySub.length) matched = bySub;
-        else {
-          const bySec = all.filter(t => t.sector_id === sector_id && !t.sub_sector_id && !t.category_id);
-          matched = bySec;
-        }
-      }
-      const matchedIds = matched.map(t => t.id);
-
-      // Duplicate protection: check if a draft already exists for this user with this registration_reference
-      const { data: existingDraft } = await supabaseAdmin
-        .from("applications")
-        .select("id, data")
-        .eq("applicant_id", authData.user.id)
-        .eq("status", "draft")
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      const dupe = (existingDraft || []).find((r: any) =>
-        r?.data?.registration_reference === regData.registration_reference
-      );
-
-      const draftData = {
-        sector_id,
-        sub_sector_id,
-        category_id,
-        sector_name: sectorName,
-        sub_sector_name: subSectorName,
-        category_name: categoryName,
-        registration_reference: regData.registration_reference,
-        source: "public_registration",
-        form_template_ids: matchedIds,
-        forms_data: {},
-        form_version_ids: {},
-      };
-
-      if (dupe) {
-        await supabaseAdmin
-          .from("applications")
-          .update({ license_type: licenseType, regulator_id: regulatorId, data: { ...(dupe as any).data, ...draftData } })
-          .eq("id", (dupe as any).id);
-      } else {
-        await supabaseAdmin.from("applications").insert({
-          applicant_id: authData.user.id,
-          license_type: licenseType,
-          status: "draft",
-          regulator_id: regulatorId,
-          data: draftData,
-        });
-      }
-    } catch (draftErr) {
-      console.warn("Draft application creation failed:", draftErr);
+      void subSectorName;
+      void categoryName;
+    } catch (taxErr) {
+      console.warn("Taxonomy label lookup failed:", taxErr);
     }
+
 
     // 3. Fire template-driven notifications (in_app + email) via the central dispatcher.
     //    Best-effort: never block registration on dispatch failures.

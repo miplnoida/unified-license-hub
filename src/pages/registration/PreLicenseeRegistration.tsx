@@ -903,33 +903,10 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       );
       const mergedDocuments = documentsTouched || form.documents.length > 0 ? form.documents : (existingRegistration.documents_metadata as Json);
 
-      const { error: regError } = await supabase
-        .from('registrations')
-        .update({
-          sector_id: form.sectorId,
-          sub_sector_id: form.subSectorId,
-          category_id: form.categoryId,
-          applicant_name: form.applicantName,
-          applicant_name_alt: form.applicantNameAlt || null,
-          registration_number: form.registrationNumber || null,
-          mailing_address: form.mailingAddress as unknown as Json,
-          physical_address: (form.sameAsMailing ? form.mailingAddress : form.physicalAddress) as unknown as Json,
-          same_as_mailing: form.sameAsMailing,
-          first_name: form.firstName,
-          last_name: form.lastName,
-          telephone: form.telephone,
-          email: form.email,
-          username: form.username || null,
-          entity_specific_data: mergedEntityData as Json,
-          documents_metadata: mergedDocuments as Json,
-          terms_accepted: true,
-          status: 'pending_review',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existingRegistration.id)
-        .eq('user_id', session.user.id);
-      if (regError) throw regError;
-
+      // F3 authority boundary: applicants never write `registrations` directly.
+      // The governed RPC enforces ownership, whitelisted fields, allowed
+      // lifecycle states, writes history and resumes the approval workflow.
+      let mergedFormData: Record<string, unknown> | null = null;
       const resolvedSubmission = updateContext.submission || await resolveRegistrationSubmission({
         userId: session.user.id,
         registrationId: existingRegistration.id,
@@ -938,36 +915,34 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       if (resolvedSubmission) {
         const existingFormData = (resolvedSubmission.form_data as Record<string, unknown>) || {};
         guardAgainstBlankOverwrite(existingFormData, dynamicFormData, 'registration form data');
-        const mergedFormData = deepMergeRegistrationData(existingFormData, dynamicFormData);
-        const { error: subError } = await supabase
-          .from('registration_form_submissions')
-          .update({
-            form_data: mergedFormData as Json,
-            status: 'submitted',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', resolvedSubmission.id)
-          .eq('user_id', session.user.id);
-        if (subError) throw subError;
+        mergedFormData = deepMergeRegistrationData(existingFormData, dynamicFormData);
       }
 
-      // Resume the approval workflow so approvers see the pending step again
-      // (instead of "Workflow paused — awaiting applicant").
-      try {
-        const { error: resumeError } = await supabase.rpc(
-          'resume_registration_workflow' as any,
-          {
-            _registration_id: existingRegistration.id,
-            _actor_id: session.user.id,
-            _comments: 'Applicant resubmitted registration',
-          } as any,
-        );
-        if (resumeError) {
-          console.warn('[registration] resume_registration_workflow failed', resumeError);
-        }
-      } catch (resumeErr) {
-        console.warn('[registration] resume_registration_workflow threw', resumeErr);
-      }
+      const { error: regError } = await supabase.rpc('registration_applicant_resubmit' as any, {
+        _registration_id: existingRegistration.id,
+        _payload: {
+          sector_id: form.sectorId,
+          sub_sector_id: form.subSectorId,
+          category_id: form.categoryId,
+          applicant_name: form.applicantName,
+          applicant_name_alt: form.applicantNameAlt || null,
+          registration_number: form.registrationNumber || null,
+          mailing_address: form.mailingAddress,
+          physical_address: form.sameAsMailing ? form.mailingAddress : form.physicalAddress,
+          same_as_mailing: form.sameAsMailing,
+          first_name: form.firstName,
+          last_name: form.lastName,
+          telephone: form.telephone,
+          username: form.username || null,
+          entity_specific_data: mergedEntityData,
+          documents_metadata: mergedDocuments,
+          terms_accepted: true,
+        } as any,
+        _form_data: (mergedFormData ?? null) as any,
+        _form_id: resolvedSubmission?.form_id ?? updateContext.formId ?? null,
+      } as any);
+      if (regError) throw regError;
+
 
       await supabase.functions.invoke('dispatch-notification-event', {
         body: {
