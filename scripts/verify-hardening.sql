@@ -515,7 +515,7 @@ BEGIN
   IF v_tpl_version IS NOT NULL THEN
     INSERT INTO public.application_form_requirements (
       application_id, template_id, form_version_id, is_required, sequence, status)
-    VALUES (v_app_id, v_tpl_id, v_tpl_version, true, 0, 'COMPLETED');
+    VALUES (v_app_id, v_tpl_id, v_tpl_version, true, 0, 'SUBMITTED');
   END IF;
 
   -- Cleared fit & proper assessment linked to the application (F&P gate -> PASS).
