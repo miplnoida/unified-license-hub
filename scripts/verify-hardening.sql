@@ -768,3 +768,77 @@ BEGIN
   END IF;
 END
 $verify$;
+
+-- =====================================================================
+-- F5-B1 — PERMANENT POST-LICENSING PRIVILEGE REGRESSION BLOCK
+-- Guards GAP-F5-08 / -09 / -10 against silent re-widening.
+-- =====================================================================
+DO $f5b1$
+DECLARE
+  v_pass int := 0;
+  v_fail int := 0;
+  v_n int;
+  v_detail text;
+BEGIN
+  -- 1. no browser-role DML on the F5-sensitive licence/config estate
+  SELECT count(*), coalesce(string_agg(t.tbl || ' ' || r.rolename || '/' || p.priv, ', '), 'none')
+    INTO v_n, v_detail
+    FROM (VALUES ('public.regulatory_request_types'),
+                 ('public.license_lifecycle_configs'),
+                 ('public.license_renewals'),
+                 ('public.license_terms'),
+                 ('public.license_variations'),
+                 ('public.license_variation_items'),
+                 ('public.license_lifecycle_matters'),
+                 ('public.regulatory_service_tasks')) t(tbl)
+    CROSS JOIN (VALUES ('anon'),('authenticated')) r(rolename)
+    CROSS JOIN (VALUES ('INSERT'),('UPDATE'),('DELETE'),('TRUNCATE'),('REFERENCES'),('TRIGGER'),('MAINTAIN')) p(priv)
+   WHERE has_table_privilege(r.rolename, t.tbl, p.priv);
+  IF v_n = 0 THEN
+    v_pass := v_pass + 1; RAISE NOTICE 'PASS [F5B1-1] no browser-role write privilege on F5-sensitive tables';
+  ELSE
+    v_fail := v_fail + 1; RAISE WARNING 'FAIL [F5B1-1] % violation(s): %', v_n, v_detail;
+  END IF;
+
+  -- 2. anon holds no privilege at all on governed post-licensing configuration
+  SELECT count(*), coalesce(string_agg(t.tbl, ', '), 'none') INTO v_n, v_detail
+    FROM (VALUES ('public.regulatory_request_types'),
+                 ('public.license_lifecycle_configs')) t(tbl)
+   WHERE has_table_privilege('anon', t.tbl, 'SELECT');
+  IF v_n = 0 THEN
+    v_pass := v_pass + 1; RAISE NOTICE 'PASS [F5B1-2] anon holds no read on governed post-licensing configuration';
+  ELSE
+    v_fail := v_fail + 1; RAISE WARNING 'FAIL [F5B1-2] anon-readable: %', v_detail;
+  END IF;
+
+  -- 3. governed lifecycle configuration RPCs exist, are definer-guarded and anon-denied
+  SELECT count(*) INTO v_n
+    FROM (VALUES ('public.admin_upsert_license_lifecycle_config(uuid, jsonb)'),
+                 ('public.admin_set_license_lifecycle_config_active(uuid, boolean, text)')) f(sig)
+   WHERE to_regprocedure(f.sig) IS NULL
+      OR has_function_privilege('anon', to_regprocedure(f.sig), 'EXECUTE')
+      OR NOT EXISTS (SELECT 1 FROM pg_proc p WHERE p.oid = to_regprocedure(f.sig) AND p.prosecdef);
+  IF v_n = 0 THEN
+    v_pass := v_pass + 1; RAISE NOTICE 'PASS [F5B1-3] governed lifecycle configuration RPCs present and anon-denied';
+  ELSE
+    v_fail := v_fail + 1; RAISE WARNING 'FAIL [F5B1-3] % governed RPC defect(s)', v_n;
+  END IF;
+
+  -- 4. RLS still enabled on the three locked-down tables
+  SELECT count(*) INTO v_n
+    FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace
+   WHERE ns.nspname = 'public'
+     AND c.relname IN ('regulatory_request_types','license_lifecycle_configs','license_renewals')
+     AND c.relrowsecurity;
+  IF v_n = 3 THEN
+    v_pass := v_pass + 1; RAISE NOTICE 'PASS [F5B1-4] RLS enabled on all three locked-down tables';
+  ELSE
+    v_fail := v_fail + 1; RAISE WARNING 'FAIL [F5B1-4] RLS enabled on only %/3', v_n;
+  END IF;
+
+  RAISE NOTICE 'F5-B1 privilege regression block: % PASSED / % FAILED', v_pass, v_fail;
+  IF v_fail > 0 THEN
+    RAISE EXCEPTION 'F5-B1 privilege regression FAILED: % checks failed', v_fail;
+  END IF;
+END
+$f5b1$;
