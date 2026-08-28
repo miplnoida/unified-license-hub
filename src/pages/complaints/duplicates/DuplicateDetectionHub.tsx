@@ -43,10 +43,10 @@ export default function DuplicateDetectionHub() {
 
   const detect = useMutation({
     mutationFn: async () => {
-      const { data, error } = await (supabase as any).rpc('detect_complaint_duplicates', {
-        _complaint_id: null,
-        _window_days: scoringConfig?.time_window_days ?? null,
-      });
+      const args: Record<string, unknown> = { _complaint_id: null };
+      // Omitted when unconfigured, so the database default remains the single source.
+      if (scoringConfig?.time_window_days) args._window_days = scoringConfig.time_window_days;
+      const { data, error } = await (supabase as any).rpc('detect_complaint_duplicates', args);
       if (error) throw error;
       return data as { detected: number };
     },
