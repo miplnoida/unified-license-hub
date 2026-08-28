@@ -43663,6 +43663,14 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_set_license_lifecycle_config_active: {
+        Args: { _config_id: string; _is_active: boolean; _reason?: string }
+        Returns: string
+      }
+      admin_upsert_license_lifecycle_config: {
+        Args: { _config_id: string; _payload: Json }
+        Returns: string
+      }
       ai_assurance_assess: {
         Args: {
           _assessment: string
