@@ -80,10 +80,15 @@ Scope: verified residuals only. F1-B remediation was not redone and frozen F0 pr
 behaviour was not changed.
 
 ### verify:f0c — PASS
-`npm run verify:f0c` now reports **34 TESTED_PASS / 0 TESTED_FAIL / 0 N-A**. The earlier
-`file_upload_not_found` was fixture drift inside the gate's own harness (the seeded
-`file_uploads` fixture row), not product behaviour; the harness now seeds and resolves its
-fixture before the S2/S4 scan-lifecycle assertions. No F0 product code, policy, grant or
+`npm run verify:f0c` now reports **34 TESTED_PASS / 0 TESTED_FAIL / 0 N-A**.
+
+Root cause was harness drift, not product behaviour: the sandbox reaches Postgres through a
+transaction-mode pooler, so each top-level statement could land on a different backend while
+the harness state (`f0c_results` / `f0c_ctx` temp tables and the `pg_temp` helper functions,
+including the `F0C_PROBE.bin` upload fixture) is session-scoped. The gate therefore lost its
+fixture mid-run and surfaced as `file_upload_not_found`. Fix is confined to
+`scripts/verify-f0c-certification.sql`: the gate now runs inside a single explicit
+transaction so it stays pinned to one session. No F0 product code, RPC, policy, grant or
 constraint was modified.
 
 ### GAP-F1-08 — CLOSED
