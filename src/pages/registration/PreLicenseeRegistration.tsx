@@ -276,14 +276,11 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const primaryEmailFieldName = emailUniquenessPreview.fieldName;
   const dynamicErrorsWithUniqueness = useMemo(() => {
     const next = { ...dynamicErrors };
-    if (!isUpdateMode && applicantNameCheck.status === 'taken' && applicantNameCheck.fieldName) {
-      next[applicantNameCheck.fieldName] = 'This applicant name is already registered';
-    }
     if (!isUpdateMode && emailUniquenessPreview.status === 'taken' && emailUniquenessPreview.fieldName) {
       next[emailUniquenessPreview.fieldName] = DUPLICATE_PRIMARY_EMAIL_ERROR;
     }
     return next;
-  }, [dynamicErrors, applicantNameCheck.status, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName, isUpdateMode]);
+  }, [dynamicErrors, emailUniquenessPreview.status, emailUniquenessPreview.fieldName, isUpdateMode]);
 
   const getPrimaryEmailFieldsForStep = useCallback((stepData: RegStep) => {
     return stepData.rows.flatMap(row =>
@@ -562,19 +559,8 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     };
 
     for (let i = 0; i < entryCount; i++) validateOneEntry(i);
-    // Applicant Name uniqueness — block step until check resolves to 'available'
-    if (!isUpdateMode && applicantNameCheck.fieldName) {
-      const stepHasField = stepData.rows.some(r =>
-        r.columns.some(c => c.field?.fieldName === applicantNameCheck.fieldName)
-      );
-      if (stepHasField) {
-        if (applicantNameCheck.status === 'taken') {
-          errs[applicantNameCheck.fieldName] = 'This applicant name is already registered';
-        } else if (applicantNameCheck.status === 'checking') {
-          errs[applicantNameCheck.fieldName] = 'Checking applicant name availability…';
-        }
-      }
-    }
+    // F3-B2: applicant-name duplication is decided server-side at submission
+    // (the pre-auth existence probe was retired); no client-side step block.
     // Primary email uniqueness — block step until check resolves to 'available'
     if (!isUpdateMode && emailUniquenessPreview.fieldName) {
       const stepHasField = stepData.rows.some(r =>
@@ -595,7 +581,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     setDynamicErrors(errs);
     lastDynamicErrorsRef.current = { errs, step: stepData };
     return Object.keys(errs).length === 0;
-  }, [dynamicFormData, applicantNameCheck.status, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName, getPrimaryEmailBlockers, getPrimaryEmailFieldsForStep, pendingPrimaryEmailChecks, dynamicErrors, isUpdateMode]);
+  }, [dynamicFormData, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName, getPrimaryEmailBlockers, getPrimaryEmailFieldsForStep, pendingPrimaryEmailChecks, dynamicErrors, isUpdateMode]);
 
   // Build declaration keys for validation
   const effectiveDeclarations = useMemo(() => {
