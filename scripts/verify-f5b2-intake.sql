@@ -221,6 +221,9 @@ DECLARE
   _filing_role uuid;
   _viewer_role uuid;
   _res text;
+  _r_owner boolean; _r_delegate boolean; _r_viewer boolean;
+  _c_viewer text; _c_delegate text;
+  _harness text := NULL;
 BEGIN
   SELECT l.* INTO _lic FROM public.licenses l
    WHERE l.sub_sector_id IS NOT NULL AND l.holder_id IS NOT NULL
@@ -242,11 +245,12 @@ BEGIN
   END IF;
 
   BEGIN
-    -- savepoint: every fixture below is discarded
+    -- implicit savepoint: every fixture below is discarded by the raise at the end
     INSERT INTO public.entity_user_memberships
-      (user_id, entity_id, membership_role_id, status, approved_at, effective_from)
-    VALUES (_delegate, _lic.holder_id, _filing_role, 'APPROVED', now(), now()),
-           (_viewer,   _lic.holder_id, _viewer_role, 'APPROVED', now(), now());
+      (user_id, entity_id, membership_role_id, status, approved_at, effective_from,
+       authority_evidence_reference)
+    VALUES (_delegate, _lic.holder_id, _filing_role, 'APPROVED', now(), now(), 'F5-B2 probe'),
+           (_viewer,   _lic.holder_id, _viewer_role, 'APPROVED', now(), now(), 'F5-B2 probe');
 
     INSERT INTO public.applications (applicant_id, license_type, status, data, entity_id, regulator_id)
     VALUES (_owner, 'F5-B2 probe', 'draft',
@@ -255,45 +259,43 @@ BEGIN
             _lic.holder_id, _lic.regulator_id)
     RETURNING id INTO _app_id;
 
-    -- D-01 the creator retains authority
-    PERFORM pg_temp.rec('D','D-01','the filing creator may submit',
-      pg_temp.bool_as_user(_owner, format('public.can_submit_application(%L)', _app_id)) IS TRUE,
-      'creator=' || coalesce(pg_temp.bool_as_user(_owner, format('public.can_submit_application(%L)', _app_id))::text,'null'));
+    _r_owner    := pg_temp.bool_as_user(_owner,    format('public.can_submit_application(%L)', _app_id));
+    _r_delegate := pg_temp.bool_as_user(_delegate, format('public.can_submit_application(%L)', _app_id));
+    _r_viewer   := pg_temp.bool_as_user(_viewer,   format('public.can_submit_application(%L)', _app_id));
 
-    -- D-02 GAP-F5-02: an approved entity member holding `submit` may submit
-    PERFORM pg_temp.rec('D','D-02','an approved entity delegate with the submit capability may submit',
-      pg_temp.bool_as_user(_delegate, format('public.can_submit_application(%L)', _app_id)) IS TRUE,
-      'delegate=' || coalesce(pg_temp.bool_as_user(_delegate, format('public.can_submit_application(%L)', _app_id))::text,'null'));
-
-    -- D-03 a view-only member may NOT submit
-    PERFORM pg_temp.rec('D','D-03','a view-only entity member may not submit',
-      pg_temp.bool_as_user(_viewer, format('public.can_submit_application(%L)', _app_id)) IS FALSE,
-      'viewer=' || coalesce(pg_temp.bool_as_user(_viewer, format('public.can_submit_application(%L)', _app_id))::text,'null'));
-
-    -- D-04 the RPC itself refuses the view-only member (not just the helper)
     PERFORM set_config('request.jwt.claims',
       json_build_object('sub', _viewer::text, 'role','authenticated')::text, true);
-    SELECT (public.submit_application(_app_id)->>'code') INTO _res;
-    PERFORM set_config('request.jwt.claims', '{}', true);
-    PERFORM pg_temp.rec('D','D-04','submit_application refuses a view-only entity member',
-      _res = 'FORBIDDEN', 'code=' || coalesce(_res,'null'));
+    SELECT (public.submit_application(_app_id)->>'code') INTO _c_viewer;
 
-    -- D-05 the delegate passes the authority gate and stops at the next control
     PERFORM set_config('request.jwt.claims',
       json_build_object('sub', _delegate::text, 'role','authenticated')::text, true);
-    SELECT (public.submit_application(_app_id)->>'code') INTO _res;
+    SELECT (public.submit_application(_app_id)->>'code') INTO _c_delegate;
     PERFORM set_config('request.jwt.claims', '{}', true);
-    PERFORM pg_temp.rec('D','D-05','the entity delegate clears the authority gate (blocked only by later controls)',
-      coalesce(_res,'') <> 'FORBIDDEN', 'code=' || coalesce(_res,'success'));
 
     RAISE EXCEPTION 'F5B2_ROLLBACK';
   EXCEPTION WHEN others THEN
     IF SQLERRM <> 'F5B2_ROLLBACK' THEN
-      PERFORM pg_temp.rec('D','D-99','delegated-authority probe executed without harness error',
-        false, SQLSTATE || ': ' || left(SQLERRM,160));
+      _harness := SQLSTATE || ': ' || left(SQLERRM,160);
     END IF;
     PERFORM set_config('request.jwt.claims', '{}', true);
   END;
+
+  IF _harness IS NOT NULL THEN
+    PERFORM pg_temp.rec('D','D-99','delegated-authority probe executed without harness error',
+      false, _harness);
+    RETURN;
+  END IF;
+
+  PERFORM pg_temp.rec('D','D-01','the filing creator may submit',
+    _r_owner IS TRUE, 'creator=' || coalesce(_r_owner::text,'null'));
+  PERFORM pg_temp.rec('D','D-02','an approved entity delegate with the submit capability may submit',
+    _r_delegate IS TRUE, 'delegate=' || coalesce(_r_delegate::text,'null'));
+  PERFORM pg_temp.rec('D','D-03','a view-only entity member may not submit',
+    _r_viewer IS FALSE, 'viewer=' || coalesce(_r_viewer::text,'null'));
+  PERFORM pg_temp.rec('D','D-04','submit_application refuses a view-only entity member',
+    _c_viewer = 'FORBIDDEN', 'code=' || coalesce(_c_viewer,'null'));
+  PERFORM pg_temp.rec('D','D-05','the entity delegate clears the authority gate (blocked only by later controls)',
+    coalesce(_c_delegate,'') <> 'FORBIDDEN', 'code=' || coalesce(_c_delegate,'success'));
 END $d$;
 
 -- ===========================================================================
