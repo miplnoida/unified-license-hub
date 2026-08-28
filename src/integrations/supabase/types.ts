@@ -53159,6 +53159,10 @@ export type Database = {
         Args: { _criterion: string; _thresholds: Json }
         Returns: Json
       }
+      site_settings_save: {
+        Args: { _key: string; _reason?: string; _value: Json }
+        Returns: Json
+      }
       skip:
         | { Args: { "": string }; Returns: string }
         | { Args: { how_many: number; why: string }; Returns: string }
