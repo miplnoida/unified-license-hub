@@ -277,7 +277,7 @@ $s2$;
 -- S3 — UNIQUENESS / OWNERSHIP KEYS (GAP-F2-04)
 -- ===========================================================================
 DO $s3$
-DECLARE _n int; _res text;
+DECLARE _n int; _m int; _res text; _name text; _entity uuid;
 BEGIN
   SELECT count(*) INTO _n FROM pg_indexes WHERE schemaname='public' AND indexname='profiles_email_lower_uidx';
   PERFORM pg_temp.rec('S3','C-01','one user profile per e-mail address is enforced', _n = 1, 'indexes=' || _n);
