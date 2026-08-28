@@ -49983,6 +49983,10 @@ export type Database = {
       is_internal_staff: { Args: { _user_id: string }; Returns: boolean }
       is_internal_staff_user: { Args: { _user_id: string }; Returns: boolean }
       is_legal_compliance_user: { Args: { _user_id: string }; Returns: boolean }
+      is_post_license_filing: {
+        Args: { _license_id: string; _service_id: string }
+        Returns: boolean
+      }
       is_primary_user_of: {
         Args: { _entity_id: string; _user_id: string }
         Returns: boolean
@@ -51488,7 +51492,16 @@ export type Database = {
         }
         Returns: string
       }
+      post_license_applicability_message: {
+        Args: { _code: string }
+        Returns: string
+      }
       post_license_open_statuses: { Args: never; Returns: string[] }
+      post_license_service_applicability: {
+        Args: { _license_id: string; _service_id: string }
+        Returns: string
+      }
+      post_license_service_stages: { Args: never; Returns: string[] }
       ppoc_accessible_license_ids: {
         Args: { _user_id: string }
         Returns: string[]
