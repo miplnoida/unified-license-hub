@@ -362,7 +362,7 @@ $s6$;
 -- S7 — RPC + EDGE AUTHORIZATION SURFACE (GAP-F3-02/08/14)
 -- ===========================================================================
 DO $s7$
-DECLARE _res text; _uid uuid; _reg uuid;
+DECLARE _res text; _uid uuid; _reg uuid; _other uuid;
 BEGIN
   -- The anonymous applicant-name enumeration oracle is closed.
   PERFORM pg_temp.rec('S7','G-01','the applicant-name duplicate oracle is no longer anonymous',
@@ -373,10 +373,11 @@ BEGIN
   -- start_registration_workflow must not be arbitrarily executable.
   SELECT r.id, r.user_id INTO _reg, _uid FROM public.registrations r
    WHERE r.user_id IS NOT NULL ORDER BY r.created_at DESC LIMIT 1;
-  IF _reg IS NULL THEN
+  SELECT u.id INTO _other FROM auth.users u WHERE u.id IS DISTINCT FROM _uid ORDER BY u.created_at LIMIT 1;
+  IF _reg IS NULL OR _other IS NULL THEN
     PERFORM pg_temp.rec('S7','G-02','workflow start cannot be triggered by an arbitrary signed-in caller', NULL, 'no fixture');
   ELSE
-    _res := pg_temp.as_user(_uid, format('SELECT public.start_registration_workflow(%L)', _reg));
+    _res := pg_temp.as_user(_other, format('SELECT public.start_registration_workflow(%L)', _reg));
     PERFORM pg_temp.rec('S7','G-02','workflow start cannot be triggered by an arbitrary signed-in caller',
       _res <> '00000', 'sqlstate=' || _res);
   END IF;
