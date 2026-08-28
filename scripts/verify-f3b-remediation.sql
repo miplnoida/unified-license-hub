@@ -342,7 +342,7 @@ BEGIN
 
   SELECT count(*), coalesce(string_agg(DISTINCT r.name, ', '), 'none') INTO _n, _detail
     FROM public.approval_steps s
-    JOIN public.roles r ON r.id = s.role_id
+    JOIN public.roles r ON r.id = s.approver_role_id
    WHERE s.workflow_id IN (
      SELECT w.id FROM public.approval_workflows w
       WHERE w.is_active AND w.entity_type = 'registration')
