@@ -190,7 +190,6 @@ try {
     unauth.status === 401 || unauth.status === 403, `http=${unauth.status}`);
 } finally {
   await cleanup();
-  await cleanup();
   const residue = sql(`SELECT (SELECT count(*) FROM public.notification_outbox WHERE event_key LIKE '${TAG}%')
                             + (SELECT count(*) FROM public.notifications WHERE event_key LIKE '${TAG}%')`);
   console.log(`\nresidue (${TAG}%): ${residue}`);
