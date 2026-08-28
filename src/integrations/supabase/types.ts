@@ -44231,6 +44231,10 @@ export type Database = {
         Args: { _rule_id: string }
         Returns: undefined
       }
+      assert_license_term_integrity: {
+        Args: { _actor_id?: string; _license_id: string }
+        Returns: undefined
+      }
       assert_nonproduction: { Args: { _operation: string }; Returns: undefined }
       assert_role_management_action: {
         Args: { _action: string }
@@ -48283,6 +48287,15 @@ export type Database = {
       engine_rule_validate_payload: {
         Args: { _payload: Json; _rule_id?: string }
         Returns: string[]
+      }
+      ensure_license_original_term: {
+        Args: {
+          _actor_id?: string
+          _license_id: string
+          _metadata?: Json
+          _source_decision?: string
+        }
+        Returns: string
       }
       ensure_submission_acknowledgement: {
         Args: {
