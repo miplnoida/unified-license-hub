@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { configRetire, configSave, toConfigWriteError } from '@/lib/configWriter';
 
 export interface SectorRow { id: string; name: string; status: string; regulator_id: string | null; created_at: string; }
 export interface SubSectorRow { id: string; sector_id: string; name: string; status: string; created_at: string; sector_name?: string; }
@@ -76,87 +77,78 @@ export function useServices(regulatorId?: string | null) {
 export function useMasterMutations() {
   const qc = useQueryClient();
 
+  // GAP-F1-03: all taxonomy writes go through the governed config writer, which
+  // enforces `settings.edit` and records before/after audit evidence.
+  const saveVia = async (
+    table: 'sectors' | 'sub_sectors' | 'categories' | 'services',
+    entity: string,
+    payload: Record<string, unknown>,
+    id?: string,
+  ) => {
+    try {
+      await configSave(table, payload, { id: id ?? null, entityLabel: entity.replace(/_/g, ' ') });
+    } catch (error) {
+      throw new Error(parseDuplicateError(error, entity));
+    }
+  };
+
+  const retireVia = async (
+    table: 'sectors' | 'sub_sectors' | 'categories' | 'services',
+    entity: string,
+    id: string,
+  ) => {
+    try {
+      await configRetire(table, id, { entityLabel: entity.replace(/_/g, ' ') });
+    } catch (error) {
+      throw toConfigWriteError(error, entity.replace(/_/g, ' '));
+    }
+  };
+
   const upsertSector = useMutation({
-    mutationFn: async (row: { id?: string; name: string; status: string; regulator_id?: string | null }) => {
-      if (row.id) {
-        const { error } = await supabase.from('sectors' as any).update({ name: row.name, status: row.status, regulator_id: row.regulator_id || null } as any).eq('id', row.id);
-        if (error) throw new Error(parseDuplicateError(error, 'sector'));
-      } else {
-        const { error } = await supabase.from('sectors' as any).insert({ name: row.name, status: row.status, regulator_id: row.regulator_id || null } as any);
-        if (error) throw new Error(parseDuplicateError(error, 'sector'));
-      }
-    },
+    mutationFn: (row: { id?: string; name: string; status: string; regulator_id?: string | null }) =>
+      saveVia('sectors', 'sector', { name: row.name, status: row.status, regulator_id: row.regulator_id || null }, row.id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sectors'] }),
   });
 
   const deleteSector = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('sectors' as any).delete().eq('id', id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => retireVia('sectors', 'sector', id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sectors'] }),
   });
 
   const upsertSubSector = useMutation({
-    mutationFn: async (row: { id?: string; sector_id: string; name: string; status: string }) => {
-      if (row.id) {
-        const { error } = await supabase.from('sub_sectors' as any).update({ sector_id: row.sector_id, name: row.name, status: row.status } as any).eq('id', row.id);
-        if (error) throw new Error(parseDuplicateError(error, 'sub_sector'));
-      } else {
-        const { error } = await supabase.from('sub_sectors' as any).insert({ sector_id: row.sector_id, name: row.name, status: row.status } as any);
-        if (error) throw new Error(parseDuplicateError(error, 'sub_sector'));
-      }
-    },
+    mutationFn: (row: { id?: string; sector_id: string; name: string; status: string }) =>
+      saveVia('sub_sectors', 'sub_sector', { sector_id: row.sector_id, name: row.name, status: row.status }, row.id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sub_sectors'] }),
   });
 
   const deleteSubSector = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('sub_sectors' as any).delete().eq('id', id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => retireVia('sub_sectors', 'sub_sector', id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sub_sectors'] }),
   });
 
   const upsertCategory = useMutation({
-    mutationFn: async (row: { id?: string; sector_id: string; sub_sector_id: string; name: string; status: string }) => {
-      if (row.id) {
-        const { error } = await supabase.from('categories' as any).update({ sector_id: row.sector_id, sub_sector_id: row.sub_sector_id, name: row.name, status: row.status } as any).eq('id', row.id);
-        if (error) throw new Error(parseDuplicateError(error, 'category'));
-      } else {
-        const { error } = await supabase.from('categories' as any).insert({ sector_id: row.sector_id, sub_sector_id: row.sub_sector_id, name: row.name, status: row.status } as any);
-        if (error) throw new Error(parseDuplicateError(error, 'category'));
-      }
-    },
+    mutationFn: (row: { id?: string; sector_id: string; sub_sector_id: string; name: string; status: string }) =>
+      saveVia('categories', 'category', {
+        sector_id: row.sector_id, sub_sector_id: row.sub_sector_id, name: row.name, status: row.status,
+      }, row.id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
   });
 
   const deleteCategory = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('categories' as any).delete().eq('id', id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => retireVia('categories', 'category', id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
   });
 
   const upsertService = useMutation({
-    mutationFn: async (row: { id?: string; sector_id: string; sub_sector_id: string; name: string; status: string }) => {
-      if (row.id) {
-        const { error } = await supabase.from('services' as any).update({ sector_id: row.sector_id, sub_sector_id: row.sub_sector_id, name: row.name, status: row.status } as any).eq('id', row.id);
-        if (error) throw new Error(parseDuplicateError(error, 'service'));
-      } else {
-        const { error } = await supabase.from('services' as any).insert({ sector_id: row.sector_id, sub_sector_id: row.sub_sector_id, name: row.name, status: row.status } as any);
-        if (error) throw new Error(parseDuplicateError(error, 'service'));
-      }
-    },
+    mutationFn: (row: { id?: string; sector_id: string; sub_sector_id: string; name: string; status: string }) =>
+      saveVia('services', 'service', {
+        sector_id: row.sector_id, sub_sector_id: row.sub_sector_id, name: row.name, status: row.status,
+      }, row.id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['services'] }),
   });
 
   const deleteService = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('services' as any).delete().eq('id', id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => retireVia('services', 'service', id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['services'] }),
   });
 
