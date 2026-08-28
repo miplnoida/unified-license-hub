@@ -17,6 +17,7 @@
 \pset pager off
 SET client_min_messages = notice;
 
+DROP TABLE IF EXISTS f5b1_results;
 CREATE TEMP TABLE f5b1_results (
   seq serial, section text, id text, descr text, passed boolean, detail text
 );
@@ -488,3 +489,5 @@ BEGIN
     RAISE EXCEPTION 'verify:f5b1 FAILED — %', _detail;
   END IF;
 END $r$;
+
+DROP TABLE IF EXISTS f5b1_results;
