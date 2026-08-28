@@ -135,3 +135,15 @@ export function configChangeHistory(
     table.replace(/_/g, ' '),
   );
 }
+
+/**
+ * Governed writer for key/value site settings (branding, general, email/SMS,
+ * review, licence expiry, captcha switches). Enforces `settings.edit` and
+ * records masked before/after audit evidence.
+ */
+export async function siteSettingSave(key: string, value: unknown, reason?: string | null): Promise<void> {
+  const { error } = await supabase.rpc('site_settings_save' as never, {
+    _key: key, _value: value as never, _reason: reason ?? null,
+  } as never);
+  if (error) throw toConfigWriteError(error, 'site settings');
+}

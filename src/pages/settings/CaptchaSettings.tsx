@@ -20,6 +20,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
+import { siteSettingSave } from '@/lib/configWriter';
 import { useToast } from '@/hooks/use-toast';
 import { formatDateTime } from '@/lib/datetime';
 import {
@@ -82,9 +83,7 @@ export default function CaptchaSettings() {
       return;
     }
     setSavingToggle(true);
-    const { error } = await supabase
-      .from('site_settings')
-      .upsert({ key: 'captcha_enabled', value: next }, { onConflict: 'key' });
+    await siteSettingSave('captcha_enabled', next);
     setSavingToggle(false);
     if (error) {
       toast({ title: 'Could not save', description: error.message, variant: 'destructive' });
