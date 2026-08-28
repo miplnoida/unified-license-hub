@@ -55,8 +55,8 @@ Deno.serve(async (req) => {
   await admin.from("audit_logs").insert({
     user_id: user.id,
     action: "license.certificate.dispatched",
-    resource_type: "license_certificate",
-    resource_id: cert.id,
+    entity_type: "license_certificate",
+    entity_id: cert.id,
     metadata: { license_id: cert.license_id, version: cert.version, note: body.note || null },
   });
 
