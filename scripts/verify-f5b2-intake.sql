@@ -225,8 +225,11 @@ DECLARE
   _c_viewer text; _c_delegate text;
   _harness text := NULL;
 BEGIN
+  -- the membership table is keyed on public.licensees, so only a licence whose
+  -- holder is a registered licensee can host the delegation fixtures
   SELECT l.* INTO _lic FROM public.licenses l
-   WHERE l.sub_sector_id IS NOT NULL AND l.holder_id IS NOT NULL
+   WHERE l.sub_sector_id IS NOT NULL
+     AND EXISTS (SELECT 1 FROM public.licensees x WHERE x.id = l.holder_id)
    ORDER BY l.issued_at DESC LIMIT 1;
 
   SELECT id INTO _filing_role FROM public.entity_membership_roles WHERE key = 'FILING_USER';
