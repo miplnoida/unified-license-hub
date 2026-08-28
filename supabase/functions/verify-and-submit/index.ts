@@ -196,7 +196,7 @@ Deno.serve(async (req) => {
         const { data: peers } = await adminClient
           .from("applications")
           .select("id, status, data")
-          .eq("applicant_id", user.id)
+          .eq("applicant_id", app.applicant_id)
           .neq("id", application_id);
 
         const sameTriple = (peers || []).filter(
@@ -557,8 +557,8 @@ Deno.serve(async (req) => {
 
       const [appRow, applicantProfile, applicantPre, sectorRow, subSectorRow, categoryRow, siteRow] = await Promise.all([
         adminClient.from("applications").select("application_number, submitted_at, current_step_id").eq("id", application_id).maybeSingle(),
-        adminClient.from("profiles").select("email, full_name").eq("id", user.id).maybeSingle(),
-        adminClient.from("pre_license_users").select("email, full_name").eq("id", user.id).maybeSingle(),
+        adminClient.from("profiles").select("email, full_name").eq("id", app.applicant_id).maybeSingle(),
+        adminClient.from("pre_license_users").select("email, full_name").eq("id", app.applicant_id).maybeSingle(),
         sectorId ? adminClient.from("sectors").select("name").eq("id", sectorId).maybeSingle() : Promise.resolve({ data: null }),
         subSectorId ? adminClient.from("sub_sectors").select("name").eq("id", subSectorId).maybeSingle() : Promise.resolve({ data: null }),
         categoryId ? adminClient.from("categories").select("name").eq("id", categoryId).maybeSingle() : Promise.resolve({ data: null }),
@@ -574,7 +574,7 @@ Deno.serve(async (req) => {
       const appDetailUrl = portalUrl ? `${portalUrl.replace(/\/$/, "")}/applications/${application_id}` : "";
 
       const basePayload = {
-        applicant_id: user.id,
+        applicant_id: app.applicant_id,
         applicant_name: applicantName,
         applicant_email: applicantEmail,
         application_id,
