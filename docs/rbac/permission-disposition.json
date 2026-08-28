@@ -636,12 +636,6 @@
       "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
     },
     {
-      "module": "license_management",
-      "action": "manage_config",
-      "disposition": "reserved-granular",
-      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
-    },
-    {
       "module": "licensee_management",
       "action": "create",
       "disposition": "reserved-granular",
