@@ -6,7 +6,9 @@ Predecessors: F0 CERTIFIED AND FROZEN, F1 CERTIFIED AND FROZEN
 Input: `docs/certification/F2-users-entity-identity-onboarding-discovery-2026-08-28.md` (GAP-F2-01…10)
 Permanent gate: `npm run verify:f2b` → `scripts/verify-f2b-remediation.sql`
 
-**Verdict: F2-B READY FOR F2-C** — gate result 54 TESTED_PASS / 0 TESTED_FAIL / 0 N-A.
+**Verdict: F2-B READY FOR F2-C** — gate result 63 TESTED_PASS / 0 TESTED_FAIL / 0 N-A
+(includes the F2-B.1 identity-constraint cleanup: legal name is not identity, no
+fabricated identity data).
 
 ---
 
@@ -76,11 +78,33 @@ entity is mandatorily bound to an `ORGANIZATION` party:
   proves this empirically by inserting an entity with no binding and asserting it
   is converged (probe rolled back).
 
-### 3.3 Uniqueness and ownership keys (GAP-F2-04)
+### 3.3 Uniqueness and ownership keys (GAP-F2-04, revised by F2-B.1)
 
-Unique indexes: lowercased e-mail on `profiles` and `pre_license_users`,
-lowercased entity legal name for non-merged entities, and one entity binding per
-registration. The gate empirically proves a duplicate entity name is rejected.
+Unique keys: lowercased e-mail on `profiles` and `pre_license_users`, and one
+entity binding per registration.
+
+Legal name is **not** entity identity. The earlier global uniqueness rule on the
+normalised `licensees.name` was removed in F2-B.1: two genuinely distinct
+entities may lawfully carry the same registered or display name, and treating
+name equality as definitive identity produced false merges and blocked valid
+registrations. Sameness is adjudicated instead by:
+
+- authoritative identifiers in `entity_identifiers`, each enforced inside its own
+  declared uniqueness scope (`GLOBAL`, `JURISDICTION`, `REGULATOR`, `ISSUER`);
+- the existing entity-resolution / duplicate-detection workflow, which surfaces
+  name-similar candidates for supervisory decision rather than silently blocking.
+
+The gate proves both directions empirically: two distinct entities with the same
+normalised legal name coexist and each keeps its own canonical organisation
+record (C-05, C-06); a duplicate authoritative identifier is still rejected with
+`23505` inside its scope (C-07, C-08).
+
+No fabricated identity data. `licensees_ensure_party_binding` no longer invents an
+"Unnamed entity" name; an entity with no valid name is refused with an explicit
+validation error (`23514`) and leaves no party behind, additionally guarded by the
+validated `licensees_name_present_chk` constraint. Valid creation still atomically
+produces exactly one `ORGANIZATION` party binding (B-08…B-14).
+
 
 ### 3.4 Token handling (GAP-F2-06)
 
@@ -137,7 +161,8 @@ returns `ready=false` with a non-empty blocker list.
 
 ## 6. Permanent gate
 
-`npm run verify:f2b` — 55 registry-derived assertions across seven stages, all
+`npm run verify:f2b` — 63 registry-derived assertions across seven stages
+(last run: 63 TESTED_PASS / 0 TESTED_FAIL / 0 N-A), all
 read-mostly (probe writes are rolled back). No table name is hard-coded in the
 privilege stages: they are derived from `identity_governed_tables`, so adding a
 new identity table without registering and locking it down fails the gate.

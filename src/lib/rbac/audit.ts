@@ -98,6 +98,9 @@ const PUBLIC_ALLOW_LABELS = new Set(
     'register now', 'existing user? login',
     'browse files', 'replace', 'request new link',
     'case', 'send test digest', 'test rule',
+    // F2-B.1: unauthenticated navigation on the authority-pending screen
+    'registration options',
+
   ].map((s) => s.toLowerCase()),
 );
 
