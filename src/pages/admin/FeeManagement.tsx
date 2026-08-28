@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
+import { configRetire, configSave } from '@/lib/configWriter';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { useFormTemplates, type FormTemplate } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
@@ -155,22 +156,22 @@ export default function FeeManagement() {
     if (!ftName.trim()) { toast.error('Name is required'); return; }
     setSaving(true);
     const payload: any = { name: ftName.trim(), code: ftCode.trim() || null, status: ftStatus };
-    if (ftEditing) {
-      const { error } = await supabase.from('fee_types' as any).update(payload).eq('id', ftEditing.id);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success('Fee type updated');
-    } else {
-      const { error } = await supabase.from('fee_types' as any).insert(payload);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success('Fee type created');
+    // GAP-F1-03: governed configuration writer (fee_management + audit).
+    try {
+      await configSave('fee_types', payload, { id: ftEditing?.id ?? null, entityLabel: 'fee type' });
+      toast.success(ftEditing ? 'Fee type updated' : 'Fee type created');
+    } catch (error: any) {
+      toast.error(error?.message ?? 'Could not save fee type'); setSaving(false); return;
     }
     setSaving(false); setFtDialogOpen(false); resetFtForm(); loadFeeTypes();
   };
 
   const handleDeleteFt = async (id: string) => {
-    const { error } = await supabase.from('fee_types' as any).delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Fee type deleted'); loadFeeTypes();
+    // Fee types are referenced by assessed fees — retire instead of deleting.
+    try {
+      await configRetire('fee_types', id, { entityLabel: 'fee type' });
+    } catch (error: any) { toast.error(error?.message ?? 'Could not retire fee type'); return; }
+    toast.success('Fee type retired'); loadFeeTypes();
   };
 
   const resetForm = () => {
@@ -355,20 +356,24 @@ export default function FeeManagement() {
     });
 
 
-    if (editing) {
-      // Update the existing row with the first (fee type, service) combo
-      const [firstRow, ...rest] = allRows;
-      const { error: updateErr } = await supabase.from('fee_configurations' as any).update(firstRow).eq('id', editing.id);
-      if (updateErr) { toast.error(updateErr.message); setSaving(false); return; }
-      if (rest.length > 0) {
-        const { error: insertErr } = await supabase.from('fee_configurations' as any).insert(rest);
-        if (insertErr) { toast.error(insertErr.message); setSaving(false); return; }
+    // GAP-F1-03: every fee row is written through the governed writer so each
+    // create/update carries before/after audit evidence.
+    try {
+      if (editing) {
+        const [firstRow, ...rest] = allRows;
+        await configSave('fee_configurations', firstRow, { id: editing.id, entityLabel: 'fee configuration' });
+        for (const row of rest) {
+          await configSave('fee_configurations', row, { entityLabel: 'fee configuration' });
+        }
+        toast.success(`${allRows.length} fee configuration(s) saved`);
+      } else {
+        for (const row of allRows) {
+          await configSave('fee_configurations', row, { entityLabel: 'fee configuration' });
+        }
+        toast.success(`${allRows.length} fee configuration(s) created`);
       }
-      toast.success(`${allRows.length} fee configuration(s) saved`);
-    } else {
-      const { error } = await supabase.from('fee_configurations' as any).insert(allRows);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success(`${allRows.length} fee configuration(s) created`);
+    } catch (error: any) {
+      toast.error(error?.message ?? 'Could not save fee configuration'); setSaving(false); return;
     }
     setSaving(false); setDialogOpen(false); resetForm(); loadFees();
   };
@@ -385,28 +390,27 @@ export default function FeeManagement() {
       discount_amount: parseFloat(ruleDiscountAmount) || 0,
       priority: parseInt(rulePriority) || 0, is_active: ruleActive,
     };
-    if (editingRule) {
-      const { error } = await supabase.from('fee_rules' as any).update(payload).eq('id', editingRule.id);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success('Rule updated');
-    } else {
-      const { error } = await supabase.from('fee_rules' as any).insert(payload);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success('Rule created');
+    try {
+      await configSave('fee_rules', payload, { id: editingRule?.id ?? null, entityLabel: 'fee rule' });
+      toast.success(editingRule ? 'Rule updated' : 'Rule created');
+    } catch (error: any) {
+      toast.error(error?.message ?? 'Could not save fee rule'); setSaving(false); return;
     }
     setSaving(false); setRuleDialogOpen(false); resetRuleForm(); loadRules();
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('fee_configurations' as any).delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Fee deleted'); loadFees();
+    try {
+      await configRetire('fee_configurations', id, { entityLabel: 'fee configuration' });
+    } catch (error: any) { toast.error(error?.message ?? 'Could not retire fee'); return; }
+    toast.success('Fee configuration retired'); loadFees();
   };
 
   const handleDeleteRule = async (id: string) => {
-    const { error } = await supabase.from('fee_rules' as any).delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Rule deleted'); loadRules();
+    try {
+      await configRetire('fee_rules', id, { entityLabel: 'fee rule' });
+    } catch (error: any) { toast.error(error?.message ?? 'Could not retire rule'); return; }
+    toast.success('Rule retired'); loadRules();
   };
 
   const getSectorName = (id: string | null) => sectors.find(s => s.id === id)?.name || '—';
