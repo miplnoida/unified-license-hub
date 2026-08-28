@@ -525,7 +525,7 @@ BEGIN
   RETURNING id INTO v_fp_individual;
 
   INSERT INTO public.fp_assessments (individual_id, assessment_type, status)
-  VALUES (v_fp_individual, 'initial', 'completed')
+  VALUES (v_fp_individual, 'initial', 'determined')
   RETURNING id INTO v_fp_assessment;
 
   INSERT INTO public.fp_determinations (assessment_id, individual_id, outcome, rationale, determined_by, is_current)
