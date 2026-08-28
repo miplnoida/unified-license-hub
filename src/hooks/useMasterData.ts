@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { configRetire, configSave } from '@/lib/configWriter';
 
 export interface MasterDataType {
   id: string;
@@ -132,33 +133,29 @@ export function useActiveMasterItems(typeCode: string, parentItemId?: string | n
 export function useMasterDataMutations() {
   const qc = useQueryClient();
 
+  // GAP-F1-03: master data writes go through the governed config writer
+  // (`settings.edit` + before/after audit). Records are retired, not deleted.
   const upsertType = useMutation({
     mutationFn: async (row: Partial<MasterDataType> & { name: string }) => {
-      if (row.id) {
-        const { error } = await supabase.from('master_data_types' as any)
-          .update({ name: row.name, code: row.code || null, description: row.description || null, status: row.status || 'active', sort_order: row.sort_order || 0 } as any)
-          .eq('id', row.id);
-        if (error) throw new Error(error.message.includes('unique') ? 'A master data type with this name already exists.' : error.message);
-      } else {
-        const { error } = await supabase.from('master_data_types' as any)
-          .insert({ name: row.name, code: row.code || null, description: row.description || null, status: row.status || 'active', sort_order: row.sort_order || 0 } as any);
-        if (error) throw new Error(error.message.includes('unique') ? 'A master data type with this name already exists.' : error.message);
-      }
+      await configSave('master_data_types', {
+        name: row.name,
+        code: row.code || null,
+        description: row.description || null,
+        status: row.status || 'active',
+        sort_order: row.sort_order || 0,
+      }, { id: row.id ?? null, entityLabel: 'master data type' });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['master_data_types'] }),
   });
 
   const deleteType = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('master_data_types' as any).delete().eq('id', id);
-      if (error) throw error;
-    },
+    mutationFn: async (id: string) => { await configRetire('master_data_types', id, { entityLabel: 'master data type' }); },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['master_data_types'] }),
   });
 
   const upsertItem = useMutation({
     mutationFn: async (row: Partial<MasterDataItem> & { type_id: string; name: string }) => {
-      const payload = {
+      await configSave('master_data_items', {
         type_id: row.type_id,
         parent_item_id: row.parent_item_id || null,
         name: row.name,
@@ -166,23 +163,13 @@ export function useMasterDataMutations() {
         status: row.status || 'active',
         sort_order: row.sort_order || 0,
         metadata: row.metadata || {},
-      } as any;
-      if (row.id) {
-        const { error } = await supabase.from('master_data_items' as any).update(payload).eq('id', row.id);
-        if (error) throw new Error(error.message.includes('unique') || error.message.includes('duplicate') ? 'An item with this name already exists in this category.' : error.message);
-      } else {
-        const { error } = await supabase.from('master_data_items' as any).insert(payload);
-        if (error) throw new Error(error.message.includes('unique') || error.message.includes('duplicate') ? 'An item with this name already exists in this category.' : error.message);
-      }
+      }, { id: row.id ?? null, entityLabel: 'master data item' });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['master_data_items'] }),
   });
 
   const deleteItem = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('master_data_items' as any).delete().eq('id', id);
-      if (error) throw error;
-    },
+    mutationFn: async (id: string) => { await configRetire('master_data_items', id, { entityLabel: 'master data item' }); },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['master_data_items'] }),
   });
 
