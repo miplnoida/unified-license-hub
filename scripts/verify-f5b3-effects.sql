@@ -263,6 +263,11 @@ BEGIN
   PERFORM pg_temp.rec('C','C-03','every supported effect names its canonical target and handler',
     _unmapped = 0, 'incomplete_supported_entries=' || _unmapped);
 
+  SELECT count(*) INTO _gap FROM public.post_license_effect_map
+   WHERE NOT is_supported AND blocker_class = 'PRODUCT_GAP';
+  PERFORM pg_temp.rec('C','C-05','no active post-licensing service remains classified as a PRODUCT_GAP',
+    _gap = 0, 'product_gap_entries=' || _gap);
+
   SELECT count(*) INTO _unmapped FROM public.services s
    WHERE s.status = 'active' AND s.code IS NULL
      AND lower(s.lifecycle_stage) = ANY (public.post_license_service_stages())
@@ -603,7 +608,9 @@ DECLARE
 BEGIN
   _officer := pg_temp.f5b3_officer();
   _lic := pg_temp.f5b3_license('post_license');
-  _unsupported := pg_temp.f5b3_service(_lic, 'PLS_NEW_BRANCH');
+  -- F5-B3P: New Branch / Branch Closure are now supported; the remaining
+  -- unsupported classification is the BUSINESS_CONFIGURATION_REQUIRED surrender service.
+  _unsupported := pg_temp.f5b3_service(_lic, 'PLS_DEREGISTRATION');
   _svc := pg_temp.f5b3_service(_lic, 'PLS_INCIDENT_NOTIFICATION');
   IF _lic IS NULL OR _unsupported IS NULL OR _svc IS NULL THEN
     PERFORM pg_temp.rec('H','H-00','fixtures available for the fail-closed proof', false, 'missing services');
@@ -648,7 +655,7 @@ BEGIN
       format('INSERT INTO public.post_license_effects (application_id, effect_kind) VALUES (%L, %L)',
              (_fx2->>'application_id')::uuid, 'RENEWAL'));
     _map_state := pg_temp.as_user(_officer,
-      'UPDATE public.post_license_effect_map SET is_supported = true WHERE service_code = ''PLS_NEW_BRANCH''');
+      'UPDATE public.post_license_effect_map SET is_supported = true WHERE service_code = ''PLS_DEREGISTRATION''');
 
     RAISE EXCEPTION 'F5B3_ROLLBACK';
   EXCEPTION WHEN others THEN
