@@ -397,8 +397,10 @@ BEGIN
   PERFORM pg_temp.rec('S7','G-04','known identity data issues are recorded with an owner note', _n >= 2, 'findings=' || _n);
 
   -- Register counts must still reflect live data (no stale evidence).
+  -- Excludes the rolled-back convergence probe row created in S2.
   SELECT count(*) INTO _n FROM public.licensees l
-   WHERE NOT EXISTS (SELECT 1 FROM public.entity_user_memberships m WHERE m.entity_id=l.id)
+   WHERE l.name NOT LIKE 'F2B CONVERGENCE PROBE %'
+     AND NOT EXISTS (SELECT 1 FROM public.entity_user_memberships m WHERE m.entity_id=l.id)
      AND NOT EXISTS (SELECT 1 FROM public.entity_user_access a WHERE a.entity_id=l.id);
   PERFORM pg_temp.rec('S7','G-05','the recorded entities-without-an-owning-human count matches live data',
     _n = (SELECT observed_count FROM public.identity_data_remediation_register WHERE finding_key='ENTITY_WITHOUT_OWNING_HUMAN'),
@@ -414,7 +416,8 @@ BEGIN
 
   -- Handoff blockers must be reported for an entity with no owning human.
   SELECT l.id INTO _entity FROM public.licensees l
-   WHERE NOT EXISTS (SELECT 1 FROM public.entity_user_memberships m WHERE m.entity_id=l.id)
+   WHERE l.name NOT LIKE 'F2B CONVERGENCE PROBE %'
+     AND NOT EXISTS (SELECT 1 FROM public.entity_user_memberships m WHERE m.entity_id=l.id)
    ORDER BY l.created_at LIMIT 1;
   IF _entity IS NOT NULL THEN
     PERFORM set_config('request.jwt.claims',
