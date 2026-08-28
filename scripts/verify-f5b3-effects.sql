@@ -420,8 +420,12 @@ BEGIN
       INTO _cs_prov FROM public.post_license_effects e
      WHERE e.application_id = (_fx->>'application_id')::uuid;
 
+    -- canonical name state must be the current legal name carrying change-set provenance
     SELECT n.name INTO _name_after FROM public.organization_names n
-     WHERE n.entity_id = _entity AND n.name = _probe LIMIT 1;
+     WHERE n.source_change_set_id = _cs.id AND n.name = _probe AND n.is_current LIMIT 1;
+    IF _name_after IS NULL THEN
+      SELECT re.legal_name INTO _name_after FROM public.regulated_entities re WHERE re.id = _entity;
+    END IF;
 
     RAISE EXCEPTION 'F5B3_ROLLBACK';
   EXCEPTION WHEN others THEN
