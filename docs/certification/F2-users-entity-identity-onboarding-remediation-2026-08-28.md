@@ -6,7 +6,9 @@ Predecessors: F0 CERTIFIED AND FROZEN, F1 CERTIFIED AND FROZEN
 Input: `docs/certification/F2-users-entity-identity-onboarding-discovery-2026-08-28.md` (GAP-F2-01…10)
 Permanent gate: `npm run verify:f2b` → `scripts/verify-f2b-remediation.sql`
 
-**Verdict: F2-B READY FOR F2-C** — gate result 54 TESTED_PASS / 0 TESTED_FAIL / 0 N-A.
+**Verdict: F2-B READY FOR F2-C** — gate result 63 TESTED_PASS / 0 TESTED_FAIL / 0 N-A
+(includes the F2-B.1 identity-constraint cleanup: legal name is not identity, no
+fabricated identity data).
 
 ---
 
