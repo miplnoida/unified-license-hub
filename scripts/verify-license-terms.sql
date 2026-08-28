@@ -113,38 +113,52 @@ BEGIN
   v_pass := v_pass + 1;
 
   ---------------------------------------------------------------- 7 (empirical)
-  SELECT id INTO v_app FROM public.applications ORDER BY created_at LIMIT 1;
+  -- Driven inside a savepoint that is always rolled back, so the probe leaves
+  -- no residue in the append-only licence/term tables.
+  BEGIN
+    INSERT INTO public.licenses (application_id, holder_id, license_type,
+                                 valid_from, valid_until, status)
+    VALUES (NULL,
+            (SELECT holder_id FROM public.licenses WHERE holder_id IS NOT NULL LIMIT 1),
+            'VERIFY_LICENSE_TERMS_PROBE',
+            now(), now() + interval '365 days', 'active')
+    RETURNING id INTO v_lic;
 
-  INSERT INTO public.licenses (application_id, holder_id, license_type,
-                               valid_from, valid_until, status)
-  VALUES (NULL,
-          (SELECT holder_id FROM public.licenses WHERE holder_id IS NOT NULL LIMIT 1),
-          'VERIFY_LICENSE_TERMS_PROBE',
-          now(), now() + interval '365 days', 'active')
-  RETURNING id INTO v_lic;
+    SELECT id INTO v_term FROM public.license_terms
+     WHERE license_id = v_lic AND term_kind = 'original' AND is_current AND term_number = 1;
+    IF v_term IS NULL THEN
+      v_fail := 'verify:license-terms FAILED [7a] — issuance did not create the opening term atomically';
+    END IF;
 
-  SELECT id INTO v_term FROM public.license_terms
-   WHERE license_id = v_lic AND term_kind = 'original' AND is_current AND term_number = 1;
-  IF v_term IS NULL THEN
-    RAISE EXCEPTION 'verify:license-terms FAILED [7a] — issuance did not create the opening term atomically';
+    IF v_fail IS NULL THEN
+      v_term2 := public.ensure_license_original_term(v_lic, NULL, 'INITIAL_ISSUANCE');
+      IF v_term2 IS DISTINCT FROM v_term THEN
+        v_fail := 'verify:license-terms FAILED [7b] — term writer is not idempotent';
+      END IF;
+    END IF;
+
+    IF v_fail IS NULL THEN
+      SELECT count(*) INTO v_n FROM public.license_terms WHERE license_id = v_lic;
+      IF v_n <> 1 THEN
+        v_fail := format('verify:license-terms FAILED [7c] — expected 1 term for probe licence, found %s', v_n);
+      END IF;
+    END IF;
+
+    IF v_fail IS NULL THEN
+      PERFORM public.assert_license_term_integrity(v_lic, NULL);
+    END IF;
+
+    RAISE EXCEPTION 'PROBE_ROLLBACK';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM <> 'PROBE_ROLLBACK' AND v_fail IS NULL THEN
+      v_fail := 'verify:license-terms FAILED [7] — ' || SQLERRM;
+    END IF;
+  END;
+
+  IF v_fail IS NOT NULL THEN
+    RAISE EXCEPTION '%', v_fail;
   END IF;
-
-  v_term2 := public.ensure_license_original_term(v_lic, NULL, 'INITIAL_ISSUANCE');
-  IF v_term2 IS DISTINCT FROM v_term THEN
-    RAISE EXCEPTION 'verify:license-terms FAILED [7b] — term writer is not idempotent';
-  END IF;
-
-  SELECT count(*) INTO v_n FROM public.license_terms WHERE license_id = v_lic;
-  IF v_n <> 1 THEN
-    RAISE EXCEPTION 'verify:license-terms FAILED [7c] — expected 1 term for probe licence, found %', v_n;
-  END IF;
-
-  PERFORM public.assert_license_term_integrity(v_lic, NULL);
   v_pass := v_pass + 1;
-
-  -- probe cleanup (license_terms cascades on licence delete)
-  DELETE FROM public.license_terms WHERE license_id = v_lic;
-  DELETE FROM public.licenses WHERE id = v_lic;
 
   IF EXISTS (SELECT 1 FROM public.licenses WHERE license_type = 'VERIFY_LICENSE_TERMS_PROBE') THEN
     RAISE EXCEPTION 'verify:license-terms FAILED — probe residue remains';
@@ -154,3 +168,4 @@ BEGIN
     v_pass, array_length(v_allowlist, 1);
 END;
 $$;
+
