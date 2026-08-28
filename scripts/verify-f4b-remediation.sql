@@ -6,6 +6,9 @@
 -- in a given state.
 -- =====================================================================
 \set ON_ERROR_STOP on
+-- DEF-F5-B3R-01: pooled backends can arrive with a leaked row_security=off.
+-- Every gate restores the default explicitly so RLS probes are deterministic.
+SET row_security = on;
 \timing off
 \pset pager off
 
