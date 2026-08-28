@@ -26,6 +26,8 @@ const UserManagement = lazy(() => import('@/pages/admin/UserManagement'));
 const ManageWebUsers = lazy(() => import('@/pages/admin/ManageWebUsers'));
 const RoleManagement = lazy(() => import('@/pages/admin/RoleManagement'));
 const PermissionCoverageReport = lazy(() => import('@/pages/admin/PermissionCoverageReport'));
+const DecisionAuthorityManager = lazy(() => import('@/pages/admin/DecisionAuthorityManager'));
+const ServiceCompletenessReport = lazy(() => import('@/pages/admin/ServiceCompletenessReport'));
 const OperatingStructure = lazy(() => import('@/pages/admin/OperatingStructure'));
 const PeopleAccess = lazy(() => import('@/pages/admin/PeopleAccess'));
 const AuditLogs = lazy(() => import('@/pages/admin/AuditLogs'));
@@ -169,6 +171,8 @@ export const adminRoutes = (
     <Route path="/admin/web-users" element={<M module="user_management"><ManageWebUsers /></M>} />
     <Route path="/admin/roles" element={<M module="role_management"><RoleManagement /></M>} />
     <Route path="/admin/permission-coverage" element={<P><PermissionRoute module="role_management" action="view_coverage"><PermissionCoverageReport /></PermissionRoute></P>} />
+    <Route path="/admin/decision-authority" element={<P><PermissionRoute module="role_management" action="manage_config"><DecisionAuthorityManager /></PermissionRoute></P>} />
+    <Route path="/admin/service-completeness" element={<M module="settings"><ServiceCompletenessReport /></M>} />
     <Route path="/admin/operating-structure" element={<P><ModuleRoute module="user_management"><OperatingStructure /></ModuleRoute></P>} />
     {/* Checkpoint F: read-only People & Access aggregation over existing truth. */}
     <Route path="/admin/people-access" element={<P><ModuleRoute module="user_management"><PeopleAccess /></ModuleRoute></P>} />

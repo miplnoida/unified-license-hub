@@ -2832,6 +2832,13 @@ export type Database = {
             foreignKeyName: "approval_workflows_service_id_fkey"
             columns: ["service_id"]
             isOneToOne: false
+            referencedRelation: "service_configuration_completeness"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "approval_workflows_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id"]
           },
@@ -19650,6 +19657,13 @@ export type Database = {
             foreignKeyName: "fee_configurations_service_id_fkey"
             columns: ["service_id"]
             isOneToOne: false
+            referencedRelation: "service_configuration_completeness"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "fee_configurations_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id"]
           },
@@ -20804,6 +20818,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sectors"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_templates_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_configuration_completeness"
+            referencedColumns: ["service_id"]
           },
           {
             foreignKeyName: "form_templates_service_id_fkey"
@@ -33033,6 +33054,13 @@ export type Database = {
             foreignKeyName: "regulatory_service_tasks_service_id_fkey"
             columns: ["service_id"]
             isOneToOne: false
+            referencedRelation: "service_configuration_completeness"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "regulatory_service_tasks_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id"]
           },
@@ -38779,6 +38807,69 @@ export type Database = {
         }
         Relationships: []
       }
+      service_config_expectations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          decision_type: string | null
+          dimension: string
+          disposition: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          justification: string | null
+          lifecycle_stage: string | null
+          service_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          decision_type?: string | null
+          dimension: string
+          disposition: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          justification?: string | null
+          lifecycle_stage?: string | null
+          service_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          decision_type?: string | null
+          dimension?: string
+          disposition?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          justification?: string | null
+          lifecycle_stage?: string | null
+          service_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_config_expectations_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_configuration_completeness"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "service_config_expectations_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_provider_members: {
         Row: {
           capabilities: Json
@@ -42036,6 +42127,41 @@ export type Database = {
           role_id: string | null
         }
         Relationships: []
+      }
+      service_configuration_completeness: {
+        Row: {
+          decision_type: string | null
+          dimension: string | null
+          direct_ok: boolean | null
+          disposition: string | null
+          fallback_ok: boolean | null
+          is_complete: boolean | null
+          justification: string | null
+          lifecycle_stage: string | null
+          sector_id: string | null
+          service_code: string | null
+          service_id: string | null
+          service_name: string | null
+          state: string | null
+          status: string | null
+          sub_sector_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "services_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tap_funky: {
         Row: {
@@ -47382,28 +47508,59 @@ export type Database = {
         Args: { _comment: string; _decision: string; _request_id: string }
         Returns: Json
       }
-      decision_authority_rule_upsert: {
-        Args: {
-          _allow_delegation?: boolean
-          _committee_kind?: string
-          _decision_type: string
-          _enforcement_mode?: string
-          _id?: string
-          _minimum_quorum?: number
-          _notes?: string
-          _regulator_id?: string
-          _regulatory_function_id?: string
-          _required_module_key?: string
-          _required_permission_key?: string
-          _requires_committee?: boolean
-          _requires_conflict_clearance?: boolean
-          _requires_maker_checker?: boolean
-          _sector_id?: string
-          _service_id?: string
-          _sub_sector_id?: string
-        }
+      decision_authority_overview: { Args: never; Returns: Json }
+      decision_authority_rule_set_status: {
+        Args: { _id: string; _reason?: string; _status: string }
         Returns: string
       }
+      decision_authority_rule_upsert:
+        | {
+            Args: {
+              _allow_delegation?: boolean
+              _committee_kind?: string
+              _decision_type: string
+              _enforcement_mode?: string
+              _id?: string
+              _minimum_quorum?: number
+              _notes?: string
+              _regulator_id?: string
+              _regulatory_function_id?: string
+              _required_module_key?: string
+              _required_permission_key?: string
+              _requires_committee?: boolean
+              _requires_conflict_clearance?: boolean
+              _requires_maker_checker?: boolean
+              _sector_id?: string
+              _service_id?: string
+              _sub_sector_id?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _allow_delegation?: boolean
+              _committee_kind?: string
+              _decision_type: string
+              _effective_from?: string
+              _effective_to?: string
+              _enforcement_mode?: string
+              _id?: string
+              _minimum_quorum?: number
+              _notes?: string
+              _reason?: string
+              _regulator_id?: string
+              _regulatory_function_id?: string
+              _required_module_key?: string
+              _required_permission_key?: string
+              _requires_committee?: boolean
+              _requires_conflict_clearance?: boolean
+              _requires_maker_checker?: boolean
+              _sector_id?: string
+              _service_id?: string
+              _sub_sector_id?: string
+            }
+            Returns: string
+          }
       decision_gate_status: { Args: { _application_id: string }; Returns: Json }
       delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
       derive_communication_state: {
@@ -53120,6 +53277,16 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      service_configuration_completeness_report: { Args: never; Returns: Json }
+      service_configuration_gate: {
+        Args: never
+        Returns: {
+          dimension: string
+          disposition: string
+          service_id: string
+          service_name: string
+        }[]
       }
       set_acknowledgement_delivery_state: {
         Args: {

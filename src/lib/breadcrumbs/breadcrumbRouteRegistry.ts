@@ -247,6 +247,8 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   { pattern: '/admin/case-audit', label: 'Case audit', parent: '/admin' },
   { pattern: '/admin/case-audit/:entityType/:entityId', label: 'Case audit trail', parent: '/admin/case-audit' },
   { pattern: '/admin/applications/bulk-intake', label: 'Bulk intake', parent: '/applications/queue' },
+  { pattern: '/admin/decision-authority', label: 'Decision authority', parent: '/admin/roles' },
+  { pattern: '/admin/service-completeness', label: 'Service configuration completeness', parent: '/admin' },
   { pattern: '/admin/regulatory-data-model', label: 'Regulatory data model', parent: '/admin' },
   { pattern: '/admin/masters', label: 'Master configuration', parent: '/admin' },
   { pattern: '/admin/masters/sectors', label: 'Sectors', parent: '/admin/masters' },
