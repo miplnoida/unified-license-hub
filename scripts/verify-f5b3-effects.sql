@@ -519,7 +519,8 @@ END $f$;
 -- ===========================================================================
 DO $g$
 DECLARE
-  _lic uuid; _svc uuid; _officer uuid; _fx jsonb; _plan jsonb; _res text; _effects int;
+  _lic uuid; _svc uuid; _officer uuid; _fx jsonb; _plan jsonb; _res jsonb; _effects int;
+  _raised text := NULL; _app_status text; _wf_status text; _actions int;
   _harness text := NULL;
 BEGIN
   _officer := pg_temp.f5b3_officer();
@@ -537,14 +538,17 @@ BEGIN
       json_build_object('sub',_officer::text,'role','authenticated')::text, true);
     _plan := public.post_license_effect_plan((_fx->>'application_id')::uuid);
     BEGIN
-      PERFORM public.perform_final_workflow_approval((_fx->>'application_id')::uuid,
+      _res := public.perform_final_workflow_approval((_fx->>'application_id')::uuid,
                 (_fx->>'instance_id')::uuid, (_fx->>'step_id')::uuid, 'F5-B3 fp probe', _officer);
-      _res := 'NOT_BLOCKED';
     EXCEPTION WHEN others THEN
-      _res := SQLSTATE || ': ' || left(SQLERRM,120);
+      _raised := SQLSTATE || ': ' || left(SQLERRM,120);
     END;
     SELECT count(*) INTO _effects FROM public.post_license_effects
      WHERE application_id = (_fx->>'application_id')::uuid;
+    SELECT a.status INTO _app_status FROM public.applications a WHERE a.id = (_fx->>'application_id')::uuid;
+    SELECT w.status INTO _wf_status FROM public.workflow_instances w WHERE w.id = (_fx->>'instance_id')::uuid;
+    SELECT count(*) INTO _actions FROM public.approval_actions aa
+     WHERE aa.application_id = (_fx->>'application_id')::uuid AND aa.action = 'approve_final';
 
     RAISE EXCEPTION 'F5B3_ROLLBACK';
   EXCEPTION WHEN others THEN
@@ -561,9 +565,22 @@ BEGIN
     _plan->>'state' = 'BLOCKED' AND (_plan->>'fp_required')::boolean
       AND _plan->>'code' = 'FP_DETERMINATION_REQUIRED',
     'state=' || coalesce(_plan->>'state','null') || ' code=' || coalesce(_plan->>'code','null'));
-  PERFORM pg_temp.rec('G','G-02','the blocked structural effect is never applied and approval is refused',
-    _res <> 'NOT_BLOCKED' AND _effects = 0,
-    'approval=' || coalesce(_res,'null') || ' effects=' || coalesce(_effects::text,'null'));
+  PERFORM pg_temp.rec('G','G-02','the blocked structural effect is never applied and the decision is refused',
+    (_raised IS NOT NULL OR coalesce(_res->>'success','false') <> 'true') AND _effects = 0,
+    'raised=' || coalesce(_raised,'-') || ' success=' || coalesce(_res->>'success','null')
+    || ' effects=' || coalesce(_effects::text,'null'));
+  PERFORM pg_temp.rec('G','G-03','the refusal is a stable governed blocked result the caller can distinguish',
+    _raised IS NOT NULL OR (coalesce(_res->>'blocked','false') = 'true'
+      AND _res->>'application_id' = (_fx->>'application_id')
+      AND _res->>'plan_state' = 'BLOCKED'
+      AND _res->>'code' = 'FP_DETERMINATION_REQUIRED'
+      AND jsonb_typeof(_res->'blockers') = 'array'
+      AND jsonb_array_length(_res->'blockers') > 0),
+    'result=' || left(coalesce(_res::text,'null'),200));
+  PERFORM pg_temp.rec('G','G-04','no application, workflow or decision mutation survives the refused F&P decision',
+    _app_status IS DISTINCT FROM 'approved' AND _wf_status IS DISTINCT FROM 'completed' AND _actions = 0,
+    'app=' || coalesce(_app_status,'null') || ' wf=' || coalesce(_wf_status,'null')
+    || ' approve_final_actions=' || coalesce(_actions::text,'null'));
 END $g$;
 
 -- ===========================================================================
