@@ -13054,6 +13054,90 @@ export type Database = {
           },
         ]
       }
+      config_change_log: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string | null
+          changed_by_role: string | null
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          reason: string | null
+          record_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_role?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          reason?: string | null
+          record_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_role?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          reason?: string | null
+          record_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
+      config_governed_tables: {
+        Row: {
+          allow_hard_delete: boolean
+          created_at: string
+          domain: string
+          immutable_columns: string[]
+          notes: string | null
+          required_create_action: string
+          required_edit_action: string
+          required_module_key: string
+          soft_delete_column: string | null
+          soft_delete_retired_value: string | null
+          table_name: string
+          updated_at: string
+        }
+        Insert: {
+          allow_hard_delete?: boolean
+          created_at?: string
+          domain: string
+          immutable_columns?: string[]
+          notes?: string | null
+          required_create_action?: string
+          required_edit_action?: string
+          required_module_key: string
+          soft_delete_column?: string | null
+          soft_delete_retired_value?: string | null
+          table_name: string
+          updated_at?: string
+        }
+        Update: {
+          allow_hard_delete?: boolean
+          created_at?: string
+          domain?: string
+          immutable_columns?: string[]
+          notes?: string | null
+          required_create_action?: string
+          required_edit_action?: string
+          required_module_key?: string
+          soft_delete_column?: string | null
+          soft_delete_retired_value?: string | null
+          table_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       coordination_cases: {
         Row: {
           clearance_required: boolean
@@ -46810,6 +46894,53 @@ export type Database = {
         }[]
       }
       conduct_work_queue_counts: { Args: never; Returns: Json }
+      config_can_write: {
+        Args: { _action: string; _table_name: string }
+        Returns: boolean
+      }
+      config_change_history: {
+        Args: { _limit?: number; _record_id?: string; _table_name: string }
+        Returns: {
+          action: string
+          changed_at: string
+          changed_by: string | null
+          changed_by_role: string | null
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          reason: string | null
+          record_id: string | null
+          table_name: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "config_change_log"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      config_delete: {
+        Args: { _id: string; _reason?: string; _table_name: string }
+        Returns: Json
+      }
+      config_retire: {
+        Args: {
+          _id: string
+          _reactivate?: boolean
+          _reason?: string
+          _table_name: string
+        }
+        Returns: Json
+      }
+      config_save: {
+        Args: {
+          _id?: string
+          _payload: Json
+          _reason?: string
+          _table_name: string
+        }
+        Returns: Json
+      }
       configure_application_form: {
         Args: { _config: Json; _form_config_id: string }
         Returns: {
