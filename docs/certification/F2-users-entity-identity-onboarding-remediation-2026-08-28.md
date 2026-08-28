@@ -159,7 +159,8 @@ returns `ready=false` with a non-empty blocker list.
 
 ## 6. Permanent gate
 
-`npm run verify:f2b` — 55 registry-derived assertions across seven stages, all
+`npm run verify:f2b` — 63 registry-derived assertions across seven stages
+(last run: 63 TESTED_PASS / 0 TESTED_FAIL / 0 N-A), all
 read-mostly (probe writes are rolled back). No table name is hard-coded in the
 privilege stages: they are derived from `identity_governed_tables`, so adding a
 new identity table without registering and locking it down fails the gate.
