@@ -17425,6 +17425,42 @@ export type Database = {
         }
         Relationships: []
       }
+      entity_membership_status_catalogue: {
+        Row: {
+          created_at: string
+          description: string | null
+          is_active: boolean
+          is_authority_sufficient: boolean
+          is_open: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          is_authority_sufficient?: boolean
+          is_open?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          is_authority_sufficient?: boolean
+          is_open?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       entity_merges: {
         Row: {
           absorbed_entity_id: string
@@ -22784,6 +22820,117 @@ export type Database = {
           },
         ]
       }
+      identity_capability_register: {
+        Row: {
+          access_path: string | null
+          capability_key: string
+          created_at: string
+          decision_note: string
+          object_kind: string
+          object_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          access_path?: string | null
+          capability_key: string
+          created_at?: string
+          decision_note: string
+          object_kind: string
+          object_name: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          access_path?: string | null
+          capability_key?: string
+          created_at?: string
+          decision_note?: string
+          object_kind?: string
+          object_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      identity_data_remediation_register: {
+        Row: {
+          created_at: string
+          detection_sql: string
+          finding_class: string
+          finding_key: string
+          is_structurally_prevented: boolean
+          observed_count: number
+          owner_note: string
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          detection_sql: string
+          finding_class: string
+          finding_key: string
+          is_structurally_prevented?: boolean
+          observed_count?: number
+          owner_note: string
+          severity: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          detection_sql?: string
+          finding_class?: string
+          finding_key?: string
+          is_structurally_prevented?: boolean
+          observed_count?: number
+          owner_note?: string
+          severity?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      identity_governed_tables: {
+        Row: {
+          anon_select_allowed: boolean
+          anon_select_justification: string | null
+          authenticated_select_allowed: boolean
+          authenticated_writes: string[]
+          canonical_write_path: string
+          created_at: string
+          domain: string
+          notes: string | null
+          table_name: string
+          updated_at: string
+          write_retention_justification: string | null
+        }
+        Insert: {
+          anon_select_allowed?: boolean
+          anon_select_justification?: string | null
+          authenticated_select_allowed?: boolean
+          authenticated_writes?: string[]
+          canonical_write_path: string
+          created_at?: string
+          domain: string
+          notes?: string | null
+          table_name: string
+          updated_at?: string
+          write_retention_justification?: string | null
+        }
+        Update: {
+          anon_select_allowed?: boolean
+          anon_select_justification?: string | null
+          authenticated_select_allowed?: boolean
+          authenticated_writes?: string[]
+          canonical_write_path?: string
+          created_at?: string
+          domain?: string
+          notes?: string | null
+          table_name?: string
+          updated_at?: string
+          write_retention_justification?: string | null
+        }
+        Relationships: []
+      }
       inspection_findings: {
         Row: {
           category: string
@@ -26384,7 +26531,7 @@ export type Database = {
           lifecycle_stage_id: string | null
           merged_into_entity_id: string | null
           name: string
-          party_id: string | null
+          party_id: string
           public_slug: string | null
           publication_policy_id: string | null
           regulator_officer_id: string | null
@@ -26408,7 +26555,7 @@ export type Database = {
           lifecycle_stage_id?: string | null
           merged_into_entity_id?: string | null
           name: string
-          party_id?: string | null
+          party_id: string
           public_slug?: string | null
           publication_policy_id?: string | null
           regulator_officer_id?: string | null
@@ -26432,7 +26579,7 @@ export type Database = {
           lifecycle_stage_id?: string | null
           merged_into_entity_id?: string | null
           name?: string
-          party_id?: string | null
+          party_id?: string
           public_slug?: string | null
           publication_policy_id?: string | null
           regulator_officer_id?: string | null
@@ -28020,7 +28167,7 @@ export type Database = {
           expires_at: string
           id: string
           payload: Json
-          token: string
+          token_hash: string
           token_kind: string
           user_id: string
         }
@@ -28032,7 +28179,7 @@ export type Database = {
           expires_at?: string
           id?: string
           payload?: Json
-          token: string
+          token_hash: string
           token_kind: string
           user_id: string
         }
@@ -28044,7 +28191,7 @@ export type Database = {
           expires_at?: string
           id?: string
           payload?: Json
-          token?: string
+          token_hash?: string
           token_kind?: string
           user_id?: string
         }
@@ -28151,6 +28298,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      onboarding_stage_catalogue: {
+        Row: {
+          created_at: string
+          description: string | null
+          is_active: boolean
+          is_terminal: boolean
+          key: string
+          label: string
+          resume_route: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          is_terminal?: boolean
+          key: string
+          label: string
+          resume_route?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          is_terminal?: boolean
+          key?: string
+          label?: string
+          resume_route?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       organization_names: {
         Row: {
@@ -49217,6 +49400,7 @@ export type Database = {
             Returns: boolean
           }
       has_unique: { Args: { "": string }; Returns: string }
+      identity_integrity_report: { Args: never; Returns: Json }
       import_applications_bulk: { Args: { _payload: Json }; Returns: Json }
       import_return_form_data: {
         Args: { _return_id: string; _rows: Json; _strategy: string }
@@ -50768,7 +50952,7 @@ export type Database = {
           expires_at: string
           id: string
           payload: Json
-          token: string
+          token_hash: string
           token_kind: string
           user_id: string
         }
@@ -50778,6 +50962,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      onboarding_registration_handoff_ready: {
+        Args: { _entity_id: string }
+        Returns: Json
       }
       onboarding_request_membership_by_token: {
         Args: {

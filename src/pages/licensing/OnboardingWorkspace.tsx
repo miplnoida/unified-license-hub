@@ -27,9 +27,11 @@ import {
   type IdentificationFilters,
   type JourneyRegisterRow,
 } from '@/hooks/useOnboardingAudit';
+// Stage vocabulary is governed configuration (onboarding_stage_catalogue),
+// never a hard-coded React list.
+import { useOnboardingStages } from '@/hooks/useOnboardingVocabulary';
 
 const OUTCOMES = ['EXACT_MATCH', 'POSSIBLE_MATCH', 'NO_MATCH', 'VALIDATION_FAILURE', 'SYSTEM_ERROR'];
-const STAGES = ['USER_ACCOUNT', 'ENTITY_IDENTIFICATION', 'AUTHORITY_PENDING', 'AUTHORITY_GRANTED', 'APPLICATION', 'COMPLETE'];
 
 function Metric({ label, value }: { label: string; value: number | undefined }) {
   return (
@@ -53,6 +55,7 @@ export default function OnboardingWorkspace() {
   const activity = useIdentificationActivity(filters, 0, 200);
   const counts = useIdentificationCounts(filters);
   const journeys = useJourneyRegister(journeyFilters);
+  const { data: stages = [] } = useOnboardingStages();
 
   const applySearch = () =>
     setFilters((f) => ({ ...f, user: userText.trim() || undefined, organisation: orgText.trim() || undefined }));
@@ -249,7 +252,7 @@ export default function OnboardingWorkspace() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All stages</SelectItem>
-                    {STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    {stages.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

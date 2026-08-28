@@ -21,8 +21,10 @@ import { useMemberships, useMembershipRoles, useMembershipMutations, type Member
 import { useUserDisplayNames } from '@/hooks/useUserDisplayNames';
 import { useCan } from '@/hooks/useCan';
 import { formatDateTime } from '@/lib/datetime';
+// Status vocabulary is governed configuration
+// (entity_membership_status_catalogue), never a hard-coded React list.
+import { useMembershipStatuses } from '@/hooks/useOnboardingVocabulary';
 
-const STATUS_TABS = ['PENDING_VERIFICATION', 'REQUESTED', 'VERIFIED', 'APPROVED', 'REJECTED', 'REVOKED', 'all'];
 
 const STATUS_TONE = (s: string) => {
   switch (s) {
@@ -50,6 +52,11 @@ export default function EntityMemberships() {
   const [status, setStatus] = useState('REQUESTED');
   const { data = [], isLoading, error } = useMemberships({ status });
   const { data: roles = [] } = useMembershipRoles();
+  const { data: statuses = [] } = useMembershipStatuses();
+  const statusLabel = useMemo(
+    () => Object.fromEntries(statuses.map((s) => [s.key, s.label])),
+    [statuses],
+  );
   const { verify, approve, reject, revoke } = useMembershipMutations();
 
   const canVerify = useCan('entity_membership', 'verify');
@@ -83,9 +90,10 @@ export default function EntityMemberships() {
           <CardContent className="space-y-3">
             <Tabs value={status} onValueChange={setStatus}>
               <TabsList className="flex-wrap h-auto">
-                {STATUS_TABS.map((s) => (
-                  <TabsTrigger key={s} value={s}>{s === 'all' ? 'All' : s.replace(/_/g, ' ').toLowerCase()}</TabsTrigger>
+                {statuses.map((s) => (
+                  <TabsTrigger key={s.key} value={s.key}>{s.label}</TabsTrigger>
                 ))}
+                <TabsTrigger value="all">All</TabsTrigger>
               </TabsList>
             </Tabs>
 
@@ -120,7 +128,7 @@ export default function EntityMemberships() {
                       <TableCell className="font-medium">{names[m.user_id] || m.user_id.slice(0, 8)}</TableCell>
                       <TableCell className="font-mono text-xs">{m.entity_id.slice(0, 8)}</TableCell>
                       <TableCell>{roleLabel[m.membership_role_id] || '—'}</TableCell>
-                      <TableCell><Badge variant="outline" className={STATUS_TONE(m.status)}>{m.status}</Badge></TableCell>
+                      <TableCell><Badge variant="outline" className={STATUS_TONE(m.status)}>{statusLabel[m.status] || m.status}</Badge></TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {m.authority_evidence_reference || 'Not supplied'}
                       </TableCell>
