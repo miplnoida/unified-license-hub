@@ -737,6 +737,15 @@ BEGIN
   BEGIN DELETE FROM public.audit_logs    WHERE entity_id=v_app_id::text; EXCEPTION WHEN OTHERS THEN NULL; END;
   BEGIN DELETE FROM public.approval_actions WHERE application_id=v_app_id; EXCEPTION WHEN OTHERS THEN NULL; END;
   BEGIN DELETE FROM public.payments WHERE application_id=v_app_id; EXCEPTION WHEN OTHERS THEN NULL; END;
+  -- F4 readiness fixture teardown (must precede the application delete).
+  BEGIN DELETE FROM public.application_fp_links WHERE application_id=v_app_id; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN DELETE FROM public.fp_determinations WHERE assessment_id=v_fp_assessment; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN DELETE FROM public.fp_assessments WHERE id=v_fp_assessment; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN DELETE FROM public.fp_individuals WHERE id=v_fp_individual; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN DELETE FROM public.application_form_requirements WHERE application_id=v_app_id; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN DELETE FROM public.registration_licensing_handoffs WHERE application_id=v_app_id; EXCEPTION WHEN OTHERS THEN NULL; END;
+  BEGIN DELETE FROM public.registrations WHERE id=v_reg_id; EXCEPTION WHEN OTHERS THEN NULL; END;
+
   BEGIN DELETE FROM public.licensees WHERE license_id IN (SELECT id FROM public.licenses WHERE application_id=v_app_id); EXCEPTION WHEN OTHERS THEN NULL; END;
   BEGIN DELETE FROM public.licenses  WHERE application_id=v_app_id; EXCEPTION WHEN OTHERS THEN NULL; END;
   BEGIN DELETE FROM public.workflow_instances WHERE entity_id=v_app_id; EXCEPTION WHEN OTHERS THEN NULL; END;
