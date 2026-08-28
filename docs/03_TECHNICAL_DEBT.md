@@ -97,7 +97,7 @@ Effort: **S** ≤1d · **M** 2–5d · **L** 1–2w · **XL** >2w
 
 ### TD-015 — Mock / demo data & TODOs
 - **Action**: `rg -n "TODO|FIXME|MOCK|mock|placeholder|dummy|lorem" src supabase/functions` — build a live inventory and gate merges on "no new demo data" rule. (Full sweep deferred to EPIC 0.1.)
-- **Known**: `src/data/sectorData.ts` — verify usage; `PlaceholderPage.tsx` — expected.
+- **Known**: `src/data/sectorData.ts` deleted in F1-B.1 (zero importers); `PlaceholderPage.tsx` — expected.
 - **P/E**: P1 / S (inventory) + M (removal)
 
 ### TD-016 — Naming inconsistencies

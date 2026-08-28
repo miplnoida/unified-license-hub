@@ -32,9 +32,10 @@ Configuration-write governance (GAP-F1-03) was accepted as complete and was not 
   to the Standard Post-License Approval pattern as a declared SHARED_FALLBACK.
 - Current state (680 service-dimension evaluations): workflow 136 satisfied,
   forms/documents 136 satisfied, decision authority 136 satisfied by shared fallback,
-  fee 122 satisfied / 5 fallback / 8 not applicable / 1 pending, SLA 128 satisfied /
-  8 pending. **0 unexplained** incomplete items.
-- Remaining 9 pending items (8 renewal service standards, 1 renewal fee) are recorded as
+  fee 122 satisfied / 5 fallback / 8 not applicable / 1 BUSINESS_CONFIGURATION_REQUIRED,
+  SLA 128 satisfied / 8 BUSINESS_CONFIGURATION_REQUIRED. **0 unexplained** incomplete items.
+- Remaining 9 BUSINESS_CONFIGURATION_REQUIRED items (8 renewal service standards, 1 renewal
+  fee) are recorded as
   REQUIRED with an explicit BUSINESS_CONFIGURATION_REQUIRED justification — a regulator
   policy decision, deliberately not invented.
 - Permanent gate: `npm run verify:service-completeness`
@@ -67,6 +68,78 @@ No open item requires further code.
   `verify:breadcrumbs` 0 uncovered, authz/edge/atomic scanners OK.
 - `verify:f0c` fails only in its own fixture harness (`file_upload_not_found`), unchanged
   by this pass and unrelated to F1 scope.
+
+### Verdict
+**F1-B READY FOR F1-C CERTIFICATION**
+
+---
+
+## F1-B.1 — final certification readiness cleanup
+
+Scope: verified residuals only. F1-B remediation was not redone and frozen F0 product
+behaviour was not changed.
+
+### verify:f0c — PASS
+`npm run verify:f0c` now reports **34 TESTED_PASS / 0 TESTED_FAIL / 0 N-A**. The earlier
+`file_upload_not_found` was fixture drift inside the gate's own harness (the seeded
+`file_uploads` fixture row), not product behaviour; the harness now seeds and resolves its
+fixture before the S2/S4 scan-lifecycle assertions. No F0 product code, policy, grant or
+constraint was modified.
+
+### GAP-F1-08 — CLOSED
+- `src/pages/admin/RegulatorManagement.tsx` no longer claims `user_management.create`.
+  Regulator identity is governed configuration, so the create dialog, the row **Edit** and
+  the row **Retire** actions, and the dialog save button are all gated on **`settings.edit`**
+  — the same permission `config_governed_tables` requires for `regulators` and that
+  `config_save` / `config_retire` enforce server-side.
+- Create and edit both flow through `configSave('regulators', …)`; deletion is a
+  `configRetire` (soft retire), matching the registry's `soft_delete_column = status`.
+  UI gating and server-side enforcement are therefore the same permission on all three
+  actions.
+
+### GAP-F1-06 — CLOSED (truthfully)
+- `src/data/sectorData.ts` had zero runtime importers and is **deleted**; documentation
+  references were updated.
+- Re-check of the F1-A hard-coded defaults:
+
+| Location | Value | Classification |
+| --- | --- | --- |
+| `SlaManager.tsx` `TIER_DEFAULTS` | 0 / 3 / 7 day tiers, recipient roles | UI_DEFAULT_ONLY — form prefill; persisted values live in `sla_escalation_tiers` |
+| `RoutingRulesAdmin.tsx` `emptyRule` | `sla_days: 5`, `priority`, `sort_order` | UI_DEFAULT_ONLY — new-record prefill, editable and stored in `correspondence_routing_rules` |
+| `RfiAutoRules.tsx` | `default_due_days: 7` | UI_DEFAULT_ONLY — prefill of a stored per-rule column |
+| `RuleEditor.tsx` | `suppression_days: 7` | UI_DEFAULT_ONLY — prefill of a stored `engine_rules` column |
+| `SystemicRiskPanels.tsx` | `_lookback_days: 365` | MODULE_CARRY_FORWARD — analytics presentation window, not regulator policy |
+| `EscalationManager.tsx` module / severity / status lists | vocabularies | MODULE_CARRY_FORWARD — enum-backed (`escalation_severity`, `escalation_status`) filter vocabulary |
+| `DuplicateDetectionHub.tsx` | `_window_days: 30` | **CONFIGURED** — duplicated regulator policy; now read from `complaint_duplicate_scoring_config.time_window_days`, omitted when unconfigured so the database default stays the single source |
+
+Harmless presentation defaults were deliberately left as defaults.
+
+### GAP-F1-09 — CLOSED
+`src/test/config/f1MasterConfiguration.test.tsx` (11 tests) covers:
+- the Decision Authority operator screen — ruleset render, enforcement mode, and write
+  actions present for `role_management.manage_config` / hidden without it;
+- the Service Completeness screen — dimension coverage, missing-required totals and the
+  gaps tab;
+- the BUSINESS_CONFIGURATION_REQUIRED display state (9 items) and its classification helper;
+- authorized vs unauthorized configuration mutation (`42501` → operator-readable denial);
+- governed `config_save` / `config_retire` routing, including the hard-delete refusal.
+
+### BUSINESS_CONFIGURATION_REQUIRED — current truth
+**9 BUSINESS_CONFIGURATION_REQUIRED items: 8 renewal service standards (SLA) + 1 renewal fee.**
+Database state at this pass: `sla` 128 SATISFIED / **8 BUSINESS_CONFIGURATION_REQUIRED**;
+`fee` 122 SATISFIED / 5 SATISFIED_BY_FALLBACK / 8 NOT_APPLICABLE /
+**1 BUSINESS_CONFIGURATION_REQUIRED**; `workflow` and `forms_documents` 136 SATISFIED;
+`decision_authority` 136 SATISFIED_BY_FALLBACK. The earlier "pending" wording is replaced by
+BUSINESS_CONFIGURATION_REQUIRED throughout, and the Service Completeness screen now labels
+these rows and counts them explicitly.
+
+### Verification (F1-B.1)
+- `src/test/config/f1MasterConfiguration.test.tsx` — 11/11 pass.
+- `npm run verify:service-completeness` — GATE PASSED (0 unexplained gaps).
+- Full frontend suite + typecheck/build — green.
+- F0 protected gates re-run: `verify:f0c` **PASS (34/0)**, `verify:hardening`,
+  `verify:definer-guards`, `verify:anon-execute`, `verify:breadcrumbs`, authz/edge/atomic
+  scanners — all pass.
 
 ### Verdict
 **F1-B READY FOR F1-C CERTIFICATION**

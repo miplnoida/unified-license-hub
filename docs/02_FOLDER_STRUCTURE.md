@@ -13,7 +13,6 @@ src/
   contexts/                   # AuthContext, RegulatorContext, PpocContext, ActiveSectorContext, SiteSettingsContext
   lib/                        # 70 files — utils + domain logic + DB helpers (BLOATED)
   integrations/supabase/      # auto-generated client + types (do not edit)
-  data/                       # static seed (sectorData.ts)
   types/                      # 4 files
   test/                       # ~70 vitest files (flat)
 supabase/
