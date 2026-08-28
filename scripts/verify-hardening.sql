@@ -58,6 +58,7 @@ DECLARE
   v_reg_id uuid;
   v_fp_individual uuid;
   v_fp_assessment uuid;
+  v_fp_determination uuid;
   v_tpl_id uuid; v_tpl_version uuid;
 
 
@@ -528,8 +529,14 @@ BEGIN
   VALUES (v_fp_individual, 'initial', 'determined')
   RETURNING id INTO v_fp_assessment;
 
+  -- The determination guard requires committee/screening evidence for a fresh
+  -- current determination; a superseding record is the documented fixture path.
   INSERT INTO public.fp_determinations (assessment_id, individual_id, outcome, rationale, determined_by, is_current)
-  VALUES (v_fp_assessment, v_fp_individual, 'approved', 'verify-hardening fixture', v_super_admin, true);
+  VALUES (v_fp_assessment, v_fp_individual, 'approved', 'verify-hardening fixture baseline record', v_super_admin, false)
+  RETURNING id INTO v_fp_determination;
+
+  INSERT INTO public.fp_determinations (assessment_id, individual_id, outcome, rationale, determined_by, is_current, supersedes_id)
+  VALUES (v_fp_assessment, v_fp_individual, 'approved', 'verify-hardening fixture cleared determination', v_super_admin, true, v_fp_determination);
 
   INSERT INTO public.application_fp_links (application_id, assessment_id, is_required)
   VALUES (v_app_id, v_fp_assessment, true);
