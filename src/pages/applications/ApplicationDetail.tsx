@@ -510,78 +510,20 @@ export default function ApplicationDetail() {
 
     setProcessing(true);
 
-    // For approvals, use the trusted manual-approval RPC (commits status,
-    // creates license + licensee, writes approval action / audit / notification),
-    // then call approve-pre-licensee for auth user provisioning.
+    // F4-B (GAP-F4-01): there is exactly ONE production final-approval path —
+    // the governed workflow action (decision gates → maker/checker →
+    // perform_final_workflow_approval → provision_application_entity).
+    // The legacy manual-approval RPC has been retired, so this screen no longer
+    // offers an ad-hoc approval route.
     if (newStatus === 'approved') {
-      try {
-        const { data: rpcData, error: rpcError } = await supabase.rpc(
-          'perform_manual_application_approval' as any,
-          { _application_id: app.id, _comments: comment },
-        );
-        if (rpcError || (rpcData as any)?.error) {
-          toast.error((rpcData as any)?.error || rpcError?.message || 'Approval failed');
-          setProcessing(false);
-          return;
-        }
-        const licenseNumber = (rpcData as any)?.license_number;
-
-        // Best-effort web-user provisioning. Provisioning failure must NOT
-        // surface as an approval failure — the approval is already committed.
-        let provisioningWarning: string | null = null;
-        try {
-          const provRes = await supabase.functions.invoke('approve-pre-licensee', {
-            body: { application_id: app.id, comments: comment },
-          });
-          if (provRes.error) {
-            let detail: string | undefined;
-            const ctx: any = (provRes.error as any)?.context;
-            if (ctx && typeof ctx.json === 'function') {
-              try { const body = await ctx.json(); detail = body?.error; } catch { /* ignore */ }
-            }
-            provisioningWarning = detail || provRes.error.message || 'User provisioning failed';
-          } else if ((provRes.data as any)?.error) {
-            provisioningWarning = (provRes.data as any).error;
-          }
-        } catch (provErr: any) {
-          provisioningWarning = provErr?.message || 'User provisioning failed';
-        }
-
-        if (provisioningWarning) {
-          toast.success(
-            licenseNumber
-              ? `Application approved (License: ${licenseNumber}). User provisioning will be retried — reset password from Employee Management if needed.`
-              : `Application approved. User provisioning will be retried — reset password from Employee Management if needed.`
-          );
-        } else {
-          const isRenewal = isRenewalApplication || (rpcData as any)?.renewal === true;
-          const validUntilRaw = (rpcData as any)?.valid_until;
-          const validUntil = validUntilRaw ? new Date(validUntilRaw).toLocaleDateString() : null;
-          if (isRenewal) {
-            toast.success(
-              validUntil
-                ? `License renewed${licenseNumber ? ` (${licenseNumber})` : ''} — new expiry: ${validUntil}`
-                : `License renewed${licenseNumber ? ` (${licenseNumber})` : ''}`
-            );
-          } else {
-            toast.success(
-              licenseNumber
-                ? `Application approved! License: ${licenseNumber}`
-                : 'Application approved!'
-            );
-          }
-        }
-
-        setActionComment('');
-        loadData();
-        setProcessing(false);
-        return;
-      } catch (e: any) {
-        toast.error(e?.message || 'Approval request failed');
-        setProcessing(false);
-        return;
-      }
+      toast.error('Final approval must be taken in the Workflow panel', {
+        description:
+          'Licence approval runs through the governed workflow (decision gates, maker/checker and licence issuance). Use the Approval Workflow action on this application.',
+      });
+      setProcessing(false);
+      return;
     }
+
 
     // Reject path → trusted RPC (handles status, rejected_at, workflow cancel,
     // approval_action, audit, notification — all atomically + bypasses the

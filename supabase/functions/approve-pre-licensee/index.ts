@@ -1,6 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 import { requireUserPermission } from "../_shared/authz.ts";
+import { requireWorkerInvocationAsync } from "../_shared/workerAuth.ts";
+
 
 /**
  * Edge function: approve-pre-licensee (post-approval provisioning ONLY)
@@ -34,9 +36,15 @@ export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
 
-
-  const __authzGate = await requireUserPermission(req, "registration_management", "approve");
-  if (!__authzGate.ok) return __authzGate.response;
+  // F4-B (GAP-F4-08): provisioning is also driven by the licensing provisioning
+  // outbox worker, which authenticates with service-role / worker credentials
+  // instead of a staff session. Either gate is acceptable; nothing else changes.
+  const workerGate = await requireWorkerInvocationAsync(req, "approve-pre-licensee");
+  let __authzGate: Awaited<ReturnType<typeof requireUserPermission>> | null = null;
+  if (!workerGate.ok) {
+    __authzGate = await requireUserPermission(req, "registration_management", "approve");
+    if (!__authzGate.ok) return __authzGate.response;
+  }
   try {
     const authHeader = req.headers.get("authorization");
     if (!authHeader) return errorResponse(req, 401, "Missing authorization header", "UNAUTHORIZED");
@@ -47,16 +55,22 @@ export async function handler(req: Request): Promise<Response> {
     // Never re-derive it via auth.getUser(): that round-trip fails with
     // "session not found" after a refresh-token rotation even though the
     // bearer token is valid, which surfaced as a bogus 401 on approvals.
-    const caller = { id: __authzGate.userId, email: __authzGate.email };
+    const caller = __authzGate && __authzGate.ok
+      ? { id: __authzGate.userId, email: __authzGate.email }
+      : { id: null as string | null, email: null as string | null };
 
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // Caller must be internal staff to invoke provisioning.
-    const { data: callerRole } = await admin.rpc("get_user_role", { _user_id: caller.id });
-    const internal = ["super_admin", "admin", "supervisor", "licensing_officer"];
-    if (!callerRole || !internal.includes(callerRole as string)) {
-      return errorResponse(req, 403, "Insufficient permissions", "FORBIDDEN");
+    // Human callers must be internal staff to invoke provisioning. Worker
+    // invocations are already restricted to service-role credentials.
+    if (caller.id) {
+      const { data: callerRole } = await admin.rpc("get_user_role", { _user_id: caller.id });
+      const internal = ["super_admin", "admin", "supervisor", "licensing_officer"];
+      if (!callerRole || !internal.includes(callerRole as string)) {
+        return errorResponse(req, 403, "Insufficient permissions", "FORBIDDEN");
+      }
     }
+
 
     let body: any;
     try { body = await req.json(); } catch { body = {}; }

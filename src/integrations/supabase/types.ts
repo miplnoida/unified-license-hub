@@ -2017,6 +2017,36 @@ export type Database = {
           },
         ]
       }
+      application_workflow_vocabulary: {
+        Row: {
+          created_at: string
+          entity_type: string
+          instance_entity_type: string
+          is_canonical: boolean
+          notes: string | null
+          phase: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity_type: string
+          instance_entity_type?: string
+          is_canonical?: boolean
+          notes?: string | null
+          phase: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string
+          instance_entity_type?: string
+          is_canonical?: boolean
+          notes?: string | null
+          phase?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       applications: {
         Row: {
           ack_at: string | null
@@ -26898,6 +26928,150 @@ export type Database = {
           },
         ]
       }
+      licensing_gate_configs: {
+        Row: {
+          applicability: string
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          gate_key: string
+          id: string
+          is_active: boolean
+          license_type: string | null
+          notes: string | null
+          regulator_id: string | null
+          retired_at: string | null
+          sector_id: string | null
+          service_id: string | null
+          sub_sector_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          applicability: string
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          gate_key: string
+          id?: string
+          is_active?: boolean
+          license_type?: string | null
+          notes?: string | null
+          regulator_id?: string | null
+          retired_at?: string | null
+          sector_id?: string | null
+          service_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          applicability?: string
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          gate_key?: string
+          id?: string
+          is_active?: boolean
+          license_type?: string | null
+          notes?: string | null
+          regulator_id?: string | null
+          retired_at?: string | null
+          sector_id?: string | null
+          service_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licensing_gate_configs_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licensing_provisioning_outbox: {
+        Row: {
+          applicant_id: string | null
+          application_id: string
+          attempts: number
+          created_at: string
+          entity_id: string | null
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          license_id: string | null
+          max_attempts: number
+          next_attempt_at: string
+          payload: Json
+          status: string
+          succeeded_at: string | null
+          task_key: string
+          updated_at: string
+        }
+        Insert: {
+          applicant_id?: string | null
+          application_id: string
+          attempts?: number
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          license_id?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          payload?: Json
+          status?: string
+          succeeded_at?: string | null
+          task_key: string
+          updated_at?: string
+        }
+        Update: {
+          applicant_id?: string | null
+          application_id?: string
+          attempts?: number
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          license_id?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          payload?: Json
+          status?: string
+          succeeded_at?: string | null
+          task_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licensing_provisioning_outbox_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensing_provisioning_outbox_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensing_provisioning_outbox_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lifecycle_stages: {
         Row: {
           created_at: string
@@ -32273,7 +32447,7 @@ export type Database = {
       }
       registration_licensing_handoffs: {
         Row: {
-          application_id: string | null
+          application_id: string
           created_at: string
           detail: Json
           id: string
@@ -32282,7 +32456,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          application_id?: string | null
+          application_id: string
           created_at?: string
           detail?: Json
           id?: string
@@ -32291,7 +32465,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          application_id?: string | null
+          application_id?: string
           created_at?: string
           detail?: Json
           id?: string
@@ -32301,21 +32475,21 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "registration_licensing_handoffs_application_id_fkey"
+            foreignKeyName: "registration_licensing_handoffs_application_fk"
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "applications"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "registration_licensing_handoffs_application_id_fkey"
+            foreignKeyName: "registration_licensing_handoffs_application_fk"
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "report_view_applications"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "registration_licensing_handoffs_application_id_fkey"
+            foreignKeyName: "registration_licensing_handoffs_application_fk"
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "v_application_case_state"
@@ -42842,6 +43016,14 @@ export type Database = {
           },
         ]
       }
+      v_f4_privilege_census: {
+        Row: {
+          grantee: unknown
+          privilege_type: string | null
+          table_name: unknown
+        }
+        Relationships: []
+      }
       v_fp_determination_integrity: {
         Row: {
           assessment_id: string | null
@@ -42890,6 +43072,15 @@ export type Database = {
             referencedColumns: ["licensee_id"]
           },
         ]
+      }
+      v_licensing_provisioning_health: {
+        Row: {
+          earliest_due: string | null
+          last_attempt: string | null
+          status: string | null
+          task_count: number | null
+        }
+        Relationships: []
       }
       v_module_escalations: {
         Row: {
@@ -43845,9 +44036,21 @@ export type Database = {
         Returns: Json
       }
       application_fp_gate: { Args: { _application_id: string }; Returns: Json }
+      application_fp_readiness: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
       application_ids_for_licensee: {
         Args: { _licensee_id: string }
         Returns: string[]
+      }
+      application_is_initial_licence: {
+        Args: { _application_id: string }
+        Returns: boolean
+      }
+      application_licensing_readiness: {
+        Args: { _application_id: string }
+        Returns: Json
       }
       application_next_action: {
         Args: { _audience?: string; _stage: string }
@@ -43902,6 +44105,7 @@ export type Database = {
         }
         Returns: Json
       }
+      application_status_vocabulary: { Args: never; Returns: string[] }
       application_triage_update: {
         Args: {
           _application_ids: string[]
@@ -43971,6 +44175,10 @@ export type Database = {
       }
       application_work_queue_counts: {
         Args: { _regulator_id?: string; _sector_id?: string }
+        Returns: Json
+      }
+      application_workflow_resolve: {
+        Args: { _application_id: string }
         Returns: Json
       }
       apply_application_guard: {
@@ -48692,6 +48900,12 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      f4_estate_tables: {
+        Args: never
+        Returns: {
+          table_name: string
+        }[]
+      }
       fail:
         | { Args: never; Returns: string }
         | { Args: { "": string }; Returns: string }
@@ -49037,6 +49251,7 @@ export type Database = {
         }
         Returns: string
       }
+      fp_positive_outcomes: { Args: never; Returns: string[] }
       fp_provider_state_conclusive: {
         Args: { _state: string }
         Returns: boolean
@@ -50117,6 +50332,46 @@ export type Database = {
         Returns: Json
       }
       licensing_default_sla_hours: { Args: never; Returns: number }
+      licensing_gate_applicability: {
+        Args: { _application_id: string; _gate_key: string }
+        Returns: string
+      }
+      licensing_provisioning_assert_worker: { Args: never; Returns: undefined }
+      licensing_provisioning_claim: {
+        Args: { _limit?: number }
+        Returns: {
+          applicant_id: string | null
+          application_id: string
+          attempts: number
+          created_at: string
+          entity_id: string | null
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          license_id: string | null
+          max_attempts: number
+          next_attempt_at: string
+          payload: Json
+          status: string
+          succeeded_at: string | null
+          task_key: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "licensing_provisioning_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      licensing_provisioning_complete: {
+        Args: { _error?: string; _id: string; _success: boolean }
+        Returns: Json
+      }
+      licensing_provisioning_enqueue: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
       link_complaint_licensee: {
         Args: { _complaint_id: string; _licensee_id: string }
         Returns: undefined
@@ -51112,10 +51367,6 @@ export type Database = {
           _instance_id: string
           _step_id: string
         }
-        Returns: Json
-      }
-      perform_manual_application_approval: {
-        Args: { _actor_id?: string; _application_id: string; _comments: string }
         Returns: Json
       }
       perform_registration_workflow_transition: {
@@ -54573,6 +54824,10 @@ export type Database = {
           _module: string
         }
         Returns: undefined
+      }
+      withdraw_application: {
+        Args: { _application_id: string; _reason: string }
+        Returns: Json
       }
       work_allocation_can_take: {
         Args: {
