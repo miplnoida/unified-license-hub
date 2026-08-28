@@ -188,10 +188,14 @@ export function ApplicationWithdrawalPanel({
         <div className="flex justify-end">
           <Button
             variant="destructive"
+            /* Ownership is authorised server-side by withdraw_application; the
+               annotation records the governed module/action for the RBAC audit. */
+            data-rbac="application_management.edit"
             data-testid="withdraw-application-button"
             disabled={submitting || !reasonValid}
             onClick={() => setConfirmOpen(true)}
           >
+
             {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Ban className="h-4 w-4 mr-2" />}
             Withdraw Application
           </Button>
