@@ -86,8 +86,12 @@ export default function RegulatorManagement() {
   const { data: regulators = [], isLoading } = useAllRegulators();
   const { upsert, remove } = useRegulatorMutations();
   const { data: allSectors = [] } = useSectors(); // all sectors, unfiltered
+  // GAP-F1-08: regulator identity is governed configuration — `settings.edit`
+  // is the canonical permission enforced server-side by config_save/config_retire.
+  const canConfigure = useCan('settings', 'edit');
 
   const [dialogOpen, setDialogOpen] = useState(false);
+
   const [editId, setEditId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
