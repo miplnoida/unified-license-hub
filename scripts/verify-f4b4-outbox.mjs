@@ -61,7 +61,7 @@ async function cleanup() {
 }
 
 try {
-  cleanup();
+  await cleanup();
 
   const userId = one(`SELECT id::text FROM auth.users ORDER BY created_at LIMIT 1`);
   if (!userId) throw new Error('no auth user available for the probe');
@@ -189,7 +189,8 @@ try {
   rec('F-03', 'worker endpoint rejects an invocation without the worker credential',
     unauth.status === 401 || unauth.status === 403, `http=${unauth.status}`);
 } finally {
-  cleanup();
+  await cleanup();
+  await cleanup();
   const residue = sql(`SELECT (SELECT count(*) FROM public.notification_outbox WHERE event_key LIKE '${TAG}%')
                             + (SELECT count(*) FROM public.notifications WHERE event_key LIKE '${TAG}%')`);
   console.log(`\nresidue (${TAG}%): ${residue}`);
