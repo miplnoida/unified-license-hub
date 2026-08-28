@@ -285,22 +285,64 @@ BEGIN
   SELECT count(*) INTO _n FROM pg_indexes WHERE schemaname='public' AND indexname='pre_license_users_email_lower_uidx';
   PERFORM pg_temp.rec('S3','C-02','one pre-licensee user per e-mail address is enforced', _n = 1, 'indexes=' || _n);
 
-  SELECT count(*) INTO _n FROM pg_indexes WHERE schemaname='public' AND indexname='licensees_name_lower_uidx';
-  PERFORM pg_temp.rec('S3','C-03','entity legal name uniqueness is enforced for non-merged entities', _n = 1, 'indexes=' || _n);
+  -- Legal-name equality is NOT entity identity (F2-B.1). Two genuinely distinct
+  -- entities may legitimately carry the same registered/display name; sameness is
+  -- adjudicated by authoritative identifiers and the entity-resolution /
+  -- duplicate-detection workflow, never by a blanket name block.
+  SELECT count(*) INTO _n FROM pg_indexes
+   WHERE schemaname='public' AND tablename='licensees' AND indexdef ILIKE '%UNIQUE%'
+     AND indexdef ILIKE '%name%';
+  PERFORM pg_temp.rec('S3','C-03','entity legal name is not treated as definitive identity (no global name uniqueness rule)',
+    _n = 0, 'unique name indexes=' || _n);
 
   SELECT count(*) INTO _n FROM pg_indexes WHERE schemaname='public' AND indexname='registration_entity_bindings_registration_uidx';
   PERFORM pg_temp.rec('S3','C-04','a registration can bind to at most one entity', _n = 1, 'indexes=' || _n);
 
-  -- Empirical duplicate rejection
+  -- Empirical: same normalised legal name, two distinct entities, both stored.
   BEGIN
+    SELECT lower(btrim(name)) INTO _name FROM public.licensees
+     WHERE merged_into_entity_id IS NULL ORDER BY created_at LIMIT 1;
     INSERT INTO public.licensees (name, status)
-    SELECT name, 'active' FROM public.licensees WHERE merged_into_entity_id IS NULL ORDER BY created_at LIMIT 1;
-    PERFORM pg_temp.rec('S3','C-05','a duplicate entity name is rejected', false, 'insert unexpectedly succeeded');
-  EXCEPTION WHEN unique_violation THEN
-    PERFORM pg_temp.rec('S3','C-05','a duplicate entity name is rejected', true, '23505 unique_violation');
-  WHEN others THEN
-    PERFORM pg_temp.rec('S3','C-05','a duplicate entity name is rejected', false, SQLSTATE || ': ' || left(SQLERRM,160));
+    SELECT name, 'active' FROM public.licensees WHERE merged_into_entity_id IS NULL ORDER BY created_at LIMIT 1
+    RETURNING id INTO _entity;
+    SELECT count(*) INTO _n FROM public.licensees WHERE lower(btrim(name)) = _name;
+    PERFORM pg_temp.rec('S3','C-05','two distinct entities sharing the same normalised legal name can coexist',
+      _entity IS NOT NULL AND _n >= 2, 'entities with that name=' || _n);
+  EXCEPTION WHEN others THEN
+    PERFORM pg_temp.rec('S3','C-05','two distinct entities sharing the same normalised legal name can coexist',
+      false, SQLSTATE || ': ' || left(SQLERRM,160));
   END;
+
+  -- The same-name entities each keep their own canonical organisation record.
+  SELECT count(DISTINCT party_id) INTO _n FROM public.licensees WHERE lower(btrim(name)) = _name;
+  SELECT count(*) INTO _m FROM public.licensees WHERE lower(btrim(name)) = _name;
+  PERFORM pg_temp.rec('S3','C-06','same-named entities each keep a separate canonical organisation record',
+    _n = _m AND _m >= 2, 'entities=' || _m || ' distinct organisations=' || _n);
+
+  -- Duplicate authoritative identifiers stay blocked inside their own scope.
+  SELECT count(*) INTO _n FROM pg_indexes
+   WHERE schemaname='public' AND tablename='entity_identifiers' AND indexdef ILIKE '%UNIQUE%';
+  PERFORM pg_temp.rec('S3','C-07','authoritative identifier uniqueness scopes are still enforced structurally',
+    _n >= 4, 'scoped unique indexes=' || _n);
+
+  BEGIN
+    INSERT INTO public.entity_identifiers
+      (entity_id, identifier_type_id, identifier_value, source_type, jurisdiction_id, regulator_id, issuer_key)
+    SELECT (SELECT id FROM public.licensees WHERE id <> i.entity_id ORDER BY created_at LIMIT 1),
+           i.identifier_type_id, i.identifier_value, 'MANUAL', i.jurisdiction_id, i.regulator_id, i.issuer_key
+      FROM public.entity_identifiers i
+     WHERE i.effective_to IS NULL
+     ORDER BY i.created_at LIMIT 1;
+    PERFORM pg_temp.rec('S3','C-08','a duplicate authoritative identifier is still rejected within its uniqueness scope',
+      false, 'insert unexpectedly succeeded');
+  EXCEPTION WHEN unique_violation THEN
+    PERFORM pg_temp.rec('S3','C-08','a duplicate authoritative identifier is still rejected within its uniqueness scope',
+      true, '23505 unique_violation');
+  WHEN others THEN
+    PERFORM pg_temp.rec('S3','C-08','a duplicate authoritative identifier is still rejected within its uniqueness scope',
+      false, SQLSTATE || ': ' || left(SQLERRM,160));
+  END;
+
 END
 $s3$;
 
