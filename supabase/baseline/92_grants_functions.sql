@@ -1345,3 +1345,9 @@ REVOKE ALL ON FUNCTION public.workflow_actor_sector_allowed(_user_id uuid, _sect
 REVOKE ALL ON FUNCTION public.workflow_diagnostic_for_application(_application_id uuid) FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.workflow_diagnostic_for_application(_application_id uuid) TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.workflow_resolve_actor(_claimed uuid) FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.workflow_resolve_actor(_claimed uuid) TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.write_audit(_action text, _entity_type text, _entity_id text, _user_id uuid, _old_value jsonb, _new_value jsonb, _metadata jsonb, _dedupe_seconds integer) FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.write_audit(_action text, _entity_type text, _entity_id text, _user_id uuid, _old_value jsonb, _new_value jsonb, _metadata jsonb, _dedupe_seconds integer) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.service_license_compatible(uuid, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.service_license_compatible(uuid, uuid) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.resolve_post_license_intake_context(uuid, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.resolve_post_license_intake_context(uuid, uuid) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.can_submit_application(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.can_submit_application(uuid) TO authenticated, service_role;

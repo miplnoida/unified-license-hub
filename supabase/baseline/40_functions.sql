@@ -12071,15 +12071,30 @@ DECLARE
   v_uid uuid := auth.uid();
   v_application public.applications;
   v_entity_id uuid;
+  v_is_post boolean;
+  v_is_staff boolean;
+  v_license_id uuid := NULLIF(_data->>'license_id','')::uuid;
+  v_claimed_entity uuid := NULLIF(_data->>'licensee_id','')::uuid;
+  v_license_holder uuid;
+  v_service_id text := NULLIF(_data->>'service_id','');
+  v_existing uuid;
+  v_reg_id uuid := NULLIF(_data->>'registration_id','')::uuid;
+  v_handoff record;
+  v_ctx record;
+  v_data jsonb := COALESCE(_data, '{}'::jsonb);
+  v_regulator uuid := _regulator_id;
+  v_trusted boolean := COALESCE(current_setting('app.workflow_mutation_context', true), '') = 'trusted';
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'AUTH_REQUIRED: You must be signed in to create an application draft.'
       USING ERRCODE = '42501';
   END IF;
 
+  v_is_staff := public.is_super_admin(v_uid)
+                OR public.has_permission(v_uid, 'application_management', 'create');
+
   IF NOT (
-    public.is_super_admin(v_uid)
-    OR public.has_permission(v_uid, 'application_management', 'create')
+    v_is_staff
     OR public.has_role(v_uid, 'applicant'::public.app_role)
     OR public.has_role(v_uid, 'pre_licensee'::public.app_role)
     OR public.has_role(v_uid, 'licensee_primary'::public.app_role)
@@ -12110,6 +12125,127 @@ BEGIN
      LIMIT 1;
   END IF;
 
+  v_is_post := (v_service_id IS NOT NULL)
+               OR lower(COALESCE(_data->>'type','')) = 'post_license'
+               OR v_license_id IS NOT NULL;
+
+  IF v_is_post THEN
+    IF v_license_id IS NULL THEN
+      IF NOT v_is_staff THEN
+        RAISE EXCEPTION 'LICENSE_REQUIRED: Select the licence this post-licence service relates to.'
+          USING ERRCODE = '22023';
+      END IF;
+    ELSE
+      SELECT * INTO v_ctx
+        FROM public.resolve_post_license_intake_context(v_license_id, NULLIF(v_service_id,'')::uuid);
+      IF v_ctx.entity_id IS NULL THEN
+        RAISE EXCEPTION 'LICENSE_NOT_FOUND: The selected licence could not be found.'
+          USING ERRCODE = '22023';
+      END IF;
+      v_license_holder := v_ctx.entity_id;
+
+      IF v_claimed_entity IS NOT NULL AND v_claimed_entity IS DISTINCT FROM v_license_holder THEN
+        RAISE EXCEPTION 'LICENSE_ENTITY_MISMATCH: The selected licence does not belong to the selected entity.'
+          USING ERRCODE = '42501';
+      END IF;
+      v_entity_id := v_license_holder;
+
+      IF v_service_id IS NOT NULL
+         AND NOT public.service_license_compatible(v_service_id::uuid, v_license_id) THEN
+        RAISE EXCEPTION 'SERVICE_LICENSE_INCOMPATIBLE: The selected service is not available for the scope of this licence.'
+          USING ERRCODE = '42501';
+      END IF;
+
+      v_data := v_data || jsonb_build_object(
+        'type', 'post_license',
+        'license_id', v_license_id,
+        'licensee_id', v_entity_id,
+        'sector_id', v_ctx.sector_id,
+        'sub_sector_id', v_ctx.sub_sector_id,
+        'category_id', v_ctx.category_id
+      );
+      v_regulator := COALESCE(v_regulator, v_ctx.regulator_id);
+
+      IF NOT v_is_staff THEN
+        IF NOT public.can_act_on_specific_license(v_license_id, v_license_holder, NULL, NULL, NULL) THEN
+          RAISE EXCEPTION 'LICENSE_ENTITLEMENT_REQUIRED: Post-licence services are only available for a licence that is approved, issued and in good standing for this sector.'
+            USING ERRCODE = '42501';
+        END IF;
+      END IF;
+    END IF;
+
+    IF v_license_id IS NULL AND NOT v_is_staff THEN
+      IF NOT public.can_act_on_license(
+           COALESCE(v_claimed_entity, v_entity_id),
+           NULLIF(_data->>'sector_id','')::uuid,
+           NULLIF(_data->>'sub_sector_id','')::uuid,
+           NULLIF(_data->>'category_id','')::uuid
+         ) THEN
+        RAISE EXCEPTION 'LICENSE_ENTITLEMENT_REQUIRED: Post-licence services are only available for a licence that is approved, issued and in good standing for this sector.'
+          USING ERRCODE = '42501';
+      END IF;
+    END IF;
+
+    IF v_license_id IS NOT NULL AND v_service_id IS NOT NULL THEN
+      PERFORM pg_advisory_xact_lock(
+        hashtextextended('post_license_request:' || v_license_id::text || ':' || v_service_id, 0)
+      );
+
+      SELECT a.id INTO v_existing
+        FROM public.applications a
+       WHERE COALESCE(a.data->>'license_id','') = v_license_id::text
+         AND COALESCE(a.data->>'service_id','') = v_service_id
+         AND a.status = ANY (public.post_license_open_statuses())
+       ORDER BY a.created_at
+       LIMIT 1;
+
+      IF v_existing IS NOT NULL THEN
+        RAISE EXCEPTION 'DUPLICATE_POST_LICENSE_REQUEST: %', v_existing
+          USING ERRCODE = 'unique_violation',
+                HINT = v_existing::text;
+      END IF;
+    END IF;
+  ELSE
+    IF NOT v_trusted THEN
+      IF v_reg_id IS NULL THEN
+        SELECT h.registration_id INTO v_reg_id
+          FROM public.registration_licensing_handoffs h
+          JOIN public.registrations r ON r.id = h.registration_id
+         WHERE r.user_id = v_uid AND lower(r.status) = 'approved'
+         ORDER BY h.created_at DESC
+         LIMIT 1;
+      END IF;
+
+      IF v_reg_id IS NULL THEN
+        RAISE EXCEPTION 'REGISTRATION_HANDOFF_REQUIRED: A new licence application requires an approved registration handoff.'
+          USING ERRCODE = '42501';
+      END IF;
+
+      SELECT h.*, r.status AS reg_status, r.user_id AS reg_user
+        INTO v_handoff
+        FROM public.registration_licensing_handoffs h
+        JOIN public.registrations r ON r.id = h.registration_id
+       WHERE h.registration_id = v_reg_id;
+
+      IF NOT FOUND OR lower(COALESCE(v_handoff.reg_status,'')) <> 'approved' THEN
+        RAISE EXCEPTION 'REGISTRATION_HANDOFF_REQUIRED: A new licence application requires an approved registration handoff.'
+          USING ERRCODE = '42501';
+      END IF;
+
+      IF NOT v_is_staff AND v_handoff.reg_user IS DISTINCT FROM v_uid THEN
+        RAISE EXCEPTION 'REGISTRATION_HANDOFF_FORBIDDEN: This registration handoff does not belong to you.'
+          USING ERRCODE = '42501';
+      END IF;
+
+      IF v_handoff.application_id IS NOT NULL THEN
+        SELECT * INTO v_application FROM public.applications WHERE id = v_handoff.application_id;
+        IF FOUND THEN
+          RETURN v_application;
+        END IF;
+      END IF;
+    END IF;
+  END IF;
+
   INSERT INTO public.applications (
     applicant_id, license_type, status, data, regulator_id, entity_id
   )
@@ -12117,146 +12253,21 @@ BEGIN
     v_uid,
     COALESCE(NULLIF(trim(_license_type), ''), 'Application'),
     'draft',
-    COALESCE(_data, '{}'::jsonb),
-    _regulator_id,
+    v_data || CASE WHEN v_reg_id IS NOT NULL
+      THEN jsonb_build_object('registration_id', v_reg_id) ELSE '{}'::jsonb END,
+    v_regulator,
     v_entity_id
   )
   RETURNING * INTO v_application;
 
+  IF NOT v_is_post AND v_reg_id IS NOT NULL THEN
+    UPDATE public.registration_licensing_handoffs
+       SET application_id = v_application.id, updated_at = now()
+     WHERE registration_id = v_reg_id AND application_id IS NULL;
+  END IF;
+
   RETURN v_application;
 END $function$
-;
-CREATE OR REPLACE FUNCTION public.create_approval_workflow_with_steps(_workflow jsonb, _steps jsonb)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-DECLARE
-  v_uid uuid := auth.uid();
-  v_workflow_id uuid;
-  v_step jsonb;
-  v_idx int := 0;
-  v_step_count int;
-  v_role app_role;
-  v_approver_role_id uuid;
-  v_approver_type text;
-  v_approver_config jsonb;
-BEGIN
-  IF v_uid IS NULL THEN
-    RAISE EXCEPTION 'not authenticated' USING ERRCODE = '28000';
-  END IF;
-  IF NOT (
-    public.has_role(v_uid, 'super_admin'::app_role)
-    OR public.has_role(v_uid, 'admin'::app_role)
-  ) THEN
-    RAISE EXCEPTION 'insufficient privileges' USING ERRCODE = '42501';
-  END IF;
-
-  IF _workflow IS NULL OR jsonb_typeof(_workflow) <> 'object' THEN
-    RAISE EXCEPTION 'workflow payload must be a JSON object';
-  END IF;
-  IF _steps IS NULL OR jsonb_typeof(_steps) <> 'array' THEN
-    RAISE EXCEPTION 'steps payload must be a JSON array';
-  END IF;
-  v_step_count := jsonb_array_length(_steps);
-  IF v_step_count = 0 THEN
-    RAISE EXCEPTION 'at least one step is required';
-  END IF;
-
-  FOR v_step IN SELECT * FROM jsonb_array_elements(_steps)
-  LOOP
-    v_approver_type := COALESCE(NULLIF(v_step->>'approver_type', ''), 'role_based_user');
-    IF NULLIF(v_step->>'approver_role', '') IS NULL THEN
-      RAISE EXCEPTION 'every step requires approver_role';
-    END IF;
-    IF v_approver_type <> 'specific_users' AND NULLIF(v_step->>'approver_role_id', '') IS NULL THEN
-      RAISE EXCEPTION 'APPROVER_ROLE_ID_REQUIRED: approval steps must reference a configured role (roles.id)'
-        USING ERRCODE = 'check_violation';
-    END IF;
-    IF NULLIF(v_step->>'name', '') IS NULL THEN
-      RAISE EXCEPTION 'every step requires a name';
-    END IF;
-    IF NOT (v_step ? 'allowed_actions')
-       OR jsonb_typeof(v_step->'allowed_actions') <> 'array'
-       OR jsonb_array_length(v_step->'allowed_actions') = 0 THEN
-      RAISE EXCEPTION 'every step requires a non-empty allowed_actions array';
-    END IF;
-  END LOOP;
-
-  INSERT INTO public.approval_workflows(
-    name, description, license_type, entity_type, regulator_id,
-    sector_id, sub_sector_id, category_id, service_id, is_active
-  ) VALUES (
-    _workflow->>'name',
-    NULLIF(_workflow->>'description',''),
-    _workflow->>'license_type',
-    _workflow->>'entity_type',
-    NULLIF(_workflow->>'regulator_id','')::uuid,
-    NULLIF(_workflow->>'sector_id','')::uuid,
-    NULLIF(_workflow->>'sub_sector_id','')::uuid,
-    NULLIF(_workflow->>'category_id','')::uuid,
-    NULLIF(_workflow->>'service_id','')::uuid,
-    COALESCE((_workflow->>'is_active')::boolean, true)
-  )
-  RETURNING id INTO v_workflow_id;
-
-  FOR v_step IN SELECT * FROM jsonb_array_elements(_steps)
-  LOOP
-    v_idx := v_idx + 1;
-    v_role := (v_step->>'approver_role')::app_role;
-    v_approver_type := COALESCE(NULLIF(v_step->>'approver_type', ''), 'role_based_user');
-    v_approver_role_id := NULLIF(v_step->>'approver_role_id','')::uuid;
-    v_approver_config := COALESCE(v_step->'approver_config', '{}'::jsonb);
-
-    IF v_approver_type <> 'specific_users' AND v_approver_role_id IS NOT NULL THEN
-      v_approver_config := jsonb_set(
-        COALESCE(NULLIF(v_approver_config, 'null'::jsonb), '{}'::jsonb),
-        '{role_ids}',
-        jsonb_build_array(v_approver_role_id::text) || COALESCE(
-          (
-            SELECT jsonb_agg(x)
-            FROM jsonb_array_elements_text(
-              CASE
-                WHEN jsonb_typeof(v_approver_config->'role_ids') = 'array' THEN v_approver_config->'role_ids'
-                ELSE '[]'::jsonb
-              END
-            ) AS ids(x)
-            WHERE x <> v_approver_role_id::text
-              AND EXISTS (SELECT 1 FROM public.roles r WHERE r.id::text = x)
-          ),
-          '[]'::jsonb
-        ),
-        true
-      );
-    END IF;
-
-    INSERT INTO public.approval_steps(
-      workflow_id, step_order, name, description,
-      approver_role, approver_role_id, approver_type, approver_config,
-      step_type, is_required, sla_hours,
-      allowed_actions, escalation_role, escalation_after_hours
-    ) VALUES (
-      v_workflow_id,
-      COALESCE((v_step->>'step_order')::int, v_idx),
-      v_step->>'name',
-      NULLIF(v_step->>'description',''),
-      v_role,
-      v_approver_role_id,
-      v_approver_type,
-      v_approver_config,
-      COALESCE(NULLIF(v_step->>'step_type',''), 'sequential'),
-      COALESCE((v_step->>'is_required')::boolean, true),
-      COALESCE((v_step->>'sla_hours')::int, 48),
-      ARRAY(SELECT jsonb_array_elements_text(v_step->'allowed_actions'))::workflow_action_type[],
-      NULLIF(v_step->>'escalation_role','')::app_role,
-      NULLIF(v_step->>'escalation_after_hours','')::int
-    );
-  END LOOP;
-
-  RETURN jsonb_build_object('workflow_id', v_workflow_id, 'step_count', v_step_count);
-END;
-$function$
 ;
 CREATE OR REPLACE FUNCTION public.create_audit_log(_user_id uuid, _action text, _entity_type text, _entity_id text DEFAULT NULL::text, _old_value jsonb DEFAULT NULL::jsonb, _new_value jsonb DEFAULT NULL::jsonb, _metadata jsonb DEFAULT NULL::jsonb)
  RETURNS uuid
@@ -49040,7 +49051,10 @@ DECLARE
   v_is_resub boolean;
   v_payment_count int;
   v_sector_id uuid;
+  v_sub_sector_id uuid;
+  v_service_id uuid;
   v_category_id uuid;
+  v_license_id uuid;
   v_workflow_id uuid;
   v_first_step_id uuid;
   v_existing_instance record;
@@ -49050,6 +49064,9 @@ DECLARE
   v_app_status_target text;
   v_effective_regulator uuid;
   v_is_post_license boolean;
+  v_ctx record;
+  v_authority text;
+  v_canonical jsonb;
 BEGIN
   PERFORM set_config('app.workflow_mutation_context', 'trusted', true);
 
@@ -49057,7 +49074,7 @@ BEGIN
     RETURN jsonb_build_object('error','Not authenticated','code','UNAUTHORIZED','http',401);
   END IF;
 
-  SELECT id, applicant_id, application_number, status, license_type,
+  SELECT id, applicant_id, entity_id, application_number, status, license_type,
          regulator_id, data
     INTO v_app
     FROM public.applications
@@ -49067,8 +49084,16 @@ BEGIN
     RETURN jsonb_build_object('error','Application not found','code','NOT_FOUND','http',404);
   END IF;
 
-  IF v_app.applicant_id <> v_uid THEN
-    RETURN jsonb_build_object('error','You do not own this application','code','FORBIDDEN','http',403);
+  -- GAP-F5-02: submission authority is an entity capability, not row ownership.
+  IF v_app.applicant_id = v_uid THEN
+    v_authority := 'applicant';
+  ELSIF v_app.entity_id IS NOT NULL
+        AND public.entity_membership_capability(v_uid, v_app.entity_id, 'submit') THEN
+    v_authority := 'entity_delegate';
+  ELSE
+    RETURN jsonb_build_object(
+      'error','You are not authorised to submit this filing for this entity',
+      'code','FORBIDDEN','http',403);
   END IF;
 
   v_is_resub := v_app.status IN (
@@ -49095,9 +49120,57 @@ BEGIN
   END IF;
 
   v_sector_id := NULLIF(v_app.data->>'sector_id','')::uuid;
+  v_sub_sector_id := NULLIF(v_app.data->>'sub_sector_id','')::uuid;
+  v_service_id := NULLIF(v_app.data->>'service_id','')::uuid;
   v_category_id := NULLIF(v_app.data->>'category_id','')::uuid;
-  v_is_post_license := COALESCE(NULLIF(v_app.data->>'service_id','') IS NOT NULL, false)
-                       OR (v_app.data->>'type') = 'post_license';
+  v_license_id := NULLIF(v_app.data->>'license_id','')::uuid;
+  v_is_post_license := v_service_id IS NOT NULL OR (v_app.data->>'type') = 'post_license';
+
+  -- GAP-F5-01 / GAP-F5-15: re-derive taxonomy from the licence at submission
+  -- and refuse any incompatible or ineligible binding.
+  IF v_is_post_license THEN
+    IF v_license_id IS NULL THEN
+      RETURN jsonb_build_object(
+        'error','This post-licence filing is not bound to a licence','code','LICENSE_REQUIRED','http',409);
+    END IF;
+
+    SELECT * INTO v_ctx
+      FROM public.resolve_post_license_intake_context(v_license_id, v_service_id);
+    IF v_ctx.entity_id IS NULL THEN
+      RETURN jsonb_build_object(
+        'error','The licence for this filing could not be found','code','LICENSE_NOT_FOUND','http',409);
+    END IF;
+
+    IF v_service_id IS NOT NULL
+       AND NOT public.service_license_compatible(v_service_id, v_license_id) THEN
+      RETURN jsonb_build_object(
+        'error','The selected service is not available for the scope of this licence',
+        'code','SERVICE_LICENSE_INCOMPATIBLE','http',409);
+    END IF;
+
+    IF NOT public.can_act_on_specific_license(v_license_id, v_ctx.entity_id, NULL, NULL, NULL) THEN
+      RETURN jsonb_build_object(
+        'error','This service is unavailable because the related licence is not currently approved, issued and in good standing.',
+        'code','LICENSE_ENTITLEMENT_REQUIRED','http',409);
+    END IF;
+
+    v_sector_id := v_ctx.sector_id;
+    v_sub_sector_id := v_ctx.sub_sector_id;
+    v_category_id := v_ctx.category_id;
+
+    v_canonical := jsonb_build_object(
+      'licensee_id', v_ctx.entity_id,
+      'sector_id', v_ctx.sector_id,
+      'sub_sector_id', v_ctx.sub_sector_id,
+      'category_id', v_ctx.category_id
+    );
+
+    UPDATE public.applications
+       SET data = COALESCE(data,'{}'::jsonb) || v_canonical,
+           entity_id = COALESCE(entity_id, v_ctx.entity_id),
+           updated_at = v_now
+     WHERE id = _application_id;
+  END IF;
 
   v_effective_regulator := public._resolve_effective_regulator(
     v_app.regulator_id, v_sector_id, v_category_id
@@ -49125,7 +49198,7 @@ BEGIN
     SELECT r.workflow_id, r.first_step_id INTO v_workflow_id, v_first_step_id
       FROM public._resolve_application_workflow(
              v_app.license_type, v_effective_regulator, v_sector_id, v_category_id,
-             v_is_post_license) r;
+             v_is_post_license, v_service_id, v_sub_sector_id) r;
 
     IF v_workflow_id IS NOT NULL THEN
       INSERT INTO public.workflow_instances (
@@ -49177,7 +49250,10 @@ BEGIN
       'first_step_id', v_first_step_id,
       'is_resubmission', v_is_resub,
       'previous_status', v_app.status,
-      'resumed', v_is_resub
+      'resumed', v_is_resub,
+      'submission_authority', v_authority,
+      'submitted_by', v_uid,
+      'applicant_id', v_app.applicant_id
     )
   );
 
@@ -49191,6 +49267,7 @@ BEGIN
     'is_resubmission', v_is_resub,
     'resumed', v_is_resub,
     'workflow_attached', v_workflow_id IS NOT NULL,
+    'submission_authority', v_authority,
     'previous_status', v_app.status
   );
 END;
@@ -56944,4 +57021,91 @@ BEGIN
   RETURN v_id;
 END;
 $function$
+;
+CREATE OR REPLACE FUNCTION public.service_license_compatible(_service_id uuid, _license_id uuid)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_svc public.services;
+  v_lic public.licenses;
+BEGIN
+  IF _service_id IS NULL OR _license_id IS NULL THEN
+    RETURN false;
+  END IF;
+
+  SELECT * INTO v_svc FROM public.services WHERE id = _service_id;
+  IF v_svc.id IS NULL OR lower(COALESCE(v_svc.status,'')) <> 'active' THEN
+    RETURN false;
+  END IF;
+  IF v_svc.effective_to IS NOT NULL AND v_svc.effective_to <= now() THEN
+    RETURN false;
+  END IF;
+
+  SELECT * INTO v_lic FROM public.licenses WHERE id = _license_id;
+  IF v_lic.id IS NULL THEN
+    RETURN false;
+  END IF;
+
+  IF v_lic.sub_sector_id IS NOT NULL THEN
+    RETURN v_svc.sub_sector_id = v_lic.sub_sector_id;
+  END IF;
+
+  RETURN public.sector_effective_id(v_svc.sector_id)
+         = public.sector_effective_id(v_lic.sector_id);
+END $function$
+;
+CREATE OR REPLACE FUNCTION public.resolve_post_license_intake_context(_license_id uuid, _service_id uuid DEFAULT NULL::uuid)
+ RETURNS TABLE(entity_id uuid, license_id uuid, service_id uuid, sector_id uuid, sub_sector_id uuid, category_id uuid, regulator_id uuid)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT lic.holder_id,
+         lic.id,
+         _service_id,
+         lic.sector_id,
+         lic.sub_sector_id,
+         lic.category_id,
+         COALESCE(svc.regulator_id, lic.regulator_id)
+    FROM public.licenses lic
+    LEFT JOIN public.services svc ON svc.id = _service_id
+   WHERE lic.id = _license_id;
+$function$
+;
+CREATE OR REPLACE FUNCTION public.can_submit_application(_application_id uuid)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_app record;
+BEGIN
+  IF v_uid IS NULL OR _application_id IS NULL THEN
+    RETURN false;
+  END IF;
+
+  SELECT id, applicant_id, entity_id
+    INTO v_app
+    FROM public.applications
+   WHERE id = _application_id;
+  IF NOT FOUND THEN
+    RETURN false;
+  END IF;
+
+  IF v_app.applicant_id = v_uid THEN
+    RETURN true;
+  END IF;
+
+  IF v_app.entity_id IS NOT NULL
+     AND public.entity_membership_capability(v_uid, v_app.entity_id, 'submit') THEN
+    RETURN true;
+  END IF;
+
+  RETURN false;
+END $function$
 ;

@@ -44650,6 +44650,10 @@ export type Database = {
         Args: { _action: string; _role_id: string; _step_id: string }
         Returns: boolean
       }
+      can_submit_application: {
+        Args: { _application_id: string }
+        Returns: boolean
+      }
       can_user_access_licensee: {
         Args: {
           _target_licensee_id: string
@@ -53190,6 +53194,18 @@ export type Database = {
           match_score: number
         }[]
       }
+      resolve_post_license_intake_context: {
+        Args: { _license_id: string; _service_id?: string }
+        Returns: {
+          category_id: string
+          entity_id: string
+          license_id: string
+          regulator_id: string
+          sector_id: string
+          service_id: string
+          sub_sector_id: string
+        }[]
+      }
       resolve_registration_workflow: {
         Args: { _sector_id: string }
         Returns: string
@@ -53838,6 +53854,10 @@ export type Database = {
           service_id: string
           service_name: string
         }[]
+      }
+      service_license_compatible: {
+        Args: { _license_id: string; _service_id: string }
+        Returns: boolean
       }
       set_acknowledgement_delivery_state: {
         Args: {
