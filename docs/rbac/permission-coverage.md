@@ -1,8 +1,8 @@
 # Permission Coverage Matrix
 
-_Generated 2026-08-28T15:13:56.698Z. Do not edit by hand — run `bunx tsx scripts/generate-permission-coverage.ts`._
+_Generated 2026-08-28T21:32:10.659Z. Do not edit by hand — run `bunx tsx scripts/generate-permission-coverage.ts`._
 
-**Total permissions:** 378  `|`  **Orphaned:** 172
+**Total permissions:** 378  `|`  **Orphaned:** 169
 
 Coverage classes:
 
@@ -77,8 +77,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `enforcement_management` | `issue_notice` |
 | `entity_membership` | `manage` |
 | `entity_membership` | `request` |
-| `entity_structure` | `apply` |
-| `entity_structure` | `approve` |
 | `entity_structure` | `propose` |
 | `entity_structure` | `review` |
 | `entity_structure` | `view_history` |
@@ -122,7 +120,6 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `license_appeals` | `view_all_entities` |
 | `license_management` | `create` |
 | `license_management` | `delete` |
-| `license_management` | `manage_config` |
 | `licensee_management` | `create` |
 | `licensee_management` | `delete` |
 | `licensee_management` | `manage_pre_license` |
@@ -223,7 +220,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `approve` | 🟢 Enforced | — | — | 3 (`src/components/applications/LegalReferralPanel.tsx:221` + 2 more) | — | 3 (`supabase/migrations/20260820164107_d2193dbc-2390-4fb0-805d-49b21a87dc3c.sql:119` + 2 more) | — | — |
 | `close` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260722073323_c907f29d-9cb6-4dd0-877b-7b0c5f183e47.sql:16`) | — | — |
 | `configure` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260722073323_c907f29d-9cb6-4dd0-877b-7b0c5f183e47.sql:59`) | — | — |
-| `create` | 🔵 Backend only | — | — | — | — | 7 (`supabase/migrations/20260723080512_f3001359-6117-4c88-8560-e6411ac17af2.sql:22` + 6 more) | — | — |
+| `create` | 🔵 Backend only | — | — | — | — | 9 (`supabase/migrations/20260723080512_f3001359-6117-4c88-8560-e6411ac17af2.sql:22` + 8 more) | — | — |
 | `delete` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `edit` | 🟢 Enforced | — | — | 4 (`src/pages/applications/ApplicationDetail.tsx:1218` + 3 more) | — | 15 (`supabase/migrations/20260721131422_e66777b5-9205-47bd-9d37-fb01b3f277b5.sql:39` + 14 more) | — | — |
 | `escalate` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260722073617_7076a327-f3e3-4a3c-a8e3-de37799972a6.sql:52`) | — | — |
@@ -399,8 +396,8 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 
 | Action | Coverage | Menu | Route | Button | RLS | RPC | Storage | Report |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `apply` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `approve` | 🔴 Orphaned | — | — | — | — | — | — | — |
+| `apply` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260828204339_5e446caa-f809-4f74-b7f8-0343ede5f2e4.sql:263`) | — | — |
+| `approve` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260828204339_5e446caa-f809-4f74-b7f8-0343ede5f2e4.sql:264`) | — | — |
 | `propose` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `review` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `view` | 🔵 Backend only | — | — | — | — | 5 (`supabase/migrations/20260820113520_31dcf25b-2e29-432d-ac14-16939cf924d4.sql:14` + 4 more) | — | — |
@@ -584,7 +581,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `edit` | 🟢 Enforced | — | — | 1 (`src/components/licenses/LicenseFeeLedgerPanel.tsx:145`) | — | 5 (`supabase/migrations/20260721132114_9490e78c-372a-46d9-a6ce-de46ee9ddb06.sql:66` + 4 more) | — | — |
 | `manage_certificates` | 🔵 Backend only | — | — | — | — | 4 (`supabase/migrations/20260820195611_052a788e-b840-4bc5-9738-8d62593d6230.sql:12` + 3 more) | — | — |
 | `manage_conditions` | 🔵 Backend only | — | — | — | — | 10 (`supabase/migrations/20260820141538_ea56b357-4913-45f6-9ac1-6f45539c9b9a.sql:155` + 9 more) | — | — |
-| `manage_config` | 🔴 Orphaned | — | — | — | — | — | — | — |
+| `manage_config` | 🔵 Backend only | — | — | — | — | 4 (`supabase/migrations/20260828190141_48711bee-c89c-4848-b875-27b12157026e.sql:67` + 3 more) | — | — |
 | `manage_license_actions` | 🔵 Backend only | — | — | — | — | 6 (`supabase/migrations/20260821142155_ea66e8a9-1f05-4a01-9e3b-e57d31594e80.sql:469` + 5 more) | — | — |
 | `view` | 🟢 Enforced | 4 (`src/config/navigation.tsx:81` + 3 more) | 11 (`src/routes/adminRoutes.tsx:162` + 10 more) | — | — | 11 (`supabase/migrations/20260721132114_9490e78c-372a-46d9-a6ce-de46ee9ddb06.sql:35` + 10 more) | — | — |
 | `view_all_entities` | 🔵 Backend only | — | — | — | — | 2 (`supabase/migrations/20260721132114_9490e78c-372a-46d9-a6ce-de46ee9ddb06.sql:34` + 1 more) | — | — |
@@ -756,7 +753,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `edit` | 🟢 Enforced | — | — | 1 (`src/components/admin/returns-config/RegulatoryMetricsPanel.tsx:130`) | — | 6 (`supabase/migrations/20260721130151_b2c61ac4-8750-4e43-bff6-7bfc4d22a859.sql:70` + 5 more) | — | — |
 | `export` | 🟢 Enforced | — | — | 1 (`src/pages/returns-mgmt/ViewReturns.tsx:273`) | — | 1 (`src/pages/returns-mgmt/ViewReturns.tsx:282`) | — | — |
 | `manage_config` | 🟢 Enforced | — | — | 1 (`src/pages/admin/ReportingMetricsConfig.tsx:16`) | — | 3 (`supabase/migrations/20260810100752_fcd3150a-7dd7-4c4b-ac32-164bcab76a03.sql:7` + 2 more) | — | — |
-| `reject` | 🟢 Enforced | — | — | 1 (`src/pages/returns-mgmt/ReturnDetail.tsx:750`) | — | 1 (`supabase/migrations/20260722075014_e42adb56-18bf-42f0-84ce-dfa0160e4338.sql:24`) | — | — |
+| `reject` | 🟢 Enforced | — | — | 1 (`src/pages/returns-mgmt/ReturnDetail.tsx:750`) | — | 2 (`supabase/migrations/20260722075014_e42adb56-18bf-42f0-84ce-dfa0160e4338.sql:24` + 1 more) | — | — |
 | `respond_rfi` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `review` | 🔵 Backend only | — | — | — | — | 2 (`supabase/migrations/20260820162947_d5106a5c-02b7-4ea0-a642-a31398d87cdd.sql:96` + 1 more) | — | — |
 | `submit` | 🔵 Backend only | — | — | — | — | 2 (`supabase/migrations/20260820170449_9b085eec-a9dc-4a8b-862c-6bca839a3e30.sql:13` + 1 more) | — | — |

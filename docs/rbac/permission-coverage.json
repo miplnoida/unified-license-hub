@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T15:13:56.698Z",
+  "generatedAt": "2026-08-28T21:32:10.659Z",
   "rows": [
     {
       "module": "admin_dashboard",
@@ -696,6 +696,16 @@
         {
           "file": "supabase/migrations/20260828144247_4fce6d21-6a7b-4b56-bdc0-d3c4a50f390a.sql",
           "line": 128,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260828192230_71da86af-5b00-4da1-8b9a-1fdbbe77828e.sql",
+          "line": 146,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260828193758_aa63b852-befe-4dd1-a13a-67f485fcf3b0.sql",
+          "line": 487,
           "detail": "function body"
         }
       ],
@@ -4088,10 +4098,16 @@
       "button": [],
       "marker": [],
       "rls": [],
-      "rpc": [],
+      "rpc": [
+        {
+          "file": "supabase/migrations/20260828204339_5e446caa-f809-4f74-b7f8-0343ede5f2e4.sql",
+          "line": 263,
+          "detail": "function body"
+        }
+      ],
       "storage": [],
       "report": [],
-      "orphaned": true
+      "orphaned": false
     },
     {
       "module": "entity_structure",
@@ -4101,10 +4117,16 @@
       "button": [],
       "marker": [],
       "rls": [],
-      "rpc": [],
+      "rpc": [
+        {
+          "file": "supabase/migrations/20260828204339_5e446caa-f809-4f74-b7f8-0343ede5f2e4.sql",
+          "line": 264,
+          "detail": "function body"
+        }
+      ],
       "storage": [],
       "report": [],
-      "orphaned": true
+      "orphaned": false
     },
     {
       "module": "entity_structure",
@@ -7768,7 +7790,7 @@
         },
         {
           "file": "src/pages/licenses/LicenseDetail.tsx",
-          "line": 789,
+          "line": 792,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -8031,10 +8053,31 @@
       "button": [],
       "marker": [],
       "rls": [],
-      "rpc": [],
+      "rpc": [
+        {
+          "file": "supabase/migrations/20260828190141_48711bee-c89c-4848-b875-27b12157026e.sql",
+          "line": 67,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260828190141_48711bee-c89c-4848-b875-27b12157026e.sql",
+          "line": 217,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260828190514_c2763d41-eb64-4f66-ac6d-3836c6f2b6a2.sql",
+          "line": 25,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260828190514_c2763d41-eb64-4f66-ac6d-3836c6f2b6a2.sql",
+          "line": 174,
+          "detail": "function body"
+        }
+      ],
       "storage": [],
       "report": [],
-      "orphaned": true
+      "orphaned": false
     },
     {
       "module": "license_management",
@@ -8151,27 +8194,27 @@
       "marker": [
         {
           "file": "src/pages/licenses/LicenseDetail.tsx",
-          "line": 660,
+          "line": 663,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/licenses/LicenseDetail.tsx",
-          "line": 752,
+          "line": 755,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/licenses/LicenseDetail.tsx",
-          "line": 757,
+          "line": 760,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/licenses/LicenseDetail.tsx",
-          "line": 781,
+          "line": 784,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/licenses/LicenseDetail.tsx",
-          "line": 785,
+          "line": 788,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -13768,6 +13811,11 @@
           "file": "supabase/migrations/20260722075014_e42adb56-18bf-42f0-84ce-dfa0160e4338.sql",
           "line": 24,
           "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260828163916_ed6cc839-64cc-4506-82e5-6f74ca28d7a2.sql",
+          "line": 437,
+          "detail": "function body"
         }
       ],
       "storage": [],
@@ -16874,5 +16922,5 @@
       "orphaned": false
     }
   ],
-  "orphanedCount": 172
+  "orphanedCount": 169
 }
