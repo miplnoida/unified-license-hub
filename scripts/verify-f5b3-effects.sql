@@ -658,7 +658,19 @@ BEGIN
     _plan_unsupported->>'state' IN ('PRODUCT_GAP','BUSINESS_CONFIGURATION_REQUIRED'),
     'state=' || coalesce(_plan_unsupported->>'state','null'));
   PERFORM pg_temp.rec('H','H-02','an unsupported service can never be approved into a fabricated effect',
-    _res_unsupported <> 'NOT_BLOCKED', 'approval=' || coalesce(_res_unsupported,'null'));
+    (_raised_unsupported IS NOT NULL OR coalesce(_res_unsupported->>'success','false') <> 'true')
+      AND _unsup_effects = 0,
+    'raised=' || coalesce(_raised_unsupported,'-') || ' success=' || coalesce(_res_unsupported->>'success','null')
+    || ' effects=' || coalesce(_unsup_effects::text,'null'));
+  PERFORM pg_temp.rec('H','H-02b','the product-gap refusal is a governed blocked result carrying the plan state',
+    _raised_unsupported IS NOT NULL OR (coalesce(_res_unsupported->>'blocked','false') = 'true'
+      AND _res_unsupported->>'application_id' = (_fx->>'application_id')
+      AND _res_unsupported->>'plan_state' = _plan_unsupported->>'state'
+      AND coalesce(_res_unsupported->>'code','') = coalesce(_plan_unsupported->>'code','x')),
+    'result=' || left(coalesce(_res_unsupported::text,'null'),200));
+  PERFORM pg_temp.rec('H','H-02c','no application or workflow mutation survives the refused product-gap decision',
+    _unsup_app IS DISTINCT FROM 'approved' AND _unsup_wf IS DISTINCT FROM 'completed',
+    'app=' || coalesce(_unsup_app,'null') || ' wf=' || coalesce(_unsup_wf,'null'));
   PERFORM pg_temp.rec('H','H-03','an unknown application fails closed rather than defaulting to an effect',
     _plan_unknown->>'state' = 'FAIL_CLOSED', 'state=' || coalesce(_plan_unknown->>'state','null'));
   PERFORM pg_temp.rec('H','H-04','a rejected/non-approved filing produces no regulatory effect',
