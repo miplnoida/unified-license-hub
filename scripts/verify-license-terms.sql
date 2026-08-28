@@ -14,7 +14,7 @@
 --   4. `original` terms whose validity does not match the licence == 0
 --   5. AFTER INSERT trigger `trg_license_open_original_term` present + enabled
 --   6. term writer routines are not executable by anon / authenticated
---   7. empirical (rolled back): inserting a licence creates its opening term
+--   7. empirical (savepoint-rolled-back): inserting a licence creates its opening term
 --      in the same transaction, and the writer is idempotent
 --
 -- Legacy allowlist: LIC-2026-000033 (96adeaa2-b3a4-467f-bc47-2b1e50f687a4)
@@ -35,7 +35,7 @@ DECLARE
   v_lic uuid;
   v_term uuid;
   v_term2 uuid;
-  v_app uuid;
+  v_fail text;
 BEGIN
   ---------------------------------------------------------------- 1
   SELECT count(*), coalesce(string_agg(l.license_number, ', '), '')
