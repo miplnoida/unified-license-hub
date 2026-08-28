@@ -535,16 +535,25 @@ SELECT stage, id, descr,
 FROM f2b_results ORDER BY seq;
 
 DO $sum$
-DECLARE _p int; _f int; _n int;
+DECLARE _p int; _f int; _n int; _r record;
 BEGIN
   SELECT count(*) FILTER (WHERE passed), count(*) FILTER (WHERE passed IS FALSE), count(*) FILTER (WHERE passed IS NULL)
     INTO _p, _f, _n FROM f2b_results;
+  -- Every failure is named in the summary output so any run (including a
+  -- non-reproducible one) identifies the exact assertion (DEF-F2-C-02).
+  FOR _r IN SELECT stage, id, descr, detail FROM f2b_results WHERE passed IS FALSE ORDER BY seq LOOP
+    RAISE WARNING 'F2-B FAILED ASSERTION [% %] % -- %', _r.stage, _r.id, _r.descr, _r.detail;
+  END LOOP;
+  FOR _r IN SELECT stage, id, descr, detail FROM f2b_results WHERE passed IS NULL ORDER BY seq LOOP
+    RAISE WARNING 'F2-B NOT-APPLICABLE ASSERTION [% %] % -- %', _r.stage, _r.id, _r.descr, _r.detail;
+  END LOOP;
   RAISE WARNING 'F2-B EVIDENCE SUMMARY: % TESTED_PASS / % TESTED_FAIL / % N-A', _p, _f, _n;
   IF _f > 0 THEN
     RAISE EXCEPTION 'F2-B remediation gate FAILED: % assertion(s) failed', _f;
   END IF;
 END
 $sum$;
+
 
 -- Probe inserts (S2/S3) are intentionally discarded.
 ROLLBACK;
