@@ -308,8 +308,10 @@ DECLARE
   _svc uuid;
   _bad_svc uuid;
   _app public.applications;
-  _res text;
   _stored jsonb;
+  _res_incompat text;
+  _res_mismatch text;
+  _harness text := NULL;
 BEGIN
   SELECT l.* INTO _lic
     FROM public.licenses l
@@ -327,16 +329,7 @@ BEGIN
   END IF;
 
   SELECT m.user_id INTO _member FROM public.entity_user_memberships m
-    JOIN public.entity_membership_roles r ON r.id = m.membership_role_id
-   WHERE m.entity_id = _lic.holder_id AND m.status = 'APPROVED'
-     AND (r.is_primary_representative
-          OR EXISTS (SELECT 1 FROM public.entity_membership_role_permissions p
-                      WHERE p.membership_role_id = r.id AND p.capability = 'start_regulatory_request'))
-   LIMIT 1;
-  IF _member IS NULL THEN
-    SELECT m.user_id INTO _member FROM public.entity_user_memberships m
-     WHERE m.entity_id = _lic.holder_id AND m.status = 'APPROVED' LIMIT 1;
-  END IF;
+   WHERE m.entity_id = _lic.holder_id AND m.status = 'APPROVED' LIMIT 1;
 
   SELECT s.id INTO _svc FROM public.services s
    WHERE s.sub_sector_id = _lic.sub_sector_id AND s.status='active' LIMIT 1;
@@ -344,12 +337,11 @@ BEGIN
    WHERE s.sub_sector_id IS DISTINCT FROM _lic.sub_sector_id AND s.status='active' LIMIT 1;
 
   BEGIN
-    -- Ensure the member can transact, then discard everything.
+    -- implicit savepoint: role grant, draft and probes are all discarded below
     INSERT INTO public.user_roles (user_id, role)
     VALUES (_member, 'licensee_primary'::public.app_role)
     ON CONFLICT (user_id, role) DO NOTHING;
 
-    -- E-01 tampered taxonomy + tampered entity are overwritten by licence truth
     PERFORM set_config('request.jwt.claims',
       json_build_object('sub', _member::text, 'role','authenticated')::text, true);
 
@@ -364,53 +356,55 @@ BEGIN
         'category_id', gen_random_uuid()
       ),
       NULL);
-    PERFORM set_config('request.jwt.claims', '{}', true);
-
     _stored := _app.data;
-    PERFORM pg_temp.rec('E','E-01','client-supplied taxonomy is overwritten with licence-derived values',
-      (_stored->>'sector_id')::uuid IS NOT DISTINCT FROM _lic.sector_id
-      AND (_stored->>'sub_sector_id')::uuid IS NOT DISTINCT FROM _lic.sub_sector_id
-      AND (_stored->>'category_id')::uuid IS NOT DISTINCT FROM _lic.category_id,
-      'stored sector=' || coalesce(_stored->>'sector_id','null')
-      || ' licence sector=' || coalesce(_lic.sector_id::text,'null'));
 
-    PERFORM pg_temp.rec('E','E-02','the filing entity is derived from the licence holder',
-      _app.entity_id IS NOT DISTINCT FROM _lic.holder_id
-      AND (_stored->>'licensee_id')::uuid IS NOT DISTINCT FROM _lic.holder_id,
-      'entity=' || coalesce(_app.entity_id::text,'null')
-      || ' holder=' || coalesce(_lic.holder_id::text,'null'));
-
-    -- E-03 an out-of-scope service is refused at intake
     IF _bad_svc IS NOT NULL THEN
-      _res := pg_temp.as_user(_member, format(
+      _res_incompat := pg_temp.as_user(_member, format(
         'SELECT public.create_application_draft(%L, %L::jsonb, NULL)',
         'F5-B2 incompatible probe',
         jsonb_build_object('type','post_license','license_id', _lic.id, 'service_id', _bad_svc)::text));
-      PERFORM pg_temp.rec('E','E-03','an out-of-scope service is refused at draft creation',
-        _res LIKE '42501%' AND _res ILIKE '%SERVICE_LICENSE_INCOMPATIBLE%',
-        'result=' || coalesce(_res,'null'));
-    ELSE
-      PERFORM pg_temp.rec('E','E-03','an out-of-scope service is refused at draft creation',
-        false, 'no out-of-scope service fixture available');
     END IF;
 
-    -- E-04 a licence belonging to another entity cannot be claimed
-    _res := pg_temp.as_user(_member, format(
+    _res_mismatch := pg_temp.as_user(_member, format(
       'SELECT public.create_application_draft(%L, %L::jsonb, NULL)',
       'F5-B2 mismatch probe',
       jsonb_build_object('type','post_license','license_id', _lic.id,
                          'licensee_id', gen_random_uuid())::text));
-    PERFORM pg_temp.rec('E','E-04','a mismatched entity claim is refused at draft creation',
-      _res ILIKE '%LICENSE_ENTITY_MISMATCH%', 'result=' || coalesce(_res,'null'));
 
+    PERFORM set_config('request.jwt.claims', '{}', true);
     RAISE EXCEPTION 'F5B2_ROLLBACK';
   EXCEPTION WHEN others THEN
     IF SQLERRM <> 'F5B2_ROLLBACK' THEN
-      PERFORM pg_temp.rec('E','E-99','canonical-binding probe executed without harness error',
-        false, SQLSTATE || ': ' || left(SQLERRM,160));
+      _harness := SQLSTATE || ': ' || left(SQLERRM,160);
     END IF;
     PERFORM set_config('request.jwt.claims', '{}', true);
   END;
+
+  IF _harness IS NOT NULL THEN
+    PERFORM pg_temp.rec('E','E-99','canonical-binding probe executed without harness error',
+      false, _harness);
+    RETURN;
+  END IF;
+
+  PERFORM pg_temp.rec('E','E-01','client-supplied taxonomy is overwritten with licence-derived values',
+    (_stored->>'sector_id')::uuid IS NOT DISTINCT FROM _lic.sector_id
+    AND (_stored->>'sub_sector_id')::uuid IS NOT DISTINCT FROM _lic.sub_sector_id
+    AND (_stored->>'category_id')::uuid IS NOT DISTINCT FROM _lic.category_id,
+    'stored sector=' || coalesce(_stored->>'sector_id','null')
+    || ' licence sector=' || coalesce(_lic.sector_id::text,'null'));
+
+  PERFORM pg_temp.rec('E','E-02','the filing entity is derived from the licence holder',
+    _app.entity_id IS NOT DISTINCT FROM _lic.holder_id
+    AND (_stored->>'licensee_id')::uuid IS NOT DISTINCT FROM _lic.holder_id,
+    'entity=' || coalesce(_app.entity_id::text,'null')
+    || ' holder=' || coalesce(_lic.holder_id::text,'null'));
+
+  PERFORM pg_temp.rec('E','E-03','an out-of-scope service is refused at draft creation',
+    _res_incompat ILIKE '%SERVICE_LICENSE_INCOMPATIBLE%',
+    'result=' || coalesce(_res_incompat,'no fixture'));
+
+  PERFORM pg_temp.rec('E','E-04','a mismatched entity claim is refused at draft creation',
+    _res_mismatch ILIKE '%LICENSE_ENTITY_MISMATCH%', 'result=' || coalesce(_res_mismatch,'null'));
 END $e$;
 
 -- ===========================================================================
