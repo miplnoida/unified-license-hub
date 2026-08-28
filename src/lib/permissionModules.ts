@@ -90,6 +90,7 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/employees', 'user_management'],
   ['/admin/roles', 'role_management'],
   ['/admin/permission-coverage', 'role_management'],
+  ['/admin/decision-authority', 'role_management'],
 
   // ─── Licensing appeals ─────────────────────────────────────────────────
   ['/admin/license-appeals', 'license_appeals'],
@@ -199,6 +200,7 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/workflow-engine', 'settings'],
   ['/admin/notification-engine', 'settings'],
   ['/admin/security-audit', 'settings'],
+  ['/admin/service-completeness', 'settings'],
   ['/admin/regulatory-data-model', 'settings'],
   ['/admin/forms-packages', 'form_management'],
   ['/admin/support', 'support_management'],
