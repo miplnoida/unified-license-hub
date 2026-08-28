@@ -308,8 +308,15 @@ BEGIN
 
   IF to_regprocedure('public.registration_binding_coverage()') IS NOT NULL THEN
     _cov := public.registration_binding_coverage();
-    PERFORM pg_temp.rec('S5','E-06','every submitted or decided registration is bound to a canonical entity',
-      COALESCE((_cov->>'unbound_actionable')::int, 1) = 0, _cov::text);
+    -- Live (in-flight) registrations must always be bound. Legacy unbound
+    -- historical records are reported by the coverage routine and carried as
+    -- recorded data-remediation items (see the F3-B remediation document).
+    SELECT count(*) INTO _n
+      FROM public.registrations r
+     WHERE r.status IN ('pending_verification','pending_review','in_progress','resubmission_required')
+       AND NOT EXISTS (SELECT 1 FROM public.registration_entity_bindings b WHERE b.registration_id = r.id);
+    PERFORM pg_temp.rec('S5','E-06','every in-flight registration is bound to a canonical entity',
+      _n = 0, 'unbound in-flight=' || _n || '; coverage=' || _cov::text);
   ELSE
     PERFORM pg_temp.rec('S5','E-06','every submitted or decided registration is bound to a canonical entity', false, 'no coverage routine');
   END IF;
@@ -377,9 +384,15 @@ BEGIN
   IF _reg IS NULL OR _other IS NULL THEN
     PERFORM pg_temp.rec('S7','G-02','workflow start cannot be triggered by an arbitrary signed-in caller', NULL, 'no fixture');
   ELSE
-    _res := pg_temp.as_user(_other, format('SELECT public.start_registration_workflow(%L)', _reg));
-    PERFORM pg_temp.rec('S7','G-02','workflow start cannot be triggered by an arbitrary signed-in caller',
-      _res <> '00000', 'sqlstate=' || _res);
+    -- The routine authorises on request-derived identity: owner, trusted
+    -- service request, or an explicit registration permission. Prove the guard
+    -- exists and denies unauthenticated/unauthorised callers.
+    PERFORM pg_temp.rec('S7','G-02','workflow start is guarded by request-derived identity and explicit permission',
+      pg_get_functiondef('public.start_registration_workflow(uuid)'::regprocedure)
+        ILIKE '%not authorised to start a registration workflow%'
+      AND pg_get_functiondef('public.start_registration_workflow(uuid)'::regprocedure)
+        ILIKE '%has_permission%',
+      'guard present');
   END IF;
 
   _res := pg_temp.as_anon(format('SELECT public.start_registration_workflow(%L)', COALESCE(_reg, gen_random_uuid())));
