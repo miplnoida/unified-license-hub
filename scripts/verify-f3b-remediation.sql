@@ -328,8 +328,7 @@ DO $s6$
 DECLARE _n int; _detail text; _steps int;
 BEGIN
   SELECT count(*) INTO _n FROM public.approval_workflows w
-   WHERE w.is_active AND w.workflow_type_id IN (
-     SELECT id FROM public.approval_workflow_types WHERE lower(name) LIKE '%registration%');
+   WHERE w.is_active AND w.entity_type = 'registration';
   PERFORM pg_temp.rec('S6','F-01','at least one active governed registration workflow is configured',
     _n >= 1, 'active registration workflows=' || _n);
 
@@ -337,8 +336,7 @@ BEGIN
   SELECT count(*) INTO _steps FROM public.approval_steps s
    WHERE s.workflow_id IN (
      SELECT w.id FROM public.approval_workflows w
-      WHERE w.is_active AND w.workflow_type_id IN (
-        SELECT id FROM public.approval_workflow_types WHERE lower(name) LIKE '%registration%'));
+      WHERE w.is_active AND w.entity_type = 'registration');
   PERFORM pg_temp.rec('S6','F-02','registration decisions follow a maker-checker step model',
     _steps >= 2, 'configured steps=' || _steps);
 
@@ -347,8 +345,7 @@ BEGIN
     JOIN public.roles r ON r.id = s.role_id
    WHERE s.workflow_id IN (
      SELECT w.id FROM public.approval_workflows w
-      WHERE w.is_active AND w.workflow_type_id IN (
-        SELECT id FROM public.approval_workflow_types WHERE lower(name) LIKE '%registration%'))
+      WHERE w.is_active AND w.entity_type = 'registration')
      AND lower(r.name) LIKE '%super%admin%';
   PERFORM pg_temp.rec('S6','F-03','registration approval is not reserved to the platform super administrator',
     _n = 0, 'super-admin steps=' || _n || ' [' || _detail || ']');
