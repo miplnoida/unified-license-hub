@@ -65,12 +65,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (app.applicant_id !== user.id) {
+    // F5-B2 / GAP-F5-02: submission authority is an entity capability, not
+    // row ownership. The creator may submit; so may any APPROVED entity member
+    // holding the `submit` capability for the application's entity. The
+    // governed RPC re-checks this, so this is a fail-fast mirror only.
+    const { data: maySubmit, error: authzErr } = await userClient.rpc(
+      "can_submit_application" as never,
+      { _application_id: application_id } as never,
+    );
+
+    if (authzErr || maySubmit !== true) {
       return new Response(
-        JSON.stringify({ error: "You do not own this application" }),
+        JSON.stringify({
+          error: "You are not authorised to submit this filing for this entity",
+          code: "FORBIDDEN",
+        }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
 
     const isResubmission = [
       "resubmission_requested",
@@ -87,20 +100,51 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 1a. LICENCE ENTITLEMENT GATE (post-licence services only).
-    //     Post-licence filings are entitlements of an existing licence, so the
-    //     submission is refused unless an eligible licence still covers the
-    //     application's sector scope. Same predicate the draft-creation RPC and
-    //     the UI use — a direct API call cannot bypass it.
+    // 1a. LICENCE ENTITLEMENT + SERVICE COMPATIBILITY GATE (post-licence only).
+    //     F5-B2 / GAP-F5-01 + GAP-F5-15: the licence is the only trusted input.
+    //     Taxonomy stored on the row is never used for authorisation — the
+    //     licence-bound predicates derive it server-side, and the service must
+    //     be configured for that licence's scope. The governed RPC re-checks
+    //     both, so a direct API call cannot bypass either.
     {
       const d = (app.data as Record<string, unknown> | null) || {};
       const isPostLicense = !!d.service_id || String(d.type || "") === "post_license";
       if (isPostLicense) {
-        const { data: allowed, error: entErr } = await userClient.rpc("can_act_on_license", {
-          _licensee_id: (d.licensee_id as string | undefined) ?? null,
-          _sector_id: (d.sector_id as string | undefined) ?? null,
-          _sub_sector_id: (d.sub_sector_id as string | undefined) ?? null,
-          _category_id: (d.category_id as string | undefined) ?? null,
+        const licenseId = (d.license_id as string | undefined) ?? null;
+        const serviceId = (d.service_id as string | undefined) ?? null;
+
+        if (!licenseId) {
+          return new Response(
+            JSON.stringify({
+              error: "This post-licence filing is not bound to a licence",
+              code: "LICENSE_REQUIRED",
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+
+        if (serviceId) {
+          const { data: compatible, error: compatErr } = await userClient.rpc(
+            "service_license_compatible",
+            { _service_id: serviceId, _license_id: licenseId },
+          );
+          if (compatErr || compatible !== true) {
+            return new Response(
+              JSON.stringify({
+                error: "The selected service is not available for the scope of this licence",
+                code: "SERVICE_LICENSE_INCOMPATIBLE",
+              }),
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+        }
+
+        const { data: allowed, error: entErr } = await userClient.rpc("can_act_on_specific_license", {
+          _license_id: licenseId,
+          _licensee_id: null,
+          _sector_id: null,
+          _sub_sector_id: null,
+          _category_id: null,
         });
         if (entErr || allowed !== true) {
           return new Response(
@@ -114,6 +158,7 @@ Deno.serve(async (req) => {
         }
       }
     }
+
 
 
 
