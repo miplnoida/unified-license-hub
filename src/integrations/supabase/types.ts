@@ -29940,6 +29940,256 @@ export type Database = {
         }
         Relationships: []
       }
+      post_license_acknowledgements: {
+        Row: {
+          acknowledged_at: string
+          acknowledged_by: string | null
+          acknowledgement_reference: string
+          application_id: string
+          created_at: string
+          entity_id: string | null
+          id: string
+          license_id: string | null
+          notification_kind: string
+          payload: Json
+          received_at: string | null
+          service_code: string | null
+          service_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string
+          acknowledged_by?: string | null
+          acknowledgement_reference: string
+          application_id: string
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          license_id?: string | null
+          notification_kind: string
+          payload?: Json
+          received_at?: string | null
+          service_code?: string | null
+          service_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string
+          acknowledged_by?: string | null
+          acknowledgement_reference?: string
+          application_id?: string
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          license_id?: string | null
+          notification_kind?: string
+          payload?: Json
+          received_at?: string | null
+          service_code?: string | null
+          service_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_license_acknowledgements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_license_acknowledgements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_license_acknowledgements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_license_acknowledgements_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_license_acknowledgements_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_license_acknowledgements_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_configuration_completeness"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "post_license_acknowledgements_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_license_effect_map: {
+        Row: {
+          bcr_reason: string | null
+          canonical_target: string | null
+          created_at: string
+          effect_kind: string
+          handler: string | null
+          id: string
+          is_supported: boolean
+          notes: string | null
+          service_code: string
+          updated_at: string
+        }
+        Insert: {
+          bcr_reason?: string | null
+          canonical_target?: string | null
+          created_at?: string
+          effect_kind: string
+          handler?: string | null
+          id?: string
+          is_supported?: boolean
+          notes?: string | null
+          service_code: string
+          updated_at?: string
+        }
+        Update: {
+          bcr_reason?: string | null
+          canonical_target?: string | null
+          created_at?: string
+          effect_kind?: string
+          handler?: string | null
+          id?: string
+          is_supported?: boolean
+          notes?: string | null
+          service_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      post_license_effects: {
+        Row: {
+          application_id: string
+          applied_at: string
+          applied_by: string | null
+          canonical_target: string | null
+          created_at: string
+          effect_kind: string
+          entity_id: string | null
+          evidence_after: Json
+          evidence_before: Json
+          fp_required: boolean
+          handler: string | null
+          id: string
+          license_id: string | null
+          provenance: Json
+          result_ref: string | null
+          service_code: string | null
+          service_id: string | null
+          state: string
+        }
+        Insert: {
+          application_id: string
+          applied_at?: string
+          applied_by?: string | null
+          canonical_target?: string | null
+          created_at?: string
+          effect_kind: string
+          entity_id?: string | null
+          evidence_after?: Json
+          evidence_before?: Json
+          fp_required?: boolean
+          handler?: string | null
+          id?: string
+          license_id?: string | null
+          provenance?: Json
+          result_ref?: string | null
+          service_code?: string | null
+          service_id?: string | null
+          state: string
+        }
+        Update: {
+          application_id?: string
+          applied_at?: string
+          applied_by?: string | null
+          canonical_target?: string | null
+          created_at?: string
+          effect_kind?: string
+          entity_id?: string | null
+          evidence_after?: Json
+          evidence_before?: Json
+          fp_required?: boolean
+          handler?: string | null
+          id?: string
+          license_id?: string | null
+          provenance?: Json
+          result_ref?: string | null
+          service_code?: string | null
+          service_id?: string | null
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_license_effects_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_license_effects_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_license_effects_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_license_effects_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_license_effects_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_license_effects_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_configuration_completeness"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "post_license_effects_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ppoc_entity_mappings: {
         Row: {
           created_at: string
@@ -44202,6 +44452,10 @@ export type Database = {
         Args: { _change_set_id: string }
         Returns: Json
       }
+      apply_post_license_effect: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
       approval_action_notification_delete: {
         Args: { _id: string }
         Returns: Json
@@ -51495,6 +51749,22 @@ export type Database = {
       post_license_applicability_message: {
         Args: { _code: string }
         Returns: string
+      }
+      post_license_change_items: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
+      post_license_effect_key: {
+        Args: { _service_id: string }
+        Returns: string
+      }
+      post_license_effect_plan: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
+      post_license_fp_satisfied: {
+        Args: { _application_id: string }
+        Returns: boolean
       }
       post_license_open_statuses: { Args: never; Returns: string[] }
       post_license_service_applicability: {
