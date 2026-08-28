@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-27T20:22:05.634Z",
+  "generatedAt": "2026-08-28T15:04:44.163Z",
   "rows": [
     {
       "module": "admin_dashboard",
@@ -13,7 +13,7 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 95
+          "line": 97
         }
       ],
       "button": [],
@@ -617,7 +617,7 @@
         },
         {
           "file": "src/pages/applications/ApplicationDetail.tsx",
-          "line": 1568,
+          "line": 1525,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -692,6 +692,11 @@
           "file": "supabase/migrations/20260827074203_5ada98d8-efd8-4f1c-aba1-dc9d105b8cbb.sql",
           "line": 31,
           "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260828144247_4fce6d21-6a7b-4b56-bdc0-d3c4a50f390a.sql",
+          "line": 128,
+          "detail": "function body"
         }
       ],
       "storage": [],
@@ -719,7 +724,7 @@
       "button": [
         {
           "file": "src/pages/applications/ApplicationDetail.tsx",
-          "line": 1261
+          "line": 1218
         },
         {
           "file": "src/components/applications/LegalReferralPanel.tsx",
@@ -747,23 +752,8 @@
           "detail": "data-rbac marker (audit signal only)"
         },
         {
-          "file": "src/pages/PostLicense.tsx",
-          "line": 108,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/pages/PostLicense.tsx",
-          "line": 109,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
           "file": "src/pages/PostLicenseApplicationForms.tsx",
           "line": 637,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/pages/PreLicense.tsx",
-          "line": 310,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -803,22 +793,22 @@
         },
         {
           "file": "src/pages/applications/ApplicationDetail.tsx",
-          "line": 1261,
+          "line": 1218,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/applications/ApplicationDetail.tsx",
-          "line": 1270,
+          "line": 1227,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/applications/ApplicationDetail.tsx",
-          "line": 1429,
+          "line": 1386,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/applications/ApplicationDetail.tsx",
-          "line": 1433,
+          "line": 1390,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -1095,6 +1085,11 @@
           "detail": "function body"
         },
         {
+          "file": "supabase/migrations/20260828144746_dc392c09-fd7b-4d18-8cb1-e69fe8f0344e.sql",
+          "line": 322,
+          "detail": "function body"
+        },
+        {
           "file": "supabase/functions/add-application-remark/index.ts",
           "line": 40,
           "detail": "edge function gate (requireUserPermission)"
@@ -1291,15 +1286,15 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 192
+          "line": 196
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 193
+          "line": 197
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 194
+          "line": 198
         },
         {
           "file": "src/routes/dashboardRoutes.tsx",
@@ -1826,7 +1821,7 @@
         },
         {
           "file": "src/pages/complaints/duplicates/DuplicateDetectionHub.tsx",
-          "line": 52,
+          "line": 71,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -2549,12 +2544,12 @@
       "marker": [
         {
           "file": "src/pages/admin/ComplaintTypes.tsx",
-          "line": 105,
+          "line": 108,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/admin/ComplaintTypes.tsx",
-          "line": 121,
+          "line": 124,
           "detail": "data-rbac marker (audit signal only)"
         }
       ],
@@ -2573,7 +2568,7 @@
       "marker": [
         {
           "file": "src/pages/admin/ComplaintTypes.tsx",
-          "line": 150,
+          "line": 153,
           "detail": "data-rbac marker (audit signal only)"
         }
       ],
@@ -2595,7 +2590,7 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 184
+          "line": 188
         }
       ],
       "button": [],
@@ -3721,7 +3716,7 @@
       "button": [
         {
           "file": "src/pages/admin/EntityMemberships.tsx",
-          "line": 56,
+          "line": 63,
           "detail": "frontend gate (useCan/hasPermission)"
         }
       ],
@@ -3787,7 +3782,7 @@
       "button": [
         {
           "file": "src/pages/admin/EntityMemberships.tsx",
-          "line": 57,
+          "line": 64,
           "detail": "frontend gate (useCan/hasPermission)"
         }
       ],
@@ -3812,7 +3807,7 @@
       "button": [
         {
           "file": "src/pages/admin/EntityMemberships.tsx",
-          "line": 55,
+          "line": 62,
           "detail": "frontend gate (useCan/hasPermission)"
         }
       ],
@@ -4326,7 +4321,7 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 179
+          "line": 183
         }
       ],
       "button": [],
@@ -4456,17 +4451,17 @@
       "marker": [
         {
           "file": "src/pages/admin/FeeManagement.tsx",
-          "line": 515,
+          "line": 519,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/admin/FeeManagement.tsx",
-          "line": 782,
+          "line": 786,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/admin/FeeManagement.tsx",
-          "line": 933,
+          "line": 937,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -4533,7 +4528,7 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 159
+          "line": 161
         },
         {
           "file": "src/routes/dashboardRoutes.tsx",
@@ -6048,7 +6043,7 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 196
+          "line": 200
         }
       ],
       "button": [],
@@ -6534,11 +6529,11 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 195
+          "line": 199
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 197
+          "line": 201
         }
       ],
       "button": [],
@@ -6976,27 +6971,27 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 97
+          "line": 99
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 101
+          "line": 103
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 102
+          "line": 104
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 157
+          "line": 159
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 186
+          "line": 190
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 187
+          "line": 191
         },
         {
           "file": "src/routes/dashboardRoutes.tsx",
@@ -8104,39 +8099,39 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 160
+          "line": 162
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 164
+          "line": 166
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 165
+          "line": 167
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 185
+          "line": 189
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 188
+          "line": 192
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 191
+          "line": 195
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 206
+          "line": 210
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 207
+          "line": 211
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 213
+          "line": 217
         },
         {
           "file": "src/routes/dashboardRoutes.tsx",
@@ -8454,15 +8449,15 @@
       "button": [
         {
           "file": "src/pages/admin/EntityMemberships.tsx",
-          "line": 136
+          "line": 144
         },
         {
           "file": "src/pages/admin/EntityMemberships.tsx",
-          "line": 142
+          "line": 150
         },
         {
           "file": "src/pages/admin/EntityMemberships.tsx",
-          "line": 151
+          "line": 159
         },
         {
           "file": "src/pages/entities/EntityStructureHub.tsx",
@@ -8494,22 +8489,22 @@
       "marker": [
         {
           "file": "src/pages/admin/EntityMemberships.tsx",
-          "line": 130,
+          "line": 138,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/admin/EntityMemberships.tsx",
-          "line": 136,
+          "line": 144,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/admin/EntityMemberships.tsx",
-          "line": 142,
+          "line": 150,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/admin/EntityMemberships.tsx",
-          "line": 151,
+          "line": 159,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -10245,15 +10240,15 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 203
+          "line": 207
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 204
+          "line": 208
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 205
+          "line": 209
         },
         {
           "file": "src/routes/dashboardRoutes.tsx",
@@ -10734,19 +10729,19 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 180
+          "line": 184
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 181
+          "line": 185
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 182
+          "line": 186
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 183
+          "line": 187
         },
         {
           "file": "src/routes/dashboardRoutes.tsx",
@@ -12038,7 +12033,7 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 200
+          "line": 204
         },
         {
           "file": "src/routes/dashboardRoutes.tsx",
@@ -12475,6 +12470,16 @@
       "rls": [],
       "rpc": [
         {
+          "file": "supabase/migrations/20260828125632_9e463f5e-3e2d-46c7-bb97-3def5461aa86.sql",
+          "line": 555,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260828134139_23671c5f-eeb4-4215-a419-2a8f01f57502.sql",
+          "line": 18,
+          "detail": "function body"
+        },
+        {
           "file": "supabase/functions/approve-pre-licensee/authz_test.ts",
           "line": 17,
           "detail": "edge function gate (requireUserPermission)"
@@ -12486,7 +12491,7 @@
         },
         {
           "file": "supabase/functions/approve-pre-licensee/index.ts",
-          "line": 38,
+          "line": 45,
           "detail": "edge function gate (requireUserPermission)"
         }
       ],
@@ -12503,7 +12508,7 @@
       "marker": [
         {
           "file": "src/pages/registration/PreLicenseeRegistration.tsx",
-          "line": 1565,
+          "line": 1528,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -12617,11 +12622,11 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 189
+          "line": 193
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 190
+          "line": 194
         }
       ],
       "button": [],
@@ -12636,7 +12641,7 @@
       "rpc": [
         {
           "file": "supabase/functions/get-licensee-registration/index.ts",
-          "line": 89,
+          "line": 93,
           "detail": "edge function gate (requireUserPermission)"
         }
       ],
@@ -12653,6 +12658,16 @@
       "marker": [],
       "rls": [],
       "rpc": [
+        {
+          "file": "supabase/migrations/20260828125632_9e463f5e-3e2d-46c7-bb97-3def5461aa86.sql",
+          "line": 556,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260828134139_23671c5f-eeb4-4215-a419-2a8f01f57502.sql",
+          "line": 19,
+          "detail": "function body"
+        },
         {
           "file": "supabase/functions/perform-registration-workflow-action/index.ts",
           "line": 46,
@@ -13673,7 +13688,7 @@
       "marker": [
         {
           "file": "src/pages/admin/ReturnConfiguration.tsx",
-          "line": 112,
+          "line": 121,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -13706,12 +13721,12 @@
         },
         {
           "file": "src/pages/admin/ReturnConfiguration.tsx",
-          "line": 74,
+          "line": 75,
           "detail": "enforce_action RPC (server-enforced)"
         },
         {
           "file": "src/pages/admin/ReturnConfiguration.tsx",
-          "line": 95,
+          "line": 99,
           "detail": "enforce_action RPC (server-enforced)"
         }
       ],
@@ -13918,23 +13933,7 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 162
-        },
-        {
-          "file": "src/routes/adminRoutes.tsx",
-          "line": 222
-        },
-        {
-          "file": "src/routes/adminRoutes.tsx",
-          "line": 223
-        },
-        {
-          "file": "src/routes/adminRoutes.tsx",
-          "line": 224
-        },
-        {
-          "file": "src/routes/adminRoutes.tsx",
-          "line": 225
+          "line": 164
         },
         {
           "file": "src/routes/adminRoutes.tsx",
@@ -13975,6 +13974,22 @@
         {
           "file": "src/routes/adminRoutes.tsx",
           "line": 235
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 236
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 237
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 238
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 239
         },
         {
           "file": "src/routes/dashboardRoutes.tsx",
@@ -14448,7 +14463,33 @@
       "action": "manage_config",
       "menu": [],
       "route": [],
-      "button": [],
+      "button": [
+        {
+          "file": "src/pages/admin/DecisionAuthorityManager.tsx",
+          "line": 214
+        },
+        {
+          "file": "src/pages/admin/DecisionAuthorityManager.tsx",
+          "line": 272
+        },
+        {
+          "file": "src/pages/admin/DecisionAuthorityManager.tsx",
+          "line": 275
+        },
+        {
+          "file": "src/pages/admin/DecisionAuthorityManager.tsx",
+          "line": 356
+        },
+        {
+          "file": "src/pages/admin/DecisionAuthorityManager.tsx",
+          "line": 455
+        },
+        {
+          "file": "src/pages/admin/DecisionAuthorityManager.tsx",
+          "line": 105,
+          "detail": "frontend gate (useCan/hasPermission)"
+        }
+      ],
       "marker": [],
       "rls": [],
       "rpc": [
@@ -14465,6 +14506,16 @@
         {
           "file": "supabase/migrations/20260827032713_b7da8c57-ccb6-4efb-8918-692a48a6ffa1.sql",
           "line": 245,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260828070133_d7c3e615-3f24-41fd-bdfb-0f3e306278c3.sql",
+          "line": 56,
+          "detail": "function body"
+        },
+        {
+          "file": "supabase/migrations/20260828070133_d7c3e615-3f24-41fd-bdfb-0f3e306278c3.sql",
+          "line": 152,
           "detail": "function body"
         }
       ],
@@ -14513,7 +14564,7 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 170
+          "line": 172
         }
       ],
       "button": [],
@@ -14852,19 +14903,19 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 208
+          "line": 212
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 209
+          "line": 213
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 210
+          "line": 214
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 211
+          "line": 215
         }
       ],
       "button": [],
@@ -14990,8 +15041,16 @@
       "route": [],
       "button": [
         {
+          "file": "src/pages/admin/RegulatorManagement.tsx",
+          "line": 208
+        },
+        {
+          "file": "src/pages/admin/RegulatorManagement.tsx",
+          "line": 291
+        },
+        {
           "file": "src/pages/settings/CaptchaSettings.tsx",
-          "line": 318
+          "line": 312
         },
         {
           "file": "src/pages/settings/IntegrationSettings.tsx",
@@ -15044,6 +15103,11 @@
         {
           "file": "src/components/settings/integrations/RetryQueuePanel.tsx",
           "line": 610
+        },
+        {
+          "file": "src/pages/admin/RegulatorManagement.tsx",
+          "line": 91,
+          "detail": "frontend gate (useCan/hasPermission)"
         },
         {
           "file": "src/pages/admin/RegulatoryDataModel.tsx",
@@ -15108,8 +15172,18 @@
           "detail": "data-rbac marker (audit signal only)"
         },
         {
+          "file": "src/pages/admin/RegulatorManagement.tsx",
+          "line": 208,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
+          "file": "src/pages/admin/RegulatorManagement.tsx",
+          "line": 291,
+          "detail": "data-rbac marker (audit signal only)"
+        },
+        {
           "file": "src/pages/admin/SlaManager.tsx",
-          "line": 722,
+          "line": 758,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -15134,62 +15208,62 @@
         },
         {
           "file": "src/pages/settings/BrandingSettings.tsx",
-          "line": 119,
+          "line": 120,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/settings/BrandingSettings.tsx",
-          "line": 163,
+          "line": 164,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/settings/BrandingSettings.tsx",
-          "line": 193,
+          "line": 194,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/settings/BrandingSettings.tsx",
-          "line": 222,
+          "line": 223,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/settings/BrandingSettings.tsx",
-          "line": 271,
+          "line": 272,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/settings/BrandingSettings.tsx",
-          "line": 297,
+          "line": 298,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/settings/CaptchaSettings.tsx",
-          "line": 271,
+          "line": 265,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/settings/CaptchaSettings.tsx",
-          "line": 318,
+          "line": 312,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/settings/CaptchaSettings.tsx",
-          "line": 322,
+          "line": 316,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/settings/CaptchaSettings.tsx",
-          "line": 454,
+          "line": 448,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/settings/CertificateSignatorySettings.tsx",
-          "line": 217,
+          "line": 215,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/settings/CertificateSignatorySettings.tsx",
-          "line": 346,
+          "line": 344,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -15229,27 +15303,27 @@
         },
         {
           "file": "src/pages/settings/LicenseExpirySettings.tsx",
-          "line": 267,
+          "line": 265,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/settings/LicenseExpirySettings.tsx",
-          "line": 289,
+          "line": 287,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/settings/LicenseExpirySettings.tsx",
-          "line": 329,
+          "line": 327,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/settings/LicenseExpirySettings.tsx",
-          "line": 333,
+          "line": 331,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/settings/LicenseExpirySettings.tsx",
-          "line": 445,
+          "line": 443,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -15456,13 +15530,18 @@
           "detail": "function body"
         },
         {
+          "file": "supabase/migrations/20260828060647_e48f4af1-bf3f-428d-9168-2ecd38964fe6.sql",
+          "line": 22,
+          "detail": "function body"
+        },
+        {
           "file": "supabase/functions/integration-test-connection/index.ts",
           "line": 14,
           "detail": "edge function gate (requireUserPermission)"
         },
         {
           "file": "src/pages/admin/SlaManager.tsx",
-          "line": 537,
+          "line": 564,
           "detail": "enforce_action RPC (server-enforced)"
         },
         {
@@ -15598,47 +15677,39 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 108
+          "line": 110
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 112
+          "line": 114
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 116
+          "line": 118
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 120
+          "line": 122
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 124
+          "line": 126
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 128
+          "line": 130
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 132
+          "line": 134
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 136
+          "line": 138
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 140
-        },
-        {
-          "file": "src/routes/adminRoutes.tsx",
-          "line": 149
-        },
-        {
-          "file": "src/routes/adminRoutes.tsx",
-          "line": 150
+          "line": 142
         },
         {
           "file": "src/routes/adminRoutes.tsx",
@@ -15650,39 +15721,51 @@
         },
         {
           "file": "src/routes/adminRoutes.tsx",
+          "line": 153
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
           "line": 154
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 155
+          "line": 156
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 163
+          "line": 157
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 176
+          "line": 165
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 177
+          "line": 175
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 178
+          "line": 180
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 198
+          "line": 181
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 199
+          "line": 182
         },
         {
           "file": "src/routes/adminRoutes.tsx",
           "line": 202
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 203
+        },
+        {
+          "file": "src/routes/adminRoutes.tsx",
+          "line": 206
         },
         {
           "file": "src/routes/dashboardRoutes.tsx",
@@ -15858,7 +15941,7 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 168
+          "line": 170
         }
       ],
       "button": [],
@@ -15890,11 +15973,6 @@
         {
           "file": "src/pages/admin/PpocManagement.tsx",
           "line": 337,
-          "detail": "data-rbac marker (audit signal only)"
-        },
-        {
-          "file": "src/pages/admin/RegulatorManagement.tsx",
-          "line": 200,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -16349,19 +16427,19 @@
       "route": [
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 166
+          "line": 168
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 169
+          "line": 171
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 172
+          "line": 176
         },
         {
           "file": "src/routes/adminRoutes.tsx",
-          "line": 174
+          "line": 178
         }
       ],
       "button": [],
@@ -16474,12 +16552,12 @@
       "marker": [
         {
           "file": "src/pages/admin/SlaManager.tsx",
-          "line": 325,
+          "line": 336,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
           "file": "src/pages/admin/SlaManager.tsx",
-          "line": 751,
+          "line": 787,
           "detail": "data-rbac marker (audit signal only)"
         },
         {
@@ -16711,7 +16789,7 @@
       "marker": [
         {
           "file": "src/pages/admin/SlaManager.tsx",
-          "line": 120,
+          "line": 121,
           "detail": "data-rbac marker (audit signal only)"
         },
         {

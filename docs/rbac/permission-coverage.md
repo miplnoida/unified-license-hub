@@ -1,6 +1,6 @@
 # Permission Coverage Matrix
 
-_Generated 2026-08-27T20:22:05.634Z. Do not edit by hand — run `bunx tsx scripts/generate-permission-coverage.ts`._
+_Generated 2026-08-28T15:04:44.163Z. Do not edit by hand — run `bunx tsx scripts/generate-permission-coverage.ts`._
 
 **Total permissions:** 378  `|`  **Orphaned:** 172
 
@@ -194,7 +194,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 
 | Action | Coverage | Menu | Route | Button | RLS | RPC | Storage | Report |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `view` | 🟢 Enforced | 1 (`src/config/navigation.tsx:80`) | 1 (`src/routes/adminRoutes.tsx:95`) | — | — | 2 (`supabase/migrations/20260820200412_4acd24ab-8d21-4dec-984b-caa54559bd5a.sql:311` + 1 more) | — | — |
+| `view` | 🟢 Enforced | 1 (`src/config/navigation.tsx:80`) | 1 (`src/routes/adminRoutes.tsx:97`) | — | — | 2 (`supabase/migrations/20260820200412_4acd24ab-8d21-4dec-984b-caa54559bd5a.sql:311` + 1 more) | — | — |
 
 ## `ai_management`
 
@@ -223,16 +223,16 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `approve` | 🟢 Enforced | — | — | 3 (`src/components/applications/LegalReferralPanel.tsx:221` + 2 more) | — | 3 (`supabase/migrations/20260820164107_d2193dbc-2390-4fb0-805d-49b21a87dc3c.sql:119` + 2 more) | — | — |
 | `close` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260722073323_c907f29d-9cb6-4dd0-877b-7b0c5f183e47.sql:16`) | — | — |
 | `configure` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260722073323_c907f29d-9cb6-4dd0-877b-7b0c5f183e47.sql:59`) | — | — |
-| `create` | 🔵 Backend only | — | — | — | — | 6 (`supabase/migrations/20260723080512_f3001359-6117-4c88-8560-e6411ac17af2.sql:22` + 5 more) | — | — |
+| `create` | 🔵 Backend only | — | — | — | — | 7 (`supabase/migrations/20260723080512_f3001359-6117-4c88-8560-e6411ac17af2.sql:22` + 6 more) | — | — |
 | `delete` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `edit` | 🟢 Enforced | — | — | 4 (`src/pages/applications/ApplicationDetail.tsx:1261` + 3 more) | — | 14 (`supabase/migrations/20260721131422_e66777b5-9205-47bd-9d37-fb01b3f277b5.sql:39` + 13 more) | — | — |
+| `edit` | 🟢 Enforced | — | — | 4 (`src/pages/applications/ApplicationDetail.tsx:1218` + 3 more) | — | 15 (`supabase/migrations/20260721131422_e66777b5-9205-47bd-9d37-fb01b3f277b5.sql:39` + 14 more) | — | — |
 | `escalate` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260722073617_7076a327-f3e3-4a3c-a8e3-de37799972a6.sql:52`) | — | — |
 | `export` | 🔵 Backend only | — | — | — | — | 1 (`src/pages/applications/ApplicationsList.tsx:508`) | — | — |
 | `import` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260722073323_c907f29d-9cb6-4dd0-877b-7b0c5f183e47.sql:100`) | — | — |
 | `manage_config` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `reject` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `review` | 🔵 Backend only | — | — | — | — | 2 (`supabase/migrations/20260820183504_d7a95be9-ba48-480b-a4b8-4557522352f7.sql:93` + 1 more) | — | — |
-| `view` | 🟢 Enforced | 2 (`src/config/navigation.tsx:121` + 1 more) | 4 (`src/routes/adminRoutes.tsx:192` + 3 more) | — | — | 4 (`supabase/migrations/20260721131422_e66777b5-9205-47bd-9d37-fb01b3f277b5.sql:20` + 3 more) | — | — |
+| `view` | 🟢 Enforced | 2 (`src/config/navigation.tsx:121` + 1 more) | 4 (`src/routes/adminRoutes.tsx:196` + 3 more) | — | — | 4 (`supabase/migrations/20260721131422_e66777b5-9205-47bd-9d37-fb01b3f277b5.sql:20` + 3 more) | — | — |
 | `view_all_entities` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260721131422_e66777b5-9205-47bd-9d37-fb01b3f277b5.sql:14`) | — | — |
 | `workflow_action` | 🟢 Enforced | — | — | 2 (`src/components/applications/LegalReferralPanel.tsx:166` + 1 more) | — | 8 (`supabase/migrations/20260721131422_e66777b5-9205-47bd-9d37-fb01b3f277b5.sql:40` + 7 more) | — | — |
 
@@ -275,7 +275,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `create` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `edit` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `view` | 🟡 UI only | 1 (`src/config/navigation.tsx:162`) | 1 (`src/routes/adminRoutes.tsx:184`) | — | — | — | — | — |
+| `view` | 🟡 UI only | 1 (`src/config/navigation.tsx:162`) | 1 (`src/routes/adminRoutes.tsx:188`) | — | — | — | — | — |
 
 ## `compliance_management`
 
@@ -377,11 +377,11 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 
 | Action | Coverage | Menu | Route | Button | RLS | RPC | Storage | Report |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `approve` | 🟢 Enforced | — | — | 1 (`src/pages/admin/EntityMemberships.tsx:56`) | — | 4 (`supabase/migrations/20260820074437_6bc6381a-1ccd-4b02-9ce0-7966fe70eae4.sql:179` + 3 more) | — | — |
+| `approve` | 🟢 Enforced | — | — | 1 (`src/pages/admin/EntityMemberships.tsx:63`) | — | 4 (`supabase/migrations/20260820074437_6bc6381a-1ccd-4b02-9ce0-7966fe70eae4.sql:179` + 3 more) | — | — |
 | `manage` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `request` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `revoke` | 🟢 Enforced | — | — | 1 (`src/pages/admin/EntityMemberships.tsx:57`) | — | 1 (`supabase/migrations/20260820074437_6bc6381a-1ccd-4b02-9ce0-7966fe70eae4.sql:211`) | — | — |
-| `verify` | 🟢 Enforced | — | — | 1 (`src/pages/admin/EntityMemberships.tsx:55`) | — | 2 (`supabase/migrations/20260820074437_6bc6381a-1ccd-4b02-9ce0-7966fe70eae4.sql:164` + 1 more) | — | — |
+| `revoke` | 🟢 Enforced | — | — | 1 (`src/pages/admin/EntityMemberships.tsx:64`) | — | 1 (`supabase/migrations/20260820074437_6bc6381a-1ccd-4b02-9ce0-7966fe70eae4.sql:211`) | — | — |
+| `verify` | 🟢 Enforced | — | — | 1 (`src/pages/admin/EntityMemberships.tsx:62`) | — | 2 (`supabase/migrations/20260820074437_6bc6381a-1ccd-4b02-9ce0-7966fe70eae4.sql:164` + 1 more) | — | — |
 | `view` | 🟢 Enforced | — | 1 (`src/routes/dashboardRoutes.tsx:383`) | — | — | 2 (`supabase/migrations/20260820085845_9da2e82d-fe9e-4d72-909b-4b1f0ab25894.sql:699` + 1 more) | — | — |
 
 ## `entity_resolution`
@@ -415,7 +415,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `escalate` | 🟢 Enforced | — | — | 1 (`src/components/escalations/EscalationDetailDrawer.tsx:94`) | — | 1 (`supabase/migrations/20260803062145_830d0ff7-3db4-4641-a81e-f060577e3010.sql:351`) | — | — |
 | `own` | 🟢 Enforced | — | — | 1 (`src/components/escalations/EscalationDetailDrawer.tsx:88`) | — | 1 (`supabase/migrations/20260803062145_830d0ff7-3db4-4641-a81e-f060577e3010.sql:267`) | — | — |
 | `resolve` | 🟢 Enforced | — | — | 1 (`src/components/escalations/EscalationDetailDrawer.tsx:104`) | — | 2 (`supabase/migrations/20260803062145_830d0ff7-3db4-4641-a81e-f060577e3010.sql:370` + 1 more) | — | — |
-| `view` | 🟢 Enforced | 1 (`src/config/navigation.tsx:84`) | 1 (`src/routes/adminRoutes.tsx:179`) | — | — | 5 (`supabase/migrations/20260803062145_830d0ff7-3db4-4641-a81e-f060577e3010.sql:447` + 4 more) | — | — |
+| `view` | 🟢 Enforced | 1 (`src/config/navigation.tsx:84`) | 1 (`src/routes/adminRoutes.tsx:183`) | — | — | 5 (`supabase/migrations/20260803062145_830d0ff7-3db4-4641-a81e-f060577e3010.sql:447` + 4 more) | — | — |
 | `view_system_health` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260803062145_830d0ff7-3db4-4641-a81e-f060577e3010.sql:618`) | — | — |
 
 ## `executive_oversight`
@@ -434,7 +434,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `create` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `edit` | 🔵 Backend only | — | — | — | — | 2 (`supabase/migrations/20260820164107_d2193dbc-2390-4fb0-805d-49b21a87dc3c.sql:118` + 1 more) | — | — |
-| `view` | 🟡 UI only | 1 (`src/config/navigation.tsx:376`) | 2 (`src/routes/adminRoutes.tsx:159` + 1 more) | — | — | — | — | — |
+| `view` | 🟡 UI only | 1 (`src/config/navigation.tsx:376`) | 2 (`src/routes/adminRoutes.tsx:161` + 1 more) | — | — | — | — | — |
 
 ## `fit_and_proper`
 
@@ -477,7 +477,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `create` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260820151329_6250f2e3-81ea-4c19-9e55-c28e45c21f75.sql:217`) | — | — |
 | `edit` | 🔵 Backend only | — | — | — | — | 7 (`supabase/migrations/20260820150453_956b640b-b4f5-4b67-b70a-75e33c30ecaf.sql:124` + 6 more) | — | — |
 | `provide_rationale` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `view` | 🟡 UI only | — | 1 (`src/routes/adminRoutes.tsx:196`) | — | — | — | — | — |
+| `view` | 🟡 UI only | — | 1 (`src/routes/adminRoutes.tsx:200`) | — | — | — | — | — |
 
 ## `fit_and_proper_conditions`
 
@@ -528,7 +528,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `manage_screening` | 🔵 Backend only | — | — | — | — | 1 (`supabase/migrations/20260827193808_73d10553-263e-4e3f-8270-b1e4135f5a5e.sql:281`) | — | — |
 | `record_adverse_findings` | 🔵 Backend only | — | — | — | — | 4 (`supabase/migrations/20260820150453_956b640b-b4f5-4b67-b70a-75e33c30ecaf.sql:208` + 3 more) | — | — |
 | `run_ai_analysis` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `view` | 🟡 UI only | — | 2 (`src/routes/adminRoutes.tsx:195` + 1 more) | — | — | — | — | — |
+| `view` | 🟡 UI only | — | 2 (`src/routes/adminRoutes.tsx:199` + 1 more) | — | — | — | — | — |
 
 ## `form_management`
 
@@ -540,7 +540,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `manage_packages` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `publish` | 🟢 Enforced | — | — | 1 (`src/pages/admin/FormsPackagesWorkspace.tsx:771`) | — | 2 (`src/pages/admin/FormManagement.tsx:170` + 1 more) | — | — |
 | `retire` | 🔵 Backend only | — | — | — | — | 2 (`src/pages/admin/FormManagement.tsx:244` + 1 more) | — | — |
-| `view` | 🟡 UI only | 2 (`src/config/navigation.tsx:359` + 1 more) | 7 (`src/routes/adminRoutes.tsx:97` + 6 more) | — | — | — | — | — |
+| `view` | 🟡 UI only | 2 (`src/config/navigation.tsx:359` + 1 more) | 7 (`src/routes/adminRoutes.tsx:99` + 6 more) | — | — | — | — | — |
 
 ## `inspection_management`
 
@@ -586,7 +586,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `manage_conditions` | 🔵 Backend only | — | — | — | — | 10 (`supabase/migrations/20260820141538_ea56b357-4913-45f6-9ac1-6f45539c9b9a.sql:155` + 9 more) | — | — |
 | `manage_config` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `manage_license_actions` | 🔵 Backend only | — | — | — | — | 6 (`supabase/migrations/20260821142155_ea66e8a9-1f05-4a01-9e3b-e57d31594e80.sql:469` + 5 more) | — | — |
-| `view` | 🟢 Enforced | 4 (`src/config/navigation.tsx:81` + 3 more) | 11 (`src/routes/adminRoutes.tsx:160` + 10 more) | — | — | 11 (`supabase/migrations/20260721132114_9490e78c-372a-46d9-a6ce-de46ee9ddb06.sql:35` + 10 more) | — | — |
+| `view` | 🟢 Enforced | 4 (`src/config/navigation.tsx:81` + 3 more) | 11 (`src/routes/adminRoutes.tsx:162` + 10 more) | — | — | 11 (`supabase/migrations/20260721132114_9490e78c-372a-46d9-a6ce-de46ee9ddb06.sql:35` + 10 more) | — | — |
 | `view_all_entities` | 🔵 Backend only | — | — | — | — | 2 (`supabase/migrations/20260721132114_9490e78c-372a-46d9-a6ce-de46ee9ddb06.sql:34` + 1 more) | — | — |
 | `workflow_action` | 🔵 Backend only | — | — | — | — | 19 (`supabase/migrations/20260721132114_9490e78c-372a-46d9-a6ce-de46ee9ddb06.sql:67` + 18 more) | — | — |
 
@@ -597,7 +597,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `assign_supervision` | 🔵 Backend only | — | — | — | — | 5 (`supabase/migrations/20260824150952_c33b1377-2abe-4d15-a60c-0200fcee5e61.sql:131` + 4 more) | — | — |
 | `create` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `delete` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `edit` | 🟢 Enforced | — | — | 9 (`src/pages/admin/EntityMemberships.tsx:136` + 8 more) | — | 2 (`supabase/migrations/20260721132114_9490e78c-372a-46d9-a6ce-de46ee9ddb06.sql:121` + 1 more) | — | — |
+| `edit` | 🟢 Enforced | — | — | 9 (`src/pages/admin/EntityMemberships.tsx:144` + 8 more) | — | 2 (`supabase/migrations/20260721132114_9490e78c-372a-46d9-a6ce-de46ee9ddb06.sql:121` + 1 more) | — | — |
 | `export` | 🔵 Backend only | — | — | — | — | 1 (`src/pages/admin/ApprovedLicensees.tsx:154`) | — | — |
 | `manage_pre_license` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `manage_products_channels` | 🔴 Orphaned | — | — | — | — | — | — | — |
@@ -636,7 +636,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `manage_complaints` | 🟢 Enforced | — | — | 17 (`src/pages/conduct/ConductSignalDetail.tsx:109` + 16 more) | — | 1 (`supabase/migrations/20260807134539_05bf7b6b-ec2e-4bde-9dee-d7f5b33c23ab.sql:303`) | — | — |
 | `manage_monitoring_rules` | 🟢 Enforced | — | — | 2 (`src/pages/conduct/ConductSignalDetail.tsx:56` + 1 more) | — | 2 (`supabase/migrations/20260807134539_05bf7b6b-ec2e-4bde-9dee-d7f5b33c23ab.sql:302` + 1 more) | — | — |
 | `run_conduct_analytics` | 🟢 Enforced | — | — | 14 (`src/pages/conduct/Conduct360.tsx:73` + 13 more) | — | 5 (`supabase/migrations/20260807134539_05bf7b6b-ec2e-4bde-9dee-d7f5b33c23ab.sql:301` + 4 more) | — | — |
-| `view` | 🟢 Enforced | 21 (`src/config/navigation.tsx:163` + 20 more) | 36 (`src/routes/adminRoutes.tsx:203` + 35 more) | — | — | 6 (`supabase/migrations/20260807143133_b831b148-562e-4b26-a1b1-db4e79db0b01.sql:69` + 5 more) | — | — |
+| `view` | 🟢 Enforced | 21 (`src/config/navigation.tsx:163` + 20 more) | 36 (`src/routes/adminRoutes.tsx:207` + 35 more) | — | — | 6 (`supabase/migrations/20260807143133_b831b148-562e-4b26-a1b1-db4e79db0b01.sql:69` + 5 more) | — | — |
 
 ## `market_conduct_investigation`
 
@@ -656,7 +656,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `manage_events` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `manage_templates` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `test_send` | 🔵 Backend only | — | — | — | — | 1 (`supabase/functions/test-smtp-email/index.ts:28`) | — | — |
-| `view` | 🟢 Enforced | 4 (`src/config/navigation.tsx:82` + 3 more) | 9 (`src/routes/adminRoutes.tsx:180` + 8 more) | — | — | 2 (`supabase/migrations/20260803070810_4f565658-70c2-478c-a6dd-b1d96a0bec5a.sql:99` + 1 more) | — | — |
+| `view` | 🟢 Enforced | 4 (`src/config/navigation.tsx:82` + 3 more) | 9 (`src/routes/adminRoutes.tsx:184` + 8 more) | — | — | 2 (`supabase/migrations/20260803070810_4f565658-70c2-478c-a6dd-b1d96a0bec5a.sql:99` + 1 more) | — | — |
 
 ## `onboarding`
 
@@ -704,7 +704,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `run_analytics` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `set_ewi_rules` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `signoff_workpaper` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `view` | 🟢 Enforced | 12 (`src/config/navigation.tsx:327` + 11 more) | 23 (`src/routes/adminRoutes.tsx:200` + 22 more) | — | — | 14 (`supabase/migrations/20260721134322_6ceea271-7e8d-461a-a620-9538b7df2b88.sql:33` + 13 more) | — | — |
+| `view` | 🟢 Enforced | 12 (`src/config/navigation.tsx:327` + 11 more) | 23 (`src/routes/adminRoutes.tsx:204` + 22 more) | — | — | 14 (`supabase/migrations/20260721134322_6ceea271-7e8d-461a-a620-9538b7df2b88.sql:33` + 13 more) | — | — |
 | `view_all_entities` | 🔵 Backend only | — | — | — | — | 8 (`supabase/migrations/20260721134322_6ceea271-7e8d-461a-a620-9538b7df2b88.sql:31` + 7 more) | — | — |
 | `workflow_action` | 🟢 Enforced | — | — | 1 (`src/components/prudential/EwiPanel.tsx:47`) | — | 5 (`supabase/migrations/20260721134322_6ceea271-7e8d-461a-a620-9538b7df2b88.sql:51` + 4 more) | — | — |
 
@@ -712,12 +712,12 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 
 | Action | Coverage | Menu | Route | Button | RLS | RPC | Storage | Report |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `approve` | 🟢 Enforced | — | — | 1 (`src/pages/licensing/EntityResolutionDetail.tsx:395`) | — | 3 (`supabase/functions/approve-pre-licensee/authz_test.ts:17` + 2 more) | — | — |
+| `approve` | 🟢 Enforced | — | — | 1 (`src/pages/licensing/EntityResolutionDetail.tsx:395`) | — | 5 (`supabase/migrations/20260828125632_9e463f5e-3e2d-46c7-bb97-3def5461aa86.sql:555` + 4 more) | — | — |
 | `create` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `edit` | 🟡 UI only | — | — | 1 (`src/pages/licensing/EntityResolutionDetail.tsx:537`) | — | — | — | — |
 | `reject` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `view` | 🟢 Enforced | 1 (`src/config/navigation.tsx:127`) | 2 (`src/routes/adminRoutes.tsx:189` + 1 more) | — | — | 1 (`supabase/functions/get-licensee-registration/index.ts:89`) | — | — |
-| `workflow_action` | 🔵 Backend only | — | — | — | — | 1 (`supabase/functions/perform-registration-workflow-action/index.ts:46`) | — | — |
+| `view` | 🟢 Enforced | 1 (`src/config/navigation.tsx:127`) | 2 (`src/routes/adminRoutes.tsx:193` + 1 more) | — | — | 1 (`supabase/functions/get-licensee-registration/index.ts:93`) | — | — |
+| `workflow_action` | 🔵 Backend only | — | — | — | — | 3 (`supabase/migrations/20260828125632_9e463f5e-3e2d-46c7-bb97-3def5461aa86.sql:556` + 2 more) | — | — |
 
 ## `regulatory_data_model`
 
@@ -761,7 +761,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `review` | 🔵 Backend only | — | — | — | — | 2 (`supabase/migrations/20260820162947_d5106a5c-02b7-4ea0-a642-a31398d87cdd.sql:96` + 1 more) | — | — |
 | `submit` | 🔵 Backend only | — | — | — | — | 2 (`supabase/migrations/20260820170449_9b085eec-a9dc-4a8b-862c-6bca839a3e30.sql:13` + 1 more) | — | — |
 | `upload_documents` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `view` | 🟢 Enforced | 14 (`src/config/navigation.tsx:134` + 13 more) | 23 (`src/routes/adminRoutes.tsx:162` + 22 more) | 1 (`src/pages/returns-mgmt/ReturnDetail.tsx:624`) | — | 9 (`supabase/migrations/20260721141525_300d7d82-4892-466f-a30b-9d06b022ff65.sql:37` + 8 more) | — | — |
+| `view` | 🟢 Enforced | 14 (`src/config/navigation.tsx:134` + 13 more) | 23 (`src/routes/adminRoutes.tsx:164` + 22 more) | 1 (`src/pages/returns-mgmt/ReturnDetail.tsx:624`) | — | 9 (`supabase/migrations/20260721141525_300d7d82-4892-466f-a30b-9d06b022ff65.sql:37` + 8 more) | — | — |
 | `view_all_entities` | 🔵 Backend only | — | — | — | — | 7 (`supabase/migrations/20260721060408_d89cea7e-35ef-40d2-b766-b34234a99258.sql:163` + 6 more) | — | — |
 | `view_status` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `workflow_action` | 🟢 Enforced | — | — | 3 (`src/pages/returns-canonical/FilingDetail.tsx:150` + 2 more) | — | 3 (`supabase/functions/perform-return-workflow-action/authz_test.ts:17` + 2 more) | — | — |
@@ -777,9 +777,9 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `delete` | 🟢 Enforced | — | — | 1 (`src/pages/admin/RoleManagement.tsx:214`) | — | 4 (`supabase/migrations/20260722061005_9fb94b33-3d1b-4e33-b06f-4217384f98fd.sql:117` + 3 more) | — | — |
 | `edit` | 🟢 Enforced | — | — | 1 (`src/pages/admin/RoleManagement.tsx:213`) | — | 5 (`supabase/migrations/20260721170250_0353a422-3ffe-444a-8508-1ec6d5bdeb20.sql:225` + 4 more) | — | — |
 | `manage_catalog` | 🟢 Enforced | — | — | 1 (`src/pages/admin/RoleManagement.tsx:221`) | — | 5 (`supabase/migrations/20260824191930_3e101687-08e3-4c94-9f2a-0f340c24e06d.sql:43` + 4 more) | — | — |
-| `manage_config` | 🔵 Backend only | — | — | — | — | 3 (`supabase/migrations/20260827032419_67587d87-9073-4377-b429-75459a1ab880.sql:266` + 2 more) | — | — |
+| `manage_config` | 🟢 Enforced | — | — | 6 (`src/pages/admin/DecisionAuthorityManager.tsx:214` + 5 more) | — | 5 (`supabase/migrations/20260827032419_67587d87-9073-4377-b429-75459a1ab880.sql:266` + 4 more) | — | — |
 | `reset` | 🟢 Enforced | — | — | 1 (`src/pages/admin/RoleManagement.tsx:215`) | — | 1 (`src/hooks/useRoles.ts:253`) | — | — |
-| `view` | 🟢 Enforced | 2 (`src/config/navigation.tsx:99` + 1 more) | 1 (`src/routes/adminRoutes.tsx:170`) | — | — | 5 (`supabase/migrations/20260824165313_c39b689d-267c-492f-bf44-9a98ce2a1eba.sql:488` + 4 more) | — | — |
+| `view` | 🟢 Enforced | 2 (`src/config/navigation.tsx:99` + 1 more) | 1 (`src/routes/adminRoutes.tsx:172`) | — | — | 5 (`supabase/migrations/20260824165313_c39b689d-267c-492f-bf44-9a98ce2a1eba.sql:488` + 4 more) | — | — |
 | `view_catalog` | 🟡 UI only | — | — | 1 (`src/pages/admin/RoleManagement.tsx:220`) | — | — | — | — |
 | `view_coverage` | 🟡 UI only | — | — | 1 (`src/pages/admin/PermissionCoverageReport.tsx:31`) | — | — | — | — |
 
@@ -795,7 +795,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `manage_tasks` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `restore_versions` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `test` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `view` | 🟢 Enforced | — | 4 (`src/routes/adminRoutes.tsx:208` + 3 more) | — | — | 1 (`supabase/migrations/20260803162930_d348595b-e3dd-4635-909e-5ce6732699f7.sql:152`) | — | — |
+| `view` | 🟢 Enforced | — | 4 (`src/routes/adminRoutes.tsx:212` + 3 more) | — | — | 1 (`supabase/migrations/20260803162930_d348595b-e3dd-4635-909e-5ce6732699f7.sql:152`) | — | — |
 | `view_alerts` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `view_executions` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `view_tasks` | 🔴 Orphaned | — | — | — | — | — | — | — |
@@ -811,9 +811,9 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 
 | Action | Coverage | Menu | Route | Button | RLS | RPC | Storage | Report |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `edit` | 🟢 Enforced | — | — | 15 (`src/pages/settings/CaptchaSettings.tsx:318` + 14 more) | — | 9 (`supabase/migrations/20260804065012_08abb314-e1b4-4aa5-a533-1e5230fd16c5.sql:200` + 8 more) | — | — |
+| `edit` | 🟢 Enforced | — | — | 18 (`src/pages/admin/RegulatorManagement.tsx:208` + 17 more) | — | 10 (`supabase/migrations/20260804065012_08abb314-e1b4-4aa5-a533-1e5230fd16c5.sql:200` + 9 more) | — | — |
 | `export` | 🔵 Backend only | — | — | — | — | 2 (`src/pages/settings/DataManagementSettings.tsx:67` + 1 more) | — | — |
-| `view` | 🟢 Enforced | 15 (`src/config/navigation.tsx:83` + 14 more) | 29 (`src/routes/adminRoutes.tsx:108` + 28 more) | — | — | 1 (`supabase/migrations/20260804065012_08abb314-e1b4-4aa5-a533-1e5230fd16c5.sql:302`) | — | — |
+| `view` | 🟢 Enforced | 15 (`src/config/navigation.tsx:83` + 14 more) | 30 (`src/routes/adminRoutes.tsx:110` + 29 more) | — | — | 1 (`supabase/migrations/20260804065012_08abb314-e1b4-4aa5-a533-1e5230fd16c5.sql:302`) | — | — |
 
 ## `support_management`
 
@@ -824,7 +824,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `resolve` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `respond` | 🔴 Orphaned | — | — | — | — | — | — | — |
 | `update` | 🔴 Orphaned | — | — | — | — | — | — | — |
-| `view` | 🟢 Enforced | — | 1 (`src/routes/adminRoutes.tsx:168`) | — | — | 1 (`supabase/migrations/20260825070000_c01090c0-39d0-4e9d-ad04-e224b66365c1.sql:80`) | — | — |
+| `view` | 🟢 Enforced | — | 1 (`src/routes/adminRoutes.tsx:170`) | — | — | 1 (`supabase/migrations/20260825070000_c01090c0-39d0-4e9d-ad04-e224b66365c1.sql:80`) | — | — |
 
 ## `user_management`
 
@@ -833,7 +833,7 @@ These permissions exist in the `permissions` catalog but have no enforcement pat
 | `create` | 🔵 Backend only | — | — | — | — | 3 (`supabase/functions/create-web-user/authz_test.ts:17` + 2 more) | — | — |
 | `delete` | 🔵 Backend only | — | — | — | — | 1 (`src/components/entity-detail/WebUsersTab.tsx:261`) | — | — |
 | `edit` | 🟢 Enforced | — | — | 17 (`src/components/admin/operating-structure/EntitySupervisionTab.tsx:229` + 16 more) | — | 5 (`supabase/migrations/20260820012251_b49086ce-e13a-4a98-a9fa-4c28f1366fb2.sql:155` + 4 more) | — | — |
-| `view` | 🟢 Enforced | 3 (`src/config/navigation.tsx:98` + 2 more) | 4 (`src/routes/adminRoutes.tsx:166` + 3 more) | — | — | 8 (`supabase/migrations/20260824165313_c39b689d-267c-492f-bf44-9a98ce2a1eba.sql:487` + 7 more) | — | — |
+| `view` | 🟢 Enforced | 3 (`src/config/navigation.tsx:98` + 2 more) | 4 (`src/routes/adminRoutes.tsx:168` + 3 more) | — | — | 8 (`supabase/migrations/20260824165313_c39b689d-267c-492f-bf44-9a98ce2a1eba.sql:487` + 7 more) | — | — |
 
 ## `workflow_management`
 
