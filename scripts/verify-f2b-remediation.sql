@@ -464,7 +464,7 @@ $s6$;
 -- S7 — CAPABILITY / DATA REGISTERS AND HANDOFF (GAP-F2-09, GAP-F2-10)
 -- ===========================================================================
 DO $s7$
-DECLARE _n int; _detail text; _entity uuid; _res jsonb;
+DECLARE _n int; _m int; _detail text; _entity uuid; _res jsonb;
 BEGIN
   SELECT count(*) INTO _n FROM public.identity_capability_register;
   PERFORM pg_temp.rec('S7','G-01','every identity capability is classified as wired, backlog or demoted', _n >= 7, 'classified=' || _n);
