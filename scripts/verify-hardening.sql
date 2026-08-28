@@ -487,8 +487,8 @@ BEGIN
   -- F4-B licensing readiness is fail-closed: an initial licence decision needs an
   -- approved F3 registration handoff, satisfied form/document requirements and a
   -- cleared fit & proper position. Seed those facts for the fixture application
-  -- (this proves the gates, it does not weaken them — WF-9c below re-asserts that
-  -- an unseeded application is still refused).
+  -- (this proves the gates, it does not weaken them — verify:f4b assertion F4-04
+  -- separately proves an unseeded application is still refused).
   INSERT INTO public.registrations (
     user_id, sector_id, sub_sector_id, category_id, applicant_name,
     first_name, last_name, telephone, email, status
