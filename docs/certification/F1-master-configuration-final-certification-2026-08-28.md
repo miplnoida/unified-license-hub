@@ -378,14 +378,70 @@ forms/documents 136 satisfied; decision authority 136 via shared fallback; fee
 122 satisfied / 5 fallback / 8 N-A / 1 business-configuration-required; SLA 128
 satisfied / 8 business-configuration-required.
 
-## 5. Freeze status
+## 5. Freeze status — F1-C RETRY #3 (2026-08-28, FINAL)
 
-F1 protected contracts are **NOT frozen** in this pass. Freeze requires 0
-Critical/High product gaps; DEF-F1-C2-01 is HIGH and open. The contracts staged
-for freeze once it is closed are unchanged:
+F1 protected contracts are **FROZEN** at HEAD `51165012696fadebb531ed35bb770f6f994282d9`.
+
+Rebaseline confirmed no protected F0/F1 contract changed after F1-B3; the working
+tree is clean at the freeze HEAD.
+
+### Gate results at freeze HEAD
+
+| Gate | Expected | Observed | Result |
+| --- | --- | --- | --- |
+| `verify:f1c` | 96/96 | 96 TESTED_PASS / 0 TESTED_FAIL / 0 N-A | PASS |
+| F1 pgTAP (`02_f1b_decision_authority_completeness.sql`) | 18/18 | ok=18 failures=0 errors=0 | PASS |
+| `verify:service-completeness` | 0 unexplained gaps | 0 rows | PASS |
+| Frontend suite (`vitest run`) | green | 139 files / 1277 tests passed | PASS |
+| Typecheck | green | 0 errors | PASS |
+| Build | green | built in 38.33s | PASS |
+| `verify:f0c` | green | 34 TESTED_PASS / 0 TESTED_FAIL | PASS |
+| `verify:hardening` | green | 31 PASSED / 0 FAILED / 0 SKIPPED | PASS |
+| `verify:anon-execute` | green | GAP-F0-08 gate PASS | PASS |
+| `verify:definer-guards` | green | F0-B7 definer-guard gate PASS | PASS |
+| `verify:breadcrumbs` | green | exit 0 | PASS |
+| atomic-authz / edge-authz / authz-centralized / rbac-parity / traceability / no-alias-namespaces / runtime-ownership | green | exit 0 each | PASS |
+
+### Independent governed-configuration privilege contract proof
+
+Census executed with `has_table_privilege` across the **entire** canonical
+registry (not limited to previously defective tables):
+
+- governed registry count = **31** (current canonical registry);
+- public read allowlist = **10** tables;
+- `anon`: **0** violations — no privilege on any governed table except `SELECT`
+  on the 10 allowlisted tables;
+- `authenticated`: **0** occurrences of `INSERT`, `UPDATE`, `DELETE`,
+  `TRUNCATE`, `REFERENCES`, `TRIGGER` or `MAINTAIN` on any governed table;
+- `PUBLIC`: **0** inherited privileges on any governed table;
+- `service_role`: retains `SELECT`/`INSERT`/`UPDATE`/`DELETE` on all 31
+  governed tables — 0 missing;
+- governed operator create/update/retire paths remain functional (writer RPC
+  and Decision Authority lifecycle exercised by the F1 pgTAP suite and
+  `verify:f1c` stage assertions).
+
+DEF-F1-C2-01 is therefore **CLOSED and re-proved absent** by empirical negative
+probes (`TRUNCATE` / `DELETE` / `UPDATE` as `anon` and `authenticated` return
+42501) embedded in the permanent gate.
+
+### Final F1 invariants reconfirmed
+
+| Invariant | Expected | Observed |
+| --- | --- | --- |
+| Critical/High product gaps | 0 | 0 |
+| Unexplained service configuration gaps | 0 | 0 rows |
+| BUSINESS_CONFIGURATION_REQUIRED items | 9 (8 renewal SLA + 1 renewal fee) | `sla` missing_required = 8, `fee` missing_required = 1 |
+| ENFORCED Decision Authority rules | 0 | 0 |
+| Active OBSERVE_ONLY baseline rules | 10 | 10 (all `status = active`) |
+| Retire / reactivate lifecycle | green | green (pgTAP 18/18) |
+| Invented regulator policy | none | none — no enforcement asserted, observations only |
+
+### Frozen contracts
 
 - governed configuration writer/registry model (`config_save` / `config_retire` /
   `config_delete`, `config_governed_tables`);
+- governed-table privilege contract (`anon` allowlisted `SELECT` only;
+  `authenticated` no write/structural privilege; no `PUBLIC` grants);
 - configuration audit model (`config_change_log`, `config_change_history`);
 - public configuration read allowlist (`config_public_read_allowlist`);
 - service completeness expectations, view and permanent gate;
@@ -400,11 +456,14 @@ are green at this HEAD and no F0 artefact was touched.
 | Gap | Disposition |
 | --- | --- |
 | GAP-F1-01 Decision Authority | CLOSED |
-| GAP-F1-02 Anonymous configuration reads | CLOSED for governed registries; DEF-F1-C2-01 open on 2 licence-fee/verification tables |
-| GAP-F1-03 Governed configuration writes | CLOSED for row-level DML; TRUNCATE posture open (DEF-F1-C2-01) |
+| GAP-F1-02 Anonymous configuration reads | CLOSED — full-registry census, 0 anon violations |
+| GAP-F1-03 Governed configuration writes | CLOSED — row-level DML and TRUNCATE posture both proved |
 | GAP-F1-04 Service completeness | CLOSED — 9 BUSINESS_CONFIGURATION_REQUIRED recorded |
 | GAP-F1-05 … GAP-F1-09 | CLOSED |
+| DEF-F1-C-01 / DEF-F1-C-02 / DEF-F1-C2-01 | CLOSED and re-proved |
 
 ## FINAL VERDICT
 
-**F1 NOT CERTIFIED — RETURN TO F1-B**
+**F1 PRODUCT CERTIFIED AND FROZEN — BUSINESS CONFIGURATION ITEMS RECORDED**
+
+Freeze HEAD: `51165012696fadebb531ed35bb770f6f994282d9`
