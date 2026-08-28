@@ -1,7 +1,7 @@
 -- F1-B — decision authority governance (GAP-F1-01) and service configuration
 -- completeness (GAP-F1-04). Positive + negative certification.
 BEGIN;
-SELECT plan(15);
+SELECT plan(18);
 
 -- ── Structure ────────────────────────────────────────────────────────────
 SELECT has_table('public', 'service_config_expectations',
@@ -100,6 +100,40 @@ SELECT ok(
     OR has_table_privilege('authenticated', 'public.config_change_log', 'DELETE')
     OR has_table_privilege('anon', 'public.config_change_log', 'SELECT')),
   'the configuration audit log is signed-in read-only and never public');
+
+
+-- ── DEF-F1-C2-01: governed configuration privilege contract ─────────────
+SELECT is(
+  (SELECT count(*)::int
+     FROM public.config_governed_tables g
+     CROSS JOIN (VALUES ('SELECT'),('INSERT'),('UPDATE'),('DELETE'),('TRUNCATE'),('REFERENCES'),('TRIGGER'),('MAINTAIN')) p(priv)
+    WHERE to_regclass('public.' || quote_ident(g.table_name)) IS NOT NULL
+      AND has_table_privilege('anon', 'public.' || quote_ident(g.table_name), p.priv)
+      AND NOT (p.priv = 'SELECT'
+               AND EXISTS (SELECT 1 FROM public.config_public_read_allowlist a
+                            WHERE a.table_name = g.table_name))),
+  0,
+  'anon holds no governed configuration privilege outside allowlisted SELECT');
+
+SELECT is(
+  (SELECT count(*)::int
+     FROM public.config_governed_tables g
+     CROSS JOIN (VALUES ('INSERT'),('UPDATE'),('DELETE'),('TRUNCATE'),('REFERENCES'),('TRIGGER'),('MAINTAIN')) p(priv)
+    WHERE to_regclass('public.' || quote_ident(g.table_name)) IS NOT NULL
+      AND has_table_privilege('authenticated', 'public.' || quote_ident(g.table_name), p.priv)),
+  0,
+  'signed-in users hold no write or structural privilege on governed configuration');
+
+SELECT is(
+  (SELECT count(*)::int
+     FROM pg_class c
+     JOIN pg_namespace ns ON ns.oid = c.relnamespace
+     CROSS JOIN LATERAL aclexplode(c.relacl) a
+    WHERE ns.nspname = 'public'
+      AND c.relname IN (SELECT table_name FROM public.config_governed_tables)
+      AND a.grantee = 0),
+  0,
+  'no governed configuration privilege is inherited through PUBLIC');
 
 SELECT * FROM finish();
 ROLLBACK;
