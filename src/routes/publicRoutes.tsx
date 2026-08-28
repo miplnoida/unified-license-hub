@@ -19,6 +19,7 @@ const PublicEnforcement = lazy(() => import('@/pages/public/PublicEnforcement'))
 const PublicEntityRegister = lazy(() => import('@/pages/public/PublicEntityRegister'));
 const PublicEntityDetail = lazy(() => import('@/pages/public/PublicEntityDetail'));
 const EntityIdentification = lazy(() => import('@/pages/registration/EntityIdentification'));
+const AuthorityPendingPage = lazy(() => import('@/pages/registration/AuthorityPendingPage'));
 const UserAccountStep = lazy(() => import('@/pages/registration/UserAccountStep'));
 const LegacyRegisterRedirect = lazy(() => import('@/routes/LegacyRegisterRedirect'));
 const DeclarationLanding = lazy(() => import('@/pages/public/DeclarationLanding'));
@@ -47,6 +48,9 @@ export const publicRoutes = (
     <Route path="/register/entity" element={<EntityIdentification />} />
     {/* Shared prerequisite for either journey: user account + email verification. */}
     <Route path="/register/account" element={<UserAccountStep />} />
+    {/* Resume route returned by onboarding_request_membership_by_token when
+        authority has been requested but not yet approved. */}
+    <Route path="/register/authority-pending" element={<AuthorityPendingPage />} />
     {/* Compatibility alias only: the old all-in-one route now resolves to the
         canonical FORM_FIRST route. Not a third active workflow. */}
     <Route path="/register/legacy" element={<LegacyRegisterRedirect />} />

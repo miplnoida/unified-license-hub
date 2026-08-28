@@ -42,6 +42,8 @@ import {
   type OnboardingResolveResult,
 } from '@/hooks/useOnboardingTokens';
 import { PendingAuthorityScreen } from '@/components/registration/PendingAuthorityScreen';
+// Stage vocabulary is governed configuration (onboarding_stage_catalogue).
+import { useOnboardingStages, useResolvedStageKeys } from '@/hooks/useOnboardingVocabulary';
 import { readIntentFromSearch, persistIntent, loadPersistedIntent, clearPersistedIntent } from '@/lib/applicationIntent';
 
 export default function EntityIdentification() {
@@ -51,6 +53,11 @@ export default function EntityIdentification() {
   const { data: roles = [] } = useMembershipRoles();
   const { data: identifierTypes = [] } = useIdentifierTypes();
   const { data: journey, isFetching: journeyLoading, refetch: refetchJourney } = useJourneyContext();
+  const { data: stages = [] } = useOnboardingStages();
+  const resolvedStages = useResolvedStageKeys();
+  const pendingStages = stages
+    .filter((s) => s.resume_route === '/register/authority-pending')
+    .map((s) => s.key);
 
   const resolveEntity = useResolveEntity();
   const provisionFromToken = useProvisionFromToken();
@@ -80,11 +87,11 @@ export default function EntityIdentification() {
   // never unconditionally to /dashboard.
   useEffect(() => {
     if (!journey) return;
-    if (journey.stage === 'AUTHORITY_GRANTED' || journey.stage === 'APPLICATION' || journey.stage === 'COMPLETE') {
+    if (resolvedStages.includes(journey.stage)) {
       clearPersistedIntent();
       navigate(intent?.path || journey.resume_route || '/applications/new', { replace: true });
     }
-  }, [journey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [journey, resolvedStages]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const primaryRole = roles.find((r) => r.is_primary_representative)?.key || roles[0]?.key || '';
   const effectiveRole = roleKey || primaryRole;
@@ -116,7 +123,7 @@ export default function EntityIdentification() {
 
   // §20: authority already requested and pending — show the resumable
   // pending screen instead of re-running identification.
-  if (journey?.stage === 'AUTHORITY_PENDING') {
+  if (journey?.stage && pendingStages.includes(journey.stage)) {
     return (
       <div className="min-h-screen bg-background">
         <LandingNav />
