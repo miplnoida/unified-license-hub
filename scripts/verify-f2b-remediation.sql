@@ -482,15 +482,22 @@ BEGIN
   SELECT count(*) INTO _n FROM public.identity_data_remediation_register;
   PERFORM pg_temp.rec('S7','G-04','known identity data issues are recorded with an owner note', _n >= 2, 'findings=' || _n);
 
-  -- Register counts must still reflect live data (no stale evidence).
+  -- Register counts must still reflect live data (no stale evidence). This is an
+  -- intentional live-data integrity assertion, so the live count and the recorded
+  -- count are read in ONE statement: comparing them across two statements left a
+  -- race window against concurrent application writes (DEF-F2-C-02).
   -- Excludes the rolled-back convergence probe row created in S2.
-  SELECT count(*) INTO _n FROM public.licensees l
-   WHERE l.name NOT LIKE 'F2B CONVERGENCE PROBE %'
-     AND NOT EXISTS (SELECT 1 FROM public.entity_user_memberships m WHERE m.entity_id=l.id)
-     AND NOT EXISTS (SELECT 1 FROM public.entity_user_access a WHERE a.entity_id=l.id);
+  SELECT live, recorded INTO _n, _m FROM (
+    SELECT (SELECT count(*) FROM public.licensees l
+             WHERE l.name NOT LIKE 'F2B CONVERGENCE PROBE %'
+               AND NOT EXISTS (SELECT 1 FROM public.entity_user_memberships m WHERE m.entity_id=l.id)
+               AND NOT EXISTS (SELECT 1 FROM public.entity_user_access a WHERE a.entity_id=l.id)) AS live,
+           (SELECT observed_count FROM public.identity_data_remediation_register
+             WHERE finding_key='ENTITY_WITHOUT_OWNING_HUMAN') AS recorded
+  ) s;
   PERFORM pg_temp.rec('S7','G-05','the recorded entities-without-an-owning-human count matches live data',
-    _n = (SELECT observed_count FROM public.identity_data_remediation_register WHERE finding_key='ENTITY_WITHOUT_OWNING_HUMAN'),
-    'live=' || _n);
+    _n = _m, 'live=' || _n || ' recorded=' || coalesce(_m::text,'<not recorded>'));
+
 
   SELECT count(*) INTO _n FROM pg_proc p JOIN pg_namespace ns ON ns.oid=p.pronamespace AND ns.nspname='public'
    WHERE p.proname='onboarding_registration_handoff_ready';
