@@ -30,7 +30,8 @@
     "verify:outbox-delivery": "node scripts/verify-f4b4-outbox.mjs",
     "verify:license-terms": "psql -v ON_ERROR_STOP=1 -f scripts/verify-license-terms.sql",
     "verify:f5b1": "bash -c 'set -o pipefail; mkdir -p artifacts && psql -v ON_ERROR_STOP=1 -f scripts/verify-f5b1-privileges.sql 2>&1 | tee artifacts/verify-f5b1-latest.log'",
-    "verify:f5b2": "bash -c 'set -o pipefail; mkdir -p artifacts && psql -v ON_ERROR_STOP=1 -f scripts/verify-f5b2-intake.sql 2>&1 | tee artifacts/verify-f5b2-latest.log'"
+    "verify:f5b2": "bash -c 'set -o pipefail; mkdir -p artifacts && psql -v ON_ERROR_STOP=1 -f scripts/verify-f5b2-intake.sql 2>&1 | tee artifacts/verify-f5b2-latest.log'",
+    "verify:f5b3": "bash -c 'set -o pipefail; mkdir -p artifacts && psql -v ON_ERROR_STOP=1 -f scripts/verify-f5b3-effects.sql 2>&1 | tee artifacts/verify-f5b3-latest.log'"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
