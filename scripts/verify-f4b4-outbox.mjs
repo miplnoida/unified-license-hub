@@ -45,15 +45,19 @@ async function runWorker() {
   return { status: res.status, body, text };
 }
 
-function cleanup() {
-  // `public.notifications` is append-only in production (notifications_block_delete).
-  // The harness therefore removes ONLY its own synthetic CERT-F4B4% probe rows with
-  // triggers suspended for that single statement; production semantics are untouched.
-  sql(`BEGIN;
-       SET LOCAL session_replication_role = 'replica';
-       DELETE FROM public.notifications WHERE event_key LIKE '${TAG}%';
-       DELETE FROM public.notification_outbox WHERE event_key LIKE '${TAG}%';
-       COMMIT;`);
+// `public.notifications` is append-only for every browser/harness role
+// (notifications_block_delete permits service_role / postgres only), so the
+// harness removes ONLY its own synthetic CERT-F4B4% rows through the service-role
+// Data API. Production append-only semantics are never weakened.
+async function cleanup() {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (key) {
+    await fetch(`${URL_BASE}/rest/v1/notifications?event_key=like.${TAG}%25`, {
+      method: 'DELETE',
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    });
+  }
+  sql(`DELETE FROM public.notification_outbox WHERE event_key LIKE '${TAG}%'`);
 }
 
 try {
