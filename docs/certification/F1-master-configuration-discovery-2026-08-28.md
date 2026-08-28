@@ -143,11 +143,19 @@ model read-only by design, but `license_fee_bindings`, `license_fee_process_sett
 changed by migration.
 - Severity: **MEDIUM**.
 
-### GAP-F1-06 — Residual hard-coded taxonomy in source
-`src/data/sectorData.ts` (98 lines) still exports `sectors`, `subSectors`, `categories`,
-`countries` and `services` literals. It has **zero importers** — dead legacy configuration that
-duplicates database truth and invites regression.
-- Severity: **LOW** (hygiene / legacy retirement).
+### GAP-F1-06 — Residual hard-coded business configuration in source
+- `src/data/sectorData.ts` (98 lines) still exports `sectors`, `subSectors`, `categories`,
+  `countries` and `services` literals with **zero importers** — dead legacy configuration that
+  duplicates database truth.
+- Live hard-coded defaults that duplicate configurable data:
+  `src/pages/admin/SlaManager.tsx:92-94` (escalation tier delays 0/3/7 days plus fixed recipient
+  roles), `src/pages/correspondence/RoutingRulesAdmin.tsx:21` (`sla_days: 5`, `priority`,
+  `sort_order`), `src/pages/admin/RfiAutoRules.tsx:75` (`default_due_days: 7`),
+  `src/pages/admin/RuleEditor.tsx:45` (`suppression_days: 7`),
+  `src/components/dashboard/executive/SystemicRiskPanels.tsx:77` (`_lookback_days: 365`),
+  `src/pages/complaints/duplicates/DuplicateDetectionHub.tsx:30` (`_window_days: 30`),
+  and enum-like status/severity vocabularies in `src/pages/admin/EscalationManager.tsx:23-26`.
+- Severity: **MEDIUM** (thresholds and vocabularies fixed in code are not regulator-configurable).
 
 ### GAP-F1-07 — Thin classification and process template baselines
 `classification_schemes` (5) / `classification_values` (8) and `process_templates` (3) are too thin
@@ -155,20 +163,65 @@ to drive the 136-service, 21-sector estate; process behaviour therefore still de
 rows rather than versioned process templates.
 - Severity: **MEDIUM**.
 
-## 5. RES-F0-DA-01 disposition
+### GAP-F1-08 — Gating inconsistency on configuration surfaces
+All `/admin/*` configuration routes carry a route-level module guard (`<M module=...>`) and a
+subset add `PermissionRoute` (e.g. `/admin/regulatory-data-model/reporting`), but action-level
+gating is uneven:
+- `src/pages/admin/RegulatorManagement.tsx:200` gates regulator creation with
+  `data-rbac="user_management.create"` — the wrong permission domain for regulatory identity.
+- `src/pages/admin/LifecycleConfiguration.tsx` and `src/pages/admin/EscalationManager.tsx` carry
+  no `data-rbac` / `PermissionGate` action markers at all; they rely solely on the route guard.
+- Severity: **MEDIUM** (F0-B2 established action-level authorization as the standard; these are
+  divergences from it, not new privilege holes).
+
+### GAP-F1-09 — No automated coverage for master configuration surfaces
+Across the configuration estate, the only tests found are
+`src/test/actionNotificationsEditor.test.tsx` and
+`src/test/actionNotificationsEditorCrud.test.tsx`. `MasterConfiguration`, `MasterDataManagement`,
+`FeeManagement`, `SlaManager`, `EscalationManager`, `RegulatorManagement`,
+`LifecycleConfiguration`, `RegulatoryDataModel` and `ComplaintTypes` have no tests.
+- Severity: **MEDIUM** (configuration regressions are silent).
+
+## 5. Configuration surface map (source)
+
+| Domain | Route | Component | Write path | Action gating |
+| --- | --- | --- | --- | --- |
+| Taxonomy & services | `/admin/masters/{sectors,sub-sectors,categories,services}` | `MasterConfiguration.tsx` | `useMasterConfig.ts` direct table CRUD | `settings.edit` / `settings.export` |
+| Regulators | `/admin/regulators` | `RegulatorManagement.tsx` | insert `regulators`, reassign `sectors.regulator_id` | `user_management.create` (mismatched) |
+| Fees | `/admin/fees` | `FeeManagement.tsx` | direct CRUD on `fee_configurations`, `fee_rules`, `fee_types` (hard delete only) | `fee_management.create` |
+| P04 lifecycle model | `/admin/config/lifecycle` | `LifecycleConfiguration.tsx` + `LifecycleConfigPanels.tsx` | read/simulate only | none in-page |
+| SLA & calendars | `/admin/sla-manager` | `SlaManager.tsx` | CRUD on `sla_configurations`, `sla_escalation_tiers`, calendar tables | `workflow_management.*`, `settings.edit` |
+| Escalation rules | `/admin/escalations` | `EscalationManager.tsx` | `escalation_rule_save` RPC | none in-page |
+| Notifications | `/admin/notification-{templates,events,history,channel-health}` | `NotificationTemplates.tsx` + siblings | delegated hooks | `notification_management.manage_templates` |
+| Master/reference data | `/admin/master-data` | `MasterDataManagement.tsx` | `useMasterData.ts` direct CRUD + Excel import | `settings.edit` / `settings.export` |
+| Regulatory data model | `/admin/regulatory-data-model` | `RegulatoryDataModel.tsx` | `rdm_save_metadata` / `rdm_retire_metadata` / `rdm_delete_metadata` RPCs (best-practice pattern, incl. explicit retire) | `useCan` |
+| Reporting metrics | `/admin/regulatory-data-model/reporting` | `ReportingMetricsConfig.tsx` | delegated | `PermissionRoute returns_management.manage_config` |
+| Complaint types | `/admin/complaint-types` | `ComplaintTypes.tsx` | direct CRUD on `complaint_types` | `complaint_type.create/edit` |
+| Decision authority | **none** | **none** | `decision_authority_rule_upsert` RPC unreferenced from `src` | n/a — see GAP-F1-01 |
+
+`RegulatoryDataModel.tsx` (governed RPC writer, explicit retire, permission hook) is the reference
+pattern that GAP-F1-03 remediation should generalise to the other surfaces.
+
+Not fully traced in this pass: the lazy-imported `/admin/workflow-engine` and
+`/admin/workflow-engine/rules` components, and the individual write hooks inside
+`LifecycleConfigPanels.tsx` sub-panels.
+
+## 6. RES-F0-DA-01 disposition
 
 RES-F0-DA-01 ("empty decision authority ruleset") is **reclassified as GAP-F1-01** with a concrete
 remediation path: the writer RPC already exists and is tested, so the gap is a configuration-surface
 and baseline-seed gap, not a schema gap. It remains **OPEN** at the end of F1-A.
 
-## 6. F1-A verdict
+## 7. F1-A verdict
 
-Discovery complete. **7 gaps** registered (2 HIGH-severity control gaps, 1 HIGH operational gap,
-3 MEDIUM, 1 LOW). No remediation performed in this pass, per charter.
+Discovery complete. **9 gaps** registered (3 HIGH, 5 MEDIUM, 1 LOW). No remediation performed in
+this pass, per charter.
 
 Recommended F1-B sequencing:
 1. GAP-F1-03 (governed writer + audit triggers on configuration tables) — everything else records against it.
 2. GAP-F1-01 (decision authority configuration surface + OBSERVE_ONLY baseline).
 3. GAP-F1-04 (configuration completeness view and gate).
 4. GAP-F1-02 (anon grant allow-list for configuration tables).
-5. GAP-F1-05, GAP-F1-07, GAP-F1-06.
+5. GAP-F1-08 + GAP-F1-09 (gating parity and test coverage, alongside each surface touched).
+6. GAP-F1-05, GAP-F1-07, GAP-F1-06.
+
