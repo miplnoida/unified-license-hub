@@ -20,6 +20,8 @@ import { useForms } from '@/hooks/useForms';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { configSave } from '@/lib/configWriter';
+import { GuardedButton } from '@/components/auth/GuardedButton';
+import { useCan } from '@/hooks/useCan';
 import type { Regulator } from '@/contexts/RegulatorContext';
 
 function useRegulatorStats(regulatorId: string | null) {
@@ -84,8 +86,12 @@ export default function RegulatorManagement() {
   const { data: regulators = [], isLoading } = useAllRegulators();
   const { upsert, remove } = useRegulatorMutations();
   const { data: allSectors = [] } = useSectors(); // all sectors, unfiltered
+  // GAP-F1-08: regulator identity is governed configuration — `settings.edit`
+  // is the canonical permission enforced server-side by config_save/config_retire.
+  const canConfigure = useCan('settings', 'edit');
 
   const [dialogOpen, setDialogOpen] = useState(false);
+
   const [editId, setEditId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -179,8 +185,8 @@ export default function RegulatorManagement() {
     {
       key: 'actions', label: '', render: r => (
         <RowActionsMenu actions={[
-          { label: 'Edit', icon: Edit, onClick: () => openEdit(r) },
-          { label: 'Delete', icon: Trash2, onClick: () => handleDelete(r.id), destructive: true, separator: true },
+          { label: 'Edit', icon: Edit, onClick: () => openEdit(r), hidden: !canConfigure },
+          { label: 'Retire', icon: Trash2, onClick: () => handleDelete(r.id), destructive: true, separator: true, hidden: !canConfigure },
         ]} />
       ),
     },
@@ -198,7 +204,11 @@ export default function RegulatorManagement() {
           columns={columns}
           data={regulators}
           searchPlaceholder="Search regulators..."
-          actions={<Button data-rbac="user_management.create" onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Regulator</Button>}
+          actions={(
+            <GuardedButton module="settings" action="edit" data-rbac="settings.edit" onClick={openAdd}>
+              <Plus className="h-4 w-4 mr-2" />Add Regulator
+            </GuardedButton>
+          )}
         />
 
         {selectedRegulator && (
@@ -278,7 +288,9 @@ export default function RegulatorManagement() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave}>{editId ? 'Update' : 'Create'}</Button>
+            <GuardedButton module="settings" action="edit" data-rbac="settings.edit" onClick={handleSave}>
+              {editId ? 'Update' : 'Create'}
+            </GuardedButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

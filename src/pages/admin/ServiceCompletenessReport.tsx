@@ -19,6 +19,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Info, Search } from 'lucide-react';
 import {
+  BUSINESS_CONFIGURATION_REQUIRED,
+  countBusinessConfigurationRequired,
+  isBusinessConfigurationRequired,
   useServiceCompletenessReport,
   useServiceExpectations,
 } from '@/hooks/useServiceCompleteness';
@@ -45,6 +48,12 @@ export default function ServiceCompletenessReport() {
       (r.service_code ?? '').toLowerCase().includes(q) ||
       r.dimension.includes(q));
   }, [data, query]);
+
+  // GAP-F1-04: remaining gaps are regulator policy decisions, shown as such.
+  const businessConfigRequired = useMemo(
+    () => countBusinessConfigurationRequired(data?.incomplete ?? [], expectations),
+    [data, expectations],
+  );
 
   return (
     <div className="space-y-6">
@@ -146,7 +155,10 @@ export default function ServiceCompletenessReport() {
               <CardTitle className="text-base">
                 Missing configuration ({data?.incomplete_services ?? 0} service{(data?.incomplete_services ?? 0) === 1 ? '' : 's'})
               </CardTitle>
-              <CardDescription>Each row needs a regulator configuration decision.</CardDescription>
+              <CardDescription>
+                Each row needs a regulator configuration decision.
+                {' '}{businessConfigRequired} of these {businessConfigRequired === 1 ? 'is' : 'are'} recorded as {BUSINESS_CONFIGURATION_REQUIRED}.
+              </CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto">
               {isLoading ? <Skeleton className="h-32 w-full" /> : incomplete.length === 0 ? (
@@ -169,7 +181,13 @@ export default function ServiceCompletenessReport() {
                         <TableCell className="font-mono text-xs">{r.service_code ?? '—'}</TableCell>
                         <TableCell className="text-xs">{r.lifecycle_stage ?? '—'}</TableCell>
                         <TableCell>{DIMENSION_LABELS[r.dimension] ?? r.dimension}</TableCell>
-                        <TableCell><Badge variant="outline">{r.disposition}</Badge></TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {isBusinessConfigurationRequired(r, expectations)
+                              ? BUSINESS_CONFIGURATION_REQUIRED
+                              : r.disposition}
+                          </Badge>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
