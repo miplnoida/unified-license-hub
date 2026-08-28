@@ -338,9 +338,12 @@ DECLARE
   _cfg uuid;
   _audit_before int; _audit_after int;
   _log_before int; _log_after int;
-  _cfg_before int; _cfg_after int;
   _grace int;
   _res text;
+  -- results are accumulated in a PL/pgSQL variable so they survive the
+  -- deliberate rollback of the probe subtransaction, then recorded afterwards.
+  _out jsonb := '[]'::jsonb;
+  _r jsonb;
 BEGIN
   SELECT p.id INTO _admin
     FROM public.profiles p
@@ -355,7 +358,6 @@ BEGIN
     RETURN;
   END IF;
 
-  SELECT count(*) INTO _cfg_before FROM public.license_lifecycle_configs;
   SELECT count(*) INTO _audit_before FROM public.compliance_audit_logs
    WHERE object_type = 'license_lifecycle_configs';
   SELECT count(*) INTO _log_before FROM public.config_change_log
@@ -370,15 +372,17 @@ BEGIN
       'matter_kind','renewal', 'renewal_cycle','annual', 'period_days', 365,
       'renewal_window_days', 60, 'grace_period_days', 30,
       'notes','F5-B1 rollback-safe probe', 'change_reason','F5-B1 gate probe'));
-    PERFORM pg_temp.rec('D','D-01','an authorised administrator can create lifecycle configuration through the governed path',
-      _cfg IS NOT NULL, 'config=' || coalesce(_cfg::text,'null'));
+    _out := _out || jsonb_build_array(jsonb_build_object('id','D-01',
+      'descr','an authorised administrator can create lifecycle configuration through the governed path',
+      'ok', _cfg IS NOT NULL, 'detail','config=' || coalesce(_cfg::text,'null')));
 
     -- update
     PERFORM public.admin_upsert_license_lifecycle_config(_cfg, jsonb_build_object(
       'grace_period_days', 45, 'change_reason','F5-B1 gate probe update'));
     SELECT grace_period_days INTO _grace FROM public.license_lifecycle_configs WHERE id = _cfg;
-    PERFORM pg_temp.rec('D','D-02','an authorised administrator can edit lifecycle configuration through the governed path',
-      _grace = 45, 'grace_period_days=' || _grace);
+    _out := _out || jsonb_build_array(jsonb_build_object('id','D-02',
+      'descr','an authorised administrator can edit lifecycle configuration through the governed path',
+      'ok', _grace = 45, 'detail','grace_period_days=' || _grace));
 
     -- vocabulary validation
     BEGIN
@@ -387,8 +391,9 @@ BEGIN
       _res := '00000';
     EXCEPTION WHEN others THEN _res := SQLSTATE || ': ' || left(SQLERRM,80);
     END;
-    PERFORM pg_temp.rec('D','D-03','the governed path rejects an invalid lifecycle vocabulary value',
-      _res <> '00000', 'result=' || _res);
+    _out := _out || jsonb_build_array(jsonb_build_object('id','D-03',
+      'descr','the governed path rejects an invalid lifecycle vocabulary value',
+      'ok', _res <> '00000', 'detail','result=' || _res));
 
     -- scope integrity
     BEGIN
@@ -397,8 +402,9 @@ BEGIN
       _res := '00000';
     EXCEPTION WHEN others THEN _res := SQLSTATE || ': ' || left(SQLERRM,80);
     END;
-    PERFORM pg_temp.rec('D','D-04','the governed path rejects an unknown regulator scope',
-      _res <> '00000', 'result=' || _res);
+    _out := _out || jsonb_build_array(jsonb_build_object('id','D-04',
+      'descr','the governed path rejects an unknown regulator scope',
+      'ok', _res <> '00000', 'detail','result=' || _res));
 
     -- retirement requires a reason
     BEGIN
@@ -406,33 +412,52 @@ BEGIN
       _res := '00000';
     EXCEPTION WHEN others THEN _res := SQLSTATE || ': ' || left(SQLERRM,80);
     END;
-    PERFORM pg_temp.rec('D','D-05','retiring a lifecycle configuration without a reason is refused',
-      _res <> '00000', 'result=' || _res);
+    _out := _out || jsonb_build_array(jsonb_build_object('id','D-05',
+      'descr','retiring a lifecycle configuration without a reason is refused',
+      'ok', _res <> '00000', 'detail','result=' || _res));
 
     PERFORM public.admin_set_license_lifecycle_config_active(_cfg, false, 'F5-B1 gate probe retirement');
-    PERFORM pg_temp.rec('D','D-06','an authorised administrator can retire lifecycle configuration with a reason',
-      NOT (SELECT is_active FROM public.license_lifecycle_configs WHERE id = _cfg), 'is_active=false');
+    SELECT NOT is_active INTO _res FROM public.license_lifecycle_configs WHERE id = _cfg;
+    _out := _out || jsonb_build_array(jsonb_build_object('id','D-06',
+      'descr','an authorised administrator can retire lifecycle configuration with a reason',
+      'ok', _res::boolean, 'detail','is_active=' || (NOT _res::boolean)::text));
 
     -- audit evidence
     SELECT count(*) INTO _audit_after FROM public.compliance_audit_logs
      WHERE object_type = 'license_lifecycle_configs';
     SELECT count(*) INTO _log_after FROM public.config_change_log
      WHERE table_name = 'license_lifecycle_configs';
-    PERFORM pg_temp.rec('D','D-07','every governed configuration change produced audit evidence',
-      _audit_after >= _audit_before + 3 AND _log_after >= _log_before + 3,
-      format('compliance_audit_logs +%s, config_change_log +%s',
-             _audit_after - _audit_before, _log_after - _log_before));
+    _out := _out || jsonb_build_array(jsonb_build_object('id','D-07',
+      'descr','every governed configuration change produced audit evidence',
+      'ok', _audit_after >= _audit_before + 3 AND _log_after >= _log_before + 3,
+      'detail', format('compliance_audit_logs +%s, config_change_log +%s',
+                       _audit_after - _audit_before, _log_after - _log_before)));
 
     RAISE EXCEPTION 'F5B1_ROLLBACK';
   EXCEPTION WHEN others THEN
     IF SQLERRM <> 'F5B1_ROLLBACK' THEN
-      PERFORM pg_temp.rec('D','D-99','the governed positive path executed without an unexpected error',
-        false, SQLSTATE || ': ' || left(SQLERRM,160));
+      _out := _out || jsonb_build_array(jsonb_build_object('id','D-99',
+        'descr','the governed positive path executed without an unexpected error',
+        'ok', false, 'detail', SQLSTATE || ': ' || left(SQLERRM,160)));
     END IF;
   END;
 
   PERFORM set_config('request.jwt.claims', '{}', true);
+
+  FOR _r IN SELECT * FROM jsonb_array_elements(_out) LOOP
+    PERFORM pg_temp.rec('D', _r->>'id', _r->>'descr', (_r->>'ok')::boolean, _r->>'detail');
+  END LOOP;
+
+  -- the probe subtransaction was rolled back: nothing may remain
+  IF EXISTS (SELECT 1 FROM public.license_lifecycle_configs WHERE id = _cfg) THEN
+    PERFORM pg_temp.rec('D','D-08','the governed positive probe left no configuration behind',
+      false, 'probe row survived');
+  ELSE
+    PERFORM pg_temp.rec('D','D-08','the governed positive probe left no configuration behind',
+      true, 'rolled back, zero residue');
+  END IF;
 END $d$;
+
 
 -- ===========================================================================
 -- SECTION E — residue + wider F5-sensitive privilege regression
