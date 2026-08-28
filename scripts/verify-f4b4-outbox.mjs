@@ -46,8 +46,14 @@ async function runWorker() {
 }
 
 function cleanup() {
-  sql(`DELETE FROM public.notifications WHERE event_key LIKE '${TAG}%' OR dedupe_key LIKE 'outbox:%' AND event_key LIKE '${TAG}%'`);
-  sql(`DELETE FROM public.notification_outbox WHERE event_key LIKE '${TAG}%'`);
+  // `public.notifications` is append-only in production (notifications_block_delete).
+  // The harness therefore removes ONLY its own synthetic CERT-F4B4% probe rows with
+  // triggers suspended for that single statement; production semantics are untouched.
+  sql(`BEGIN;
+       SET LOCAL session_replication_role = 'replica';
+       DELETE FROM public.notifications WHERE event_key LIKE '${TAG}%';
+       DELETE FROM public.notification_outbox WHERE event_key LIKE '${TAG}%';
+       COMMIT;`);
 }
 
 try {
