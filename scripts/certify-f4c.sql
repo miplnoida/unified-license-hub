@@ -74,6 +74,14 @@ BEGIN
 END $$;
 
 -- state of a single readiness dimension
+CREATE OR REPLACE FUNCTION pg_temp.scope() RETURNS jsonb LANGUAGE sql STABLE AS $$
+  SELECT jsonb_build_object('sector_id', c.sector_id, 'sub_sector_id', c.sub_sector_id,
+                            'category_id', c.id)
+    FROM public.categories c
+   WHERE c.sector_id IS NOT NULL AND c.sub_sector_id IS NOT NULL
+   ORDER BY c.created_at LIMIT 1;
+$$;
+
 CREATE OR REPLACE FUNCTION pg_temp.gate(_app uuid, _gate text) RETURNS text LANGUAGE sql STABLE AS $$
   SELECT d->>'state'
     FROM jsonb_array_elements(public.application_licensing_readiness(_app)->'gates') d
@@ -134,8 +142,17 @@ BEGIN
   SELECT approver_role_id INTO v_role_id FROM public.approval_steps
    WHERE approver_role_id IS NOT NULL ORDER BY created_at LIMIT 1;
 
-  INSERT INTO public.approval_workflows (name, entity_type, license_type, is_active)
-  VALUES ('CERT-F4C Licensing Workflow', 'pre_application', 'CERT-F4C-FULL', true)
+  -- Scope the synthetic workflow to a real taxonomy node so it never collides
+  -- with the regulator's global workflow scope.
+  SELECT c.sector_id, c.sub_sector_id, c.id AS category_id INTO v_cat
+    FROM public.categories c
+   WHERE c.sector_id IS NOT NULL AND c.sub_sector_id IS NOT NULL
+   ORDER BY c.created_at LIMIT 1;
+
+  INSERT INTO public.approval_workflows (name, entity_type, license_type, is_active,
+                                         sector_id, sub_sector_id, category_id)
+  VALUES ('CERT-F4C Licensing Workflow', 'pre_application', 'CERT-F4C-FULL', true,
+          v_cat.sector_id, v_cat.sub_sector_id, v_cat.category_id)
   RETURNING id INTO v_wf;
   PERFORM pg_temp.put('wf', v_wf);
 
@@ -153,10 +170,6 @@ BEGIN
   PERFORM pg_temp.put('s3', v_s3);
 
   -- Gate configuration for the synthetic licence types only.
-  SELECT c.sector_id, c.sub_sector_id, c.id AS category_id INTO v_cat
-    FROM public.categories c
-   WHERE c.sector_id IS NOT NULL AND c.sub_sector_id IS NOT NULL
-   ORDER BY c.created_at LIMIT 1;
 
   INSERT INTO public.licensing_gate_configs (gate_key, applicability, license_type, notes)
   SELECT g, 'NOT_APPLICABLE', 'CERT-F4C-NA', 'F4-C rollback-safe certification fixture'
@@ -448,7 +461,7 @@ BEGIN
   INSERT INTO public.applications (application_number, applicant_id, entity_id, license_type, status,
                                    data, workflow_id, current_step_id, submitted_at)
   VALUES ('CERT-F4C-FULL-' || substring(gen_random_uuid()::text,1,8), v_x, v_entity,
-          'CERT-F4C-FULL', 'submitted', '{}'::jsonb, v_wf, v_s1, now())
+          'CERT-F4C-FULL', 'submitted', pg_temp.scope(), v_wf, v_s1, now())
   RETURNING id INTO v_full;
   PERFORM pg_temp.put('app_full', v_full);
 
@@ -523,7 +536,7 @@ BEGIN
   INSERT INTO public.applications (application_number, applicant_id, entity_id, license_type, status,
                                    data, workflow_id, current_step_id, submitted_at)
   VALUES ('CERT-F4C-REJ-' || substring(gen_random_uuid()::text,1,8), v_x, v_entity,
-          'CERT-F4C-FULL', 'submitted', '{}'::jsonb, v_wf, v_s1, now())
+          'CERT-F4C-FULL', 'submitted', pg_temp.scope(), v_wf, v_s1, now())
   RETURNING id INTO v_rej;
   INSERT INTO public.workflow_instances (workflow_id, entity_type, entity_id, current_step_id, status)
   VALUES (v_wf, 'application', v_rej, v_s1, 'active') RETURNING id INTO v_rej_inst;
@@ -734,7 +747,7 @@ BEGIN
   INSERT INTO public.applications (application_number, applicant_id, entity_id, license_type, status,
                                    data, workflow_id, current_step_id, submitted_at)
   VALUES ('CERT-F4C-WD-' || substring(gen_random_uuid()::text,1,8), v_x, v_entity,
-          'CERT-F4C-FULL', 'submitted', '{}'::jsonb, v_wf, v_s1, now())
+          'CERT-F4C-FULL', 'submitted', pg_temp.scope(), v_wf, v_s1, now())
   RETURNING id INTO v_app;
   INSERT INTO public.workflow_instances (workflow_id, entity_type, entity_id, current_step_id, status)
   VALUES (v_wf, 'application', v_app, v_s1, 'active') RETURNING id INTO v_inst;
