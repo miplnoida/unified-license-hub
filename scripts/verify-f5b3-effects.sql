@@ -610,12 +610,16 @@ BEGIN
       json_build_object('sub',_officer::text,'role','authenticated')::text, true);
     _plan_unsupported := public.post_license_effect_plan((_fx->>'application_id')::uuid);
     BEGIN
-      PERFORM public.perform_final_workflow_approval((_fx->>'application_id')::uuid,
+      _res_unsupported := public.perform_final_workflow_approval((_fx->>'application_id')::uuid,
                 (_fx->>'instance_id')::uuid, (_fx->>'step_id')::uuid, 'F5-B3 unsupported probe', _officer);
-      _res_unsupported := 'NOT_BLOCKED';
     EXCEPTION WHEN others THEN
-      _res_unsupported := SQLSTATE || ': ' || left(SQLERRM,120);
+      _raised_unsupported := SQLSTATE || ': ' || left(SQLERRM,120);
     END;
+    SELECT count(*) INTO _unsup_effects FROM public.post_license_effects
+     WHERE application_id = (_fx->>'application_id')::uuid;
+    SELECT a.status INTO _unsup_app FROM public.applications a WHERE a.id = (_fx->>'application_id')::uuid;
+    SELECT w.status INTO _unsup_wf FROM public.workflow_instances w WHERE w.id = (_fx->>'instance_id')::uuid;
+
 
     -- rejected / non-approved filing must never carry an effect
     _fx2 := pg_temp.f5b3_fixture(_lic, _svc, _officer, 'rejected');
