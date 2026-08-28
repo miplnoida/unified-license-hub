@@ -249,7 +249,7 @@ BEGIN
   END IF;
 
   -- A-06: a post-licence (F5) request is not subject to the initial-licence restriction.
-  r5 := pg_temp.draft(v_y, 'CERT-F4C-NONE', jsonb_build_object('service_id','CERT-F4C-SERVICE'));
+  r5 := pg_temp.draft(v_y, 'CERT-F4C-NONE', jsonb_build_object('service_id',gen_random_uuid()::text));
   PERFORM pg_temp.rec('A','A-06','post-licence service requests are outside the initial-licence handoff restriction',
     r5 <> 'ERR:REGISTRATION_HANDOFF_REQUIRED', 'result=' || r5);
 END $a$;
@@ -319,7 +319,7 @@ BEGIN
   -- (e) post-licence request
   INSERT INTO public.applications (application_number, applicant_id, entity_id, license_type, status, data, submitted_at)
   VALUES ('CERT-F4C-POST-' || substring(gen_random_uuid()::text,1,8), v_x, v_entity,
-          'CERT-F4C-NONE', 'submitted', jsonb_build_object('service_id','CERT-F4C-SERVICE'), now())
+          'CERT-F4C-NONE', 'submitted', jsonb_build_object('service_id',gen_random_uuid()::text), now())
   RETURNING id INTO v_post;
 
   PERFORM pg_temp.put('app_none', v_none);
