@@ -13,6 +13,12 @@
 \set ON_ERROR_STOP on
 SET client_min_messages = warning;
 
+-- The sandbox reaches Postgres through a transaction-mode pooler, so every
+-- top-level statement can land on a different backend. The harness state
+-- (temp tables + pg_temp helper functions) is session-scoped, so the whole
+-- gate must execute inside one transaction to stay pinned to one session.
+BEGIN;
+
 DROP TABLE IF EXISTS f0c_results;
 DROP TABLE IF EXISTS f0c_ctx;
 
@@ -531,3 +537,5 @@ BEGIN
   END IF;
 END
 $cleanup$;
+
+COMMIT;
