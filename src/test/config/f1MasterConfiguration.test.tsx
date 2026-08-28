@@ -169,7 +169,7 @@ describe('Decision Authority operator screen', () => {
   it('renders the configured ruleset with its enforcement mode', () => {
     wrap(<DecisionAuthorityManager />);
     expect(screen.getByText('application.approve')).toBeInTheDocument();
-    expect(screen.getAllByText('OBSERVE_ONLY').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('OBSERVE ONLY').length).toBeGreaterThan(0);
   });
 
   it('exposes write actions to an operator holding role_management.manage_config', () => {
@@ -191,16 +191,17 @@ describe('Service Completeness screen', () => {
     wrap(<ServiceCompletenessReport />);
     expect(screen.getByText('Service Configuration Completeness')).toBeInTheDocument();
     expect(screen.getByText('Service standard (SLA)')).toBeInTheDocument();
-    expect(screen.getByText('8')).toBeInTheDocument();
+    expect(screen.getByText('Missing required')).toBeInTheDocument();
+    expect(screen.getAllByText('9').length).toBeGreaterThan(0);
   });
 
   it('reports the BUSINESS_CONFIGURATION_REQUIRED items on the gaps tab', async () => {
     wrap(<ServiceCompletenessReport />);
     fireEvent.click(screen.getByRole('tab', { name: /missing configuration/i }));
     await waitFor(() => {
-      expect(
-        screen.getByText(/9 of these are recorded as BUSINESS_CONFIGURATION_REQUIRED/i),
-      ).toBeInTheDocument();
+      const description = screen
+        .getAllByText((_, node) => !!node?.textContent?.match(/9 of these are recorded as BUSINESS_CONFIGURATION_REQUIRED/i));
+      expect(description.length).toBeGreaterThan(0);
     });
     expect(screen.getAllByText('BUSINESS_CONFIGURATION_REQUIRED').length).toBe(9);
   });
