@@ -23,8 +23,8 @@ list of every `INSERT INTO audit_logs` / `INSERT INTO compliance_audit_logs`
 inside every `public` function and compares it against
 `information_schema.columns`.
 
-The first run found **28 stale column references across 9 routines** — the two
-coordination triggers plus:
+The first run found **28 stale column references across 10 routines** — the two
+coordination triggers plus these eight:
 
 - `dismiss_complaint_escalation`, `evaluate_complaint_escalations`
 - `manual_escalate_complaint`, `evaluate_complaint_vulnerability_escalations`
@@ -32,7 +32,7 @@ coordination triggers plus:
 - `reject_return`
 - `fp_request_pq_amendment`
 
-All nine were rewritten in one forward migration onto the real audit contract:
+All ten were rewritten in one forward migration onto the real audit contract:
 `user_id` (actor, still server-derived from `auth.uid()`), `old_value` /
 `new_value`, `metadata`; and for `compliance_audit_logs`, `action_type`,
 `object_type`, `object_id`, `before_value`, `after_value`, `justification`.
