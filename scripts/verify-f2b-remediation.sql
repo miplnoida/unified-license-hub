@@ -299,25 +299,31 @@ BEGIN
   PERFORM pg_temp.rec('S3','C-04','a registration can bind to at most one entity', _n = 1, 'indexes=' || _n);
 
   -- Empirical: same normalised legal name, two distinct entities, both stored.
+  -- The probe row is discarded via an inner subtransaction so later live-count
+  -- assertions (S7) are unaffected.
+  _entity := NULL; _n := 0; _m := 0;
   BEGIN
     SELECT lower(btrim(name)) INTO _name FROM public.licensees
      WHERE merged_into_entity_id IS NULL ORDER BY created_at LIMIT 1;
     INSERT INTO public.licensees (name, status)
     SELECT name, 'active' FROM public.licensees WHERE merged_into_entity_id IS NULL ORDER BY created_at LIMIT 1
     RETURNING id INTO _entity;
-    SELECT count(*) INTO _n FROM public.licensees WHERE lower(btrim(name)) = _name;
-    PERFORM pg_temp.rec('S3','C-05','two distinct entities sharing the same normalised legal name can coexist',
-      _entity IS NOT NULL AND _n >= 2, 'entities with that name=' || _n);
+    SELECT count(*), count(DISTINCT party_id) INTO _m, _n
+      FROM public.licensees WHERE lower(btrim(name)) = _name;
+    RAISE EXCEPTION 'F2B_PROBE_ROLLBACK';
   EXCEPTION WHEN others THEN
-    PERFORM pg_temp.rec('S3','C-05','two distinct entities sharing the same normalised legal name can coexist',
-      false, SQLSTATE || ': ' || left(SQLERRM,160));
+    IF SQLERRM <> 'F2B_PROBE_ROLLBACK' THEN
+      _res := SQLSTATE || ': ' || left(SQLERRM,160);
+      _entity := NULL;
+    ELSE
+      _res := 'probe discarded';
+    END IF;
   END;
-
-  -- The same-name entities each keep their own canonical organisation record.
-  SELECT count(DISTINCT party_id) INTO _n FROM public.licensees WHERE lower(btrim(name)) = _name;
-  SELECT count(*) INTO _m FROM public.licensees WHERE lower(btrim(name)) = _name;
+  PERFORM pg_temp.rec('S3','C-05','two distinct entities sharing the same normalised legal name can coexist',
+    _entity IS NOT NULL AND _m >= 2, coalesce(_res,'') || ' entities with that name=' || _m);
   PERFORM pg_temp.rec('S3','C-06','same-named entities each keep a separate canonical organisation record',
-    _n = _m AND _m >= 2, 'entities=' || _m || ' distinct organisations=' || _n);
+    _entity IS NOT NULL AND _n = _m AND _m >= 2, 'entities=' || _m || ' distinct organisations=' || _n);
+
 
   -- Duplicate authoritative identifiers stay blocked inside their own scope.
   SELECT count(*) INTO _n FROM pg_indexes
