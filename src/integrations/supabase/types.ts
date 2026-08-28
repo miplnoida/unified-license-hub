@@ -30041,6 +30041,7 @@ export type Database = {
       post_license_effect_map: {
         Row: {
           bcr_reason: string | null
+          blocker_class: string | null
           canonical_target: string | null
           created_at: string
           effect_kind: string
@@ -30053,6 +30054,7 @@ export type Database = {
         }
         Insert: {
           bcr_reason?: string | null
+          blocker_class?: string | null
           canonical_target?: string | null
           created_at?: string
           effect_kind: string
@@ -30065,6 +30067,7 @@ export type Database = {
         }
         Update: {
           bcr_reason?: string | null
+          blocker_class?: string | null
           canonical_target?: string | null
           created_at?: string
           effect_kind?: string
@@ -30076,6 +30079,52 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      post_license_effect_service_bindings: {
+        Row: {
+          created_at: string
+          rationale: string
+          service_code: string
+          service_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          rationale: string
+          service_code: string
+          service_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          rationale?: string
+          service_code?: string
+          service_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_license_effect_service_bindings_service_code_fkey"
+            columns: ["service_code"]
+            isOneToOne: false
+            referencedRelation: "post_license_effect_map"
+            referencedColumns: ["service_code"]
+          },
+          {
+            foreignKeyName: "post_license_effect_service_bindings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: true
+            referencedRelation: "service_configuration_completeness"
+            referencedColumns: ["service_id"]
+          },
+          {
+            foreignKeyName: "post_license_effect_service_bindings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: true
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       post_license_effects: {
         Row: {
@@ -55193,6 +55242,7 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      workflow_effect_actor: { Args: never; Returns: string }
       workflow_hard_delete: { Args: { _workflow_id: string }; Returns: Json }
       workflow_instance_dispose: {
         Args: { _classification: string; _instance_id: string; _reason: string }
