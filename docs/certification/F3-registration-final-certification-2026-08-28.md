@@ -11,9 +11,13 @@ Authoritative inputs:
 | Item | Value |
 |------|-------|
 | Attempt 1 (NOT CERTIFIED) HEAD | `10f7eee9cfa4e3ec05ff1d59a30cfeb42a48ae98` |
-| Attempt 2 (this pass) tested HEAD | `17691627d2d4297a287f6a9a9b44cd78507610c4` |
+| Attempt 2 (this pass) tested product runtime HEAD | `824c54a5be5275ffe6180464711d39dc62dab429` |
+| Attempt 2 certification evidence HEAD | `5ad3595171876dfc64cb1411d7002686b4fbde1b` |
 | F2 freeze HEAD (unchanged) | `b0ff1947676d0a07db1474fbf0498b3d0b8be0cc` |
-| F3 freeze HEAD | commit containing this certification record at `17691627d2d4297a287f6a9a9b44cd78507610c4` + `scripts/certify-f3c-retry.sql` and this document (evidence-only additions; no runtime source, schema, migration or configuration change was made in this pass) |
+| F3 freeze HEAD | `5ad3595171876dfc64cb1411d7002686b4fbde1b` — the evidence commit on top of product runtime `824c54a5be5275ffe6180464711d39dc62dab429` (evidence-only additions: `scripts/certify-f3c-retry.sql` and this document; no runtime source, schema, migration or configuration change was made in this pass) |
+
+> Documentation-only housekeeping (F4-A pass): the previously recorded value `17691627d2d4297a287f6a9a9b44cd78507610c4` is not resolvable in this repository and has been superseded by the resolvable runtime/evidence pair above. No F3 runtime behaviour was changed.
+
 
 ## 1. Regression battery — all green
 
@@ -183,7 +187,8 @@ residual allowlist entry for `check_applicant_name_exists`. Both were closed in 
 
 **F3 PRODUCT CERTIFIED AND FROZEN — DATA REMEDIATION ITEM RECORDED**
 
-Tested certification HEAD: `17691627d2d4297a287f6a9a9b44cd78507610c4`
-F3 freeze HEAD: the commit containing this certification record and `scripts/certify-f3c-retry.sql` (evidence-only
-additions on top of the tested HEAD).
+Tested product runtime HEAD: `824c54a5be5275ffe6180464711d39dc62dab429`
+F3 freeze / certification evidence HEAD: `5ad3595171876dfc64cb1411d7002686b4fbde1b` (evidence-only additions —
+this certification record and `scripts/certify-f3c-retry.sql` — on top of the tested product runtime HEAD).
+
 DR-F3-01 recorded separately from product gaps. DEF-F3-C-01 CLOSED. Anonymous-name-probe residual CLOSED.
