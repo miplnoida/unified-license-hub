@@ -27,7 +27,8 @@
     "verify:audit-contract": "psql -v ON_ERROR_STOP=1 -f scripts/verify-audit-contract.sql",
     "verify:coordination-lifecycle": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f4b3-coordination.sql",
     "verify:write-contract": "node scripts/verify-write-contract.mjs",
-    "verify:outbox-delivery": "node scripts/verify-f4b4-outbox.mjs"
+    "verify:outbox-delivery": "node scripts/verify-f4b4-outbox.mjs",
+    "verify:license-terms": "psql -v ON_ERROR_STOP=1 -f scripts/verify-license-terms.sql"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
