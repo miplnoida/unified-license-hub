@@ -1,7 +1,7 @@
 -- F1-B — decision authority governance (GAP-F1-01) and service configuration
 -- completeness (GAP-F1-04). Positive + negative certification.
 BEGIN;
-SELECT plan(12);
+SELECT plan(15);
 
 -- ── Structure ────────────────────────────────────────────────────────────
 SELECT has_table('public', 'service_config_expectations',
@@ -78,6 +78,28 @@ SELECT is(
            AND (e.service_id IS NULL OR e.service_id = c.service_id))),
   0,
   'no unexplained incomplete service configuration remains');
+
+-- ── DEF-F1-C-02: canonical status vocabulary is active / retired ─────────
+SELECT ok(
+  (SELECT pg_get_constraintdef(oid) LIKE '%''active''%'
+      AND pg_get_constraintdef(oid) LIKE '%''retired''%'
+     FROM pg_constraint
+    WHERE conrelid = 'public.decision_authority_rules'::regclass
+      AND conname = 'decision_authority_rules_status_chk'),
+  'the rule status constraint uses the canonical active/retired vocabulary');
+
+SELECT is(
+  (SELECT count(*)::int FROM public.decision_authority_rules
+    WHERE status NOT IN ('active','retired')),
+  0,
+  'no decision authority rule holds a legacy status value');
+
+-- ── DEF-F1-C-01: audit log is read-only for signed-in users ─────────────
+SELECT ok(
+  NOT (has_table_privilege('authenticated', 'public.config_change_log', 'UPDATE')
+    OR has_table_privilege('authenticated', 'public.config_change_log', 'DELETE')
+    OR has_table_privilege('anon', 'public.config_change_log', 'SELECT')),
+  'the configuration audit log is signed-in read-only and never public');
 
 SELECT * FROM finish();
 ROLLBACK;
