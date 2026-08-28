@@ -448,7 +448,15 @@ BEGIN
   PERFORM pg_temp.rec('E','E-04','canonical entity state changes as a result of the approval',
     _name_after = _probe, 'organization_name=' || coalesce(_name_after,'null'));
   PERFORM pg_temp.rec('E','E-05','the effect ledger carries change-set provenance back to the F5 application',
-    coalesce(_cs_prov->>'change_set','') <> '', 'provenance=' || coalesce(_cs_prov::text,'null'));
+    coalesce(_cs_prov->>'result_ref','') = coalesce(_cs.id::text,'x')
+      AND _cs_prov->>'application_id' = (_fx->>'application_id')
+      AND coalesce(_cs_prov->>'handler','') <> ''
+      AND coalesce(_cs_prov->>'canonical_target','') <> '',
+    'provenance=' || coalesce(_cs_prov::text,'null'));
+  PERFORM pg_temp.rec('E','E-06','the effect ledger records before/after evidence for the entity change',
+    _cs_prov->'before' IS NOT NULL AND _cs_prov->'after' IS NOT NULL
+      AND _cs_prov->>'before' <> _cs_prov->>'after',
+    'before=' || coalesce(_cs_prov->>'before','null') || ' after=' || coalesce(_cs_prov->>'after','null'));
 END $e$;
 
 -- ===========================================================================
