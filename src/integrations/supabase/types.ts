@@ -37535,6 +37535,192 @@ export type Database = {
           },
         ]
       }
+      return_filing_evidence: {
+        Row: {
+          created_at: string
+          description: string | null
+          document_name: string
+          entity_id: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          return_filing_id: string
+          return_filing_version_id: string
+          storage_path: string
+          uploaded_at: string
+          uploaded_by: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+          withdrawn_reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          document_name: string
+          entity_id: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          return_filing_id: string
+          return_filing_version_id: string
+          storage_path: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+          withdrawn_reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          document_name?: string
+          entity_id?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          return_filing_id?: string
+          return_filing_version_id?: string
+          storage_path?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+          withdrawn_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_filing_evidence_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "return_filings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filing_evidence_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_filing_workflow_state"
+            referencedColumns: ["filing_id"]
+          },
+          {
+            foreignKeyName: "return_filing_evidence_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
+            referencedColumns: ["filing_id"]
+          },
+          {
+            foreignKeyName: "return_filing_evidence_return_filing_version_id_fkey"
+            columns: ["return_filing_version_id"]
+            isOneToOne: false
+            referencedRelation: "return_filing_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filing_evidence_return_filing_version_id_fkey"
+            columns: ["return_filing_version_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_filing_workflow_state"
+            referencedColumns: ["current_version_id"]
+          },
+        ]
+      }
+      return_filing_extensions: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          entity_id: string
+          entity_reporting_obligation_id: string
+          granted_due_date: string | null
+          id: string
+          original_due_date: string
+          reason: string
+          reporting_period_id: string
+          requested_at: string
+          requested_by: string | null
+          requested_due_date: string
+          return_filing_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          entity_id: string
+          entity_reporting_obligation_id: string
+          granted_due_date?: string | null
+          id?: string
+          original_due_date: string
+          reason: string
+          reporting_period_id: string
+          requested_at?: string
+          requested_by?: string | null
+          requested_due_date: string
+          return_filing_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          entity_id?: string
+          entity_reporting_obligation_id?: string
+          granted_due_date?: string | null
+          id?: string
+          original_due_date?: string
+          reason?: string
+          reporting_period_id?: string
+          requested_at?: string
+          requested_by?: string | null
+          requested_due_date?: string
+          return_filing_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_filing_extensions_entity_reporting_obligation_id_fkey"
+            columns: ["entity_reporting_obligation_id"]
+            isOneToOne: false
+            referencedRelation: "entity_reporting_obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filing_extensions_reporting_period_id_fkey"
+            columns: ["reporting_period_id"]
+            isOneToOne: false
+            referencedRelation: "reporting_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filing_extensions_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "return_filings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filing_extensions_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_filing_workflow_state"
+            referencedColumns: ["filing_id"]
+          },
+          {
+            foreignKeyName: "return_filing_extensions_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
+            referencedColumns: ["filing_id"]
+          },
+        ]
+      }
       return_filing_form_requirements: {
         Row: {
           completion_status: string
@@ -38437,6 +38623,94 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "returns_filed"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_overdue_events: {
+        Row: {
+          as_of_date: string
+          created_at: string
+          days_late: number
+          effective_due_date: string
+          entity_id: string
+          entity_reporting_obligation_id: string
+          filing_status: string | null
+          id: string
+          late_fee_owner: string
+          reporting_period_id: string
+          return_definition_id: string
+          return_filing_id: string | null
+        }
+        Insert: {
+          as_of_date: string
+          created_at?: string
+          days_late: number
+          effective_due_date: string
+          entity_id: string
+          entity_reporting_obligation_id: string
+          filing_status?: string | null
+          id?: string
+          late_fee_owner?: string
+          reporting_period_id: string
+          return_definition_id: string
+          return_filing_id?: string | null
+        }
+        Update: {
+          as_of_date?: string
+          created_at?: string
+          days_late?: number
+          effective_due_date?: string
+          entity_id?: string
+          entity_reporting_obligation_id?: string
+          filing_status?: string | null
+          id?: string
+          late_fee_owner?: string
+          reporting_period_id?: string
+          return_definition_id?: string
+          return_filing_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_overdue_events_entity_reporting_obligation_id_fkey"
+            columns: ["entity_reporting_obligation_id"]
+            isOneToOne: false
+            referencedRelation: "entity_reporting_obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_overdue_events_reporting_period_id_fkey"
+            columns: ["reporting_period_id"]
+            isOneToOne: false
+            referencedRelation: "reporting_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_overdue_events_return_definition_id_fkey"
+            columns: ["return_definition_id"]
+            isOneToOne: false
+            referencedRelation: "return_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_overdue_events_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "return_filings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_overdue_events_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_filing_workflow_state"
+            referencedColumns: ["filing_id"]
+          },
+          {
+            foreignKeyName: "return_overdue_events_return_filing_id_fkey"
+            columns: ["return_filing_id"]
+            isOneToOne: false
+            referencedRelation: "v_return_metric_facts_current"
+            referencedColumns: ["filing_id"]
           },
         ]
       }
@@ -55296,6 +55570,17 @@ export type Database = {
         Args: { _filing_id: string; _owner_user_id: string; _team?: string }
         Returns: Json
       }
+      returns_attach_evidence: {
+        Args: {
+          _description?: string
+          _document_name: string
+          _file_size?: number
+          _file_type?: string
+          _storage_path: string
+          _version_id: string
+        }
+        Returns: string
+      }
       returns_attach_form_response: {
         Args: {
           _completion?: string
@@ -55329,6 +55614,19 @@ export type Database = {
       returns_classify_legacy: { Args: never; Returns: Json }
       returns_compare_filing_versions: {
         Args: { _version_a: string; _version_b: string }
+        Returns: Json
+      }
+      returns_decide_amendment: {
+        Args: { _decision: string; _reason: string; _request_id: string }
+        Returns: Json
+      }
+      returns_decide_extension: {
+        Args: {
+          _decision: string
+          _extension_id: string
+          _granted_due_date?: string
+          _reason: string
+        }
         Returns: Json
       }
       returns_delete_definition_form: {
@@ -55542,6 +55840,15 @@ export type Database = {
           sector_name: string
         }[]
       }
+      returns_notify: {
+        Args: {
+          _event_key: string
+          _filing_id: string
+          _payload?: Json
+          _suffix?: string
+        }
+        Returns: undefined
+      }
       returns_obligation_scope: {
         Args: { _obligation_id: string }
         Returns: {
@@ -55551,7 +55858,28 @@ export type Database = {
         }[]
       }
       returns_open_filing: { Args: { _period_id: string }; Returns: Json }
+      returns_overdue_sweep: { Args: { _as_of?: string }; Returns: Json }
       returns_parse_numeric: { Args: { _raw: string }; Returns: number }
+      returns_raise_rfi: {
+        Args: {
+          _form_template_id?: string
+          _message: string
+          _version_id: string
+        }
+        Returns: string
+      }
+      returns_request_amendment: {
+        Args: { _filing_id: string; _reason: string }
+        Returns: string
+      }
+      returns_request_extension: {
+        Args: {
+          _period_id: string
+          _reason: string
+          _requested_due_date: string
+        }
+        Returns: string
+      }
       returns_require: { Args: { _action: string }; Returns: undefined }
       returns_resolve_legacy_filing: {
         Args: { _legacy_id: string }
@@ -55592,6 +55920,10 @@ export type Database = {
         Returns: Json
       }
       returns_validate_filing: { Args: { _version_id: string }; Returns: Json }
+      returns_withdraw_evidence: {
+        Args: { _evidence_id: string; _reason: string }
+        Returns: undefined
+      }
       review_prudential_action_response: {
         Args: { _action_id: string; _decision: string; _notes: string }
         Returns: Json
