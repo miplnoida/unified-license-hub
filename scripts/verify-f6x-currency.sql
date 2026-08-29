@@ -1174,7 +1174,7 @@ BEGIN
     VALUES (_entity, _def, 'AD_HOC','QUARTERLY',30, CURRENT_DATE - 400)
     RETURNING id INTO _ob;
 
-    _pe := CURRENT_DATE - 100;
+    _pe := CURRENT_DATE - 30;
     INSERT INTO public.reporting_periods(entity_reporting_obligation_id, period_label,
       period_start, period_end, due_date, status)
     VALUES (_ob,'F6X-GATE-P1', _pe - 89, _pe, _pe + 30, 'OPEN')
@@ -1219,9 +1219,17 @@ BEGIN
     _res := public.returns_rebase_filing_currency(_fil,
       'Gate fixture: rebase the draft onto the currently authoritative currency.');
     _buf := pg_temp.bufrec(_buf,'N','N-15',
-      'a governed rebase re-resolves the draft against the currency hierarchy and reports the currency it moved from',
-      _res->>'previous_currency' = _alt AND _res->>'currency' IS NOT NULL,
-      'rebase='||_res::text);
+      'a governed rebase re-resolves the draft against the currency hierarchy at its period end and reports the currency it moved from',
+      _res->>'previous_currency' = _alt AND _res->>'currency' = _alt
+        AND _res->>'source' = 'ENTITY_OVERRIDE', 'rebase='||_res::text);
+
+    _ok := false; _msg := '';
+    BEGIN
+      UPDATE public.return_filings SET reporting_currency = _base WHERE id = _fil;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'N','N-15A',
+      'the snapshotted currency of record cannot be edited directly — only the governed rebase may change it',
+      _ok AND (SELECT reporting_currency FROM public.return_filings WHERE id=_fil) = _alt, _msg);
 
     PERFORM set_config('request.jwt.claims','{}', true);
     UPDATE public.return_filings SET status='SUBMITTED' WHERE id=_fil;
@@ -1235,9 +1243,7 @@ BEGIN
       _ok, _msg);
 
     PERFORM set_config('request.jwt.claims','{}', true);
-    UPDATE public.return_filings
-       SET status='DRAFT', reporting_currency=_alt, currency_source='ENTITY_OVERRIDE',
-           currency_as_of=_pe WHERE id=_fil;
+    UPDATE public.return_filings SET status='DRAFT' WHERE id=_fil;
 
     -- ---- display modes ----------------------------------------------------
     INSERT INTO public.return_metric_values(return_filing_version_id, entity_id,
