@@ -359,25 +359,28 @@ END $b$;
 
 -- ===========================================================================
 -- SECTION C — E2E: F&P DEPENDENT DIRECTOR / KFH CHANGE
+-- Each scenario runs in its own independent rollback sub-transaction with a
+-- genuine SUBMITTED filing, its own canonical subject and its own assessment,
+-- so the refusal proved is the F&P blocker itself — never terminal
+-- application state and never the one-open-filing duplicate guard.
 -- ===========================================================================
-DO $c$
-DECLARE
-  _lic uuid; _svc uuid; _kfh uuid; _officer uuid; _entity uuid;
-  _ind_ok uuid; _ind_pend uuid; _ind_neg uuid;
-  _asm_ok uuid; _asm_pend uuid; _asm_neg uuid;
-  _fx_ok jsonb; _fx_pend jsonb; _fx_neg jsonb; _fx_none jsonb;
-  _r_ok jsonb; _r_pend jsonb; _r_neg jsonb; _r_none jsonb;
-  _p_ok jsonb; _p_pend jsonb; _p_neg jsonb; _p_none jsonb;
-  _res_ok jsonb; _res_neg jsonb; _eff_ok int; _eff_neg int; _kfh_fp boolean;
-  _harness text := NULL;
+DROP FUNCTION IF EXISTS pg_temp.fp_blocked(jsonb);
+CREATE OR REPLACE FUNCTION pg_temp.fp_blocked(_plan jsonb) RETURNS boolean LANGUAGE sql IMMUTABLE AS $$
+  SELECT EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(_plan->'blockers','[]'::jsonb)) b
+                  WHERE b->>'code' LIKE 'FP\_%')
+$$;
+
+-- C-01 + C-02 — the dependency is real, and a filing with no nominated subject
+-- fails closed on the F&P blocker while the filing itself is live (submitted).
+DO $c1$
+DECLARE _lic uuid; _svc uuid; _kfh uuid; _officer uuid; _kfh_fp boolean;
+        _fx jsonb; _r jsonb; _p jsonb; _st text; _harness text := NULL;
 BEGIN
-  _officer := pg_temp.officer();
-  _lic := pg_temp.host_license();
-  _svc := pg_temp.svc(_lic, 'PLS_DIRECTOR_APPOINTMENT');
-  _kfh := pg_temp.svc(_lic, 'PLS_KFH_CHANGE');
-  SELECT holder_id INTO _entity FROM public.licenses WHERE id = _lic;
+  _officer := pg_temp.officer(); _lic := pg_temp.host_license();
+  _svc := pg_temp.svc(_lic,'PLS_DIRECTOR_APPOINTMENT'); _kfh := pg_temp.svc(_lic,'PLS_KFH_CHANGE');
   IF _svc IS NULL OR _kfh IS NULL THEN
-    PERFORM pg_temp.rec('C','C-00','fixtures available for the F&P certification', false, 'services missing');
+    PERFORM pg_temp.rec('C','C-01','a KFH/director service is genuinely flagged F&P dependent', false,'services missing');
+    PERFORM pg_temp.rec('C','C-02','an F&P filing with no nominated subject fails closed on the F&P blocker', false,'services missing');
     RETURN;
   END IF;
   SELECT requires_fit_and_proper INTO _kfh_fp FROM public.services WHERE id = _kfh;
@@ -385,86 +388,158 @@ BEGIN
   BEGIN
     PERFORM set_config('request.jwt.claims',
       json_build_object('sub',_officer::text,'role','authenticated')::text, true);
-
-    -- (i) no nominated subject at all
-    _fx_none := pg_temp.fixture(_lic, _svc, _officer, 'withdrawn');
-    _r_none := public.post_license_fp_readiness((_fx_none->>'application_id')::uuid);
-    _p_none := public.post_license_effect_plan((_fx_none->>'application_id')::uuid);
-
-    -- (ii) nominated subject, determination still pending
-    _ind_pend := pg_temp.individual('F5-C Pending Director');
-    _asm_pend := pg_temp.assessment(_ind_pend, _entity, 'draft');
-    _fx_pend := pg_temp.fixture(_lic, _svc, _officer, 'withdrawn');
-    PERFORM pg_temp.nominate((_fx_pend->>'application_id')::uuid, _ind_pend, 'DIRECTOR');
-    PERFORM pg_temp.trusted_on(_officer);
-    PERFORM public.ensure_post_license_fp_links((_fx_pend->>'application_id')::uuid);
-    PERFORM pg_temp.trusted_off();
-    _r_pend := public.post_license_fp_readiness((_fx_pend->>'application_id')::uuid);
-    _p_pend := public.post_license_effect_plan((_fx_pend->>'application_id')::uuid);
-
-    -- (iii) negative determination
-    _ind_neg := pg_temp.individual('F5-C Negative Director');
-    _asm_neg := pg_temp.assessment(_ind_neg, _entity, 'draft');
-    _fx_neg := pg_temp.fixture(_lic, _svc, _officer, 'withdrawn');
-    PERFORM pg_temp.nominate((_fx_neg->>'application_id')::uuid, _ind_neg, 'DIRECTOR');
-    PERFORM pg_temp.trusted_on(_officer);
-    PERFORM public.ensure_post_license_fp_links((_fx_neg->>'application_id')::uuid);
-    PERFORM pg_temp.trusted_off();
-    PERFORM pg_temp.determination(_asm_neg, _ind_neg, 'not_fit');
-    _r_neg := public.post_license_fp_readiness((_fx_neg->>'application_id')::uuid);
-    _p_neg := public.post_license_effect_plan((_fx_neg->>'application_id')::uuid);
-    BEGIN
-      _res_neg := public.perform_final_workflow_approval((_fx_neg->>'application_id')::uuid,
-                    (_fx_neg->>'instance_id')::uuid, (_fx_neg->>'step_id')::uuid,
-                    'F5-C negative F&P', _officer);
-    EXCEPTION WHEN others THEN _res_neg := jsonb_build_object('raised', SQLSTATE);
-    END;
-    SELECT count(*) INTO _eff_neg FROM public.post_license_effects
-     WHERE application_id = (_fx_neg->>'application_id')::uuid;
-
-    -- (iv) positive determination -> the change may proceed
-    _ind_ok := pg_temp.individual('F5-C Fit Director');
-    _asm_ok := pg_temp.assessment(_ind_ok, _entity, 'draft');
-    _fx_ok := pg_temp.fixture(_lic, _svc, _officer);
-    PERFORM pg_temp.nominate((_fx_ok->>'application_id')::uuid, _ind_ok, 'DIRECTOR');
-    PERFORM pg_temp.trusted_on(_officer);
-    PERFORM public.ensure_post_license_fp_links((_fx_ok->>'application_id')::uuid);
-    PERFORM pg_temp.trusted_off();
-    PERFORM pg_temp.determination(_asm_ok, _ind_ok, 'fit');
-    _r_ok := public.post_license_fp_readiness((_fx_ok->>'application_id')::uuid);
-    _p_ok := public.post_license_effect_plan((_fx_ok->>'application_id')::uuid);
-
+    _fx := pg_temp.fixture(_lic, _svc, _officer, 'submitted');
+    _r  := public.post_license_fp_readiness((_fx->>'application_id')::uuid);
+    _p  := public.post_license_effect_plan((_fx->>'application_id')::uuid);
+    SELECT status INTO _st FROM public.applications WHERE id = (_fx->>'application_id')::uuid;
     RAISE EXCEPTION 'F5C_ROLLBACK';
   EXCEPTION WHEN others THEN
     IF SQLERRM <> 'F5C_ROLLBACK' THEN _harness := SQLSTATE || ': ' || left(SQLERRM,200); END IF;
     PERFORM set_config('request.jwt.claims','{}', true);
   END;
 
-  IF _harness IS NOT NULL THEN
-    PERFORM pg_temp.rec('C','C-99','the F&P certification executed without harness error', false, _harness);
-    RETURN;
-  END IF;
-
   PERFORM pg_temp.rec('C','C-01','a KFH/director service is genuinely flagged F&P dependent',
     _kfh_fp, 'requires_fit_and_proper=' || coalesce(_kfh_fp::text,'null'));
-  PERFORM pg_temp.rec('C','C-02','an F&P filing with no nominated subject fails closed',
-    _p_none->>'state' = 'BLOCKED' AND coalesce(_r_none->>'ready','true') = 'false',
-    'state=' || coalesce(_p_none->>'state','null') || ' code=' || coalesce(_p_none->>'code','null'));
+  PERFORM pg_temp.rec('C','C-02','an F&P filing with no nominated subject fails closed on the F&P blocker',
+    _harness IS NULL AND _st = 'submitted' AND _p->>'state' = 'BLOCKED'
+      AND coalesce(_r->>'state','OK') <> 'OK' AND pg_temp.fp_blocked(_p),
+    coalesce(_harness,'status=' || coalesce(_st,'null') || ' state=' || coalesce(_p->>'state','null')
+      || ' blockers=' || left(coalesce(_p->>'blockers','null'),120)));
+END $c1$;
+
+-- C-03 — a nominated but undetermined subject blocks the change.
+DO $c2$
+DECLARE _lic uuid; _svc uuid; _officer uuid; _entity uuid; _ind uuid; _asm uuid;
+        _fx jsonb; _r jsonb; _p jsonb; _st text; _harness text := NULL;
+BEGIN
+  _officer := pg_temp.officer(); _lic := pg_temp.host_license();
+  _svc := pg_temp.svc(_lic,'PLS_DIRECTOR_APPOINTMENT');
+  SELECT holder_id INTO _entity FROM public.licenses WHERE id = _lic;
+  IF _svc IS NULL THEN
+    PERFORM pg_temp.rec('C','C-03','a pending (undetermined) F&P subject blocks the change', false,'service missing');
+    RETURN;
+  END IF;
+  BEGIN
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub',_officer::text,'role','authenticated')::text, true);
+    _ind := pg_temp.individual('F5-C Pending Director');
+    _asm := pg_temp.assessment(_ind, _entity, 'draft');
+    _fx  := pg_temp.fixture(_lic, _svc, _officer, 'submitted');
+    PERFORM pg_temp.nominate((_fx->>'application_id')::uuid, _ind, 'DIRECTOR');
+    PERFORM pg_temp.trusted_on(_officer);
+    PERFORM public.ensure_post_license_fp_links((_fx->>'application_id')::uuid);
+    PERFORM pg_temp.trusted_off();
+    _r := public.post_license_fp_readiness((_fx->>'application_id')::uuid);
+    _p := public.post_license_effect_plan((_fx->>'application_id')::uuid);
+    SELECT status INTO _st FROM public.applications WHERE id = (_fx->>'application_id')::uuid;
+    RAISE EXCEPTION 'F5C_ROLLBACK';
+  EXCEPTION WHEN others THEN
+    IF SQLERRM <> 'F5C_ROLLBACK' THEN _harness := SQLSTATE || ': ' || left(SQLERRM,200); END IF;
+    PERFORM set_config('request.jwt.claims','{}', true);
+  END;
   PERFORM pg_temp.rec('C','C-03','a pending (undetermined) F&P subject blocks the change',
-    _p_pend->>'state' = 'BLOCKED' AND coalesce(_r_pend->>'ready','true') = 'false',
-    'state=' || coalesce(_p_pend->>'state','null') || ' code=' || coalesce(_p_pend->>'code','null'));
+    _harness IS NULL AND _st = 'submitted' AND _p->>'state' = 'BLOCKED'
+      AND coalesce(_r->>'state','OK') <> 'OK' AND pg_temp.fp_blocked(_p),
+    coalesce(_harness,'status=' || coalesce(_st,'null') || ' readiness=' || coalesce(_r->>'state','null')
+      || ' blockers=' || left(coalesce(_p->>'blockers','null'),120)));
+END $c2$;
+
+-- C-04 + C-05 — a negative determination blocks the change and the governed
+-- decision never fabricates a regulatory effect.
+DO $c3$
+DECLARE _lic uuid; _svc uuid; _officer uuid; _entity uuid; _ind uuid; _asm uuid;
+        _fx jsonb; _r jsonb; _p jsonb; _st text; _res jsonb; _eff int;
+        _harness text := NULL;
+BEGIN
+  _officer := pg_temp.officer(); _lic := pg_temp.host_license();
+  _svc := pg_temp.svc(_lic,'PLS_DIRECTOR_APPOINTMENT');
+  SELECT holder_id INTO _entity FROM public.licenses WHERE id = _lic;
+  IF _svc IS NULL THEN
+    PERFORM pg_temp.rec('C','C-04','a negative F&P determination blocks the change', false,'service missing');
+    PERFORM pg_temp.rec('C','C-05','a blocked F&P decision never fabricates a regulatory effect', false,'service missing');
+    RETURN;
+  END IF;
+  BEGIN
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub',_officer::text,'role','authenticated')::text, true);
+    _ind := pg_temp.individual('F5-C Rejected Director');
+    _asm := pg_temp.assessment(_ind, _entity, 'draft');
+    _fx  := pg_temp.fixture(_lic, _svc, _officer, 'submitted');
+    PERFORM pg_temp.nominate((_fx->>'application_id')::uuid, _ind, 'DIRECTOR');
+    PERFORM pg_temp.trusted_on(_officer);
+    PERFORM public.ensure_post_license_fp_links((_fx->>'application_id')::uuid);
+    PERFORM pg_temp.trusted_off();
+    -- certified F&P vocabulary: a negative outcome is 'rejected'
+    PERFORM pg_temp.determination(_asm, _ind, 'rejected');
+    _r := public.post_license_fp_readiness((_fx->>'application_id')::uuid);
+    _p := public.post_license_effect_plan((_fx->>'application_id')::uuid);
+    SELECT status INTO _st FROM public.applications WHERE id = (_fx->>'application_id')::uuid;
+    BEGIN
+      _res := public.perform_final_workflow_approval((_fx->>'application_id')::uuid,
+                (_fx->>'instance_id')::uuid, (_fx->>'step_id')::uuid, 'F5-C negative F&P', _officer);
+    EXCEPTION WHEN others THEN _res := jsonb_build_object('raised', SQLSTATE);
+    END;
+    SELECT count(*) INTO _eff FROM public.post_license_effects
+     WHERE application_id = (_fx->>'application_id')::uuid;
+    RAISE EXCEPTION 'F5C_ROLLBACK';
+  EXCEPTION WHEN others THEN
+    IF SQLERRM <> 'F5C_ROLLBACK' THEN _harness := SQLSTATE || ': ' || left(SQLERRM,200); END IF;
+    PERFORM set_config('request.jwt.claims','{}', true);
+  END;
   PERFORM pg_temp.rec('C','C-04','a negative F&P determination blocks the change',
-    _p_neg->>'state' = 'BLOCKED' AND coalesce(_r_neg->>'ready','true') = 'false',
-    'state=' || coalesce(_p_neg->>'state','null') || ' code=' || coalesce(_p_neg->>'code','null'));
+    _harness IS NULL AND _st = 'submitted' AND _p->>'state' = 'BLOCKED'
+      AND coalesce(_r->>'state','OK') <> 'OK' AND pg_temp.fp_blocked(_p),
+    coalesce(_harness,'status=' || coalesce(_st,'null') || ' readiness=' || coalesce(_r->>'state','null')
+      || ' blockers=' || left(coalesce(_p->>'blockers','null'),120)));
   PERFORM pg_temp.rec('C','C-05','a blocked F&P decision never fabricates a regulatory effect',
-    _eff_neg = 0 AND coalesce(_res_neg->>'success','false') <> 'true',
-    'effects=' || coalesce(_eff_neg::text,'null') || ' result=' || left(coalesce(_res_neg::text,'null'),120));
+    _harness IS NULL AND coalesce(_eff,0) = 0,
+    coalesce(_harness,'effects=' || coalesce(_eff::text,'null')
+      || ' decision=' || left(coalesce(_res::text,'null'),110)));
+END $c3$;
+
+-- C-06 + C-07 — a current positive determination satisfies readiness and the
+-- structural change plans READY on the canonical entity-change effect.
+DO $c4$
+DECLARE _lic uuid; _svc uuid; _officer uuid; _entity uuid; _ind uuid; _asm uuid;
+        _fx jsonb; _r jsonb; _p jsonb; _harness text := NULL;
+BEGIN
+  _officer := pg_temp.officer(); _lic := pg_temp.host_license();
+  _svc := pg_temp.svc(_lic,'PLS_DIRECTOR_APPOINTMENT');
+  SELECT holder_id INTO _entity FROM public.licenses WHERE id = _lic;
+  IF _svc IS NULL THEN
+    PERFORM pg_temp.rec('C','C-06','a current positive determination satisfies F&P readiness', false,'service missing');
+    PERFORM pg_temp.rec('C','C-07','with F&P satisfied the structural change plans READY', false,'service missing');
+    RETURN;
+  END IF;
+  BEGIN
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub',_officer::text,'role','authenticated')::text, true);
+    _ind := pg_temp.individual('F5-C Approved Director');
+    _asm := pg_temp.assessment(_ind, _entity, 'draft');
+    _fx  := pg_temp.fixture(_lic, _svc, _officer, 'submitted');
+    PERFORM pg_temp.nominate((_fx->>'application_id')::uuid, _ind, 'DIRECTOR');
+    PERFORM pg_temp.trusted_on(_officer);
+    PERFORM public.ensure_post_license_fp_links((_fx->>'application_id')::uuid);
+    PERFORM pg_temp.trusted_off();
+    -- certified F&P vocabulary: a positive outcome is 'approved'
+    PERFORM pg_temp.determination(_asm, _ind, 'approved');
+    _r := public.post_license_fp_readiness((_fx->>'application_id')::uuid);
+    _p := public.post_license_effect_plan((_fx->>'application_id')::uuid);
+    RAISE EXCEPTION 'F5C_ROLLBACK';
+  EXCEPTION WHEN others THEN
+    IF SQLERRM <> 'F5C_ROLLBACK' THEN _harness := SQLSTATE || ': ' || left(SQLERRM,200); END IF;
+    PERFORM set_config('request.jwt.claims','{}', true);
+  END;
   PERFORM pg_temp.rec('C','C-06','a current positive determination satisfies F&P readiness',
-    coalesce(_r_ok->>'ready','false') = 'true', 'readiness=' || left(coalesce(_r_ok::text,'null'),160));
+    _harness IS NULL AND _r->>'state' = 'OK' AND coalesce((_r->>'satisfied')::boolean,false),
+    coalesce(_harness,'readiness=' || left(coalesce(_r::text,'null'),160)));
   PERFORM pg_temp.rec('C','C-07','with F&P satisfied the structural change plans READY',
-    _p_ok->>'state' = 'READY' AND _p_ok->>'effect_kind' = 'ENTITY_CHANGE',
-    'state=' || coalesce(_p_ok->>'state','null') || ' code=' || coalesce(_p_ok->>'code','null'));
-END $c$;
+    _harness IS NULL AND NOT pg_temp.fp_blocked(_p) AND _p->>'effect_kind' = 'ENTITY_CHANGE',
+    coalesce(_harness,'state=' || coalesce(_p->>'state','null')
+      || ' kind=' || coalesce(_p->>'effect_kind','null')
+      || ' blockers=' || left(coalesce(_p->>'blockers','null'),120)));
+END $c4$;
+
 
 -- ===========================================================================
 -- SECTION D — E2E: NOTIFICATION SERVICE ACKNOWLEDGEMENT
@@ -791,81 +866,248 @@ END $g$;
 
 -- ===========================================================================
 -- SECTION H — SUBMISSION BOUNDARY: FEES, WITHDRAWAL, DUPLICATES
+-- Every state transition is driven through the canonical governed functions
+-- (submit_application / withdraw_application). No protected workflow or status
+-- field is ever mutated directly: WORKFLOW_FIELD_LOCKED stays intact.
+-- Each scenario is an independent rollback sub-transaction.
 -- ===========================================================================
-DO $h$
-DECLARE
-  _lic public.licenses; _officer uuid; _svc uuid; _app uuid; _dup uuid;
-  _fee jsonb; _fee_f4 jsonb; _can_before jsonb; _can_paid jsonb;
-  _withdraw text; _status_after text; _dup_ctx text; _wrong_ctx jsonb;
-  _harness text := NULL; _n int;
+DROP FUNCTION IF EXISTS pg_temp.f5_draft(uuid,uuid,uuid);
+CREATE OR REPLACE FUNCTION pg_temp.f5_draft(_license uuid, _service uuid, _actor uuid)
+RETURNS uuid LANGUAGE plpgsql AS $$
+DECLARE _lic public.licenses; _app uuid;
 BEGIN
-  _officer := pg_temp.officer();
-  SELECT * INTO _lic FROM public.licenses WHERE id = pg_temp.host_license();
-  _svc := pg_temp.svc(_lic.id, 'PLS_CHANGE_ADDRESS');
+  SELECT * INTO _lic FROM public.licenses WHERE id = _license;
+  INSERT INTO public.applications (applicant_id, license_type, status, data, entity_id, regulator_id)
+  VALUES (_actor, 'f5c-fee', 'draft',
+          jsonb_build_object('type','post_license','license_id',_license,'service_id',_service),
+          _lic.holder_id, _lic.regulator_id)
+  RETURNING id INTO _app;
+  RETURN _app;
+END $$;
 
+-- Rollback-safe business-configuration fixture: a real blocking lifecycle fee.
+DROP FUNCTION IF EXISTS pg_temp.fee_binding(uuid,text,numeric);
+CREATE OR REPLACE FUNCTION pg_temp.fee_binding(_license uuid, _matter text, _amount numeric)
+RETURNS uuid LANGUAGE plpgsql AS $$
+DECLARE _lic public.licenses; _id uuid;
+BEGIN
+  SELECT * INTO _lic FROM public.licenses WHERE id = _license;
+  INSERT INTO public.license_fee_bindings
+    (regulator_id, matter_kind, fee_type_code, description, amount_override, currency,
+     blocking, purpose, is_active, effective_from, notes)
+  VALUES (_lic.regulator_id, _matter, 'F5C_PROBE_FEE', 'F5-C probe lifecycle fee',
+          _amount, 'JMD', true, 'PRODUCTION', true, current_date, 'F5-C probe')
+  RETURNING id INTO _id;
+  RETURN _id;
+END $$;
+
+-- H-01 — absent fee configuration never fabricates a charge, and the governed
+-- submission proceeds.
+DO $h1$
+DECLARE _lic uuid; _svc uuid; _officer uuid; _app uuid; _fee jsonb; _sub jsonb;
+        _st text; _harness text := NULL;
+BEGIN
+  _officer := pg_temp.officer(); _lic := pg_temp.host_license();
+  _svc := pg_temp.svc(_lic,'PLS_CHANGE_ADDRESS');
   BEGIN
     PERFORM set_config('request.jwt.claims',
       json_build_object('sub',_officer::text,'role','authenticated')::text, true);
-
-    INSERT INTO public.applications (applicant_id, license_type, status, data, entity_id, regulator_id, submitted_at)
-    VALUES (_officer, 'f5c-fee', 'submitted',
-            jsonb_build_object('type','post_license','license_id',_lic.id,'service_id',_svc),
-            _lic.holder_id, _lic.regulator_id, now())
-    RETURNING id INTO _app;
+    _app := pg_temp.f5_draft(_lic, _svc, _officer);
     _fee := public.post_license_fee_assessment(_app);
-    _can_before := public.can_submit_application(_app)::text;
-
-    INSERT INTO public.applications (applicant_id, license_type, status, data, entity_id)
-    VALUES (_officer, 'f5c-fee', 'draft', '{"type":"new_application"}'::jsonb, _lic.holder_id)
-    RETURNING id INTO _dup;
-    _fee_f4 := public.post_license_fee_assessment(_dup);
-
-    -- governed intake context: duplicate / open matter detection
-    _dup_ctx := public.resolve_post_license_intake_context(_lic.id, _svc)::text;
-    _wrong_ctx := to_jsonb(public.post_license_service_applicability(_svc, gen_random_uuid()));
-
-    -- withdrawal before a final decision, through the governed operation
-    BEGIN
-      _withdraw := public.withdraw_application(_app, 'F5-C applicant withdrawal')::text;
-    EXCEPTION WHEN others THEN _withdraw := jsonb_build_object('raised', SQLSTATE || ': ' || left(SQLERRM,120));
-    END;
-    SELECT status INTO _status_after FROM public.applications WHERE id = _app;
-
+    _sub := public.submit_application(_app, 'F5-C acknowledgement');
+    SELECT status INTO _st FROM public.applications WHERE id = _app;
     RAISE EXCEPTION 'F5C_ROLLBACK';
   EXCEPTION WHEN others THEN
     IF SQLERRM <> 'F5C_ROLLBACK' THEN _harness := SQLSTATE || ': ' || left(SQLERRM,200); END IF;
     PERFORM set_config('request.jwt.claims','{}', true);
   END;
+  PERFORM pg_temp.rec('H','H-01','absent fee configuration never fabricates a charge and does not block submission',
+    _harness IS NULL
+    AND coalesce((_fee->>'requires_payment')::boolean,true) = false
+    AND coalesce((_fee->>'amount_due')::numeric,-1) = 0
+    AND _fee->>'basis' IN ('BUSINESS_CONFIGURATION_ABSENT','NO_FEE_RESOLVED','WAIVED_OR_ZERO_RATED')
+    AND _sub->>'code' IS DISTINCT FROM 'PAYMENT_REQUIRED' AND _st = 'submitted',
+    coalesce(_harness,'fee=' || left(coalesce(_fee::text,'null'),120)
+      || ' submit=' || left(coalesce(_sub::text,'null'),90) || ' status=' || coalesce(_st,'null')));
+END $h1$;
 
-  IF _harness IS NOT NULL THEN
-    PERFORM pg_temp.rec('H','H-99','the submission-boundary certification executed without harness error',
-      false, _harness);
-  ELSE
-    PERFORM pg_temp.rec('H','H-01','payment is demanded only when a real amount is assessed',
-      (coalesce((_fee->>'amount_due')::numeric,0) > 0) = coalesce((_fee->>'requires_payment')::boolean,false),
-      'assessment=' || left(coalesce(_fee::text,'null'),160));
-    PERFORM pg_temp.rec('H','H-02','a no-fee or waived F5 filing is not blocked by a fabricated charge',
-      coalesce((_fee->>'amount_due')::numeric,0) > 0
-      OR coalesce((_fee->>'requires_payment')::boolean,true) = false,
-      'basis=' || coalesce(_fee->>'basis','null'));
-    PERFORM pg_temp.rec('H','H-03','the submission gate is a server decision carrying explicit reasons',
-      coalesce(_can_before,'') <> '', 'gate=' || left(coalesce(_can_before,'null'),160));
-    PERFORM pg_temp.rec('H','H-04','initial licensing (F4) fee behaviour is unchanged by the F5 boundary',
-      _fee_f4->>'state' = 'NOT_POST_LICENSE', 'assessment=' || left(coalesce(_fee_f4::text,'null'),120));
-    PERFORM pg_temp.rec('H','H-05','the governed intake context resolves licence + service authority',
-      coalesce(_dup_ctx,'') <> '', 'context=' || left(coalesce(_dup_ctx,'null'),160));
-    PERFORM pg_temp.rec('H','H-06','a service cannot be filed against a licence it is not applicable to',
-      coalesce((_wrong_ctx->>'applicable')::boolean, false) = false,
-      'applicability=' || left(coalesce(_wrong_ctx::text,'null'),160));
-    PERFORM pg_temp.rec('H','H-07','an applicant may withdraw before a final decision through the governed operation',
-      _status_after = 'withdrawn', 'status=' || coalesce(_status_after,'null')
-      || ' result=' || left(coalesce(_withdraw,'null'),100));
+-- H-02 + H-03 — a real assessed amount blocks submission until a valid
+-- completed payment exists; then the same governed submission proceeds.
+DO $h2$
+DECLARE _lic uuid; _svc uuid; _officer uuid; _app uuid; _fee jsonb;
+        _blocked jsonb; _st_blocked text; _after jsonb; _st_after text;
+        _harness text := NULL;
+BEGIN
+  _officer := pg_temp.officer(); _lic := pg_temp.host_license();
+  _svc := pg_temp.svc(_lic,'RENEWAL');
+  IF _svc IS NULL THEN
+    PERFORM pg_temp.rec('H','H-02','an assessed fee above zero blocks submission until payment', false,'renewal service missing');
+    PERFORM pg_temp.rec('H','H-03','a valid completed payment releases the governed submission', false,'renewal service missing');
+    RETURN;
   END IF;
+  BEGIN
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub',_officer::text,'role','authenticated')::text, true);
+    PERFORM pg_temp.fee_binding(_lic, 'renewal', 25000);
+    _app := pg_temp.f5_draft(_lic, _svc, _officer);
+    _fee := public.post_license_fee_assessment(_app);
+    _blocked := public.submit_application(_app, 'F5-C acknowledgement');
+    SELECT status INTO _st_blocked FROM public.applications WHERE id = _app;
 
+    INSERT INTO public.payments (user_id, application_id, amount, currency, status, payment_channel)
+    VALUES (_officer, _app, 25000, 'JMD', 'completed', 'online');
+    _after := public.submit_application(_app, 'F5-C acknowledgement');
+    SELECT status INTO _st_after FROM public.applications WHERE id = _app;
+    RAISE EXCEPTION 'F5C_ROLLBACK';
+  EXCEPTION WHEN others THEN
+    IF SQLERRM <> 'F5C_ROLLBACK' THEN _harness := SQLSTATE || ': ' || left(SQLERRM,200); END IF;
+    PERFORM set_config('request.jwt.claims','{}', true);
+  END;
+  PERFORM pg_temp.rec('H','H-02','an assessed fee above zero blocks submission until payment',
+    _harness IS NULL
+    AND coalesce((_fee->>'amount_due')::numeric,0) > 0
+    AND coalesce((_fee->>'requires_payment')::boolean,false)
+    AND _blocked->>'code' = 'PAYMENT_REQUIRED' AND (_blocked->>'http') = '402'
+    AND _st_blocked = 'draft',
+    coalesce(_harness,'fee=' || coalesce(_fee->>'amount_due','null')
+      || ' refusal=' || left(coalesce(_blocked::text,'null'),110) || ' status=' || coalesce(_st_blocked,'null')));
+  PERFORM pg_temp.rec('H','H-03','a valid completed payment releases the governed submission',
+    _harness IS NULL AND _st_after = 'submitted'
+    AND coalesce(_after->>'code','') IS DISTINCT FROM 'PAYMENT_REQUIRED',
+    coalesce(_harness,'status=' || coalesce(_st_after,'null')
+      || ' result=' || left(coalesce(_after::text,'null'),110)));
+END $h2$;
+
+-- H-04 — a zero-rated / waived lifecycle fee does not block submission.
+DO $h3$
+DECLARE _lic uuid; _svc uuid; _officer uuid; _app uuid; _fee jsonb; _sub jsonb;
+        _st text; _harness text := NULL;
+BEGIN
+  _officer := pg_temp.officer(); _lic := pg_temp.host_license();
+  _svc := pg_temp.svc(_lic,'RENEWAL');
+  IF _svc IS NULL THEN
+    PERFORM pg_temp.rec('H','H-04','a zero-rated or waived fee does not block the governed submission', false,'renewal service missing');
+    RETURN;
+  END IF;
+  BEGIN
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub',_officer::text,'role','authenticated')::text, true);
+    PERFORM pg_temp.fee_binding(_lic, 'renewal', 0);
+    _app := pg_temp.f5_draft(_lic, _svc, _officer);
+    _fee := public.post_license_fee_assessment(_app);
+    _sub := public.submit_application(_app, 'F5-C acknowledgement');
+    SELECT status INTO _st FROM public.applications WHERE id = _app;
+    RAISE EXCEPTION 'F5C_ROLLBACK';
+  EXCEPTION WHEN others THEN
+    IF SQLERRM <> 'F5C_ROLLBACK' THEN _harness := SQLSTATE || ': ' || left(SQLERRM,200); END IF;
+    PERFORM set_config('request.jwt.claims','{}', true);
+  END;
+  PERFORM pg_temp.rec('H','H-04','a zero-rated or waived fee does not block the governed submission',
+    _harness IS NULL
+    AND coalesce((_fee->>'amount_due')::numeric,-1) = 0
+    AND coalesce((_fee->>'requires_payment')::boolean,true) = false
+    AND _sub->>'code' IS DISTINCT FROM 'PAYMENT_REQUIRED' AND _st = 'submitted',
+    coalesce(_harness,'fee=' || left(coalesce(_fee::text,'null'),110)
+      || ' submit=' || left(coalesce(_sub::text,'null'),80) || ' status=' || coalesce(_st,'null')));
+END $h3$;
+
+-- H-05 — the frozen F4 initial-licensing payment contract is unchanged.
+DO $h4$
+DECLARE _lic public.licenses; _officer uuid; _app uuid; _sub jsonb; _fee_f4 jsonb;
+        _st text; _harness text := NULL;
+BEGIN
+  _officer := pg_temp.officer();
+  SELECT * INTO _lic FROM public.licenses WHERE id = pg_temp.host_license();
+  BEGIN
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub',_officer::text,'role','authenticated')::text, true);
+    INSERT INTO public.applications (applicant_id, license_type, status, data, entity_id, regulator_id)
+    VALUES (_officer, 'f5c-fee', 'draft', '{"type":"new_application"}'::jsonb,
+            _lic.holder_id, _lic.regulator_id)
+    RETURNING id INTO _app;
+    _fee_f4 := public.post_license_fee_assessment(_app);
+    _sub := public.submit_application(_app, 'F5-C acknowledgement');
+    SELECT status INTO _st FROM public.applications WHERE id = _app;
+    RAISE EXCEPTION 'F5C_ROLLBACK';
+  EXCEPTION WHEN others THEN
+    IF SQLERRM <> 'F5C_ROLLBACK' THEN _harness := SQLSTATE || ': ' || left(SQLERRM,200); END IF;
+    PERFORM set_config('request.jwt.claims','{}', true);
+  END;
+  PERFORM pg_temp.rec('H','H-05','initial licensing (F4) payment behaviour is unchanged by the F5 fee boundary',
+    _harness IS NULL AND _fee_f4->>'state' = 'NOT_POST_LICENSE'
+    AND _sub->>'code' = 'PAYMENT_REQUIRED' AND _st = 'draft',
+    coalesce(_harness,'assessment=' || left(coalesce(_fee_f4::text,'null'),80)
+      || ' submit=' || left(coalesce(_sub::text,'null'),100) || ' status=' || coalesce(_st,'null')));
+END $h4$;
+
+-- H-06 — the duplicate / open-filing guard and canonical applicability both
+-- remain enforced; neither is relaxed by the fee boundary.
+DO $h5$
+DECLARE _lic uuid; _svc uuid; _officer uuid; _app uuid; _sub jsonb;
+        _dup_state text; _wrong text; _harness text := NULL;
+BEGIN
+  _officer := pg_temp.officer(); _lic := pg_temp.host_license();
+  _svc := pg_temp.svc(_lic,'PLS_CHANGE_ADDRESS');
+  BEGIN
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub',_officer::text,'role','authenticated')::text, true);
+    _app := pg_temp.f5_draft(_lic, _svc, _officer);
+    _sub := public.submit_application(_app, 'F5-C acknowledgement');
+    -- a second live filing for the same licence + service must be refused
+    BEGIN
+      PERFORM pg_temp.f5_draft(_lic, _svc, _officer);
+      _dup_state := 'ACCEPTED';
+    EXCEPTION WHEN others THEN _dup_state := SQLSTATE || ':' || left(SQLERRM,60);
+    END;
+    _wrong := public.post_license_service_applicability(_svc, gen_random_uuid());
+    RAISE EXCEPTION 'F5C_ROLLBACK';
+  EXCEPTION WHEN others THEN
+    IF SQLERRM <> 'F5C_ROLLBACK' THEN _harness := SQLSTATE || ': ' || left(SQLERRM,200); END IF;
+    PERFORM set_config('request.jwt.claims','{}', true);
+  END;
+  PERFORM pg_temp.rec('H','H-06','the duplicate/open-filing guard and canonical applicability remain enforced',
+    _harness IS NULL AND coalesce(_dup_state,'ACCEPTED') <> 'ACCEPTED'
+    AND coalesce(_wrong,'OK') <> 'OK',
+    coalesce(_harness,'duplicate=' || coalesce(_dup_state,'null')
+      || ' wrong_licence=' || coalesce(_wrong,'null')));
+END $h5$;
+
+-- H-07 — withdrawal before a final decision runs through governed withdrawal.
+DO $h6$
+DECLARE _lic uuid; _svc uuid; _officer uuid; _app uuid; _sub jsonb; _wd jsonb;
+        _st text; _harness text := NULL;
+BEGIN
+  _officer := pg_temp.officer(); _lic := pg_temp.host_license();
+  _svc := pg_temp.svc(_lic,'PLS_CHANGE_ADDRESS');
+  BEGIN
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub',_officer::text,'role','authenticated')::text, true);
+    _app := pg_temp.f5_draft(_lic, _svc, _officer);
+    _sub := public.submit_application(_app, 'F5-C acknowledgement');
+    _wd  := public.withdraw_application(_app, 'F5-C applicant withdrawal');
+    SELECT status INTO _st FROM public.applications WHERE id = _app;
+    RAISE EXCEPTION 'F5C_ROLLBACK';
+  EXCEPTION WHEN others THEN
+    IF SQLERRM <> 'F5C_ROLLBACK' THEN _harness := SQLSTATE || ': ' || left(SQLERRM,200); END IF;
+    PERFORM set_config('request.jwt.claims','{}', true);
+  END;
+  PERFORM pg_temp.rec('H','H-07','an applicant withdraws before a final decision through governed withdrawal',
+    _harness IS NULL AND _st = 'withdrawn'
+    AND coalesce((_wd->>'success')::boolean, _wd ? 'application_id'),
+    coalesce(_harness,'status=' || coalesce(_st,'null')
+      || ' result=' || left(coalesce(_wd::text,'null'),110)));
+END $h6$;
+
+-- H-08 — zero certification residue in the application register.
+DO $h7$
+DECLARE _n int; _p int;
+BEGIN
   SELECT count(*) INTO _n FROM public.applications WHERE license_type IN ('f5c-fee','f5c-probe');
-  PERFORM pg_temp.rec('H','H-08','zero certification-harness residue in the application register',
-    _n = 0, 'residue=' || _n);
-END $h$;
+  SELECT count(*) INTO _p FROM public.license_fee_bindings WHERE fee_type_code = 'F5C_PROBE_FEE';
+  PERFORM pg_temp.rec('H','H-08','zero certification-harness residue in the application and fee registers',
+    _n = 0 AND _p = 0, 'applications=' || _n || ' fee_bindings=' || _p);
+END $h7$;
+
 
 -- ===========================================================================
 -- SECTION I — AUTHORITY, ISOLATION AND FAIL-CLOSED CASES
