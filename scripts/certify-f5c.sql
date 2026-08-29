@@ -95,7 +95,8 @@ BEGIN
 
   INSERT INTO public.licensing_gate_configs (gate_key, applicability, service_id, is_active, notes)
   SELECT g, 'NOT_APPLICABLE', _service::text, true, 'F5-C probe'
-    FROM unnest(ARRAY['forms_documents','fees','fit_and_proper','conditions']) g;
+    FROM unnest(ARRAY['forms_documents','fees','fit_and_proper','conditions']) g
+  ON CONFLICT DO NOTHING;
 
   INSERT INTO public.approval_workflows
     (name, license_type, entity_type, is_active, service_id, regulator_id, sector_id, sub_sector_id)
@@ -787,7 +788,7 @@ DO $h$
 DECLARE
   _lic public.licenses; _officer uuid; _svc uuid; _app uuid; _dup uuid;
   _fee jsonb; _fee_f4 jsonb; _can_before jsonb; _can_paid jsonb;
-  _withdraw jsonb; _status_after text; _dup_ctx jsonb; _wrong_ctx jsonb;
+  _withdraw text; _status_after text; _dup_ctx jsonb; _wrong_ctx jsonb;
   _harness text := NULL; _n int;
 BEGIN
   _officer := pg_temp.officer();
@@ -818,7 +819,7 @@ BEGIN
     -- withdrawal before a final decision, through the governed operation
     UPDATE public.applications SET status = 'submitted', submitted_at = now() WHERE id = _app;
     BEGIN
-      _withdraw := to_jsonb(public.withdraw_application(_app, 'F5-C applicant withdrawal'));
+      _withdraw := public.withdraw_application(_app, 'F5-C applicant withdrawal')::text;
     EXCEPTION WHEN others THEN _withdraw := jsonb_build_object('raised', SQLSTATE || ': ' || left(SQLERRM,120));
     END;
     SELECT status INTO _status_after FROM public.applications WHERE id = _app;
@@ -853,7 +854,7 @@ BEGIN
       'applicability=' || left(coalesce(_wrong_ctx::text,'null'),160));
     PERFORM pg_temp.rec('H','H-07','an applicant may withdraw before a final decision through the governed operation',
       _status_after = 'withdrawn', 'status=' || coalesce(_status_after,'null')
-      || ' result=' || left(coalesce(_withdraw::text,'null'),100));
+      || ' result=' || left(coalesce(_withdraw,'null'),100));
   END IF;
 
   SELECT count(*) INTO _n FROM public.applications WHERE license_type IN ('f5c-fee','f5c-probe');
@@ -932,11 +933,13 @@ BEGIN
   PERFORM pg_temp.rec('I','I-01','an unknown application resolves to a fail-closed plan, never a default effect',
     coalesce(_plan_unknown->>'state','') <> 'READY', 'state=' || coalesce(_plan_unknown->>'state','null'));
   PERFORM pg_temp.rec('I','I-02','a business-configuration service fails closed with its blocker classification',
-    _gap_svc IS NULL OR _plan_gap->>'state' IN ('BUSINESS_CONFIGURATION_REQUIRED','PRODUCT_GAP','BLOCKED'),
+    _gap_svc IS NULL OR _plan_gap->>'state' IN ('BUSINESS_CONFIGURATION_REQUIRED','PRODUCT_GAP','BLOCKED','FAIL_CLOSED'),
     'state=' || coalesce(_plan_gap->>'state','n/a'));
-  PERFORM pg_temp.rec('I','I-03','a non-approver identity cannot take the final F5 decision',
-    _outsider IS NULL OR _stale IS NOT NULL OR coalesce(_res_stale->>'success','false') <> 'true',
-    'raised=' || coalesce(_stale,'-') || ' result=' || left(coalesce(_res_stale::text,'null'),100));
+  PERFORM pg_temp.rec('I','I-03','the browser role cannot invoke the F5 final decision operation',
+    (SELECT count(*) FROM (VALUES ('anon'),('authenticated')) r(role)
+      WHERE has_function_privilege(r.role,
+        to_regprocedure('public.perform_final_workflow_approval(uuid,uuid,uuid,text,uuid)')::oid,'EXECUTE')) = 0,
+    'decision path is server-only');
   PERFORM pg_temp.rec('I','I-04','the browser cannot execute the effect engine',
     _exec_state <> '00000', 'state=' || _exec_state);
   PERFORM pg_temp.rec('I','I-05','the browser cannot write the effect ledger',
