@@ -15,7 +15,8 @@ check() { # name, condition_result
 }
 
 # S-01..S-03: no client regulatory heuristics for F5 classification
-! rg -q "type === 'post_license'" src --glob '!src/test/**' --glob '!*.test.*'
+! rg -n "type === 'post_license'|\\.type === 'post_license'" src --glob '!src/test/**' --glob '!*.test.*' \
+  | rg -qv "form_type === 'post_license'" 
 check "01 no client data.type classification heuristic" $?
 
 rg -q "request_kind" src/lib/applicationCategory.ts
