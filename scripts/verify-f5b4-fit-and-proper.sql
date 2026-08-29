@@ -318,8 +318,8 @@ BEGIN
 
     -- end-to-end submission refusal on the canonical path
     _a_f4 := pg_temp.f5b4_app(_lic, _svc_fp, _officer, 'draft');
-    INSERT INTO public.payments (application_id, amount, status, payment_method)
-    VALUES (_a_f4, 1, 'completed', 'probe');
+    INSERT INTO public.payments (application_id, user_id, amount, status, payment_method)
+    VALUES (_a_f4, _officer, 1, 'completed', 'probe');
     PERFORM set_config('request.jwt.claims',
       json_build_object('sub',_officer::text,'role','authenticated')::text, true);
     UPDATE public.applications SET applicant_id = _officer WHERE id = _a_f4;
