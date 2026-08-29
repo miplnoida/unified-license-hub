@@ -389,7 +389,7 @@ BEGIN
 
       _buf := pg_temp.bufrec(_buf,'H','H-05','the override change is audited',
         EXISTS (SELECT 1 FROM public.audit_logs a
-                 WHERE a.entity_id = _profile
+                 WHERE a.entity_id = _profile::text
                     OR a.new_value::text LIKE '%'||_profile::text||'%'
                     OR a.metadata::text LIKE '%'||_profile::text||'%'),
         'audit row present');
