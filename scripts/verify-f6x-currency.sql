@@ -320,7 +320,7 @@ BEGIN
 
     -- E-01 record the historical conversion with full provenance
     _res := public.fx_convert(10, _pair_from, _pair_to, CURRENT_DATE - 10, NULL, NULL);
-    _conv_id := public.fx_record_conversion('F6X_GATE','fx_gate',
+    _conv_id := public.fx_record_conversion('REPORTING','f6x_gate',
         gen_random_uuid(), _res, NULL, _admin,
         jsonb_build_object('gate','verify:f6x-currency'));
     SELECT count(*) INTO _n FROM public.fx_conversions
@@ -483,7 +483,7 @@ BEGIN
    WHERE provenance_reference LIKE 'F6X-GATE-%';
   PERFORM pg_temp.rec('Z','Z-01','the gate leaves no exchange rate behind', _n = 0, 'residue rows='||_n);
 
-  SELECT count(*) INTO _n FROM public.fx_conversions WHERE purpose = 'F6X_GATE';
+  SELECT count(*) INTO _n FROM public.fx_conversions WHERE subject_type = 'f6x_gate';
   PERFORM pg_temp.rec('Z','Z-02','the gate leaves no conversion behind', _n = 0, 'residue rows='||_n);
 
   SELECT count(*) INTO _n FROM public.currencies WHERE code = 'AUD' AND name = 'Australian Dollar';
