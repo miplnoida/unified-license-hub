@@ -408,11 +408,23 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
                         data-rbac="application_management.edit"
                         variant="outline"
                         size="lg"
-                        onClick={() => setOfflineOpen(true)}
+                        onClick={async () => {
+                          setProcessing(true);
+                          try {
+                            // Canonical assessment boundary — entering the payment step.
+                            await enterPaymentStep();
+                            setOfflineOpen(true);
+                          } catch (e) {
+                            toast.error(feeErrorMessage(e));
+                          } finally {
+                            setProcessing(false);
+                          }
+                        }}
                         disabled={processing}
                       >
                         <Banknote className="h-4 w-4 mr-2" /> Paid Offline
                       </Button>
+
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground max-w-[180px] text-right">
