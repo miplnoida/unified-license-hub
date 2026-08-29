@@ -574,6 +574,62 @@ BEGIN
   PERFORM pg_temp.rec('Z','Z-03','the gate leaves no synthetic extension behind', _n = 0, 'residue rows='||_n);
 END $z$;
 
+
+-- ===========================================================================
+-- SECTION L — GOVERNED FILING LIFECYCLE AUTHORITY (empirical). Every lifecycle
+-- transition — RFI, extension, amendment, evidence — is reachable only through
+-- a governed routine, refuses a non-privileged caller, and fails closed on an
+-- unknown filing rather than creating orphan governance records.
+-- ===========================================================================
+DO $l$
+DECLARE _plain uuid; _ok boolean; _msg text; _n int; _fake uuid := '00000000-0000-0000-0000-000000000000';
+BEGIN
+  SELECT p.id INTO _plain FROM public.profiles p
+   WHERE NOT public.is_super_admin(p.id)
+     AND NOT public.has_permission(p.id,'returns_management','edit')
+   ORDER BY p.created_at LIMIT 1;
+
+  IF _plain IS NULL THEN
+    PERFORM pg_temp.rec('L','L-00','vacuity guard: a non-privileged caller exists for the lifecycle probes',
+      false, 'no non-privileged profile — refusing to certify vacuously');
+    RETURN;
+  END IF;
+  PERFORM pg_temp.rec('L','L-00','vacuity guard: a non-privileged caller exists for the lifecycle probes',
+    true, 'plain='||_plain::text);
+
+  PERFORM pg_temp.act(_plain);
+
+  _ok := false; _msg := '';
+  BEGIN PERFORM public.returns_raise_rfi(_fake, 'Gate probe: unauthorised RFI must be refused', NULL);
+  EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+  PERFORM pg_temp.rec('L','L-01','a non-privileged caller cannot raise a regulator RFI', _ok, _msg);
+
+  _ok := false; _msg := '';
+  BEGIN PERFORM public.returns_decide_extension(_fake, 'APPROVED', NULL,
+    'Gate probe: unauthorised extension decision must be refused');
+  EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+  PERFORM pg_temp.rec('L','L-02','a non-privileged caller cannot decide an extension request', _ok, _msg);
+
+  _ok := false; _msg := '';
+  BEGIN PERFORM public.returns_decide_amendment(_fake, 'APPROVED',
+    'Gate probe: unauthorised amendment decision must be refused');
+  EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+  PERFORM pg_temp.rec('L','L-03','a non-privileged caller cannot decide an amendment request', _ok, _msg);
+
+  _ok := false; _msg := '';
+  BEGIN PERFORM public.returns_run_overdue_sweep(NULL);
+  EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+  PERFORM pg_temp.rec('L','L-04','a non-privileged caller cannot run the overdue sweep', _ok, _msg);
+
+  PERFORM set_config('request.jwt.claims','{}', true);
+
+  SELECT count(*) INTO _n FROM public.return_filing_extensions WHERE return_filing_id = _fake;
+  PERFORM pg_temp.rec('L','L-05','the refused lifecycle probes created no extension record', _n = 0, 'rows='||_n);
+
+  SELECT count(*) INTO _n FROM public.return_filing_evidence WHERE return_filing_id = _fake;
+  PERFORM pg_temp.rec('L','L-06','the refused lifecycle probes created no evidence record', _n = 0, 'rows='||_n);
+END $l$;
+
 \echo ''
 \echo '========================= verify:f7b results ========================='
 SELECT section, id, CASE WHEN passed THEN 'PASS' ELSE 'FAIL' END AS result, descr, detail
