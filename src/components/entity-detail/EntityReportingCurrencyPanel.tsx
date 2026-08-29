@@ -233,7 +233,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
                       <TableCell className="space-x-2 text-right">
                         {canManage && !isMaker && (
                           <>
-                            <GuardedButton module="licensee_management" action="edit" size="sm"
+                            <GuardedButton module="licensee_management" action="edit" data-rbac="licensee_management.edit" size="sm"
                               onClick={() => decide(p.id, 'APPROVE')} disabled={decideOverride.isPending}>Approve</GuardedButton>
                             <GuardedButton module="licensee_management" action="edit" size="sm" variant="outline"
                               onClick={() => decide(p.id, 'REJECT')} disabled={decideOverride.isPending}>Reject</GuardedButton>
