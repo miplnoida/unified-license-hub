@@ -16,6 +16,10 @@ const workflowsByRegulator: Record<string, any[]> = {
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
+    // The server resolver (application_workflow_view) is the primary authority in
+    // production. These fixtures exercise the client fallback path, so the RPC
+    // deliberately reports as unavailable.
+    rpc: vi.fn(() => Promise.resolve({ data: null, error: { message: 'rpc unavailable in fixture' } })),
     from: vi.fn((table: string) => {
       if (table === 'approval_workflows') {
         return {
