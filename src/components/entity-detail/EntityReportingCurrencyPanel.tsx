@@ -222,7 +222,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
         {activeProfile && canManage && (
           <CardContent className="pt-0">
             <GuardedButton module="licensee_management" action="edit" variant="outline" size="sm"
-              onClick={() => supersede(activeProfile.id)}>
+              onClick={() => supersede(activeProfile)}>
               Supersede current override
             </GuardedButton>
           </CardContent>
@@ -259,9 +259,9 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
                         {canManage && !isMaker && (
                           <>
                             <GuardedButton module="licensee_management" action="edit" data-rbac="licensee_management.edit" size="sm"
-                              onClick={() => decide(p.id, 'APPROVE')} disabled={decideOverride.isPending}>Accept proposal</GuardedButton>
+                              onClick={() => decide(p, 'APPROVE')} disabled={decideOverride.isPending}>Accept proposal</GuardedButton>
                             <GuardedButton module="licensee_management" action="edit" data-rbac="licensee_management.edit" size="sm" variant="outline"
-                              onClick={() => decide(p.id, 'REJECT')} disabled={decideOverride.isPending}>Decline proposal</GuardedButton>
+                              onClick={() => decide(p, 'REJECT')} disabled={decideOverride.isPending}>Decline proposal</GuardedButton>
 
                           </>
                         )}
@@ -269,7 +269,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
                           <>
                             <span className="mr-2 text-xs text-muted-foreground">You proposed this change — an independent approver must decide.</span>
                             <GuardedButton module="licensee_management" action="edit" size="sm" variant="outline"
-                              onClick={() => withdraw(p.id)} disabled={withdrawProposal.isPending}>Withdraw</GuardedButton>
+                              onClick={() => withdraw(p)} disabled={withdrawProposal.isPending}>Withdraw</GuardedButton>
                           </>
                         )}
                         {!canManage && !isMaker && <span className="text-xs text-muted-foreground">Awaiting approval</span>}
@@ -340,6 +340,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
           )}
         </CardContent>
       </Card>
+      <ReasonDialog request={decision} onClose={() => setDecision(null)} />
     </div>
   );
 }
