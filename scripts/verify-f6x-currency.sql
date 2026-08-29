@@ -568,7 +568,7 @@ BEGIN
     _cfgA := public.monetary_config_resolve(_regA);
     _cfgB := public.monetary_config_resolve(_regB);
 
-    RAISE NOTICE 'f6x step %%', 'H-01';
+    RAISE NOTICE 'f6x step %', 'H-01';
     _buf := pg_temp.bufrec(_buf,'H','H-01','each regulator resolves its own base and reporting currency',
       _cfgA.base_currency='CAD' AND _cfgA.reporting_currency='CHF'
         AND _cfgB.base_currency='SEK' AND _cfgB.reporting_currency='SEK'
@@ -576,7 +576,7 @@ BEGIN
       format('A=%s/%s B=%s/%s', _cfgA.base_currency,_cfgA.reporting_currency,
              _cfgB.base_currency,_cfgB.reporting_currency));
 
-    RAISE NOTICE 'f6x step %%', 'H-02';
+    RAISE NOTICE 'f6x step %', 'H-02';
     _buf := pg_temp.bufrec(_buf,'H','H-02','a regulator configuration never overrides, and is never overridden by, the platform configuration',
       (public.monetary_config_resolve(NULL)).base_currency = _cfgP.base_currency
         AND _cfgA.base_currency <> _cfgP.base_currency
@@ -612,7 +612,7 @@ BEGIN
     PERFORM public.fx_rate_decide(_rDef, true, 'f6x gate');
     PERFORM pg_temp.act(_admin);
 
-    RAISE NOTICE 'f6x step %%', 'H-03';
+    RAISE NOTICE 'f6x step %', 'H-03';
     _buf := pg_temp.bufrec(_buf,'H','H-03','a rate belonging to one regulator can never be selected for another',
       (public.fx_resolve_rate('CAD','SEK',CURRENT_DATE,_regA)).id = _rA
         AND (public.fx_resolve_rate('CAD','SEK',CURRENT_DATE,_regB)).id = _rB
@@ -622,17 +622,17 @@ BEGIN
     SELECT count(*) INTO _n FROM public.fx_rates x
      WHERE x.status='APPROVED' AND x.from_currency='CAD' AND x.to_currency='SEK'
        AND x.effective_from <= CURRENT_DATE AND (x.effective_to IS NULL OR x.effective_to >= CURRENT_DATE);
-    RAISE NOTICE 'f6x step %%', 'H-04';
+    RAISE NOTICE 'f6x step %', 'H-04';
     _buf := pg_temp.bufrec(_buf,'H','H-04','scope isolation is genuine: two regulators hold concurrent rates for the same pair',
       _n >= 2, 'concurrent approved rates for CAD/SEK='||_n);
 
-    RAISE NOTICE 'f6x step %%', 'H-05';
+    RAISE NOTICE 'f6x step %', 'H-05';
     _buf := pg_temp.bufrec(_buf,'H','H-05','one regulator''s accepted currencies never authorise another regulator''s transaction',
       public.currency_is_supported('CAD', _regA) AND NOT public.currency_is_supported('CAD', _regB),
       format('CAD supported for A=%s for B=%s',
         public.currency_is_supported('CAD',_regA), public.currency_is_supported('CAD',_regB)));
 
-    RAISE NOTICE 'f6x step %%', 'H-06';
+    RAISE NOTICE 'f6x step %', 'H-06';
     _buf := pg_temp.bufrec(_buf,'H','H-06','the monetary authority of a transaction is derived from canonical application context, never from the caller',
       public.fee_event_regulator(_appA) = _regA,
       format('derived=%s expected=%s', coalesce(public.fee_event_regulator(_appA)::text,'∅'), _regA));
@@ -648,7 +648,7 @@ BEGIN
               'F6X-GATE-NULLCCY-'||gen_random_uuid()::text, now());
     EXCEPTION WHEN others THEN _state := SQLSTATE||': '||left(SQLERRM,60);
     END;
-    RAISE NOTICE 'f6x step %%', 'I-01';
+    RAISE NOTICE 'f6x step %', 'I-01';
     _buf := pg_temp.bufrec(_buf,'I','I-01','a settled payment with no currency is refused',
       _state <> 'unexpected-success', 'result='||_state);
 
@@ -662,12 +662,12 @@ BEGIN
       RETURNING id INTO _paybad;
     EXCEPTION WHEN others THEN _state := SQLSTATE||': '||left(SQLERRM,80);
     END;
-    RAISE NOTICE 'f6x step %%', 'I-02';
+    RAISE NOTICE 'f6x step %', 'I-02';
     _buf := pg_temp.bufrec(_buf,'I','I-02','a settled payment with a blank currency fails closed as PAYMENT_CURRENCY_MISSING',
       _state LIKE '22023%' AND _state LIKE '%PAYMENT_CURRENCY_MISSING%', 'result='||_state);
 
     SELECT count(*) INTO _n FROM public.payments WHERE transaction_ref='F6X-GATE-BLANKCCY-1';
-    RAISE NOTICE 'f6x step %%', 'I-03';
+    RAISE NOTICE 'f6x step %', 'I-03';
     _buf := pg_temp.bufrec(_buf,'I','I-03','no ledger entry, allocation, receipt or substituted base currency survives the refusal',
       _n = 0
       AND NOT EXISTS (SELECT 1 FROM public.fee_ledger_entries WHERE external_reference='F6X-GATE-BLANKCCY-1')
@@ -694,7 +694,7 @@ BEGIN
     SELECT * INTO _alloc_rec FROM public.fee_payment_allocations
      WHERE payment_id=_payA AND reversed_at IS NULL ORDER BY allocated_at LIMIT 1;
 
-    RAISE NOTICE 'f6x step %%', 'J-01';
+    RAISE NOTICE 'f6x step %', 'J-01';
     _buf := pg_temp.bufrec(_buf,'J','J-01','the original transacted amount and currency are preserved exactly',
       _alloc_rec.id IS NOT NULL
         AND ROUND(_alloc_rec.source_amount,2) = _alloc
@@ -703,7 +703,7 @@ BEGIN
       format('source=%s %s base=%s reporting=%s', _alloc_rec.source_amount, _alloc_rec.source_currency,
              _cfgA.base_currency, _cfgA.reporting_currency));
 
-    RAISE NOTICE 'f6x step %%', 'J-02';
+    RAISE NOTICE 'f6x step %', 'J-02';
     _buf := pg_temp.bufrec(_buf,'J','J-02','the base equivalent is booked at the governed rate for the event',
       _alloc_rec.base_currency = 'CAD'
         AND abs(_alloc_rec.base_amount - ROUND(_alloc_rec.amount * 2.0, 2)) <= 0.01,
@@ -715,11 +715,11 @@ BEGIN
        AND c.purpose='BASE_REPORTING' AND c.to_currency='CAD'
        AND c.fx_rate_id = _rBase AND c.regulator_id = _regA
        AND c.effective_date IS NOT NULL AND c.rate_regime IS NOT NULL;
-    RAISE NOTICE 'f6x step %%', 'J-03';
+    RAISE NOTICE 'f6x step %', 'J-03';
     _buf := pg_temp.bufrec(_buf,'J','J-03','the base conversion records its rate identity, regime, date and scope',
       _n = 1, 'base provenance rows='||_n);
 
-    RAISE NOTICE 'f6x step %%', 'J-04';
+    RAISE NOTICE 'f6x step %', 'J-04';
     _buf := pg_temp.bufrec(_buf,'J','J-04','the reporting equivalent is booked independently in the reporting currency',
       _alloc_rec.reporting_currency = 'CHF'
         AND abs(_alloc_rec.reporting_amount - ROUND(_alloc_rec.amount * 3.0, 2)) <= 0.01
@@ -731,14 +731,14 @@ BEGIN
      WHERE c.subject_type='payment' AND c.subject_id=_payA
        AND c.purpose='BASE_REPORTING' AND c.to_currency='CHF'
        AND c.fx_rate_id = _rRep AND c.from_currency = _txn;
-    RAISE NOTICE 'f6x step %%', 'J-05';
+    RAISE NOTICE 'f6x step %', 'J-05';
     _buf := pg_temp.bufrec(_buf,'J','J-05','the reporting conversion carries its own provenance and converts directly from the transacted currency',
       _n = 1, 'reporting provenance rows='||_n);
 
     SELECT count(*) INTO _n FROM public.fx_conversions c
      WHERE c.subject_type='payment' AND c.subject_id=_payA
        AND c.from_currency='CAD' AND c.to_currency='CHF';
-    RAISE NOTICE 'f6x step %%', 'J-06';
+    RAISE NOTICE 'f6x step %', 'J-06';
     _buf := pg_temp.bufrec(_buf,'J','J-06','there is no hidden double conversion through the base currency',
       _n = 0, 'base→reporting chained conversions='||_n);
 
@@ -752,14 +752,14 @@ BEGIN
     PERFORM public.fx_rate_decide(_rSucc, true, 'f6x gate');
     PERFORM pg_temp.act(_admin);
     SELECT * INTO _alloc_rec FROM public.fee_payment_allocations WHERE id=_alloc_rec.id;
-    RAISE NOTICE 'f6x step %%', 'J-07';
+    RAISE NOTICE 'f6x step %', 'J-07';
     _buf := pg_temp.bufrec(_buf,'J','J-07','booked base and reporting values never change when a later rate is approved',
       _alloc_rec.base_amount = _base AND _alloc_rec.reporting_amount = _repamt
         AND _alloc_rec.fx_rate_id IS NOT DISTINCT FROM _alloc_rec.fx_rate_id,
       format('base %s→%s reporting %s→%s', _base, _alloc_rec.base_amount, _repamt, _alloc_rec.reporting_amount));
 
     _rep := public.fee_collected_in_reporting_currency(_regA);
-    RAISE NOTICE 'f6x step %%', 'J-08';
+    RAISE NOTICE 'f6x step %', 'J-08';
     _buf := pg_temp.bufrec(_buf,'J','J-08','reporting reads the booked provenance, not today''s rate',
       _rep->>'reporting_currency' = 'CHF'
         AND abs((_rep->>'booked_total')::numeric - _repamt) <= 0.01
@@ -791,14 +791,14 @@ BEGIN
     SELECT * INTO _alloc_rec FROM public.fee_payment_allocations
      WHERE payment_id=_payB AND reversed_at IS NULL ORDER BY allocated_at LIMIT 1;
     _rep := public.fee_collected_in_reporting_currency(_regB);
-    RAISE NOTICE 'f6x step %%', 'K-01';
+    RAISE NOTICE 'f6x step %', 'K-01';
     _buf := pg_temp.bufrec(_buf,'K','K-01','money that cannot be converted is neither omitted nor guessed — it is booked unconverted',
       _alloc_rec.id IS NOT NULL AND _alloc_rec.base_amount IS NULL
         AND _alloc_rec.reporting_amount IS NULL AND _alloc_rec.base_currency IS NULL,
       format('base=%s reporting=%s', coalesce(_alloc_rec.base_amount::text,'∅'),
              coalesce(_alloc_rec.reporting_amount::text,'∅')));
 
-    RAISE NOTICE 'f6x step %%', 'K-02';
+    RAISE NOTICE 'f6x step %', 'K-02';
     _buf := pg_temp.bufrec(_buf,'K','K-02','the reporting API declares the exception explicitly instead of returning an apparently complete total',
       _rep->>'completeness' = 'INCOMPLETE'
         AND (_rep->>'unconverted_allocations')::int >= 1
@@ -826,7 +826,7 @@ BEGIN
     RETURNING id INTO _payB2;
     PERFORM pg_temp.act(_admin);
     SELECT count(*) INTO _n FROM public.fee_payment_allocations WHERE payment_id=_payB2;
-    RAISE NOTICE 'f6x step %%', 'K-03';
+    RAISE NOTICE 'f6x step %', 'K-03';
     _buf := pg_temp.bufrec(_buf,'K','K-03','a currency accepted by another regulator is never allocated here — it is held as an explicit credit',
       _n = 0
       AND EXISTS (SELECT 1 FROM public.fee_ledger_entries le
@@ -835,7 +835,7 @@ BEGIN
       'allocations='||_n);
 
     -- ------------------------------------------------------------------- L
-    RAISE NOTICE 'f6x step %%', 'L-01';
+    RAISE NOTICE 'f6x step %', 'L-01';
     _buf := pg_temp.bufrec(_buf,'L','L-01','a FIXED rate applies across multiple dates without re-quotation',
       (public.fx_convert(100,'CHF','NOK',CURRENT_DATE,_regA)->>'fx_rate_id')::uuid = _rFix
       AND (public.fx_convert(100,'CHF','NOK',CURRENT_DATE + 45,_regA)->>'fx_rate_id')::uuid = _rFix
@@ -843,12 +843,12 @@ BEGIN
       'fixed rate='||_rFix);
 
     SELECT regime INTO _state FROM public.fx_rates WHERE id=_rDef;
-    RAISE NOTICE 'f6x step %%', 'L-02';
+    RAISE NOTICE 'f6x step %', 'L-02';
     _buf := pg_temp.bufrec(_buf,'L','L-02','no currency or code ever implies a FIXED regime by itself',
       _state <> 'FIXED', 'default regime='||coalesce(_state,'∅'));
 
     SELECT status INTO _state FROM public.fx_rates WHERE id=_rBase;
-    RAISE NOTICE 'f6x step %%', 'L-03';
+    RAISE NOTICE 'f6x step %', 'L-03';
     _buf := pg_temp.bufrec(_buf,'L','L-03','a superseded rate is closed, its successor takes effect, and the two never overlap while approved',
       _state IN ('SUPERSEDED','APPROVED')
       AND (public.fx_resolve_rate(_txn,'CAD',CURRENT_DATE,_regA)).id = _rSucc
@@ -862,7 +862,7 @@ BEGIN
              && daterange(b.effective_from, b.effective_to, '[]')),
       'predecessor status='||coalesce(_state,'∅'));
 
-    RAISE NOTICE 'f6x step %%', 'L-04';
+    RAISE NOTICE 'f6x step %', 'L-04';
     _buf := pg_temp.bufrec(_buf,'L','L-04','a historical movement continues to name the rate it was booked on after a successor exists',
       (SELECT count(*) FROM public.fx_conversions c
         WHERE c.subject_id=_payA AND c.fx_rate_id=_rBase) = 1
