@@ -162,6 +162,8 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
     if (!user) return;
     setProcessing(true);
     try {
+      // Canonical assessment boundary — entering the payment step.
+      await enterPaymentStep();
       // `_amount` is retained only for call-signature compatibility. The server
       // resolves the payable amount from the assessment of record and ignores it.
       const { data: paymentResult, error: paymentError } = await (supabase as any).rpc(
@@ -169,6 +171,7 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
         { _application_id: applicationId, _amount: null },
       );
       if (paymentError) throw paymentError;
+
 
       const paymentAction = paymentResult?.action as string | undefined;
       const paymentRowId = paymentResult?.payment_id as string | undefined;
