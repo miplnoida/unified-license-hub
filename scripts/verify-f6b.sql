@@ -43,6 +43,15 @@ BEGIN
   INSERT INTO f6b_results (section, id, descr, passed, detail) VALUES (_s,_id,_d,_ok,_detail);
 END $$;
 
+-- Behavioural results are buffered in a variable: the fixture block is always
+-- rolled back, so results written to the temp table inside it would be lost.
+DROP FUNCTION IF EXISTS pg_temp.bufrec(jsonb,text,text,text,boolean,text);
+CREATE OR REPLACE FUNCTION pg_temp.bufrec(_buf jsonb, _s text, _id text, _d text, _ok boolean, _detail text)
+RETURNS jsonb LANGUAGE sql IMMUTABLE AS $$
+  SELECT COALESCE(_buf,'[]'::jsonb) || jsonb_build_object(
+    'section',_s,'id',_id,'descr',_d,'passed',_ok,'detail',_detail)
+$$;
+
 DROP FUNCTION IF EXISTS pg_temp.as_user(uuid,text);
 CREATE OR REPLACE FUNCTION pg_temp.as_user(_uid uuid, _sql text)
 RETURNS text LANGUAGE plpgsql AS $$
@@ -230,7 +239,7 @@ DO $c$
 DECLARE
   _admin uuid; _applicant uuid; _app uuid; _lt text; _ft uuid;
   _pre jsonb; _s1 jsonb; _s2 jsonb; _ov jsonb; _state text;
-  _pay uuid; _wv uuid; _rf uuid; _n int; _ledger int; _step text := 'start';
+  _pay uuid; _wv uuid; _rf uuid; _n int; _ledger int; _step text := 'start'; _buf jsonb := '[]'::jsonb; _r jsonb;
 BEGIN
   -- vacuity guard: a real fee-administering actor must exist
   SELECT u.id INTO _admin FROM auth.users u
@@ -269,7 +278,7 @@ BEGIN
     _step := 'C-02'; RAISE NOTICE 'step: %', _step;
     _pre := public.fee_assessment_preview(_app);
     _s1  := public.fee_assessment_ensure(_app, 'verify:f6b');
-    PERFORM pg_temp.rec('C','C-02',
+    _buf := pg_temp.bufrec(_buf, 'C','C-02',
       'the indicative preview figure equals the figure later assessed of record',
       ROUND((_pre->>'assessed_total')::numeric,2) = ROUND((_s1->>'assessed_total')::numeric,2),
       'preview='||(_pre->>'assessed_total')||' assessed='||(_s1->>'assessed_total'));
@@ -277,18 +286,18 @@ BEGIN
     -- C-03 assessment is idempotent
     _step := 'C-03'; RAISE NOTICE 'step: %', _step;
     _s2 := public.fee_assessment_ensure(_app, 'verify:f6b repeat');
-    PERFORM pg_temp.rec('C','C-03','re-entering the financial boundary never duplicates the assessment',
+    _buf := pg_temp.bufrec(_buf, 'C','C-03','re-entering the financial boundary never duplicates the assessment',
       (_s1->>'assessment_id') = (_s2->>'assessment_id'),
       'first='||(_s1->>'assessment_id')||' second='||(_s2->>'assessment_id'));
 
     SELECT count(*) INTO _n FROM public.fee_assessments
      WHERE application_id = _app AND status = 'ACTIVE';
-    PERFORM pg_temp.rec('C','C-04','exactly one assessment of record is active per application',
+    _buf := pg_temp.bufrec(_buf, 'C','C-04','exactly one assessment of record is active per application',
       _n = 1, 'active='||_n);
 
     -- C-05 the assessment carries provenance
     _step := 'C-05'; RAISE NOTICE 'step: %', _step;
-    PERFORM pg_temp.rec('C','C-05','the assessment records its basis, source and configuration snapshot',
+    _buf := pg_temp.bufrec(_buf, 'C','C-05','the assessment records its basis, source and configuration snapshot',
       COALESCE(_s1->>'basis','') <> '' AND COALESCE(_s1->>'resolution_source','') <> '',
       'basis='||COALESCE(_s1->>'basis','∅')||' source='||COALESCE(_s1->>'resolution_source','∅'));
 
@@ -303,13 +312,13 @@ BEGIN
     SELECT COALESCE(sum(al.amount),0) INTO _n
       FROM public.fee_payment_allocations al
      WHERE al.payment_id = _pay AND al.reversed_at IS NULL;
-    PERFORM pg_temp.rec('D','D-01','an overpayment is allocated only up to the assessed balance',
+    _buf := pg_temp.bufrec(_buf, 'D','D-01','an overpayment is allocated only up to the assessed balance',
       _n <= ROUND((_s1->>'outstanding')::numeric,2),
       'allocated='||_n||' outstanding_was='||(_s1->>'outstanding'));
 
     SELECT count(*) INTO _n FROM public.fee_ledger_entries
      WHERE payment_id = _pay AND entry_type IN ('CREDIT','PAYMENT');
-    PERFORM pg_temp.rec('D','D-01b','the unallocated excess is retained as an explicit ledger credit',
+    _buf := pg_temp.bufrec(_buf, 'D','D-01b','the unallocated excess is retained as an explicit ledger credit',
       _n >= 2, 'ledger entries for the overpayment='||_n);
 
     -- the overpayment is reversed so the remaining sections start from a clean balance
@@ -322,7 +331,7 @@ BEGIN
                          'amount', 250, 'description', 'verify:f6b second line'));
     SELECT count(*) INTO _n FROM public.fee_assessments
      WHERE application_id = _app AND status = 'ACTIVE';
-    PERFORM pg_temp.rec('D','D-02','changing the fee itemisation retires the stale assessment',
+    _buf := pg_temp.bufrec(_buf, 'D','D-02','changing the fee itemisation retires the stale assessment',
       _n <= 1, 'active after change='||_n);
 
     _s1 := public.fee_assessment_ensure(_app, 'verify:f6b re-assess');
@@ -337,7 +346,7 @@ BEGIN
       PERFORM public.fee_waiver_decide(_wv, true, 'verify f6b self approval attempt');
     EXCEPTION WHEN others THEN _state := SQLSTATE||': '||left(SQLERRM,80);
     END;
-    PERFORM pg_temp.rec('E','E-01','the requester of a waiver can never approve it',
+    _buf := pg_temp.bufrec(_buf, 'E','E-01','the requester of a waiver can never approve it',
       _state <> 'unexpected-success', 'result='||_state);
 
     -- E-02 a waiver above the outstanding balance is refused
@@ -348,7 +357,7 @@ BEGIN
         ROUND((_s1->>'outstanding')::numeric,2) + 1000, 'verify f6b excessive waiver request');
     EXCEPTION WHEN others THEN _state := SQLSTATE||': '||left(SQLERRM,80);
     END;
-    PERFORM pg_temp.rec('E','E-02','a waiver cannot exceed the outstanding assessed amount',
+    _buf := pg_temp.bufrec(_buf, 'E','E-02','a waiver cannot exceed the outstanding assessed amount',
       _state <> 'unexpected-success', 'result='||_state);
 
     -- E-03 refunds cannot be executed before they are decided
@@ -365,7 +374,7 @@ BEGIN
       PERFORM public.fee_refund_execute(_rf, 'VERIFY-F6B-REF');
     EXCEPTION WHEN others THEN _state := SQLSTATE||': '||left(SQLERRM,80);
     END;
-    PERFORM pg_temp.rec('E','E-03','a refund cannot be paid out before it has been approved',
+    _buf := pg_temp.bufrec(_buf, 'E','E-03','a refund cannot be paid out before it has been approved',
       _state <> 'unexpected-success', 'result='||_state);
 
     -- E-04 a refund above the settled receipt is refused
@@ -375,7 +384,7 @@ BEGIN
       PERFORM public.fee_refund_request(_pay, 100000, 'verify f6b excessive refund reason');
     EXCEPTION WHEN others THEN _state := SQLSTATE||': '||left(SQLERRM,80);
     END;
-    PERFORM pg_temp.rec('E','E-04','a refund cannot exceed the amount actually received',
+    _buf := pg_temp.bufrec(_buf, 'E','E-04','a refund cannot exceed the amount actually received',
       _state <> 'unexpected-success', 'result='||_state);
 
     -- F-01 reversal writes a compensating entry and deletes nothing
@@ -383,18 +392,18 @@ BEGIN
     SELECT count(*) INTO _ledger FROM public.fee_ledger_entries WHERE application_id = _app;
     PERFORM public.fee_payment_reverse(_pay, 'verify f6b reversal rationale text');
     SELECT count(*) INTO _n FROM public.fee_ledger_entries WHERE application_id = _app;
-    PERFORM pg_temp.rec('F','F-01','a reversal adds a compensating entry rather than removing history',
+    _buf := pg_temp.bufrec(_buf, 'F','F-01','a reversal adds a compensating entry rather than removing history',
       _n > _ledger, 'entries before='||_ledger||' after='||_n);
 
     SELECT count(*) INTO _n FROM public.fee_payment_allocations
      WHERE payment_id = _pay AND reversed_at IS NOT NULL;
-    PERFORM pg_temp.rec('F','F-02','the original allocation is marked reversed, never deleted',
+    _buf := pg_temp.bufrec(_buf, 'F','F-02','the original allocation is marked reversed, never deleted',
       _n = 1, 'reversed allocations='||_n);
 
     -- F-03 the outstanding balance returns to the pre-payment position
     _step := 'F-03'; RAISE NOTICE 'step: %', _step;
     _ov := public.fee_assessment_overview(_app);
-    PERFORM pg_temp.rec('F','F-03','the outstanding balance is restored after the reversal',
+    _buf := pg_temp.bufrec(_buf, 'F','F-03','the outstanding balance is restored after the reversal',
       ROUND((_ov->>'reversed_total')::numeric,2) >= 300,
       'reversed_total='||COALESCE(_ov->>'reversed_total','∅')||
       ' outstanding='||COALESCE(_ov->>'outstanding','∅'));
@@ -406,7 +415,7 @@ BEGIN
       UPDATE public.fee_ledger_entries SET amount = amount + 1 WHERE application_id = _app;
     EXCEPTION WHEN others THEN _state := SQLSTATE||': '||left(SQLERRM,80);
     END;
-    PERFORM pg_temp.rec('F','F-04','ledger entries cannot be altered once written',
+    _buf := pg_temp.bufrec(_buf, 'F','F-04','ledger entries cannot be altered once written',
       _state <> 'unexpected-success', 'result='||_state);
 
     -- G-01 reconciliation matches server-side; unknown references become exceptions
@@ -415,7 +424,7 @@ BEGIN
       jsonb_build_array(
         jsonb_build_object('reference','NO-SUCH-REF-'||gen_random_uuid()::text,
                            'amount', 42, 'currency', _s1->>'currency')));
-    PERFORM pg_temp.rec('G','G-01','an unknown statement line is recorded as unmatched, never guessed',
+    _buf := pg_temp.bufrec(_buf, 'G','G-01','an unknown statement line is recorded as unmatched, never guessed',
       COALESCE((_ov->>'unmatched')::int,0) + COALESCE((_ov->>'exceptions')::int,0) = 1,
       'matched='||COALESCE(_ov->>'matched','∅')||' unmatched='||COALESCE(_ov->>'unmatched','∅')||
       ' exceptions='||COALESCE(_ov->>'exceptions','∅'));
@@ -423,7 +432,7 @@ BEGIN
     -- G-02 the overview is the single financial read for regulator surfaces
     _step := 'G-02'; RAISE NOTICE 'step: %', _step;
     _ov := public.fee_assessment_overview(_app);
-    PERFORM pg_temp.rec('G','G-02','one governed read returns assessment, payments, ledger and audit',
+    _buf := pg_temp.bufrec(_buf, 'G','G-02','one governed read returns assessment, payments, ledger and audit',
       (_ov ? 'lines') AND (_ov ? 'payments') AND (_ov ? 'ledger')
         AND (_ov ? 'waivers') AND (_ov ? 'refunds') AND (_ov ? 'outstanding'),
       'keys='||(SELECT string_agg(k, ',') FROM jsonb_object_keys(_ov) k));
@@ -435,13 +444,13 @@ BEGIN
         json_build_object('sub', _applicant::text, 'role','authenticated')::text, true);
       BEGIN
         _ov := public.fee_assessment_overview(_app);
-        PERFORM pg_temp.rec('G','G-03','entity users never receive the regulator-only ledger or audit',
+        _buf := pg_temp.bufrec(_buf, 'G','G-03','entity users never receive the regulator-only ledger or audit',
           COALESCE(jsonb_array_length(_ov->'ledger'),0) = 0
             AND COALESCE(jsonb_array_length(_ov->'audit'),0) = 0,
           'ledger='||COALESCE(jsonb_array_length(_ov->'ledger'),0)::text||
           ' audit='||COALESCE(jsonb_array_length(_ov->'audit'),0)::text);
       EXCEPTION WHEN others THEN
-        PERFORM pg_temp.rec('G','G-03','entity users never receive the regulator-only ledger or audit',
+        _buf := pg_temp.bufrec(_buf, 'G','G-03','entity users never receive the regulator-only ledger or audit',
           true, 'access refused outright: '||SQLSTATE);
       END;
       PERFORM set_config('request.jwt.claims',
@@ -452,10 +461,17 @@ BEGIN
     RAISE EXCEPTION 'VERIFY_F6B_ROLLBACK';
   EXCEPTION WHEN others THEN
     IF SQLERRM <> 'VERIFY_F6B_ROLLBACK' THEN
-      PERFORM pg_temp.rec('C','C-ERR','the behavioural battery runs to completion',
+      _buf := pg_temp.bufrec(_buf, 'C','C-ERR','the behavioural battery runs to completion',
         false, 'at '||_step||' — '||SQLSTATE||': '||left(SQLERRM,180));
     END IF;
   END;
+
+  -- flush the buffered behavioural results (survives the fixture rollback)
+  FOR _r IN SELECT jsonb_array_elements(_buf) LOOP
+    PERFORM pg_temp.rec(_r->>'section', _r->>'id', _r->>'descr',
+                        (_r->>'passed')::boolean, _r->>'detail');
+  END LOOP;
+
 
   PERFORM set_config('request.jwt.claims', '{}', true);
 END $c$;
