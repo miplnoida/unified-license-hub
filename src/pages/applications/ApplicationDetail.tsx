@@ -74,6 +74,7 @@ import { CommunicationTimeline } from '@/components/notifications/CommunicationT
 import { formatDateTime } from '@/lib/datetime';
 import { ApplicationCaseHeader } from '@/components/applications/ApplicationCaseHeader';
 import { ApplicationWithdrawalPanel } from '@/components/applications/ApplicationWithdrawalPanel';
+import { ApplicationFitAndProperPanel } from '@/components/applications/ApplicationFitAndProperPanel';
 import { ApplicationCurrentStepSummary } from '@/components/applications/ApplicationCurrentStepSummary';
 import { useApplicationCase } from '@/hooks/useApplicationCaseModels';
 
@@ -853,6 +854,10 @@ export default function ApplicationDetail() {
           applicationData={appData as Record<string, unknown>}
           onWithdrawn={() => loadData()}
         />
+
+        {/* F5-B4 — fit & proper linkage. The RPC decides the audience: regulator
+            staff see linkage detail, entity users only a safe state. */}
+        <ApplicationFitAndProperPanel applicationId={app.id} />
 
 
 
