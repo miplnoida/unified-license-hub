@@ -218,6 +218,7 @@ DECLARE
   _open_events int; _close_events int; _effect_open record; _effect_close record;
   _repeat_open text; _repeat_close text; _est_count_after_repeat int;
   _foreign_est uuid; _closed_est uuid; _other_lic_est uuid;
+  _lic2_synthetic boolean := false; _lic2_terms int := 0; _lic2_holder uuid;
   _ins_state text; _upd_state text; _del_state text; _evt_state text;
   _f4_plan jsonb; _f4_app uuid; _f4_effects int;
   _opened_on_preserved date; _status_after text;
@@ -309,12 +310,31 @@ BEGIN
       (entity_id, license_id, establishment_reference, name, status, opened_on, closed_on, address_text)
     VALUES (_entity, _lic, 'F5B3P-CLOSED', 'F5-B3P Closed Branch', 'CLOSED', current_date, current_date, 'x')
     RETURNING id INTO _closed_est;
-    IF _lic2 IS NOT NULL THEN
-      INSERT INTO public.regulated_establishments
-        (entity_id, license_id, establishment_reference, name, status, opened_on, address_text)
-      VALUES (_entity, _lic2, 'F5B3P-OTHERLIC', 'F5-B3P Other Licence Branch', 'ACTIVE', current_date, 'x')
-      RETURNING id INTO _other_lic_est;
+    -- F5-B3C: the cross-licence negative case must never be vacuous. When the
+    -- fixture holder owns a single licence we construct a rollback-safe second
+    -- licence for the SAME entity through the certified issuance path (the
+    -- frozen trg_license_open_original_term trigger opens its original term).
+    IF _lic2 IS NULL THEN
+      INSERT INTO public.licenses
+        (application_id, holder_id, license_type, sector_id, sub_sector_id, category_id,
+         status, issued_at, valid_from, valid_until, regulator_id)
+      SELECT NULL, l.holder_id, l.license_type, l.sector_id, l.sub_sector_id, l.category_id,
+             'active', now(), now(), l.valid_until, l.regulator_id
+        FROM public.licenses l WHERE l.id = _lic
+      RETURNING id, holder_id INTO _lic2, _lic2_holder;
+      _lic2_synthetic := true;
+      SELECT count(*) INTO _lic2_terms
+        FROM public.license_terms WHERE license_id = _lic2 AND is_current;
+    ELSE
+      SELECT count(*), max(l.holder_id::text)::uuid INTO _lic2_terms, _lic2_holder
+        FROM public.license_terms t JOIN public.licenses l ON l.id = t.license_id
+       WHERE t.license_id = _lic2 AND t.is_current;
     END IF;
+    INSERT INTO public.regulated_establishments
+      (entity_id, license_id, establishment_reference, name, status, opened_on, address_text)
+    VALUES (_entity, _lic2, 'F5B3P-OTHERLIC', 'F5-B3P Other Licence Branch', 'ACTIVE', current_date, 'x')
+    RETURNING id INTO _other_lic_est;
+
     PERFORM set_config('app.workflow_mutation_context','', true);
 
     -- --------------------------------------------------------------- CLOSE --
@@ -329,10 +349,8 @@ BEGIN
     PERFORM pg_temp.f5b3e_bind((_fx_close->>'application_id')::uuid, _closed_est);
     _plan_closed := public.post_license_effect_plan((_fx_close->>'application_id')::uuid);
 
-    IF _other_lic_est IS NOT NULL THEN
-      PERFORM pg_temp.f5b3e_bind((_fx_close->>'application_id')::uuid, _other_lic_est);
-      _plan_other_lic := public.post_license_effect_plan((_fx_close->>'application_id')::uuid);
-    END IF;
+    PERFORM pg_temp.f5b3e_bind((_fx_close->>'application_id')::uuid, _other_lic_est);
+    _plan_other_lic := public.post_license_effect_plan((_fx_close->>'application_id')::uuid);
 
     PERFORM pg_temp.f5b3e_bind((_fx_close->>'application_id')::uuid, _est);
     _plan_ready := public.post_license_effect_plan((_fx_close->>'application_id')::uuid);
@@ -429,8 +447,15 @@ BEGIN
     _plan_closed->>'state' = 'ESTABLISHMENT_ALREADY_CLOSED',
     'state=' || coalesce(_plan_closed->>'state','null'));
   PERFORM pg_temp.rec('B','B-11','a closure request against another licence''s branch is refused where licence-scoped',
-    _other_lic_est IS NULL OR _plan_other_lic->>'state' = 'ESTABLISHMENT_NOT_APPLICABLE',
-    'state=' || coalesce(_plan_other_lic->>'state','not-applicable-fixture'));
+    _other_lic_est IS NOT NULL AND _plan_other_lic->>'state' = 'ESTABLISHMENT_NOT_APPLICABLE',
+    'state=' || coalesce(_plan_other_lic->>'state','null')
+    || ' second_licence=' || CASE WHEN _lic2_synthetic THEN 'synthetic' ELSE 'live' END
+    || ' current_terms=' || coalesce(_lic2_terms::text,'null'));
+  PERFORM pg_temp.rec('B','B-11b','the cross-licence probe licence is a real governed licence of the same entity',
+    _lic2 IS NOT NULL AND _lic2 <> _lic AND _lic2_terms = 1 AND _lic2_holder = _entity,
+    'licence_b=' || coalesce(_lic2::text,'null') || ' holder_match='
+    || coalesce((_lic2_holder = _entity)::text,'null')
+    || ' current_terms=' || coalesce(_lic2_terms::text,'null'));
   PERFORM pg_temp.rec('B','B-12','a valid closure request plans as a READY ESTABLISHMENT_CLOSE effect',
     _plan_ready->>'effect_kind' = 'ESTABLISHMENT_CLOSE' AND _plan_ready->>'state' = 'READY',
     'kind=' || coalesce(_plan_ready->>'effect_kind','null') || ' state=' || coalesce(_plan_ready->>'state','null'));

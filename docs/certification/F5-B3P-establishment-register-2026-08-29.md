@@ -68,30 +68,57 @@ remain separate security debt, untouched by this pass.
 F&P-required services remain fail-closed with `FP_DETERMINATION_REQUIRED`
 pending F5-B4.
 
-## 6. Gate results
+## 6. Gate results (F5-B3C closure pass)
+
+Runtime HEAD: `722f56704701bd6d6ffb04c2658429ef4ee23c50`
 
 | Gate | Result |
 |------|--------|
-| verify:f5b3-establishments ×2 | 33/33, 33/33 |
-| verify:f5b3 | **53 PASS / 0 FAIL** (new C-05: zero PRODUCT_GAP; section H now uses the BCR surrender service as the unsupported fixture) |
+| verify:f5b3-establishments ×2 | **34/34, 34/34** |
+| verify:f5b3 ×2 | **53/53, 53/53** |
+
+The assertion count moved from 33 to 34 because the previously conditional
+cross-licence case was made non-vacuous and split into two assertions:
+
+- `B-11` — a branch scoped to licence A can never be the Branch Closure target of
+  licence B, proven with an actual governed refusal
+  `ESTABLISHMENT_NOT_APPLICABLE` (no N/A pass-through remains possible);
+- `B-11b` — the second licence used for that proof is a real governed licence of
+  the *same* entity, carrying exactly one current term.
+
+When the fixture holder owns only one live licence the gate now constructs a
+rollback-safe second licence for the same entity through the certified issuance
+path — the frozen `trg_license_open_original_term` trigger opens its original
+term — performs the cross-licence negative test and rolls everything back. The
+licence-scope rule itself was not weakened. Latest run recorded
+`state=ESTABLISHMENT_NOT_APPLICABLE second_licence=synthetic current_terms=1`.
 
 `verify:f5b3-establishments` covers: fail-closed missing branch data, READY open
 plan, one active branch created, internal reference and canonical data, append-only
 opening event, ledger reference, open idempotency, missing target, foreign entity,
-already-closed, other-licence scope, READY close plan, exact branch closed,
+already-closed, cross-licence (non-vacuous), READY close plan, exact branch closed,
 opening history preserved, close idempotency, before/after evidence, browser
 create/update/delete/history denial, F4 non-regression, zero residue.
 
-Note: `B-11` (other-licence branch) reports `not-applicable-fixture` when the
-probe entity holds only one licence; the assertion is enforced whenever a second
-licence exists for the same holder.
+## 7. Establishment estate security re-check
 
-## 7. Outstanding
+| Check | Result |
+|-------|--------|
+| anon grants on establishment tables | 0 |
+| browser (anon/authenticated) INSERT/UPDATE/DELETE/TRUNCATE | 0 |
+| PUBLIC EXECUTE on establishment routines | 0 |
+| RLS enabled | both tables |
+| governed write-guard triggers | 2 (one per table) |
+| append-only lifecycle history | enforced (unique per establishment+event_type, delete forbidden) |
+| protected establishment context | restored by trigger on untrusted application edits |
+| stale DB/runtime writers | none (audit + write contract gates green) |
 
-Remaining full regression battery (f5b2, f5b1, certify:f4c, coordination, f2b,
-F3/F1/F0, contract gates, frontend/typecheck/build) has **not** yet been re-run in
-this pass.
+## 8. Verdict
 
-**Verdict: F5-B3 BLOCKERS REMAIN** — the branch/establishment PRODUCT_GAP is
-closed and proven, but the full frozen-scope regression battery must be re-proven
-green before F5-B3 can be declared closed. F5-B4 not started.
+Full frozen regression battery re-proven green in this pass (see
+`F5-B3-post-approval-effects-2026-08-29.md` §8 for the complete table), zero
+active PRODUCT_GAP mappings, zero synthetic residue.
+
+**F5-B3 CLOSED — READY FOR F5-B4.** F5 itself is not frozen: Deregistration /
+surrender remains `BUSINESS_CONFIGURATION_REQUIRED` and F&P-dependent services
+remain fail-closed pending F5-B4. F5-B4 not started.

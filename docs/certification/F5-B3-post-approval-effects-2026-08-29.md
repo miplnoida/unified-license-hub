@@ -1,6 +1,6 @@
 # F5-B3 — Governed Post-Approval Effect Engine
 
-Date: 2026-08-29 • Gate: `npm run verify:f5b3` • Verdict: **F5-B3 BLOCKERS REMAIN**
+Date: 2026-08-29 • Gates: `npm run verify:f5b3`, `npm run verify:f5b3-establishments` • Verdict (F5-B3C, 2026-08-29): **F5-B3 CLOSED — READY FOR F5-B4**
 
 ## 1. Starting position
 
@@ -68,7 +68,103 @@ state, F&P blocked refusal (G-02/G-03/G-04), product-gap refusal
 (H-02/H-02b/H-02c), unknown/rejected fail-closed, browser tamper attempts,
 F4 non-regression, zero residue.
 
-## 5. Service census (active definitions)
+## 5. Fresh service / effect census (recalculated in F5-B3C)
+
+Active F5 service definitions (`services.status='active'` and
+`lifecycle_stage` in `post_license_service_stages()`): **136**, of which
+**0** have no effect key and **0** are unmapped.
+
+| Effect family | Handler | Canonical target | Supported | Definitions |
+|---------------|---------|------------------|-----------|-------------|
+| ENTITY_CHANGE | `entity_change_set` | `entity_change_sets` → organization_names / entity_facts / ownership_interests / entity_appointments / party_relationships | yes | 80 |
+| NOTIFICATION_ACK | `notification_acknowledgement` | `post_license_acknowledgements` | yes | 24 |
+| ESTABLISHMENT_OPEN | `establishment_open` | `regulated_establishments` + `regulated_establishment_events` | yes | 8 |
+| ESTABLISHMENT_CLOSE | `establishment_close` | `regulated_establishments` + `regulated_establishment_events` | yes | 8 |
+| RENEWAL | `license_lifecycle_step` | `license_renewals` + `license_terms` | yes | 8 |
+| UNSUPPORTED | — | — | no — `BUSINESS_CONFIGURATION_REQUIRED` | 8 (Deregistration / surrender) |
+
+- unmapped: **0**
+- active `PRODUCT_GAP`: **0** (New Branch and Branch Closure now supported)
+- unsupported without an explicit blocker class: **0**
+- F&P-dependent services remain explicitly refused at plan time with
+  `FP_DETERMINATION_REQUIRED` (proven by `verify:f5b3` G-02…G-04); linkage is
+  F5-B4 scope.
+
+## 6. Establishment (branch) closure
+
+See `F5-B3P-establishment-register-2026-08-29.md`. The cross-licence negative
+case is now non-vacuous: `verify:f5b3-establishments` always proves that a branch
+scoped to licence A cannot be the Branch Closure target of licence B for the same
+entity, recording a real `ESTABLISHMENT_NOT_APPLICABLE` refusal, using a
+rollback-safe synthetic second licence issued through the certified path when the
+fixture holder owns only one licence.
+
+## 7. F5-B3C regression battery (runtime HEAD 722f5670)
+
+| Gate | Result |
+|------|--------|
+| verify:f5b3-establishments ×2 | 34/34, 34/34 |
+| verify:f5b3 ×2 | 53/53, 53/53 (C-05 = 0 PRODUCT_GAP) |
+| verify:f5b2 ×2 | 44/44, 44/44 |
+| verify:f5b1 | 51/51 |
+| F5 discovery census | PASS |
+| certify:f4c | 87 PASS / 0 FAIL |
+| verify:f4b | PASS |
+| verify:license-terms | PASS |
+| verify:coordination-lifecycle | 26/26 (×2, interleaved) |
+| verify:outbox-delivery | 28/28 |
+| verify:audit-contract | PASS |
+| verify:write-contract | PASS |
+| certify:f3c | PASS |
+| verify:f3b | 38/38 |
+| verify:f2b | 63/63 (×2, interleaved) |
+| verify:f1c | 96/96 |
+| verify:f0c | 34/34 |
+| verify:hardening | 31/31 + F5-B1 block 4/4 |
+| verify:permission-refs, anon-execute, definer-guards | PASS |
+| edge authz (`scripts/verify-edge-authz.mjs`) | PASS — user=47 worker=28 webhook=1 machine=1 public=7 |
+| verify:breadcrumbs, verify:service-completeness | PASS |
+| frontend suite | 141 files / 1293 tests PASS |
+| typecheck (`tsgo -p tsconfig.app.json`) | clean |
+| build | PASS |
+
+Session-isolation order (hardening → F2B → coordination → F4-C → F2B →
+coordination) was executed deliberately; both later repetitions stayed green, so
+the F5-B3R `row_security` isolation fix holds.
+
+F4 initial licensing re-proven: `is_post_license=false`, no establishment effect
+and no F5 effect ledger row (`verify:f5b3-establishments` B-20, `verify:f5b3` F4
+non-regression), issuance still exclusively through the frozen F4 path
+(`certify:f4c`, `verify:license-terms`).
+
+Zero synthetic residue in every gate (residue sections all 0).
+
+## 8. F5 gap status after B3
+
+- **CLOSED in F5-B1** — GAP-F5-08/09/10 (post-licensing privilege and governed
+  configuration lockdown).
+- **CLOSED in F5-B2 (+ delta)** — GAP-F5-01/02/15 (intake authority, canonical
+  licence/service binding, delegation restricted to genuine F5, duplicate
+  protection, service↔licence applicability).
+- **CLOSED in F5-B3 / B3P / B3C** — GAP-F5-03 (approved post-licence
+  applications now produce governed, atomic, idempotent regulatory effects) plus
+  the New Branch / Branch Closure PRODUCT_GAP.
+- **Deliberately remaining for F5-B4 or later** — F&P determination linkage
+  (F&P-dependent services remain fail-closed), Deregistration / surrender
+  `BUSINESS_CONFIGURATION_REQUIRED` pending regulator semantics, and the dormant
+  `coordination_flags` anon grants which stay recorded as separate security debt
+  (no frozen gate classifies them as a failing regression in this pass).
+
+F5-B3 closure means the effect-engine remediation wave is closed. **F5 itself is
+not certified or frozen.**
+
+## 9. Verdict
+
+**F5-B3 CLOSED — READY FOR F5-B4.** F5-B4 not started.
+
+## Appendix — original B3 service census (superseded by §5)
+
+### Service census (as at 2026-08-29, pre-establishment) (active definitions)
 
 | Class | Count |
 |-------|-------|
@@ -111,15 +207,11 @@ drift, not F5 regressions:
   latest audit row at `coordination.flag.raised`, i.e. the participant UPDATE is
   not landing under the fixture's authority (`Participants can update flags`).
 
-## 7. Open blockers (why the verdict is not CLOSED)
+### Open blockers as recorded at the first B3 pass (all now closed — historical)
 
-1. **PRODUCT_GAP still active** — New Branch and Branch Closure remain active
-   services with no canonical establishment/branch register. Per the exit rule
-   they cannot be closed or reclassified as BCR.
-2. **F&P dependency** — F&P-required services correctly return
-   `FP_DETERMINATION_REQUIRED` and are refused; linkage is F5-B4 scope.
-3. **Frozen-scope gate failures** — `verify:f2b` (P-05) and
-   `verify:coordination-lifecycle` (E2/E3) must be re-proven green before any
-   freeze claim.
+1. PRODUCT_GAP (New Branch / Branch Closure) — closed in F5-B3P.
+2. Frozen-scope gate failures (`verify:f2b` P-05, coordination E2/E3) — closed in
+   F5-B3R and re-proven in F5-B3C.
+3. F&P dependency — deliberately deferred to F5-B4 (services remain fail-closed).
 
-**F5-B3 BLOCKERS REMAIN** — F5-B4 not started.
+Current verdict is in §9: **F5-B3 CLOSED — READY FOR F5-B4**.
