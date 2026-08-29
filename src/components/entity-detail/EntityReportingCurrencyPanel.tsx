@@ -37,6 +37,8 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
   const [code, setCode] = useState('');
   const [effectiveFrom, setEffectiveFrom] = useState('');
   const [reason, setReason] = useState('');
+  const [decision, setDecision] = useState<ReasonDialogRequest | null>(null);
+
 
   if (isLoading) {
     return <Card><CardContent className="py-10 text-center"><Loader2 className="inline h-5 w-5 animate-spin text-muted-foreground" /></CardContent></Card>;
