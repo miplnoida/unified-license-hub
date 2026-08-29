@@ -50,6 +50,7 @@ BEGIN
 END
 $ctx$;
 
+DROP FUNCTION IF EXISTS pg_temp.uid(text);
 CREATE OR REPLACE FUNCTION pg_temp.uid(_k text) RETURNS uuid
 LANGUAGE sql STABLE AS $$ SELECT v::uuid FROM f0c_ctx WHERE k = _k $$;
 
@@ -57,7 +58,6 @@ LANGUAGE sql STABLE AS $$ SELECT v::uuid FROM f0c_ctx WHERE k = _k $$;
 -- can survive from an earlier gate run with different parameter names.
 -- CREATE OR REPLACE cannot rename parameters, so drop first.
 DROP FUNCTION IF EXISTS pg_temp.rec(text, text, text, boolean, text);
-DROP FUNCTION IF EXISTS pg_temp.uid(text);
 CREATE OR REPLACE FUNCTION pg_temp.rec(_stage text, _id text, _d text, _ok boolean, _detail text)
 RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
