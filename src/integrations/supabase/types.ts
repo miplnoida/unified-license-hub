@@ -55898,6 +55898,10 @@ export type Database = {
         Returns: number
       }
       returns_filing_detail: { Args: { _filing_id: string }; Returns: Json }
+      returns_filing_metrics_display: {
+        Args: { _filing_id: string; _mode?: string }
+        Returns: Json
+      }
       returns_filing_queue: {
         Args: { _entity_id?: string; _limit?: number; _status?: string }
         Returns: {
