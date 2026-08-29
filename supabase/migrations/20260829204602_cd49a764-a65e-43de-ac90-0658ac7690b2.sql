@@ -136,7 +136,7 @@ DECLARE
   v_uid uuid := auth.uid(); v_row public.entity_currency_profiles;
   v_dec text := upper(btrim(COALESCE(_decision,''))); v_prior uuid;
 BEGIN
-  IF NOT (public.is_super_admin(v_uid) OR public.has_permission(v_uid,'licensee_management','approve')
+  IF NOT (public.is_super_admin(v_uid) 
           OR public.has_permission(v_uid,'licensee_management','edit')) THEN
     RAISE EXCEPTION 'ENTITY_CURRENCY_FORBIDDEN' USING ERRCODE = '42501';
   END IF;
