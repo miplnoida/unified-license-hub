@@ -287,7 +287,7 @@ DO $c$
 DECLARE
   _admin uuid; _checker uuid; _outsider uuid; _verifier uuid;
   _app uuid; _app2 uuid; _lt text;
-  _ft uuid; _ft2 uuid;
+  _ft uuid; _ft2 uuid; _ft3 uuid; _ft4 uuid;
   _pre jsonb; _s1 jsonb; _s2 jsonb; _ov jsonb; _res jsonb;
   _pay uuid; _pay2 uuid; _pay3 uuid; _wv uuid; _rf uuid; _item uuid;
   _rcpt uuid; _rcpt2 uuid; _aid uuid; _rcpt_aid uuid;
@@ -307,6 +307,8 @@ BEGIN
    LIMIT 1;
   SELECT id INTO _ft FROM public.fee_types ORDER BY created_at LIMIT 1;
   SELECT id INTO _ft2 FROM public.fee_types WHERE id <> _ft LIMIT 1;
+  SELECT id INTO _ft3 FROM public.fee_types WHERE id NOT IN (_ft, _ft2) LIMIT 1;
+  SELECT id INTO _ft4 FROM public.fee_types WHERE id NOT IN (_ft, _ft2, _ft3) LIMIT 1;
 
   PERFORM pg_temp.rec('C','C-00','a fee-administering actor exists to exercise the engine',
     _admin IS NOT NULL, 'actor='||COALESCE(_admin::text,'∅'));
@@ -315,12 +317,14 @@ BEGIN
   PERFORM pg_temp.rec('C','C-00c','an unrelated user exists to prove isolation',
     _outsider IS NOT NULL, 'outsider='||COALESCE(_outsider::text,'∅'));
   PERFORM pg_temp.rec('C','C-00d','a real fee type exists to itemise against',
-    _ft IS NOT NULL AND _ft2 IS NOT NULL, 'fee types resolved='||
-      COALESCE(_ft::text,'∅')||' / '||COALESCE(_ft2::text,'∅'));
+    _ft IS NOT NULL AND _ft2 IS NOT NULL AND _ft3 IS NOT NULL AND _ft4 IS NOT NULL,
+    'distinct fee types resolved='||
+      COALESCE(_ft::text,'∅')||' / '||COALESCE(_ft2::text,'∅')||' / '||
+      COALESCE(_ft3::text,'∅')||' / '||COALESCE(_ft4::text,'∅'));
   PERFORM pg_temp.rec('C','C-00e','a regulator able to verify offline money exists',
     _verifier IS NOT NULL, 'verifier='||COALESCE(_verifier::text,'∅'));
   IF _admin IS NULL OR _checker IS NULL OR _outsider IS NULL OR _ft IS NULL OR _ft2 IS NULL
-     OR _verifier IS NULL THEN
+     OR _ft3 IS NULL OR _ft4 IS NULL OR _verifier IS NULL THEN
     RETURN;
   END IF;
 
@@ -656,7 +660,7 @@ BEGIN
     PERFORM public.fee_payment_reverse(_pay2, 'certify f6c reopening the account for the relief round');
     PERFORM public.fee_component_operation(_app, 'add',
 
-      jsonb_build_object('fee_type_id', _ft2, 'amount', 800, 'description','certify:f6c waiver round'));
+      jsonb_build_object('fee_type_id', _ft3, 'amount', 800, 'description','certify:f6c waiver round'));
     _s1 := public.fee_assessment_ensure(_app, 'certify:f6c waiver round');
     _out := ROUND((_s1->>'outstanding')::numeric,2);
     PERFORM public.fee_waiver_request(_app, 200, 'certify f6c waiver justification narrative');
@@ -873,7 +877,7 @@ BEGIN
     IF _out <= 0 THEN
       -- raise a genuine fresh charge so the refusal path is really exercised
       PERFORM public.fee_component_operation(_app, 'add',
-        jsonb_build_object('fee_type_id', _ft, 'amount', 650, 'description','certify:f6c submission gate'));
+        jsonb_build_object('fee_type_id', _ft4, 'amount', 650, 'description','certify:f6c submission gate'));
       PERFORM public.fee_assessment_ensure(_app, 'certify:f6c submission gate');
       _out := ROUND((public.fee_assessment_state(_app)->>'outstanding')::numeric,2);
     END IF;
