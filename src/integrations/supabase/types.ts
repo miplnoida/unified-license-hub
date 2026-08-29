@@ -2075,6 +2075,7 @@ export type Database = {
           priority_set_by: string | null
           regulator_id: string | null
           rejected_at: string | null
+          request_kind: string
           review_notes: string | null
           search_vector: unknown
           status: string
@@ -2110,6 +2111,7 @@ export type Database = {
           priority_set_by?: string | null
           regulator_id?: string | null
           rejected_at?: string | null
+          request_kind: string
           review_notes?: string | null
           search_vector?: unknown
           status?: string
@@ -2145,6 +2147,7 @@ export type Database = {
           priority_set_by?: string | null
           regulator_id?: string | null
           rejected_at?: string | null
+          request_kind?: string
           review_notes?: string | null
           search_vector?: unknown
           status?: string
@@ -44697,6 +44700,10 @@ export type Database = {
         }
         Returns: Json
       }
+      application_request_kind: {
+        Args: { _application_id: string }
+        Returns: string
+      }
       application_resolve_form_set: {
         Args: {
           _application_type?: string
@@ -44798,6 +44805,10 @@ export type Database = {
         Returns: Json
       }
       application_workflow_resolve: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
+      application_workflow_view: {
         Args: { _application_id: string }
         Returns: Json
       }
@@ -45892,6 +45903,7 @@ export type Database = {
           priority_set_by: string | null
           regulator_id: string | null
           rejected_at: string | null
+          request_kind: string
           review_notes: string | null
           search_vector: unknown
           status: string
@@ -48372,6 +48384,7 @@ export type Database = {
           priority_set_by: string | null
           regulator_id: string | null
           rejected_at: string | null
+          request_kind: string
           review_notes: string | null
           search_vector: unknown
           status: string
@@ -48657,6 +48670,10 @@ export type Database = {
           }
       decision_gate_status: { Args: { _application_id: string }; Returns: Json }
       delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
+      derive_application_request_kind: {
+        Args: { _data: Json }
+        Returns: string
+      }
       derive_communication_state: {
         Args: {
           _delivered_at: string
@@ -49222,6 +49239,7 @@ export type Database = {
           priority_set_by: string | null
           regulator_id: string | null
           rejected_at: string | null
+          request_kind: string
           review_notes: string | null
           search_vector: unknown
           status: string
@@ -52137,6 +52155,10 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      post_license_fee_assessment: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
       post_license_fp_overview: {
         Args: { _application_id: string }
         Returns: Json
@@ -52153,10 +52175,22 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      post_license_lifecycle_input: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
+      post_license_matter_kind: {
+        Args: { _service_code: string }
+        Returns: string
+      }
       post_license_open_statuses: { Args: never; Returns: string[] }
       post_license_service_applicability: {
         Args: { _license_id: string; _service_id: string }
         Returns: string
+      }
+      post_license_service_form_set: {
+        Args: { _license_id: string; _service_id: string }
+        Returns: Json
       }
       post_license_service_stages: { Args: never; Returns: string[] }
       ppoc_accessible_license_ids: {
