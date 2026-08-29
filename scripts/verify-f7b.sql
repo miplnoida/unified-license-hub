@@ -657,12 +657,18 @@ BEGIN
   FOR r IN SELECT m.entity_id, m.user_id FROM public.entity_user_memberships m
             WHERE m.status='APPROVED' LOOP
     PERFORM pg_temp.act(r.user_id);
-    IF public.returns_can_file(r.entity_id) THEN
-      IF _entity IS NULL THEN
-        _entity := r.entity_id; _filer := r.user_id;
-      ELSIF _oth_entity IS NULL AND r.entity_id <> _entity THEN
-        _oth_entity := r.entity_id; _oth_filer := r.user_id;
-      END IF;
+    IF _entity IS NULL AND public.returns_can_file(r.entity_id) THEN
+      _entity := r.entity_id; _filer := r.user_id;
+    END IF;
+  END LOOP;
+  -- A genuinely unrelated entity filer: authorised for their own entity and
+  -- provably NOT authorised for the entity under test.
+  FOR r IN SELECT m.entity_id, m.user_id FROM public.entity_user_memberships m
+            WHERE m.status='APPROVED' AND m.entity_id <> _entity AND m.user_id <> _filer LOOP
+    PERFORM pg_temp.act(r.user_id);
+    IF _oth_entity IS NULL AND public.returns_can_file(r.entity_id)
+       AND NOT public.returns_can_file(_entity) THEN
+      _oth_entity := r.entity_id; _oth_filer := r.user_id;
     END IF;
   END LOOP;
   PERFORM set_config('request.jwt.claims','{}', true);
@@ -996,34 +1002,6 @@ BEGIN
       'the extension requester can never decide their own request',
       _ok, _msg);
 
-    -- ---- overdue detection ----------------------------------------------
-    PERFORM pg_temp.act(_cfg);
-    PERFORM public.returns_overdue_sweep(CURRENT_DATE);
-    SELECT count(*) INTO _n FROM public.return_overdue_events e
-     WHERE e.reporting_period_id = _p4 AND e.as_of_date = CURRENT_DATE;
-    PERFORM public.returns_overdue_sweep(CURRENT_DATE);
-    SELECT count(*) INTO _n2 FROM public.return_overdue_events e
-     WHERE e.reporting_period_id = _p4 AND e.as_of_date = CURRENT_DATE;
-    _buf := pg_temp.bufrec(_buf,'N','N-29',
-      'the overdue sweep records a late period exactly once per as-of date, however often it runs',
-      _n = 1 AND _n2 = 1, 'first='||_n||' second='||_n2);
-
-    _buf := pg_temp.bufrec(_buf,'N','N-30',
-      'an overdue event names the effective deadline, days late and the F6 late-fee owner rather than charging a fee itself',
-      EXISTS (SELECT 1 FROM public.return_overdue_events e
-               JOIN public.reporting_periods p ON p.id = e.reporting_period_id
-               WHERE e.reporting_period_id = _p4 AND e.as_of_date = CURRENT_DATE
-                 AND e.effective_due_date = p.due_date
-                 AND e.days_late = (CURRENT_DATE - p.due_date)
-                 AND e.late_fee_owner IS NOT NULL),
-      'overdue event content');
-
-    SELECT count(*) INTO _n FROM public.return_overdue_events e
-     WHERE e.reporting_period_id = _p1;
-    _buf := pg_temp.bufrec(_buf,'N','N-31',
-      'a period whose return has been submitted and accepted is never marked overdue',
-      _n = 0, 'events for filed period='||_n);
-
     -- ---- submitter cannot decide (real maker-checker) --------------------
     PERFORM pg_temp.act(_dual);
     _res := public.returns_open_filing(_p5);
@@ -1060,6 +1038,34 @@ BEGIN
       (SELECT status FROM public.return_filing_versions WHERE id=_ver2) = 'ACCEPTED'
         AND (SELECT accepted_by FROM public.return_filing_versions WHERE id=_ver2) = _chk,
       'independent acceptance');
+
+    -- ---- overdue detection ----------------------------------------------
+    PERFORM pg_temp.act(_cfg);
+    PERFORM public.returns_overdue_sweep(CURRENT_DATE);
+    SELECT count(*) INTO _n FROM public.return_overdue_events e
+     WHERE e.reporting_period_id = _p4 AND e.as_of_date = CURRENT_DATE;
+    PERFORM public.returns_overdue_sweep(CURRENT_DATE);
+    SELECT count(*) INTO _n2 FROM public.return_overdue_events e
+     WHERE e.reporting_period_id = _p4 AND e.as_of_date = CURRENT_DATE;
+    _buf := pg_temp.bufrec(_buf,'N','N-29',
+      'the overdue sweep records a late period exactly once per as-of date, however often it runs',
+      _n = 1 AND _n2 = 1, 'first='||_n||' second='||_n2);
+
+    _buf := pg_temp.bufrec(_buf,'N','N-30',
+      'an overdue event names the effective deadline, days late and the F6 late-fee owner rather than charging a fee itself',
+      EXISTS (SELECT 1 FROM public.return_overdue_events e
+               JOIN public.reporting_periods p ON p.id = e.reporting_period_id
+               WHERE e.reporting_period_id = _p4 AND e.as_of_date = CURRENT_DATE
+                 AND e.effective_due_date = p.due_date
+                 AND e.days_late = (CURRENT_DATE - p.due_date)
+                 AND e.late_fee_owner IS NOT NULL),
+      'overdue event content');
+
+    SELECT count(*) INTO _n FROM public.return_overdue_events e
+     WHERE e.reporting_period_id = _p5;
+    _buf := pg_temp.bufrec(_buf,'N','N-31',
+      'a period whose return has been submitted and accepted is never marked overdue',
+      _n = 0, 'events for accepted period='||_n);
 
     -- ---- mandated currency snapshot --------------------------------------
     PERFORM set_config('request.jwt.claims','{}', true);
