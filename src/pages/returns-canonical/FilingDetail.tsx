@@ -337,8 +337,10 @@ export default function FilingDetail() {
             </CardContent></Card>
           </TabsContent>
 
-          <TabsContent value="metrics">
+          <TabsContent value="metrics" className="space-y-4">
+            <FilingMonetaryDisplay filingId={id!} />
             <Card><CardContent className="overflow-x-auto p-0">
+
               <Table>
                 <TableHeader><TableRow>
                   <TableHead>Code</TableHead><TableHead>Metric</TableHead><TableHead className="text-right">Value</TableHead>
