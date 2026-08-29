@@ -158,8 +158,11 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                  <GuardedButton module="licensee_management" action="edit" onClick={submitOverride} disabled={setOverride.isPending}>Set override</GuardedButton>
+                  <GuardedButton module="licensee_management" action="edit" onClick={submitOverride} disabled={setOverride.isPending}>
+                    {makerChecker ? 'Submit for approval' : 'Set override'}
+                  </GuardedButton>
                 </DialogFooter>
+
               </DialogContent>
             </Dialog>
           )}
