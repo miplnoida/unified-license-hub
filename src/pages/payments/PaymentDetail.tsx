@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { PaymentAttachments } from '@/components/payments/PaymentAttachments';
 import { ArrowLeft, Loader2, DollarSign, Calendar, CreditCard, FileText, Hash } from 'lucide-react';
-import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
+import { ApplicationFinancePanel } from '@/components/payments/ApplicationFinancePanel';
 import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -27,7 +27,6 @@ export default function PaymentDetail() {
 
   const [payment, setPayment] = useState<any>(null);
   const [application, setApplication] = useState<any>(null);
-  const [feeComponents, setFeeComponents] = useState<ApplicationFeeLine[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,11 +36,11 @@ export default function PaymentDetail() {
       const p = pData as any;
       setPayment(p);
       if (p?.application_id) {
-        const [fees, appRes] = await Promise.all([
-          resolveApplicationFeeBreakdown(p.application_id),
-          supabase.from('applications').select('id, application_number, license_type, data').eq('id', p.application_id).maybeSingle(),
-        ]);
-        setFeeComponents(fees);
+        const appRes = await supabase
+          .from('applications')
+          .select('id, application_number, license_type, data')
+          .eq('id', p.application_id)
+          .maybeSingle();
         setApplication(appRes.data);
       }
       setLoading(false);
@@ -127,28 +126,8 @@ export default function PaymentDetail() {
                 )}
               </div>
 
-              {/* Fee Breakdown */}
-              {feeComponents.length > 0 && (
-                <>
-                  <Separator />
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Fee Breakdown</h4>
-                    <div className="space-y-1.5">
-                      {feeComponents.map((fc) => (
-                        <div key={fc.id} className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">{fc.name}</span>
-                          <span className="font-mono">{payment.currency} {Number(fc.amount).toFixed(2)}</span>
-                        </div>
-                      ))}
-                      <Separator />
-                      <div className="flex justify-between font-semibold text-sm">
-                        <span>Total</span>
-                        <span className="font-mono">{formattedAmount}</span>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
+              {/* The authoritative fee breakdown lives in the server assessment of
+                  record, rendered by ApplicationFinancePanel below. */}
             </CardContent>
           </Card>
 
@@ -177,6 +156,12 @@ export default function PaymentDetail() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Server-authoritative financial record: assessment, ledger, payments,
+            waivers, refunds, reversal, reconciliation and audit. */}
+        {payment.application_id && (
+          <ApplicationFinancePanel applicationId={payment.application_id} isInternal={!!isAdmin} />
+        )}
 
         {/* Attachments */}
         <Card>
