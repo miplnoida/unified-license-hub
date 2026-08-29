@@ -551,7 +551,7 @@ BEGIN
     FROM public.entity_currency_profiles p
     JOIN public.return_filings f ON f.entity_id = p.entity_id
    WHERE p.status = 'PROPOSED' AND f.reporting_currency = p.reporting_currency_override
-     AND f.reporting_currency_source = 'ENTITY_OVERRIDE'
+     AND f.currency_source = 'ENTITY_OVERRIDE'
      AND f.entity_currency_profile_id = p.id;
   PERFORM pg_temp.rec('K','K-07','a merely proposed override never becomes a filing currency of record',
     _ok, 'no filing bound to a proposed override');
