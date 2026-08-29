@@ -50204,6 +50204,10 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      fee_assessment_preview: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
       fee_assessment_resolve_lines: {
         Args: { _application_id: string }
         Returns: Json
