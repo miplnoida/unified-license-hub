@@ -228,7 +228,7 @@ export default function EntityFilingWorkspace() {
             />
             <Field
               label="Currency fixed as at"
-              value={data.filing.currency_as_of_date ? formatDateOnly(data.filing.currency_as_of_date) : '—'}
+              value={data.filing.currency_as_of ? formatDateOnly(data.filing.currency_as_of) : '—'}
             />
 
           </CardContent>

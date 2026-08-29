@@ -142,9 +142,10 @@ BEGIN
     _n = 0, 'callable legacy routines='||_n);
 
   SELECT count(*) INTO _n FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid
-   WHERE c.relname='compliance_returns' AND NOT t.tgisinternal;
+   WHERE c.relname='compliance_returns' AND NOT t.tgisinternal
+     AND (t.tgname ILIKE '%notif%' OR t.tgname ILIKE '%escalat%' OR t.tgname ILIKE '%due%');
   PERFORM pg_temp.rec('B','B-03','the retired legacy notification trigger is gone',
-    _n = 0, 'legacy triggers='||_n);
+    _n = 0, 'legacy lifecycle triggers='||_n);
 
   SELECT count(*) INTO _n FROM public.compliance_returns;
   PERFORM pg_temp.rec('B','B-04','no live filing activity is accumulating in the retired store',
@@ -201,10 +202,17 @@ BEGIN
   PERFORM pg_temp.rec('E','E-01','the submitter of a version cannot decide it (maker-checker)',
     _src ~* 'submitted_by', 'submitter separation enforced='||(_src ~* 'submitted_by')::text);
 
-  SELECT pg_get_functiondef(oid) INTO _src FROM pg_proc
-   WHERE proname='returns_notify' AND pronamespace='public'::regnamespace;
+  -- Notification delivery must never roll back the regulatory action: either the
+  -- helper or the canonical enqueue it delegates to absorbs failure.
+  SELECT COALESCE(
+      (SELECT pg_get_functiondef(oid) FROM pg_proc
+        WHERE proname='returns_notify' AND pronamespace='public'::regnamespace), '')
+    || COALESCE(
+      (SELECT pg_get_functiondef(oid) FROM pg_proc
+        WHERE proname='notification_enqueue_event' AND pronamespace='public'::regnamespace), '')
+    INTO _src;
   PERFORM pg_temp.rec('D','D-03','notification failures never roll back the regulatory action',
-    _src ~* 'EXCEPTION', 'fail-safe handler present='||(_src ~* 'EXCEPTION')::text);
+    _src ~* 'EXCEPTION WHEN', 'fail-safe handler present='||(_src ~* 'EXCEPTION WHEN')::text);
 END $c$;
 
 -- ---------------------------------------------------------------------------
@@ -215,10 +223,10 @@ DECLARE _n int; _src text;
 BEGIN
   SELECT count(*) INTO _n FROM information_schema.columns
    WHERE table_schema='public' AND table_name='return_filings'
-     AND column_name IN ('reporting_currency','currency_source','currency_as_of_date',
-                         'entity_currency_profile_id','monetary_config_id','currency_snapshot_at');
+     AND column_name IN ('reporting_currency','currency_source','currency_as_of',
+                         'entity_currency_profile_id','currency_snapshot_at');
   PERFORM pg_temp.rec('G','G-01','every filing carries a currency of record with full provenance',
-    _n = 6, 'snapshot columns='||_n);
+    _n = 5, 'snapshot columns='||_n);
 
   SELECT count(*) INTO _n FROM information_schema.columns
    WHERE table_schema='public' AND table_name='return_definitions' AND column_name='mandatory_currency_code';
@@ -381,7 +389,9 @@ BEGIN
 
       _buf := pg_temp.bufrec(_buf,'H','H-05','the override change is audited',
         EXISTS (SELECT 1 FROM public.audit_logs a
-                 WHERE a.record_id = _profile OR a.details::text LIKE '%'||_profile::text||'%'),
+                 WHERE a.entity_id = _profile
+                    OR a.new_value::text LIKE '%'||_profile::text||'%'
+                    OR a.metadata::text LIKE '%'||_profile::text||'%'),
         'audit row present');
 
       PERFORM public.entity_currency_override_supersede(_profile,

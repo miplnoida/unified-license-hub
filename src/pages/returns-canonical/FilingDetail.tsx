@@ -256,7 +256,7 @@ export default function FilingDetail() {
             />
             <Field
               label="Currency fixed as at"
-              value={data.filing.currency_as_of_date ? formatDateOnly(data.filing.currency_as_of_date) : '—'}
+              value={data.filing.currency_as_of ? formatDateOnly(data.filing.currency_as_of) : '—'}
             />
 
           </CardContent>

@@ -154,9 +154,8 @@ export interface FilingDetail {
     /** Currency of record, snapshotted when the filing was opened (F7-B / F6-X). */
     reporting_currency?: string | null;
     currency_source?: string | null;
-    currency_as_of_date?: string | null;
+    currency_as_of?: string | null;
     entity_currency_profile_id?: string | null;
-    monetary_config_id?: string | null;
     currency_snapshot_at?: string | null;
 
   };
