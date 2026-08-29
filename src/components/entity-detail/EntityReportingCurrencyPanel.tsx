@@ -20,7 +20,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { ReasonDialog, type ReasonDialogRequest } from '@/components/governance/ReasonDialog';
 import { formatDateOnly, formatDateTime } from '@/lib/datetime';
+
 import {
   CURRENCY_APPROVAL_MODE_LABELS, CURRENCY_PROFILE_STATUS_LABELS, CURRENCY_SOURCE_LABELS,
   useCurrencyMaster, useEntityCurrencyMutations, useEntityCurrencyOverview,
