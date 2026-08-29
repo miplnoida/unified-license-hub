@@ -980,6 +980,379 @@ BEGIN
   PERFORM pg_temp.rec('M','M-09','an unresolvable entity fails closed instead of assuming a currency', _ok, _msg);
 END $m$;
 
+-- ---------------------------------------------------------------------------
+-- N — entity reporting currency behaviour, end to end (always rolled back)
+--
+-- Proves the final currency contract by driving it: the regulator base currency
+-- default, a directly authorised effective-dated override, maker-checker
+-- proposal / self-approval refusal / independent approval / rejection,
+-- historical resolution, supersession, a return-definition mandate, the filing
+-- snapshot and its immutability, the governed rebase, and the as-reported /
+-- regulator-base / consolidated display modes with fail-closed FX.
+-- ---------------------------------------------------------------------------
+DO $n$
+DECLARE
+  _buf jsonb := '[]'::jsonb; r record; _ctx text; _ok boolean; _msg text;
+  _entity uuid; _reg uuid; _cfgid uuid; _u1 uuid; _u2 uuid; _sa uuid;
+  _base text; _alt text; _res jsonb; _p1 uuid; _p2 uuid; _p3 uuid;
+  _def uuid; _deffx uuid; _ob uuid; _per uuid; _fil uuid; _ver uuid;
+  _metric uuid; _rate uuid; _pe date; _n int; _cur text; _src text;
+BEGIN
+  -- ---- personas and monetary context -------------------------------------
+  SELECT l.id, public.entity_reporting_regulator(l.id) INTO _entity, _reg
+    FROM public.licensees l
+   WHERE public.entity_reporting_regulator(l.id) IS NOT NULL
+     AND (public.monetary_config_resolve(public.entity_reporting_regulator(l.id))).id IS NOT NULL
+   ORDER BY l.id LIMIT 1;
+
+  IF _entity IS NOT NULL THEN
+    _cfgid := (public.monetary_config_resolve(_reg)).id;
+    _base := public.fx_base_currency(_reg);
+    SELECT c.code INTO _alt FROM public.currencies c
+     WHERE c.is_active AND c.code <> _base AND public.currency_is_supported(c.code, _reg)
+     ORDER BY c.code LIMIT 1;
+  END IF;
+
+  SELECT u.id INTO _sa FROM auth.users u WHERE public.is_super_admin(u.id) ORDER BY u.id LIMIT 1;
+
+  SELECT u.id INTO _u1 FROM auth.users u
+   WHERE NOT public.is_super_admin(u.id)
+     AND public.has_permission(u.id,'licensee_management','edit')
+   ORDER BY u.id LIMIT 1;
+
+  SELECT u.id INTO _u2 FROM auth.users u
+   WHERE NOT public.is_super_admin(u.id)
+     AND public.has_permission(u.id,'licensee_management','edit')
+     AND u.id <> _u1
+   ORDER BY u.id LIMIT 1;
+  -- If the establishment holds only one non-privileged maintainer, the
+  -- independent checker is a super administrator; it must still be a different
+  -- person from the proposer.
+  IF _u2 IS NULL THEN
+    SELECT u.id INTO _u2 FROM auth.users u
+     WHERE public.is_super_admin(u.id) AND u.id <> _u1 ORDER BY u.id LIMIT 1;
+  END IF;
+
+  SELECT m.id INTO _metric FROM public.regulatory_metrics m ORDER BY m.code LIMIT 1;
+
+  PERFORM pg_temp.rec('N','N-00',
+    'the behavioural currency fixture has a regulated entity with a lead regulator and monetary configuration, a base currency, a second supported currency, two independent officers holding licensee maintenance authority, a super administrator and a regulatory metric',
+    _entity IS NOT NULL AND _reg IS NOT NULL AND _cfgid IS NOT NULL AND _base IS NOT NULL
+      AND _alt IS NOT NULL AND _u1 IS NOT NULL AND _u2 IS NOT NULL AND _sa IS NOT NULL
+      AND _metric IS NOT NULL,
+    format('entity=%s regulator=%s config=%s base=%s alt=%s u1=%s u2=%s',
+      _entity, _reg, _cfgid, _base, _alt, _u1, _u2));
+
+  IF _entity IS NULL OR _cfgid IS NULL OR _base IS NULL OR _alt IS NULL
+     OR _u1 IS NULL OR _u2 IS NULL OR _sa IS NULL OR _metric IS NULL THEN
+    RETURN;
+  END IF;
+
+  BEGIN
+    -- Start from a clean slate for this entity inside the rolled-back fixture.
+    DELETE FROM public.entity_currency_profiles WHERE entity_id = _entity;
+    UPDATE public.monetary_configs
+       SET entity_currency_override_approval_mode = 'DIRECT_AUTHORIZED'
+     WHERE id = _cfgid;
+
+    _res := public.entity_reporting_currency_resolve(_entity, CURRENT_DATE, NULL);
+    _buf := pg_temp.bufrec(_buf,'N','N-01',
+      'with no override in force, the entity reports in the regulator base currency and the provenance says so',
+      _res->>'currency' = _base AND _res->>'source' IN ('REGULATOR_BASE','MONETARY_CONFIG'),
+      'resolve='||_res::text);
+
+    -- ---- DIRECT_AUTHORIZED override ---------------------------------------
+    PERFORM pg_temp.act(_u1);
+    _res := public.entity_currency_override_set(_entity, _alt, CURRENT_DATE - 60,
+              'Gate fixture: the entity reports in its functional currency.', NULL);
+    _p1 := (_res->>'entity_currency_profile_id')::uuid;
+    _buf := pg_temp.bufrec(_buf,'N','N-02',
+      'under direct authorisation an authorised officer records an immediately active effective-dated override',
+      _res->>'status' = 'ACTIVE' AND _res->>'approval_mode' = 'DIRECT_AUTHORIZED'
+        AND EXISTS (SELECT 1 FROM public.entity_currency_profiles p
+                     WHERE p.id = _p1 AND p.status='ACTIVE' AND p.effective_from = CURRENT_DATE - 60
+                       AND p.reporting_currency_override = _alt
+                       AND length(coalesce(p.reason,'')) >= 10), 'set='||_res::text);
+
+    _res := public.entity_reporting_currency_resolve(_entity, CURRENT_DATE, NULL);
+    _buf := pg_temp.bufrec(_buf,'N','N-03',
+      'the active override takes precedence over the regulator base currency and names the profile it came from',
+      _res->>'currency' = _alt AND _res->>'source' = 'ENTITY_OVERRIDE'
+        AND (_res->>'entity_currency_profile_id')::uuid = _p1, 'resolve='||_res::text);
+
+    _res := public.entity_reporting_currency_resolve(_entity, CURRENT_DATE - 61, NULL);
+    _buf := pg_temp.bufrec(_buf,'N','N-04',
+      'the override never applies to a date before it took effect — history resolves to the base currency',
+      _res->>'currency' = _base AND _res->>'source' <> 'ENTITY_OVERRIDE',
+      'historical resolve='||_res::text);
+
+    -- ---- maker-checker mode ----------------------------------------------
+    PERFORM set_config('request.jwt.claims','{}', true);
+    UPDATE public.monetary_configs
+       SET entity_currency_override_approval_mode = 'MAKER_CHECKER' WHERE id = _cfgid;
+    _buf := pg_temp.bufrec(_buf,'N','N-05',
+      'the approval mode for entity currency overrides is business configuration resolved from the monetary configuration',
+      public.entity_currency_approval_mode(_entity) = 'MAKER_CHECKER',
+      'mode='||public.entity_currency_approval_mode(_entity));
+
+    PERFORM pg_temp.act(_u1);
+    _res := public.entity_currency_override_set(_entity, _base, CURRENT_DATE,
+              'Gate fixture: proposal to report in the regulator base currency.', NULL);
+    _p2 := (_res->>'entity_currency_profile_id')::uuid;
+    _buf := pg_temp.bufrec(_buf,'N','N-06',
+      'under maker-checker an override is only a proposal and records who proposed it',
+      _res->>'status' = 'PROPOSED'
+        AND EXISTS (SELECT 1 FROM public.entity_currency_profiles p
+                     WHERE p.id=_p2 AND p.status='PROPOSED' AND p.proposed_by=_u1
+                       AND p.proposed_at IS NOT NULL), 'propose='||_res::text);
+
+    _res := public.entity_reporting_currency_resolve(_entity, CURRENT_DATE, NULL);
+    _buf := pg_temp.bufrec(_buf,'N','N-07',
+      'a pending proposal never changes the currency actually in force',
+      _res->>'currency' = _alt AND (_res->>'entity_currency_profile_id')::uuid = _p1,
+      'resolve while pending='||_res::text);
+
+    _ok := false; _msg := '';
+    BEGIN PERFORM public.entity_currency_override_decide(_p2,'APPROVE',
+      'Gate probe: the proposer must not approve their own proposal.');
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'N','N-08',
+      'the officer who proposed an override can never approve it',
+      _ok AND (SELECT status FROM public.entity_currency_profiles WHERE id=_p2) = 'PROPOSED', _msg);
+
+    PERFORM pg_temp.act(_u2);
+    _res := public.entity_currency_override_decide(_p2,'APPROVE',
+      'Gate fixture: independently approved by a second officer.');
+    _buf := pg_temp.bufrec(_buf,'N','N-09',
+      'an independent officer can approve the proposal, which activates it and supersedes the predecessor without deleting it',
+      _res->>'status' = 'ACTIVE'
+        AND EXISTS (SELECT 1 FROM public.entity_currency_profiles p
+                     WHERE p.id=_p2 AND p.status='ACTIVE' AND p.approved_by=_u2
+                       AND p.decision_at IS NOT NULL)
+        AND EXISTS (SELECT 1 FROM public.entity_currency_profiles p
+                     WHERE p.id=_p1 AND p.status='SUPERSEDED' AND p.superseded_by=_p2
+                       AND p.effective_to = CURRENT_DATE - 1),
+      'approve='||_res::text);
+
+    _res := public.entity_reporting_currency_resolve(_entity, CURRENT_DATE - 30, NULL);
+    _buf := pg_temp.bufrec(_buf,'N','N-10',
+      'after supersession, a date inside the superseded window still resolves to the currency that was then in force',
+      _res->>'currency' = _alt AND (_res->>'entity_currency_profile_id')::uuid = _p1,
+      'historical resolve='||_res::text);
+
+    PERFORM pg_temp.act(_u1);
+    _res := public.entity_currency_override_set(_entity, _alt, CURRENT_DATE + 30,
+              'Gate fixture: a proposal that will be declined.', NULL);
+    _p3 := (_res->>'entity_currency_profile_id')::uuid;
+    PERFORM pg_temp.act(_u2);
+    _res := public.entity_currency_override_decide(_p3,'REJECT',
+      'Gate fixture: declined, the base currency remains appropriate.');
+    _buf := pg_temp.bufrec(_buf,'N','N-11',
+      'a declined proposal is retained as a rejected record with its decision reason and never takes effect',
+      _res->>'status' = 'REJECTED'
+        AND EXISTS (SELECT 1 FROM public.entity_currency_profiles p
+                     WHERE p.id=_p3 AND p.status='REJECTED' AND p.decision_by=_u2
+                       AND length(coalesce(p.decision_reason,'')) >= 10)
+        AND (public.entity_reporting_currency_resolve(_entity, CURRENT_DATE + 45, NULL)->>'currency') = _base,
+      'reject='||_res::text);
+
+    -- ---- filing snapshot, mandate, immutability and rebase ---------------
+    PERFORM set_config('request.jwt.claims','{}', true);
+    INSERT INTO public.return_definitions(code, name, frequency, due_days_after_period_end,
+      requires_declaration, status, is_active, effective_from)
+    VALUES ('F6X-GATE-DEF','F6X gate return','QUARTERLY',30,false,'ACTIVE',true, CURRENT_DATE - 400)
+    RETURNING id INTO _def;
+
+    INSERT INTO public.return_definitions(code, name, frequency, due_days_after_period_end,
+      requires_declaration, status, is_active, effective_from, mandatory_currency_code)
+    VALUES ('F6X-GATE-MANDATE','F6X gate mandated-currency return','ANNUAL',30,false,'ACTIVE',true,
+            CURRENT_DATE - 400, _alt)
+    RETURNING id INTO _deffx;
+
+    INSERT INTO public.entity_reporting_obligations(entity_id, return_definition_id, origin,
+      frequency, due_days_after_period_end, effective_from)
+    VALUES (_entity, _def, 'AD_HOC','QUARTERLY',30, CURRENT_DATE - 400)
+    RETURNING id INTO _ob;
+
+    _pe := CURRENT_DATE - 30;
+    INSERT INTO public.reporting_periods(entity_reporting_obligation_id, period_label,
+      period_start, period_end, due_date, status)
+    VALUES (_ob,'F6X-GATE-P1', _pe - 89, _pe, _pe + 30, 'OPEN')
+    RETURNING id INTO _per;
+
+    INSERT INTO public.return_filings(filing_reference, entity_id, entity_reporting_obligation_id,
+      reporting_period_id, return_definition_id, status, current_version_number)
+    VALUES ('F6X-GATE-FILING-1', _entity, _ob, _per, _def, 'DRAFT', 1)
+    RETURNING id INTO _fil;
+
+    INSERT INTO public.return_filing_versions(return_filing_id, version_number, status)
+    VALUES (_fil, 1, 'DRAFT') RETURNING id INTO _ver;
+
+    _res := public.returns_snapshot_filing_currency(_fil);
+    SELECT f.reporting_currency, f.currency_source INTO _cur, _src
+      FROM public.return_filings f WHERE f.id=_fil;
+    _buf := pg_temp.bufrec(_buf,'N','N-12',
+      'a filing snapshots the currency that was authoritative at its period end, with provenance and the as-of date',
+      _cur = _alt AND _src = 'ENTITY_OVERRIDE'
+        AND EXISTS (SELECT 1 FROM public.return_filings f
+                     WHERE f.id=_fil AND f.currency_as_of = _pe
+                       AND f.entity_currency_profile_id = _p1
+                       AND f.currency_snapshot_at IS NOT NULL),
+      'snapshot currency='||coalesce(_cur,'∅')||' source='||coalesce(_src,'∅'));
+
+    PERFORM pg_temp.act(_u1);
+    PERFORM public.entity_currency_override_supersede(_p2,
+      'Gate fixture: the entity currency arrangement is withdrawn.');
+    SELECT f.reporting_currency, f.currency_source INTO _cur, _src
+      FROM public.return_filings f WHERE f.id=_fil;
+    _buf := pg_temp.bufrec(_buf,'N','N-13',
+      'a later change to the entity currency profile never rewrites the currency of a filing already snapshotted',
+      _cur = _alt AND _src = 'ENTITY_OVERRIDE', 'filing currency after profile change='||coalesce(_cur,'∅'));
+
+    _ok := false; _msg := '';
+    BEGIN PERFORM public.returns_rebase_filing_currency(_fil,'too short');
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'N','N-14',
+      'rebasing a draft filing''s currency demands a substantive recorded reason',
+      _ok, _msg);
+
+    _res := public.returns_rebase_filing_currency(_fil,
+      'Gate fixture: rebase the draft onto the currently authoritative currency.');
+    _buf := pg_temp.bufrec(_buf,'N','N-15',
+      'a governed rebase re-resolves the draft against the currency hierarchy at its period end and reports the currency it moved from',
+      _res->>'previous_currency' = _alt AND _res->>'currency' = _alt
+        AND _res->>'source' = 'ENTITY_OVERRIDE', 'rebase='||_res::text);
+
+    PERFORM set_config('request.jwt.claims','{}', true);
+    UPDATE public.return_filings SET status='SUBMITTED' WHERE id=_fil;
+    PERFORM pg_temp.act(_u1);
+    _ok := false; _msg := '';
+    BEGIN PERFORM public.returns_rebase_filing_currency(_fil,
+      'Gate probe: a submitted return must never be rebased.');
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'N','N-16',
+      'once a return is no longer a draft its currency of record can never be rebased',
+      _ok, _msg);
+
+    PERFORM set_config('request.jwt.claims','{}', true);
+    _ok := false; _msg := '';
+    BEGIN
+      UPDATE public.return_filings SET reporting_currency = _base WHERE id = _fil;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'N','N-16A',
+      'the currency of record of a submitted return cannot be edited directly at all',
+      _ok AND (SELECT reporting_currency FROM public.return_filings WHERE id=_fil) = _alt, _msg);
+
+    PERFORM set_config('request.jwt.claims','{}', true);
+    UPDATE public.return_filings SET status='DRAFT' WHERE id=_fil;
+
+    -- ---- display modes ----------------------------------------------------
+    INSERT INTO public.return_metric_values(return_filing_version_id, entity_id,
+      regulatory_metric_id, reporting_period_id, value_numeric, availability, source_kind)
+    VALUES (_ver, _entity, _metric, _per, 1000, 'AVAILABLE','REPORTED');
+
+    PERFORM pg_temp.act(_sa);
+    _res := public.returns_filing_metrics_display(_fil,'AS_REPORTED');
+    _buf := pg_temp.bufrec(_buf,'N','N-17',
+      'the as-reported view shows the original monetary values unchanged in the currency they were filed in',
+      _res->>'display_currency' = _alt AND (_res->>'mixed_currency')::boolean IS FALSE
+        AND (_res->'metrics'->0->>'as_reported')::numeric = 1000
+        AND (_res->'metrics'->0->>'display_value')::numeric = 1000
+        AND _res->'metrics'->0->>'status' = 'OK', 'as reported='||left(_res::text,300));
+
+    _res := public.returns_filing_metrics_display(_fil,'REGULATOR_BASE');
+    _buf := pg_temp.bufrec(_buf,'N','N-18',
+      'the regulator base view targets the base currency and is explicit about whether the figures are convertible',
+      _res->>'display_currency' = _base AND (_res->>'mixed_currency')::boolean IS TRUE
+        AND _res->'metrics'->0->>'status' IN ('OK','UNCONVERTED')
+        AND (_res->'metrics'->0->>'as_reported')::numeric = 1000, 'base view='||left(_res::text,300));
+
+    _buf := pg_temp.bufrec(_buf,'N','N-19',
+      'a figure that cannot be converted is never silently summed — it is reported as unconverted and the view is not summable',
+      (_res->'metrics'->0->>'status' = 'OK' AND (_res->>'summable')::boolean IS TRUE
+       AND _res->'metrics'->0->>'display_value' IS NOT NULL)
+      OR (_res->'metrics'->0->>'status' = 'UNCONVERTED'
+       AND (_res->>'summable')::boolean IS FALSE
+       AND _res->'metrics'->0->>'display_value' IS NULL),
+      'status='||coalesce(_res->'metrics'->0->>'status','∅')||' summable='||coalesce(_res->>'summable','∅'));
+
+    -- an approved effective-dated rate makes the same view convertible
+    PERFORM pg_temp.act(_sa);
+    _res := public.fx_rate_propose(_alt, _base, 2.7, _pe - 30, 'EFFECTIVE_UNTIL_CHANGED',
+              'UNITS_OF_TO_PER_ONE_FROM', NULL, 'REGULATOR_MAINTAINED','MID',
+              'F6X gate fixture rate', _reg, 'Gate fixture');
+    _rate := COALESCE((_res->>'fx_rate_id')::uuid, (_res->>'id')::uuid);
+    IF _rate IS NOT NULL AND (SELECT status FROM public.fx_rates WHERE id=_rate) <> 'ACTIVE' THEN
+      PERFORM public.fx_rate_decide(_rate, true, 'Gate fixture: rate approved for the conversion proof.');
+    END IF;
+    _res := public.returns_filing_metrics_display(_fil,'REGULATOR_BASE');
+    _buf := pg_temp.bufrec(_buf,'N','N-20',
+      'with an approved effective-dated rate in place the base-currency view converts the as-reported figure through the canonical FX engine and leaves the original untouched',
+      _res->'metrics'->0->>'status' = 'OK'
+        AND (_res->'metrics'->0->>'as_reported')::numeric = 1000
+        AND (_res->'metrics'->0->>'display_value')::numeric = 2700
+        AND (_res->>'summable')::boolean IS TRUE,
+      'converted view='||left(_res::text,300));
+
+    _res := public.returns_filing_metrics_display(_fil,'CONSOLIDATED_REPORTING');
+    _buf := pg_temp.bufrec(_buf,'N','N-21',
+      'the consolidated reporting view targets the regulator reporting currency and states its own fx as-of date',
+      _res->>'display_currency' = public.fx_reporting_currency(_reg)
+        AND (_res->>'fx_as_of')::date = _pe, 'consolidated='||left(_res::text,300));
+
+    _ok := false; _msg := '';
+    BEGIN PERFORM public.returns_filing_metrics_display(_fil,'WHATEVER');
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'N','N-22',
+      'an unrecognised display mode is refused rather than defaulted',
+      _ok, _msg);
+
+    -- ---- return-definition mandate ---------------------------------------
+    PERFORM set_config('request.jwt.claims','{}', true);
+    _res := public.entity_reporting_currency_resolve(_entity, _pe, _deffx);
+    _buf := pg_temp.bufrec(_buf,'N','N-23',
+      'a return definition that mandates a currency outranks any entity arrangement, and the mandate is recorded as the provenance',
+      _res->>'currency' = _alt AND _res->>'source' = 'RETURN_DEFINITION',
+      'mandate resolve='||_res::text);
+
+    RAISE EXCEPTION 'F6X_BEHAVIOUR_ROLLBACK';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM <> 'F6X_BEHAVIOUR_ROLLBACK' THEN
+      GET STACKED DIAGNOSTICS _ctx = PG_EXCEPTION_CONTEXT;
+      _buf := pg_temp.bufrec(_buf,'N','N-ERR','the behavioural currency fixture ran to completion',
+        false, SQLSTATE||': '||left(SQLERRM,200)||' | '||left(coalesce(_ctx,''),400));
+    END IF;
+  END;
+
+  RESET ROLE;
+  PERFORM set_config('request.jwt.claims','{}', true);
+
+  FOR r IN SELECT * FROM jsonb_array_elements(_buf) e LOOP
+    PERFORM pg_temp.rec(r.value->>'section', r.value->>'id', r.value->>'descr',
+      (r.value->>'passed')::boolean, r.value->>'detail');
+  END LOOP;
+END $n$;
+
+-- ---------------------------------------------------------------------------
+-- N-Z — the behavioural currency fixture left nothing behind
+-- ---------------------------------------------------------------------------
+DO $nz$
+DECLARE _n int;
+BEGIN
+  SELECT count(*) INTO _n FROM public.return_definitions WHERE code LIKE 'F6X-GATE-%';
+  PERFORM pg_temp.rec('N','N-90','the gate-owned return definitions were rolled back', _n=0, 'rows='||_n);
+
+  SELECT count(*) INTO _n FROM public.return_filings WHERE filing_reference LIKE 'F6X-GATE-%';
+  PERFORM pg_temp.rec('N','N-91','the gate-owned filings were rolled back', _n=0, 'rows='||_n);
+
+  SELECT count(*) INTO _n FROM public.entity_currency_profiles
+   WHERE reason LIKE 'Gate fixture:%' OR reason LIKE '%Gate fixture:%';
+  PERFORM pg_temp.rec('N','N-92','the gate-owned entity currency profiles were rolled back', _n=0, 'rows='||_n);
+
+  SELECT count(*) INTO _n FROM public.fx_rates WHERE provenance_reference = 'F6X gate fixture rate';
+  PERFORM pg_temp.rec('N','N-93','the gate-owned FX rate was rolled back', _n=0, 'rows='||_n);
+END $nz$;
+
 \echo ''
 \echo '===================== verify:f6x-currency results ====================='
 SELECT section, id, CASE WHEN passed THEN 'PASS' ELSE 'FAIL' END AS result, descr, detail
