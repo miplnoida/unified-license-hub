@@ -490,7 +490,7 @@ DECLARE
   _res jsonb; _rep jsonb; _state text; _n int; _ok boolean;
   _txn text; _alloc numeric; _base numeric; _repamt numeric;
   _alloc_rec public.fee_payment_allocations;
-  _rate1 uuid; _rate2 uuid;
+  _rate1 uuid; _rate2 uuid; _ctx text;
   r record;
 BEGIN
   SELECT u.id INTO _admin FROM auth.users u
@@ -873,8 +873,9 @@ BEGIN
     RAISE EXCEPTION 'F6X_GATE_ROLLBACK';
   EXCEPTION WHEN others THEN
     IF SQLERRM <> 'F6X_GATE_ROLLBACK' THEN
+      GET STACKED DIAGNOSTICS _ctx = PG_EXCEPTION_CONTEXT;
       _buf := pg_temp.bufrec(_buf,'H','H-ERR','the regulator-scoped fixture ran to completion',
-        false, SQLSTATE||': '||left(SQLERRM,200));
+        false, SQLSTATE||': '||left(SQLERRM,200)||' | '||left(coalesce(_ctx,''),400));
     END IF;
   END;
 
