@@ -709,7 +709,14 @@ BEGIN
     VALUES (_admin, _app, _out, _s1->>'currency','success','online','online',
             'CERTIFY-F6C-SETTLE-'||gen_random_uuid()::text, now())
     RETURNING id INTO _pay;
+    -- a receipt is issued for the money received, before any refund is raised
+    _res := public.payment_receipt_issue(_pay);
+    _rcpt2 := (_res->>'receipt_id')::uuid;
+    SELECT r.amount, r.fee_breakdown, (r.snapshot->>'assessment_id')::uuid
+      INTO _rcpt_amt, _rcpt_bd, _rcpt_aid
+      FROM public.payment_receipts r WHERE r.id=_rcpt2;
     PERFORM public.fee_refund_request(_pay, 150, 'certify f6c refund justification narrative');
+
     SELECT id INTO _rf FROM public.refunds WHERE payment_id=_pay ORDER BY created_at DESC LIMIT 1;
     _buf := pg_temp.bufrec(_buf,'E','E-05','a refund can be requested against money actually received',
       _rf IS NOT NULL, 'refund='||COALESCE(_rf::text,'∅'));
