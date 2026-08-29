@@ -1025,6 +1025,13 @@ BEGIN
      AND public.has_permission(u.id,'licensee_management','edit')
      AND u.id <> _u1
    ORDER BY u.id LIMIT 1;
+  -- If the establishment holds only one non-privileged maintainer, the
+  -- independent checker is a super administrator; it must still be a different
+  -- person from the proposer.
+  IF _u2 IS NULL THEN
+    SELECT u.id INTO _u2 FROM auth.users u
+     WHERE public.is_super_admin(u.id) AND u.id <> _u1 ORDER BY u.id LIMIT 1;
+  END IF;
 
   SELECT m.id INTO _metric FROM public.regulatory_metrics m ORDER BY m.code LIMIT 1;
 
