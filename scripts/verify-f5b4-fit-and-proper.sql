@@ -153,8 +153,32 @@ BEGIN
           (SELECT id FROM public.profiles ORDER BY created_at LIMIT 1), now(), _current, _from, _to)
   RETURNING id INTO _id;
   UPDATE public.fp_assessments SET status = 'determined', determined_at = now()
-   WHERE id = _assessment;
+   WHERE id = _assessment AND status <> 'determined';
   RETURN _id;
+END $$;
+
+-- DEF-F5-B4-B99: F&P determinations are immutable once an assessment is
+-- determined (and the engine rightly refuses a second screening run on it).
+-- Every determination scenario therefore needs its OWN fresh filing, its OWN
+-- legitimate assessment and its OWN explicit required link, created through the
+-- governed linkage operation under trusted test context — never a browser
+-- bypass and never a reused determined assessment.
+DROP FUNCTION IF EXISTS pg_temp.f5b4_linked(uuid,uuid,uuid,uuid,text);
+CREATE OR REPLACE FUNCTION pg_temp.f5b4_linked(_license uuid, _service uuid, _actor uuid,
+                                               _ind uuid, _role text DEFAULT 'DIRECTOR',
+                                               OUT _app uuid, OUT _asm uuid)
+LANGUAGE plpgsql AS $$
+BEGIN
+  _app := pg_temp.f5b4_app(_license, _service, _actor);
+  PERFORM pg_temp.nominate(_app, _ind, _role);
+  PERFORM pg_temp.trusted_on(_actor);
+  PERFORM public.ensure_post_license_fp_links(_app);
+  PERFORM pg_temp.trusted_off();
+  SELECT l.assessment_id INTO _asm
+    FROM public.application_fp_links l
+    JOIN public.fp_assessments a ON a.id = l.assessment_id
+   WHERE l.application_id = _app AND a.individual_id = _ind
+   LIMIT 1;
 END $$;
 
 -- ===========================================================================
@@ -254,6 +278,11 @@ DECLARE
   _submit jsonb; _status_after text;
   _f4_links int;
   _det_p1 uuid; _asm_p1 uuid; _asm_p2 uuid; _asm_p3 uuid; _asm_p4 uuid;
+  -- independent determination scenarios (one fresh assessment each)
+  _p_neg uuid; _p_exp uuid; _p_ncur uuid; _p_ok uuid; _p_twob uuid;
+  _a_neg uuid; _a_exp uuid; _a_ncur uuid; _a_ok uuid;
+  _asm_neg uuid; _asm_exp uuid; _asm_ncur uuid; _asm_ok uuid; _asm_twob uuid;
+  _r_ncur jsonb;
   _harness text := NULL;
 BEGIN
   SELECT p.id INTO _officer FROM public.profiles p
@@ -310,6 +339,11 @@ BEGIN
     _p2 := pg_temp.f5b4_individual('F5-B4 Probe Subject Two');
     _p3 := pg_temp.f5b4_individual('F5-B4 Probe Subject Three');
     _p4 := pg_temp.f5b4_individual('F5-B4 Probe Subject Four');
+    _p_neg  := pg_temp.f5b4_individual('F5-B4 Probe Subject Negative');
+    _p_exp  := pg_temp.f5b4_individual('F5-B4 Probe Subject Expired');
+    _p_ncur := pg_temp.f5b4_individual('F5-B4 Probe Subject NonCurrent');
+    _p_ok   := pg_temp.f5b4_individual('F5-B4 Probe Subject Positive');
+    _p_twob := pg_temp.f5b4_individual('F5-B4 Probe Subject SecondOfTwo');
 
     ----------------------------------------------------------------- non-F&P
     _a_plain := pg_temp.f5b4_app(_lic, _svc_plain, _officer);
@@ -372,27 +406,52 @@ BEGIN
     _r_nodet := public.post_license_fp_readiness(_a_main);
     _plan_nodet := public.post_license_effect_plan(_a_main);
 
+    -- Independent determination scenarios. Each uses its own fresh filing,
+    -- its own legitimately created assessment and its own explicit required
+    -- link, so no determined assessment is ever edited twice.
+
     -- negative determination
-    PERFORM pg_temp.f5b4_determination(_asm_p1, _p1, 'rejected', true);
-    _r_neg := public.post_license_fp_readiness(_a_main);
+    SELECT f.a, f.b INTO _a_neg, _asm_neg
+      FROM (SELECT (pg_temp.f5b4_linked(_lic,_svc_fp,_officer,_p_neg)).*) AS f(a, b);
+    PERFORM pg_temp.f5b4_determination(_asm_neg, _p_neg, 'rejected', true);
+    _r_neg := public.post_license_fp_readiness(_a_neg);
 
-    -- expired / non-current positive
-    UPDATE public.fp_determinations SET is_current = false WHERE assessment_id = _asm_p1;
-    PERFORM pg_temp.f5b4_determination(_asm_p1, _p1, 'approved', true,
+    -- expired positive determination (current row, elapsed validity window)
+    SELECT f.a, f.b INTO _a_exp, _asm_exp
+      FROM (SELECT (pg_temp.f5b4_linked(_lic,_svc_fp,_officer,_p_exp)).*) AS f(a, b);
+    PERFORM pg_temp.f5b4_determination(_asm_exp, _p_exp, 'approved', true,
                                        current_date - 400, current_date - 10);
-    _r_exp := public.post_license_fp_readiness(_a_main);
+    _r_exp := public.post_license_fp_readiness(_a_exp);
 
-    -- exact valid current positive
-    UPDATE public.fp_determinations SET is_current = false WHERE assessment_id = _asm_p1;
-    _det_p1 := pg_temp.f5b4_determination(_asm_p1, _p1, 'approved', true,
+    -- superseded (non-current) positive determination: the engine refuses to
+    -- mark an assessment determined without a finalized determination, and it
+    -- refuses to edit a finalized assessment without a governed override. The
+    -- probe therefore walks the real path and supersedes the determination
+    -- under an audited rule override (never a browser bypass).
+    SELECT f.a, f.b INTO _a_ncur, _asm_ncur
+      FROM (SELECT (pg_temp.f5b4_linked(_lic,_svc_fp,_officer,_p_ncur)).*) AS f(a, b);
+    PERFORM pg_temp.f5b4_determination(_asm_ncur, _p_ncur, 'approved', true,
+                                       current_date - 10, current_date + 365);
+    INSERT INTO public.rule_overrides (module, entity_type, entity_id, rule_key, reason, user_id)
+    VALUES ('fit_and_proper','fp_assessment', _asm_ncur::text,
+            'fit_and_proper.assessment.edit_finalized',
+            'F5-B4 verification probe: supersede determination to prove non-current is refused',
+            _officer);
+    UPDATE public.fp_determinations SET is_current = false WHERE assessment_id = _asm_ncur;
+    _r_ncur := public.post_license_fp_readiness(_a_ncur);
+
+    -- exact valid current positive determination
+    SELECT f.a, f.b INTO _a_ok, _asm_ok
+      FROM (SELECT (pg_temp.f5b4_linked(_lic,_svc_fp,_officer,_p_ok)).*) AS f(a, b);
+    _det_p1 := pg_temp.f5b4_determination(_asm_ok, _p_ok, 'approved', true,
                                           current_date - 10, current_date + 365);
-    _r_ok := public.post_license_fp_readiness(_a_main);
+    _r_ok := public.post_license_fp_readiness(_a_ok);
 
     --------------------------------------------- explicit link is mandatory
-    -- P1 now holds a current positive determination at this entity, but a new
-    -- filing that has not been linked must NOT inherit it.
+    -- The positive subject now holds a current positive determination at this
+    -- entity, but a new filing that has not been linked must NOT inherit it.
     _a_nolink := pg_temp.f5b4_app(_lic, _svc_fp, _officer);
-    PERFORM pg_temp.nominate(_a_nolink, _p1, 'DIRECTOR');
+    PERFORM pg_temp.nominate(_a_nolink, _p_ok, 'DIRECTOR');
     _r_nolink := public.post_license_fp_readiness(_a_nolink);
     _plan_nolink := public.post_license_effect_plan(_a_nolink);
 
@@ -400,7 +459,7 @@ BEGIN
     _a_reuse := pg_temp.f5b4_app(_lic, _svc_fp, _officer);
     PERFORM pg_temp.nominate(_a_reuse, _p2, 'DIRECTOR');
     INSERT INTO public.application_fp_links (application_id, assessment_id, is_required, linked_by)
-    VALUES (_a_reuse, _asm_p1, true, _officer);
+    VALUES (_a_reuse, _asm_ok, true, _officer);
     _r_wrongsub := public.post_license_fp_readiness(_a_reuse);
     DELETE FROM public.application_fp_links WHERE application_id = _a_reuse;
 
@@ -420,7 +479,7 @@ BEGIN
     SELECT count(*) INTO _assess_p3 FROM public.fp_assessments WHERE individual_id = _p3;
 
     -- another entity's positive assessment is NOT reusable here
-    _asm_p4 := pg_temp.f5b4_assessment(_p4, _other_entity, 'determined');
+    _asm_p4 := pg_temp.f5b4_assessment(_p4, _other_entity, 'draft');
     PERFORM pg_temp.f5b4_determination(_asm_p4, _p4, 'approved', true, current_date - 5, current_date + 300);
     _a_other := pg_temp.f5b4_app(_lic, _svc_fp, _officer);
     PERFORM pg_temp.nominate(_a_other, _p4, 'DIRECTOR');
@@ -431,45 +490,54 @@ BEGIN
      WHERE individual_id = _p4 AND licensee_id = _entity;
 
     ------------------------------------------------------ multi-subject case
+    -- one already-positive subject plus one fresh subject: all required
+    -- subjects must be positive before the filing is ready.
     _a_two := pg_temp.f5b4_app(_lic, _svc_fp, _officer);
-    PERFORM pg_temp.nominate(_a_two, _p1, 'DIRECTOR');
-    PERFORM pg_temp.nominate(_a_two, _p2, 'DIRECTOR');
+    PERFORM pg_temp.nominate(_a_two, _p_ok, 'DIRECTOR');
+    PERFORM pg_temp.nominate(_a_two, _p_twob, 'DIRECTOR');
     PERFORM pg_temp.trusted_on(_officer);
     PERFORM public.ensure_post_license_fp_links(_a_two);
     PERFORM pg_temp.trusted_off();
     _r_two_partial := public.post_license_fp_readiness(_a_two);
-    SELECT l.assessment_id INTO _asm_p2
+    SELECT l.assessment_id INTO _asm_twob
       FROM public.application_fp_links l JOIN public.fp_assessments a ON a.id = l.assessment_id
-     WHERE l.application_id = _a_two AND a.individual_id = _p2;
-    PERFORM pg_temp.f5b4_determination(_asm_p2, _p2, 'approved', true,
+     WHERE l.application_id = _a_two AND a.individual_id = _p_twob;
+    PERFORM pg_temp.f5b4_determination(_asm_twob, _p_twob, 'approved', true,
                                        current_date - 5, current_date + 300);
     _r_two_ok := public.post_license_fp_readiness(_a_two);
 
     ------------------------------------------------------------- alignment
-    -- Person A assessed, Person B structurally appointed → refused
-    _a_align := _a_main;
+    -- A fresh filing whose structural appointment names the assessed subject
+    -- BEFORE linkage: the governed linkage reuses that subject's valid current
+    -- positive determination, so the effect is genuinely aligned.
+    _a_align := pg_temp.f5b4_app(_lic, _svc_fp, _officer);
     INSERT INTO public.form_responses (template_id, version_id, user_id, entity_type, entity_id, status)
     VALUES (_tpl, _ver, _officer, 'application', _a_align, 'submitted') RETURNING id INTO _resp;
     INSERT INTO public.form_submission_values (response_id, form_version_id, data_concept_id, value_json)
     SELECT _resp, _ver, dc.id,
-           jsonb_build_object('fp_individual_id', _p2, 'role_type_key','DIRECTOR')
+           jsonb_build_object('fp_individual_id', _p_ok, 'role_type_key','DIRECTOR')
       FROM public.data_concepts dc WHERE dc.code = 'GOVERNANCE.ROLE';
+    PERFORM pg_temp.nominate(_a_align, _p_ok, 'DIRECTOR');
+    PERFORM pg_temp.trusted_on(_officer);
+    PERFORM public.ensure_post_license_fp_links(_a_align);
+    PERFORM pg_temp.trusted_off();
+    BEGIN
+      PERFORM public.assert_post_license_fp_effect_alignment(_a_align);
+      _align_ok := 'ALIGNED';
+    EXCEPTION WHEN others THEN
+      GET STACKED DIAGNOSTICS _align_ok = PG_EXCEPTION_DETAIL;
+      _align_ok := SQLSTATE || ': ' || left(SQLERRM,60) || ' | ' || left(coalesce(_align_ok,''),160);
+    END;
+
+    -- Person A assessed, Person B structurally appointed → refused
+    UPDATE public.form_submission_values
+       SET value_json = jsonb_build_object('fp_individual_id', _p2, 'role_type_key','DIRECTOR')
+     WHERE response_id = _resp;
     BEGIN
       PERFORM public.assert_post_license_fp_effect_alignment(_a_align);
       _align_mismatch := 'ALLOWED';
     EXCEPTION WHEN others THEN
       _align_mismatch := SQLERRM;
-    END;
-
-    -- the aligned individual passes
-    UPDATE public.form_submission_values
-       SET value_json = jsonb_build_object('fp_individual_id', _p1, 'role_type_key','DIRECTOR')
-     WHERE response_id = _resp;
-    BEGIN
-      PERFORM public.assert_post_license_fp_effect_alignment(_a_align);
-      _align_ok := 'ALIGNED';
-    EXCEPTION WHEN others THEN
-      _align_ok := SQLSTATE || ': ' || left(SQLERRM,120);
     END;
 
     --------------------------------------------------------------- tampering
@@ -594,6 +662,12 @@ BEGIN
   PERFORM pg_temp.rec('B','B-11','an expired positive determination never satisfies the filing',
     (_r_exp->>'satisfied')::boolean = false,
     'state=' || coalesce(_r_exp->>'state','null'));
+
+  PERFORM pg_temp.rec('B','B-11b','a superseded (non-current) positive determination never satisfies the filing',
+    (_r_ncur->>'satisfied')::boolean = false
+      AND _r_ncur->>'state' = 'FP_DETERMINATION_REQUIRED',
+    'state=' || coalesce(_r_ncur->>'state','null'));
+
 
   PERFORM pg_temp.rec('B','B-12','an exact current positive determination satisfies the filing',
     (_r_ok->>'satisfied')::boolean = true AND _r_ok->>'state' = 'OK'
@@ -726,3 +800,4 @@ DROP FUNCTION IF EXISTS pg_temp.f5b4_app(uuid,uuid,uuid,text);
 DROP FUNCTION IF EXISTS pg_temp.f5b4_individual(text);
 DROP FUNCTION IF EXISTS pg_temp.f5b4_assessment(uuid,uuid,text);
 DROP FUNCTION IF EXISTS pg_temp.f5b4_determination(uuid,uuid,text,boolean,date,date);
+DROP FUNCTION IF EXISTS pg_temp.f5b4_linked(uuid,uuid,uuid,uuid,text);
