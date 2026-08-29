@@ -68,6 +68,10 @@ BEGIN
   PERFORM set_config('app.workflow_mutation_context','', true);
 END $$;
 
+-- Probe filings are created in a terminal status so the certified
+-- one-open-filing-per-licence-and-service guard is never weakened; only the
+-- single end-to-end submission probe uses a draft.
+
 -- Nominate a canonical subject through the protected application context,
 -- exactly as the governed nomination operation stores it.
 DROP FUNCTION IF EXISTS pg_temp.nominate(uuid,uuid,text);
@@ -85,7 +89,7 @@ END $$;
 
 DROP FUNCTION IF EXISTS pg_temp.f5b4_app(uuid,uuid,uuid,text);
 CREATE OR REPLACE FUNCTION pg_temp.f5b4_app(_license uuid, _service uuid, _actor uuid,
-                                            _status text DEFAULT 'submitted')
+                                            _status text DEFAULT 'withdrawn')
 RETURNS uuid LANGUAGE plpgsql AS $$
 DECLARE _lic public.licenses; _app uuid;
 BEGIN
