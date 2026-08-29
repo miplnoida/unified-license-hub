@@ -1,7 +1,6 @@
-# F5 — Post-Licensing Services: Final Certification (IN PROGRESS)
+# F5 — Post-Licensing Services: Final Certification & Freeze
 
-Runtime HEAD at time of this run: `8848e9150d45fe765a71b3c071c4324e81f4d99a`
-Status: **NOT CERTIFIED — F5-C BLOCKERS REMAIN** (certification gate not green)
+Status: **F5 PRODUCT CERTIFIED AND FROZEN — BUSINESS CONFIGURATION / DOWNSTREAM BOUNDARIES RECORDED**
 
 ## 1. Final live census (verified against the live database)
 
@@ -38,23 +37,70 @@ acknowledgement, branch open/close, renewal, variation/surrender, fee + withdraw
 applicability boundary, authority/isolation/browser-tamper, classification authority and
 the frozen F4 boundary, server authority/immutability).
 
-Current result: **58 / 61 passing at best run; not green.**
+Final result: **73 / 73 PASS, twice, identical (only ephemeral fixture UUIDs differ), zero residue.**
+The gate grew from the planned 61 to 73 assertions because Sections C (F&P) and H
+(submission/fee boundary) were restructured into independent rollback sub-transactions,
+each proving its blocker with a genuine submitted filing, its own canonical subject and
+its own legitimate assessment. No assertion was removed or weakened.
 
-Outstanding failures are harness-level, in the certification script itself — not yet
-proven product defects, and not yet cleared:
+Harness repairs made in Phase 1 (certification script only, no product runtime change):
+- Section C uses the certified F&P vocabulary (`rejected` / `approved`), never reuses a
+  determined assessment, never uses withdrawn filings to dodge the one-open-filing guard,
+  and asserts the refusal codes `FP_SUBJECT_REQUIRED` / `FP_DETERMINATION_REQUIRED` and
+  readiness `state` / `satisfied` — proving F&P is the blocker, not terminal state.
+- Section H treats `can_submit_application(uuid)` as boolean, drives every transition
+  through `submit_application` / `withdraw_application` (`WORKFLOW_FIELD_LOCKED` intact),
+  and uses a valid `payments.payment_channel`. It proves: assessed fee > 0 blocks until a
+  valid payment; zero/waived does not; absent fee configuration fabricates no charge;
+  governed withdrawal works; the duplicate/open-filing guard holds; F4 payment behaviour
+  is unchanged.
 
-- `C-99` — F&P scenario harness: determination outcome vocabulary and the certified
-  one-open-filing-per-licence guard require per-scenario terminal fixtures; partially
-  corrected, still aborting.
-- `H-99` — submission-boundary harness: `can_submit_application` / intake-context return
-  shapes need text handling; the governed `WORKFLOW_FIELD_LOCKED` guard correctly refuses
-  the harness's direct status transition (a genuine control, proving the boundary).
+## 2a. Genuine defects found by the repaired certification (product corrections)
 
-Because the consolidated gate does not pass twice cleanly, **F5 is not certified and not
-frozen**. Sections 3–6 below (surface manifest, full upstream regression, security
-certification sign-off) were not executed in this run and must not be treated as
-evidence.
+Two real defects surfaced in the frozen upstream battery and were corrected:
 
+1. **F0-C A-16** — `public.post_license_matter_kind(text)` (seeded in F5-B5X) was
+   executable by `anon`. `EXECUTE` revoked from `anon` and `PUBLIC`; granted to
+   `authenticated` and `service_role`. F0-C now 34 / 34.
+2. **F1-C SC-02** — the 16 new variation / voluntary-surrender services left 18
+   configuration dimensions unexplained. Explicit `BUSINESS_CONFIGURATION_REQUIRED`
+   expectations were recorded for them (16 SLA, 2 fee); no fee, SLA or legal basis was
+   invented. The F1-C census constants were refreshed for the expanded catalogue
+   (136/680 -> 152/760, BCR 9 -> 27, SLA 8 -> 24, fee 1 -> 3). F1-C now 96 / 96.
+
+## 2b. Permanent F5 battery (all green)
+
+| Gate | Result |
+| --- | --- |
+| `certify:f5c` x2 | 73 / 73, 73 / 73 |
+| `verify:f5b5x` (SQL) | 51 / 51 |
+| `verify:f5b5x` surfaces | 15 / 15 |
+| `verify:f5b4` | 48 / 48 |
+| `verify:f5b3` | 53 / 53 |
+| `verify:f5b3-establishments` | 34 / 34 |
+| `verify:f5b2` | 44 / 44 |
+| `verify:f5b1` | 51 / 51 |
+
+## 2c. Frozen upstream regression (all green, after the two corrections above)
+
+`verify:f0c` 34/34 - `verify:f1c` 96/96 - `verify:f2b` 63/63 - `verify:f3b` 38/38 -
+`certify:f3c` 39/39 - `certify:f4c` 87/87 - `verify:f4b` complete - `verify:license-terms`
+complete - `verify:coordination-lifecycle` 26/26 - `verify:outbox-delivery` 28/28 -
+`verify:hardening` 31/31 + F5-B1 block 4/4 - `verify:anon-execute`, `verify:definer-guards`,
+`verify:audit-contract`, `verify:permission-refs`, `verify:service-completeness`,
+`verify:write-contract`, `verify:breadcrumbs` all clean.
+
+Frontend suite 141 files / 1299 tests passed; typecheck clean; production build succeeded.
+
+## 2d. Surface manifest
+
+Surface authority is proven by `verify:f5b5x-surfaces` (15 / 15): the workflow resolver
+calls only `application_workflow_view`, cannot fall back to a browser matcher on RPC
+failure, no longer queries `services.workflow_id` / `approval_workflows` to decide the
+effective workflow, retains no hierarchical browser workflow algorithm, uses
+`applications.request_kind` for persisted classification, renders forms via
+`post_license_service_form_set()`, has no unreachable Quick Action targets, and keeps
+compatibility redirects for retired duplicate pages.
 ## 3. Corrections carried into this document
 
 The F5-B5X evidence wording stating that a client-side workflow fallback remains is
@@ -72,14 +118,24 @@ applications return an unresolved state without a browser regulatory decision.
 - F14 correspondence, F15 SLA/escalation, F18 reporting depth
 - F20: fresh migration replay and browser-execution environment items
 
-## 5. Remaining work to reach certification
+## 5. Security / authority sign-off
 
-1. Repair the two harness aborts in `scripts/certify-f5c.sql` and run `certify:f5c` twice
-   identically.
-2. Execute the surface manifest classification for every active F5 route.
-3. Run the full permanent F5 gate battery and the frozen upstream battery once.
-4. Record the security/authority sign-off and freeze the F5 contracts.
+- No anonymous execute remains on any non-extension routine (F0-C A-16 green).
+- Post-licensing configuration DML stays revoked for external roles; all changes flow
+  through audited governed RPCs.
+- Workflow, F&P, duplicate/open-filing, licence-state and fee guards are all intact and
+  fail closed; no guard was weakened to make a service pass.
+- Classification is server-authoritative (`applications.request_kind`); a forged client
+  `data.type` cannot reclassify an F4 filing.
+
+## 6. Freeze
+
+The F5 Post-Licensing Services contracts (intake authority, canonical classification,
+service/licence binding, lifecycle input, effect engine and ledgers, establishment
+register, F&P linkage, fee boundary, submission/withdrawal authority, server-only
+workflow and form resolution) are **FROZEN**. `certify:f5c` plus the F5-B1..B5X gates are
+the permanent regression battery for this module.
 
 ## Verdict
 
-**F5-C BLOCKERS REMAIN**
+**F5 PRODUCT CERTIFIED AND FROZEN — BUSINESS CONFIGURATION / DOWNSTREAM BOUNDARIES RECORDED**
