@@ -878,18 +878,18 @@ BEGIN
       _n = 2, 'submission routines consuming the engine='||_n);
 
     _step := 'G-07'; RAISE NOTICE 'step: %', _step;
-    -- the independent offline account still carries a genuine unpaid balance
-    -- after its governed reversal and reassessment, so the refusal is real
-    _out := ROUND((public.fee_assessment_state(_app2)->>'outstanding')::numeric,2);
+    -- the account carries a genuine unpaid balance again after the governed
+    -- reversal in E-09, so the refusal below is really exercised
+    _out := ROUND((public.fee_assessment_state(_app)->>'outstanding')::numeric,2);
     IF _out <= 0 THEN
-      PERFORM public.fee_component_operation(_app2, 'add',
+      PERFORM public.fee_component_operation(_app, 'add',
         jsonb_build_object('fee_type_id', _ft4, 'amount', 650, 'description','certify:f6c submission gate'));
-      PERFORM public.fee_assessment_ensure(_app2, 'certify:f6c submission gate');
-      _out := ROUND((public.fee_assessment_state(_app2)->>'outstanding')::numeric,2);
+      PERFORM public.fee_assessment_ensure(_app, 'certify:f6c submission gate');
+      _out := ROUND((public.fee_assessment_state(_app)->>'outstanding')::numeric,2);
     END IF;
     _state := 'unexpected-success';
     BEGIN
-      PERFORM public.submit_application(_app2);
+      PERFORM public.submit_application(_app);
     EXCEPTION WHEN others THEN _state := SQLSTATE||': '||left(SQLERRM,120);
     END;
     PERFORM pg_temp.act(_admin);
