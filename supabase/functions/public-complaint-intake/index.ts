@@ -382,7 +382,8 @@ Deno.serve(async (req) => {
       location: clean(d.location, 250) || null,
       transaction_reference: clean(d.transaction_reference, 150) || null,
       amount_involved: num(d.amount_involved),
-      currency: clean(d.currency, 8) || "XCD",
+      // F6-X: a stated amount never acquires an assumed currency.
+      currency: clean(d.currency, 8) || null,
       amount_disputed: num(d.amount_disputed),
       claimed_loss: num(d.claimed_loss),
       continuing_loss: bool(d.continuing_loss),
