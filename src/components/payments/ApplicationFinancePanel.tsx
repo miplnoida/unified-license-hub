@@ -364,7 +364,7 @@ export function ApplicationFinancePanel({ applicationId, isInternal }: Props) {
                 </p>
                 <PermissionGate module="fee_management" action="edit">
                   <Button
-                    size="sm"
+                    size="sm" data-rbac="fee_management.edit"
                     disabled={busy || !Number(waiverAmount) || waiverReason.trim().length < 10}
                     onClick={() => guarded(
                       () => requestFeeWaiver(applicationId, Number(waiverAmount), waiverReason.trim()),
@@ -450,7 +450,7 @@ export function ApplicationFinancePanel({ applicationId, isInternal }: Props) {
                   The server checks refund eligibility against the settled receipt and refuses excess refunds.
                 </p>
                 <PermissionGate module="fee_management" action="edit">
-                  <Button size="sm"
+                  <Button size="sm" data-rbac="fee_management.edit"
                     disabled={busy || !refundPaymentId || !Number(refundAmount) || refundReason.trim().length < 10}
                     onClick={() => guarded(() => requestFeeRefund(refundPaymentId.trim(), Number(refundAmount), refundReason.trim()), 'Refund request submitted')}
                   >Submit refund request</Button>
