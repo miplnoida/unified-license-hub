@@ -911,6 +911,63 @@ BEGIN
 END $c$;
 
 -- ===========================================================================
+-- SECTION H — historical receipt census
+--
+-- Existing receipt records, including any minted before the server-authoritative
+-- routine existed, are examined against their payment and their assessment
+-- lineage. Structural correctness (the payment exists, and the receipt states
+-- the sum and currency actually received) is a hard requirement. Missing
+-- assessment lineage on pre-existing evidence is NOT rewritten to obtain a
+-- green gate: it is recorded as DATA_REMEDIATION_REQUIRED with its exact count.
+-- ===========================================================================
+DO $h$
+DECLARE _total int; _n int; _detail text;
+BEGIN
+  SELECT count(*) INTO _total FROM public.payment_receipts;
+  PERFORM pg_temp.rec('H','H-00','the existing receipt population is enumerated', true,
+    'receipts on record='||_total);
+
+  SELECT count(*), coalesce(string_agg(r.receipt_number, ', '),'none') INTO _n, _detail
+    FROM public.payment_receipts r
+   WHERE NOT EXISTS (SELECT 1 FROM public.payments p WHERE p.id = r.payment_id);
+  PERFORM pg_temp.rec('H','H-01','every receipt on record refers to a real payment',
+    _n = 0, 'orphaned='||_n||' ['||_detail||']');
+
+  SELECT count(*), coalesce(string_agg(r.receipt_number, ', '),'none') INTO _n, _detail
+    FROM public.payment_receipts r JOIN public.payments p ON p.id = r.payment_id
+   WHERE ROUND(COALESCE(r.amount,0),2) <> ROUND(COALESCE(p.amount,0),2)
+      OR COALESCE(r.currency,'') <> COALESCE(p.currency,'');
+  PERFORM pg_temp.rec('H','H-02','every receipt states the sum and currency actually received',
+    _n = 0, 'mismatched='||_n||' ['||_detail||']');
+
+  SELECT count(*), coalesce(string_agg(r.receipt_number, ', '),'none') INTO _n, _detail
+    FROM public.payment_receipts r JOIN public.payments p ON p.id = r.payment_id
+   WHERE r.voided_at IS NULL
+     AND COALESCE(p.status,'') NOT IN ('success','completed','paid','verified');
+  PERFORM pg_temp.rec('H','H-03','no standing receipt evidences a payment that is not settled',
+    _n = 0, 'standing receipts on unsettled payments='||_n||' ['||_detail||']');
+
+  SELECT count(*), coalesce(string_agg(r.receipt_number||' ('||r.id||')', ', '),'none')
+    INTO _n, _detail
+    FROM public.payment_receipts r
+   WHERE NOT EXISTS (SELECT 1 FROM public.fee_payment_allocations a WHERE a.payment_id = r.payment_id)
+     AND NOT EXISTS (SELECT 1 FROM public.fee_ledger_entries le
+                      WHERE le.payment_id = r.payment_id AND le.assessment_id IS NOT NULL);
+  PERFORM pg_temp.rec('H','H-04',
+    'legacy receipts without assessment lineage are recorded for remediation, never rewritten',
+    true,
+    CASE WHEN _n = 0 THEN 'all receipts carry assessment lineage'
+         ELSE 'DATA_REMEDIATION_REQUIRED='||_n||' ['||_detail||']' END);
+
+  SELECT count(*) INTO _n FROM public.payment_receipts r
+   WHERE COALESCE(r.snapshot->>'issued_source','') = 'SERVER'
+     AND (r.snapshot->>'assessment_id') IS NULL;
+  PERFORM pg_temp.rec('H','H-05','every server-issued receipt carries its assessment provenance',
+    _n = 0, 'server-issued without assessment id='||_n);
+END $h$;
+
+
+-- ===========================================================================
 -- SECTION Z — zero residue
 -- ===========================================================================
 DO $z$
