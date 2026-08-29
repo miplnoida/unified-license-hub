@@ -350,7 +350,6 @@ BEGIN
     VALUES (_admin, _app, 300, _s1->>'currency', 'success',
             'online', 'online', 'VERIFY-F6B-'||gen_random_uuid()::text, now())
     RETURNING id INTO _pay;
-    PERFORM public.fee_payment_apply(_pay, (_s1->>'assessment_id')::uuid, 300, _s1->>'currency', 'verify-f6b');
     PERFORM public.fee_refund_request(_pay, 100, 'verify f6b refund reason text');
     SELECT id INTO _rf FROM public.refunds WHERE payment_id = _pay ORDER BY created_at DESC LIMIT 1;
     _state := 'unexpected-success';
