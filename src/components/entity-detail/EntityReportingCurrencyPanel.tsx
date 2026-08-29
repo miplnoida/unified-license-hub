@@ -53,6 +53,9 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
 
   const activeProfile = data.history.find((p) => p.id === data.entity_currency_profile_id) ?? null;
   const canManage = !!data.can_manage;
+  const approvalMode = data.approval_mode ?? 'DIRECT_AUTHORIZED';
+  const makerChecker = approvalMode === 'MAKER_CHECKER';
+  const pending = data.pending_proposals ?? [];
 
   const submitOverride = async () => {
     if (!code || !effectiveFrom || reason.trim().length < 10) {
@@ -60,11 +63,35 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
       return;
     }
     try {
-      await setOverride.mutateAsync({ entityId, currency: code, effectiveFrom, reason: reason.trim() });
-      toast.success(`Reporting currency override set to ${code}.`);
+      const res = await setOverride.mutateAsync({ entityId, currency: code, effectiveFrom, reason: reason.trim() });
+      toast.success(res?.status === 'PROPOSED'
+        ? `Override to ${code} proposed. It takes effect only once an independent approver accepts it.`
+        : `Reporting currency override set to ${code}.`);
       setOpen(false); setCode(''); setEffectiveFrom(''); setReason('');
     } catch (e: any) {
       toast.error(e?.message ?? 'The override could not be set.');
+    }
+  };
+
+  const decide = async (profileId: string, decision: 'APPROVE' | 'REJECT') => {
+    const why = window.prompt(`Reason for ${decision === 'APPROVE' ? 'approving' : 'rejecting'} this proposed override (min 10 characters)`) ?? '';
+    if (why.trim().length < 10) { toast.error('A reason of at least 10 characters is required.'); return; }
+    try {
+      await decideOverride.mutateAsync({ profileId, decision, reason: why.trim() });
+      toast.success(decision === 'APPROVE' ? 'Override approved and now active.' : 'Proposed override rejected.');
+    } catch (e: any) {
+      toast.error(e?.message ?? 'The decision could not be recorded.');
+    }
+  };
+
+  const withdraw = async (profileId: string) => {
+    const why = window.prompt('Reason for withdrawing this proposal (min 10 characters)') ?? '';
+    if (why.trim().length < 10) { toast.error('A reason of at least 10 characters is required.'); return; }
+    try {
+      await withdrawProposal.mutateAsync({ profileId, reason: why.trim() });
+      toast.success('Proposal withdrawn.');
+    } catch (e: any) {
+      toast.error(e?.message ?? 'The proposal could not be withdrawn.');
     }
   };
 
@@ -78,6 +105,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
       toast.error(e?.message ?? 'The override could not be superseded.');
     }
   };
+
 
   return (
     <div className="space-y-4">
