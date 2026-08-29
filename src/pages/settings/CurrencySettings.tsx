@@ -216,7 +216,7 @@ export default function CurrencySettings() {
               <div className="grid gap-3 sm:grid-cols-3">
                 <div><p className="text-xs text-muted-foreground">Base currency</p><p className="font-mono font-medium">{cfg.base_currency}</p></div>
                 <div><p className="text-xs text-muted-foreground">Reporting currency</p><p className="font-mono font-medium">{cfg.reporting_currency}</p></div>
-                <div><p className="text-xs text-muted-foreground">Cross-currency policy</p><p className="font-mono">{cfg.cross_currency_policy ?? '—'}</p></div>
+                <div><p className="text-xs text-muted-foreground">Cross-currency settlement</p><p className="font-mono">{cfg.cross_currency_settlement_allowed ? 'Allowed' : 'Not allowed'}</p></div>
               </div>
             )}
           </CardContent>
