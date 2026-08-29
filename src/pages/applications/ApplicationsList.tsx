@@ -358,11 +358,11 @@ export default function ApplicationsList() {
 
       let rows = (data as any[]) || [];
       // Client-side filter for pre/post licensing applications.
-      // Post-license apps are tagged with data.type === 'post_license' (set by NewPostLicenseApplication).
+      // Classification comes from the server-owned applications.request_kind.
       if (typeFilter === 'post') {
-        rows = rows.filter((r: any) => (r.data?.type === 'post_license' || !!r.data?.service_id || !!r.service_id));
+        rows = rows.filter((r: any) => isPostLicenseApplicationRow(r));
       } else if (typeFilter === 'pre') {
-        rows = rows.filter((r: any) => !(r.data?.type === 'post_license' || !!r.data?.service_id || !!r.service_id));
+        rows = rows.filter((r: any) => !isPostLicenseApplicationRow(r));
       }
       // When pre/post filter is active, paginate the filtered rows client-side
       // so totalCount and the visible slice reflect the filter.
@@ -528,9 +528,9 @@ export default function ApplicationsList() {
         if (error) throw error;
         let rows = (data as any[]) || [];
         if (typeFilter === 'post') {
-          rows = rows.filter((r: any) => r.data?.type === 'post_license' || !!r.data?.service_id || !!r.service_id);
+          rows = rows.filter((r: any) => isPostLicenseApplicationRow(r));
         } else if (typeFilter === 'pre') {
-          rows = rows.filter((r: any) => !(r.data?.type === 'post_license' || !!r.data?.service_id || !!r.service_id));
+          rows = rows.filter((r: any) => !isPostLicenseApplicationRow(r));
         }
         all = all.concat(rows);
         offset += PAGE;
@@ -784,7 +784,7 @@ export default function ApplicationsList() {
     const payment = app.payment || null;
     const versionEntries = getAppVersionEntries(app);
     const isSelectedForCompare = selectedForCompare.includes(app.id);
-    const isPostLicenseApplication = (app.data as any)?.type === 'post_license' || !!(app.data as any)?.service_id;
+    const isPostLicenseApplication = isPostLicenseApplicationRow(app as any);
     const editHref = isPostLicenseApplication
       ? `/post-licensee/applications/${app.id}/forms`
       : `/applications/${app.id}/continue?draft=${app.id}&mode=continue`;
