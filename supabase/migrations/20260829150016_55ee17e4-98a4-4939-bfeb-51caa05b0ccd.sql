@@ -1,0 +1,1 @@
+-- see /tmp/f6b.sql (applied verbatim)
