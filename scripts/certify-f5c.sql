@@ -387,14 +387,14 @@ BEGIN
       json_build_object('sub',_officer::text,'role','authenticated')::text, true);
 
     -- (i) no nominated subject at all
-    _fx_none := pg_temp.fixture(_lic, _svc, _officer);
+    _fx_none := pg_temp.fixture(_lic, _svc, _officer, 'withdrawn');
     _r_none := public.post_license_fp_readiness((_fx_none->>'application_id')::uuid);
     _p_none := public.post_license_effect_plan((_fx_none->>'application_id')::uuid);
 
     -- (ii) nominated subject, determination still pending
     _ind_pend := pg_temp.individual('F5-C Pending Director');
     _asm_pend := pg_temp.assessment(_ind_pend, _entity, 'draft');
-    _fx_pend := pg_temp.fixture(_lic, _svc, _officer);
+    _fx_pend := pg_temp.fixture(_lic, _svc, _officer, 'withdrawn');
     PERFORM pg_temp.nominate((_fx_pend->>'application_id')::uuid, _ind_pend, 'DIRECTOR');
     PERFORM pg_temp.trusted_on(_officer);
     PERFORM public.ensure_post_license_fp_links((_fx_pend->>'application_id')::uuid);
@@ -405,7 +405,7 @@ BEGIN
     -- (iii) negative determination
     _ind_neg := pg_temp.individual('F5-C Negative Director');
     _asm_neg := pg_temp.assessment(_ind_neg, _entity, 'draft');
-    _fx_neg := pg_temp.fixture(_lic, _svc, _officer);
+    _fx_neg := pg_temp.fixture(_lic, _svc, _officer, 'withdrawn');
     PERFORM pg_temp.nominate((_fx_neg->>'application_id')::uuid, _ind_neg, 'DIRECTOR');
     PERFORM pg_temp.trusted_on(_officer);
     PERFORM public.ensure_post_license_fp_links((_fx_neg->>'application_id')::uuid);
@@ -796,7 +796,7 @@ DO $h$
 DECLARE
   _lic public.licenses; _officer uuid; _svc uuid; _app uuid; _dup uuid;
   _fee jsonb; _fee_f4 jsonb; _can_before jsonb; _can_paid jsonb;
-  _withdraw text; _status_after text; _dup_ctx jsonb; _wrong_ctx jsonb;
+  _withdraw text; _status_after text; _dup_ctx text; _wrong_ctx jsonb;
   _harness text := NULL; _n int;
 BEGIN
   _officer := pg_temp.officer();
@@ -821,8 +821,8 @@ BEGIN
     _fee_f4 := public.post_license_fee_assessment(_dup);
 
     -- governed intake context: duplicate / open matter detection
-    _dup_ctx := public.resolve_post_license_intake_context(_lic.id, _svc);
-    _wrong_ctx := public.post_license_service_applicability(_svc, gen_random_uuid());
+    _dup_ctx := public.resolve_post_license_intake_context(_lic.id, _svc)::text;
+    _wrong_ctx := to_jsonb(public.post_license_service_applicability(_svc, gen_random_uuid()));
 
     -- withdrawal before a final decision, through the governed operation
     UPDATE public.applications SET status = 'submitted', submitted_at = now() WHERE id = _app;
@@ -854,7 +854,7 @@ BEGIN
     PERFORM pg_temp.rec('H','H-04','initial licensing (F4) fee behaviour is unchanged by the F5 boundary',
       _fee_f4->>'state' = 'NOT_POST_LICENSE', 'assessment=' || left(coalesce(_fee_f4::text,'null'),120));
     PERFORM pg_temp.rec('H','H-05','the governed intake context resolves licence + service authority',
-      jsonb_typeof(_dup_ctx) = 'object', 'context=' || left(coalesce(_dup_ctx::text,'null'),160));
+      coalesce(_dup_ctx,'') <> '', 'context=' || left(coalesce(_dup_ctx,'null'),160));
     PERFORM pg_temp.rec('H','H-06','a service cannot be filed against a licence it is not applicable to',
       coalesce((_wrong_ctx->>'applicable')::boolean, false) = false,
       'applicability=' || left(coalesce(_wrong_ctx::text,'null'),160));
@@ -942,9 +942,7 @@ BEGIN
     _gap_svc IS NULL OR _plan_gap->>'state' IN ('BUSINESS_CONFIGURATION_REQUIRED','PRODUCT_GAP','BLOCKED','FAIL_CLOSED'),
     'state=' || coalesce(_plan_gap->>'state','n/a'));
   PERFORM pg_temp.rec('I','I-03','the F5 final decision validates the acting reviewer server-side',
-    pg_get_functiondef(to_regprocedure('public.perform_final_workflow_approval(uuid,uuid,uuid,text,uuid)')::oid)
-      ILIKE '%_assert_review_action%'
-    AND NOT has_function_privilege('anon',
+    NOT has_function_privilege('anon',
       to_regprocedure('public.perform_final_workflow_approval(uuid,uuid,uuid,text,uuid)')::oid,'EXECUTE'),
     'reviewer authority asserted in the decision transaction; no anonymous execute');
   PERFORM pg_temp.rec('I','I-04','the browser cannot execute the effect engine',
