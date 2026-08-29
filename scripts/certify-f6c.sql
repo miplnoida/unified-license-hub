@@ -285,10 +285,13 @@ END $b$;
 -- ===========================================================================
 DO $c$
 DECLARE
-  _admin uuid; _checker uuid; _outsider uuid; _app uuid; _lt text;
-  _ft uuid; _ft2 uuid;
+  _admin uuid; _checker uuid; _outsider uuid; _verifier uuid;
+  _app uuid; _app2 uuid; _app3 uuid; _lt text;
+  _ft uuid; _ft2 uuid; _ft3 uuid; _ft4 uuid;
   _pre jsonb; _s1 jsonb; _s2 jsonb; _ov jsonb; _res jsonb;
-  _pay uuid; _pay2 uuid; _wv uuid; _rf uuid; _item uuid;
+  _pay uuid; _pay2 uuid; _pay3 uuid; _wv uuid; _rf uuid; _item uuid;
+  _rcpt uuid; _rcpt2 uuid; _aid uuid; _rcpt_aid uuid;
+  _rcpt_amt numeric; _rcpt_bd jsonb; _flag boolean;
   _hist_before int; _hist_after int; _n int; _amt numeric; _out numeric;
   _state text; _ref text; _step text := 'start'; _buf jsonb := '[]'::jsonb; _r jsonb;
 BEGIN
@@ -299,8 +302,13 @@ BEGIN
   SELECT u.id INTO _outsider FROM auth.users u
    WHERE NOT public.fee_can_administer(u.id) AND u.id NOT IN (_admin, COALESCE(_checker,_admin))
    LIMIT 1;
+  SELECT u.id INTO _verifier FROM auth.users u
+   WHERE public.has_role(u.id,'super_admin'::app_role) OR public.has_role(u.id,'admin'::app_role)
+   LIMIT 1;
   SELECT id INTO _ft FROM public.fee_types ORDER BY created_at LIMIT 1;
   SELECT id INTO _ft2 FROM public.fee_types WHERE id <> _ft LIMIT 1;
+  SELECT id INTO _ft3 FROM public.fee_types WHERE id NOT IN (_ft, _ft2) LIMIT 1;
+  SELECT id INTO _ft4 FROM public.fee_types WHERE id NOT IN (_ft, _ft2, _ft3) LIMIT 1;
 
   PERFORM pg_temp.rec('C','C-00','a fee-administering actor exists to exercise the engine',
     _admin IS NOT NULL, 'actor='||COALESCE(_admin::text,'∅'));
@@ -309,11 +317,17 @@ BEGIN
   PERFORM pg_temp.rec('C','C-00c','an unrelated user exists to prove isolation',
     _outsider IS NOT NULL, 'outsider='||COALESCE(_outsider::text,'∅'));
   PERFORM pg_temp.rec('C','C-00d','a real fee type exists to itemise against',
-    _ft IS NOT NULL AND _ft2 IS NOT NULL, 'fee types resolved='||
-      COALESCE(_ft::text,'∅')||' / '||COALESCE(_ft2::text,'∅'));
-  IF _admin IS NULL OR _checker IS NULL OR _outsider IS NULL OR _ft IS NULL OR _ft2 IS NULL THEN
+    _ft IS NOT NULL AND _ft2 IS NOT NULL AND _ft3 IS NOT NULL AND _ft4 IS NOT NULL,
+    'distinct fee types resolved='||
+      COALESCE(_ft::text,'∅')||' / '||COALESCE(_ft2::text,'∅')||' / '||
+      COALESCE(_ft3::text,'∅')||' / '||COALESCE(_ft4::text,'∅'));
+  PERFORM pg_temp.rec('C','C-00e','a regulator able to verify offline money exists',
+    _verifier IS NOT NULL, 'verifier='||COALESCE(_verifier::text,'∅'));
+  IF _admin IS NULL OR _checker IS NULL OR _outsider IS NULL OR _ft IS NULL OR _ft2 IS NULL
+     OR _ft3 IS NULL OR _ft4 IS NULL OR _verifier IS NULL THEN
     RETURN;
   END IF;
+
 
   BEGIN  -- ------------- every write below this line is rolled back ---------
     SELECT license_type INTO _lt FROM public.applications WHERE license_type IS NOT NULL LIMIT 1;
@@ -475,42 +489,186 @@ BEGIN
     _buf := pg_temp.bufrec(_buf,'D','D-05b','issuing a receipt is recorded in the audit trail',
       _n >= 1, 'audit rows='||_n);
 
-    -- D-06 offline capture and verification
+    -- D-06 an independent application proves the offline lifecycle end to end:
+    -- fee → assessment → capture → pending → regulator verification →
+    -- allocation → settled balance. The D-04/D-05 account is settled, so the
+    -- offline cycle is exercised on its own fresh account rather than by
+    -- bypassing the settled-assessment control.
+    _step := 'D-06/setup'; RAISE NOTICE 'step: %', _step;
+    RESET ROLE;
+    INSERT INTO public.applications (applicant_id, license_type, status, request_kind, data)
+    VALUES (_admin, COALESCE(_lt,'CERTIFY-F6C'), 'submitted', 'NEW_LICENCE',
+            jsonb_build_object('certify_f6c', true, 'purpose','offline-cycle'))
+    RETURNING id INTO _app2;
+    INSERT INTO public.fee_components (application_id, fee_type_id, amount, description)
+    VALUES (_app2, _ft, 950.00, 'certify:f6c offline cycle line');
+    PERFORM pg_temp.act(_admin);
+
     _step := 'D-06'; RAISE NOTICE 'step: %', _step;
-    PERFORM public.fee_component_operation(_app, 'add',
-      jsonb_build_object('fee_type_id', _ft, 'amount', 500, 'description','certify:f6c offline round'));
-    _s1 := public.fee_assessment_ensure(_app, 'certify:f6c offline round');
+    _s1 := public.fee_assessment_ensure(_app2, 'certify:f6c offline cycle');
     _out := ROUND((_s1->>'outstanding')::numeric,2);
-    _res := public.submit_offline_payment(_app, _out, 'cash', current_date,
-              'CERTIFY-F6C-OFF-'||substr(gen_random_uuid()::text,1,8), 'Test Bank',
-              'certify:f6c offline capture');
-    SELECT p.id, p.verification_status INTO _pay, _state FROM public.payments p
-     WHERE p.application_id=_app AND p.payment_channel='offline'
+    _ref := 'CERTIFY-F6C-OFF-'||substr(gen_random_uuid()::text,1,8);
+    _res := public.submit_offline_payment(_app2, _out, 'cash', current_date,
+              _ref, 'Test Bank', 'certify:f6c offline capture');
+    SELECT p.id, p.verification_status INTO _pay3, _state FROM public.payments p
+     WHERE p.application_id=_app2 AND p.payment_channel='offline'
      ORDER BY p.created_at DESC LIMIT 1;
     _buf := pg_temp.bufrec(_buf,'D','D-06',
       'money received outside the portal is captured as pending until a regulator verifies it',
-      _pay IS NOT NULL AND _state = 'pending'
-        AND ROUND((public.fee_assessment_state(_app)->>'outstanding')::numeric,2) = _out,
-      'verification='||COALESCE(_state,'∅')||' balance still due='||_out);
+      COALESCE(_res->>'ok','false')='true' AND _pay3 IS NOT NULL AND _state = 'pending'
+        AND ROUND((public.fee_assessment_state(_app2)->>'outstanding')::numeric,2) = _out,
+      'result='||COALESCE(_res->>'code','ok')||' verification='||COALESCE(_state,'∅')
+      ||' balance still due='||_out);
 
-    _res := public.verify_offline_payment(_pay, true, 'certify:f6c verification approved', NULL);
-    _s2 := public.fee_assessment_state(_app);
+    -- R-02 no receipt may be issued while the money is still unverified
+    _step := 'R-02'; RAISE NOTICE 'step: %', _step;
+    _state := 'unexpected-success';
+    BEGIN
+      PERFORM public.payment_receipt_issue(_pay3);
+    EXCEPTION WHEN others THEN _state := SQLSTATE||': '||left(SQLERRM,80);
+    END;
+    PERFORM pg_temp.act(_admin);
+    _buf := pg_temp.bufrec(_buf,'R','R-02','no receipt can be issued for money that is not yet settled',
+      _state <> 'unexpected-success', 'result='||_state);
+
+    -- D-06b regulator verification settles the balance through an allocation
+    _step := 'D-06b'; RAISE NOTICE 'step: %', _step;
+    PERFORM pg_temp.act(_verifier);
+    _res := public.verify_offline_payment(_pay3, true, 'certify:f6c verification approved', NULL);
+    PERFORM pg_temp.act(_admin);
+    _s2 := public.fee_assessment_state(_app2);
+    SELECT count(*) INTO _n FROM public.fee_payment_allocations
+     WHERE payment_id=_pay3 AND reversed_at IS NULL;
     _buf := pg_temp.bufrec(_buf,'D','D-06b',
-      'verifying an offline payment settles the balance it evidences',
-      COALESCE(_res->>'ok','false')='true'
+      'verifying an offline payment allocates it and settles the balance it evidences',
+      COALESCE(_res->>'ok','false')='true' AND _n >= 1
         AND ROUND((_s2->>'outstanding')::numeric,2) = 0,
-      'result='||COALESCE(_res->>'code','ok')||' outstanding='||(_s2->>'outstanding'));
+      'result='||COALESCE(_res->>'code','ok')||' allocations='||_n
+      ||' outstanding='||(_s2->>'outstanding'));
+
+    -- ================= R — receipt provenance and integrity ===============
+    _step := 'R-03'; RAISE NOTICE 'step: %', _step;
+    _res := public.payment_receipt_issue(_pay3);
+    _ov  := public.payment_receipt_issue(_pay3);
+    SELECT count(*) INTO _n FROM public.payment_receipts WHERE payment_id=_pay3;
+    _rcpt := (_res->>'receipt_id')::uuid;
+    _buf := pg_temp.bufrec(_buf,'R','R-03',
+      'asking twice for the same receipt returns the same single receipt',
+      _n = 1 AND (_ov->>'receipt_id') = (_res->>'receipt_id')
+        AND COALESCE(_ov->>'issued','')='false',
+      'receipts='||_n||' first call issued='||COALESCE(_res->>'issued','∅')
+      ||' lineage='||COALESCE(_res->>'lineage_source','∅')
+      ||' second call issued='||COALESCE(_ov->>'issued','∅'));
+
+    SELECT r.amount, r.currency, r.fee_breakdown,
+           (r.snapshot->>'assessment_id')::uuid
+      INTO _rcpt_amt, _state, _rcpt_bd, _rcpt_aid
+      FROM public.payment_receipts r WHERE r.id=_rcpt;
+    SELECT p.amount, p.currency INTO _amt, _ref FROM public.payments p WHERE p.id=_pay3;
+    _buf := pg_temp.bufrec(_buf,'R','R-04',
+      'the receipt states exactly the sum and currency actually received',
+      ROUND(_rcpt_amt,2) = ROUND(_amt,2) AND _state = _ref,
+      'receipt='||_rcpt_amt||' '||COALESCE(_state,'∅')||' payment='||_amt||' '||COALESCE(_ref,'∅'));
+
+    SELECT a.assessment_id INTO _aid FROM public.fee_payment_allocations a
+     WHERE a.payment_id=_pay3 ORDER BY a.allocated_at LIMIT 1;
+    _buf := pg_temp.bufrec(_buf,'R','R-05',
+      'the receipt is bound to the exact assessment the payment settled, not to whatever is current',
+      _rcpt_aid IS NOT NULL AND _rcpt_aid = _aid,
+      'receipt assessment='||COALESCE(_rcpt_aid::text,'∅')||' allocated assessment='||COALESCE(_aid::text,'∅'));
+
+    SELECT count(*) INTO _n FROM public.fee_assessment_lines l WHERE l.assessment_id=_aid;
+    SELECT count(*) INTO _hist_before FROM jsonb_array_elements(_rcpt_bd);
+    SELECT COALESCE(sum((e->>'amount')::numeric),0) INTO _amt FROM jsonb_array_elements(_rcpt_bd) e;
+    SELECT COALESCE(sum(l.amount),0) INTO _out FROM public.fee_assessment_lines l WHERE l.assessment_id=_aid;
+    _buf := pg_temp.bufrec(_buf,'R','R-06',
+      'the receipt itemisation is the immutable fee lines of that assessment',
+      _n > 0 AND _hist_before = _n AND ROUND(_amt,2) = ROUND(_out,2),
+      'receipt lines='||_hist_before||' assessment lines='||_n
+      ||' receipt total='||_amt||' assessment total='||_out);
+
+    -- R-07 a later governed reassessment cannot contaminate an older receipt.
+    -- The payment is first reversed under governance (which is also R-11), so
+    -- the account can genuinely be reassessed.
+    _step := 'R-11'; RAISE NOTICE 'step: %', _step;
+    _res := public.fee_payment_reverse(_pay3, 'certify f6c reversal of the offline settlement');
+    SELECT count(*) INTO _n FROM public.payment_receipts WHERE id=_rcpt;
+    SELECT r.voided_at IS NOT NULL, r.amount, r.payment_reference
+      INTO _flag, _amt, _ref FROM public.payment_receipts r WHERE r.id=_rcpt;
+    _buf := pg_temp.bufrec(_buf,'R','R-11',
+      'reversing a payment voids the receipt''s standing but preserves the evidence itself',
+      _n = 1 AND _flag AND ROUND(_amt,2) = ROUND(_rcpt_amt,2) AND _ref IS NOT NULL,
+      'receipt rows='||_n||' voided='||_flag||' amount retained='||_amt
+      ||' reference retained='||COALESCE(_ref,'∅'));
+
+    SELECT count(*) INTO _n FROM public.audit_logs
+     WHERE action='payment.receipt.voided' AND entity_id::text=_rcpt::text;
+    _buf := pg_temp.bufrec(_buf,'R','R-11b','voiding a receipt is a recorded, reasoned action',
+      _n >= 1, 'audit rows='||_n);
+
+    _state := 'unexpected-success';
+    BEGIN
+      PERFORM public.payment_receipt_issue(_pay3);
+    EXCEPTION WHEN others THEN _state := SQLSTATE||': '||left(SQLERRM,80);
+    END;
+    PERFORM pg_temp.act(_admin);
+    SELECT count(*) INTO _n FROM public.payment_receipts WHERE payment_id=_pay3;
+    _buf := pg_temp.bufrec(_buf,'R','R-11c',
+      'a reversed payment cannot mint a fresh receipt to replace the voided one',
+      _state <> 'unexpected-success' AND _n = 1, 'result='||_state||' receipts='||_n);
+
+
+    _step := 'R-07'; RAISE NOTICE 'step: %', _step;
+    PERFORM public.fee_component_operation(_app2, 'add',
+      jsonb_build_object('fee_type_id', _ft2, 'amount', 275, 'description','certify:f6c later reassessment'));
+    _s2 := public.fee_assessment_ensure(_app2, 'certify:f6c later reassessment');
+    SELECT r.fee_breakdown, (r.snapshot->>'assessment_id')::uuid, r.amount
+      INTO _ov, _aid, _amt FROM public.payment_receipts r WHERE r.id=_rcpt;
+    _buf := pg_temp.bufrec(_buf,'R','R-07',
+      'a later reassessment can never alter the figures on a receipt already issued',
+      _aid = _rcpt_aid AND _ov = _rcpt_bd AND ROUND(_amt,2) = ROUND(_rcpt_amt,2)
+        AND (_s2->>'assessment_id')::uuid <> _rcpt_aid,
+      'receipt assessment unchanged='||(_aid = _rcpt_aid)||' breakdown unchanged='||(_ov = _rcpt_bd)
+      ||' new assessment='||COALESCE(_s2->>'assessment_id','∅'));
+
+    -- R-08 another entity cannot read the receipt
+    _step := 'R-08'; RAISE NOTICE 'step: %', _step;
+    _state := pg_temp.as_user(_outsider, format(
+      'DO $$ DECLARE n int; BEGIN SELECT count(*) INTO n FROM public.payment_receipts WHERE id=%L;
+         IF n > 0 THEN RAISE EXCEPTION ''LEAKED''; END IF; END $$', _rcpt));
+    PERFORM pg_temp.act(_admin);
+    _buf := pg_temp.bufrec(_buf,'R','R-08','an unrelated user cannot see another entity''s receipt',
+      _state = '00000', 'result='||_state);
+
+    -- R-09 the browser cannot amend or destroy receipt evidence
+    _step := 'R-09'; RAISE NOTICE 'step: %', _step;
+    _state := pg_temp.as_user(_outsider, format(
+      'UPDATE public.payment_receipts SET amount = 1 WHERE id = %L', _rcpt));
+    _ref := pg_temp.as_user(_outsider, format(
+      'DELETE FROM public.payment_receipts WHERE id = %L', _rcpt));
+    PERFORM pg_temp.act(_admin);
+    SELECT amount INTO _amt FROM public.payment_receipts WHERE id=_rcpt;
+    _buf := pg_temp.bufrec(_buf,'R','R-09',
+      'no signed-in user can amend or destroy receipt evidence',
+      _state <> '00000' AND _ref <> '00000' AND ROUND(_amt,2) = ROUND(_rcpt_amt,2),
+      'update='||_state||' delete='||_ref||' amount intact='||_amt);
+
 
     -- ================= E — relief and correction ==========================
-    -- E-01 waiver on a fresh balance
+    -- E-01 waiver on a fresh balance. The account was settled by the
+    -- overpayment, so it is first reopened by a governed compensating reversal
+    -- rather than by editing settled history.
     _step := 'E-01'; RAISE NOTICE 'step: %', _step;
+    PERFORM public.fee_payment_reverse(_pay2, 'certify f6c reopening the account for the relief round');
     PERFORM public.fee_component_operation(_app, 'add',
-      jsonb_build_object('fee_type_id', _ft2, 'amount', 800, 'description','certify:f6c waiver round'));
+
+      jsonb_build_object('fee_type_id', _ft3, 'amount', 800, 'description','certify:f6c waiver round'));
     _s1 := public.fee_assessment_ensure(_app, 'certify:f6c waiver round');
     _out := ROUND((_s1->>'outstanding')::numeric,2);
     PERFORM public.fee_waiver_request(_app, 200, 'certify f6c waiver justification narrative');
     SELECT id INTO _wv FROM public.fee_waivers
-     WHERE assessment_id=(_s1->>'assessment_id')::uuid ORDER BY requested_at DESC LIMIT 1;
+     WHERE assessment_id=(_s1->>'assessment_id')::uuid AND decided_at IS NULL
+     ORDER BY requested_at DESC LIMIT 1;
     _buf := pg_temp.bufrec(_buf,'E','E-01','a waiver can be requested against a standing balance',
       _wv IS NOT NULL, 'waiver='||COALESCE(_wv::text,'∅'));
 
@@ -546,7 +704,8 @@ BEGIN
     _out := ROUND((public.fee_assessment_state(_app)->>'outstanding')::numeric,2);
     PERFORM public.fee_waiver_request(_app, 100, 'certify f6c waiver to be refused');
     SELECT id INTO _wv FROM public.fee_waivers
-     WHERE assessment_id=(_s1->>'assessment_id')::uuid ORDER BY requested_at DESC LIMIT 1;
+     WHERE assessment_id=(_s1->>'assessment_id')::uuid AND decided_at IS NULL
+     ORDER BY requested_at DESC LIMIT 1;
     PERFORM pg_temp.act(_checker);
     PERFORM public.fee_waiver_decide(_wv, false, 'certify f6c refusal reason narrative', NULL);
     PERFORM pg_temp.act(_admin);
@@ -562,7 +721,14 @@ BEGIN
     VALUES (_admin, _app, _out, _s1->>'currency','success','online','online',
             'CERTIFY-F6C-SETTLE-'||gen_random_uuid()::text, now())
     RETURNING id INTO _pay;
+    -- a receipt is issued for the money received, before any refund is raised
+    _res := public.payment_receipt_issue(_pay);
+    _rcpt2 := (_res->>'receipt_id')::uuid;
+    SELECT r.amount, r.fee_breakdown, (r.snapshot->>'assessment_id')::uuid
+      INTO _rcpt_amt, _rcpt_bd, _rcpt_aid
+      FROM public.payment_receipts r WHERE r.id=_rcpt2;
     PERFORM public.fee_refund_request(_pay, 150, 'certify f6c refund justification narrative');
+
     SELECT id INTO _rf FROM public.refunds WHERE payment_id=_pay ORDER BY created_at DESC LIMIT 1;
     _buf := pg_temp.bufrec(_buf,'E','E-05','a refund can be requested against money actually received',
       _rf IS NOT NULL, 'refund='||COALESCE(_rf::text,'∅'));
@@ -592,9 +758,10 @@ BEGIN
     -- E-08 approved then executed, with a compensating ledger effect
     _step := 'E-08'; RAISE NOTICE 'step: %', _step;
     PERFORM pg_temp.act(_checker);
-    _res := public.payment_refund_decide(_rf, 'APPROVE', 'certify f6c refund approved by an independent officer');
-    PERFORM pg_temp.act(_admin);
+    _res := public.payment_refund_decide(_rf, 'approved', 'certify f6c refund approved by an independent officer');
+    -- the payout is executed by an officer other than the one who requested it
     PERFORM public.fee_refund_execute(_rf, 'CERTIFY-F6C-REFUND-REF', 'bank_transfer');
+    PERFORM pg_temp.act(_admin);
     SELECT status INTO _state FROM public.refunds WHERE id=_rf;
     SELECT count(*) INTO _n FROM public.fee_ledger_entries
      WHERE assessment_id=(_s1->>'assessment_id')::uuid AND entry_type IN ('REFUND','DEBIT');
@@ -602,6 +769,19 @@ BEGIN
       'an approved refund is paid out and posted as its own ledger movement',
       _state IN ('EXECUTED','executed','completed','COMPLETED') AND _n >= 1,
       'refund status='||COALESCE(_state,'∅')||' ledger movements='||_n);
+
+    -- R-12 a refund is not a rewriting of the original receipt of funds
+    _step := 'R-12'; RAISE NOTICE 'step: %', _step;
+    SELECT r.amount, r.fee_breakdown, (r.snapshot->>'assessment_id')::uuid,
+           r.voided_at IS NULL
+      INTO _amt, _ov, _aid, _flag
+      FROM public.payment_receipts r WHERE r.id=_rcpt2;
+    _buf := pg_temp.bufrec(_buf,'R','R-12',
+      'a refund leaves the original receipt standing as evidence of the money once received',
+      ROUND(_amt,2) = ROUND(_rcpt_amt,2) AND _ov = _rcpt_bd AND _aid = _rcpt_aid AND _flag,
+      'amount unchanged='||(ROUND(_amt,2) = ROUND(_rcpt_amt,2))
+      ||' breakdown unchanged='||(_ov = _rcpt_bd)||' still valid='||_flag);
+
 
     -- E-09 a correction is a compensation, never an edit
     _step := 'E-09'; RAISE NOTICE 'step: %', _step;
@@ -698,22 +878,27 @@ BEGIN
       _n = 2, 'submission routines consuming the engine='||_n);
 
     _step := 'G-07'; RAISE NOTICE 'step: %', _step;
-    _out := ROUND((public.fee_assessment_state(_app)->>'outstanding')::numeric,2);
-    IF _out > 0 THEN
-      _state := 'unexpected-success';
-      BEGIN
-        PERFORM public.submit_application(_app);
-      EXCEPTION WHEN others THEN _state := SQLSTATE||': '||left(SQLERRM,120);
-      END;
-      PERFORM pg_temp.act(_admin);
-      _buf := pg_temp.bufrec(_buf,'G','G-07',
-        'an application with money still owing cannot be submitted',
-        _state <> 'unexpected-success', 'outstanding='||_out||' result='||_state);
-    ELSE
-      _buf := pg_temp.bufrec(_buf,'G','G-07',
-        'an application with money still owing cannot be submitted',
-        false, 'fixture ended fully settled — the refusal path could not be exercised');
-    END IF;
+    -- the account carries a genuine unpaid balance again after the governed
+    -- reversal in E-09, so the refusal below is really exercised
+    -- an independent, genuinely unpaid draft filing is used so the refusal is
+    -- really exercised rather than incidentally satisfied
+    RESET ROLE;
+    INSERT INTO public.applications (applicant_id, license_type, status, request_kind, data)
+    VALUES (_admin, COALESCE(_lt,'CERTIFY-F6C'), 'draft', 'NEW_LICENCE',
+            jsonb_build_object('certify_f6c', true, 'purpose','submission gate'))
+    RETURNING id INTO _app3;
+    INSERT INTO public.fee_components (application_id, fee_type_id, amount, description)
+    VALUES (_app3, _ft, 650.00, 'certify:f6c submission gate line');
+    PERFORM pg_temp.act(_admin);
+    PERFORM public.fee_assessment_ensure(_app3, 'certify:f6c submission gate');
+    _out := ROUND((public.fee_assessment_state(_app3)->>'outstanding')::numeric,2);
+    _res := public.submit_application(_app3);
+    _buf := pg_temp.bufrec(_buf,'G','G-07',
+      'an application with money still owing cannot be submitted',
+      _out > 0 AND COALESCE(_res->>'code','') = 'PAYMENT_REQUIRED'
+        AND (SELECT status FROM public.applications WHERE id=_app3) = 'draft',
+      'outstanding='||_out||' refusal='||COALESCE(_res->>'code','∅'));
+
 
     -- G-08 audit provenance across the whole run
     _step := 'G-08'; RAISE NOTICE 'step: %', _step;
@@ -741,6 +926,63 @@ BEGIN
 END $c$;
 
 -- ===========================================================================
+-- SECTION H — historical receipt census
+--
+-- Existing receipt records, including any minted before the server-authoritative
+-- routine existed, are examined against their payment and their assessment
+-- lineage. Structural correctness (the payment exists, and the receipt states
+-- the sum and currency actually received) is a hard requirement. Missing
+-- assessment lineage on pre-existing evidence is NOT rewritten to obtain a
+-- green gate: it is recorded as DATA_REMEDIATION_REQUIRED with its exact count.
+-- ===========================================================================
+DO $h$
+DECLARE _total int; _n int; _detail text;
+BEGIN
+  SELECT count(*) INTO _total FROM public.payment_receipts;
+  PERFORM pg_temp.rec('H','H-00','the existing receipt population is enumerated', true,
+    'receipts on record='||_total);
+
+  SELECT count(*), coalesce(string_agg(r.receipt_number, ', '),'none') INTO _n, _detail
+    FROM public.payment_receipts r
+   WHERE NOT EXISTS (SELECT 1 FROM public.payments p WHERE p.id = r.payment_id);
+  PERFORM pg_temp.rec('H','H-01','every receipt on record refers to a real payment',
+    _n = 0, 'orphaned='||_n||' ['||_detail||']');
+
+  SELECT count(*), coalesce(string_agg(r.receipt_number, ', '),'none') INTO _n, _detail
+    FROM public.payment_receipts r JOIN public.payments p ON p.id = r.payment_id
+   WHERE ROUND(COALESCE(r.amount,0),2) <> ROUND(COALESCE(p.amount,0),2)
+      OR COALESCE(r.currency,'') <> COALESCE(p.currency,'');
+  PERFORM pg_temp.rec('H','H-02','every receipt states the sum and currency actually received',
+    _n = 0, 'mismatched='||_n||' ['||_detail||']');
+
+  SELECT count(*), coalesce(string_agg(r.receipt_number, ', '),'none') INTO _n, _detail
+    FROM public.payment_receipts r JOIN public.payments p ON p.id = r.payment_id
+   WHERE r.voided_at IS NULL
+     AND COALESCE(p.status,'') NOT IN ('success','completed','paid','verified');
+  PERFORM pg_temp.rec('H','H-03','no standing receipt evidences a payment that is not settled',
+    _n = 0, 'standing receipts on unsettled payments='||_n||' ['||_detail||']');
+
+  SELECT count(*), coalesce(string_agg(r.receipt_number||' ('||r.id||')', ', '),'none')
+    INTO _n, _detail
+    FROM public.payment_receipts r
+   WHERE NOT EXISTS (SELECT 1 FROM public.fee_payment_allocations a WHERE a.payment_id = r.payment_id)
+     AND NOT EXISTS (SELECT 1 FROM public.fee_ledger_entries le
+                      WHERE le.payment_id = r.payment_id AND le.assessment_id IS NOT NULL);
+  PERFORM pg_temp.rec('H','H-04',
+    'legacy receipts without assessment lineage are recorded for remediation, never rewritten',
+    true,
+    CASE WHEN _n = 0 THEN 'all receipts carry assessment lineage'
+         ELSE 'DATA_REMEDIATION_REQUIRED='||_n||' ['||_detail||']' END);
+
+  SELECT count(*) INTO _n FROM public.payment_receipts r
+   WHERE COALESCE(r.snapshot->>'issued_source','') = 'SERVER'
+     AND (r.snapshot->>'assessment_id') IS NULL;
+  PERFORM pg_temp.rec('H','H-05','every server-issued receipt carries its assessment provenance',
+    _n = 0, 'server-issued without assessment id='||_n);
+END $h$;
+
+
+-- ===========================================================================
 -- SECTION Z — zero residue
 -- ===========================================================================
 DO $z$
@@ -755,6 +997,11 @@ BEGIN
 
   SELECT count(*) INTO _n FROM public.fee_reconciliation_runs WHERE source = 'CERTIFY-F6C';
   PERFORM pg_temp.rec('Z','Z-03','the certification leaves no reconciliation run behind', _n = 0, 'residue rows='||_n);
+
+  SELECT count(*) INTO _n FROM public.payment_receipts r
+   WHERE NOT EXISTS (SELECT 1 FROM public.payments p WHERE p.id = r.payment_id);
+  PERFORM pg_temp.rec('Z','Z-04','the certification leaves no receipt behind', _n = 0, 'residue rows='||_n);
+
 END $z$;
 
 \echo ''

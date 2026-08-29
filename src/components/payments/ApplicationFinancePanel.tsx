@@ -362,16 +362,18 @@ export function ApplicationFinancePanel({ applicationId, isInternal }: Props) {
                 <p className="text-xs text-muted-foreground">
                   The server caps the request at the outstanding balance and refuses self-approval.
                 </p>
-                <Button
-                  size="sm"
-                  disabled={busy || !Number(waiverAmount) || waiverReason.trim().length < 10}
-                  onClick={() => guarded(
-                    () => requestFeeWaiver(applicationId, Number(waiverAmount), waiverReason.trim()),
-                    'Waiver request submitted',
-                  )}
-                >
-                  Submit request
-                </Button>
+                <PermissionGate module="fee_management" action="edit">
+                  <Button
+                    size="sm" data-rbac="fee_management.edit"
+                    disabled={busy || !Number(waiverAmount) || waiverReason.trim().length < 10}
+                    onClick={() => guarded(
+                      () => requestFeeWaiver(applicationId, Number(waiverAmount), waiverReason.trim()),
+                      'Waiver request submitted',
+                    )}
+                  >
+                    Submit request
+                  </Button>
+                </PermissionGate>
               </div>
             </TabsContent>
 
@@ -447,16 +449,13 @@ export function ApplicationFinancePanel({ applicationId, isInternal }: Props) {
                 <p className="text-xs text-muted-foreground">
                   The server checks refund eligibility against the settled receipt and refuses excess refunds.
                 </p>
-                <Button
-                  size="sm"
-                  disabled={busy || !refundPaymentId || !Number(refundAmount) || refundReason.trim().length < 10}
-                  onClick={() => guarded(
-                    () => requestFeeRefund(refundPaymentId.trim(), Number(refundAmount), refundReason.trim()),
-                    'Refund request submitted',
-                  )}
-                >
-                  Submit refund request
-                </Button>
+                <PermissionGate module="fee_management" action="edit">
+                  <Button size="sm" data-rbac="fee_management.edit"
+                    disabled={busy || !refundPaymentId || !Number(refundAmount) || refundReason.trim().length < 10}
+                    onClick={() => guarded(() => requestFeeRefund(refundPaymentId.trim(), Number(refundAmount), refundReason.trim()), 'Refund request submitted')}
+                  >Submit refund request</Button>
+                </PermissionGate>
+
               </div>
             </TabsContent>
 
