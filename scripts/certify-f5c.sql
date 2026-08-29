@@ -410,7 +410,7 @@ BEGIN
     PERFORM pg_temp.trusted_on(_officer);
     PERFORM public.ensure_post_license_fp_links((_fx_neg->>'application_id')::uuid);
     PERFORM pg_temp.trusted_off();
-    PERFORM pg_temp.determination(_asm_neg, _ind_neg, 'not_fit_and_proper');
+    PERFORM pg_temp.determination(_asm_neg, _ind_neg, 'not_fit');
     _r_neg := public.post_license_fp_readiness((_fx_neg->>'application_id')::uuid);
     _p_neg := public.post_license_effect_plan((_fx_neg->>'application_id')::uuid);
     BEGIN
@@ -430,7 +430,7 @@ BEGIN
     PERFORM pg_temp.trusted_on(_officer);
     PERFORM public.ensure_post_license_fp_links((_fx_ok->>'application_id')::uuid);
     PERFORM pg_temp.trusted_off();
-    PERFORM pg_temp.determination(_asm_ok, _ind_ok, 'fit_and_proper');
+    PERFORM pg_temp.determination(_asm_ok, _ind_ok, 'fit');
     _r_ok := public.post_license_fp_readiness((_fx_ok->>'application_id')::uuid);
     _p_ok := public.post_license_effect_plan((_fx_ok->>'application_id')::uuid);
 
@@ -807,10 +807,10 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
       json_build_object('sub',_officer::text,'role','authenticated')::text, true);
 
-    INSERT INTO public.applications (applicant_id, license_type, status, data, entity_id, regulator_id)
-    VALUES (_officer, 'f5c-fee', 'draft',
+    INSERT INTO public.applications (applicant_id, license_type, status, data, entity_id, regulator_id, submitted_at)
+    VALUES (_officer, 'f5c-fee', 'submitted',
             jsonb_build_object('type','post_license','license_id',_lic.id,'service_id',_svc),
-            _lic.holder_id, _lic.regulator_id)
+            _lic.holder_id, _lic.regulator_id, now())
     RETURNING id INTO _app;
     _fee := public.post_license_fee_assessment(_app);
     _can_before := public.can_submit_application(_app)::text;
@@ -825,7 +825,6 @@ BEGIN
     _wrong_ctx := to_jsonb(public.post_license_service_applicability(_svc, gen_random_uuid()));
 
     -- withdrawal before a final decision, through the governed operation
-    UPDATE public.applications SET status = 'submitted', submitted_at = now() WHERE id = _app;
     BEGIN
       _withdraw := public.withdraw_application(_app, 'F5-C applicant withdrawal')::text;
     EXCEPTION WHEN others THEN _withdraw := jsonb_build_object('raised', SQLSTATE || ': ' || left(SQLERRM,120));
