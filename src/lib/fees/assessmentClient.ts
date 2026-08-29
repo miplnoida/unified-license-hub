@@ -254,9 +254,13 @@ export const feeComponentOperation = (
 /** Turns a Postgres error into an operator-readable message. */
 export const feeErrorMessage = (e: unknown): string => {
   const msg = e instanceof Error ? e.message : String(e ?? '');
+  if (/FEE_MALFORMED_STATE/i.test(msg)) {
+    return 'Financial record unavailable — the server returned an incomplete financial state.';
+  }
   if (/FEE_FORBIDDEN|permission denied|42501/i.test(msg)) {
     return 'You do not have permission to perform this financial action.';
   }
+
   if (/MAKER_CHECKER/i.test(msg)) return 'The requester of this action cannot approve it.';
   if (/DUPLICATE_PAYMENT_REFERENCE/i.test(msg)) return 'That payment reference has already been recorded.';
   if (/ASSESSMENT_SETTLED/i.test(msg)) return 'This assessment is settled and can no longer be re-itemised.';
