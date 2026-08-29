@@ -471,7 +471,7 @@ BEGIN
       'receipts='||_n||' number='||COALESCE(_res->>'receipt_number','∅')||' amount='||COALESCE(_amt::text,'∅'));
 
     SELECT count(*) INTO _n FROM public.audit_logs
-     WHERE action='payment.receipt.issued' AND entity_id=(_res->>'receipt_id')::uuid;
+     WHERE action='payment.receipt.issued' AND entity_id::text=(_res->>'receipt_id');
     _buf := pg_temp.bufrec(_buf,'D','D-05b','issuing a receipt is recorded in the audit trail',
       _n >= 1, 'audit rows='||_n);
 
