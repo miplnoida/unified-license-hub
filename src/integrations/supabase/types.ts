@@ -50192,6 +50192,74 @@ export type Database = {
       fail:
         | { Args: never; Returns: string }
         | { Args: { "": string }; Returns: string }
+      fee_assessment_ensure: {
+        Args: { _application_id: string; _reason?: string }
+        Returns: Json
+      }
+      fee_assessment_outstanding: {
+        Args: { _assessment_id: string }
+        Returns: number
+      }
+      fee_assessment_overview: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
+      fee_assessment_resolve_lines: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
+      fee_assessment_state: { Args: { _application_id: string }; Returns: Json }
+      fee_assessment_supersede: {
+        Args: { _application_id: string; _reason: string }
+        Returns: Json
+      }
+      fee_can_administer: { Args: { _uid: string }; Returns: boolean }
+      fee_can_view_application_finance: {
+        Args: { _application_id: string; _uid: string }
+        Returns: boolean
+      }
+      fee_component_operation: {
+        Args: { _application_id: string; _operation: string; _payload?: Json }
+        Returns: Json
+      }
+      fee_payment_reverse: {
+        Args: { _payment_id: string; _reason: string }
+        Returns: Json
+      }
+      fee_reconciliation_ingest: {
+        Args: { _items: Json; _source: string; _statement_reference: string }
+        Returns: Json
+      }
+      fee_reconciliation_resolve: {
+        Args: { _item_id: string; _note?: string; _resolution: string }
+        Returns: Json
+      }
+      fee_refund_execute: {
+        Args: { _method?: string; _reference: string; _refund_id: string }
+        Returns: Json
+      }
+      fee_refund_request: {
+        Args: { _amount: number; _payment_id: string; _reason: string }
+        Returns: Json
+      }
+      fee_waiver_decide: {
+        Args: {
+          _approve: boolean
+          _approved_amount?: number
+          _reason: string
+          _waiver_id: string
+        }
+        Returns: Json
+      }
+      fee_waiver_request: {
+        Args: {
+          _amount: number
+          _application_id: string
+          _kind?: string
+          _reason: string
+        }
+        Returns: Json
+      }
       file_upload_record_scan: {
         Args: {
           _detail?: string
