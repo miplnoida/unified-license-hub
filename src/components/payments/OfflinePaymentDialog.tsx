@@ -132,6 +132,22 @@ export function OfflinePaymentDialog({
 
         {!paymentId ? (
           <div className="space-y-4">
+            <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+              {loading ? (
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading outstanding balance…
+                </span>
+              ) : outstanding === null ? (
+                <span className="text-destructive">
+                  The outstanding balance could not be read. Recording a payment is unavailable.
+                </span>
+              ) : (
+                <span className="flex justify-between">
+                  <span className="text-muted-foreground">Outstanding balance (server assessed)</span>
+                  <span className="font-mono font-semibold">{money(outstanding, currency)}</span>
+                </span>
+              )}
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Payment method</Label>
@@ -145,16 +161,24 @@ export function OfflinePaymentDialog({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="offline-amount">Amount ({currency})</Label>
+                <Label htmlFor="offline-amount">
+                  Amount declared{currency ? ` (${currency})` : ''}
+                </Label>
                 <Input
                   id="offline-amount"
                   type="number"
                   min="0"
                   step="0.01"
+                  max={outstanding ?? undefined}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Partial payments are allowed. Amounts above the outstanding balance are refused by
+                  the regulator's financial ledger.
+                </p>
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="offline-date">Payment date</Label>
                 <Input
