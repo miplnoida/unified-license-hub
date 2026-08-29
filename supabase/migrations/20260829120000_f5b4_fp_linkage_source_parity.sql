@@ -1488,3 +1488,9 @@ REVOKE ALL ON FUNCTION public.protect_application_fp_subject_context() FROM anon
 ALTER TABLE public.post_license_fp_subject_links ENABLE ROW LEVEL SECURITY;
 GRANT ALL ON TABLE public.post_license_fp_subject_links TO service_role;
 GRANT ALL ON TABLE public.application_fp_links TO service_role;
+
+-- F5-B4 final regression hardening: browser DML surface on subject provenance removed.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON public.post_license_fp_subject_links FROM authenticated;
+REVOKE ALL ON public.post_license_fp_subject_links FROM anon;
+GRANT SELECT ON public.post_license_fp_subject_links TO authenticated;
+GRANT ALL ON public.post_license_fp_subject_links TO service_role;
