@@ -499,7 +499,7 @@ BEGIN
    WHERE public.fee_can_administer(u.id) AND public.is_super_admin(u.id)
      AND u.id <> _admin LIMIT 1;
   SELECT license_type INTO _lt FROM public.applications WHERE license_type IS NOT NULL LIMIT 1;
-  SELECT id INTO _ft FROM public.fee_types WHERE is_active LIMIT 1;
+  SELECT id INTO _ft FROM public.fee_types WHERE status = 'active' LIMIT 1;
 
   _buf := pg_temp.bufrec(_buf,'H','H-00','a configuration-authorised maker, an independent checker and a fee book exist',
     _admin IS NOT NULL AND _checker IS NOT NULL AND _ft IS NOT NULL,
