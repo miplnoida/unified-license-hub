@@ -556,7 +556,9 @@ BEGIN
       'asking twice for the same receipt returns the same single receipt',
       _n = 1 AND (_ov->>'receipt_id') = (_res->>'receipt_id')
         AND COALESCE(_ov->>'issued','')='false',
-      'receipts='||_n||' second call issued='||COALESCE(_ov->>'issued','∅'));
+      'receipts='||_n||' first call issued='||COALESCE(_res->>'issued','∅')
+      ||' lineage='||COALESCE(_res->>'lineage_source','∅')
+      ||' second call issued='||COALESCE(_ov->>'issued','∅'));
 
     SELECT r.amount, r.currency, r.fee_breakdown,
            (r.snapshot->>'assessment_id')::uuid
