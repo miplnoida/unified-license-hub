@@ -329,19 +329,23 @@ BEGIN
     PERFORM public.fee_component_operation(_app, 'add',
       jsonb_build_object('fee_type_id', (SELECT id FROM public.fee_types WHERE id <> _ft LIMIT 1),
                          'amount', 250, 'description', 'verify:f6b second line'));
+    -- the stale assessment is voided, never left standing against a changed itemisation
     SELECT count(*) INTO _n FROM public.fee_assessments
-     WHERE application_id = _app AND status <> 'VOID';
-    _buf := pg_temp.bufrec(_buf, 'D','D-02','changing the fee itemisation never leaves two standing assessments',
-      _n = 1, 'standing after itemisation change='||_n);
+     WHERE application_id = _app AND status <> 'VOID'
+       AND id = (_s1->>'assessment_id')::uuid;
+    _buf := pg_temp.bufrec(_buf, 'D','D-02',
+      'changing the fee itemisation never leaves the stale assessment standing',
+      _n = 0, 'stale assessment still standing='||_n);
 
-    -- the standing assessment reflects the new itemisation, so no stale figure is billed
-    _s2 := public.fee_assessment_state(_app);
-    _buf := pg_temp.bufrec(_buf, 'D','D-02b','the standing assessed figure reflects the changed itemisation',
-      ROUND((_s2->>'assessed_total')::numeric,2) = ROUND((_s1->>'assessed_total')::numeric,2) + 250
-        OR (_s2->>'assessment_id') <> (_s1->>'assessment_id'),
+    -- and the re-assessed figure of record picks up the change
+    _s2 := public.fee_assessment_ensure(_app, 'verify:f6b re-assess');
+    _buf := pg_temp.bufrec(_buf, 'D','D-02b','the re-assessed figure of record reflects the changed itemisation',
+      (_s2->>'assessment_id') <> (_s1->>'assessment_id')
+        AND ROUND((_s2->>'assessed_total')::numeric,2)
+            = ROUND((_s1->>'assessed_total')::numeric,2) + 250,
       'before='||(_s1->>'assessed_total')||' after='||COALESCE(_s2->>'assessed_total','∅'));
+    _s1 := _s2;
 
-    _s1 := public.fee_assessment_ensure(_app, 'verify:f6b re-assess');
 
     -- E-01 self-approval of a waiver is refused
     _step := 'E-01'; RAISE NOTICE 'step: %', _step;
