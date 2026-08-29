@@ -1249,7 +1249,7 @@ BEGIN
     -- ---- display modes ----------------------------------------------------
     INSERT INTO public.return_metric_values(return_filing_version_id, entity_id,
       regulatory_metric_id, reporting_period_id, value_numeric, availability, source_kind)
-    VALUES (_ver, _entity, _metric, _per, 1000, 'AVAILABLE','EXTRACTED');
+    VALUES (_ver, _entity, _metric, _per, 1000, 'AVAILABLE','REPORTED');
 
     PERFORM pg_temp.act(_sa);
     _res := public.returns_filing_metrics_display(_fil,'AS_REPORTED');
