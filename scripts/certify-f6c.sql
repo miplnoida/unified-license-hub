@@ -757,6 +757,19 @@ BEGIN
       _state IN ('EXECUTED','executed','completed','COMPLETED') AND _n >= 1,
       'refund status='||COALESCE(_state,'∅')||' ledger movements='||_n);
 
+    -- R-12 a refund is not a rewriting of the original receipt of funds
+    _step := 'R-12'; RAISE NOTICE 'step: %', _step;
+    SELECT r.amount, r.fee_breakdown, (r.snapshot->>'assessment_id')::uuid,
+           r.voided_at IS NULL
+      INTO _amt, _ov, _aid, _flag
+      FROM public.payment_receipts r WHERE r.id=_rcpt2;
+    _buf := pg_temp.bufrec(_buf,'R','R-12',
+      'a refund leaves the original receipt standing as evidence of the money once received',
+      ROUND(_amt,2) = ROUND(_rcpt_amt,2) AND _ov = _rcpt_bd AND _aid = _rcpt_aid AND _flag,
+      'amount unchanged='||(ROUND(_amt,2) = ROUND(_rcpt_amt,2))
+      ||' breakdown unchanged='||(_ov = _rcpt_bd)||' still valid='||_flag);
+
+
     -- E-09 a correction is a compensation, never an edit
     _step := 'E-09'; RAISE NOTICE 'step: %', _step;
     SELECT count(*) INTO _hist_before FROM public.fee_ledger_entries
