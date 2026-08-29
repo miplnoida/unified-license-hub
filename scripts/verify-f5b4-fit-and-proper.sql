@@ -137,6 +137,12 @@ BEGIN
   -- The certified F&P engine refuses a determination without a completed
   -- screening run; the probe satisfies the real precondition rather than
   -- bypassing it.
+  -- walk the certified assessment state machine rather than bypassing it
+  UPDATE public.fp_assessments SET status = 'submitted'
+   WHERE id = _assessment AND status = 'draft';
+  UPDATE public.fp_assessments SET status = 'screening'
+   WHERE id = _assessment AND status = 'submitted';
+
   INSERT INTO public.fp_screening_runs (assessment_id, individual_id, run_type, status, completed_at)
   VALUES (_assessment, _ind, 'initial', 'completed', now());
 
