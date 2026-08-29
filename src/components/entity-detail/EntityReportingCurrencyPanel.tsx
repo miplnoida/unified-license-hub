@@ -321,7 +321,8 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
               <TableHeader>
                 <TableRow>
                   <TableHead>Currency</TableHead><TableHead>Effective from</TableHead><TableHead>Effective to</TableHead>
-                  <TableHead>Status</TableHead><TableHead>Reason</TableHead><TableHead>Recorded</TableHead>
+                  <TableHead>Status</TableHead><TableHead>Reason</TableHead><TableHead>Proposed by</TableHead>
+                  <TableHead>Decision</TableHead><TableHead>Recorded</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -332,6 +333,14 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
                     <TableCell>{p.effective_to ? formatDateOnly(p.effective_to) : 'Open-ended'}</TableCell>
                     <TableCell><Badge variant="outline">{CURRENCY_PROFILE_STATUS_LABELS[p.status] ?? p.status}</Badge></TableCell>
                     <TableCell className="max-w-[22rem] truncate" title={p.reason ?? ''}>{p.reason ?? '—'}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {p.proposed_at ? formatDateTime(p.proposed_at) : '—'}
+                    </TableCell>
+                    <TableCell className="max-w-[18rem] text-xs text-muted-foreground" title={p.decision_reason ?? ''}>
+                      {p.decision_at
+                        ? `${formatDateTime(p.decision_at)} — ${p.decision_reason ?? 'no reason recorded'}`
+                        : 'No decision recorded'}
+                    </TableCell>
                     <TableCell>{formatDateTime(p.created_at)}</TableCell>
                   </TableRow>
                 ))}
