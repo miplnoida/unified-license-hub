@@ -55570,6 +55570,17 @@ export type Database = {
         Args: { _filing_id: string; _owner_user_id: string; _team?: string }
         Returns: Json
       }
+      returns_attach_evidence: {
+        Args: {
+          _description?: string
+          _document_name: string
+          _file_size?: number
+          _file_type?: string
+          _storage_path: string
+          _version_id: string
+        }
+        Returns: string
+      }
       returns_attach_form_response: {
         Args: {
           _completion?: string
@@ -55603,6 +55614,19 @@ export type Database = {
       returns_classify_legacy: { Args: never; Returns: Json }
       returns_compare_filing_versions: {
         Args: { _version_a: string; _version_b: string }
+        Returns: Json
+      }
+      returns_decide_amendment: {
+        Args: { _decision: string; _reason: string; _request_id: string }
+        Returns: Json
+      }
+      returns_decide_extension: {
+        Args: {
+          _decision: string
+          _extension_id: string
+          _granted_due_date?: string
+          _reason: string
+        }
         Returns: Json
       }
       returns_delete_definition_form: {
@@ -55816,6 +55840,15 @@ export type Database = {
           sector_name: string
         }[]
       }
+      returns_notify: {
+        Args: {
+          _event_key: string
+          _filing_id: string
+          _payload?: Json
+          _suffix?: string
+        }
+        Returns: undefined
+      }
       returns_obligation_scope: {
         Args: { _obligation_id: string }
         Returns: {
@@ -55825,7 +55858,28 @@ export type Database = {
         }[]
       }
       returns_open_filing: { Args: { _period_id: string }; Returns: Json }
+      returns_overdue_sweep: { Args: { _as_of?: string }; Returns: Json }
       returns_parse_numeric: { Args: { _raw: string }; Returns: number }
+      returns_raise_rfi: {
+        Args: {
+          _form_template_id?: string
+          _message: string
+          _version_id: string
+        }
+        Returns: string
+      }
+      returns_request_amendment: {
+        Args: { _filing_id: string; _reason: string }
+        Returns: string
+      }
+      returns_request_extension: {
+        Args: {
+          _period_id: string
+          _reason: string
+          _requested_due_date: string
+        }
+        Returns: string
+      }
       returns_require: { Args: { _action: string }; Returns: undefined }
       returns_resolve_legacy_filing: {
         Args: { _legacy_id: string }
@@ -55866,6 +55920,10 @@ export type Database = {
         Returns: Json
       }
       returns_validate_filing: { Args: { _version_id: string }; Returns: Json }
+      returns_withdraw_evidence: {
+        Args: { _evidence_id: string; _reason: string }
+        Returns: undefined
+      }
       review_prudential_action_response: {
         Args: { _action_id: string; _decision: string; _notes: string }
         Returns: Json
