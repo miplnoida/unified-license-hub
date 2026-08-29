@@ -44860,6 +44860,10 @@ export type Database = {
         Returns: undefined
       }
       assert_nonproduction: { Args: { _operation: string }; Returns: undefined }
+      assert_post_license_fp_effect_alignment: {
+        Args: { _application_id: string }
+        Returns: undefined
+      }
       assert_role_management_action: {
         Args: { _action: string }
         Returns: undefined
@@ -52134,6 +52138,10 @@ export type Database = {
         Returns: Json
       }
       post_license_fp_overview: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
+      post_license_fp_readiness: {
         Args: { _application_id: string }
         Returns: Json
       }
