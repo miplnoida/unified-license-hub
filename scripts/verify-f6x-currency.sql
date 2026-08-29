@@ -1171,7 +1171,7 @@ BEGIN
 
     INSERT INTO public.entity_reporting_obligations(entity_id, return_definition_id, origin,
       frequency, due_days_after_period_end, effective_from)
-    VALUES (_entity, _def, 'MANUAL','QUARTERLY',30, CURRENT_DATE - 400)
+    VALUES (_entity, _def, 'AD_HOC','QUARTERLY',30, CURRENT_DATE - 400)
     RETURNING id INTO _ob;
 
     _pe := CURRENT_DATE - 100;
