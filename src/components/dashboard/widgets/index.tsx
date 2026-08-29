@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { DashboardUserContext, DashboardWidgetDef } from '@/lib/dashboardRegistry';
+import { isPostLicenseApplicationRow } from '@/lib/applicationCategory';
 
 interface RendererProps {
   widget: DashboardWidgetDef;
@@ -372,7 +373,7 @@ function DraftApplications({ widget, context }: RendererProps) {
         ) : (
           <div className="space-y-2">
             {drafts.map(d => {
-              const isPostLicenseDraft = d.data?.type === 'post_license' || !!d.data?.service_id;
+              const isPostLicenseDraft = isPostLicenseApplicationRow(d as any);
               const continueHref = isPostLicenseDraft
                 ? `/post-licensee/applications/${d.id}/forms`
                 : `/applications/${d.id}/continue?draft=${d.id}&mode=continue`;
