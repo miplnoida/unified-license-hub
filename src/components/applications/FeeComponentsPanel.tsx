@@ -10,6 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PlusCircle, Pencil, Trash2, Loader2, DollarSign } from 'lucide-react';
 import { resolveApplicationFeeBreakdownMeta, ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
+import { feeComponentOperation, feeErrorMessage } from '@/lib/fees/assessmentClient';
+
 
 interface FeeType {
   id: string;
@@ -103,35 +105,43 @@ export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
 
     setSaving(true);
 
-    if (editingId) {
-      const payload: any = {
-        application_id: applicationId,
-        fee_type_id: feeTypeIds[0],
-        amount: numAmount,
-        description: description.trim() || null,
-      };
-      const { error } = await supabase.from('fee_components' as any).update(payload).eq('id', editingId);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success('Fee component updated');
-    } else {
-      const rows = feeTypeIds.map(ftId => ({
-        application_id: applicationId,
-        fee_type_id: ftId,
-        amount: numAmount,
-        description: description.trim() || null,
-      }));
-      const { error } = await supabase.from('fee_components' as any).insert(rows);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success(`${rows.length} fee component(s) added`);
+    try {
+      if (editingId) {
+        await feeComponentOperation(applicationId, 'update', {
+          component_id: editingId,
+          fee_type_id: feeTypeIds[0],
+          amount: numAmount,
+          description: description.trim() || null,
+        });
+        toast.success('Fee component updated');
+      } else {
+        for (const ftId of feeTypeIds) {
+          await feeComponentOperation(applicationId, 'add', {
+            fee_type_id: ftId,
+            amount: numAmount,
+            description: description.trim() || null,
+          });
+        }
+        toast.success(`${feeTypeIds.length} fee component(s) added`);
+      }
+    } catch (e) {
+      toast.error(feeErrorMessage(e));
+      setSaving(false);
+      return;
     }
     setSaving(false); resetForm(); loadData();
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('fee_components' as any).delete().eq('id', id);
-    if (error) { toast.error(error.message); return; }
+    try {
+      await feeComponentOperation(applicationId, 'remove', { component_id: id });
+    } catch (e) {
+      toast.error(feeErrorMessage(e));
+      return;
+    }
     toast.success('Fee component removed'); loadData();
   };
+
 
   if (loading) return <Card><CardContent className="py-8 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></CardContent></Card>;
 
