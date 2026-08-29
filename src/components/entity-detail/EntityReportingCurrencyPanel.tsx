@@ -22,14 +22,16 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from 'sonner';
 import { formatDateOnly, formatDateTime } from '@/lib/datetime';
 import {
-  CURRENCY_SOURCE_LABELS, useCurrencyMaster, useEntityCurrencyMutations, useEntityCurrencyOverview,
+  CURRENCY_APPROVAL_MODE_LABELS, CURRENCY_PROFILE_STATUS_LABELS, CURRENCY_SOURCE_LABELS,
+  useCurrencyMaster, useEntityCurrencyMutations, useEntityCurrencyOverview,
 } from '@/hooks/useEntityCurrency';
 
 export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: string; asOf?: string | null }) {
   const asOfDate = asOf ? asOf.slice(0, 10) : null;
   const { data, isLoading, error } = useEntityCurrencyOverview(entityId, asOfDate);
   const { data: currencies = [] } = useCurrencyMaster();
-  const { setOverride, supersedeOverride } = useEntityCurrencyMutations();
+  const { setOverride, supersedeOverride, decideOverride, withdrawProposal } = useEntityCurrencyMutations();
+
 
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState('');
@@ -51,6 +53,9 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
 
   const activeProfile = data.history.find((p) => p.id === data.entity_currency_profile_id) ?? null;
   const canManage = !!data.can_manage;
+  const approvalMode = data.approval_mode ?? 'DIRECT_AUTHORIZED';
+  const makerChecker = approvalMode === 'MAKER_CHECKER';
+  const pending = data.pending_proposals ?? [];
 
   const submitOverride = async () => {
     if (!code || !effectiveFrom || reason.trim().length < 10) {
@@ -58,11 +63,35 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
       return;
     }
     try {
-      await setOverride.mutateAsync({ entityId, currency: code, effectiveFrom, reason: reason.trim() });
-      toast.success(`Reporting currency override set to ${code}.`);
+      const res = await setOverride.mutateAsync({ entityId, currency: code, effectiveFrom, reason: reason.trim() });
+      toast.success(res?.status === 'PROPOSED'
+        ? `Override to ${code} proposed. It takes effect only once an independent approver accepts it.`
+        : `Reporting currency override set to ${code}.`);
       setOpen(false); setCode(''); setEffectiveFrom(''); setReason('');
     } catch (e: any) {
       toast.error(e?.message ?? 'The override could not be set.');
+    }
+  };
+
+  const decide = async (profileId: string, decision: 'APPROVE' | 'REJECT') => {
+    const why = window.prompt(`Reason for ${decision === 'APPROVE' ? 'approving' : 'rejecting'} this proposed override (min 10 characters)`) ?? '';
+    if (why.trim().length < 10) { toast.error('A reason of at least 10 characters is required.'); return; }
+    try {
+      await decideOverride.mutateAsync({ profileId, decision, reason: why.trim() });
+      toast.success(decision === 'APPROVE' ? 'Override approved and now active.' : 'Proposed override rejected.');
+    } catch (e: any) {
+      toast.error(e?.message ?? 'The decision could not be recorded.');
+    }
+  };
+
+  const withdraw = async (profileId: string) => {
+    const why = window.prompt('Reason for withdrawing this proposal (min 10 characters)') ?? '';
+    if (why.trim().length < 10) { toast.error('A reason of at least 10 characters is required.'); return; }
+    try {
+      await withdrawProposal.mutateAsync({ profileId, reason: why.trim() });
+      toast.success('Proposal withdrawn.');
+    } catch (e: any) {
+      toast.error(e?.message ?? 'The proposal could not be withdrawn.');
     }
   };
 
@@ -76,6 +105,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
       toast.error(e?.message ?? 'The override could not be superseded.');
     }
   };
+
 
   return (
     <div className="space-y-4">
@@ -94,12 +124,14 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Set entity reporting currency</DialogTitle>
+                  <DialogTitle>{makerChecker ? 'Propose entity reporting currency' : 'Set entity reporting currency'}</DialogTitle>
                   <DialogDescription>
                     The override applies from the effective date onwards. Earlier reporting periods and already
                     opened filings keep the currency recorded at the time.
+                    {makerChecker && ' This regulator requires an independent approver, so the change is recorded as a proposal first.'}
                   </DialogDescription>
                 </DialogHeader>
+
                 <div className="space-y-3">
                   <div className="space-y-1.5">
                     <Label>Reporting currency</Label>
@@ -126,8 +158,11 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                  <GuardedButton module="licensee_management" action="edit" onClick={submitOverride} disabled={setOverride.isPending}>Set override</GuardedButton>
+                  <GuardedButton module="licensee_management" action="edit" onClick={submitOverride} disabled={setOverride.isPending}>
+                    {makerChecker ? 'Submit for approval' : 'Set override'}
+                  </GuardedButton>
                 </DialogFooter>
+
               </DialogContent>
             </Dialog>
           )}
@@ -150,7 +185,9 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
           <Field label="Status" value={activeProfile ? activeProfile.status : 'No override — inherited'} />
           <Field label="Last changed" value={activeProfile ? formatDateTime(activeProfile.created_at) : '—'} />
           <Field label="Returns FX date policy" value={data.returns_fx_date_policy.replace('_', ' ').toLowerCase()} />
+          <Field label="Override approval control" value={CURRENCY_APPROVAL_MODE_LABELS[approvalMode]} />
         </CardContent>
+
         {data.source === 'REGULATOR_BASE' && (
           <CardContent className="pt-0 text-sm text-muted-foreground">
             Reporting currency: <span className="font-mono">{data.currency}</span> — inherited from the regulator base
@@ -166,6 +203,61 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
           </CardContent>
         )}
       </Card>
+
+      {pending.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Proposed overrides awaiting approval</CardTitle>
+            <CardDescription>
+              A proposal does not change the reporting currency. Returns keep resolving to the current active
+              currency until an independent approver accepts the proposal.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Currency</TableHead><TableHead>Effective from</TableHead>
+                  <TableHead>Proposed</TableHead><TableHead>Reason</TableHead><TableHead className="text-right">Decision</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pending.map((p) => {
+                  const isMaker = !!data.current_user_id && (p.proposed_by ?? p.created_by) === data.current_user_id;
+                  return (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-mono">{p.reporting_currency_override}</TableCell>
+                      <TableCell>{formatDateOnly(p.effective_from)}</TableCell>
+                      <TableCell>{formatDateTime(p.proposed_at ?? p.created_at)}</TableCell>
+                      <TableCell className="max-w-[18rem] truncate" title={p.reason ?? ''}>{p.reason ?? '—'}</TableCell>
+                      <TableCell className="space-x-2 text-right">
+                        {canManage && !isMaker && (
+                          <>
+                            <GuardedButton module="licensee_management" action="edit" data-rbac="licensee_management.edit" size="sm"
+                              onClick={() => decide(p.id, 'APPROVE')} disabled={decideOverride.isPending}>Accept proposal</GuardedButton>
+                            <GuardedButton module="licensee_management" action="edit" data-rbac="licensee_management.edit" size="sm" variant="outline"
+                              onClick={() => decide(p.id, 'REJECT')} disabled={decideOverride.isPending}>Decline proposal</GuardedButton>
+
+                          </>
+                        )}
+                        {isMaker && (
+                          <>
+                            <span className="mr-2 text-xs text-muted-foreground">You proposed this change — an independent approver must decide.</span>
+                            <GuardedButton module="licensee_management" action="edit" size="sm" variant="outline"
+                              onClick={() => withdraw(p.id)} disabled={withdrawProposal.isPending}>Withdraw</GuardedButton>
+                          </>
+                        )}
+                        {!canManage && !isMaker && <span className="text-xs text-muted-foreground">Awaiting approval</span>}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
 
       {data.mandated_definitions.length > 0 && (
         <Card>
@@ -213,7 +305,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
                     <TableCell className="font-mono">{p.reporting_currency_override}</TableCell>
                     <TableCell>{formatDateOnly(p.effective_from)}</TableCell>
                     <TableCell>{p.effective_to ? formatDateOnly(p.effective_to) : 'Open-ended'}</TableCell>
-                    <TableCell><Badge variant="outline">{p.status}</Badge></TableCell>
+                    <TableCell><Badge variant="outline">{CURRENCY_PROFILE_STATUS_LABELS[p.status] ?? p.status}</Badge></TableCell>
                     <TableCell className="max-w-[22rem] truncate" title={p.reason ?? ''}>{p.reason ?? '—'}</TableCell>
                     <TableCell>{formatDateTime(p.created_at)}</TableCell>
                   </TableRow>

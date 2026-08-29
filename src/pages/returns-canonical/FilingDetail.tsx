@@ -34,6 +34,8 @@ import {
 import { FilingVersionComparison } from '@/components/returns/FilingVersionComparison';
 import { FilingCurrentStepPanel } from '@/components/returns/FilingCurrentStepPanel';
 import { FilingRelatedCases } from '@/components/returns/FilingRelatedCases';
+import { FilingMonetaryDisplay } from '@/components/returns/FilingMonetaryDisplay';
+
 import { StatusBadge } from '@/components/presentation/StatusBadge';
 import { useInternalUsers } from '@/hooks/useInternalUsers';
 import { CURRENCY_SOURCE_LABELS, type CurrencySource } from '@/hooks/useEntityCurrency';
@@ -337,8 +339,10 @@ export default function FilingDetail() {
             </CardContent></Card>
           </TabsContent>
 
-          <TabsContent value="metrics">
+          <TabsContent value="metrics" className="space-y-4">
+            <FilingMonetaryDisplay filingId={filingId!} />
             <Card><CardContent className="overflow-x-auto p-0">
+
               <Table>
                 <TableHeader><TableRow>
                   <TableHead>Code</TableHead><TableHead>Metric</TableHead><TableHead className="text-right">Value</TableHead>

@@ -435,7 +435,131 @@ BEGIN
 END $beh$;
 
 -- ---------------------------------------------------------------------------
+-- M — monetary display modes (as-reported / regulator base / consolidated)
+--
+-- Proves the display reader exists, is guarded, is read-only, refuses unknown
+-- modes, never sums unlike currencies silently and reports unconvertible
+-- values explicitly instead of as zero.
+-- ---------------------------------------------------------------------------
+DO $m$
+DECLARE
+  _ok boolean; _msg text; _filing uuid; _admin uuid; _res jsonb; _bad int;
+BEGIN
+  PERFORM pg_temp.rec('M','M-01','the monetary display reader exists as a guarded SECURITY DEFINER routine',
+    EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+             WHERE n.nspname='public' AND p.proname='returns_filing_metrics_display'
+               AND p.prosecdef AND p.proconfig::text LIKE '%search_path%'),
+    'definer + pinned search_path');
+
+  PERFORM pg_temp.rec('M','M-02','the display reader is read-only (STABLE, never mutating a filing)',
+    EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+             WHERE n.nspname='public' AND p.proname='returns_filing_metrics_display'
+               AND p.provolatile = 's'),
+    'volatility=stable');
+
+  PERFORM pg_temp.rec('M','M-03','anonymous callers cannot execute the display reader',
+    NOT has_function_privilege('anon','public.returns_filing_metrics_display(uuid,text)','EXECUTE'),
+    'anon execute revoked');
+
+  SELECT user_id INTO _admin FROM public.user_roles WHERE role = 'super_admin' LIMIT 1;
+  SELECT id INTO _filing FROM public.return_filings WHERE reporting_currency IS NOT NULL LIMIT 1;
+
+  IF _admin IS NULL OR _filing IS NULL THEN
+    PERFORM pg_temp.rec('M','M-04','a real filing and authorised officer exist to exercise display modes',
+      false, 'vacuous fixture — gate fails rather than passing empty');
+  ELSE
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', _admin)::text, true);
+
+    _res := public.returns_filing_metrics_display(_filing, 'AS_REPORTED');
+    PERFORM pg_temp.rec('M','M-04','as-reported mode shows the filing currency of record unchanged',
+      (_res->>'ok')::boolean AND _res->>'display_currency' = _res->>'filing_currency',
+      'filing='||COALESCE(_res->>'filing_currency','∅')||' display='||COALESCE(_res->>'display_currency','∅'));
+
+    _res := public.returns_filing_metrics_display(_filing, 'REGULATOR_BASE');
+    PERFORM pg_temp.rec('M','M-05','regulator base mode resolves a target currency server-side',
+      (_res->>'ok')::boolean AND (_res->>'display_currency') IS NOT NULL,
+      'display='||COALESCE(_res->>'display_currency','∅'));
+
+    SELECT count(*) INTO _bad
+      FROM jsonb_array_elements(_res->'metrics') x
+     WHERE x->>'status' = 'UNCONVERTED' AND (x->>'display_value') IS NOT NULL;
+    PERFORM pg_temp.rec('M','M-06','an unconvertible value is never presented as a converted figure',
+      _bad = 0, 'contradictory rows='||_bad);
+
+    PERFORM pg_temp.rec('M','M-07','a filing is only declared summable when every value converted',
+      ((_res->>'summable')::boolean) = ((_res->>'incomplete_count')::int = 0),
+      'summable='||COALESCE(_res->>'summable','∅')||' incomplete='||COALESCE(_res->>'incomplete_count','∅'));
+
+    _res := public.returns_filing_metrics_display(_filing, 'CONSOLIDATED_REPORTING');
+    PERFORM pg_temp.rec('M','M-08','consolidated reporting mode is available and records its FX date',
+      (_res->>'ok')::boolean AND (_res->>'fx_as_of') IS NOT NULL,
+      'fx_as_of='||COALESCE(_res->>'fx_as_of','∅'));
+
+    _ok := false; _msg := '';
+    BEGIN
+      PERFORM public.returns_filing_metrics_display(_filing, 'INVENTED_MODE');
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM;
+    END;
+    PERFORM pg_temp.rec('M','M-09','an unknown display mode is refused instead of silently defaulting', _ok, _msg);
+
+    PERFORM set_config('request.jwt.claims', NULL, true);
+  END IF;
+END $m$;
+
+-- ---------------------------------------------------------------------------
+-- K — entity currency override approval control (business configuration)
+-- ---------------------------------------------------------------------------
+DO $k$
+DECLARE _ok boolean;
+BEGIN
+  PERFORM pg_temp.rec('K','K-01','the override approval mode is business configuration, not a hardcoded rule',
+    EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_schema='public' AND table_name='monetary_configs'
+               AND column_name='entity_currency_override_approval_mode'),
+    'monetary_configs.entity_currency_override_approval_mode');
+
+  PERFORM pg_temp.rec('K','K-02','an independent decision routine exists for proposed overrides',
+    EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+             WHERE n.nspname='public' AND p.proname='entity_currency_override_decide' AND p.prosecdef),
+    'entity_currency_override_decide');
+
+  PERFORM pg_temp.rec('K','K-03','a proposer may withdraw an undecided proposal',
+    EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+             WHERE n.nspname='public' AND p.proname='entity_currency_override_withdraw' AND p.prosecdef),
+    'entity_currency_override_withdraw');
+
+  PERFORM pg_temp.rec('K','K-04','the proposal lifecycle statuses are all supported by the store',
+    (SELECT count(*) FROM (VALUES ('PROPOSED'),('ACTIVE'),('REJECTED'),('SUPERSEDED'),('WITHDRAWN')) v(s)
+      WHERE pg_get_constraintdef(c.oid) LIKE '%'||v.s||'%') = 5,
+    'status domain complete')
+    FROM pg_constraint c
+    WHERE c.conrelid = 'public.entity_currency_profiles'::regclass
+      AND pg_get_constraintdef(c.oid) LIKE '%status%' LIMIT 1;
+
+  PERFORM pg_temp.rec('K','K-05','decision provenance is retained on the profile itself',
+    (SELECT count(*) FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='entity_currency_profiles'
+        AND column_name IN ('proposed_by','proposed_at','decision_by','decision_at','decision_reason')) = 5,
+    'proposal/decision metadata present');
+
+  PERFORM pg_temp.rec('K','K-06','anonymous callers cannot decide or withdraw an override',
+    NOT has_function_privilege('anon','public.entity_currency_override_decide(uuid,text,text)','EXECUTE')
+    AND NOT has_function_privilege('anon','public.entity_currency_override_withdraw(uuid,text)','EXECUTE'),
+    'anon execute revoked');
+
+  SELECT count(*) = 0 INTO _ok
+    FROM public.entity_currency_profiles p
+    JOIN public.return_filings f ON f.entity_id = p.entity_id
+   WHERE p.status = 'PROPOSED' AND f.reporting_currency = p.reporting_currency_override
+     AND f.currency_source = 'ENTITY_OVERRIDE'
+     AND f.entity_currency_profile_id = p.id;
+  PERFORM pg_temp.rec('K','K-07','a merely proposed override never becomes a filing currency of record',
+    _ok, 'no filing bound to a proposed override');
+END $k$;
+
+-- ---------------------------------------------------------------------------
 -- Z — zero residue
+
 -- ---------------------------------------------------------------------------
 DO $z$
 DECLARE _n int;

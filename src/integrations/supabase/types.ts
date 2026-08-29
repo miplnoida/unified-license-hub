@@ -16653,14 +16653,20 @@ export type Database = {
       }
       entity_currency_profiles: {
         Row: {
+          approval_mode: string | null
           approved_at: string | null
           approved_by: string | null
           created_at: string
           created_by: string | null
+          decision_at: string | null
+          decision_by: string | null
+          decision_reason: string | null
           effective_from: string
           effective_to: string | null
           entity_id: string
           id: string
+          proposed_at: string | null
+          proposed_by: string | null
           provenance_reference: string | null
           reason: string | null
           reporting_currency_override: string
@@ -16671,14 +16677,20 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approval_mode?: string | null
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
           created_by?: string | null
+          decision_at?: string | null
+          decision_by?: string | null
+          decision_reason?: string | null
           effective_from: string
           effective_to?: string | null
           entity_id: string
           id?: string
+          proposed_at?: string | null
+          proposed_by?: string | null
           provenance_reference?: string | null
           reason?: string | null
           reporting_currency_override: string
@@ -16689,14 +16701,20 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approval_mode?: string | null
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
           created_by?: string | null
+          decision_at?: string | null
+          decision_by?: string | null
+          decision_reason?: string | null
           effective_from?: string
           effective_to?: string | null
           entity_id?: string
           id?: string
+          proposed_at?: string | null
+          proposed_by?: string | null
           provenance_reference?: string | null
           reason?: string | null
           reporting_currency_override?: string
@@ -28299,6 +28317,7 @@ export type Database = {
           cross_currency_refund_allowed: boolean
           cross_currency_settlement_allowed: boolean
           decimal_precision: number
+          entity_currency_override_approval_mode: string
           fx_resolution_policy: string
           fx_source_policy: string
           id: string
@@ -28324,6 +28343,7 @@ export type Database = {
           cross_currency_refund_allowed?: boolean
           cross_currency_settlement_allowed?: boolean
           decimal_precision?: number
+          entity_currency_override_approval_mode?: string
           fx_resolution_policy?: string
           fx_source_policy?: string
           id?: string
@@ -28349,6 +28369,7 @@ export type Database = {
           cross_currency_refund_allowed?: boolean
           cross_currency_settlement_allowed?: boolean
           decimal_precision?: number
+          entity_currency_override_approval_mode?: string
           fx_resolution_policy?: string
           fx_source_policy?: string
           id?: string
@@ -50453,6 +50474,14 @@ export type Database = {
         }
         Returns: string
       }
+      entity_currency_approval_mode: {
+        Args: { _entity_id: string }
+        Returns: string
+      }
+      entity_currency_override_decide: {
+        Args: { _decision: string; _profile_id: string; _reason: string }
+        Returns: Json
+      }
       entity_currency_override_set: {
         Args: {
           _currency: string
@@ -50464,6 +50493,10 @@ export type Database = {
         Returns: Json
       }
       entity_currency_override_supersede: {
+        Args: { _profile_id: string; _reason: string }
+        Returns: Json
+      }
+      entity_currency_override_withdraw: {
         Args: { _profile_id: string; _reason: string }
         Returns: Json
       }
@@ -53137,6 +53170,7 @@ export type Database = {
           cross_currency_refund_allowed: boolean
           cross_currency_settlement_allowed: boolean
           decimal_precision: number
+          entity_currency_override_approval_mode: string
           fx_resolution_policy: string
           fx_source_policy: string
           id: string
@@ -55864,6 +55898,10 @@ export type Database = {
         Returns: number
       }
       returns_filing_detail: { Args: { _filing_id: string }; Returns: Json }
+      returns_filing_metrics_display: {
+        Args: { _filing_id: string; _mode?: string }
+        Returns: Json
+      }
       returns_filing_queue: {
         Args: { _entity_id?: string; _limit?: number; _status?: string }
         Returns: {
