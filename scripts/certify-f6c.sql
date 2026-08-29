@@ -881,12 +881,10 @@ BEGIN
     -- the account carries a genuine unpaid balance again after the governed
     -- reversal in E-09, so the refusal below is really exercised
     _out := ROUND((public.fee_assessment_state(_app)->>'outstanding')::numeric,2);
-    IF _out <= 0 THEN
-      PERFORM public.fee_component_operation(_app, 'add',
-        jsonb_build_object('fee_type_id', _ft4, 'amount', 650, 'description','certify:f6c submission gate'));
-      PERFORM public.fee_assessment_ensure(_app, 'certify:f6c submission gate');
-      _out := ROUND((public.fee_assessment_state(_app)->>'outstanding')::numeric,2);
-    END IF;
+    RAISE NOTICE 'G-07 diag: app outstanding=% state=% / app2 outstanding=% state=%',
+      _out, public.fee_assessment_state(_app)->>'status',
+      public.fee_assessment_state(_app2)->>'outstanding',
+      public.fee_assessment_state(_app2)->>'status';
     _state := 'unexpected-success';
     BEGIN
       PERFORM public.submit_application(_app);
