@@ -430,7 +430,8 @@ BEGIN
   SELECT count(DISTINCT service_id), count(*) INTO _svc, _dim
     FROM public.service_configuration_completeness;
   PERFORM pg_temp.rec('S4','SC-01','every active service is evaluated on all five dimensions',
-    _svc = 136 AND _dim = 680, format('services=%s dimensions=%s', _svc, _dim));
+    -- Census refreshed for the F5-B5X catalogue expansion (variation / voluntary surrender).
+    _svc = 152 AND _dim = 760, format('services=%s dimensions=%s', _svc, _dim));
 
   -- Every remaining incomplete dimension must be an explicitly justified
   -- BUSINESS_CONFIGURATION_REQUIRED item (the operator screen renders that
@@ -442,17 +443,17 @@ BEGIN
 
   SELECT count(*) INTO _bcr FROM public.service_configuration_completeness c
    WHERE NOT c.is_complete AND c.justification ILIKE '%BUSINESS_CONFIGURATION_REQUIRED%';
-  PERFORM pg_temp.rec('S4','SC-03','exactly 9 BUSINESS_CONFIGURATION_REQUIRED items remain visible',
-    _bcr = 9, 'items=' || _bcr);
+  PERFORM pg_temp.rec('S4','SC-03','exactly 27 BUSINESS_CONFIGURATION_REQUIRED items remain visible',
+    _bcr = 27, 'items=' || _bcr);
 
   SELECT count(*) INTO _n FROM public.service_configuration_completeness c
    WHERE NOT c.is_complete AND c.justification ILIKE '%BUSINESS_CONFIGURATION_REQUIRED%'
      AND c.dimension = 'sla';
-  PERFORM pg_temp.rec('S4','SC-04','8 of them are renewal service standards', _n = 8, 'sla items=' || _n);
+  PERFORM pg_temp.rec('S4','SC-04','24 of them are renewal / variation / surrender service standards', _n = 24, 'sla items=' || _n);
   SELECT count(*) INTO _n FROM public.service_configuration_completeness c
    WHERE NOT c.is_complete AND c.justification ILIKE '%BUSINESS_CONFIGURATION_REQUIRED%'
      AND c.dimension = 'fee';
-  PERFORM pg_temp.rec('S4','SC-05','1 of them is a renewal fee', _n = 1, 'fee items=' || _n);
+  PERFORM pg_temp.rec('S4','SC-05','3 of them are renewal / variation / surrender fees', _n = 3, 'fee items=' || _n);
 
   SELECT count(*) INTO _n FROM public.service_config_expectations
    WHERE justification ILIKE '%BUSINESS_CONFIGURATION_REQUIRED%' AND btrim(justification) = '';
