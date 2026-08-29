@@ -459,7 +459,9 @@ export function ApplicationFinancePanel({ applicationId, isInternal }: Props) {
                     )}
                   >
                     Submit refund request
-                </Button>
+                  </Button>
+                </PermissionGate>
+
               </div>
             </TabsContent>
 
