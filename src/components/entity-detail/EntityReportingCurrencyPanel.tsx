@@ -304,7 +304,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
                     <TableCell className="font-mono">{p.reporting_currency_override}</TableCell>
                     <TableCell>{formatDateOnly(p.effective_from)}</TableCell>
                     <TableCell>{p.effective_to ? formatDateOnly(p.effective_to) : 'Open-ended'}</TableCell>
-                    <TableCell><Badge variant="outline">{p.status}</Badge></TableCell>
+                    <TableCell><Badge variant="outline">{CURRENCY_PROFILE_STATUS_LABELS[p.status] ?? p.status}</Badge></TableCell>
                     <TableCell className="max-w-[22rem] truncate" title={p.reason ?? ''}>{p.reason ?? '—'}</TableCell>
                     <TableCell>{formatDateTime(p.created_at)}</TableCell>
                   </TableRow>
