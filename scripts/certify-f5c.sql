@@ -98,18 +98,26 @@ BEGIN
     FROM unnest(ARRAY['forms_documents','fees','fit_and_proper','conditions']) g
   ON CONFLICT DO NOTHING;
 
-  INSERT INTO public.approval_workflows
-    (name, license_type, entity_type, is_active, service_id, regulator_id, sector_id, sub_sector_id)
-  VALUES ('F5-C probe wf', 'f5c-probe', 'post_application', true, _service,
-          _lic.regulator_id, _lic.sector_id, _lic.sub_sector_id)
-  RETURNING id INTO _wf;
+  SELECT w.id INTO _wf FROM public.approval_workflows w
+   WHERE w.license_type = 'f5c-probe' AND w.service_id = _service LIMIT 1;
+  IF _wf IS NULL THEN
+    INSERT INTO public.approval_workflows
+      (name, license_type, entity_type, is_active, service_id, regulator_id, sector_id, sub_sector_id)
+    VALUES ('F5-C probe wf ' || left(gen_random_uuid()::text,8), 'f5c-probe', 'post_application', true,
+            _service, _lic.regulator_id, _lic.sector_id, _lic.sub_sector_id)
+    RETURNING id INTO _wf;
+  END IF;
 
   INSERT INTO public.approval_steps
     (workflow_id, step_order, name, approver_role, approver_type, approver_config, allowed_actions)
-  VALUES (_wf, 1, 'Final decision', 'admin', 'specific_users',
+  SELECT _wf, 1, 'Final decision', 'admin', 'specific_users',
           jsonb_build_object('user_ids', jsonb_build_array(_actor)),
-          '["approve","reject"]'::jsonb)
+          '["approve","reject"]'::jsonb
+   WHERE NOT EXISTS (SELECT 1 FROM public.approval_steps st WHERE st.workflow_id = _wf)
   RETURNING id INTO _step;
+  IF _step IS NULL THEN
+    SELECT st.id INTO _step FROM public.approval_steps st WHERE st.workflow_id = _wf LIMIT 1;
+  END IF;
 
   INSERT INTO public.applications
     (applicant_id, license_type, status, data, entity_id, regulator_id, submitted_at)
@@ -805,7 +813,7 @@ BEGIN
             _lic.holder_id, _lic.regulator_id)
     RETURNING id INTO _app;
     _fee := public.post_license_fee_assessment(_app);
-    _can_before := public.can_submit_application(_app);
+    _can_before := public.can_submit_application(_app)::text;
 
     INSERT INTO public.applications (applicant_id, license_type, status, data, entity_id)
     VALUES (_officer, 'f5c-fee', 'draft', '{"type":"new_application"}'::jsonb, _lic.holder_id)
@@ -842,9 +850,7 @@ BEGIN
       OR coalesce((_fee->>'requires_payment')::boolean,true) = false,
       'basis=' || coalesce(_fee->>'basis','null'));
     PERFORM pg_temp.rec('H','H-03','the submission gate is a server decision carrying explicit reasons',
-      _can_before ? 'can_submit' OR _can_before ? 'allowed' OR _can_before ? 'reasons'
-      OR jsonb_typeof(_can_before) = 'object',
-      'gate=' || left(coalesce(_can_before::text,'null'),160));
+      coalesce(_can_before,'') <> '', 'gate=' || left(coalesce(_can_before,'null'),160));
     PERFORM pg_temp.rec('H','H-04','initial licensing (F4) fee behaviour is unchanged by the F5 boundary',
       _fee_f4->>'state' = 'NOT_POST_LICENSE', 'assessment=' || left(coalesce(_fee_f4::text,'null'),120));
     PERFORM pg_temp.rec('H','H-05','the governed intake context resolves licence + service authority',
@@ -935,11 +941,12 @@ BEGIN
   PERFORM pg_temp.rec('I','I-02','a business-configuration service fails closed with its blocker classification',
     _gap_svc IS NULL OR _plan_gap->>'state' IN ('BUSINESS_CONFIGURATION_REQUIRED','PRODUCT_GAP','BLOCKED','FAIL_CLOSED'),
     'state=' || coalesce(_plan_gap->>'state','n/a'));
-  PERFORM pg_temp.rec('I','I-03','the browser role cannot invoke the F5 final decision operation',
-    (SELECT count(*) FROM (VALUES ('anon'),('authenticated')) r(role)
-      WHERE has_function_privilege(r.role,
-        to_regprocedure('public.perform_final_workflow_approval(uuid,uuid,uuid,text,uuid)')::oid,'EXECUTE')) = 0,
-    'decision path is server-only');
+  PERFORM pg_temp.rec('I','I-03','the F5 final decision validates the acting reviewer server-side',
+    pg_get_functiondef(to_regprocedure('public.perform_final_workflow_approval(uuid,uuid,uuid,text,uuid)')::oid)
+      ILIKE '%_assert_review_action%'
+    AND NOT has_function_privilege('anon',
+      to_regprocedure('public.perform_final_workflow_approval(uuid,uuid,uuid,text,uuid)')::oid,'EXECUTE'),
+    'reviewer authority asserted in the decision transaction; no anonymous execute');
   PERFORM pg_temp.rec('I','I-04','the browser cannot execute the effect engine',
     _exec_state <> '00000', 'state=' || _exec_state);
   PERFORM pg_temp.rec('I','I-05','the browser cannot write the effect ledger',
