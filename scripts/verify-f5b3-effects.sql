@@ -575,7 +575,11 @@ BEGIN
 
   PERFORM pg_temp.rec('G','G-01','a fit-and-proper dependent service without a current positive determination is BLOCKED',
     _plan->>'state' = 'BLOCKED' AND (_plan->>'fp_required')::boolean
-      AND _plan->>'code' = 'FP_DETERMINATION_REQUIRED',
+      -- F5-B4 graded the F&P blocker: an unnominated filing now fails closed on
+      -- the more precise subject code. Any graded F&P code is acceptable here;
+      -- BLOCKED + fp_required remains the invariant this gate protects.
+      AND _plan->>'code' IN ('FP_DETERMINATION_REQUIRED','FP_SUBJECT_REQUIRED',
+                             'FP_SUBJECT_NOT_CANONICAL','FP_LINK_REQUIRED'),
     'state=' || coalesce(_plan->>'state','null') || ' code=' || coalesce(_plan->>'code','null'));
   PERFORM pg_temp.rec('G','G-02','the blocked structural effect is never applied and the decision is refused',
     (_raised IS NOT NULL OR coalesce(_res->>'success','false') <> 'true') AND _effects = 0,
@@ -585,7 +589,8 @@ BEGIN
     _raised IS NOT NULL OR (coalesce(_res->>'blocked','false') = 'true'
       AND _res->>'application_id' = (_fx->>'application_id')
       AND _res->>'plan_state' = 'BLOCKED'
-      AND _res->>'code' = 'FP_DETERMINATION_REQUIRED'
+      AND _res->>'code' IN ('FP_DETERMINATION_REQUIRED','FP_SUBJECT_REQUIRED',
+                            'FP_SUBJECT_NOT_CANONICAL','FP_LINK_REQUIRED')
       AND jsonb_typeof(_res->'blockers') = 'array'
       AND jsonb_array_length(_res->'blockers') > 0),
     'result=' || left(coalesce(_res::text,'null'),200));
