@@ -309,12 +309,30 @@ BEGIN
       (entity_id, license_id, establishment_reference, name, status, opened_on, closed_on, address_text)
     VALUES (_entity, _lic, 'F5B3P-CLOSED', 'F5-B3P Closed Branch', 'CLOSED', current_date, current_date, 'x')
     RETURNING id INTO _closed_est;
-    IF _lic2 IS NOT NULL THEN
-      INSERT INTO public.regulated_establishments
-        (entity_id, license_id, establishment_reference, name, status, opened_on, address_text)
-      VALUES (_entity, _lic2, 'F5B3P-OTHERLIC', 'F5-B3P Other Licence Branch', 'ACTIVE', current_date, 'x')
-      RETURNING id INTO _other_lic_est;
+    -- F5-B3C: the cross-licence negative case must never be vacuous. When the
+    -- fixture holder owns a single licence we construct a rollback-safe second
+    -- licence for the SAME entity through the certified issuance path (the
+    -- frozen trg_license_open_original_term trigger opens its original term).
+    IF _lic2 IS NULL THEN
+      INSERT INTO public.licenses
+        (application_id, holder_id, license_type, sector_id, sub_sector_id, category_id,
+         status, issued_at, valid_from, valid_until, regulator_id)
+      SELECT NULL, l.holder_id, l.license_type, l.sector_id, l.sub_sector_id, l.category_id,
+             'active', now(), now(), l.valid_until, l.regulator_id
+        FROM public.licenses l WHERE l.id = _lic
+      RETURNING id INTO _lic2;
+      _lic2_synthetic := true;
+      SELECT count(*) INTO _lic2_terms
+        FROM public.license_terms WHERE license_id = _lic2 AND is_current;
+    ELSE
+      SELECT count(*) INTO _lic2_terms
+        FROM public.license_terms WHERE license_id = _lic2 AND is_current;
     END IF;
+    INSERT INTO public.regulated_establishments
+      (entity_id, license_id, establishment_reference, name, status, opened_on, address_text)
+    VALUES (_entity, _lic2, 'F5B3P-OTHERLIC', 'F5-B3P Other Licence Branch', 'ACTIVE', current_date, 'x')
+    RETURNING id INTO _other_lic_est;
+
     PERFORM set_config('app.workflow_mutation_context','', true);
 
     -- --------------------------------------------------------------- CLOSE --
