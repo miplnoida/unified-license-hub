@@ -1,6 +1,6 @@
 # F5-B3 — Governed Post-Approval Effect Engine
 
-Date: 2026-08-29 • Gate: `npm run verify:f5b3` • Verdict: **F5-B3 BLOCKERS REMAIN**
+Date: 2026-08-29 • Gates: `npm run verify:f5b3`, `npm run verify:f5b3-establishments` • Verdict (F5-B3C, 2026-08-29): **F5-B3 CLOSED — READY FOR F5-B4**
 
 ## 1. Starting position
 
@@ -207,15 +207,11 @@ drift, not F5 regressions:
   latest audit row at `coordination.flag.raised`, i.e. the participant UPDATE is
   not landing under the fixture's authority (`Participants can update flags`).
 
-## 7. Open blockers (why the verdict is not CLOSED)
+### Open blockers as recorded at the first B3 pass (all now closed — historical)
 
-1. **PRODUCT_GAP still active** — New Branch and Branch Closure remain active
-   services with no canonical establishment/branch register. Per the exit rule
-   they cannot be closed or reclassified as BCR.
-2. **F&P dependency** — F&P-required services correctly return
-   `FP_DETERMINATION_REQUIRED` and are refused; linkage is F5-B4 scope.
-3. **Frozen-scope gate failures** — `verify:f2b` (P-05) and
-   `verify:coordination-lifecycle` (E2/E3) must be re-proven green before any
-   freeze claim.
+1. PRODUCT_GAP (New Branch / Branch Closure) — closed in F5-B3P.
+2. Frozen-scope gate failures (`verify:f2b` P-05, coordination E2/E3) — closed in
+   F5-B3R and re-proven in F5-B3C.
+3. F&P dependency — deliberately deferred to F5-B4 (services remain fail-closed).
 
-**F5-B3 BLOCKERS REMAIN** — F5-B4 not started.
+Current verdict is in §9: **F5-B3 CLOSED — READY FOR F5-B4**.
