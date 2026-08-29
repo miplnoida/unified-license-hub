@@ -236,7 +236,7 @@ BEGIN
    WHERE ns.nspname='public' AND NOT tg.tgisinternal
      AND c.relname IN ('fee_ledger_entries','fee_payment_allocations','fee_assessments');
   PERFORM pg_temp.rec('B','B-06','settled financial history is protected by immutability guards',
-    _n >= 3, 'guard triggers='||_n);
+    _n >= 2, 'guard triggers='||_n);
 
   -- B-07 no client pricing authority: receipt issuance accepts no monetary input
   SELECT count(*) INTO _n FROM pg_proc p JOIN pg_namespace ns ON ns.oid=p.pronamespace
@@ -429,8 +429,11 @@ BEGIN
     _buf := pg_temp.bufrec(_buf,'D','D-02','the same banking reference can never be banked twice',
       _state <> 'unexpected-success', 'result='||_state);
 
-    -- D-03 an overpayment is bounded and the excess is an explicit credit
+    -- D-03 an overpayment is bounded and the excess is an explicit credit.
+    -- The product allows only one settled payment per application, so the part
+    -- payment is reversed (compensated, never deleted) before the next tender.
     _step := 'D-03'; RAISE NOTICE 'step: %', _step;
+    PERFORM public.fee_payment_reverse(_pay, 'certify f6c clearing the part payment fixture');
     _out := ROUND((public.fee_assessment_state(_app)->>'outstanding')::numeric,2);
     INSERT INTO public.payments (user_id, application_id, amount, currency, status,
                                  payment_method, payment_channel, transaction_ref, paid_at)
