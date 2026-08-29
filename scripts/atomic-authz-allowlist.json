@@ -108,11 +108,6 @@
 "reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
 },
 {
-"path": "src/pages/compliance/ComplianceReturns.tsx",
-"line": 177,
-"reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
-},
-{
 "path": "src/pages/coordination/CoordinationDetail.tsx",
 "line": 189,
 "reason": "Baseline: RLS policy on target table re-enforces module.action via has_permission/has_scoped_permission."
