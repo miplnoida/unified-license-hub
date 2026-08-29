@@ -590,11 +590,17 @@ BEGIN
     _buf := pg_temp.bufrec(_buf,'R','R-11b','voiding a receipt is a recorded, reasoned action',
       _n >= 1, 'audit rows='||_n);
 
-    _res := public.payment_receipt_issue(_pay3);
+    _state := 'unexpected-success';
+    BEGIN
+      PERFORM public.payment_receipt_issue(_pay3);
+    EXCEPTION WHEN others THEN _state := SQLSTATE||': '||left(SQLERRM,80);
+    END;
+    PERFORM pg_temp.act(_admin);
+    SELECT count(*) INTO _n FROM public.payment_receipts WHERE payment_id=_pay3;
     _buf := pg_temp.bufrec(_buf,'R','R-11c',
-      'a reversed payment cannot mint a fresh receipt',
-      _res IS NULL OR true, 'unreachable');
-    _buf := _buf - (jsonb_array_length(_buf) - 1);
+      'a reversed payment cannot mint a fresh receipt to replace the voided one',
+      _state <> 'unexpected-success' AND _n = 1, 'result='||_state||' receipts='||_n);
+
 
     _step := 'R-07'; RAISE NOTICE 'step: %', _step;
     PERFORM public.fee_component_operation(_app2, 'add',
