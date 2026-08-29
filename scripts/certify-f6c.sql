@@ -665,7 +665,8 @@ BEGIN
     _out := ROUND((_s1->>'outstanding')::numeric,2);
     PERFORM public.fee_waiver_request(_app, 200, 'certify f6c waiver justification narrative');
     SELECT id INTO _wv FROM public.fee_waivers
-     WHERE assessment_id=(_s1->>'assessment_id')::uuid ORDER BY requested_at DESC LIMIT 1;
+     WHERE assessment_id=(_s1->>'assessment_id')::uuid AND decided_at IS NULL
+     ORDER BY requested_at DESC LIMIT 1;
     _buf := pg_temp.bufrec(_buf,'E','E-01','a waiver can be requested against a standing balance',
       _wv IS NOT NULL, 'waiver='||COALESCE(_wv::text,'∅'));
 
@@ -701,7 +702,8 @@ BEGIN
     _out := ROUND((public.fee_assessment_state(_app)->>'outstanding')::numeric,2);
     PERFORM public.fee_waiver_request(_app, 100, 'certify f6c waiver to be refused');
     SELECT id INTO _wv FROM public.fee_waivers
-     WHERE assessment_id=(_s1->>'assessment_id')::uuid ORDER BY requested_at DESC LIMIT 1;
+     WHERE assessment_id=(_s1->>'assessment_id')::uuid AND decided_at IS NULL
+     ORDER BY requested_at DESC LIMIT 1;
     PERFORM pg_temp.act(_checker);
     PERFORM public.fee_waiver_decide(_wv, false, 'certify f6c refusal reason narrative', NULL);
     PERFORM pg_temp.act(_admin);
