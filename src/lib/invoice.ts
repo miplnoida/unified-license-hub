@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatDateTime } from '@/lib/datetime';
+import { formatMoney } from '@/lib/money';
 
 export interface InvoiceRecord {
   id: string;
@@ -77,9 +78,13 @@ export function downloadInvoicePdf(invoice: InvoiceRecord, opts?: {
 }) {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
-  const currency = invoice.currency || 'USD';
-  const money = (value: number) =>
-    `${currency} ${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  // A financial receipt without an authoritative currency is invalid, not USD.
+  const currency = String(invoice.currency || '').trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(currency)) {
+    toast.error('This invoice has no recorded currency and cannot be issued.');
+    throw new Error('INVOICE_CURRENCY_MISSING');
+  }
+  const money = (value: number) => formatMoney(value, currency);
 
   let y = 56;
   doc.setFont('helvetica', 'bold');

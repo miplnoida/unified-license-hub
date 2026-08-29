@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/money';
 import { useState, useEffect, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -53,7 +54,7 @@ export default function PreLicenseeBilling() {
           applicationNumber: app?.application_number || '—',
           applicant: applicantName,
           feeType: ftMap.get(c.fee_type_id) || '—',
-          amount: `$${Number(c.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+          amount: formatMoney(c.amount, c.currency),
           status: paymentStatus,
           date: new Date(c.created_at).toLocaleDateString(),
         };
@@ -68,7 +69,7 @@ export default function PreLicenseeBilling() {
     const paid = rows.filter(r => r.status === 'paid').reduce((s, r) => s + parseFloat(r.amount.replace(/[$,]/g, '')), 0);
     const pending = rows.filter(r => r.status === 'pending').reduce((s, r) => s + parseFloat(r.amount.replace(/[$,]/g, '')), 0);
     const overdue = rows.filter(r => r.status === 'overdue').reduce((s, r) => s + parseFloat(r.amount.replace(/[$,]/g, '')), 0);
-    const fmt = (v: number) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+    const fmt = (v: number, currency?: string | null) => formatMoney(v, currency ?? null);
     return { total: fmt(total), paid: fmt(paid), pending: fmt(pending), overdue: fmt(overdue) };
   }, [rows]);
 

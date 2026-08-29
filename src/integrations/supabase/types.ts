@@ -20050,9 +20050,15 @@ export type Database = {
           fx_quote_convention: string | null
           fx_rate: number | null
           fx_rate_id: string | null
+          fx_reporting_conversion_id: string | null
+          fx_reporting_rate: number | null
           id: string
           ledger_entry_id: string | null
+          monetary_config_id: string | null
           payment_id: string
+          regulator_id: string | null
+          reporting_amount: number | null
+          reporting_currency: string | null
           reversal_ledger_entry_id: string | null
           reversal_reason: string | null
           reversed_at: string | null
@@ -20073,9 +20079,15 @@ export type Database = {
           fx_quote_convention?: string | null
           fx_rate?: number | null
           fx_rate_id?: string | null
+          fx_reporting_conversion_id?: string | null
+          fx_reporting_rate?: number | null
           id?: string
           ledger_entry_id?: string | null
+          monetary_config_id?: string | null
           payment_id: string
+          regulator_id?: string | null
+          reporting_amount?: number | null
+          reporting_currency?: string | null
           reversal_ledger_entry_id?: string | null
           reversal_reason?: string | null
           reversed_at?: string | null
@@ -20096,9 +20108,15 @@ export type Database = {
           fx_quote_convention?: string | null
           fx_rate?: number | null
           fx_rate_id?: string | null
+          fx_reporting_conversion_id?: string | null
+          fx_reporting_rate?: number | null
           id?: string
           ledger_entry_id?: string | null
+          monetary_config_id?: string | null
           payment_id?: string
+          regulator_id?: string | null
+          reporting_amount?: number | null
+          reporting_currency?: string | null
           reversal_ledger_entry_id?: string | null
           reversal_reason?: string | null
           reversed_at?: string | null
@@ -20129,10 +20147,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fee_payment_allocations_fx_reporting_conversion_id_fkey"
+            columns: ["fx_reporting_conversion_id"]
+            isOneToOne: false
+            referencedRelation: "fx_conversions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fee_payment_allocations_ledger_entry_id_fkey"
             columns: ["ledger_entry_id"]
             isOneToOne: false
             referencedRelation: "fee_ledger_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_allocations_monetary_config_id_fkey"
+            columns: ["monetary_config_id"]
+            isOneToOne: false
+            referencedRelation: "monetary_configs"
             referencedColumns: ["id"]
           },
           {
@@ -49560,6 +49592,17 @@ export type Database = {
         Args: { _code: string; _regulator_id?: string }
         Returns: boolean
       }
+      currency_master_save: {
+        Args: {
+          _code: string
+          _decimal_precision?: number
+          _display_symbol?: string
+          _is_active?: boolean
+          _name?: string
+          _reason?: string
+        }
+        Returns: Json
+      }
       current_regulatory_profile: {
         Args: never
         Returns: {
@@ -50605,6 +50648,10 @@ export type Database = {
       fee_component_operation: {
         Args: { _application_id: string; _operation: string; _payload?: Json }
         Returns: Json
+      }
+      fee_event_regulator: {
+        Args: { _application_id: string }
+        Returns: string
       }
       fee_payment_reverse: {
         Args: { _payment_id: string; _reason: string }
@@ -52623,6 +52670,10 @@ export type Database = {
         }
       }
       mc03_require_gate: { Args: { _complaint_id: string }; Returns: Json }
+      monetary_config_provision: {
+        Args: { _payload: Json; _reason?: string; _regulator_id?: string }
+        Returns: Json
+      }
       monetary_config_resolve: {
         Args: { _regulator_id?: string }
         Returns: {

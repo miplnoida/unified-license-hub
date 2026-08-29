@@ -191,7 +191,7 @@ export function RedressPanel({ complaintId }: Props) {
                           affected_party_label: r.affected_party_label,
                           allegation_id: r.allegation_id ?? '',
                           amount: r.amount != null ? String(r.amount) : '',
-                          currency: r.currency ?? 'JMD',
+                          currency: r.currency ?? null,
                           action_required: r.action_required,
                           responsible_entity: r.responsible_entity ?? '',
                           due_date: r.due_date ?? '',

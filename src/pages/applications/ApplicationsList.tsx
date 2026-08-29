@@ -408,7 +408,7 @@ export default function ApplicationsList() {
           id: r.payment_id,
           amount: r.payment_amount,
           status: r.payment_status,
-          currency: r.payment_currency || 'USD',
+          currency: r.payment_currency ?? null,
           payment_method: r.payment_method,
           paid_at: r.payment_paid_at,
         } : null,

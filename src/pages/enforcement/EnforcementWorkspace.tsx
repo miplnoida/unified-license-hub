@@ -216,7 +216,7 @@ export default function EnforcementWorkspace() {
     );
   }
 
-  const currency = kase.penalty_currency || 'USD';
+  const currency = kase.penalty_currency ?? null;
   const outstanding = Math.max(
     Number(kase.penalty_amount ?? 0) - Number(kase.penalty_paid_amount ?? 0) - Number(kase.penalty_waived_amount ?? 0),
     0,

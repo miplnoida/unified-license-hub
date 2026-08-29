@@ -1,4 +1,5 @@
 /**
+import { formatMoney } from '@/lib/money';
  * EPR-03 — Entity 360 enforcement summary.
  *
  * Read-only enforcement position for one regulated entity, served by
@@ -95,7 +96,7 @@ export function EntityEnforcementPanel({ entityId }: { entityId: string }) {
                       <div className="text-[11px] text-muted-foreground">{c.sla_due_at ? formatDateTime(c.sla_due_at) : '—'}</div>
                     </TableCell>
                     <TableCell className="text-sm">
-                      {c.penalty_amount ? `${c.penalty_currency ?? 'USD'} ${Number(c.penalty_amount).toLocaleString()}` : '—'}
+                      {formatMoney(c.penalty_amount, c.penalty_currency)}
                     </TableCell>
                     <TableCell className="text-sm capitalize">{(c.decision_outcome ?? '').replace(/_/g, ' ') || '—'}</TableCell>
                   </TableRow>
