@@ -1223,14 +1223,6 @@ BEGIN
       _res->>'previous_currency' = _alt AND _res->>'currency' = _alt
         AND _res->>'source' = 'ENTITY_OVERRIDE', 'rebase='||_res::text);
 
-    _ok := false; _msg := '';
-    BEGIN
-      UPDATE public.return_filings SET reporting_currency = _base WHERE id = _fil;
-    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
-    _buf := pg_temp.bufrec(_buf,'N','N-15A',
-      'the snapshotted currency of record cannot be edited directly — only the governed rebase may change it',
-      _ok AND (SELECT reporting_currency FROM public.return_filings WHERE id=_fil) = _alt, _msg);
-
     PERFORM set_config('request.jwt.claims','{}', true);
     UPDATE public.return_filings SET status='SUBMITTED' WHERE id=_fil;
     PERFORM pg_temp.act(_u1);
@@ -1241,6 +1233,15 @@ BEGIN
     _buf := pg_temp.bufrec(_buf,'N','N-16',
       'once a return is no longer a draft its currency of record can never be rebased',
       _ok, _msg);
+
+    PERFORM set_config('request.jwt.claims','{}', true);
+    _ok := false; _msg := '';
+    BEGIN
+      UPDATE public.return_filings SET reporting_currency = _base WHERE id = _fil;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'N','N-16A',
+      'the currency of record of a submitted return cannot be edited directly at all',
+      _ok AND (SELECT reporting_currency FROM public.return_filings WHERE id=_fil) = _alt, _msg);
 
     PERFORM set_config('request.jwt.claims','{}', true);
     UPDATE public.return_filings SET status='DRAFT' WHERE id=_fil;
