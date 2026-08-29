@@ -19570,6 +19570,184 @@ export type Database = {
         }
         Relationships: []
       }
+      fee_assessment_lines: {
+        Row: {
+          amount: number
+          assessment_id: string
+          binding_id: string | null
+          blocking: boolean
+          created_at: string
+          currency: string
+          description: string | null
+          fee_configuration_id: string | null
+          fee_type_code: string | null
+          fee_type_id: string | null
+          id: string
+          line_no: number
+          quantity: number
+          source_snapshot: Json
+          unit_amount: number
+        }
+        Insert: {
+          amount?: number
+          assessment_id: string
+          binding_id?: string | null
+          blocking?: boolean
+          created_at?: string
+          currency: string
+          description?: string | null
+          fee_configuration_id?: string | null
+          fee_type_code?: string | null
+          fee_type_id?: string | null
+          id?: string
+          line_no: number
+          quantity?: number
+          source_snapshot?: Json
+          unit_amount?: number
+        }
+        Update: {
+          amount?: number
+          assessment_id?: string
+          binding_id?: string | null
+          blocking?: boolean
+          created_at?: string
+          currency?: string
+          description?: string | null
+          fee_configuration_id?: string | null
+          fee_type_code?: string | null
+          fee_type_id?: string | null
+          id?: string
+          line_no?: number
+          quantity?: number
+          source_snapshot?: Json
+          unit_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_assessment_lines_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fee_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fee_assessments: {
+        Row: {
+          application_id: string | null
+          assessed_at: string
+          assessed_by: string | null
+          assessed_source: string
+          assessed_total: number
+          assessment_number: string
+          basis: string
+          config_snapshot: Json
+          created_at: string
+          currency: string
+          entity_id: string | null
+          id: string
+          idempotency_key: string
+          license_id: string | null
+          lines: Json
+          matter_kind: string | null
+          request_kind: string | null
+          resolution_source: string
+          service_code: string | null
+          service_id: string | null
+          status: string
+          subject_type: string
+          supersede_reason: string | null
+          superseded_at: string | null
+          superseded_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          application_id?: string | null
+          assessed_at?: string
+          assessed_by?: string | null
+          assessed_source?: string
+          assessed_total?: number
+          assessment_number: string
+          basis: string
+          config_snapshot?: Json
+          created_at?: string
+          currency: string
+          entity_id?: string | null
+          id?: string
+          idempotency_key: string
+          license_id?: string | null
+          lines?: Json
+          matter_kind?: string | null
+          request_kind?: string | null
+          resolution_source: string
+          service_code?: string | null
+          service_id?: string | null
+          status?: string
+          subject_type: string
+          supersede_reason?: string | null
+          superseded_at?: string | null
+          superseded_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string | null
+          assessed_at?: string
+          assessed_by?: string | null
+          assessed_source?: string
+          assessed_total?: number
+          assessment_number?: string
+          basis?: string
+          config_snapshot?: Json
+          created_at?: string
+          currency?: string
+          entity_id?: string | null
+          id?: string
+          idempotency_key?: string
+          license_id?: string | null
+          lines?: Json
+          matter_kind?: string | null
+          request_kind?: string | null
+          resolution_source?: string
+          service_code?: string | null
+          service_id?: string | null
+          status?: string
+          subject_type?: string
+          supersede_reason?: string | null
+          superseded_at?: string | null
+          superseded_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_assessments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_assessments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_assessments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_assessments_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "fee_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fee_components: {
         Row: {
           amount: number
@@ -19745,6 +19923,337 @@ export type Database = {
           },
         ]
       }
+      fee_ledger_entries: {
+        Row: {
+          amount: number
+          application_id: string | null
+          assessment_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          entry_type: string
+          external_reference: string | null
+          id: string
+          metadata: Json
+          payment_id: string | null
+          reason: string | null
+          reversal_of: string | null
+        }
+        Insert: {
+          amount: number
+          application_id?: string | null
+          assessment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          entry_type: string
+          external_reference?: string | null
+          id?: string
+          metadata?: Json
+          payment_id?: string | null
+          reason?: string | null
+          reversal_of?: string | null
+        }
+        Update: {
+          amount?: number
+          application_id?: string | null
+          assessment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          entry_type?: string
+          external_reference?: string | null
+          id?: string
+          metadata?: Json
+          payment_id?: string | null
+          reason?: string | null
+          reversal_of?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_ledger_entries_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fee_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_ledger_entries_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_ledger_entries_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_ledger_entries_reversal_of_fkey"
+            columns: ["reversal_of"]
+            isOneToOne: false
+            referencedRelation: "fee_ledger_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fee_payment_allocations: {
+        Row: {
+          allocated_at: string
+          allocated_by: string | null
+          amount: number
+          assessment_id: string
+          currency: string
+          id: string
+          ledger_entry_id: string | null
+          payment_id: string
+          reversal_ledger_entry_id: string | null
+          reversal_reason: string | null
+          reversed_at: string | null
+        }
+        Insert: {
+          allocated_at?: string
+          allocated_by?: string | null
+          amount: number
+          assessment_id: string
+          currency: string
+          id?: string
+          ledger_entry_id?: string | null
+          payment_id: string
+          reversal_ledger_entry_id?: string | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
+        }
+        Update: {
+          allocated_at?: string
+          allocated_by?: string | null
+          amount?: number
+          assessment_id?: string
+          currency?: string
+          id?: string
+          ledger_entry_id?: string | null
+          payment_id?: string
+          reversal_ledger_entry_id?: string | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_payment_allocations_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fee_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_allocations_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fee_ledger_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_allocations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_allocations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_allocations_reversal_ledger_entry_id_fkey"
+            columns: ["reversal_ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fee_ledger_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fee_payment_references: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          payment_id: string
+          raw_reference: string
+          reference_norm: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payment_id: string
+          raw_reference: string
+          reference_norm: string
+          source: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payment_id?: string
+          raw_reference?: string
+          reference_norm?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_payment_references_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_references_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fee_reconciliation_items: {
+        Row: {
+          assessment_id: string | null
+          created_at: string
+          exception_code: string | null
+          external_amount: number
+          external_currency: string
+          external_date: string | null
+          external_reference: string
+          id: string
+          notes: string | null
+          payment_id: string | null
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          run_id: string
+          status: string
+        }
+        Insert: {
+          assessment_id?: string | null
+          created_at?: string
+          exception_code?: string | null
+          external_amount: number
+          external_currency: string
+          external_date?: string | null
+          external_reference: string
+          id?: string
+          notes?: string | null
+          payment_id?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          run_id: string
+          status: string
+        }
+        Update: {
+          assessment_id?: string | null
+          created_at?: string
+          exception_code?: string | null
+          external_amount?: number
+          external_currency?: string
+          external_date?: string | null
+          external_reference?: string
+          id?: string
+          notes?: string | null
+          payment_id?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          run_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_reconciliation_items_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fee_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_reconciliation_items_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_reconciliation_items_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_reconciliation_items_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "fee_reconciliation_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fee_reconciliation_runs: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          exception_items: number
+          id: string
+          matched_items: number
+          period_end: string | null
+          period_start: string | null
+          run_by: string | null
+          source: string
+          statement_reference: string | null
+          status: string
+          total_items: number
+          unmatched_items: number
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          exception_items?: number
+          id?: string
+          matched_items?: number
+          period_end?: string | null
+          period_start?: string | null
+          run_by?: string | null
+          source: string
+          statement_reference?: string | null
+          status?: string
+          total_items?: number
+          unmatched_items?: number
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          exception_items?: number
+          id?: string
+          matched_items?: number
+          period_end?: string | null
+          period_start?: string | null
+          run_by?: string | null
+          source?: string
+          statement_reference?: string | null
+          status?: string
+          total_items?: number
+          unmatched_items?: number
+        }
+        Relationships: []
+      }
       fee_rules: {
         Row: {
           condition: Json
@@ -19827,6 +20336,78 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      fee_waivers: {
+        Row: {
+          approved_amount: number | null
+          assessment_id: string
+          created_at: string
+          currency: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          id: string
+          ledger_entry_id: string | null
+          request_reason: string
+          requested_amount: number
+          requested_at: string
+          requested_by: string
+          status: string
+          updated_at: string
+          waiver_kind: string
+        }
+        Insert: {
+          approved_amount?: number | null
+          assessment_id: string
+          created_at?: string
+          currency: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          id?: string
+          ledger_entry_id?: string | null
+          request_reason: string
+          requested_amount: number
+          requested_at?: string
+          requested_by: string
+          status?: string
+          updated_at?: string
+          waiver_kind?: string
+        }
+        Update: {
+          approved_amount?: number | null
+          assessment_id?: string
+          created_at?: string
+          currency?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          id?: string
+          ledger_entry_id?: string | null
+          request_reason?: string
+          requested_amount?: number
+          requested_at?: string
+          requested_by?: string
+          status?: string
+          updated_at?: string
+          waiver_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_waivers_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fee_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_waivers_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fee_ledger_entries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       field_conditions: {
         Row: {
@@ -32456,8 +33037,15 @@ export type Database = {
         Row: {
           amount: number
           approved_by: string | null
+          assessment_id: string | null
           created_at: string
+          currency: string | null
+          decision_reason: string | null
+          eligibility_snapshot: Json | null
+          executed_at: string | null
+          executed_by: string | null
           id: string
+          ledger_entry_id: string | null
           notes: string | null
           payment_id: string
           processed_at: string | null
@@ -32471,8 +33059,15 @@ export type Database = {
         Insert: {
           amount: number
           approved_by?: string | null
+          assessment_id?: string | null
           created_at?: string
+          currency?: string | null
+          decision_reason?: string | null
+          eligibility_snapshot?: Json | null
+          executed_at?: string | null
+          executed_by?: string | null
           id?: string
+          ledger_entry_id?: string | null
           notes?: string | null
           payment_id: string
           processed_at?: string | null
@@ -32486,8 +33081,15 @@ export type Database = {
         Update: {
           amount?: number
           approved_by?: string | null
+          assessment_id?: string | null
           created_at?: string
+          currency?: string | null
+          decision_reason?: string | null
+          eligibility_snapshot?: Json | null
+          executed_at?: string | null
+          executed_by?: string | null
           id?: string
+          ledger_entry_id?: string | null
           notes?: string | null
           payment_id?: string
           processed_at?: string | null
@@ -32499,6 +33101,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "refunds_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fee_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "fee_ledger_entries"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "refunds_payment_id_fkey"
             columns: ["payment_id"]
