@@ -27,13 +27,31 @@ export const CURRENCY_SOURCE_LABELS: Record<CurrencySource, string> = {
   RETURN_DEFINITION: 'Return definition requirement',
 };
 
+export type CurrencyProfileStatus = 'PROPOSED' | 'ACTIVE' | 'REJECTED' | 'SUPERSEDED' | 'WITHDRAWN';
+
+export const CURRENCY_PROFILE_STATUS_LABELS: Record<CurrencyProfileStatus, string> = {
+  PROPOSED: 'Awaiting approval',
+  ACTIVE: 'Active',
+  REJECTED: 'Rejected',
+  SUPERSEDED: 'Superseded',
+  WITHDRAWN: 'Withdrawn',
+};
+
+/** Business configuration (per regulator monetary configuration), never hardcoded. */
+export type CurrencyApprovalMode = 'DIRECT_AUTHORIZED' | 'MAKER_CHECKER';
+
+export const CURRENCY_APPROVAL_MODE_LABELS: Record<CurrencyApprovalMode, string> = {
+  DIRECT_AUTHORIZED: 'Direct authorised maintenance',
+  MAKER_CHECKER: 'Two-person approval (maker-checker)',
+};
+
 export interface EntityCurrencyProfile {
   id: string;
   entity_id: string;
   reporting_currency_override: string;
   effective_from: string;
   effective_to: string | null;
-  status: 'ACTIVE' | 'SUPERSEDED' | 'WITHDRAWN';
+  status: CurrencyProfileStatus;
   reason: string | null;
   source: string;
   created_by: string | null;
@@ -42,6 +60,12 @@ export interface EntityCurrencyProfile {
   approved_at: string | null;
   superseded_by: string | null;
   superseded_at: string | null;
+  proposed_by?: string | null;
+  proposed_at?: string | null;
+  decision_by?: string | null;
+  decision_at?: string | null;
+  decision_reason?: string | null;
+  approval_mode?: CurrencyApprovalMode | null;
 }
 
 export interface EntityCurrencyOverview {
@@ -57,6 +81,9 @@ export interface EntityCurrencyOverview {
   regulator_reporting_currency: string;
   returns_fx_date_policy: 'PERIOD_END' | 'FILING_DATE' | 'ACCEPTANCE_DATE';
   can_manage: boolean;
+  approval_mode: CurrencyApprovalMode;
+  current_user_id: string | null;
+  pending_proposals: EntityCurrencyProfile[];
   history: EntityCurrencyProfile[];
   mandated_definitions: Array<{ return_definition_id: string; code: string; name: string; currency: string }>;
 }
@@ -84,12 +111,30 @@ export function useEntityCurrencyMutations() {
   return {
     setOverride: useMutation({
       mutationFn: (v: { entityId: string; currency: string; effectiveFrom: string; reason: string; effectiveTo?: string | null }) =>
-        rpc<{ ok: boolean; entity_currency_profile_id: string; currency: string }>('entity_currency_override_set', {
+        rpc<{ ok: boolean; entity_currency_profile_id: string; currency: string; status: CurrencyProfileStatus }>('entity_currency_override_set', {
           _entity_id: v.entityId,
           _currency: v.currency,
           _effective_from: v.effectiveFrom,
           _reason: v.reason,
           _effective_to: v.effectiveTo ?? null,
+        }),
+      onSuccess: invalidate,
+    }),
+    /** Independent decision on a proposed override (maker-checker mode). */
+    decideOverride: useMutation({
+      mutationFn: (v: { profileId: string; decision: 'APPROVE' | 'REJECT'; reason: string }) =>
+        rpc<{ ok: boolean; status: CurrencyProfileStatus }>('entity_currency_override_decide', {
+          _profile_id: v.profileId,
+          _decision: v.decision,
+          _reason: v.reason,
+        }),
+      onSuccess: invalidate,
+    }),
+    withdrawProposal: useMutation({
+      mutationFn: (v: { profileId: string; reason: string }) =>
+        rpc<{ ok: boolean }>('entity_currency_override_withdraw', {
+          _profile_id: v.profileId,
+          _reason: v.reason,
         }),
       onSuccess: invalidate,
     }),
@@ -115,6 +160,47 @@ export function useEntityCurrencyMutations() {
     }),
   };
 }
+
+/**
+ * Monetary display modes for a filing (F7-B item 8). The equivalents come from
+ * the canonical F6-X FX engine server-side; unlike currencies are never summed
+ * and unavailable conversions are reported as UNCONVERTED, never as zero.
+ */
+export type MonetaryDisplayMode = 'AS_REPORTED' | 'REGULATOR_BASE' | 'CONSOLIDATED_REPORTING';
+
+export const MONETARY_DISPLAY_MODE_LABELS: Record<MonetaryDisplayMode, string> = {
+  AS_REPORTED: 'As reported',
+  REGULATOR_BASE: 'Regulator base equivalent',
+  CONSOLIDATED_REPORTING: 'Consolidated reporting equivalent',
+};
+
+export interface FilingMetricsDisplay {
+  ok: boolean;
+  mode: MonetaryDisplayMode;
+  filing_currency: string | null;
+  display_currency: string | null;
+  fx_as_of: string | null;
+  mixed_currency: boolean;
+  incomplete_count: number;
+  summable: boolean;
+  metrics: Array<{
+    code: string; name: string; unit: string | null;
+    as_reported: number | null; as_reported_currency: string | null;
+    display_currency: string | null; display_value: number | null;
+    status: 'OK' | 'UNCONVERTED' | 'NOT_REPORTED';
+  }>;
+}
+
+export function useFilingMetricsDisplay(filingId?: string | null, mode: MonetaryDisplayMode = 'AS_REPORTED') {
+  return useQuery({
+    queryKey: ['returns', 'metrics-display', filingId ?? null, mode],
+    enabled: !!filingId,
+    queryFn: () => rpc<FilingMetricsDisplay>('returns_filing_metrics_display', {
+      _filing_id: filingId, _mode: mode,
+    }),
+  });
+}
+
 
 /** Active currency master, used only to offer valid ISO codes for an override. */
 export function useCurrencyMaster() {
