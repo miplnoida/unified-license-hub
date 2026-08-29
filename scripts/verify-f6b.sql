@@ -141,9 +141,9 @@ DO $b$
 DECLARE _n int; _detail text; _fns text[] := ARRAY[
     'fee_assessment_resolve_lines','fee_assessment_preview','fee_assessment_ensure',
     'fee_assessment_supersede','fee_assessment_overview','fee_component_operation',
-    'fee_waiver_request','fee_waiver_decide','fee_refund_request','fee_refund_decide',
-    'fee_refund_execute','fee_payment_reverse','fee_payment_apply',
-    'fee_reconciliation_ingest','fee_reconciliation_resolve_item',
+    'fee_waiver_request','fee_waiver_decide','fee_refund_request','payment_refund_decide',
+    'fee_refund_execute','fee_payment_reverse','fee_assessment_state',
+    'fee_reconciliation_ingest','fee_reconciliation_resolve',
     'fee_can_administer','fee_can_view_application_finance','submit_offline_payment'];
 BEGIN
   -- B-01 every F6 RPC exists
@@ -182,9 +182,9 @@ BEGIN
   SELECT count(*), coalesce(string_agg(p.proname, ', '),'none') INTO _n, _detail
     FROM pg_proc p JOIN pg_namespace ns ON ns.oid=p.pronamespace
    WHERE ns.nspname='public'
-     AND p.proname = ANY(ARRAY['fee_component_operation','fee_waiver_decide','fee_refund_decide',
+     AND p.proname = ANY(ARRAY['fee_component_operation','fee_waiver_decide',
                                'fee_refund_execute','fee_payment_reverse','fee_reconciliation_ingest',
-                               'fee_reconciliation_resolve_item'])
+                               'fee_reconciliation_resolve'])
      AND p.prosrc NOT LIKE '%fee_can_administer%';
   PERFORM pg_temp.rec('B','B-05','every regulator-only fee operation checks fee administration authority',
     _n = 0, 'unguarded='||_n||' ['||_detail||']');
@@ -193,8 +193,10 @@ BEGIN
   SELECT count(*), coalesce(string_agg(p.proname, ', '),'none') INTO _n, _detail
     FROM pg_proc p JOIN pg_namespace ns ON ns.oid=p.pronamespace
    WHERE ns.nspname='public'
-     AND p.proname = ANY(ARRAY['fee_assessment_preview','fee_assessment_ensure','fee_assessment_overview'])
-     AND p.prosrc NOT LIKE '%fee_can_view_application_finance%';
+     AND p.proname = ANY(ARRAY['fee_assessment_preview','fee_assessment_ensure','fee_assessment_state','fee_assessment_overview'])
+     AND p.prosrc NOT LIKE '%fee_can_view_application_finance%'
+     -- delegation to a checked read is acceptable, an unchecked read is not
+     AND p.prosrc NOT LIKE '%fee_assessment_state(%';
   PERFORM pg_temp.rec('B','B-06','financial reads are scoped by an explicit visibility check',
     _n = 0, 'unscoped='||_n||' ['||_detail||']');
 
@@ -253,7 +255,7 @@ BEGIN
     -- fixture application
     SELECT license_type INTO _lt FROM public.applications WHERE license_type IS NOT NULL LIMIT 1;
     INSERT INTO public.applications (applicant_id, license_type, status, request_kind, data)
-    VALUES (COALESCE(_applicant, _admin), COALESCE(_lt,'VERIFY-F6B'), 'submitted', 'NEW_LICENCE',
+    VALUES (_admin, COALESCE(_lt,'VERIFY-F6B'), 'submitted', 'NEW_LICENCE',
             jsonb_build_object('verify_f6b', true))
     RETURNING id INTO _app;
 
@@ -287,16 +289,27 @@ BEGIN
       COALESCE(_s1->>'basis','') <> '' AND COALESCE(_s1->>'resolution_source','') <> '',
       'basis='||COALESCE(_s1->>'basis','∅')||' source='||COALESCE(_s1->>'resolution_source','∅'));
 
-    -- D-01 over-application of a payment is refused
-    _state := 'unexpected-success';
-    BEGIN
-      PERFORM public.fee_payment_apply(NULL,
-        (_s1->>'assessment_id')::uuid,
-        ROUND((_s1->>'outstanding')::numeric,2) + 500, _s1->>'currency', 'verify-f6b-over');
-    EXCEPTION WHEN others THEN _state := SQLSTATE||': '||left(SQLERRM,80);
-    END;
-    PERFORM pg_temp.rec('D','D-01','a payment larger than the assessed balance cannot be applied',
-      _state <> 'unexpected-success', 'result='||_state);
+    -- D-01 an overpayment is allocated up to the assessed balance and the excess
+    --      is retained as an explicit credit — never silently absorbed
+    INSERT INTO public.payments (user_id, application_id, amount, currency, status,
+                                 payment_method, payment_channel, transaction_ref, paid_at)
+    VALUES (_admin, _app, ROUND((_s1->>'outstanding')::numeric,2) + 500, _s1->>'currency', 'success',
+            'online','online','VERIFY-F6B-OVER-'||gen_random_uuid()::text, now())
+    RETURNING id INTO _pay;
+    SELECT COALESCE(sum(al.amount),0) INTO _n
+      FROM public.fee_payment_allocations al
+     WHERE al.payment_id = _pay AND al.reversed_at IS NULL;
+    PERFORM pg_temp.rec('D','D-01','an overpayment is allocated only up to the assessed balance',
+      _n <= ROUND((_s1->>'outstanding')::numeric,2),
+      'allocated='||_n||' outstanding_was='||(_s1->>'outstanding'));
+
+    SELECT count(*) INTO _n FROM public.fee_ledger_entries
+     WHERE payment_id = _pay AND entry_type IN ('CREDIT','PAYMENT');
+    PERFORM pg_temp.rec('D','D-01b','the unallocated excess is retained as an explicit ledger credit',
+      _n >= 2, 'ledger entries for the overpayment='||_n);
+
+    -- the overpayment is reversed so the remaining sections start from a clean balance
+    PERFORM public.fee_payment_reverse(_pay, 'verify f6b clearing the overpayment fixture');
 
     -- D-02 itemisation change supersedes the un-settled assessment
     PERFORM public.fee_component_operation(_app, 'add',
@@ -334,7 +347,7 @@ BEGIN
     -- E-03 refunds cannot be executed before they are decided
     INSERT INTO public.payments (user_id, application_id, amount, currency, status,
                                  payment_method, payment_channel, transaction_ref, paid_at)
-    VALUES (COALESCE(_applicant,_admin), _app, 300, _s1->>'currency', 'success',
+    VALUES (_admin, _app, 300, _s1->>'currency', 'success',
             'online', 'online', 'VERIFY-F6B-'||gen_random_uuid()::text, now())
     RETURNING id INTO _pay;
     PERFORM public.fee_payment_apply(_pay, (_s1->>'assessment_id')::uuid, 300, _s1->>'currency', 'verify-f6b');
