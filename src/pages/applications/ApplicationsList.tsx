@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, Fragment } from 'react';
+import { isPostLicenseApplicationRow } from '@/lib/applicationCategory';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';

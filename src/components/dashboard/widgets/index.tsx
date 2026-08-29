@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { DashboardUserContext, DashboardWidgetDef } from '@/lib/dashboardRegistry';
+import { isPostLicenseApplicationRow } from '@/lib/applicationCategory';
 
 interface RendererProps {
   widget: DashboardWidgetDef;
