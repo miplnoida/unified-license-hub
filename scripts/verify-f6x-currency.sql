@@ -576,9 +576,9 @@ BEGIN
              _cfgB.base_currency,_cfgB.reporting_currency));
 
     _buf := pg_temp.bufrec(_buf,'H','H-02','a regulator configuration never overrides, and is never overridden by, the platform configuration',
-      public.monetary_config_resolve(NULL).base_currency = _cfgP.base_currency
+      (public.monetary_config_resolve(NULL)).base_currency = _cfgP.base_currency
         AND _cfgA.base_currency <> _cfgP.base_currency
-        AND public.monetary_config_resolve(_regA).id = _cfgA.id,
+        AND (public.monetary_config_resolve(_regA)).id = _cfgA.id,
       format('platform=%s still, A=%s', _cfgP.base_currency, _cfgA.base_currency));
 
     -- scoped rates: same pair, one rate per regulator
@@ -611,8 +611,8 @@ BEGIN
     PERFORM pg_temp.act(_admin);
 
     _buf := pg_temp.bufrec(_buf,'H','H-03','a rate belonging to one regulator can never be selected for another',
-      public.fx_resolve_rate('CAD','SEK',CURRENT_DATE,_regA).id = _rA
-        AND public.fx_resolve_rate('CAD','SEK',CURRENT_DATE,_regB).id = _rB
+      (public.fx_resolve_rate('CAD','SEK',CURRENT_DATE,_regA)).id = _rA
+        AND (public.fx_resolve_rate('CAD','SEK',CURRENT_DATE,_regB)).id = _rB
         AND ROUND((public.fx_convert(100,'CAD','SEK',CURRENT_DATE,_regB)->>'effective_rate')::numeric,4) = 7.0000,
       format('A→%s B→%s', _rA, _rB));
 
@@ -825,11 +825,10 @@ BEGIN
     _buf := pg_temp.bufrec(_buf,'L','L-02','no currency or code ever implies a FIXED regime by itself',
       _state <> 'FIXED', 'default regime='||coalesce(_state,'∅'));
 
-    SELECT effective_to INTO _state FROM public.fx_rates WHERE id=_rBase;
     SELECT status INTO _state FROM public.fx_rates WHERE id=_rBase;
     _buf := pg_temp.bufrec(_buf,'L','L-03','a superseded rate is closed, its successor takes effect, and the two never overlap while approved',
       _state IN ('SUPERSEDED','APPROVED')
-      AND public.fx_resolve_rate(_txn,'CAD',CURRENT_DATE,_regA).id = _rSucc
+      AND (public.fx_resolve_rate(_txn,'CAD',CURRENT_DATE,_regA)).id = _rSucc
       AND NOT EXISTS (
         SELECT 1 FROM public.fx_rates a JOIN public.fx_rates b
           ON a.id < b.id AND a.status='APPROVED' AND b.status='APPROVED'
