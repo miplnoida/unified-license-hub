@@ -53,7 +53,14 @@ export const paymentGatewayAdapter: ConnectorAdapter<Op> = {
         return {
           method: 'POST',
           path: `payments/${String(input.paymentId)}/capture`,
-          body: { amount: input.amount ?? null },
+          body: {
+            amount: input.amount ?? null,
+            // No independent currency default: a capture either restates the
+            // authorised currency or states none at all.
+            currency: input.currency === undefined || input.currency === null
+              ? null
+              : requireCurrency(input.currency, 'currency'),
+          },
         };
       case 'fetch_payment':
         return { method: 'GET', path: `payments/${String(input.paymentId)}` };
@@ -61,7 +68,12 @@ export const paymentGatewayAdapter: ConnectorAdapter<Op> = {
         return {
           method: 'POST',
           path: `payments/${String(input.paymentId)}/refunds`,
-          body: { amount: input.amount, reason: input.reason ?? null },
+          body: {
+            amount: input.amount,
+            // A refund is a money movement: it carries the currency it reverses.
+            currency: requireCurrency(input.currency, 'currency'),
+            reason: input.reason ?? null,
+          },
         };
       case 'health':
         return { method: 'GET', path: 'health' };
@@ -76,6 +88,7 @@ export const paymentGatewayAdapter: ConnectorAdapter<Op> = {
         refundId: b.refund_id ?? b.id ?? null,
         status: b.status ?? 'pending',
         amount: b.amount === undefined ? null : Number(b.amount),
+        currency: requireCurrency(b.currency, 'currency'),
       };
     }
     const status = String(need(b.status ?? 'pending', 'status')).toLowerCase();

@@ -1,5 +1,4 @@
 /**
-import { formatMoney } from '@/lib/money';
  * EPR-03 — Entity 360 enforcement summary.
  *
  * Read-only enforcement position for one regulated entity, served by
@@ -15,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/datetime';
+import { formatMoney } from '@/lib/money';
 import { ENFORCEMENT_SOURCE_LABEL, type EnforcementSourceKind } from '@/lib/enforcementProcessOps';
 import { useEnforcementEntitySummary } from '@/hooks/useEnforcementProcess';
 
