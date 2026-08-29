@@ -411,7 +411,7 @@ export default function FilingDetail() {
               versionId={currentVersionId}
               periodId={data.period.id}
               originalDueDate={data.period.due_date}
-              effectiveDueDate={workflow?.effective_due_date ?? data.period.due_date}
+              effectiveDueDate={(workflow as { effective_due_date?: string | null } | null | undefined)?.effective_due_date ?? data.period.due_date}
               requests={data.requests}
             />
           </TabsContent>
