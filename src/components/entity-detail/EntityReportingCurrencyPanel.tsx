@@ -12,6 +12,7 @@ import { Coins, History, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -89,7 +90,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
           {canManage && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" data-rbac="licensee_management.edit">Set override</Button>
+                <GuardedButton module="licensee_management" action="edit" size="sm">Set override</GuardedButton>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
@@ -158,9 +159,10 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
         )}
         {activeProfile && canManage && (
           <CardContent className="pt-0">
-            <Button variant="outline" size="sm" onClick={() => supersede(activeProfile.id)} data-rbac="licensee_management.edit">
+            <GuardedButton module="licensee_management" action="edit" variant="outline" size="sm"
+              onClick={() => supersede(activeProfile.id)}>
               Supersede current override
-            </Button>
+            </GuardedButton>
           </CardContent>
         )}
       </Card>
