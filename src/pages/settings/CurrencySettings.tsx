@@ -317,13 +317,13 @@ export default function CurrencySettings() {
                           <td className="py-2 pr-3">
                             <PermissionGate module="fee_management" action="edit">
                               <div className="flex justify-end gap-2">
-                                {r.status === 'PENDING_APPROVAL' && (
+                                {r.status === 'PROPOSED' && (
                                   <>
                                     <Button size="sm" data-rbac="fee_management.edit" onClick={() => decideRate.mutate({ id: r.id, approve: true })}>Approve</Button>
                                     <Button size="sm" variant="outline" data-rbac="fee_management.edit" onClick={() => decideRate.mutate({ id: r.id, approve: false })}>Reject</Button>
                                   </>
                                 )}
-                                {r.status === 'ACTIVE' && (
+                                {r.status === 'APPROVED' && (
                                   <Button size="sm" variant="outline" data-rbac="fee_management.edit" onClick={() => supersede.mutate(r.id)}>Supersede</Button>
                                 )}
                               </div>
