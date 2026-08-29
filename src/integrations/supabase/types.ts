@@ -50222,6 +50222,10 @@ export type Database = {
         Args: { _application_id: string; _uid: string }
         Returns: boolean
       }
+      fee_can_view_payment: {
+        Args: { _payment_id: string; _uid: string }
+        Returns: boolean
+      }
       fee_component_operation: {
         Args: { _application_id: string; _operation: string; _payload?: Json }
         Returns: Json
@@ -52691,6 +52695,7 @@ export type Database = {
         Args: { _incident_id: string; _notes?: string }
         Returns: Json
       }
+      payment_receipt_issue: { Args: { _payment_id: string }; Returns: Json }
       payment_refund_decide: {
         Args: { _decision: string; _reason: string; _refund_id: string }
         Returns: Json
