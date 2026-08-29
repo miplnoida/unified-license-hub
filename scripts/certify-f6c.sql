@@ -866,21 +866,24 @@ BEGIN
 
     _step := 'G-07'; RAISE NOTICE 'step: %', _step;
     _out := ROUND((public.fee_assessment_state(_app)->>'outstanding')::numeric,2);
-    IF _out > 0 THEN
-      _state := 'unexpected-success';
-      BEGIN
-        PERFORM public.submit_application(_app);
-      EXCEPTION WHEN others THEN _state := SQLSTATE||': '||left(SQLERRM,120);
-      END;
-      PERFORM pg_temp.act(_admin);
-      _buf := pg_temp.bufrec(_buf,'G','G-07',
-        'an application with money still owing cannot be submitted',
-        _state <> 'unexpected-success', 'outstanding='||_out||' result='||_state);
-    ELSE
-      _buf := pg_temp.bufrec(_buf,'G','G-07',
-        'an application with money still owing cannot be submitted',
-        false, 'fixture ended fully settled — the refusal path could not be exercised');
+    IF _out <= 0 THEN
+      -- raise a genuine fresh charge so the refusal path is really exercised
+      PERFORM public.fee_component_operation(_app, 'add',
+        jsonb_build_object('fee_type_id', _ft, 'amount', 650, 'description','certify:f6c submission gate'));
+      PERFORM public.fee_assessment_ensure(_app, 'certify:f6c submission gate');
+      _out := ROUND((public.fee_assessment_state(_app)->>'outstanding')::numeric,2);
     END IF;
+    _state := 'unexpected-success';
+    BEGIN
+      PERFORM public.submit_application(_app);
+    EXCEPTION WHEN others THEN _state := SQLSTATE||': '||left(SQLERRM,120);
+    END;
+    PERFORM pg_temp.act(_admin);
+    _buf := pg_temp.bufrec(_buf,'G','G-07',
+      'an application with money still owing cannot be submitted',
+      _out > 0 AND _state <> 'unexpected-success',
+      'outstanding='||_out||' result='||_state);
+
 
     -- G-08 audit provenance across the whole run
     _step := 'G-08'; RAISE NOTICE 'step: %', _step;
