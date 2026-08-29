@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FeeOperationsPanel } from '@/components/fees/FeeOperationsPanel';
 import { supabase } from '@/integrations/supabase/client';
 import { configRetire, configSave } from '@/lib/configWriter';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
@@ -510,6 +511,7 @@ export default function FeeManagement() {
             <TabsTrigger value="configurations">Fee Configurations</TabsTrigger>
             <TabsTrigger value="rules">Rules & Exemptions</TabsTrigger>
             <TabsTrigger value="fee-types">Fee Types</TabsTrigger>
+            <TabsTrigger value="operations">Financial Operations</TabsTrigger>
           </TabsList>
 
           <TabsContent value="configurations" className="space-y-4">
@@ -997,6 +999,10 @@ export default function FeeManagement() {
               </CardContent>
             </Card>
           </TabsContent>
+          <TabsContent value="operations" className="space-y-4">
+            <FeeOperationsPanel />
+          </TabsContent>
+
         </Tabs>
       </div>
     </DashboardLayout>

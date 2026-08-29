@@ -200,8 +200,8 @@ export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
             )}
           </CardTitle>
           {editable && !showForm && (
-            <PermissionGate module="fee_management" action="create">
-              <Button data-rbac="fee_management.create" size="sm" variant="outline" onClick={() => setShowForm(true)}>
+            <PermissionGate module="fee_management" action="edit">
+              <Button data-rbac="fee_management.edit" size="sm" variant="outline" onClick={() => setShowForm(true)}>
                 <PlusCircle className="h-4 w-4 mr-2" /> Add Fee
               </Button>
             </PermissionGate>
@@ -281,8 +281,8 @@ export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                         </PermissionGate>
-                        <PermissionGate module="fee_management" action="delete">
-                          <Button data-rbac="fee_management.delete" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(c.id)}>
+                        <PermissionGate module="fee_management" action="edit">
+                          <Button data-rbac="fee_management.edit" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(c.id)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </PermissionGate>
