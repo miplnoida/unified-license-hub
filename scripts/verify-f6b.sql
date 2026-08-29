@@ -266,7 +266,7 @@ BEGIN
       json_build_object('sub', _admin::text, 'role','authenticated')::text, true);
 
     -- C-02 preview total == assessed total (identical monetary semantics)
-    _step := 'C-02'; RAISE NOTICE 'step %%', _step;
+    _step := 'C-02'; RAISE NOTICE 'step: %', _step;
     _pre := public.fee_assessment_preview(_app);
     _s1  := public.fee_assessment_ensure(_app, 'verify:f6b');
     PERFORM pg_temp.rec('C','C-02',
@@ -275,7 +275,7 @@ BEGIN
       'preview='||(_pre->>'assessed_total')||' assessed='||(_s1->>'assessed_total'));
 
     -- C-03 assessment is idempotent
-    _step := 'C-03'; RAISE NOTICE 'step %%', _step;
+    _step := 'C-03'; RAISE NOTICE 'step: %', _step;
     _s2 := public.fee_assessment_ensure(_app, 'verify:f6b repeat');
     PERFORM pg_temp.rec('C','C-03','re-entering the financial boundary never duplicates the assessment',
       (_s1->>'assessment_id') = (_s2->>'assessment_id'),
@@ -287,13 +287,13 @@ BEGIN
       _n = 1, 'active='||_n);
 
     -- C-05 the assessment carries provenance
-    _step := 'C-05'; RAISE NOTICE 'step %%', _step;
+    _step := 'C-05'; RAISE NOTICE 'step: %', _step;
     PERFORM pg_temp.rec('C','C-05','the assessment records its basis, source and configuration snapshot',
       COALESCE(_s1->>'basis','') <> '' AND COALESCE(_s1->>'resolution_source','') <> '',
       'basis='||COALESCE(_s1->>'basis','∅')||' source='||COALESCE(_s1->>'resolution_source','∅'));
 
     -- D-01 an overpayment is allocated up to the assessed balance and the excess
-    _step := 'D-01'; RAISE NOTICE 'step %%', _step;
+    _step := 'D-01'; RAISE NOTICE 'step: %', _step;
     --      is retained as an explicit credit — never silently absorbed
     INSERT INTO public.payments (user_id, application_id, amount, currency, status,
                                  payment_method, payment_channel, transaction_ref, paid_at)
@@ -316,7 +316,7 @@ BEGIN
     PERFORM public.fee_payment_reverse(_pay, 'verify f6b clearing the overpayment fixture');
 
     -- D-02 itemisation change supersedes the un-settled assessment
-    _step := 'D-02'; RAISE NOTICE 'step %%', _step;
+    _step := 'D-02'; RAISE NOTICE 'step: %', _step;
     PERFORM public.fee_component_operation(_app, 'add',
       jsonb_build_object('fee_type_id', (SELECT id FROM public.fee_types WHERE id <> _ft LIMIT 1),
                          'amount', 250, 'description', 'verify:f6b second line'));
@@ -328,7 +328,7 @@ BEGIN
     _s1 := public.fee_assessment_ensure(_app, 'verify:f6b re-assess');
 
     -- E-01 self-approval of a waiver is refused
-    _step := 'E-01'; RAISE NOTICE 'step %%', _step;
+    _step := 'E-01'; RAISE NOTICE 'step: %', _step;
     PERFORM public.fee_waiver_request(_app, 100, 'verify f6b waiver justification text');
     SELECT id INTO _wv FROM public.fee_waivers
      WHERE assessment_id = (_s1->>'assessment_id')::uuid ORDER BY requested_at DESC LIMIT 1;
@@ -341,7 +341,7 @@ BEGIN
       _state <> 'unexpected-success', 'result='||_state);
 
     -- E-02 a waiver above the outstanding balance is refused
-    _step := 'E-02'; RAISE NOTICE 'step %%', _step;
+    _step := 'E-02'; RAISE NOTICE 'step: %', _step;
     _state := 'unexpected-success';
     BEGIN
       PERFORM public.fee_waiver_request(_app,
@@ -352,7 +352,7 @@ BEGIN
       _state <> 'unexpected-success', 'result='||_state);
 
     -- E-03 refunds cannot be executed before they are decided
-    _step := 'E-03'; RAISE NOTICE 'step %%', _step;
+    _step := 'E-03'; RAISE NOTICE 'step: %', _step;
     INSERT INTO public.payments (user_id, application_id, amount, currency, status,
                                  payment_method, payment_channel, transaction_ref, paid_at)
     VALUES (_admin, _app, 300, _s1->>'currency', 'success',
@@ -369,7 +369,7 @@ BEGIN
       _state <> 'unexpected-success', 'result='||_state);
 
     -- E-04 a refund above the settled receipt is refused
-    _step := 'E-04'; RAISE NOTICE 'step %%', _step;
+    _step := 'E-04'; RAISE NOTICE 'step: %', _step;
     _state := 'unexpected-success';
     BEGIN
       PERFORM public.fee_refund_request(_pay, 100000, 'verify f6b excessive refund reason');
@@ -379,7 +379,7 @@ BEGIN
       _state <> 'unexpected-success', 'result='||_state);
 
     -- F-01 reversal writes a compensating entry and deletes nothing
-    _step := 'F-01'; RAISE NOTICE 'step %%', _step;
+    _step := 'F-01'; RAISE NOTICE 'step: %', _step;
     SELECT count(*) INTO _ledger FROM public.fee_ledger_entries WHERE application_id = _app;
     PERFORM public.fee_payment_reverse(_pay, 'verify f6b reversal rationale text');
     SELECT count(*) INTO _n FROM public.fee_ledger_entries WHERE application_id = _app;
@@ -392,7 +392,7 @@ BEGIN
       _n = 1, 'reversed allocations='||_n);
 
     -- F-03 the outstanding balance returns to the pre-payment position
-    _step := 'F-03'; RAISE NOTICE 'step %%', _step;
+    _step := 'F-03'; RAISE NOTICE 'step: %', _step;
     _ov := public.fee_assessment_overview(_app);
     PERFORM pg_temp.rec('F','F-03','the outstanding balance is restored after the reversal',
       ROUND((_ov->>'reversed_total')::numeric,2) >= 300,
@@ -400,7 +400,7 @@ BEGIN
       ' outstanding='||COALESCE(_ov->>'outstanding','∅'));
 
     -- F-04 the ledger itself refuses mutation
-    _step := 'F-04'; RAISE NOTICE 'step %%', _step;
+    _step := 'F-04'; RAISE NOTICE 'step: %', _step;
     _state := 'unexpected-success';
     BEGIN
       UPDATE public.fee_ledger_entries SET amount = amount + 1 WHERE application_id = _app;
@@ -410,7 +410,7 @@ BEGIN
       _state <> 'unexpected-success', 'result='||_state);
 
     -- G-01 reconciliation matches server-side; unknown references become exceptions
-    _step := 'G-01'; RAISE NOTICE 'step %%', _step;
+    _step := 'G-01'; RAISE NOTICE 'step: %', _step;
     _ov := public.fee_reconciliation_ingest('BANK_STATEMENT', 'VERIFY-F6B-'||gen_random_uuid()::text,
       jsonb_build_array(
         jsonb_build_object('reference','NO-SUCH-REF-'||gen_random_uuid()::text,
@@ -421,7 +421,7 @@ BEGIN
       ' exceptions='||COALESCE(_ov->>'exceptions','∅'));
 
     -- G-02 the overview is the single financial read for regulator surfaces
-    _step := 'G-02'; RAISE NOTICE 'step %%', _step;
+    _step := 'G-02'; RAISE NOTICE 'step: %', _step;
     _ov := public.fee_assessment_overview(_app);
     PERFORM pg_temp.rec('G','G-02','one governed read returns assessment, payments, ledger and audit',
       (_ov ? 'lines') AND (_ov ? 'payments') AND (_ov ? 'ledger')
@@ -429,7 +429,7 @@ BEGIN
       'keys='||(SELECT string_agg(k, ',') FROM jsonb_object_keys(_ov) k));
 
     -- G-03 an entity user never receives the regulator-only sections
-    _step := 'G-03'; RAISE NOTICE 'step %%', _step;
+    _step := 'G-03'; RAISE NOTICE 'step: %', _step;
     IF _applicant IS NOT NULL AND NOT public.fee_can_administer(_applicant) THEN
       PERFORM set_config('request.jwt.claims',
         json_build_object('sub', _applicant::text, 'role','authenticated')::text, true);
