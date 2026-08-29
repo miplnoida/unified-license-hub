@@ -73,9 +73,38 @@ export default function NewPostLicenseApplication() {
     });
   }, [services, selectedLicense, sectorId, subSectorId]);
 
+  // SERVER AUTHORITY: the applicable form set for a licence + post-licensing
+  // service is resolved by post_license_service_form_set(); the client never
+  // re-implements form applicability. The heuristics below remain only as a
+  // fallback when the server returns no applicable forms for legacy configs.
+  const [serverFormSet, setServerFormSet] = useState<any | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!selectedService || !selectedLicense) {
+      setServerFormSet(null);
+      return;
+    }
+    (async () => {
+      const { data } = await (supabase.rpc as any)('post_license_service_form_set', {
+        _service_id: selectedService,
+        _license_id: selectedLicense.license_id,
+      });
+      if (!cancelled) setServerFormSet(data ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [selectedService, selectedLicense]);
+
   const matchedTemplates = useMemo(() => {
     if (!selectedService || !selectedLicense) return [];
     const published = formTemplates.filter(t => t.status === 'published' && t.form_type === 'post_license');
+
+    const serverForms: any[] = Array.isArray(serverFormSet?.forms) ? serverFormSet.forms : [];
+    if (serverFormSet?.state === 'OK' && serverForms.length > 0) {
+      const ordered = serverForms
+        .map(f => published.find(t => t.id === f.form_id) || formTemplates.find(t => t.id === f.form_id))
+        .filter(Boolean) as typeof formTemplates;
+      if (ordered.length > 0) return ordered;
+    }
 
     const byService = published.filter(t => t.service_id === selectedService);
     if (byService.length > 0) return byService;
@@ -94,7 +123,7 @@ export default function NewPostLicenseApplication() {
       if (byName.length > 0) return byName;
     }
     return [];
-  }, [selectedService, selectedLicense, sectorId, subSectorId, formTemplates, services]);
+  }, [selectedService, selectedLicense, sectorId, subSectorId, formTemplates, services, serverFormSet]);
 
   const licenseGate = useLicenseStatusGate();
   const accessGuard = useLicenseeAccessGuard();
