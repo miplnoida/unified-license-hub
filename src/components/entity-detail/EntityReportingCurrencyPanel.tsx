@@ -185,7 +185,9 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
           <Field label="Status" value={activeProfile ? activeProfile.status : 'No override — inherited'} />
           <Field label="Last changed" value={activeProfile ? formatDateTime(activeProfile.created_at) : '—'} />
           <Field label="Returns FX date policy" value={data.returns_fx_date_policy.replace('_', ' ').toLowerCase()} />
+          <Field label="Override approval control" value={CURRENCY_APPROVAL_MODE_LABELS[approvalMode]} />
         </CardContent>
+
         {data.source === 'REGULATOR_BASE' && (
           <CardContent className="pt-0 text-sm text-muted-foreground">
             Reporting currency: <span className="font-mono">{data.currency}</span> — inherited from the regulator base
