@@ -630,6 +630,506 @@ BEGIN
   PERFORM pg_temp.rec('L','L-06','the refused lifecycle probes created no evidence record', _n = 0, 'rows='||_n);
 END $l$;
 
+-- ---------------------------------------------------------------------------
+-- N — positive lifecycle behaviour, end to end (always rolled back)
+--
+-- Builds a real gate-owned return definition, applicability rule, obligation,
+-- reporting periods and filings and then drives the whole governed lifecycle
+-- with real personas: obligation derivation, period generation, filing open,
+-- validation refusal, evidence, submission, notification idempotency, RFI
+-- round trip, review maker-checker, amendment, extension grant/refusal,
+-- overdue idempotency and a mandated-currency snapshot.
+-- ---------------------------------------------------------------------------
+DO $n$
+DECLARE
+  _buf jsonb := '[]'::jsonb; r record; _ctx text; _ok boolean; _msg text;
+  _entity uuid; _filer uuid; _oth_entity uuid; _oth_filer uuid;
+  _cfg uuid; _rev uuid; _chk uuid; _dual uuid;
+  _sector uuid; _tpl uuid;
+  _def uuid; _def2 uuid; _ob uuid; _ob2 uuid;
+  _p uuid[]; _p1 uuid; _p2 uuid; _p3 uuid; _p4 uuid; _p5 uuid; _p6 uuid;
+  _res jsonb; _fil uuid; _ver uuid; _fil2 uuid; _ver2 uuid; _fil3 uuid; _ver3 uuid;
+  _req uuid; _ext uuid; _ext2 uuid; _ev uuid;
+  _n int; _n2 int; _due date; _newdue date; _amend uuid;
+  _cur text; _src text; _created int;
+BEGIN
+  -- ---- personas -----------------------------------------------------------
+  FOR r IN SELECT m.entity_id, m.user_id FROM public.entity_user_memberships m
+            WHERE m.status='APPROVED' LOOP
+    PERFORM pg_temp.act(r.user_id);
+    IF public.returns_can_file(r.entity_id) THEN
+      IF _entity IS NULL THEN
+        _entity := r.entity_id; _filer := r.user_id;
+      ELSIF _oth_entity IS NULL AND r.entity_id <> _entity THEN
+        _oth_entity := r.entity_id; _oth_filer := r.user_id;
+      END IF;
+    END IF;
+  END LOOP;
+  PERFORM set_config('request.jwt.claims','{}', true);
+
+  SELECT u.id INTO _cfg FROM auth.users u
+   WHERE public.sec_is_internal_user(u.id)
+     AND public.has_permission(u.id,'returns_management','manage_config')
+     AND public.has_permission(u.id,'returns_management','workflow_action')
+   ORDER BY u.id LIMIT 1;
+
+  SELECT u.id INTO _rev FROM auth.users u
+   WHERE public.sec_is_internal_user(u.id)
+     AND public.has_permission(u.id,'returns_management','review')
+   ORDER BY u.id LIMIT 1;
+
+  SELECT u.id INTO _chk FROM auth.users u
+   WHERE public.sec_is_internal_user(u.id)
+     AND public.has_permission(u.id,'returns_management','approve')
+     AND NOT public.has_permission(u.id,'returns_management','create')
+   ORDER BY u.id LIMIT 1;
+
+  SELECT u.id INTO _dual FROM auth.users u
+   WHERE public.sec_is_internal_user(u.id)
+     AND public.has_permission(u.id,'returns_management','create')
+     AND public.has_permission(u.id,'returns_management','approve')
+     AND u.id <> COALESCE(_chk,'00000000-0000-0000-0000-000000000000'::uuid)
+   ORDER BY u.id LIMIT 1;
+
+  SELECT public.sector_effective_id(l.sector_id) INTO _sector
+    FROM public.licensees l WHERE l.id = _entity;
+
+  SELECT t.id INTO _tpl FROM public.form_templates t
+    JOIN public.form_versions v ON v.template_id = t.id AND v.status = 'published'
+   ORDER BY t.id LIMIT 1;
+
+  PERFORM pg_temp.rec('N','N-00',
+    'the behavioural lifecycle fixture has a real entity filer, a second entity filer, a configuration officer, a reviewer, an independent approver, a dual-capability internal filer, a sector and a published form template',
+    _entity IS NOT NULL AND _filer IS NOT NULL AND _oth_entity IS NOT NULL
+      AND _oth_filer IS NOT NULL AND _cfg IS NOT NULL AND _rev IS NOT NULL
+      AND _chk IS NOT NULL AND _dual IS NOT NULL AND _sector IS NOT NULL AND _tpl IS NOT NULL,
+    format('entity=%s filer=%s other=%s cfg=%s rev=%s chk=%s dual=%s sector=%s template=%s',
+      _entity, _filer, _oth_entity, _oth_filer, _cfg, _rev, _chk, _dual, _sector, _tpl));
+
+  IF _entity IS NULL OR _filer IS NULL OR _oth_entity IS NULL OR _cfg IS NULL
+     OR _rev IS NULL OR _chk IS NULL OR _dual IS NULL OR _sector IS NULL OR _tpl IS NULL THEN
+    RETURN;
+  END IF;
+
+  BEGIN
+    -- ---- gate-owned definition + applicability rule -----------------------
+    INSERT INTO public.return_definitions(
+      code, name, description, frequency, due_days_after_period_end,
+      requires_declaration, status, is_active, effective_from)
+    VALUES ('F7B-GATE-QTR','F7B gate quarterly return','Gate fixture only',
+            'QUARTERLY', 30, true, 'ACTIVE', true,
+            date_trunc('quarter', CURRENT_DATE - interval '30 months')::date)
+    RETURNING id INTO _def;
+
+    INSERT INTO public.return_definition_forms(
+      return_definition_id, form_template_id, sequence, is_required, effective_from)
+    VALUES (_def, _tpl, 1, true, date_trunc('quarter', CURRENT_DATE - interval '30 months')::date);
+
+    INSERT INTO public.reporting_obligation_rules(
+      return_definition_id, code, name, sector_id, requires_active_license,
+      effective_from, is_active)
+    VALUES (_def, 'F7B-GATE-RULE','F7B gate applicability rule', _sector, false,
+            date_trunc('quarter', CURRENT_DATE - interval '30 months')::date, true);
+
+    -- ---- obligation derivation -------------------------------------------
+    PERFORM pg_temp.act(_cfg);
+    _res := public.returns_derive_entity_obligations(_entity);
+    SELECT o.id INTO _ob FROM public.entity_reporting_obligations o
+     WHERE o.entity_id = _entity AND o.return_definition_id = _def AND o.status = 'ACTIVE';
+    _buf := pg_temp.bufrec(_buf,'N','N-01',
+      'an applicable entity acquires the obligation from the published applicability rule',
+      _ob IS NOT NULL AND (_res->>'created')::int >= 1,
+      'derive='||_res::text||' obligation='||coalesce(_ob::text,'∅'));
+
+    _res := public.returns_derive_entity_obligations(_entity);
+    SELECT count(*) INTO _n FROM public.entity_reporting_obligations o
+     WHERE o.entity_id = _entity AND o.return_definition_id = _def AND o.status = 'ACTIVE';
+    _buf := pg_temp.bufrec(_buf,'N','N-02',
+      'repeating derivation never duplicates a live obligation',
+      _n = 1, 'active obligations='||_n||' second derive='||_res::text);
+
+    PERFORM public.returns_derive_entity_obligations(_oth_entity);
+    SELECT count(*) INTO _n FROM public.entity_reporting_obligations o
+     WHERE o.entity_id = _oth_entity AND o.return_definition_id = _def;
+    _buf := pg_temp.bufrec(_buf,'N','N-03',
+      'an entity outside the rule scope never acquires the obligation',
+      _n = 0 OR public.sector_effective_id((SELECT sector_id FROM public.licensees WHERE id=_oth_entity)) = _sector,
+      'other-entity obligations='||_n);
+
+    -- ---- period generation ------------------------------------------------
+    _res := public.returns_generate_periods(_ob, CURRENT_DATE);
+    _created := (_res->>'created')::int;
+    SELECT count(*) INTO _n FROM public.reporting_periods p
+     WHERE p.entity_reporting_obligation_id = _ob
+       AND p.due_date <> (p.period_end + 30);
+    _buf := pg_temp.bufrec(_buf,'N','N-04',
+      'calendar periods are generated with the configured deadline arithmetic (period end + due days)',
+      _created >= 5 AND _n = 0, 'created='||_created||' deadline deviations='||_n);
+
+    _res := public.returns_generate_periods(_ob, CURRENT_DATE);
+    _buf := pg_temp.bufrec(_buf,'N','N-05',
+      'regenerating periods is idempotent and creates no duplicate period',
+      (_res->>'created')::int = 0, 'second run='||_res::text);
+
+    SELECT array_agg(p.id ORDER BY p.period_start) INTO _p
+      FROM public.reporting_periods p
+     WHERE p.entity_reporting_obligation_id = _ob AND p.status = 'OPEN';
+    _p1 := _p[1]; _p2 := _p[2]; _p3 := _p[3]; _p4 := _p[4]; _p5 := _p[5];
+
+    -- ---- filing open ------------------------------------------------------
+    PERFORM pg_temp.act(_filer);
+    _res := public.returns_open_filing(_p1);
+    _fil := (_res->>'filing_id')::uuid; _ver := (_res->>'version_id')::uuid;
+    _buf := pg_temp.bufrec(_buf,'N','N-06',
+      'an authorised entity filer can open the filing for an open period',
+      _fil IS NOT NULL AND _ver IS NOT NULL, 'open='||_res::text);
+
+    _res := public.returns_open_filing(_p1);
+    SELECT count(*) INTO _n FROM public.return_filings WHERE reporting_period_id = _p1;
+    SELECT count(*) INTO _n2 FROM public.return_filing_versions WHERE return_filing_id = _fil;
+    _buf := pg_temp.bufrec(_buf,'N','N-07',
+      're-opening the same period returns the same filing and draft version instead of creating a second one',
+      (_res->>'filing_id')::uuid = _fil AND (_res->>'version_id')::uuid = _ver
+        AND _n = 1 AND _n2 = 1, 'filings='||_n||' versions='||_n2);
+
+    SELECT f.reporting_currency, f.currency_source INTO _cur, _src
+      FROM public.return_filings f WHERE f.id = _fil;
+    _buf := pg_temp.bufrec(_buf,'N','N-08',
+      'opening a filing snapshots its authoritative reporting currency and provenance',
+      _cur IS NOT NULL AND _src IS NOT NULL, 'currency='||coalesce(_cur,'∅')||' source='||coalesce(_src,'∅'));
+
+    _ok := false; _msg := '';
+    PERFORM pg_temp.act(_oth_filer);
+    BEGIN PERFORM public.returns_open_filing(_p2);
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'N','N-09',
+      'a filer of another entity cannot open this entity''s return',
+      _ok, _msg);
+
+    -- ---- validation refuses an incomplete return --------------------------
+    PERFORM pg_temp.act(_filer);
+    _res := public.returns_submit_filing(_ver, true);
+    SELECT count(*) INTO _n FROM public.return_filing_validation_results
+     WHERE return_filing_version_id = _ver AND is_blocking
+       AND rule_code = 'REQUIRED_FORM_INCOMPLETE';
+    _buf := pg_temp.bufrec(_buf,'N','N-10',
+      'an incomplete return cannot be submitted and the blocking validation is persisted as evidence',
+      (_res->>'submitted')::boolean IS FALSE AND _n >= 1,
+      'submit='||_res::text||' blocking rows='||_n);
+
+    SELECT v.status INTO _msg FROM public.return_filing_versions v WHERE v.id = _ver;
+    _buf := pg_temp.bufrec(_buf,'N','N-11',
+      'a refused submission leaves the version in draft and never marks it immutable',
+      _msg = 'DRAFT' AND NOT (SELECT is_immutable FROM public.return_filing_versions WHERE id=_ver),
+      'version status='||coalesce(_msg,'∅'));
+
+    -- ---- evidence while open ---------------------------------------------
+    _ev := public.returns_attach_evidence(_ver,'F7B gate evidence','f7b-gate/evidence.pdf',
+             'application/pdf', 1024, 'Gate fixture evidence');
+    _buf := pg_temp.bufrec(_buf,'N','N-12',
+      'an entity filer can attach evidence to an open version, bound to the filing, version and entity',
+      EXISTS (SELECT 1 FROM public.return_filing_evidence e
+               WHERE e.id = _ev AND e.return_filing_id = _fil
+                 AND e.return_filing_version_id = _ver AND e.entity_id = _entity
+                 AND e.uploaded_by = _filer), 'evidence='||coalesce(_ev::text,'∅'));
+
+    PERFORM public.returns_withdraw_evidence(_ev,'Gate fixture withdrawal for evidence lifecycle proof');
+    _buf := pg_temp.bufrec(_buf,'N','N-13',
+      'withdrawing evidence is a reason-bearing, attributed soft withdrawal rather than a delete',
+      EXISTS (SELECT 1 FROM public.return_filing_evidence e
+               WHERE e.id = _ev AND e.withdrawn_at IS NOT NULL AND e.withdrawn_by = _filer
+                 AND length(coalesce(e.withdrawn_reason,'')) >= 5), 'evidence='||_ev::text);
+
+    -- ---- complete the required form and submit ---------------------------
+    FOR r IN SELECT q.id, q.form_template_id, q.form_version_id
+               FROM public.return_filing_form_requirements q
+              WHERE q.return_filing_version_id = _ver LOOP
+      PERFORM set_config('request.jwt.claims','{}', true);
+      INSERT INTO public.form_responses(template_id, version_id, user_id, response_data, status)
+      VALUES (r.form_template_id,
+              COALESCE(r.form_version_id,
+                (SELECT v.id FROM public.form_versions v
+                  WHERE v.template_id = r.form_template_id AND v.status='published'
+                  ORDER BY v.created_at DESC LIMIT 1)),
+              _filer, '{"f7b_gate":true}'::jsonb, 'submitted')
+      RETURNING id INTO _amend;
+      PERFORM pg_temp.act(_filer);
+      PERFORM public.returns_attach_form_response(r.id, _amend, 'COMPLETED');
+    END LOOP;
+
+    _res := public.returns_submit_filing(_ver, true);
+    _buf := pg_temp.bufrec(_buf,'N','N-14',
+      'a complete, declared return submits successfully through the governed RPC',
+      (_res->>'submitted')::boolean IS TRUE, 'submit='||_res::text);
+
+    _buf := pg_temp.bufrec(_buf,'N','N-15',
+      'a submitted version becomes immutable and records who submitted it and when',
+      EXISTS (SELECT 1 FROM public.return_filing_versions v
+               WHERE v.id = _ver AND v.status='SUBMITTED' AND v.is_immutable
+                 AND v.submitted_by = _filer AND v.submitted_at IS NOT NULL)
+      AND EXISTS (SELECT 1 FROM public.return_filings f
+                   WHERE f.id=_fil AND f.status='SUBMITTED' AND f.submitted_at IS NOT NULL),
+      'version/filing submission state');
+
+    SELECT count(*) INTO _n FROM public.notification_event_queue q
+     WHERE q.entity_type='return_filing' AND q.entity_id=_fil AND q.event_key='return.submitted';
+    _buf := pg_temp.bufrec(_buf,'N','N-16',
+      'submission emits exactly one canonical submitted notification for the version',
+      _n = 1, 'return.submitted rows='||_n);
+
+    _ok := false; _msg := '';
+    BEGIN PERFORM public.returns_submit_filing(_ver, true);
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    SELECT count(*) INTO _n2 FROM public.notification_event_queue q
+     WHERE q.entity_type='return_filing' AND q.entity_id=_fil AND q.event_key='return.submitted';
+    _buf := pg_temp.bufrec(_buf,'N','N-17',
+      'resubmitting the same version is refused and emits no duplicate notification',
+      _ok AND _n2 = 1, _msg||' | rows='||_n2);
+
+    _ok := false; _msg := '';
+    BEGIN PERFORM public.returns_attach_evidence(_ver,'Late evidence','f7b-gate/late.pdf');
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'N','N-18',
+      'the entity cannot alter a submitted version by attaching further evidence to it',
+      _ok, _msg);
+
+    -- ---- RFI round trip ---------------------------------------------------
+    PERFORM pg_temp.act(_rev);
+    PERFORM public.returns_raise_rfi(_ver,'Gate fixture: please clarify the reported balances.');
+    SELECT q.id INTO _req FROM public.return_filing_requests q
+     WHERE q.return_filing_id = _fil AND q.request_kind='RFI' ORDER BY q.created_at DESC LIMIT 1;
+    SELECT count(*) INTO _n FROM public.notification_event_queue q
+     WHERE q.entity_type='return_filing' AND q.entity_id=_fil AND q.event_key='return.rfi_raised';
+    _buf := pg_temp.bufrec(_buf,'N','N-19',
+      'a reviewer can raise an RFI on a submitted return, and the entity is notified once',
+      _req IS NOT NULL AND _n = 1, 'request='||coalesce(_req::text,'∅')||' notifications='||_n);
+
+    _ok := false; _msg := '';
+    PERFORM pg_temp.act(_oth_filer);
+    BEGIN PERFORM public.returns_respond_to_request(_req,'Gate probe: an unrelated entity must not respond.');
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'N','N-20',
+      'only the filing entity may answer its own RFI',
+      _ok AND (SELECT status FROM public.return_filing_requests WHERE id=_req) = 'OPEN', _msg);
+
+    PERFORM pg_temp.act(_filer);
+    PERFORM public.returns_respond_to_request(_req,'Gate fixture: the reported balances are confirmed as filed.');
+    _buf := pg_temp.bufrec(_buf,'N','N-21',
+      'the entity response closes the RFI with attribution and timestamp, preserving the original request',
+      EXISTS (SELECT 1 FROM public.return_filing_requests q
+               WHERE q.id=_req AND q.status='RESPONDED' AND q.responded_by=_filer
+                 AND q.responded_at IS NOT NULL AND q.created_by=_rev
+                 AND length(coalesce(q.response_text,''))>=10), 'request='||_req::text);
+
+    -- ---- review maker-checker --------------------------------------------
+    PERFORM pg_temp.act(_rev);
+    PERFORM public.returns_review_filing(_ver,'START_REVIEW', NULL);
+    _buf := pg_temp.bufrec(_buf,'N','N-22',
+      'a reviewer can take a submitted return under review',
+      (SELECT status FROM public.return_filing_versions WHERE id=_ver) = 'UNDER_REVIEW',
+      'version status='||(SELECT status FROM public.return_filing_versions WHERE id=_ver));
+
+    PERFORM pg_temp.act(_chk);
+    PERFORM public.returns_review_filing(_ver,'ACCEPT','Gate fixture: the return is accepted as filed.');
+    _buf := pg_temp.bufrec(_buf,'N','N-23',
+      'an independent approver can accept the return, which records the acceptance and seals the version',
+      EXISTS (SELECT 1 FROM public.return_filing_versions v
+               WHERE v.id=_ver AND v.status='ACCEPTED' AND v.accepted_by=_chk
+                 AND v.accepted_at IS NOT NULL AND v.is_immutable)
+      AND (SELECT status FROM public.return_filings WHERE id=_fil) = 'ACCEPTED',
+      'acceptance state');
+
+    -- ---- amendment -------------------------------------------------------
+    PERFORM pg_temp.act(_filer);
+    _amend := public.returns_request_amendment(_fil,'Gate fixture: a corrected figure must be refiled.');
+    _buf := pg_temp.bufrec(_buf,'N','N-24',
+      'the entity can request an amendment to an accepted return',
+      EXISTS (SELECT 1 FROM public.return_filing_requests q
+               WHERE q.id=_amend AND q.request_kind='AMENDMENT' AND q.status='OPEN'
+                 AND q.created_by=_filer), 'amendment='||coalesce(_amend::text,'∅'));
+
+    PERFORM pg_temp.act(_chk);
+    _res := public.returns_decide_amendment(_amend,'APPROVE','Gate fixture: amendment approved for refiling.');
+    _buf := pg_temp.bufrec(_buf,'N','N-25',
+      'approving an amendment opens a new draft version that supersedes the accepted one and never rewrites it',
+      EXISTS (SELECT 1 FROM public.return_filing_versions v
+               WHERE v.id = (_res->>'new_version_id')::uuid AND v.status='DRAFT'
+                 AND v.version_number = 2 AND v.supersedes_version_id = _ver
+                 AND NOT v.is_immutable)
+      AND (SELECT status FROM public.return_filing_versions WHERE id=_ver) = 'ACCEPTED',
+      'amendment decision='||_res::text);
+
+    -- ---- extensions ------------------------------------------------------
+    PERFORM pg_temp.act(_filer);
+    SELECT p.due_date INTO _due FROM public.reporting_periods p WHERE p.id = _p2;
+    _ext := public.returns_request_extension(_p2, _due + 30,
+              'Gate fixture: additional time is required to finalise the return.');
+    PERFORM pg_temp.act(_chk);
+    _res := public.returns_decide_extension(_ext,'GRANT','Gate fixture: extension granted on merit.', NULL);
+    SELECT p.due_date INTO _newdue FROM public.reporting_periods p WHERE p.id = _p2;
+    _buf := pg_temp.bufrec(_buf,'N','N-26',
+      'an independent approver can grant an extension, which moves the effective deadline for that period',
+      EXISTS (SELECT 1 FROM public.return_filing_extensions x
+               WHERE x.id=_ext AND x.status='GRANTED' AND x.granted_due_date = _due + 30
+                 AND x.decided_by=_chk AND x.requested_by=_filer
+                 AND length(coalesce(x.decision_reason,''))>=10)
+      AND _newdue = _due + 30, 'due '||_due||' -> '||_newdue);
+
+    PERFORM pg_temp.act(_filer);
+    SELECT p.due_date INTO _due FROM public.reporting_periods p WHERE p.id = _p3;
+    _ext2 := public.returns_request_extension(_p3, _due + 45,
+               'Gate fixture: a second extension request for the refusal path.');
+    PERFORM pg_temp.act(_chk);
+    PERFORM public.returns_decide_extension(_ext2,'REFUSE','Gate fixture: extension refused, deadline stands.', NULL);
+    SELECT p.due_date INTO _newdue FROM public.reporting_periods p WHERE p.id = _p3;
+    _buf := pg_temp.bufrec(_buf,'N','N-27',
+      'a refused extension is recorded with its reason and leaves the original deadline untouched',
+      EXISTS (SELECT 1 FROM public.return_filing_extensions x
+               WHERE x.id=_ext2 AND x.status='REFUSED' AND x.granted_due_date IS NULL
+                 AND x.decided_by=_chk) AND _newdue = _due, 'due unchanged='||_newdue);
+
+    _ok := false; _msg := '';
+    PERFORM pg_temp.act(_filer);
+    BEGIN PERFORM public.returns_decide_extension(_ext2,'GRANT','Gate probe: the requester cannot self-grant.', NULL);
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'N','N-28',
+      'the extension requester can never decide their own request',
+      _ok, _msg);
+
+    -- ---- overdue detection ----------------------------------------------
+    PERFORM pg_temp.act(_cfg);
+    PERFORM public.returns_overdue_sweep(CURRENT_DATE);
+    SELECT count(*) INTO _n FROM public.return_overdue_events e
+     WHERE e.reporting_period_id = _p4 AND e.as_of_date = CURRENT_DATE;
+    PERFORM public.returns_overdue_sweep(CURRENT_DATE);
+    SELECT count(*) INTO _n2 FROM public.return_overdue_events e
+     WHERE e.reporting_period_id = _p4 AND e.as_of_date = CURRENT_DATE;
+    _buf := pg_temp.bufrec(_buf,'N','N-29',
+      'the overdue sweep records a late period exactly once per as-of date, however often it runs',
+      _n = 1 AND _n2 = 1, 'first='||_n||' second='||_n2);
+
+    _buf := pg_temp.bufrec(_buf,'N','N-30',
+      'an overdue event names the effective deadline, days late and the F6 late-fee owner rather than charging a fee itself',
+      EXISTS (SELECT 1 FROM public.return_overdue_events e
+               JOIN public.reporting_periods p ON p.id = e.reporting_period_id
+               WHERE e.reporting_period_id = _p4 AND e.as_of_date = CURRENT_DATE
+                 AND e.effective_due_date = p.due_date
+                 AND e.days_late = (CURRENT_DATE - p.due_date)
+                 AND e.late_fee_owner IS NOT NULL),
+      'overdue event content');
+
+    SELECT count(*) INTO _n FROM public.return_overdue_events e
+     WHERE e.reporting_period_id = _p1;
+    _buf := pg_temp.bufrec(_buf,'N','N-31',
+      'a period whose return has been submitted and accepted is never marked overdue',
+      _n = 0, 'events for filed period='||_n);
+
+    -- ---- submitter cannot decide (real maker-checker) --------------------
+    PERFORM pg_temp.act(_dual);
+    _res := public.returns_open_filing(_p5);
+    _fil2 := (_res->>'filing_id')::uuid; _ver2 := (_res->>'version_id')::uuid;
+    FOR r IN SELECT q.id, q.form_template_id, q.form_version_id
+               FROM public.return_filing_form_requirements q
+              WHERE q.return_filing_version_id = _ver2 LOOP
+      PERFORM set_config('request.jwt.claims','{}', true);
+      INSERT INTO public.form_responses(template_id, version_id, user_id, response_data, status)
+      VALUES (r.form_template_id,
+              COALESCE(r.form_version_id,
+                (SELECT v.id FROM public.form_versions v
+                  WHERE v.template_id=r.form_template_id AND v.status='published'
+                  ORDER BY v.created_at DESC LIMIT 1)),
+              _dual, '{"f7b_gate":true}'::jsonb, 'submitted')
+      RETURNING id INTO _amend;
+      PERFORM pg_temp.act(_dual);
+      PERFORM public.returns_attach_form_response(r.id, _amend, 'COMPLETED');
+    END LOOP;
+    _res := public.returns_submit_filing(_ver2, true);
+
+    _ok := false; _msg := '';
+    BEGIN PERFORM public.returns_review_filing(_ver2,'ACCEPT','Gate probe: the submitter must not accept.');
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'N','N-32',
+      'an internal officer who holds approval rights still cannot decide a return they submitted themselves',
+      (_res->>'submitted')::boolean IS TRUE AND _ok
+        AND (SELECT status FROM public.return_filing_versions WHERE id=_ver2) = 'SUBMITTED', _msg);
+
+    PERFORM pg_temp.act(_chk);
+    PERFORM public.returns_review_filing(_ver2,'ACCEPT','Gate fixture: independently accepted by a second officer.');
+    _buf := pg_temp.bufrec(_buf,'N','N-33',
+      'the same return is accepted once a genuinely independent approver decides it',
+      (SELECT status FROM public.return_filing_versions WHERE id=_ver2) = 'ACCEPTED'
+        AND (SELECT accepted_by FROM public.return_filing_versions WHERE id=_ver2) = _chk,
+      'independent acceptance');
+
+    -- ---- mandated currency snapshot --------------------------------------
+    PERFORM set_config('request.jwt.claims','{}', true);
+    INSERT INTO public.return_definitions(
+      code, name, frequency, due_days_after_period_end, requires_declaration,
+      status, is_active, effective_from, mandatory_currency_code)
+    VALUES ('F7B-GATE-FX','F7B gate mandated-currency return','ANNUAL', 30, true,
+            'ACTIVE', true, date_trunc('year', CURRENT_DATE - interval '18 months')::date, 'USD')
+    RETURNING id INTO _def2;
+
+    INSERT INTO public.reporting_obligation_rules(
+      return_definition_id, code, name, sector_id, requires_active_license, effective_from, is_active)
+    VALUES (_def2,'F7B-GATE-FX-RULE','F7B gate mandated-currency rule', _sector, false,
+            date_trunc('year', CURRENT_DATE - interval '18 months')::date, true);
+
+    PERFORM pg_temp.act(_cfg);
+    PERFORM public.returns_derive_entity_obligations(_entity);
+    SELECT o.id INTO _ob2 FROM public.entity_reporting_obligations o
+     WHERE o.entity_id=_entity AND o.return_definition_id=_def2 AND o.status='ACTIVE';
+    PERFORM public.returns_generate_periods(_ob2, CURRENT_DATE);
+    SELECT p.id INTO _p6 FROM public.reporting_periods p
+     WHERE p.entity_reporting_obligation_id=_ob2 AND p.status='OPEN'
+     ORDER BY p.period_start LIMIT 1;
+
+    PERFORM pg_temp.act(_filer);
+    _res := public.returns_open_filing(_p6);
+    _fil3 := (_res->>'filing_id')::uuid;
+    SELECT f.reporting_currency, f.currency_source INTO _cur, _src
+      FROM public.return_filings f WHERE f.id=_fil3;
+    _buf := pg_temp.bufrec(_buf,'N','N-34',
+      'a return definition that mandates a currency overrides the entity currency in the filing snapshot, with the mandate recorded as the provenance',
+      _cur = 'USD' AND _src = 'RETURN_DEFINITION',
+      'currency='||coalesce(_cur,'∅')||' source='||coalesce(_src,'∅'));
+
+    RAISE EXCEPTION 'F7B_LIFECYCLE_ROLLBACK';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM <> 'F7B_LIFECYCLE_ROLLBACK' THEN
+      GET STACKED DIAGNOSTICS _ctx = PG_EXCEPTION_CONTEXT;
+      _buf := pg_temp.bufrec(_buf,'N','N-ERR','the positive lifecycle fixture ran to completion',
+        false, SQLSTATE||': '||left(SQLERRM,200)||' | '||left(coalesce(_ctx,''),400));
+    END IF;
+  END;
+
+  PERFORM set_config('request.jwt.claims','{}', true);
+
+  FOR r IN SELECT * FROM jsonb_array_elements(_buf) e LOOP
+    PERFORM pg_temp.rec(r.value->>'section', r.value->>'id', r.value->>'descr',
+      (r.value->>'passed')::boolean, r.value->>'detail');
+  END LOOP;
+END $n$;
+
+-- ---------------------------------------------------------------------------
+-- N-Z — the lifecycle fixture left nothing behind
+-- ---------------------------------------------------------------------------
+DO $nz$
+DECLARE _n int;
+BEGIN
+  SELECT count(*) INTO _n FROM public.return_definitions WHERE code LIKE 'F7B-GATE-%';
+  PERFORM pg_temp.rec('N','N-90','the gate-owned return definitions were rolled back', _n = 0, 'rows='||_n);
+
+  SELECT count(*) INTO _n FROM public.reporting_obligation_rules WHERE code LIKE 'F7B-GATE-%';
+  PERFORM pg_temp.rec('N','N-91','the gate-owned applicability rules were rolled back', _n = 0, 'rows='||_n);
+
+  SELECT count(*) INTO _n FROM public.return_filing_evidence WHERE storage_path LIKE 'f7b-gate/%';
+  PERFORM pg_temp.rec('N','N-92','the gate-owned evidence rows were rolled back', _n = 0, 'rows='||_n);
+
+  SELECT count(*) INTO _n FROM public.form_responses WHERE response_data ? 'f7b_gate';
+  PERFORM pg_temp.rec('N','N-93','the gate-owned form responses were rolled back', _n = 0, 'rows='||_n);
+END $nz$;
+
 \echo ''
 \echo '========================= verify:f7b results ========================='
 SELECT section, id, CASE WHEN passed THEN 'PASS' ELSE 'FAIL' END AS result, descr, detail
