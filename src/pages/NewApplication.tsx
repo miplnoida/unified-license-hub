@@ -1580,27 +1580,18 @@ export default function NewApplication() {
         throw new Error('Payment could not be completed for this application.');
       }
 
-      const { data: existingReceipt } = await supabase
-        .from('payment_receipts')
-        .select('id, receipt_number')
-        .eq('payment_id', paymentRowId)
-        .maybeSingle();
-
-      if (!existingReceipt) {
-        const { data: insertedReceipt } = await supabase
-          .from('payment_receipts')
-          .insert({
-            payment_id: paymentRowId,
-            amount: paidAmount,
-            issued_to_name: user.fullName || user.email || 'Applicant',
-            issued_to_email: user.email,
-            fee_breakdown: feeBreakdown,
-          } as any)
-          .select('receipt_number')
-          .maybeSingle();
-        setPaymentReceiptNumber((insertedReceipt as any)?.receipt_number || null);
+      // Receipts are financial evidence: the server issues them from the settled
+      // payment and the assessment of record. The browser never states an amount.
+      const { data: issuedReceipt, error: receiptError } = await supabase.rpc(
+        'payment_receipt_issue',
+        { _payment_id: paymentRowId },
+      );
+      if (receiptError) {
+        console.error('Receipt issuance failed', receiptError);
+        setPaymentReceiptNumber(null);
       } else {
-        setPaymentReceiptNumber((existingReceipt as any).receipt_number || null);
+        const issued = issuedReceipt as { receipt_number?: string | null } | null;
+        setPaymentReceiptNumber(issued?.receipt_number ?? null);
       }
 
       // Server-side triggers on `payments` and `payment_receipts` write the
