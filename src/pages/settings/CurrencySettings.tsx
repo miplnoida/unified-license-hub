@@ -28,6 +28,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { PermissionGate } from '@/components/auth/PermissionGate';
 import { formatDateOnly } from '@/lib/datetime';
 
@@ -128,7 +129,7 @@ export default function CurrencySettings() {
       if (reporting) payload.reporting_currency = reporting;
       if (!Object.keys(payload).length) throw new Error('Choose a base or reporting currency first.');
       const { error } = await supabase.rpc('monetary_config_save', {
-        _payload: payload,
+        _payload: payload as Json,
         _reason: 'Monetary configuration updated from Currency & FX settings',
       });
       if (error) throw error;

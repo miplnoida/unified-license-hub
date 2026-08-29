@@ -20,6 +20,10 @@ const ADAPTER_SRC = join(
   'supabase/functions/_shared/connector/adapters/payment_gateway.ts',
 );
 
+import type { ConnectorRequest } from '../../supabase/functions/_shared/connector/types';
+
+const CTX = {} as never;
+
 describe('payment gateway currency contract', () => {
   it('rejects an outbound payment with no authoritative currency', () => {
     for (const bad of [undefined, null, '', '  ', 'US', 'DOLLAR', 12]) {
@@ -28,7 +32,7 @@ describe('payment gateway currency contract', () => {
           amount: 100,
           currency: bad,
           reference: 'REF-1',
-        } as Record<string, unknown>),
+        } as Record<string, unknown>, CTX) as ConnectorRequest,
       ).toThrow(/PAYMENT_CURRENCY_MISSING/);
     }
   });
@@ -38,7 +42,7 @@ describe('payment gateway currency contract', () => {
       amount: 100,
       currency: ' xcd ',
       reference: 'REF-2',
-    } as Record<string, unknown>);
+    } as Record<string, unknown>, CTX) as ConnectorRequest;
     expect((req.body as Record<string, unknown>).currency).toBe('XCD');
   });
 
@@ -48,7 +52,7 @@ describe('payment gateway currency contract', () => {
         payment_id: 'p1',
         status: 'captured',
         amount: 100,
-      }),
+      }, CTX),
     ).toThrow(/PAYMENT_CURRENCY_MISSING/);
   });
 
@@ -58,7 +62,7 @@ describe('payment gateway currency contract', () => {
       status: 'captured',
       amount: 100,
       currency: 'JMD',
-    }) as { currency: string };
+    }, CTX) as { currency: string };
     expect(() => assertProviderCurrency('XCD', parsed.currency)).toThrow(
       /PAYMENT_CURRENCY_MISMATCH/,
     );
@@ -70,7 +74,7 @@ describe('payment gateway currency contract', () => {
       status: 'captured',
       amount: 100,
       currency: 'xcd',
-    }) as { currency: string; settled: boolean };
+    }, CTX) as { currency: string; settled: boolean };
     expect(parsed.currency).toBe('XCD');
     expect(assertProviderCurrency('XCD', parsed.currency)).toBe('XCD');
     expect(parsed.settled).toBe(true);
@@ -81,30 +85,30 @@ describe('payment gateway currency contract', () => {
       paymentGatewayAdapter.buildRequest('refund', {
         paymentId: 'p1',
         amount: 10,
-      } as Record<string, unknown>),
+      } as Record<string, unknown>, CTX) as ConnectorRequest,
     ).toThrow(/PAYMENT_CURRENCY_MISSING/);
 
     const refund = paymentGatewayAdapter.buildRequest('refund', {
       paymentId: 'p1',
       amount: 10,
       currency: 'XCD',
-    } as Record<string, unknown>);
+    } as Record<string, unknown>, CTX) as ConnectorRequest;
     expect((refund.body as Record<string, unknown>).currency).toBe('XCD');
 
     expect(() =>
-      paymentGatewayAdapter.parseResponse('refund', 200, { refund_id: 'r1', amount: 10 }),
+      paymentGatewayAdapter.parseResponse('refund', 200, { refund_id: 'r1', amount: 10 }, CTX),
     ).toThrow(/PAYMENT_CURRENCY_MISSING/);
 
     const capture = paymentGatewayAdapter.buildRequest('capture_payment', {
       paymentId: 'p1',
       amount: 10,
-    } as Record<string, unknown>);
+    } as Record<string, unknown>, CTX) as ConnectorRequest;
     expect((capture.body as Record<string, unknown>).currency).toBeNull();
     expect(() =>
       paymentGatewayAdapter.buildRequest('capture_payment', {
         paymentId: 'p1',
         currency: 'nope',
-      } as Record<string, unknown>),
+      } as Record<string, unknown>, CTX) as ConnectorRequest,
     ).toThrow(/PAYMENT_CURRENCY_MISSING/);
   });
 
