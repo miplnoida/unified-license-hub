@@ -51,8 +51,10 @@ async function fetchAllMetrics(): Promise<SystemMetrics> {
     countTable('form_templates'),
     countTable('approval_workflows'),
     countTable('fee_configurations'),
-    countTable('compliance_returns'),
-    countTable('compliance_returns', { column: 'status', op: 'eq', value: 'overdue' }),
+    // F7-B: returns metrics come from the canonical filing spine, never the
+    // retired `compliance_returns` store.
+    countTable('return_filings'),
+    countTable('return_filings', { column: 'status', op: 'eq', value: 'OVERDUE' }),
     countTable('payments'),
     countTable('audit_logs'),
     countTable('complaints'),

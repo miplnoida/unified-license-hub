@@ -16651,6 +16651,92 @@ export type Database = {
           },
         ]
       }
+      entity_currency_profiles: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          entity_id: string
+          id: string
+          provenance_reference: string | null
+          reason: string | null
+          reporting_currency_override: string
+          source: string
+          status: string
+          superseded_at: string | null
+          superseded_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_from: string
+          effective_to?: string | null
+          entity_id: string
+          id?: string
+          provenance_reference?: string | null
+          reason?: string | null
+          reporting_currency_override: string
+          source?: string
+          status?: string
+          superseded_at?: string | null
+          superseded_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          entity_id?: string
+          id?: string
+          provenance_reference?: string | null
+          reason?: string | null
+          reporting_currency_override?: string
+          source?: string
+          status?: string
+          superseded_at?: string | null
+          superseded_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_currency_profiles_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_currency_profiles_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_currency_profiles_reporting_currency_override_fkey"
+            columns: ["reporting_currency_override"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "entity_currency_profiles_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "entity_currency_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entity_data_authority_rules: {
         Row: {
           allow_local_override: boolean
@@ -28222,6 +28308,7 @@ export type Database = {
           refund_fx_date_policy: string
           regulator_id: string | null
           reporting_currency: string
+          returns_fx_date_policy: string
           rounding_policy: string
           settlement_currencies: string[]
           supported_transaction_currencies: string[]
@@ -28246,6 +28333,7 @@ export type Database = {
           refund_fx_date_policy?: string
           regulator_id?: string | null
           reporting_currency: string
+          returns_fx_date_policy?: string
           rounding_policy?: string
           settlement_currencies?: string[]
           supported_transaction_currencies?: string[]
@@ -28270,6 +28358,7 @@ export type Database = {
           refund_fx_date_policy?: string
           regulator_id?: string | null
           reporting_currency?: string
+          returns_fx_date_policy?: string
           rounding_policy?: string
           settlement_currencies?: string[]
           supported_transaction_currencies?: string[]
@@ -37301,6 +37390,7 @@ export type Database = {
           is_active: boolean
           legacy_return_config_id: string | null
           legacy_return_type_id: string | null
+          mandatory_currency_code: string | null
           name: string
           regulator_id: string | null
           requires_declaration: boolean
@@ -37325,6 +37415,7 @@ export type Database = {
           is_active?: boolean
           legacy_return_config_id?: string | null
           legacy_return_type_id?: string | null
+          mandatory_currency_code?: string | null
           name: string
           regulator_id?: string | null
           requires_declaration?: boolean
@@ -37349,6 +37440,7 @@ export type Database = {
           is_active?: boolean
           legacy_return_config_id?: string | null
           legacy_return_type_id?: string | null
+          mandatory_currency_code?: string | null
           name?: string
           regulator_id?: string | null
           requires_declaration?: boolean
@@ -37370,6 +37462,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "return_types"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_definitions_mandatory_currency_code_fkey"
+            columns: ["mandatory_currency_code"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "return_definitions_regulator_id_fkey"
@@ -38105,13 +38204,19 @@ export type Database = {
           assigned_team: string | null
           created_at: string
           created_by: string | null
+          currency_as_of: string | null
+          currency_snapshot_at: string | null
+          currency_source: string | null
           current_version_number: number
+          entity_currency_profile_id: string | null
           entity_id: string
           entity_reporting_obligation_id: string
           filing_reference: string
           id: string
           legacy_return_filed_id: string | null
+          monetary_config_id: string | null
           rejected_at: string | null
+          reporting_currency: string | null
           reporting_period_id: string
           return_definition_id: string
           status: string
@@ -38127,13 +38232,19 @@ export type Database = {
           assigned_team?: string | null
           created_at?: string
           created_by?: string | null
+          currency_as_of?: string | null
+          currency_snapshot_at?: string | null
+          currency_source?: string | null
           current_version_number?: number
+          entity_currency_profile_id?: string | null
           entity_id: string
           entity_reporting_obligation_id: string
           filing_reference: string
           id?: string
           legacy_return_filed_id?: string | null
+          monetary_config_id?: string | null
           rejected_at?: string | null
+          reporting_currency?: string | null
           reporting_period_id: string
           return_definition_id: string
           status?: string
@@ -38149,13 +38260,19 @@ export type Database = {
           assigned_team?: string | null
           created_at?: string
           created_by?: string | null
+          currency_as_of?: string | null
+          currency_snapshot_at?: string | null
+          currency_source?: string | null
           current_version_number?: number
+          entity_currency_profile_id?: string | null
           entity_id?: string
           entity_reporting_obligation_id?: string
           filing_reference?: string
           id?: string
           legacy_return_filed_id?: string | null
+          monetary_config_id?: string | null
           rejected_at?: string | null
+          reporting_currency?: string | null
           reporting_period_id?: string
           return_definition_id?: string
           status?: string
@@ -38176,6 +38293,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_return_filing_workflow_state"
             referencedColumns: ["current_version_id"]
+          },
+          {
+            foreignKeyName: "return_filings_entity_currency_profile_id_fkey"
+            columns: ["entity_currency_profile_id"]
+            isOneToOne: false
+            referencedRelation: "entity_currency_profiles"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "return_filings_entity_id_fkey"
@@ -38204,6 +38328,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "returns_filed"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filings_monetary_config_id_fkey"
+            columns: ["monetary_config_id"]
+            isOneToOne: false
+            referencedRelation: "monetary_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filings_reporting_currency_fkey"
+            columns: ["reporting_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "return_filings_reporting_period_id_fkey"
@@ -50315,6 +50453,24 @@ export type Database = {
         }
         Returns: string
       }
+      entity_currency_override_set: {
+        Args: {
+          _currency: string
+          _effective_from: string
+          _effective_to?: string
+          _entity_id: string
+          _reason: string
+        }
+        Returns: Json
+      }
+      entity_currency_override_supersede: {
+        Args: { _profile_id: string; _reason: string }
+        Returns: Json
+      }
+      entity_currency_profile_overview: {
+        Args: { _as_of?: string; _entity_id: string }
+        Returns: Json
+      }
       entity_external_read_access: {
         Args: { _entity_id: string; _user_id: string }
         Returns: boolean
@@ -50448,6 +50604,18 @@ export type Database = {
           _status?: string
         }
         Returns: Json
+      }
+      entity_reporting_currency_resolve: {
+        Args: {
+          _as_of?: string
+          _entity_id: string
+          _return_definition_id?: string
+        }
+        Returns: Json
+      }
+      entity_reporting_regulator: {
+        Args: { _entity_id: string }
+        Returns: string
       }
       entity_resolution_case_view: { Args: { _case_id: string }; Returns: Json }
       entity_resolution_decide: {
@@ -52978,6 +53146,7 @@ export type Database = {
           refund_fx_date_policy: string
           regulator_id: string | null
           reporting_currency: string
+          returns_fx_date_policy: string
           rounding_policy: string
           settlement_currencies: string[]
           supported_transaction_currencies: string[]
@@ -55868,6 +56037,10 @@ export type Database = {
         }
         Returns: string
       }
+      returns_rebase_filing_currency: {
+        Args: { _filing_id: string; _reason: string }
+        Returns: Json
+      }
       returns_request_amendment: {
         Args: { _filing_id: string; _reason: string }
         Returns: string
@@ -55905,6 +56078,10 @@ export type Database = {
       }
       returns_set_definition_status: {
         Args: { _definition_id: string; _status: string }
+        Returns: Json
+      }
+      returns_snapshot_filing_currency: {
+        Args: { _filing_id: string }
         Returns: Json
       }
       returns_submit_filing: {

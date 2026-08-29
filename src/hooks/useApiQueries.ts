@@ -61,21 +61,6 @@ export function usePayments(params?: PaginationParams) {
   });
 }
 
-// ─── Compliance Returns ───
-export function useComplianceReturns(params?: PaginationParams & { status?: string }) {
-  const { user } = useAuth();
-  return useQuery({
-    queryKey: ['compliance-returns', params],
-    queryFn: async () => {
-      const filters: Record<string, unknown> = {};
-      if (params?.status) filters.status = params.status;
-      return paginatedQuery('compliance_returns', params, filters);
-    },
-    enabled: !!user,
-    staleTime: 30_000,
-  });
-}
-
 // ─── Profiles ───
 export function useProfiles(params?: PaginationParams) {
   return useQuery({

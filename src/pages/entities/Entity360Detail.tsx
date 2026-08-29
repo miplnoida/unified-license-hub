@@ -14,7 +14,7 @@
  */
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CalendarClock, Loader2, LayoutDashboard, History, UserSearch } from 'lucide-react';
+import { CalendarClock, Coins, Loader2, LayoutDashboard, History, UserSearch } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,9 +34,11 @@ import { OnboardingActivityPanel } from '@/components/entity/OnboardingActivityP
 import { Entity360SectionView } from '@/components/entity-detail/Entity360SectionView';
 import { Entity360TimelinePanel } from '@/components/entity-detail/Entity360TimelinePanel';
 import { E360_GROUPS, E360_SECTIONS } from '@/components/entity-detail/sectionCatalogue';
+import { EntityReportingCurrencyPanel } from '@/components/entity-detail/EntityReportingCurrencyPanel';
 import { useEntity360Overview, type E360SectionKey } from '@/hooks/useEntity360';
 
-type ViewKey = 'overview' | 'timeline' | 'onboarding' | E360SectionKey;
+
+type ViewKey = 'overview' | 'timeline' | 'onboarding' | 'reporting_currency' | E360SectionKey;
 
 export default function Entity360Detail() {
   const { entityId } = useParams<{ entityId: string }>();
@@ -116,6 +118,13 @@ export default function Entity360Detail() {
               active={view === 'onboarding'}
               onClick={() => setView('onboarding')}
             />
+            <NavButton
+              label="Reporting & currency"
+              icon={Coins}
+              active={view === 'reporting_currency'}
+              onClick={() => setView('reporting_currency')}
+            />
+
 
             {groups.map((group) => (
               <div key={group.key} className="mt-3">
@@ -184,6 +193,11 @@ export default function Entity360Detail() {
           {view === 'timeline' && <Entity360TimelinePanel entityId={entity.id} />}
 
           {view === 'onboarding' && <OnboardingActivityPanel entityId={entity.id} />}
+
+          {view === 'reporting_currency' && (
+            <EntityReportingCurrencyPanel entityId={entity.id} asOf={asOf} />
+          )}
+
 
           {activeSection && (
             <div className="space-y-4">
