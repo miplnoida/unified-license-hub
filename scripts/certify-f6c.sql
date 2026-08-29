@@ -286,7 +286,7 @@ END $b$;
 DO $c$
 DECLARE
   _admin uuid; _checker uuid; _outsider uuid; _verifier uuid;
-  _app uuid; _app2 uuid; _lt text;
+  _app uuid; _app2 uuid; _app3 uuid; _lt text;
   _ft uuid; _ft2 uuid; _ft3 uuid; _ft4 uuid;
   _pre jsonb; _s1 jsonb; _s2 jsonb; _ov jsonb; _res jsonb;
   _pay uuid; _pay2 uuid; _pay3 uuid; _wv uuid; _rf uuid; _item uuid;
@@ -880,21 +880,24 @@ BEGIN
     _step := 'G-07'; RAISE NOTICE 'step: %', _step;
     -- the account carries a genuine unpaid balance again after the governed
     -- reversal in E-09, so the refusal below is really exercised
-    _out := ROUND((public.fee_assessment_state(_app)->>'outstanding')::numeric,2);
-    RAISE NOTICE 'G-07 diag: app outstanding=% state=% / app2 outstanding=% state=%',
-      _out, public.fee_assessment_state(_app)->>'status',
-      public.fee_assessment_state(_app2)->>'outstanding',
-      public.fee_assessment_state(_app2)->>'status';
-    _state := 'unexpected-success';
-    BEGIN
-      PERFORM public.submit_application(_app);
-    EXCEPTION WHEN others THEN _state := SQLSTATE||': '||left(SQLERRM,120);
-    END;
+    -- an independent, genuinely unpaid draft filing is used so the refusal is
+    -- really exercised rather than incidentally satisfied
+    RESET ROLE;
+    INSERT INTO public.applications (applicant_id, license_type, status, request_kind, data)
+    VALUES (_admin, COALESCE(_lt,'CERTIFY-F6C'), 'draft', 'NEW_LICENCE',
+            jsonb_build_object('certify_f6c', true, 'purpose','submission gate'))
+    RETURNING id INTO _app3;
+    INSERT INTO public.fee_components (application_id, fee_type_id, amount, description)
+    VALUES (_app3, _ft, 650.00, 'certify:f6c submission gate line');
     PERFORM pg_temp.act(_admin);
+    PERFORM public.fee_assessment_ensure(_app3, 'certify:f6c submission gate');
+    _out := ROUND((public.fee_assessment_state(_app3)->>'outstanding')::numeric,2);
+    _res := public.submit_application(_app3);
     _buf := pg_temp.bufrec(_buf,'G','G-07',
       'an application with money still owing cannot be submitted',
-      _out > 0 AND _state <> 'unexpected-success',
-      'outstanding='||_out||' result='||_state);
+      _out > 0 AND COALESCE(_res->>'code','') = 'PAYMENT_REQUIRED'
+        AND (SELECT status FROM public.applications WHERE id=_app3) = 'draft',
+      'outstanding='||_out||' refusal='||COALESCE(_res->>'code','∅'));
 
 
     -- G-08 audit provenance across the whole run
