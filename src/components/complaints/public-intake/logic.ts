@@ -508,7 +508,7 @@ export function buildPayload(
       location: orNull(s.location),
       transaction_reference: orNull(s.transaction_reference),
       amount_involved: orNull(s.amount_involved),
-      currency: orNull(s.currency) ?? 'XCD',
+      currency: orNull(s.currency),
       amount_disputed: orNull(s.amount_disputed),
       claimed_loss: orNull(s.claimed_loss),
       continuing_loss: s.continuing_loss,

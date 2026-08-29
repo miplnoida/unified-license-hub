@@ -245,13 +245,18 @@ BEGIN
   PERFORM pg_temp.rec('B','B-07','a receipt cannot be issued with a caller-stated amount',
     _n = 1, 'signature accepting only the payment reference='||_n);
 
-  -- B-08 no silent currency conversion anywhere in the engine
+  -- B-08 no silent currency conversion anywhere in the engine.
+  -- Since the F6-X multi-currency extension, conversion is permitted but only
+  -- through the governed FX contract (`fx_convert` / `fx_record_conversion`),
+  -- which resolves an approved effective-dated rate and records immutable
+  -- provenance. A fee routine that touches rates any other way is a defect.
   SELECT count(*), coalesce(string_agg(p.proname, ', '),'none') INTO _n, _detail
     FROM pg_proc p JOIN pg_namespace ns ON ns.oid=p.pronamespace
    WHERE ns.nspname='public' AND p.prokind='f' AND p.proname LIKE 'fee\_%'
      AND (p.prosrc ILIKE '%exchange_rate%' OR p.prosrc ILIKE '%fx_rate%'
-          OR p.prosrc ILIKE '%convert_currency%');
-  PERFORM pg_temp.rec('B','B-08','no routine silently converts between currencies',
+          OR p.prosrc ILIKE '%convert_currency%')
+     AND NOT (p.prosrc ILIKE '%fx_convert%' OR p.prosrc ILIKE '%fx_record_conversion%');
+  PERFORM pg_temp.rec('B','B-08','currency conversion only ever happens through the governed FX contract',
     _n = 0, 'converting routines='||_n||' ['||_detail||']');
 
   -- B-09 maker-checker is written into the decision routines

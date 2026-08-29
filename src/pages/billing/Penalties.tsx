@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/money';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -34,9 +35,16 @@ export default function Penalties() {
     },
   });
 
-  const stats = useMemo(() => {
-    const totals = { assessed: 0, collected: 0, outstanding: 0, disputed: 0 };
+  /**
+   * Monetary totals are separated by currency — amounts in different
+   * currencies are never added together into a single figure.
+   */
+  const statsByCurrency = useMemo(() => {
+    const byCurrency = new Map<string, { assessed: number; collected: number; outstanding: number; disputed: number }>();
     for (const c of cases ?? []) {
+      const currency = String(c.penalty_currency || '').trim().toUpperCase();
+      if (!/^[A-Z]{3}$/.test(currency)) continue;
+      const totals = byCurrency.get(currency) ?? { assessed: 0, collected: 0, outstanding: 0, disputed: 0 };
       const amt = Number(c.penalty_amount || 0);
       const paid = Number(c.penalty_paid_amount || 0);
       totals.assessed += amt;
@@ -44,8 +52,9 @@ export default function Penalties() {
       const remaining = Math.max(0, amt - paid);
       if (c.status === 'appealed') totals.disputed += remaining;
       else if (!['closed', 'withdrawn'].includes(c.status)) totals.outstanding += remaining;
+      byCurrency.set(currency, totals);
     }
-    return totals;
+    return [...byCurrency.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [cases]);
 
   const isOverdue = (c: any) => {
@@ -57,7 +66,7 @@ export default function Penalties() {
     return dueDate.getTime() < Date.now();
   };
 
-  const fmt = (currency: string, n: number) => `${currency || 'USD'} ${Number(n || 0).toLocaleString()}`;
+  const fmt = (currency: string | null, n: number) => formatMoney(n, currency);
 
   return (
     <DashboardLayout>
@@ -66,12 +75,21 @@ export default function Penalties() {
           title="Penalties"
           description="Live view of penalties assessed through enforcement cases — collections, outstanding, and disputes."
         />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard title="Total assessed" value={fmt('USD', stats.assessed)} icon={<AlertTriangle className="h-6 w-6" />} />
-          <StatCard title="Collected" value={fmt('USD', stats.collected)} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
-          <StatCard title="Outstanding" value={fmt('USD', stats.outstanding)} icon={<DollarSign className="h-6 w-6" />} variant="danger" />
-          <StatCard title="Disputed (appealed)" value={fmt('USD', stats.disputed)} icon={<Clock className="h-6 w-6" />} variant="warning" />
-        </div>
+        {statsByCurrency.length === 0 ? null : (
+          <div className="space-y-4">
+            {statsByCurrency.map(([currency, stats]) => (
+              <div key={currency} className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Totals in {currency}</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <StatCard title="Total assessed" value={fmt(currency, stats.assessed)} icon={<AlertTriangle className="h-6 w-6" />} />
+                  <StatCard title="Collected" value={fmt(currency, stats.collected)} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
+                  <StatCard title="Outstanding" value={fmt(currency, stats.outstanding)} icon={<DollarSign className="h-6 w-6" />} variant="danger" />
+                  <StatCard title="Disputed (appealed)" value={fmt(currency, stats.disputed)} icon={<Clock className="h-6 w-6" />} variant="warning" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <Card>
           <CardContent className="p-4">
@@ -96,7 +114,7 @@ export default function Penalties() {
                   </thead>
                   <tbody>
                     {(cases ?? []).map((c: any) => {
-                      const currency = c.penalty_currency || 'USD';
+                      const currency = c.penalty_currency ?? null;
                       const amt = Number(c.penalty_amount || 0);
                       const paid = Number(c.penalty_paid_amount || 0);
                       const outstanding = Math.max(0, amt - paid);

@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/money';
 /**
  * Reusable value formatters for the enterprise presentation layer.
  *
@@ -47,17 +48,13 @@ export function formatCount(v: unknown): string {
   return Number.isFinite(n) ? new Intl.NumberFormat('en-GB').format(n) : EMPTY;
 }
 
-export function formatCurrency(v: unknown, currency = 'XCD'): string {
+/**
+ * Canonical money presentation. The currency is mandatory: there is no
+ * platform default currency, so an unknown currency renders as unavailable.
+ */
+export function formatCurrency(v: unknown, currency: string): string {
   if (isBlank(v)) return EMPTY;
-  const n = typeof v === 'number' ? v : Number(v);
-  if (!Number.isFinite(n)) return EMPTY;
-  try {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency', currency, maximumFractionDigits: 2,
-    }).format(n);
-  } catch {
-    return `${currency} ${formatNumber(n)}`;
-  }
+  return formatMoney(v, currency);
 }
 
 /** `12.5%` — accepts a percentage value already expressed 0–100. */

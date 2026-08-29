@@ -188,7 +188,7 @@ export default function LicenseDetail() {
         }))
         .sort((a, b) => b.score - a.score)[0]?.row;
       if (match && Number(match.amount) > 0) {
-        setRenewalFee({ amount: Number(match.amount), currency: match.currency || 'USD' });
+        setRenewalFee({ amount: Number(match.amount), currency: match.currency ?? '' });
       } else {
         setRenewalFee(null);
       }

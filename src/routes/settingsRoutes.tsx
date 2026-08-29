@@ -17,6 +17,7 @@ const ApplicationFormSettings = lazy(() => import('@/pages/settings/ApplicationF
 const LicenseExpirySettings = lazy(() => import('@/pages/settings/LicenseExpirySettings'));
 const CertificateSignatorySettings = lazy(() => import('@/pages/settings/CertificateSignatorySettings'));
 const CaptchaSettings = lazy(() => import('@/pages/settings/CaptchaSettings'));
+const CurrencySettings = lazy(() => import('@/pages/settings/CurrencySettings'));
 
 function S({ children }: { children: React.ReactNode }) {
   return <P><SettingsRoute>{children}</SettingsRoute></P>;
@@ -38,6 +39,7 @@ export const settingsRoutes = (
     <Route path="/settings/license-expiry" element={<S><LicenseExpirySettings /></S>} />
     <Route path="/settings/certificate-signatory" element={<S><CertificateSignatorySettings /></S>} />
     <Route path="/settings/captcha" element={<S><CaptchaSettings /></S>} />
+    <Route path="/settings/currency" element={<S><CurrencySettings /></S>} />
   </>
 
 );

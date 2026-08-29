@@ -7,6 +7,28 @@ import { ConnectorAdapter, ConnectorRequest } from '../types.ts';
 
 export type Op = 'create_payment' | 'capture_payment' | 'fetch_payment' | 'refund' | 'health';
 
+/**
+ * F6-X — the currency of a money movement is never defaulted. It arrives from
+ * the governed assessment/payment contract, and the provider must confirm it.
+ */
+export function requireCurrency(value: unknown, field: string): string {
+  const code = typeof value === 'string' ? value.trim().toUpperCase() : '';
+  if (!/^[A-Z]{3}$/.test(code)) {
+    throw new Error(`PAYMENT_CURRENCY_MISSING: "${field}" must carry an ISO 4217 currency`);
+  }
+  return code;
+}
+
+/** Provider currency must match the currency the platform authorised. */
+export function assertProviderCurrency(expected: unknown, actual: unknown): string {
+  const want = requireCurrency(expected, 'expected currency');
+  const got = requireCurrency(actual, 'provider currency');
+  if (want !== got) {
+    throw new Error(`PAYMENT_CURRENCY_MISMATCH: provider returned ${got}, expected ${want}`);
+  }
+  return got;
+}
+
 export const paymentGatewayAdapter: ConnectorAdapter<Op> = {
   key: 'payment_gateway',
   operations: ['create_payment', 'capture_payment', 'fetch_payment', 'refund', 'health'],
@@ -20,7 +42,7 @@ export const paymentGatewayAdapter: ConnectorAdapter<Op> = {
           path: 'payments',
           body: {
             amount: input.amount,
-            currency: input.currency ?? 'JMD',
+            currency: requireCurrency(input.currency, 'currency'),
             reference: input.reference,
             description: input.description ?? null,
             payer_email: input.payerEmail ?? null,
@@ -62,7 +84,7 @@ export const paymentGatewayAdapter: ConnectorAdapter<Op> = {
       status, // pending | authorised | captured | failed | cancelled
       settled: status === 'captured' || status === 'succeeded' || status === 'paid',
       amount: b.amount === undefined ? null : Number(b.amount),
-      currency: b.currency ?? 'JMD',
+      currency: requireCurrency(b.currency, 'currency'),
       providerReference: b.provider_reference ?? b.reference ?? null,
       redirectUrl: b.redirect_url ?? b.checkout_url ?? null,
       processedAt: b.processed_at ?? new Date().toISOString(),
