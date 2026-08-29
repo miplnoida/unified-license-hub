@@ -605,8 +605,8 @@ BEGIN
   PERFORM pg_temp.rec('L','L-01','a non-privileged caller cannot raise a regulator RFI', _ok, _msg);
 
   _ok := false; _msg := '';
-  BEGIN PERFORM public.returns_decide_extension(_fake, 'APPROVED', NULL,
-    'Gate probe: unauthorised extension decision must be refused');
+  BEGIN PERFORM public.returns_decide_extension(_fake, 'APPROVED',
+    'Gate probe: unauthorised extension decision must be refused', NULL);
   EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
   PERFORM pg_temp.rec('L','L-02','a non-privileged caller cannot decide an extension request', _ok, _msg);
 
@@ -617,7 +617,7 @@ BEGIN
   PERFORM pg_temp.rec('L','L-03','a non-privileged caller cannot decide an amendment request', _ok, _msg);
 
   _ok := false; _msg := '';
-  BEGIN PERFORM public.returns_run_overdue_sweep(NULL);
+  BEGIN PERFORM public.returns_overdue_sweep(NULL);
   EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
   PERFORM pg_temp.rec('L','L-04','a non-privileged caller cannot run the overdue sweep', _ok, _msg);
 
