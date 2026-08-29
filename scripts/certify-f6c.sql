@@ -982,6 +982,11 @@ BEGIN
 
   SELECT count(*) INTO _n FROM public.fee_reconciliation_runs WHERE source = 'CERTIFY-F6C';
   PERFORM pg_temp.rec('Z','Z-03','the certification leaves no reconciliation run behind', _n = 0, 'residue rows='||_n);
+
+  SELECT count(*) INTO _n FROM public.payment_receipts r
+   WHERE NOT EXISTS (SELECT 1 FROM public.payments p WHERE p.id = r.payment_id);
+  PERFORM pg_temp.rec('Z','Z-04','the certification leaves no receipt behind', _n = 0, 'residue rows='||_n);
+
 END $z$;
 
 \echo ''
