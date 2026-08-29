@@ -34,6 +34,8 @@ import {
 import { FilingVersionComparison } from '@/components/returns/FilingVersionComparison';
 import { FilingCurrentStepPanel } from '@/components/returns/FilingCurrentStepPanel';
 import { FilingRelatedCases } from '@/components/returns/FilingRelatedCases';
+import { FilingMonetaryDisplay } from '@/components/returns/FilingMonetaryDisplay';
+
 import { StatusBadge } from '@/components/presentation/StatusBadge';
 import { useInternalUsers } from '@/hooks/useInternalUsers';
 import { CURRENCY_SOURCE_LABELS, type CurrencySource } from '@/hooks/useEntityCurrency';
