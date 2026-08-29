@@ -22,14 +22,16 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from 'sonner';
 import { formatDateOnly, formatDateTime } from '@/lib/datetime';
 import {
-  CURRENCY_SOURCE_LABELS, useCurrencyMaster, useEntityCurrencyMutations, useEntityCurrencyOverview,
+  CURRENCY_APPROVAL_MODE_LABELS, CURRENCY_PROFILE_STATUS_LABELS, CURRENCY_SOURCE_LABELS,
+  useCurrencyMaster, useEntityCurrencyMutations, useEntityCurrencyOverview,
 } from '@/hooks/useEntityCurrency';
 
 export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: string; asOf?: string | null }) {
   const asOfDate = asOf ? asOf.slice(0, 10) : null;
   const { data, isLoading, error } = useEntityCurrencyOverview(entityId, asOfDate);
   const { data: currencies = [] } = useCurrencyMaster();
-  const { setOverride, supersedeOverride } = useEntityCurrencyMutations();
+  const { setOverride, supersedeOverride, decideOverride, withdrawProposal } = useEntityCurrencyMutations();
+
 
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState('');
