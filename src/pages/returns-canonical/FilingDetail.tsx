@@ -36,6 +36,8 @@ import { FilingCurrentStepPanel } from '@/components/returns/FilingCurrentStepPa
 import { FilingRelatedCases } from '@/components/returns/FilingRelatedCases';
 import { StatusBadge } from '@/components/presentation/StatusBadge';
 import { useInternalUsers } from '@/hooks/useInternalUsers';
+import { CURRENCY_SOURCE_LABELS, type CurrencySource } from '@/hooks/useEntityCurrency';
+
 import { objectRoute } from '@/lib/routes/objectRoutes';
 import { formatDateOnly, formatDateTime } from '@/lib/datetime';
 import { Loader2, ShieldCheck, Lock, UserPlus } from 'lucide-react';
@@ -235,6 +237,28 @@ export default function FilingDetail() {
             <Field label="Accepted" value={formatDateTime(data.filing.accepted_at)} />
             <Field label="Rejected" value={formatDateTime(data.filing.rejected_at)} />
             <Field label="Last activity" value={formatDateTime(workflow?.last_activity_at)} />
+            {/* Currency of record: snapshotted at filing open, so profile changes
+                never rewrite a historical return. */}
+            <Field
+              label="Reporting currency"
+              value={data.filing.reporting_currency
+                ? (
+                  <span className="flex items-center gap-2">
+                    <span className="font-mono">{data.filing.reporting_currency}</span>
+                    {data.filing.currency_source && (
+                      <Badge variant="outline">
+                        {CURRENCY_SOURCE_LABELS[data.filing.currency_source as CurrencySource] ?? data.filing.currency_source}
+                      </Badge>
+                    )}
+                  </span>
+                )
+                : 'Not yet recorded'}
+            />
+            <Field
+              label="Currency fixed as at"
+              value={data.filing.currency_as_of_date ? formatDateOnly(data.filing.currency_as_of_date) : '—'}
+            />
+
           </CardContent>
         </Card>
 

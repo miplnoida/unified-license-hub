@@ -151,6 +151,14 @@ export interface FilingDetail {
     id: string; filing_reference: string; entity_id: string; status: string;
     current_version_number: number; accepted_version_id: string | null;
     submitted_at: string | null; accepted_at: string | null; rejected_at: string | null;
+    /** Currency of record, snapshotted when the filing was opened (F7-B / F6-X). */
+    reporting_currency?: string | null;
+    currency_source?: string | null;
+    currency_as_of_date?: string | null;
+    entity_currency_profile_id?: string | null;
+    monetary_config_id?: string | null;
+    currency_snapshot_at?: string | null;
+
   };
   entity_name: string | null;
   definition: ReturnDefinition;

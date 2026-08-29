@@ -21,6 +21,8 @@ import { formatDateOnly, formatDateTime } from '@/lib/datetime';
 import { toast } from 'sonner';
 import { FREQUENCY_LABELS, FILING_STATUS_LABELS } from '@/hooks/useWaveC';
 import { useEntityFilingDetail, useEntityCapabilities, useEntityReturnsMutations } from '@/hooks/useEntityReturns';
+import { CURRENCY_SOURCE_LABELS, type CurrencySource } from '@/hooks/useEntityCurrency';
+
 import { useReturnFormValidationRules } from '@/hooks/useReturnFormValidationRules';
 import { EntityFilingForm } from '@/components/entity/returns-canonical/EntityFilingForm';
 import { FilerGuidancePanel } from '@/components/entity/returns-canonical/FilerGuidancePanel';
@@ -207,6 +209,28 @@ export default function EntityFilingWorkspace() {
             <Field label="Period" value={`${formatDateOnly(data.period.period_start)} – ${formatDateOnly(data.period.period_end)}`} />
             <Field label="Due date" value={formatDateOnly(data.period.due_date)} />
             <Field label="Current version" value={`v${data.filing.current_version_number}`} />
+            {/* Currency is snapshotted when the filing is opened, so later profile
+                changes never rewrite a historical return. */}
+            <Field
+              label="Reporting currency"
+              value={data.filing.reporting_currency
+                ? (
+                  <span className="flex items-center gap-2">
+                    <span className="font-mono">{data.filing.reporting_currency}</span>
+                    {data.filing.currency_source && (
+                      <Badge variant="outline">
+                        {CURRENCY_SOURCE_LABELS[data.filing.currency_source as CurrencySource] ?? data.filing.currency_source}
+                      </Badge>
+                    )}
+                  </span>
+                )
+                : 'Not yet recorded'}
+            />
+            <Field
+              label="Currency fixed as at"
+              value={data.filing.currency_as_of_date ? formatDateOnly(data.filing.currency_as_of_date) : '—'}
+            />
+
           </CardContent>
         </Card>
 
