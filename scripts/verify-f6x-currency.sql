@@ -882,6 +882,23 @@ BEGIN
 
   SELECT count(*) INTO _n FROM public.currencies WHERE code = 'AUD' AND name = 'Australian Dollar';
   PERFORM pg_temp.rec('Z','Z-03','the gate leaves no currency master row behind', _n = 0, 'residue rows='||_n);
+
+  SELECT count(*) INTO _n FROM public.currencies WHERE name LIKE 'F6X Gate %';
+  PERFORM pg_temp.rec('Z','Z-04','the synthetic gate currencies are gone', _n = 0, 'residue rows='||_n);
+
+  SELECT count(*) INTO _n FROM public.regulators WHERE code LIKE 'F6XGATE%';
+  PERFORM pg_temp.rec('Z','Z-05','the synthetic gate regulators are gone', _n = 0, 'residue rows='||_n);
+
+  SELECT count(*) INTO _n FROM public.monetary_configs mc
+   WHERE mc.notes LIKE 'f6x gate scope%';
+  PERFORM pg_temp.rec('Z','Z-06','the synthetic gate monetary configurations are gone', _n = 0, 'residue rows='||_n);
+
+  SELECT count(*) INTO _n FROM public.applications
+   WHERE data->>'f6x_gate' = 'true';
+  PERFORM pg_temp.rec('Z','Z-07','the synthetic gate applications, payments and allocations are gone', _n = 0, 'residue rows='||_n);
+
+  SELECT count(*) INTO _n FROM public.payments WHERE transaction_ref LIKE 'F6X-GATE-%';
+  PERFORM pg_temp.rec('Z','Z-08','the gate banks no payment', _n = 0, 'residue rows='||_n);
 END $z$;
 
 \echo ''
