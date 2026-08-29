@@ -649,9 +649,13 @@ BEGIN
 
 
     -- ================= E — relief and correction ==========================
-    -- E-01 waiver on a fresh balance
+    -- E-01 waiver on a fresh balance. The account was settled by the
+    -- overpayment, so it is first reopened by a governed compensating reversal
+    -- rather than by editing settled history.
     _step := 'E-01'; RAISE NOTICE 'step: %', _step;
+    PERFORM public.fee_payment_reverse(_pay2, 'certify f6c reopening the account for the relief round');
     PERFORM public.fee_component_operation(_app, 'add',
+
       jsonb_build_object('fee_type_id', _ft2, 'amount', 800, 'description','certify:f6c waiver round'));
     _s1 := public.fee_assessment_ensure(_app, 'certify:f6c waiver round');
     _out := ROUND((_s1->>'outstanding')::numeric,2);
