@@ -252,7 +252,8 @@ BEGIN
   PERFORM pg_temp.rec('C','C-00','a fee-administering actor exists to exercise the engine', true,
     'actor='||_admin::text);
 
-  SELECT u.id INTO _applicant FROM auth.users u WHERE u.id <> _admin LIMIT 1;
+  SELECT u.id INTO _applicant FROM auth.users u
+   WHERE u.id <> _admin AND NOT public.fee_can_administer(u.id) LIMIT 1;
   SELECT id INTO _ft FROM public.fee_types LIMIT 1;
   IF _ft IS NULL THEN
     PERFORM pg_temp.rec('C','C-01','a fee type exists to itemise against', false, 'fee_types is empty');
@@ -450,7 +451,10 @@ BEGIN
 
     -- G-03 an entity user never receives the regulator-only sections
     _step := 'G-03'; RAISE NOTICE 'step: %', _step;
-    IF _applicant IS NOT NULL AND NOT public.fee_can_administer(_applicant) THEN
+    IF _applicant IS NULL THEN
+      _buf := pg_temp.bufrec(_buf, 'G','G-03','entity users never receive the regulator-only ledger or audit',
+        false, 'no non-privileged user exists — the confidentiality boundary cannot be proven');
+    ELSE
       PERFORM set_config('request.jwt.claims',
         json_build_object('sub', _applicant::text, 'role','authenticated')::text, true);
       BEGIN
