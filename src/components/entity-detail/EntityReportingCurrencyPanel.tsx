@@ -204,6 +204,60 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
         )}
       </Card>
 
+      {pending.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Proposed overrides awaiting approval</CardTitle>
+            <CardDescription>
+              A proposal does not change the reporting currency. Returns keep resolving to the current active
+              currency until an independent approver accepts the proposal.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Currency</TableHead><TableHead>Effective from</TableHead>
+                  <TableHead>Proposed</TableHead><TableHead>Reason</TableHead><TableHead className="text-right">Decision</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pending.map((p) => {
+                  const isMaker = !!data.current_user_id && (p.proposed_by ?? p.created_by) === data.current_user_id;
+                  return (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-mono">{p.reporting_currency_override}</TableCell>
+                      <TableCell>{formatDateOnly(p.effective_from)}</TableCell>
+                      <TableCell>{formatDateTime(p.proposed_at ?? p.created_at)}</TableCell>
+                      <TableCell className="max-w-[18rem] truncate" title={p.reason ?? ''}>{p.reason ?? '—'}</TableCell>
+                      <TableCell className="space-x-2 text-right">
+                        {canManage && !isMaker && (
+                          <>
+                            <GuardedButton module="licensee_management" action="edit" size="sm"
+                              onClick={() => decide(p.id, 'APPROVE')} disabled={decideOverride.isPending}>Approve</GuardedButton>
+                            <GuardedButton module="licensee_management" action="edit" size="sm" variant="outline"
+                              onClick={() => decide(p.id, 'REJECT')} disabled={decideOverride.isPending}>Reject</GuardedButton>
+                          </>
+                        )}
+                        {isMaker && (
+                          <>
+                            <span className="mr-2 text-xs text-muted-foreground">You proposed this change — an independent approver must decide.</span>
+                            <GuardedButton module="licensee_management" action="edit" size="sm" variant="outline"
+                              onClick={() => withdraw(p.id)} disabled={withdrawProposal.isPending}>Withdraw</GuardedButton>
+                          </>
+                        )}
+                        {!canManage && !isMaker && <span className="text-xs text-muted-foreground">Awaiting approval</span>}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+
       {data.mandated_definitions.length > 0 && (
         <Card>
           <CardHeader>
