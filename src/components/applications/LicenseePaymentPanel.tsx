@@ -370,10 +370,11 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
               </div>
             ) : outstanding <= 0 ? (
               <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-                {state?.basis === 'BUSINESS_CONFIGURATION_ABSENT'
+                {basis === 'BUSINESS_CONFIGURATION_ABSENT'
                   ? 'No fee schedule is configured for this matter. The regulator must configure the fee before any payment can be assessed.'
                   : 'No payment is required for this application. You may continue with the next steps.'}
               </div>
+
             ) : (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-4 dark:border-amber-900/40 dark:bg-amber-950/30">
                 <div className="flex items-start gap-3">
