@@ -291,9 +291,9 @@ BEGIN
       'first='||(_s1->>'assessment_id')||' second='||(_s2->>'assessment_id'));
 
     SELECT count(*) INTO _n FROM public.fee_assessments
-     WHERE application_id = _app AND status = 'ACTIVE';
-    _buf := pg_temp.bufrec(_buf, 'C','C-04','exactly one assessment of record is active per application',
-      _n = 1, 'active='||_n);
+     WHERE application_id = _app AND status <> 'VOID';
+    _buf := pg_temp.bufrec(_buf, 'C','C-04','exactly one assessment of record stands per application',
+      _n = 1, 'standing assessments='||_n);
 
     -- C-05 the assessment carries provenance
     _step := 'C-05'; RAISE NOTICE 'step: %', _step;
@@ -330,9 +330,16 @@ BEGIN
       jsonb_build_object('fee_type_id', (SELECT id FROM public.fee_types WHERE id <> _ft LIMIT 1),
                          'amount', 250, 'description', 'verify:f6b second line'));
     SELECT count(*) INTO _n FROM public.fee_assessments
-     WHERE application_id = _app AND status = 'ACTIVE';
-    _buf := pg_temp.bufrec(_buf, 'D','D-02','changing the fee itemisation retires the stale assessment',
-      _n <= 1, 'active after change='||_n);
+     WHERE application_id = _app AND status <> 'VOID';
+    _buf := pg_temp.bufrec(_buf, 'D','D-02','changing the fee itemisation never leaves two standing assessments',
+      _n = 1, 'standing after itemisation change='||_n);
+
+    -- the standing assessment reflects the new itemisation, so no stale figure is billed
+    _s2 := public.fee_assessment_state(_app);
+    _buf := pg_temp.bufrec(_buf, 'D','D-02b','the standing assessed figure reflects the changed itemisation',
+      ROUND((_s2->>'assessed_total')::numeric,2) = ROUND((_s1->>'assessed_total')::numeric,2) + 250
+        OR (_s2->>'assessment_id') <> (_s1->>'assessment_id'),
+      'before='||(_s1->>'assessed_total')||' after='||COALESCE(_s2->>'assessed_total','∅'));
 
     _s1 := public.fee_assessment_ensure(_app, 'verify:f6b re-assess');
 
