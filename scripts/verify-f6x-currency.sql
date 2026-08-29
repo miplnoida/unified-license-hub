@@ -320,9 +320,9 @@ BEGIN
 
     -- E-01 record the historical conversion with full provenance
     _res := public.fx_convert(10, _pair_from, _pair_to, CURRENT_DATE - 10, NULL, NULL);
-    _conv_id := (public.fx_record_conversion('F6X_GATE','fx_gate',
+    _conv_id := public.fx_record_conversion('F6X_GATE','fx_gate',
         gen_random_uuid(), _res, NULL, _admin,
-        jsonb_build_object('gate','verify:f6x-currency'))->>'fx_conversion_id')::uuid;
+        jsonb_build_object('gate','verify:f6x-currency'));
     SELECT count(*) INTO _n FROM public.fx_conversions
      WHERE id = _conv_id AND rate IS NOT NULL AND fx_rate_id IS NOT NULL
        AND fx_effective_date IS NOT NULL AND fx_regime IS NOT NULL
