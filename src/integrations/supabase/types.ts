@@ -30239,6 +30239,128 @@ export type Database = {
           },
         ]
       }
+      post_license_fp_subject_links: {
+        Row: {
+          application_id: string
+          assessment_id: string
+          created_at: string
+          created_by: string | null
+          data_concept_code: string | null
+          data_concept_id: string | null
+          entity_id: string | null
+          form_field_definition_id: string | null
+          id: string
+          individual_id: string
+          license_id: string | null
+          link_id: string | null
+          party_id: string | null
+          proposed_role: string | null
+          provenance: string
+          repeat_index: number | null
+          response_id: string | null
+          reuse_basis: string
+          service_code: string | null
+          service_id: string | null
+          subject_key: string
+        }
+        Insert: {
+          application_id: string
+          assessment_id: string
+          created_at?: string
+          created_by?: string | null
+          data_concept_code?: string | null
+          data_concept_id?: string | null
+          entity_id?: string | null
+          form_field_definition_id?: string | null
+          id?: string
+          individual_id: string
+          license_id?: string | null
+          link_id?: string | null
+          party_id?: string | null
+          proposed_role?: string | null
+          provenance: string
+          repeat_index?: number | null
+          response_id?: string | null
+          reuse_basis: string
+          service_code?: string | null
+          service_id?: string | null
+          subject_key: string
+        }
+        Update: {
+          application_id?: string
+          assessment_id?: string
+          created_at?: string
+          created_by?: string | null
+          data_concept_code?: string | null
+          data_concept_id?: string | null
+          entity_id?: string | null
+          form_field_definition_id?: string | null
+          id?: string
+          individual_id?: string
+          license_id?: string | null
+          link_id?: string | null
+          party_id?: string | null
+          proposed_role?: string | null
+          provenance?: string
+          repeat_index?: number | null
+          response_id?: string | null
+          reuse_basis?: string
+          service_code?: string | null
+          service_id?: string | null
+          subject_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_license_fp_subject_links_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_license_fp_subject_links_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_license_fp_subject_links_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_application_case_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_license_fp_subject_links_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fp_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_license_fp_subject_links_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "v_fp_determination_integrity"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "post_license_fp_subject_links_individual_id_fkey"
+            columns: ["individual_id"]
+            isOneToOne: false
+            referencedRelation: "fp_individuals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_license_fp_subject_links_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "application_fp_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ppoc_entity_mappings: {
         Row: {
           created_at: string
@@ -48803,6 +48925,10 @@ export type Database = {
         }
         Returns: string
       }
+      ensure_post_license_fp_links: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
       ensure_submission_acknowledgement: {
         Args: {
           _ack_text?: string
@@ -52007,9 +52133,17 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      post_license_fp_overview: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
       post_license_fp_satisfied: {
         Args: { _application_id: string }
         Returns: boolean
+      }
+      post_license_fp_subjects: {
+        Args: { _application_id: string }
+        Returns: Json
       }
       post_license_open_statuses: { Args: never; Returns: string[] }
       post_license_service_applicability: {
@@ -54402,6 +54536,14 @@ export type Database = {
       }
       set_application_establishment_target: {
         Args: { _application_id: string; _establishment_id: string }
+        Returns: Json
+      }
+      set_application_fp_subject: {
+        Args: {
+          _application_id: string
+          _individual_id: string
+          _proposed_role?: string
+        }
         Returns: Json
       }
       set_conduct_signal_disposition: {
