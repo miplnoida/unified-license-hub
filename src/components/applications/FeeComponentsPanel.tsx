@@ -10,6 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PlusCircle, Pencil, Trash2, Loader2, DollarSign } from 'lucide-react';
 import { resolveApplicationFeeBreakdownMeta, ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
+import { feeComponentOperation, feeErrorMessage } from '@/lib/fees/assessmentClient';
+
 
 interface FeeType {
   id: string;
