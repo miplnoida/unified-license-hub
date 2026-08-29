@@ -229,7 +229,7 @@ DECLARE
   _e_plain jsonb; _e_nosub jsonb; _e_main jsonb; _e_retry jsonb; _e_reuse jsonb;
   _e_inflight jsonb; _e_other jsonb;
   _plan_nosub jsonb; _plan_nolink jsonb; _plan_nodet jsonb;
-  _links int; _prov int; _assess int; _links2 int; _prov2 int; _assess2 int;
+  _plain_links int; _plain_prov int; _links int; _prov int; _assess int; _links2 int; _prov2 int; _assess2 int;
   _assess_p3 int; _assess_p4_entity int;
   _align_mismatch text; _align_ok text;
   _forge text; _forge_prov text; _prov_upd text; _prov_del text;
@@ -301,8 +301,8 @@ BEGIN
     PERFORM pg_temp.trusted_on(_officer);
     _e_plain := public.ensure_post_license_fp_links(_a_plain);
     PERFORM pg_temp.trusted_off();
-    SELECT count(*) INTO _links FROM public.application_fp_links WHERE application_id = _a_plain;
-    SELECT count(*) INTO _prov  FROM public.post_license_fp_subject_links WHERE application_id = _a_plain;
+    SELECT count(*) INTO _plain_links FROM public.application_fp_links WHERE application_id = _a_plain;
+    SELECT count(*) INTO _plain_prov  FROM public.post_license_fp_subject_links WHERE application_id = _a_plain;
 
     -------------------------------------------------------- no subject at all
     _a_nosub := pg_temp.f5b4_app(_lic, _svc_fp, _officer);
@@ -390,7 +390,6 @@ BEGIN
 
     ------------------------------------------------------------ reuse rules
     -- same subject, same entity, current positive → reuse, no new assessment
-    PERFORM pg_temp.nominate(_a_nolink, NULL, NULL);  -- no-op guard for clarity
     PERFORM pg_temp.trusted_on(_officer);
     _e_reuse := public.ensure_post_license_fp_links(_a_nolink);
     PERFORM pg_temp.trusted_off();
@@ -532,8 +531,9 @@ BEGIN
   PERFORM pg_temp.rec('B','B-01','a non F&P post-licensing service creates no assessment, link or provenance',
     COALESCE((_r_plain->>'fp_required')::boolean, true) = false
       AND COALESCE((_e_plain->>'fp_required')::boolean, true) = false
-      AND _links = 1,  -- placeholder replaced below
-    'readiness=' || coalesce(_r_plain->>'state','null'));
+      AND _plain_links = 0 AND _plain_prov = 0,
+    'readiness=' || coalesce(_r_plain->>'state','null')
+      || ' links=' || _plain_links || ' provenance=' || _plain_prov);
 
   PERFORM pg_temp.rec('B','B-02','an F&P filing with no canonical subject fails closed at resolution',
     _r_nosub->>'state' = 'FP_SUBJECT_REQUIRED'
