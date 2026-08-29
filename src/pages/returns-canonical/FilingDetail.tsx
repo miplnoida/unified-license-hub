@@ -35,6 +35,7 @@ import { FilingVersionComparison } from '@/components/returns/FilingVersionCompa
 import { FilingCurrentStepPanel } from '@/components/returns/FilingCurrentStepPanel';
 import { FilingRelatedCases } from '@/components/returns/FilingRelatedCases';
 import { FilingMonetaryDisplay } from '@/components/returns/FilingMonetaryDisplay';
+import { FilingLifecyclePanel } from '@/components/returns/FilingLifecyclePanel';
 
 import { StatusBadge } from '@/components/presentation/StatusBadge';
 import { useInternalUsers } from '@/hooks/useInternalUsers';
@@ -286,6 +287,7 @@ export default function FilingDetail() {
             <TabsTrigger value="metrics">Metrics ({data.metrics.length})</TabsTrigger>
             <TabsTrigger value="findings">Validation ({data.findings.length})</TabsTrigger>
             <TabsTrigger value="compare">Compare</TabsTrigger>
+            <TabsTrigger value="lifecycle">Lifecycle</TabsTrigger>
             <TabsTrigger value="requests">Requests ({data.requests.length})</TabsTrigger>
             <TabsTrigger value="related">Related cases</TabsTrigger>
 
@@ -399,6 +401,18 @@ export default function FilingDetail() {
           <TabsContent value="compare">
             <FilingVersionComparison
               versions={data.versions.map((v) => ({ id: v.id, version_number: v.version_number, status: v.status }))}
+            />
+          </TabsContent>
+
+          <TabsContent value="lifecycle">
+            <FilingLifecyclePanel
+              audience="REGULATOR"
+              filingId={filingId!}
+              versionId={currentVersionId}
+              periodId={data.period.id}
+              originalDueDate={data.period.due_date}
+              effectiveDueDate={(workflow as { effective_due_date?: string | null } | null | undefined)?.effective_due_date ?? data.period.due_date}
+              requests={data.requests}
             />
           </TabsContent>
 

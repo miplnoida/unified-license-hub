@@ -901,6 +901,85 @@ BEGIN
   PERFORM pg_temp.rec('Z','Z-08','the gate banks no payment', _n = 0, 'residue rows='||_n);
 END $z$;
 
+
+-- ===========================================================================
+-- SECTION M — ENTITY REPORTING CURRENCY (additive extension of the frozen
+-- currency contract). An entity's regulatory reporting currency defaults to
+-- the regulator base currency, may be overridden only through the governed
+-- effective-dated entity profile, may be mandated only by explicit business
+-- configuration on the return definition, is resolved server-side, and is
+-- snapshotted onto every filing. No module keeps its own preference.
+-- ===========================================================================
+DO $m$
+DECLARE _n int; _ok boolean; _msg text; _entity uuid; _res jsonb; _base text;
+BEGIN
+  SELECT count(*) INTO _n FROM pg_proc p JOIN pg_namespace ns ON ns.oid = p.pronamespace
+   WHERE ns.nspname='public' AND p.proname IN
+     ('entity_reporting_currency_resolve','entity_currency_override_set',
+      'entity_currency_override_decide','entity_currency_override_withdraw',
+      'entity_currency_override_supersede','entity_currency_profile_overview',
+      'entity_currency_approval_mode','returns_rebase_filing_currency');
+  PERFORM pg_temp.rec('M','M-01','the entity reporting currency layer is fully governed by RPCs',
+    _n = 8, 'governed routines='||_n);
+
+  SELECT count(*) INTO _n FROM pg_proc p JOIN pg_namespace ns ON ns.oid=p.pronamespace
+   WHERE ns.nspname='public' AND p.proname LIKE 'entity_currency%'
+     AND (p.prosecdef IS NOT TRUE OR p.proconfig IS NULL
+          OR NOT EXISTS (SELECT 1 FROM unnest(p.proconfig) c WHERE c LIKE 'search_path=%'));
+  PERFORM pg_temp.rec('M','M-02','every entity-currency routine is a definer routine with a pinned search_path',
+    _n = 0, 'offending routines='||_n);
+
+  SELECT count(*) INTO _n FROM information_schema.role_table_grants
+   WHERE table_schema='public' AND table_name='entity_currency_profiles'
+     AND grantee IN ('anon','authenticated')
+     AND privilege_type IN ('INSERT','UPDATE','DELETE');
+  PERFORM pg_temp.rec('M','M-03','the browser cannot write entity currency profiles directly',
+    _n = 0, 'write grants='||_n);
+
+  SELECT count(*) INTO _n FROM pg_class c JOIN pg_namespace ns ON ns.oid=c.relnamespace
+   WHERE ns.nspname='public' AND c.relname='entity_currency_profiles' AND c.relrowsecurity;
+  PERFORM pg_temp.rec('M','M-04','row level security governs entity currency profiles', _n = 1, 'rls tables='||_n);
+
+  SELECT count(*) INTO _n FROM information_schema.columns
+   WHERE table_schema='public' AND table_name='return_filings'
+     AND column_name IN ('reporting_currency','currency_source','currency_as_of','entity_currency_profile_id');
+  PERFORM pg_temp.rec('M','M-05','every filing snapshots its authoritative currency and provenance',
+    _n = 4, 'snapshot columns='||_n);
+
+  SELECT count(*) INTO _n FROM information_schema.columns
+   WHERE table_schema='public'
+     AND column_name IN ('reporting_currency_override','preferred_currency','entity_currency')
+     AND table_name NOT IN ('entity_currency_profiles');
+  PERFORM pg_temp.rec('M','M-06','no module maintains an independent entity currency preference',
+    _n = 0, 'competing preference columns='||_n);
+
+  SELECT count(*) INTO _n FROM information_schema.columns
+   WHERE table_schema='public' AND table_name='monetary_configs'
+     AND column_name='entity_currency_override_approval_mode';
+  PERFORM pg_temp.rec('M','M-07','the entity override approval mode is business configuration, not code',
+    _n = 1, 'approval mode column='||_n);
+
+  -- behavioural: the hierarchy resolves server-side and fails closed
+  SELECT rf.entity_id INTO _entity FROM public.return_filings rf
+   WHERE rf.entity_id IS NOT NULL LIMIT 1;
+  IF _entity IS NULL THEN
+    PERFORM pg_temp.rec('M','M-08','the resolver answers with the regulator base currency by default',
+      false, 'no filing-bearing entity exists — refusing to certify vacuously');
+  ELSE
+    _res := public.entity_reporting_currency_resolve(_entity, current_date, NULL);
+    PERFORM pg_temp.rec('M','M-08','the resolver answers with an authoritative currency and provenance',
+      _res->>'currency' IS NOT NULL AND _res->>'source' IS NOT NULL,
+      'currency='||COALESCE(_res->>'currency','∅')||' source='||COALESCE(_res->>'source','∅'));
+  END IF;
+
+  _ok := false; _msg := '';
+  BEGIN
+    PERFORM public.entity_reporting_currency_resolve('00000000-0000-0000-0000-000000000000'::uuid, current_date, NULL);
+  EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM;
+  END;
+  PERFORM pg_temp.rec('M','M-09','an unresolvable entity fails closed instead of assuming a currency', _ok, _msg);
+END $m$;
+
 \echo ''
 \echo '===================== verify:f6x-currency results ====================='
 SELECT section, id, CASE WHEN passed THEN 'PASS' ELSE 'FAIL' END AS result, descr, detail

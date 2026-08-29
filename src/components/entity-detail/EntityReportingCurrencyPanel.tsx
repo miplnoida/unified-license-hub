@@ -20,7 +20,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { ReasonDialog, type ReasonDialogRequest } from '@/components/governance/ReasonDialog';
 import { formatDateOnly, formatDateTime } from '@/lib/datetime';
+
 import {
   CURRENCY_APPROVAL_MODE_LABELS, CURRENCY_PROFILE_STATUS_LABELS, CURRENCY_SOURCE_LABELS,
   useCurrencyMaster, useEntityCurrencyMutations, useEntityCurrencyOverview,
@@ -37,6 +39,8 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
   const [code, setCode] = useState('');
   const [effectiveFrom, setEffectiveFrom] = useState('');
   const [reason, setReason] = useState('');
+  const [decision, setDecision] = useState<ReasonDialogRequest | null>(null);
+
 
   if (isLoading) {
     return <Card><CardContent className="py-10 text-center"><Loader2 className="inline h-5 w-5 animate-spin text-muted-foreground" /></CardContent></Card>;
@@ -73,38 +77,59 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
     }
   };
 
-  const decide = async (profileId: string, decision: 'APPROVE' | 'REJECT') => {
-    const why = window.prompt(`Reason for ${decision === 'APPROVE' ? 'approving' : 'rejecting'} this proposed override (min 10 characters)`) ?? '';
-    if (why.trim().length < 10) { toast.error('A reason of at least 10 characters is required.'); return; }
-    try {
-      await decideOverride.mutateAsync({ profileId, decision, reason: why.trim() });
-      toast.success(decision === 'APPROVE' ? 'Override approved and now active.' : 'Proposed override rejected.');
-    } catch (e: any) {
-      toast.error(e?.message ?? 'The decision could not be recorded.');
-    }
-  };
+  const decide = (p: { id: string; reporting_currency_override: string; effective_from: string; reason?: string | null }, decision: 'APPROVE' | 'REJECT') =>
+    setDecision({
+      title: decision === 'APPROVE' ? 'Approve reporting currency override' : 'Reject proposed reporting currency override',
+      description: decision === 'APPROVE'
+        ? 'Approving activates this override from its effective date. Filings already opened keep the currency recorded at the time.'
+        : 'Rejecting leaves the entity on its current reporting currency. The proposal is retained in history.',
+      context: [
+        { label: 'Proposed currency', value: <span className="font-mono">{p.reporting_currency_override}</span> },
+        { label: 'Effective from', value: formatDateOnly(p.effective_from) },
+        { label: 'Proposal reason', value: p.reason ?? '—' },
+        { label: 'Current reporting currency', value: <span className="font-mono">{data.currency}</span> },
+      ],
+      confirmLabel: decision === 'APPROVE' ? 'Approve override' : 'Reject proposal',
+      destructive: decision === 'REJECT',
+      onConfirm: async (why) => {
+        await decideOverride.mutateAsync({ profileId: p.id, decision, reason: why });
+        toast.success(decision === 'APPROVE' ? 'Override approved and now active.' : 'Proposed override rejected.');
+      },
+    });
 
-  const withdraw = async (profileId: string) => {
-    const why = window.prompt('Reason for withdrawing this proposal (min 10 characters)') ?? '';
-    if (why.trim().length < 10) { toast.error('A reason of at least 10 characters is required.'); return; }
-    try {
-      await withdrawProposal.mutateAsync({ profileId, reason: why.trim() });
-      toast.success('Proposal withdrawn.');
-    } catch (e: any) {
-      toast.error(e?.message ?? 'The proposal could not be withdrawn.');
-    }
-  };
+  const withdraw = (p: { id: string; reporting_currency_override: string; effective_from: string }) =>
+    setDecision({
+      title: 'Withdraw proposed override',
+      description: 'Withdrawing removes the proposal from the approval queue. The record is retained in history.',
+      context: [
+        { label: 'Proposed currency', value: <span className="font-mono">{p.reporting_currency_override}</span> },
+        { label: 'Effective from', value: formatDateOnly(p.effective_from) },
+      ],
+      confirmLabel: 'Withdraw proposal',
+      destructive: true,
+      onConfirm: async (why) => {
+        await withdrawProposal.mutateAsync({ profileId: p.id, reason: why });
+        toast.success('Proposal withdrawn.');
+      },
+    });
 
-  const supersede = async (profileId: string) => {
-    const why = window.prompt('Reason for superseding this override (min 10 characters)') ?? '';
-    if (why.trim().length < 10) { toast.error('A reason of at least 10 characters is required.'); return; }
-    try {
-      await supersedeOverride.mutateAsync({ profileId, reason: why.trim() });
-      toast.success('Override superseded. History is retained.');
-    } catch (e: any) {
-      toast.error(e?.message ?? 'The override could not be superseded.');
-    }
-  };
+  const supersede = (p: { id: string; reporting_currency_override: string; effective_from: string }) =>
+    setDecision({
+      title: 'Supersede current reporting currency override',
+      description: 'The entity reverts to the regulator base currency, or to the next applicable override, from today. Historical periods stay resolvable.',
+      context: [
+        { label: 'Current override', value: <span className="font-mono">{p.reporting_currency_override}</span> },
+        { label: 'Effective from', value: formatDateOnly(p.effective_from) },
+        { label: 'Regulator base currency', value: <span className="font-mono">{data.regulator_base_currency}</span> },
+      ],
+      confirmLabel: 'Supersede override',
+      destructive: true,
+      onConfirm: async (why) => {
+        await supersedeOverride.mutateAsync({ profileId: p.id, reason: why });
+        toast.success('Override superseded. History is retained.');
+      },
+    });
+
 
 
   return (
@@ -197,7 +222,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
         {activeProfile && canManage && (
           <CardContent className="pt-0">
             <GuardedButton module="licensee_management" action="edit" variant="outline" size="sm"
-              onClick={() => supersede(activeProfile.id)}>
+              onClick={() => supersede(activeProfile)}>
               Supersede current override
             </GuardedButton>
           </CardContent>
@@ -234,9 +259,9 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
                         {canManage && !isMaker && (
                           <>
                             <GuardedButton module="licensee_management" action="edit" data-rbac="licensee_management.edit" size="sm"
-                              onClick={() => decide(p.id, 'APPROVE')} disabled={decideOverride.isPending}>Accept proposal</GuardedButton>
+                              onClick={() => decide(p, 'APPROVE')} disabled={decideOverride.isPending}>Accept proposal</GuardedButton>
                             <GuardedButton module="licensee_management" action="edit" data-rbac="licensee_management.edit" size="sm" variant="outline"
-                              onClick={() => decide(p.id, 'REJECT')} disabled={decideOverride.isPending}>Decline proposal</GuardedButton>
+                              onClick={() => decide(p, 'REJECT')} disabled={decideOverride.isPending}>Decline proposal</GuardedButton>
 
                           </>
                         )}
@@ -244,7 +269,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
                           <>
                             <span className="mr-2 text-xs text-muted-foreground">You proposed this change — an independent approver must decide.</span>
                             <GuardedButton module="licensee_management" action="edit" size="sm" variant="outline"
-                              onClick={() => withdraw(p.id)} disabled={withdrawProposal.isPending}>Withdraw</GuardedButton>
+                              onClick={() => withdraw(p)} disabled={withdrawProposal.isPending}>Withdraw</GuardedButton>
                           </>
                         )}
                         {!canManage && !isMaker && <span className="text-xs text-muted-foreground">Awaiting approval</span>}
@@ -296,7 +321,8 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
               <TableHeader>
                 <TableRow>
                   <TableHead>Currency</TableHead><TableHead>Effective from</TableHead><TableHead>Effective to</TableHead>
-                  <TableHead>Status</TableHead><TableHead>Reason</TableHead><TableHead>Recorded</TableHead>
+                  <TableHead>Status</TableHead><TableHead>Reason</TableHead><TableHead>Proposed by</TableHead>
+                  <TableHead>Decision</TableHead><TableHead>Recorded</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -307,6 +333,14 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
                     <TableCell>{p.effective_to ? formatDateOnly(p.effective_to) : 'Open-ended'}</TableCell>
                     <TableCell><Badge variant="outline">{CURRENCY_PROFILE_STATUS_LABELS[p.status] ?? p.status}</Badge></TableCell>
                     <TableCell className="max-w-[22rem] truncate" title={p.reason ?? ''}>{p.reason ?? '—'}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {p.proposed_at ? formatDateTime(p.proposed_at) : '—'}
+                    </TableCell>
+                    <TableCell className="max-w-[18rem] text-xs text-muted-foreground" title={p.decision_reason ?? ''}>
+                      {p.decision_at
+                        ? `${formatDateTime(p.decision_at)} — ${p.decision_reason ?? 'no reason recorded'}`
+                        : 'No decision recorded'}
+                    </TableCell>
                     <TableCell>{formatDateTime(p.created_at)}</TableCell>
                   </TableRow>
                 ))}
@@ -315,6 +349,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
           )}
         </CardContent>
       </Card>
+      <ReasonDialog request={decision} onClose={() => setDecision(null)} />
     </div>
   );
 }

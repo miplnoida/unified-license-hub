@@ -9,6 +9,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { FilingLifecyclePanel } from '@/components/returns/FilingLifecyclePanel';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -232,7 +233,25 @@ export default function EntityFilingWorkspace() {
             />
 
           </CardContent>
+          {data.filing.currency_source === 'RETURN_DEFINITION' && data.filing.reporting_currency && (
+            <CardContent className="pt-0 text-sm text-muted-foreground">
+              This return is required to be filed in <span className="font-mono">{data.filing.reporting_currency}</span>.
+              The mandated currency is set on the return definition and overrides the entity reporting currency.
+            </CardContent>
+          )}
         </Card>
+
+        {/* ---- Governed lifecycle: RFI, extensions, amendments, evidence -- */}
+        <FilingLifecyclePanel
+          audience="ENTITY"
+          filingId={data.filing.id}
+          versionId={currentVersionId}
+          periodId={data.period.id}
+          originalDueDate={data.period.due_date}
+          requests={data.requests}
+        />
+
+
 
         {/* ---- Form-level navigator ------------------------------------ */}
         {currentForms.length === 0 ? (
