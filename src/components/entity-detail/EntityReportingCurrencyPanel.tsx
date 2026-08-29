@@ -124,12 +124,14 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Set entity reporting currency</DialogTitle>
+                  <DialogTitle>{makerChecker ? 'Propose entity reporting currency' : 'Set entity reporting currency'}</DialogTitle>
                   <DialogDescription>
                     The override applies from the effective date onwards. Earlier reporting periods and already
                     opened filings keep the currency recorded at the time.
+                    {makerChecker && ' This regulator requires an independent approver, so the change is recorded as a proposal first.'}
                   </DialogDescription>
                 </DialogHeader>
+
                 <div className="space-y-3">
                   <div className="space-y-1.5">
                     <Label>Reporting currency</Label>
