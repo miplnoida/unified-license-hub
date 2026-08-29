@@ -264,7 +264,34 @@ async function resolveAttachedActiveWorkflow(
 export async function resolveWorkflowApproval(
   ctx: WorkflowApprovalContext,
 ): Promise<WorkflowApprovalResolution> {
+  // SERVER AUTHORITY: when we have a persisted application, the database
+  // resolver (application_workflow_view) is the single source of truth for
+  // workflow matching, services.workflow_id precedence and open statuses.
+  // The client logic below is only a fallback for unsaved/among-legacy rows.
+  if (ctx.application?.id) {
+    const { data, error } = await (supabase.rpc as any)('application_workflow_view', {
+      _application_id: ctx.application.id,
+    });
+    const view = data as any;
+    if (!error && view?.found) {
+      return {
+        enabled: !!view.enabled,
+        reason: view.reason as WorkflowApprovalResolution['reason'],
+        globalReviewEnabled: view.global_review_enabled !== false,
+        matchedWorkflow: view.workflow_id
+          ? {
+              id: view.workflow_id as string,
+              is_active: !!view.workflow_is_active,
+              license_type: (view.workflow_name as string) ?? '',
+            }
+          : null,
+        stepCount: Number(view.step_count ?? 0),
+      };
+    }
+  }
+
   const globalReviewEnabled = await getGlobalReviewEnabled();
+
 
   if (!globalReviewEnabled) {
     return {
