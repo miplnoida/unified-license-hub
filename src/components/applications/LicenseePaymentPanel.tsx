@@ -15,10 +15,14 @@ import { formatDateTime } from '@/lib/datetime';
 import {
   ensureFeeAssessment,
   feeErrorMessage,
+  fetchFeeAssessmentPreview,
+  fetchFeeAssessmentState,
   money,
   num,
+  type FeeAssessmentPreview,
   type FeeAssessmentState,
 } from '@/lib/fees/assessmentClient';
+
 
 interface Props {
   applicationId: string;
@@ -49,10 +53,17 @@ interface PaymentRow {
 /**
  * Licensee-facing payment panel.
  *
- * Every monetary figure shown here is the server's assessment of record: the
- * immutable line breakdown, assessed total, paid / waived / refunded amounts and
- * the outstanding balance all come from `fee_assessment_ensure` /
- * `fee_assessment_state`. The browser never prices anything, and the amount
+ * Every monetary figure shown here is the server's: the immutable line
+ * breakdown, assessed total, paid / waived / refunded amounts and the
+ * outstanding balance come from `fee_assessment_state`. When no assessment of
+ * record exists yet, the panel shows the server's NON-persisting resolver
+ * preview (`fee_assessment_preview`) — a read-only page view never freezes or
+ * re-prices a financial obligation.
+ *
+ * The assessment of record is created at the canonical business event: the
+ * applicant entering the payment step (pressing "Pay Online" or "Paid
+ * Offline"), which calls `fee_assessment_ensure` immediately before the
+ * governed payment RPC. The browser never prices anything, and the amount
  * passed to the payment RPC is financially irrelevant — the server charges the
  * outstanding balance it resolved itself.
  */
@@ -60,6 +71,7 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState<FeeAssessmentState | null>(null);
+  const [preview, setPreview] = useState<FeeAssessmentPreview | null>(null);
   const [stateError, setStateError] = useState<string | null>(null);
   const [payment, setPayment] = useState<PaymentRow | null>(null);
   const [processing, setProcessing] = useState(false);
@@ -71,7 +83,7 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
     setStateError(null);
     try {
       const [assessment, payRes] = await Promise.all([
-        ensureFeeAssessment(applicationId, 'Payment surface opened'),
+        fetchFeeAssessmentState(applicationId),
         supabase
           .from('payments')
           .select('id, amount, status, payment_method, paid_at, created_at, transaction_ref, receipt_number, currency, payment_channel, offline_method, verification_status, verification_remarks, payment_date, bank_name')
@@ -79,7 +91,13 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
           .order('created_at', { ascending: false }),
       ]);
 
-      setState(assessment);
+      if (assessment.found) {
+        setState(assessment);
+        setPreview(null);
+      } else {
+        setState(null);
+        setPreview(await fetchFeeAssessmentPreview(applicationId));
+      }
 
       const payments = (payRes.data || []) as unknown as PaymentRow[];
       const successful = payments.find(p => ['success', 'paid', 'completed'].includes((p.status || '').toLowerCase()));
@@ -87,6 +105,7 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
       setPayment(successful || awaiting || payments[0] || null);
     } catch (e) {
       setState(null);
+      setPreview(null);
       setStateError(feeErrorMessage(e));
     } finally {
       setLoading(false);
@@ -97,13 +116,18 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
     void loadData();
   }, [loadData]);
 
-  const currency = state?.currency || payment?.currency || '';
-  const lines = useMemo(() => (Array.isArray(state?.lines) ? state!.lines! : []), [state]);
-  const assessedTotal = num(state?.assessed_total);
-  const outstanding = num(state?.outstanding);
+  const currency = state?.currency || preview?.currency || payment?.currency || '';
+  const lines = useMemo(
+    () => (state?.found && Array.isArray(state.lines) ? state.lines : (preview?.lines || [])),
+    [state, preview],
+  );
+  const assessedTotal = state?.found ? num(state.assessed_total) : num(preview?.assessed_total);
+  // Before assessment the server preview total is the indicative amount payable.
+  const outstanding = state?.found ? num(state.outstanding) : num(preview?.assessed_total);
   const paidTotal = num(state?.paid_total);
   const waivedTotal = num(state?.waived_total);
   const refundedTotal = num(state?.refunded_total);
+  const basis = state?.basis || preview?.basis || null;
 
   const isPaid = useMemo(
     () => !!state?.found && outstanding <= 0 && (paidTotal > 0 || assessedTotal > 0),
@@ -114,6 +138,18 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
     () => !!payment && outstanding > 0 && payment.verification_status === 'pending',
     [payment, outstanding],
   );
+
+  /**
+   * Canonical assessment boundary: the applicant has entered the payment step.
+   * This is the only browser-initiated path that may create financial history.
+   */
+  const enterPaymentStep = useCallback(async () => {
+    const assessment = await ensureFeeAssessment(applicationId, 'Applicant entered the payment step');
+    setState(assessment.found ? assessment : null);
+    if (assessment.found) setPreview(null);
+    return assessment;
+  }, [applicationId]);
+
 
   const handleDownloadInvoice = async () => {
     if (!payment) return;
@@ -126,6 +162,8 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
     if (!user) return;
     setProcessing(true);
     try {
+      // Canonical assessment boundary — entering the payment step.
+      await enterPaymentStep();
       // `_amount` is retained only for call-signature compatibility. The server
       // resolves the payable amount from the assessment of record and ignores it.
       const { data: paymentResult, error: paymentError } = await (supabase as any).rpc(
@@ -133,6 +171,7 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
         { _application_id: applicationId, _amount: null },
       );
       if (paymentError) throw paymentError;
+
 
       const paymentAction = paymentResult?.action as string | undefined;
       const paymentRowId = paymentResult?.payment_id as string | undefined;
@@ -331,10 +370,11 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
               </div>
             ) : outstanding <= 0 ? (
               <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-                {state?.basis === 'BUSINESS_CONFIGURATION_ABSENT'
+                {basis === 'BUSINESS_CONFIGURATION_ABSENT'
                   ? 'No fee schedule is configured for this matter. The regulator must configure the fee before any payment can be assessed.'
                   : 'No payment is required for this application. You may continue with the next steps.'}
               </div>
+
             ) : (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-4 dark:border-amber-900/40 dark:bg-amber-950/30">
                 <div className="flex items-start gap-3">
@@ -368,11 +408,23 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
                         data-rbac="application_management.edit"
                         variant="outline"
                         size="lg"
-                        onClick={() => setOfflineOpen(true)}
+                        onClick={async () => {
+                          setProcessing(true);
+                          try {
+                            // Canonical assessment boundary — entering the payment step.
+                            await enterPaymentStep();
+                            setOfflineOpen(true);
+                          } catch (e) {
+                            toast.error(feeErrorMessage(e));
+                          } finally {
+                            setProcessing(false);
+                          }
+                        }}
                         disabled={processing}
                       >
                         <Banknote className="h-4 w-4 mr-2" /> Paid Offline
                       </Button>
+
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground max-w-[180px] text-right">
