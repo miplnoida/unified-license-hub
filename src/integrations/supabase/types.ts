@@ -14085,6 +14085,42 @@ export type Database = {
         }
         Relationships: []
       }
+      currencies: {
+        Row: {
+          code: string
+          created_at: string
+          decimal_precision: number
+          display_symbol: string | null
+          effective_from: string | null
+          effective_to: string | null
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          decimal_precision?: number
+          display_symbol?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          decimal_precision?: number
+          display_symbol?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       data_concepts: {
         Row: {
           canonical_target: string | null
@@ -20006,39 +20042,69 @@ export type Database = {
           allocated_by: string | null
           amount: number
           assessment_id: string
+          base_amount: number | null
+          base_currency: string | null
           currency: string
+          fx_conversion_id: string | null
+          fx_effective_date: string | null
+          fx_quote_convention: string | null
+          fx_rate: number | null
+          fx_rate_id: string | null
           id: string
           ledger_entry_id: string | null
           payment_id: string
           reversal_ledger_entry_id: string | null
           reversal_reason: string | null
           reversed_at: string | null
+          rounding_difference: number | null
+          source_amount: number | null
+          source_currency: string | null
         }
         Insert: {
           allocated_at?: string
           allocated_by?: string | null
           amount: number
           assessment_id: string
+          base_amount?: number | null
+          base_currency?: string | null
           currency: string
+          fx_conversion_id?: string | null
+          fx_effective_date?: string | null
+          fx_quote_convention?: string | null
+          fx_rate?: number | null
+          fx_rate_id?: string | null
           id?: string
           ledger_entry_id?: string | null
           payment_id: string
           reversal_ledger_entry_id?: string | null
           reversal_reason?: string | null
           reversed_at?: string | null
+          rounding_difference?: number | null
+          source_amount?: number | null
+          source_currency?: string | null
         }
         Update: {
           allocated_at?: string
           allocated_by?: string | null
           amount?: number
           assessment_id?: string
+          base_amount?: number | null
+          base_currency?: string | null
           currency?: string
+          fx_conversion_id?: string | null
+          fx_effective_date?: string | null
+          fx_quote_convention?: string | null
+          fx_rate?: number | null
+          fx_rate_id?: string | null
           id?: string
           ledger_entry_id?: string | null
           payment_id?: string
           reversal_ledger_entry_id?: string | null
           reversal_reason?: string | null
           reversed_at?: string | null
+          rounding_difference?: number | null
+          source_amount?: number | null
+          source_currency?: string | null
         }
         Relationships: [
           {
@@ -20046,6 +20112,20 @@ export type Database = {
             columns: ["assessment_id"]
             isOneToOne: false
             referencedRelation: "fee_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_allocations_fx_conversion_id_fkey"
+            columns: ["fx_conversion_id"]
+            isOneToOne: false
+            referencedRelation: "fx_conversions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_allocations_fx_rate_id_fkey"
+            columns: ["fx_rate_id"]
+            isOneToOne: false
+            referencedRelation: "fx_rates"
             referencedColumns: ["id"]
           },
           {
@@ -23182,6 +23262,197 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      fx_conversions: {
+        Row: {
+          converted_at: string
+          created_by: string | null
+          fx_effective_date: string
+          fx_rate_id: string | null
+          fx_rate_version: number | null
+          fx_regime: string | null
+          fx_source: string | null
+          id: string
+          metadata: Json
+          purpose: string
+          quote_convention: string
+          rate: number
+          rounding_difference: number
+          rounding_policy: string | null
+          source_amount: number
+          source_currency: string
+          subject_id: string | null
+          subject_type: string
+          target_amount: number
+          target_currency: string
+        }
+        Insert: {
+          converted_at?: string
+          created_by?: string | null
+          fx_effective_date: string
+          fx_rate_id?: string | null
+          fx_rate_version?: number | null
+          fx_regime?: string | null
+          fx_source?: string | null
+          id?: string
+          metadata?: Json
+          purpose: string
+          quote_convention: string
+          rate: number
+          rounding_difference?: number
+          rounding_policy?: string | null
+          source_amount: number
+          source_currency: string
+          subject_id?: string | null
+          subject_type: string
+          target_amount: number
+          target_currency: string
+        }
+        Update: {
+          converted_at?: string
+          created_by?: string | null
+          fx_effective_date?: string
+          fx_rate_id?: string | null
+          fx_rate_version?: number | null
+          fx_regime?: string | null
+          fx_source?: string | null
+          id?: string
+          metadata?: Json
+          purpose?: string
+          quote_convention?: string
+          rate?: number
+          rounding_difference?: number
+          rounding_policy?: string | null
+          source_amount?: number
+          source_currency?: string
+          subject_id?: string | null
+          subject_type?: string
+          target_amount?: number
+          target_currency?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fx_conversions_fx_rate_id_fkey"
+            columns: ["fx_rate_id"]
+            isOneToOne: false
+            referencedRelation: "fx_rates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fx_rates: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          decision_reason: string | null
+          effective_from: string
+          effective_to: string | null
+          from_currency: string
+          id: string
+          notes: string | null
+          provenance_reference: string | null
+          quote_convention: string
+          rate: number
+          rate_source: string
+          rate_type: string
+          regime: string
+          regulator_id: string | null
+          status: string
+          superseded_by: string | null
+          supersedes_id: string | null
+          to_currency: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          decision_reason?: string | null
+          effective_from: string
+          effective_to?: string | null
+          from_currency: string
+          id?: string
+          notes?: string | null
+          provenance_reference?: string | null
+          quote_convention?: string
+          rate: number
+          rate_source?: string
+          rate_type?: string
+          regime?: string
+          regulator_id?: string | null
+          status?: string
+          superseded_by?: string | null
+          supersedes_id?: string | null
+          to_currency: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          decision_reason?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          from_currency?: string
+          id?: string
+          notes?: string | null
+          provenance_reference?: string | null
+          quote_convention?: string
+          rate?: number
+          rate_source?: string
+          rate_type?: string
+          regime?: string
+          regulator_id?: string | null
+          status?: string
+          superseded_by?: string | null
+          supersedes_id?: string | null
+          to_currency?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fx_rates_from_currency_fkey"
+            columns: ["from_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fx_rates_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fx_rates_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "fx_rates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fx_rates_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "fx_rates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fx_rates_to_currency_fkey"
+            columns: ["to_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       group_consolidated_snapshots: {
         Row: {
@@ -27889,6 +28160,103 @@ export type Database = {
           tested_by?: string | null
         }
         Relationships: []
+      }
+      monetary_configs: {
+        Row: {
+          accepted_payment_currencies: string[]
+          backdating_requires_authority: boolean
+          base_currency: string
+          created_at: string
+          created_by: string | null
+          cross_currency_refund_allowed: boolean
+          cross_currency_settlement_allowed: boolean
+          decimal_precision: number
+          fx_resolution_policy: string
+          fx_source_policy: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          payment_fx_date_policy: string
+          refund_fx_date_policy: string
+          regulator_id: string | null
+          reporting_currency: string
+          rounding_policy: string
+          settlement_currencies: string[]
+          supported_transaction_currencies: string[]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          accepted_payment_currencies?: string[]
+          backdating_requires_authority?: boolean
+          base_currency: string
+          created_at?: string
+          created_by?: string | null
+          cross_currency_refund_allowed?: boolean
+          cross_currency_settlement_allowed?: boolean
+          decimal_precision?: number
+          fx_resolution_policy?: string
+          fx_source_policy?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          payment_fx_date_policy?: string
+          refund_fx_date_policy?: string
+          regulator_id?: string | null
+          reporting_currency: string
+          rounding_policy?: string
+          settlement_currencies?: string[]
+          supported_transaction_currencies?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          accepted_payment_currencies?: string[]
+          backdating_requires_authority?: boolean
+          base_currency?: string
+          created_at?: string
+          created_by?: string | null
+          cross_currency_refund_allowed?: boolean
+          cross_currency_settlement_allowed?: boolean
+          decimal_precision?: number
+          fx_resolution_policy?: string
+          fx_source_policy?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          payment_fx_date_policy?: string
+          refund_fx_date_policy?: string
+          regulator_id?: string | null
+          reporting_currency?: string
+          rounding_policy?: string
+          settlement_currencies?: string[]
+          supported_transaction_currencies?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monetary_configs_base_currency_fkey"
+            columns: ["base_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "monetary_configs_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monetary_configs_reporting_currency_fkey"
+            columns: ["reporting_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       notification_digest_items: {
         Row: {
@@ -49188,6 +49556,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      currency_is_supported: {
+        Args: { _code: string; _regulator_id?: string }
+        Returns: boolean
+      }
       current_regulatory_profile: {
         Args: never
         Returns: {
@@ -50226,6 +50598,10 @@ export type Database = {
         Args: { _payment_id: string; _uid: string }
         Returns: boolean
       }
+      fee_collected_in_reporting_currency: {
+        Args: { _regulator_id?: string }
+        Returns: Json
+      }
       fee_component_operation: {
         Args: { _application_id: string; _operation: string; _payload?: Json }
         Returns: Json
@@ -50249,6 +50625,14 @@ export type Database = {
       fee_refund_request: {
         Args: { _amount: number; _payment_id: string; _reason: string }
         Returns: Json
+      }
+      fee_totals_by_currency: {
+        Args: { _regulator_id?: string }
+        Returns: {
+          assessed: number
+          collected: number
+          currency: string
+        }[]
       }
       fee_waiver_decide: {
         Args: {
@@ -50689,6 +51073,104 @@ export type Database = {
       }
       fp_screening_run_cancel: { Args: { _run_id: string }; Returns: undefined }
       fp_user_regulator_id: { Args: { _user_id: string }; Returns: string }
+      fx_base_currency: { Args: { _regulator_id?: string }; Returns: string }
+      fx_convert: {
+        Args: {
+          _amount: number
+          _at: string
+          _from: string
+          _policy_override?: string
+          _regulator_id?: string
+          _to: string
+        }
+        Returns: Json
+      }
+      fx_rate_decide: {
+        Args: { _approve: boolean; _rate_id: string; _reason?: string }
+        Returns: Json
+      }
+      fx_rate_propose: {
+        Args: {
+          _effective_from: string
+          _effective_to?: string
+          _from: string
+          _notes?: string
+          _provenance_reference?: string
+          _quote_convention?: string
+          _rate: number
+          _rate_source?: string
+          _rate_type?: string
+          _regime?: string
+          _regulator_id?: string
+          _to: string
+        }
+        Returns: Json
+      }
+      fx_rate_supersede: {
+        Args: { _rate_id: string; _reason: string }
+        Returns: Json
+      }
+      fx_rate_usage_count: { Args: { _rate_id: string }; Returns: number }
+      fx_record_conversion: {
+        Args: {
+          _actor?: string
+          _conv: Json
+          _metadata?: Json
+          _purpose: string
+          _regulator_id?: string
+          _subject_id: string
+          _subject_type: string
+        }
+        Returns: string
+      }
+      fx_reporting_currency: {
+        Args: { _regulator_id?: string }
+        Returns: string
+      }
+      fx_resolve_rate: {
+        Args: {
+          _at: string
+          _from: string
+          _policy_override?: string
+          _regulator_id?: string
+          _to: string
+        }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          decision_reason: string | null
+          effective_from: string
+          effective_to: string | null
+          from_currency: string
+          id: string
+          notes: string | null
+          provenance_reference: string | null
+          quote_convention: string
+          rate: number
+          rate_source: string
+          rate_type: string
+          regime: string
+          regulator_id: string | null
+          status: string
+          superseded_by: string | null
+          supersedes_id: string | null
+          to_currency: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fx_rates"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      fx_round: {
+        Args: { _amount: number; _policy: string; _precision: number }
+        Returns: number
+      }
       generate_application_number: { Args: never; Returns: string }
       generate_complaint_duplicate_candidates: {
         Args: { _complaint_id: string }
@@ -52141,6 +52623,43 @@ export type Database = {
         }
       }
       mc03_require_gate: { Args: { _complaint_id: string }; Returns: Json }
+      monetary_config_resolve: {
+        Args: { _regulator_id?: string }
+        Returns: {
+          accepted_payment_currencies: string[]
+          backdating_requires_authority: boolean
+          base_currency: string
+          created_at: string
+          created_by: string | null
+          cross_currency_refund_allowed: boolean
+          cross_currency_settlement_allowed: boolean
+          decimal_precision: number
+          fx_resolution_policy: string
+          fx_source_policy: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          payment_fx_date_policy: string
+          refund_fx_date_policy: string
+          regulator_id: string | null
+          reporting_currency: string
+          rounding_policy: string
+          settlement_currencies: string[]
+          supported_transaction_currencies: string[]
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "monetary_configs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      monetary_config_save: {
+        Args: { _payload: Json; _reason?: string; _regulator_id?: string }
+        Returns: Json
+      }
       my_work_queue: { Args: { _limit?: number }; Returns: Json }
       next_establishment_reference: { Args: never; Returns: string }
       next_invoice_number: { Args: never; Returns: string }
