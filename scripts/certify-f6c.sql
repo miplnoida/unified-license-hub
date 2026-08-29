@@ -285,10 +285,13 @@ END $b$;
 -- ===========================================================================
 DO $c$
 DECLARE
-  _admin uuid; _checker uuid; _outsider uuid; _app uuid; _lt text;
+  _admin uuid; _checker uuid; _outsider uuid; _verifier uuid;
+  _app uuid; _app2 uuid; _lt text;
   _ft uuid; _ft2 uuid;
   _pre jsonb; _s1 jsonb; _s2 jsonb; _ov jsonb; _res jsonb;
-  _pay uuid; _pay2 uuid; _wv uuid; _rf uuid; _item uuid;
+  _pay uuid; _pay2 uuid; _pay3 uuid; _wv uuid; _rf uuid; _item uuid;
+  _rcpt uuid; _rcpt2 uuid; _aid uuid; _rcpt_aid uuid;
+  _rcpt_amt numeric; _rcpt_bd jsonb; _flag boolean;
   _hist_before int; _hist_after int; _n int; _amt numeric; _out numeric;
   _state text; _ref text; _step text := 'start'; _buf jsonb := '[]'::jsonb; _r jsonb;
 BEGIN
@@ -298,6 +301,9 @@ BEGIN
    WHERE public.fee_can_administer(u.id) AND u.id <> _admin LIMIT 1;
   SELECT u.id INTO _outsider FROM auth.users u
    WHERE NOT public.fee_can_administer(u.id) AND u.id NOT IN (_admin, COALESCE(_checker,_admin))
+   LIMIT 1;
+  SELECT u.id INTO _verifier FROM auth.users u
+   WHERE public.has_role(u.id,'super_admin'::app_role) OR public.has_role(u.id,'admin'::app_role)
    LIMIT 1;
   SELECT id INTO _ft FROM public.fee_types ORDER BY created_at LIMIT 1;
   SELECT id INTO _ft2 FROM public.fee_types WHERE id <> _ft LIMIT 1;
@@ -311,9 +317,13 @@ BEGIN
   PERFORM pg_temp.rec('C','C-00d','a real fee type exists to itemise against',
     _ft IS NOT NULL AND _ft2 IS NOT NULL, 'fee types resolved='||
       COALESCE(_ft::text,'∅')||' / '||COALESCE(_ft2::text,'∅'));
-  IF _admin IS NULL OR _checker IS NULL OR _outsider IS NULL OR _ft IS NULL OR _ft2 IS NULL THEN
+  PERFORM pg_temp.rec('C','C-00e','a regulator able to verify offline money exists',
+    _verifier IS NOT NULL, 'verifier='||COALESCE(_verifier::text,'∅'));
+  IF _admin IS NULL OR _checker IS NULL OR _outsider IS NULL OR _ft IS NULL OR _ft2 IS NULL
+     OR _verifier IS NULL THEN
     RETURN;
   END IF;
+
 
   BEGIN  -- ------------- every write below this line is rolled back ---------
     SELECT license_type INTO _lt FROM public.applications WHERE license_type IS NOT NULL LIMIT 1;
