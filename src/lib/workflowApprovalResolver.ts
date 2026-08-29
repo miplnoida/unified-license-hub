@@ -1,41 +1,29 @@
 import { supabase } from '@/integrations/supabase/client';
-import { getApplicationCategory } from '@/lib/applicationCategory';
 
 /**
- * Workflow entity_type values matched for an application during lookup.
- * The new `pre_application` / `post_application` rows are preferred. Legacy
- * `application` rows are still accepted as a fallback for un-migrated configs.
- */
-function entityTypesForApplication(appRow: { data?: Record<string, any> | null }): string[] {
-  const category = getApplicationCategory(appRow?.data);
-  const primary = category === 'post_license' ? 'post_application' : 'pre_application';
-  return [primary, 'application'];
-}
-
-/**
- * Shared resolver that determines whether the approval-workflow review step
- * is effectively ON for a given application/license-request.
+ * Workflow approval resolution — SERVER AUTHORITY ONLY (GAP-F5-07 / 07a).
  *
- * Single source of truth for:
- * - ApplicationDetail visibility of WorkflowPanel vs Manual Review Actions
- * - WorkflowPanel internal short-circuit
- * - Application queue badges
- * - Server-/client-side workflow action gating UI
+ * The database function `application_workflow_view(_application_id)` is the
+ * single source of truth for:
+ *   - the global review toggle
+ *   - workflow matching (services.workflow_id precedence, taxonomy cascade)
+ *   - workflow active state and step count
+ *   - canonical open statuses
  *
- * Authoritative signals (all must be true for ON):
- *   1. Global `site_settings.review_settings.application_review_enabled` (default true)
- *   2. A workflow can be matched for the application by scope
- *      (license_type + regulator + sector/category, with hierarchical fallback)
- *   3. That matched workflow's `approval_workflows.is_active` = true
- *   4. That workflow has at least one row in `approval_steps`
+ * This module deliberately contains NO regulatory algorithm. It does not read
+ * `services`, `approval_workflows`, `approval_steps`, `workflow_instances`,
+ * `categories`, `sectors` or `site_settings`, and it never infers a workflow
+ * from regulator, sector, sub-sector, category, license_type, entity_type or an
+ * attached `applications.workflow_id`.
  *
- * If any signal is false → workflow approval is OFF and the WorkflowPanel
- * MUST NOT render even when `applications.workflow_id` / `current_step_id`
- * / existing `workflow_instances` rows still exist (those may be stale).
+ * Fail-closed rule: if the RPC errors, is forbidden, returns no row, returns
+ * `found=false`, or returns malformed/incomplete state, the result is disabled.
+ * An application with no id (unsaved draft) is `unresolved_unsaved` — no
+ * regulatory decision is made in the browser.
  */
 
 export interface WorkflowApprovalContext {
-  /** application row (or just the fields we need) */
+  /** application row (only the persisted id is authoritative here) */
   application: {
     id?: string;
     license_type?: string | null;
@@ -45,323 +33,96 @@ export interface WorkflowApprovalContext {
   };
 }
 
+export type WorkflowApprovalReason =
+  | 'attached_active_workflow'
+  | 'global_disabled'
+  | 'no_matched_workflow'
+  | 'workflow_inactive'
+  | 'no_steps'
+  | 'enabled'
+  /** application not persisted yet — no server decision is possible */
+  | 'unresolved_unsaved'
+  /** server resolver errored, was forbidden, or returned no/malformed state */
+  | 'server_unresolved';
+
 export interface WorkflowApprovalResolution {
   /** Final ON/OFF — feed this directly to <WorkflowPanel workflowEnabled={...}/> */
   enabled: boolean;
-  /** Why it was ON/OFF — useful for the admin diagnostics card */
-  reason:
-    | 'attached_active_workflow'
-    | 'global_disabled'
-    | 'no_matched_workflow'
-    | 'workflow_inactive'
-    | 'no_steps'
-    | 'enabled';
-  /** Global toggle value */
+  /** Why it was ON/OFF — server-provided, or a fail-closed local reason */
+  reason: WorkflowApprovalReason;
+  /** Global toggle value as reported by the server */
   globalReviewEnabled: boolean;
-  /** Workflow row resolved by scope (may differ from app.workflow_id) */
+  /** Workflow resolved by the server (never by the browser) */
   matchedWorkflow: { id: string; is_active: boolean; license_type: string } | null;
-  /** Step count for matched workflow */
+  /** Step count for the server-resolved workflow */
   stepCount: number;
+  /** True when the state could not be established — UI should show an error/safe state */
+  unresolved?: boolean;
+}
+
+const SERVER_REASONS: readonly WorkflowApprovalReason[] = [
+  'attached_active_workflow',
+  'global_disabled',
+  'no_matched_workflow',
+  'workflow_inactive',
+  'no_steps',
+  'enabled',
+];
+
+function failClosed(reason: 'unresolved_unsaved' | 'server_unresolved'): WorkflowApprovalResolution {
+  return {
+    enabled: false,
+    reason,
+    globalReviewEnabled: false,
+    matchedWorkflow: null,
+    stepCount: 0,
+    unresolved: true,
+  };
 }
 
 /**
- * Read the global review-enabled flag from site_settings.review_settings.
- * Defaults to TRUE when not set (back-compat).
- */
-export async function getGlobalReviewEnabled(): Promise<boolean> {
-  const { data } = await (supabase
-    .from('site_settings' as any)
-    .select('value')
-    .eq('key', 'review_settings')
-    .maybeSingle() as any);
-  const val = (data as any)?.value?.application_review_enabled;
-  return val === undefined || val === null ? true : !!val;
-}
-
-/**
- * Match a workflow for the given application by scope, with hierarchical fallback:
- *   1. exact regulator + license_type + category_id
- *   2. exact regulator + license_type + sector_id
- *   3. exact regulator + license_type
- *   4. license_type only (prefix-tolerant match)
- */
-async function resolveEffectiveRegulator(
-  regulatorId: string | null | undefined,
-  sectorId: string | undefined,
-  categoryId: string | undefined,
-): Promise<string | null> {
-  // Category -> sector -> regulator
-  if (categoryId) {
-    const { data: cat } = await supabase
-      .from('categories')
-      .select('sector_id')
-      .eq('id', categoryId)
-      .maybeSingle();
-    const catSector = (cat as any)?.sector_id as string | undefined;
-    if (catSector) {
-      const { data: s } = await supabase
-        .from('sectors')
-        .select('regulator_id')
-        .eq('id', catSector)
-        .maybeSingle();
-      if ((s as any)?.regulator_id) return (s as any).regulator_id;
-    }
-  }
-  if (sectorId) {
-    const { data: s } = await supabase
-      .from('sectors')
-      .select('regulator_id')
-      .eq('id', sectorId)
-      .maybeSingle();
-    if ((s as any)?.regulator_id) return (s as any).regulator_id;
-  }
-  return regulatorId || null;
-}
-
-async function matchWorkflowForApplication(
-  appRow: WorkflowApprovalContext['application'],
-): Promise<{ id: string; is_active: boolean; license_type: string } | null> {
-  const sectorId = (appRow?.data as any)?.sector_id as string | undefined;
-  const subSectorIdFromData = (appRow?.data as any)?.sub_sector_id as string | undefined;
-  const categoryId = (appRow?.data as any)?.category_id as string | undefined;
-  const serviceId = (appRow?.data as any)?.service_id as string | undefined;
-  const licenseType = appRow?.license_type;
-
-  const effectiveRegulator = await resolveEffectiveRegulator(
-    appRow?.regulator_id,
-    sectorId,
-    categoryId,
-  );
-
-  const entityTypes = entityTypesForApplication({ data: appRow?.data });
-  const primaryType = entityTypes[0];
-
-  // Derive sub_sector from category when not present in data.
-  let subSectorId = subSectorIdFromData;
-  if (!subSectorId && categoryId) {
-    const { data: cat } = await supabase
-      .from('categories')
-      .select('sub_sector_id')
-      .eq('id', categoryId)
-      .maybeSingle();
-    subSectorId = (cat as any)?.sub_sector_id ?? undefined;
-  }
-
-  // EXPLICIT SERVICE MAPPING (highest precedence): services.workflow_id.
-  // Mirrors public._resolve_application_workflow so a service mapped to a
-  // canonical reusable workflow is not treated as "stale" by
-  // resolveAttachedActiveWorkflow.
-  if (serviceId) {
-    const { data: svc } = await supabase
-      .from('services')
-      .select('workflow_id')
-      .eq('id', serviceId)
-      .maybeSingle();
-    const mappedId = (svc as any)?.workflow_id as string | undefined;
-    if (mappedId) {
-      const { data: mapped } = await supabase
-        .from('approval_workflows')
-        .select('id, is_active, license_type, entity_type')
-        .eq('id', mappedId)
-        .maybeSingle();
-      const m = mapped as any;
-      if (m?.id && m.is_active && entityTypes.includes(m.entity_type)) {
-        return m as any;
-      }
-    }
-  }
-
-  if (effectiveRegulator) {
-
-    // TAXONOMY-FIRST: don't filter by license_type at the SQL level. Pre/post
-    // license workflows are scoped by Sector > Sub-Sector > Category > Service,
-    // not by the application's taxonomy-triple license_type string.
-    const { data } = await supabase
-      .from('approval_workflows')
-      .select('id, is_active, license_type, sector_id, sub_sector_id, category_id, service_id, entity_type')
-      .in('entity_type', entityTypes)
-      .eq('regulator_id', effectiveRegulator);
-
-    const candidates = ((data || []) as any[]).filter((w) => w.is_active);
-    const ranked = [
-      ...candidates.filter((w) => w.entity_type === primaryType),
-      ...candidates.filter((w) => w.entity_type !== primaryType),
-    ];
-
-    const lt = (licenseType || '').toLowerCase();
-    const matchesLegacyLicenseType = (w: any) => {
-      const wlt = (w.license_type || '').toLowerCase();
-      // Empty / 'general' is treated as a wildcard for pre/post license workflows.
-      if (!wlt || wlt === 'general') return true;
-      return lt === wlt || lt.startsWith(wlt + ' ') || lt.startsWith(wlt + '-') || lt.startsWith(wlt + '_');
-    };
-
-    const found =
-      ranked.find((w) => serviceId && w.service_id === serviceId && matchesLegacyLicenseType(w)) ||
-      ranked.find((w) => categoryId && w.category_id === categoryId && !w.service_id && matchesLegacyLicenseType(w)) ||
-      ranked.find((w) => subSectorId && w.sub_sector_id === subSectorId && !w.category_id && !w.service_id && matchesLegacyLicenseType(w)) ||
-      ranked.find((w) => sectorId && w.sector_id === sectorId && !w.sub_sector_id && !w.category_id && !w.service_id && matchesLegacyLicenseType(w)) ||
-      ranked.find((w) => !w.sector_id && !w.sub_sector_id && !w.category_id && !w.service_id && matchesLegacyLicenseType(w)) ||
-      null;
-    if (found) return found as any;
-  }
-
-  return null;
-}
-
-
-
-async function resolveAttachedActiveWorkflow(
-  appRow: WorkflowApprovalContext['application'],
-  freshMatchId: string | null,
-): Promise<{ workflow: { id: string; is_active: boolean; license_type: string }; stepCount: number } | null> {
-  if (!appRow?.id || !appRow?.workflow_id) return null;
-
-  // Only honour an attached workflow when it ALSO equals the workflow we'd
-  // pick fresh from current backend scope (Sector > Sub-Sector > Category >
-  // Service). This prevents a stale `applications.workflow_id` from masking
-  // taxonomy/route changes made in the backend after the application was
-  // attached — the "static workflow" leak.
-  if (!freshMatchId || freshMatchId !== appRow.workflow_id) return null;
-
-  const { data: attachedWorkflow } = await supabase
-    .from('approval_workflows')
-    .select('id, is_active, license_type')
-    .eq('id', appRow.workflow_id)
-    .maybeSingle();
-
-  const workflow = attachedWorkflow as { id: string; is_active: boolean; license_type: string } | null;
-  if (!workflow?.id || !workflow.is_active) return null;
-
-  const { count } = await supabase
-    .from('approval_steps')
-    .select('id', { count: 'exact', head: true })
-    .eq('workflow_id', workflow.id);
-
-  const stepCount = count || 0;
-  if (stepCount === 0) return null;
-
-  const { data: activeInstance } = await supabase
-    .from('workflow_instances')
-    .select('id')
-    .in('entity_type', entityTypesForApplication({ data: appRow?.data }))
-    .eq('entity_id', appRow.id)
-    .eq('workflow_id', workflow.id)
-    .in('status', ['active', 'paused'])
-    .limit(1)
-    .maybeSingle();
-
-  if (!activeInstance) return null;
-
-  return { workflow, stepCount };
-}
-
-
-/**
- * Main entry point — resolve the effective workflow-approval ON/OFF state
- * for an application. Always honours all four authoritative signals.
+ * Main entry point — resolve the effective workflow-approval ON/OFF state for a
+ * persisted application using the server resolver only.
  */
 export async function resolveWorkflowApproval(
   ctx: WorkflowApprovalContext,
 ): Promise<WorkflowApprovalResolution> {
-  // SERVER AUTHORITY: when we have a persisted application, the database
-  // resolver (application_workflow_view) is the single source of truth for
-  // workflow matching, services.workflow_id precedence and open statuses.
-  // The client logic below is only a fallback for unsaved/among-legacy rows.
-  if (ctx.application?.id) {
-    const { data, error } = await (supabase.rpc as any)('application_workflow_view', {
-      _application_id: ctx.application.id,
+  const applicationId = ctx?.application?.id;
+  if (!applicationId) {
+    // Unsaved application: no regulatory decision is made client-side.
+    return failClosed('unresolved_unsaved');
+  }
+
+  let response: { data: unknown; error: unknown } | null = null;
+  try {
+    response = await (supabase.rpc as any)('application_workflow_view', {
+      _application_id: applicationId,
     });
-    const view = data as any;
-    if (!error && view?.found) {
-      return {
-        enabled: !!view.enabled,
-        reason: view.reason as WorkflowApprovalResolution['reason'],
-        globalReviewEnabled: view.global_review_enabled !== false,
-        matchedWorkflow: view.workflow_id
-          ? {
-              id: view.workflow_id as string,
-              is_active: !!view.workflow_is_active,
-              license_type: (view.workflow_name as string) ?? '',
-            }
-          : null,
-        stepCount: Number(view.step_count ?? 0),
-      };
-    }
+  } catch {
+    return failClosed('server_unresolved');
   }
 
-  const globalReviewEnabled = await getGlobalReviewEnabled();
+  if (!response || response.error) return failClosed('server_unresolved');
 
+  const view = (Array.isArray(response.data) ? response.data[0] : response.data) as any;
+  if (!view || typeof view !== 'object') return failClosed('server_unresolved');
+  if (view.found !== true) return failClosed('server_unresolved');
 
-  if (!globalReviewEnabled) {
-    return {
-      enabled: false,
-      reason: 'global_disabled',
-      globalReviewEnabled,
-      matchedWorkflow: null,
-      stepCount: 0,
-    };
-  }
-
-  // Always resolve the scope-matched workflow first; the attached workflow is
-  // only valid when it agrees with this fresh match.
-  const matchedWorkflow = await matchWorkflowForApplication(ctx.application);
-
-  const attachedActiveWorkflow = await resolveAttachedActiveWorkflow(
-    ctx.application,
-    matchedWorkflow?.id ?? null,
-  );
-  if (attachedActiveWorkflow) {
-    return {
-      enabled: true,
-      reason: 'attached_active_workflow',
-      globalReviewEnabled,
-      matchedWorkflow: attachedActiveWorkflow.workflow,
-      stepCount: attachedActiveWorkflow.stepCount,
-    };
-  }
-
-  if (!matchedWorkflow) {
-    return {
-      enabled: false,
-      reason: 'no_matched_workflow',
-      globalReviewEnabled,
-      matchedWorkflow: null,
-      stepCount: 0,
-    };
-  }
-
-  if (!matchedWorkflow.is_active) {
-    return {
-      enabled: false,
-      reason: 'workflow_inactive',
-      globalReviewEnabled,
-      matchedWorkflow,
-      stepCount: 0,
-    };
-  }
-
-  const { count } = await supabase
-    .from('approval_steps')
-    .select('id', { count: 'exact', head: true })
-    .eq('workflow_id', matchedWorkflow.id);
-
-  const stepCount = count || 0;
-  if (stepCount === 0) {
-    return {
-      enabled: false,
-      reason: 'no_steps',
-      globalReviewEnabled,
-      matchedWorkflow,
-      stepCount: 0,
-    };
-  }
+  // Malformed / incomplete server state must fail closed rather than be guessed at.
+  if (typeof view.enabled !== 'boolean') return failClosed('server_unresolved');
+  if (!SERVER_REASONS.includes(view.reason)) return failClosed('server_unresolved');
 
   return {
-    enabled: true,
-    reason: 'enabled',
-    globalReviewEnabled,
-    matchedWorkflow,
-    stepCount,
+    enabled: view.enabled === true,
+    reason: view.reason as WorkflowApprovalReason,
+    globalReviewEnabled: view.global_review_enabled !== false,
+    matchedWorkflow: view.workflow_id
+      ? {
+          id: view.workflow_id as string,
+          is_active: view.workflow_is_active === true,
+          license_type: (view.workflow_name as string) ?? '',
+        }
+      : null,
+    stepCount: Number(view.step_count ?? 0),
   };
 }

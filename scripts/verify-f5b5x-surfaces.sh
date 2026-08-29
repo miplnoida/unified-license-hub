@@ -28,6 +28,30 @@ check "03 workflow resolution delegates to the server resolver" $?
 rg -q "post_license_service_form_set" src/pages/NewPostLicenseApplication.tsx
 check "04 post-license intake uses the server form resolver" $?
 
+# S-10..S-16: resolver must contain NO browser workflow algorithm (absence proofs)
+R=src/lib/workflowApprovalResolver.ts
+
+rg -q "application_workflow_view" "$R"
+check "10 resolver calls application_workflow_view" $?
+
+! rg -q "supabase\\.from\\(|from\\('(services|approval_workflows|approval_steps|workflow_instances|categories|sectors|site_settings)'" "$R"
+check "11 resolver performs no direct table queries" $?
+
+! rg -q "workflow_id'\\)|select\\('workflow_id" "$R"
+check "12 resolver no longer reads services.workflow_id" $?
+
+! rg -q "matchWorkflowForApplication|resolveEffectiveRegulator|resolveAttachedActiveWorkflow|matchesLegacyLicenseType|entityTypesForApplication" "$R"
+check "13 hierarchical browser workflow algorithm removed" $?
+
+rg -q "server_unresolved" "$R" && rg -q "unresolved_unsaved" "$R"
+check "14 resolver fails closed on RPC failure and on unsaved applications" $?
+
+! rg -q "getGlobalReviewEnabled" src --glob '!*.test.*'
+check "15 client global-review duplication retired" $?
+
+rg -q "request_kind" src/hooks/useOpenPostLicenseRequests.ts
+check "16 persisted classification uses request_kind" $?
+
 # S-05..S-08: Quick Action routes must exist
 for route in "/post-license/new" "/payments" "/entity/returns"; do
   rg -q "path=\"${route}\"" src/routes

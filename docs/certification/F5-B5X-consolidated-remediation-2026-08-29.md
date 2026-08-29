@@ -41,4 +41,18 @@ Date: 2026-08-29
 - Fees and SLA for variation/surrender — BCR; no pricing or service level invented.
 - Refunds, fee schedules, reconciliation — F6 boundary. Correspondence/SLA/reporting — F14/F15/F18 boundary.
 
+## Delta — remove client workflow authority (GAP-F5-07 / 07a)
+
+`src/lib/workflowApprovalResolver.ts` was reduced to a thin server-authority adapter:
+
+- Persisted applications resolve **only** through `application_workflow_view(_application_id)`.
+- Fail-closed on RPC error/throw, forbidden, no row, `found=false`, or malformed/incomplete state (`reason = 'server_unresolved'`, `unresolved = true`). No browser fallback matching.
+- Unsaved applications return `reason = 'unresolved_unsaved'` — no regulatory decision is made in the browser and no preview algorithm was added.
+- Retired client duplicates: `resolveEffectiveRegulator`, `matchWorkflowForApplication`, `resolveAttachedActiveWorkflow`, `matchesLegacyLicenseType`, `entityTypesForApplication`, `getGlobalReviewEnabled`, and all direct reads of `services.workflow_id`, `approval_workflows`, `approval_steps`, `workflow_instances`, `categories`, `sectors`, `site_settings`.
+- `applications.request_kind` remains authoritative for persisted classification; the legacy `service_id` heuristic survives only as display fallback for non-persisted/legacy rows and influences no workflow, submission, authorization, effect, queue, or reporting decision.
+
+Surface gate strengthened to prove absence (S-10..S-16): RPC usage, zero direct table queries, no `services.workflow_id` read, no hierarchical matcher, fail-closed reasons present, no client global-review duplication, `request_kind` classification. Resolver unit tests extended to 8 cases (enabled, disabled, RPC error, RPC throw, `found=false`, malformed state, unsaved, forged taxonomy); the mocked `from()` throws so any reintroduced client query fails the suite.
+
+Delta gate results: verify:f5b5x SQL 51/51 + surfaces 15/15 twice (identical, zero residue); verify:f5b4 48/48; verify:f5b3 53/53; frontend 141 files / 1299 tests PASS; typecheck PASS; build OK.
+
 F9 remains separately uncertified. F5-C not started.
