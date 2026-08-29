@@ -234,6 +234,7 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   { pattern: '/admin', label: 'Administration', parent: '/dashboard' },
   { pattern: '/admin/licensees/:id', resolver: 'entity', param: 'id', parent: '/admin/licensees' },
   { pattern: '/admin/registration-review/:registrationId', resolver: 'registration', param: 'registrationId', parent: '/admin/registration-review' },
+  { pattern: '/admin/people-access', label: 'People & Access', parent: '/admin' },
   { pattern: '/admin/forms/create', label: 'New form', parent: '/admin/forms' },
   { pattern: '/admin/forms/:templateId/view', label: 'Form template', parent: '/admin/forms' },
   { pattern: '/admin/forms/internal', label: 'Internal forms', parent: '/admin/forms' },
