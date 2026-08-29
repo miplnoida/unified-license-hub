@@ -1483,6 +1483,8 @@ REVOKE ALL ON TABLE public.application_fp_links FROM authenticated;
 REVOKE ALL ON TABLE public.post_license_fp_subject_links FROM authenticated;
 REVOKE ALL ON FUNCTION public.ensure_post_license_fp_links(uuid) FROM anon, authenticated;
 REVOKE ALL ON FUNCTION public.post_license_fp_subjects(uuid) FROM anon, authenticated;
+REVOKE ALL ON FUNCTION public.post_license_fp_subject_link_guard() FROM anon, authenticated, PUBLIC;
+REVOKE ALL ON FUNCTION public.protect_application_fp_subject_context() FROM anon, authenticated, PUBLIC;
 ALTER TABLE public.post_license_fp_subject_links ENABLE ROW LEVEL SECURITY;
 GRANT ALL ON TABLE public.post_license_fp_subject_links TO service_role;
 GRANT ALL ON TABLE public.application_fp_links TO service_role;
