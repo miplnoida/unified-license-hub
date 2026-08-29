@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.post_license_fp_subject_link_guard() FROM anon, authenticated, PUBLIC;
+REVOKE ALL ON FUNCTION public.protect_application_fp_subject_context() FROM anon, authenticated, PUBLIC;
