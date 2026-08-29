@@ -23309,6 +23309,7 @@ export type Database = {
           purpose: string
           quote_convention: string
           rate: number
+          regulator_id: string | null
           rounding_difference: number
           rounding_policy: string | null
           source_amount: number
@@ -23331,6 +23332,7 @@ export type Database = {
           purpose: string
           quote_convention: string
           rate: number
+          regulator_id?: string | null
           rounding_difference?: number
           rounding_policy?: string | null
           source_amount: number
@@ -23353,6 +23355,7 @@ export type Database = {
           purpose?: string
           quote_convention?: string
           rate?: number
+          regulator_id?: string | null
           rounding_difference?: number
           rounding_policy?: string | null
           source_amount?: number
@@ -23368,6 +23371,13 @@ export type Database = {
             columns: ["fx_rate_id"]
             isOneToOne: false
             referencedRelation: "fx_rates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fx_conversions_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
             referencedColumns: ["id"]
           },
         ]
