@@ -701,9 +701,10 @@ BEGIN
 
     SELECT count(*) INTO _n FROM public.fx_conversions c
      WHERE c.subject_type='payment' AND c.subject_id=_payA
-       AND c.purpose='BASE_REPORTING' AND c.to_currency='CAD'
+       AND c.purpose='BASE' AND c.target_currency='CAD'
        AND c.fx_rate_id = _rBase AND c.regulator_id = _regA
-       AND c.effective_date IS NOT NULL AND c.rate_regime IS NOT NULL;
+       AND c.fx_effective_date IS NOT NULL AND c.fx_regime IS NOT NULL
+       AND c.rounding_policy IS NOT NULL AND c.fx_rate_version IS NOT NULL;
     _buf := pg_temp.bufrec(_buf,'J','J-03','the base conversion records its rate identity, regime, date and scope',
       _n = 1, 'base provenance rows='||_n);
 
@@ -716,14 +717,15 @@ BEGIN
 
     SELECT count(*) INTO _n FROM public.fx_conversions c
      WHERE c.subject_type='payment' AND c.subject_id=_payA
-       AND c.purpose='BASE_REPORTING' AND c.to_currency='CHF'
-       AND c.fx_rate_id = _rRep AND c.from_currency = _txn;
+       AND c.purpose='REPORTING' AND c.target_currency='CHF'
+       AND c.fx_rate_id = _rRep AND c.source_currency = _txn
+       AND c.regulator_id = _regA;
     _buf := pg_temp.bufrec(_buf,'J','J-05','the reporting conversion carries its own provenance and converts directly from the transacted currency',
       _n = 1, 'reporting provenance rows='||_n);
 
     SELECT count(*) INTO _n FROM public.fx_conversions c
      WHERE c.subject_type='payment' AND c.subject_id=_payA
-       AND c.from_currency='CAD' AND c.to_currency='CHF';
+       AND c.source_currency='CAD' AND c.target_currency='CHF';
     _buf := pg_temp.bufrec(_buf,'J','J-06','there is no hidden double conversion through the base currency',
       _n = 0, 'base→reporting chained conversions='||_n);
 
