@@ -134,6 +134,12 @@ CREATE OR REPLACE FUNCTION pg_temp.f5b4_determination(_assessment uuid, _ind uui
 RETURNS uuid LANGUAGE plpgsql AS $$
 DECLARE _id uuid;
 BEGIN
+  -- The certified F&P engine refuses a determination without a completed
+  -- screening run; the probe satisfies the real precondition rather than
+  -- bypassing it.
+  INSERT INTO public.fp_screening_runs (assessment_id, individual_id, run_type, status, completed_at)
+  VALUES (_assessment, _ind, 'initial', 'completed', now());
+
   INSERT INTO public.fp_determinations (assessment_id, individual_id, outcome, rationale,
                                         determined_by, determined_at, is_current,
                                         effective_from, effective_to)
