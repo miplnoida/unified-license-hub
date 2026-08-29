@@ -88,6 +88,12 @@ const settingsCards: SettingsCard[] = [
     icon: <ShieldCheck className="h-6 w-6" />,
     href: '/settings/captcha',
   },
+  {
+    title: 'Currency & Exchange Rates',
+    description: 'Base and reporting currency, the currency master, and effective-dated exchange rates with maker-checker approval.',
+    icon: <DollarSign className="h-6 w-6" />,
+    href: '/settings/currency',
+  },
 ];
 
 
