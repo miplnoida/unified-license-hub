@@ -70,7 +70,7 @@ export const MODULE_SCOPE_CAPABILITIES: ModuleScopeCapability[] = [
   { module: 'fit_and_proper',        label: 'Fit & Proper', options: [mk('all'), mk('assigned'), mk('institution', 'licensees')] },
   { module: 'enforcement',           label: 'Enforcement',  options: [mk('all'), mk('assigned')] },
   { module: 'inspection_management', label: 'Inspections',  options: [mk('all'), mk('assigned'), mk('institution', 'licensees')] },
-  { module: 'returns_management',    label: 'Regulatory Returns', options: [mk('all'), mk('assigned'), mk('institution', 'licensees')] },
+  { module: 'compliance_returns',    label: 'Compliance',   options: [mk('all'), mk('assigned'), mk('institution', 'licensees')] },
   { module: 'fee_management',        label: 'Fees & Payments', options: [mk('all'), mk('assigned')] },
   { module: 'form_management',       label: 'Forms',        options: [mk('all'), mk('own')] },
   { module: 'audit_management',      label: 'Audit',        options: [mk('all')], scopeless: true },
