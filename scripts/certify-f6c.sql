@@ -756,6 +756,8 @@ BEGIN
     -- E-08 approved then executed, with a compensating ledger effect
     _step := 'E-08'; RAISE NOTICE 'step: %', _step;
     PERFORM pg_temp.act(_checker);
+    RAISE NOTICE 'E-08 diag: uid=% checker=% admin=% requested_by=%', auth.uid(), _checker, _admin,
+      (SELECT requested_by FROM public.refunds WHERE id=_rf);
     _res := public.payment_refund_decide(_rf, 'approved', 'certify f6c refund approved by an independent officer');
     PERFORM pg_temp.act(_admin);
     PERFORM public.fee_refund_execute(_rf, 'CERTIFY-F6C-REFUND-REF', 'bank_transfer');
