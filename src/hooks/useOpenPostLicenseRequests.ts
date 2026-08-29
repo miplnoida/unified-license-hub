@@ -48,7 +48,7 @@ export function useOpenPostLicenseRequests(licenseeId?: string | null) {
     queryFn: async (): Promise<OpenPostLicenseRequest[]> => {
       const { data, error } = await supabase
         .from('applications')
-        .select('id, status, data, created_at')
+        .select('id, status, data, created_at, request_kind')
         .in('status', OPEN_STATUSES)
         .order('created_at', { ascending: false })
         .limit(200);
@@ -63,13 +63,13 @@ export function useOpenPostLicenseRequests(licenseeId?: string | null) {
             license_id: (d.license_id as string) ?? null,
             service_name: (d.service_name as string) ?? null,
             created_at: row.created_at as string,
-            _type: d.type as string | undefined,
+            _kind: (row as any).request_kind as string | undefined,
             _licensee: d.licensee_id as string | undefined,
           };
         })
-        .filter((r) => r._type === 'post_license')
+        .filter((r) => r._kind === 'POST_LICENSE')
         .filter((r) => !licenseeId || !r._licensee || r._licensee === licenseeId)
-        .map(({ _type, _licensee, ...rest }) => rest);
+        .map(({ _kind, _licensee, ...rest }) => rest);
     },
     staleTime: 30_000,
   });
