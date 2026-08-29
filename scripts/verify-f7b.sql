@@ -288,7 +288,7 @@ BEGIN
      AND EXISTS (SELECT 1 FROM public.return_filings f WHERE f.entity_id = l.id)
    ORDER BY l.created_at LIMIT 1;
 
-  SELECT c.base_currency_code INTO _base FROM public.monetary_configs c
+  SELECT c.base_currency INTO _base FROM public.monetary_configs c
    WHERE c.is_active AND (c.regulator_id = _reg OR c.regulator_id IS NULL)
    ORDER BY (c.regulator_id IS NOT NULL) DESC LIMIT 1;
 
