@@ -246,10 +246,15 @@ export function OfflinePaymentDialog({
                 onClick={submit}
                 disabled={
                   submitting ||
+                  loading ||
+                  outstanding === null ||
+                  outstanding <= 0 ||
                   !Number(amount) ||
+                  Number(amount) > outstanding ||
                   reference.trim().length < 3 ||
                   !paymentDate
                 }
+
               >
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Submit for verification
