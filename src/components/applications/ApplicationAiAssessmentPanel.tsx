@@ -912,12 +912,12 @@ function AnalystDecisionBar({
         .eq('id', assessment.id);
       if (error) throw error;
 
-      await supabase.from('audit_logs' as any).insert({
+      await supabase.from('audit_logs').insert({
         user_id: currentUserId,
         action: `application.ai_assessment_${mode}`,
-        table_name: 'applications',
-        record_id: applicationId,
-        new_values: {
+        entity_type: 'applications',
+        entity_id: applicationId,
+        new_value: {
           assessment_id: assessment.id,
           decision: mode,
           justification: justification.trim() || null,

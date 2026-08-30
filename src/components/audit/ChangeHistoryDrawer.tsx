@@ -192,11 +192,11 @@ export function ChangeHistoryDrawer({ open, onOpenChange, entityType, entityId, 
       if (ids.size > 0) {
         const { data: profs } = await supabase
           .from('profiles')
-          .select('id, first_name, last_name, email')
+          .select('id, full_name, email')
           .in('id', Array.from(ids));
         const map: Record<string, string> = {};
         (profs ?? []).forEach((p: any) => {
-          const name = [p.first_name, p.last_name].filter(Boolean).join(' ').trim() || p.email || '';
+          const name = (p.full_name || '').trim() || p.email || '';
           if (name) map[p.id] = name;
         });
         setNameById(map);

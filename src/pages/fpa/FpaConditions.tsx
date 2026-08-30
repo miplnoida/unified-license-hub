@@ -453,10 +453,10 @@ export default function FpaConditions() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('fp_monitoring_events')
-        .select('id, event_type, severity, summary, created_at, acknowledged_at')
+        .select('id, event_type, severity, summary, raised_at, acknowledged_at')
         .eq('individual_id', historyTarget!.individual_id)
         .contains('detail', { condition_id: historyTarget!.id })
-        .order('created_at', { ascending: false });
+        .order('raised_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },

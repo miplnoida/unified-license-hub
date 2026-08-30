@@ -608,7 +608,7 @@ export default function FpaCommittee() {
         .from('fp_committee_decision_snapshots')
         .select('*')
         .eq('assessment_id', selectedAssessmentId)
-        .order('decided_at', { ascending: false })
+        .order('taken_at', { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -1286,7 +1286,7 @@ export default function FpaCommittee() {
                                     </span>
                                     <Badge variant="outline">{decisionSnapshot.outcome}</Badge>
                                     <span className="text-xs text-muted-foreground">
-                                      {new Date(decisionSnapshot.decided_at).toLocaleString()}
+                                      {new Date(decisionSnapshot.taken_at).toLocaleString()}
                                     </span>
                                   </div>
                                   <p className="text-xs text-muted-foreground">

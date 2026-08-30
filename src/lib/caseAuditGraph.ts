@@ -57,24 +57,33 @@ export async function buildRelatedGraph(root: RelatedEntity): Promise<RelatedEnt
 
   try {
     if (root.kind === 'application') {
-      const app = await fetchOne('applications', root.id, 'id, licensee_id');
-      if (app?.licensee_id) add({ kind: 'licensee', id: app.licensee_id });
+      // Canonical entity linkage is `applications.entity_id -> licensees.id`.
+      const app = await fetchOne('applications', root.id, 'id, entity_id');
+      if (app?.entity_id) add({ kind: 'licensee', id: app.entity_id });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: lic } = await (supabase.from('licenses') as any).select('id').eq('application_id', root.id);
       (lic ?? []).forEach((l: Row) => add({ kind: 'license', id: l.id }));
     }
     if (root.kind === 'licensee') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: apps } = await (supabase.from('applications') as any).select('id').eq('licensee_id', root.id);
+      const { data: apps } = await (supabase.from('applications') as any).select('id').eq('entity_id', root.id);
       (apps ?? []).forEach((a: Row) => add({ kind: 'application', id: a.id }));
+      // Licences carry no licensee FK: an entity's licences are those held
+      // directly (`holder_id`) plus those issued from its applications.
+      const appIds = ((apps ?? []) as Row[]).map((a) => a.id).filter(Boolean);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: lics } = await (supabase.from('licenses') as any).select('id').eq('licensee_id', root.id);
-      (lics ?? []).forEach((l: Row) => add({ kind: 'license', id: l.id }));
+      const { data: heldLics } = await (supabase.from('licenses') as any).select('id').eq('holder_id', root.id);
+      (heldLics ?? []).forEach((l: Row) => add({ kind: 'license', id: l.id }));
+      if (appIds.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: appLics } = await (supabase.from('licenses') as any).select('id').in('application_id', appIds);
+        (appLics ?? []).forEach((l: Row) => add({ kind: 'license', id: l.id }));
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: cmp } = await (supabase.from('complaints') as any).select('id').eq('licensee_id', root.id).limit(200);
       (cmp ?? []).forEach((c: Row) => add({ kind: 'complaint', id: c.id }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: enf } = await (supabase.from('enforcement_actions') as any).select('id').eq('licensee_id', root.id).limit(200);
+      const { data: enf } = await (supabase.from('enforcement_actions') as any).select('id').eq('entity_id', root.id).limit(200);
       (enf ?? []).forEach((e: Row) => add({ kind: 'enforcement_action', id: e.id }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       // EPR-01 — canonical filings are the Returns truth for the case graph.
@@ -105,8 +114,8 @@ export async function buildRelatedGraph(root: RelatedEntity): Promise<RelatedEnt
       if (c?.licensee_id) add({ kind: 'licensee', id: c.licensee_id });
     }
     if (root.kind === 'enforcement_action') {
-      const e = await fetchOne('enforcement_actions', root.id, 'id, licensee_id');
-      if (e?.licensee_id) add({ kind: 'licensee', id: e.licensee_id });
+      const e = await fetchOne('enforcement_actions', root.id, 'id, entity_id');
+      if (e?.entity_id) add({ kind: 'licensee', id: e.entity_id });
     }
     if (root.kind === 'return') {
       const r = await fetchOne('return_filings', root.id, 'id, entity_id');
@@ -211,13 +220,15 @@ export async function fetchCaseTimeline(entities: RelatedEntity[]): Promise<Time
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: enf } = await (supabase.from('enforcement_case_events') as any)
-      .select('id, created_at, event_type, actor_id, enforcement_action_id, detail')
-      .in('enforcement_action_id', ids).order('created_at', { ascending: false }).limit(200);
+      // `enforcement_case_events.case_id -> enforcement_actions.id` is the
+      // canonical linkage; there is no `enforcement_action_id` column.
+      .select('id, created_at, event_type, actor_id, case_id, detail')
+      .in('case_id', ids).order('created_at', { ascending: false }).limit(200);
     (enf ?? []).forEach((r: Row) => {
       events.push({
         at: r.created_at, actor: r.actor_id ?? null,
         action: r.event_type, entityKind: 'enforcement_action',
-        entityId: r.enforcement_action_id, module: 'enforcement',
+        entityId: r.case_id, module: 'enforcement',
         detail: r.detail, source: 'enforcement_case_events',
       });
     });

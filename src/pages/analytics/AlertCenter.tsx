@@ -78,10 +78,11 @@ export default function AlertCenter() {
       const now = Date.now();
       const [breaches, enforcement, complaints, risk, inspections, returns, fpMonitor] =
         await Promise.all([
+          // Canonical breach columns: risk_level / detected_at / metric_key / value.
           (supabase.from('return_threshold_breaches') as any)
-            .select('id, severity, created_at, acknowledged_at, ratio_key, breached_value, threshold_value')
+            .select('id, risk_level, detected_at, acknowledged_at, metric_key, value, threshold_value')
             .is('acknowledged_at', null)
-            .order('created_at', { ascending: false })
+            .order('detected_at', { ascending: false })
             .limit(200),
           supabase
             .from('enforcement_actions')
@@ -114,9 +115,10 @@ export default function AlertCenter() {
             .order('due_date', { ascending: true })
             .limit(200),
           (supabase.from('fp_monitoring_events') as any)
-            .select('id, individual_id, severity, event_type, created_at, acknowledged_at, notes')
+            // Canonical monitoring columns: raised_at / summary.
+            .select('id, individual_id, severity, event_type, raised_at, acknowledged_at, summary')
             .is('acknowledged_at', null)
-            .order('created_at', { ascending: false })
+            .order('raised_at', { ascending: false })
             .limit(200),
         ]);
 
@@ -126,13 +128,13 @@ export default function AlertCenter() {
         items.push({
           id: `breach-${b.id}`,
           source: 'breach',
-          title: `Breach: ${b.ratio_key || 'threshold'}`,
+          title: `Breach: ${b.metric_key || 'threshold'}`,
           detail:
-            b.breached_value != null && b.threshold_value != null
-              ? `${b.breached_value} vs ${b.threshold_value}`
+            b.value != null && b.threshold_value != null
+              ? `${b.value} vs ${b.threshold_value}`
               : undefined,
-          severity: toSeverity(b.severity),
-          created_at: b.created_at,
+          severity: toSeverity(b.risk_level),
+          created_at: b.detected_at,
           href: '/supervision/breaches',
         }),
       );
@@ -206,9 +208,9 @@ export default function AlertCenter() {
           id: `fp-${m.id}`,
           source: 'fp_monitor',
           title: `F&P alert: ${m.event_type || 'monitoring event'}`,
-          detail: m.notes || undefined,
+          detail: m.summary || undefined,
           severity: toSeverity(m.severity),
-          created_at: m.created_at,
+          created_at: m.raised_at,
           href: `/fpa/individuals/${m.individual_id}`,
         }),
       );
