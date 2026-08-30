@@ -44,7 +44,7 @@ BEGIN
   INSERT INTO public.sectors (id, name) VALUES (v_sec, 'P2 Group Sector') ON CONFLICT (id) DO NOTHING;
 
   INSERT INTO public.return_definitions (id, code, name, frequency, status, is_active)
-  VALUES (v_def, 'P2GRP', 'P2 Group Return', 'QUARTERLY', 'PUBLISHED', true)
+  VALUES (v_def, 'P2GRP', 'P2 Group Return', 'QUARTERLY', 'ACTIVE', true)
   ON CONFLICT (id) DO NOTHING;
 
   INSERT INTO public.licensees (id, name, sector_id) VALUES
