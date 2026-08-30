@@ -125,6 +125,30 @@ function selectColumns(list) {
   return cols.filter((c) => !/[()]/.test(c));
 }
 
+/**
+ * Module-level string constants are inlined so that a select list built with
+ * `${SAFE_LICENSE_FIELDS}` is still checked EXACTLY rather than being deferred.
+ * RF-17 (public-registry selecting licenses.issue_date) hid behind exactly this
+ * indirection, so resolving it is the difference between a real gate and a hole.
+ */
+function resolveInterpolations(src, text) {
+  const consts = new Map();
+  const constRe = new RegExp(String.raw`\bconst\s+(${IDENT})\s*(?::[^=]+)?=\s*([\`'"])([^\`'"$]*)\2`, 'g');
+  let c;
+  while ((c = constRe.exec(src))) consts.set(c[1], c[3]);
+  let out = text;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    out = out.replace(new RegExp(String.raw`\$\{\s*(${IDENT})\s*\}`, 'g'), (whole, name) => {
+      if (!consts.has(name)) return whole;
+      changed = true;
+      return consts.get(name);
+    });
+  }
+  return out;
+}
+
 for (const file of edgeFiles) {
   const fnName = path.relative(FUNCTIONS_DIR, file).split(path.sep)[0];
   if (fnName.startsWith('_')) continue; // shared helpers: no independent contract
@@ -133,14 +157,16 @@ for (const file of edgeFiles) {
   const rel = path.relative(ROOT, file);
 
   // .from('table') ... optional .select('...')
-  const fromRe = new RegExp(String.raw`\.from\(\s*(['"\`])([^'"\`]+)\1\s*\)([\s\S]{0,700})`, 'g');
+  // The match itself must NOT consume the trailing window: a greedy match would
+  // advance lastIndex past any `.from()` that follows within the window and skip
+  // that dependency entirely (developer-api's enforcement_actions query was
+  // silently unchecked). The window is therefore sliced, never captured.
+  const fromRe = new RegExp(String.raw`\.from\(\s*(['"\`])([^'"\`]+)\1\s*\)`, 'g');
   let m;
   while ((m = fromRe.exec(src))) {
     const table = m[2];
-    // A PostgREST builder chain ends at the statement boundary. Without this cut
-    // the window bleeds into the NEXT query and reports its columns against this
-    // table, which would make the gate useless (false positives) instead of exact.
-    let tail = m[3];
+    // A PostgREST builder chain ends at the statement boundary.
+    let tail = src.slice(m.index + m[0].length, m.index + m[0].length + 900);
     const cut = Math.min(
       ...[tail.indexOf(';'), tail.indexOf('.from('), tail.indexOf('.rpc(')]
         .map((i) => (i === -1 ? tail.length : i)),
@@ -155,15 +181,16 @@ for (const file of edgeFiles) {
     }
     if (!relations.has(key)) continue; // storage bucket handle
     const live = columns.get(key) || new Set();
-    const sel = tail.match(new RegExp(String.raw`\.select\(\s*([\`'"])([\s\S]*?)\1`));
+    const selMatch = tail.match(new RegExp(String.raw`\.select\(\s*([\`'"])([\s\S]*?)\1`));
+    const sel = selMatch ? { raw: selMatch[2], list: resolveInterpolations(src, selMatch[2]) } : null;
     const cols = new Set();
-    if (sel) selectColumns(sel[2]).forEach((c) => cols.add(c));
+    if (sel) selectColumns(sel.list).forEach((c) => cols.add(c));
     // filters / ordering reference real columns too
     const filterRe = new RegExp(String.raw`\.(eq|neq|gt|gte|lt|lte|like|ilike|is|in|contains|order)\(\s*(['"\`])(${IDENT})\2`, 'g');
     let f;
     while ((f = filterRe.exec(tail))) cols.add(f[3]);
     for (const c of cols) {
-      if (sel && sel[2].includes('${')) continue; // interpolated: audited below
+      if (sel && sel.list.includes('${')) continue; // still unresolved: audited below
       if (!live.has(c)) {
         defect('EDGE_FUNCTION', {
           function: fnName, file: rel, object: key, column: c,
@@ -171,7 +198,7 @@ for (const file of edgeFiles) {
         });
       }
     }
-    if (sel && sel[2].includes('${')) {
+    if (sel && sel.list.includes('${')) {
       const expr = `.from('${table}').select(<interpolated>)`;
       if (auditedEdge.has(`${fnName}|${expr}`)) deferrals.push({ surface: 'EDGE_FUNCTION', function: fnName, expression: expr });
       else defect('EDGE_FUNCTION', { function: fnName, file: rel, object: key, type: 'UNAUDITED DYNAMIC SELECT', expression: expr });
