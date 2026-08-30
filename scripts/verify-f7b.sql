@@ -45,6 +45,18 @@ CREATE TEMP TABLE f7b_results (
 );
 
 DROP FUNCTION IF EXISTS pg_temp.rec(text,text,text,boolean,text);
+-- Gate hygiene: the sandbox pooler can hand this gate a backend whose pg_temp
+-- still holds a helper of the same name but different parameter names from an
+-- earlier gate in the same pooled session. Drop first so CREATE cannot fail.
+DROP FUNCTION IF EXISTS pg_temp.rec(text,text,text,boolean,text);
+DROP FUNCTION IF EXISTS pg_temp.as_user(uuid,text);
+DROP FUNCTION IF EXISTS pg_temp.as_anon(text);
+DROP FUNCTION IF EXISTS pg_temp.val_as_user(uuid,text);
+DROP FUNCTION IF EXISTS pg_temp.val_as_anon(text);
+DROP FUNCTION IF EXISTS pg_temp.uid(text);
+DROP FUNCTION IF EXISTS pg_temp.bufrec(jsonb,text,text,text,boolean,text);
+DROP FUNCTION IF EXISTS pg_temp.act(uuid);
+
 CREATE OR REPLACE FUNCTION pg_temp.rec(_s text, _id text, _d text, _ok boolean, _detail text)
 RETURNS void LANGUAGE plpgsql AS $$
 BEGIN

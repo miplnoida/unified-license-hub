@@ -47,7 +47,7 @@ columns, absence of competing preference columns, approval mode as configuration
 server-side resolution with provenance, and fail-closed behaviour for an unresolvable
 entity. Result: 82/82 assertions pass, run twice, with zero residue.
 
-## Strict regulator-body scope (2026-08-31)
+## Strict regulator-body scope (2026-08-30)
 
 Canonical institutional identity is `regulators.id`; `licensees.lead_regulator_id`,
 `regulator_officer_id` and `alternate_regulator_id` remain officer/user assignments and are
@@ -63,7 +63,7 @@ approval control, pending proposals, and an explicit "monetary configuration req
 `ComplaintEntityCard` now scopes licensed-entity search by the regulator body reached through
 the entity's sector instead of the officer assignment field.
 
-## Enforcement Penalty Currency Review (2026-08-31)
+## Enforcement Penalty Currency Review (2026-08-30)
 
 ### Why JMD appeared
 
