@@ -72,13 +72,14 @@ BEGIN
       ON CONFLICT (id) DO NOTHING;
     INSERT INTO public.return_filings
       (id, filing_reference, entity_id, entity_reporting_obligation_id, reporting_period_id,
-       return_definition_id, status, current_version_number, accepted_version_id)
+       return_definition_id, status, current_version_number)
       VALUES (v_fil, 'P2PEER-2025Q1-' || lpad(i::text, 2, '0'), v_lic, v_ob, v_per, v_def,
-              'ACCEPTED', 1, v_ver)
+              'ACCEPTED', 1)
       ON CONFLICT (id) DO NOTHING;
     INSERT INTO public.return_filing_versions
       (id, return_filing_id, version_number, status, is_immutable)
       VALUES (v_ver, v_fil, 1, 'ACCEPTED', true) ON CONFLICT (id) DO NOTHING;
+    UPDATE public.return_filings SET accepted_version_id = v_ver WHERE id = v_fil;
 
     IF i <= 9 THEN
       INSERT INTO public.return_metric_values
