@@ -939,6 +939,31 @@ BEGIN
     EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
     _buf := pg_temp.bufrec(_buf,'L','L-10', 'acceptance provenance cannot be recorded without an acceptance decision', _ok, _msg);
 
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='ACCEPTED' WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-21',
+      'a SUBMITTED version cannot be marked ACCEPTED without acceptance provenance', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='ACCEPTED', accepted_by=_chk WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-22',
+      'an acceptance recording an officer but no acceptance time is refused', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='ACCEPTED', accepted_at=now() WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-23',
+      'an acceptance recording a time but no accepting officer is refused', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='REJECTED' WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-24',
+      'a SUBMITTED version cannot be marked REJECTED without rejection provenance', _ok, _msg);
+
+
     -- the legitimate governed review transition still works
     PERFORM pg_temp.act(_rev);
     PERFORM public.returns_review_filing(_ver,'START_REVIEW', NULL);
@@ -947,6 +972,38 @@ BEGIN
       'the governed START_REVIEW transition still advances a sealed version to UNDER_REVIEW',
       (SELECT status FROM public.return_filing_versions WHERE id=_ver) = 'UNDER_REVIEW',
       'status=UNDER_REVIEW');
+
+    -- decision STATUS without a decision RECORD is an inconsistent regulatory state
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='ACCEPTED' WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-25',
+      'an UNDER_REVIEW version cannot be marked ACCEPTED without acceptance provenance', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='REJECTED' WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-26',
+      'an UNDER_REVIEW version cannot be marked REJECTED without rejection provenance', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions
+              SET status='REJECTED', rejected_by=_chk, rejected_at=now(), rejection_reason='bad'
+            WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-27',
+      'a rejection without a substantive reason is refused by the database', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions
+              SET status='REJECTED', rejected_by=_chk, rejected_at=now(),
+                  rejection_reason='Certification probe: contradictory decision record.',
+                  accepted_by=_rev, accepted_at=now()
+            WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-28',
+      'a rejected version cannot simultaneously carry an acceptance record', _ok, _msg);
+
 
     _ok := false; _msg := '';
     BEGIN UPDATE public.return_filing_versions SET version_number = version_number + 7, submitted_by = _chk WHERE id=_ver;
@@ -986,6 +1043,14 @@ BEGIN
     EXCEPTION WHEN OTHERS THEN _ok := false; _msg := SQLERRM; END;
     _buf := pg_temp.bufrec(_buf,'L','L-17',
       'an accepted version can still be superseded by a governed later amendment', _ok, _msg);
+
+    _buf := pg_temp.bufrec(_buf,'L','L-30',
+      'a superseded version retains the acceptance provenance it legitimately earned',
+      EXISTS (SELECT 1 FROM public.return_filing_versions v
+               WHERE v.id=_ver AND v.status='SUPERSEDED'
+                 AND v.accepted_by=_chk AND v.accepted_at IS NOT NULL),
+      'historical acceptance preserved through supersession');
+
 
     _ok := false; _msg := '';
     BEGIN UPDATE public.return_filing_versions SET status='UNDER_REVIEW' WHERE id=_ver;
@@ -1397,7 +1462,42 @@ BEGIN
    WHERE n.is_active AND COALESCE(n.href_override, r.path_pattern) ILIKE '%entity-currency%';
   PERFORM pg_temp.rec('O','O-06','entity reporting currency stays a contextual Entity 360 action and gains no separate menu module',
     _n = 0, 'stray currency menu items='||_n);
+
+  -- O-07 the four obsolete Returns registry paths are retired in the live registry
+  SELECT string_agg(r.path_pattern,' ' ORDER BY r.path_pattern) INTO _bad
+    FROM public.sec_routes r
+   WHERE r.is_active
+     AND r.path_pattern IN ('/admin/returns/definitions','/admin/returns/metrics',
+                            '/admin/returns/migration','/returns/filings');
+  PERFORM pg_temp.rec('O','O-07','the obsolete Returns registry routes with no application implementation are inactive',
+    _bad IS NULL, COALESCE('still active: '||_bad,'all four orphan registry routes retired'));
+
+  -- O-08 no navigation item, sidebar or otherwise, still targets them
+  SELECT string_agg(n.key,' ' ORDER BY n.key) INTO _bad
+    FROM public.sec_navigation_items n
+    LEFT JOIN public.sec_routes r ON r.id=n.route_id
+   WHERE n.is_active
+     AND COALESCE(n.href_override, r.path_pattern) IN
+         ('/admin/returns/definitions','/admin/returns/metrics',
+          '/admin/returns/migration','/returns/filings');
+  PERFORM pg_temp.rec('O','O-08','no active navigation item targets a retired Returns registry route',
+    _bad IS NULL, COALESCE('active nav items: '||_bad,'no navigation item targets a retired route'));
+
+  -- O-09 the canonical replacements for those retirements exist and are active
+  SELECT count(*) INTO _n FROM public.sec_routes r
+   WHERE r.is_active
+     AND r.path_pattern IN ('/returns/queue','/returns/obligations','/returns/calendar','/entity/returns/dashboard');
+  PERFORM pg_temp.rec('O','O-09','the canonical Returns workspaces that replace the retired paths are registered and active',
+    _n = 4, 'canonical replacement routes='||_n);
+
+  -- O-10 retirement must not have collateral-damaged the reachable filing surfaces
+  SELECT count(*) INTO _n FROM public.sec_routes r
+   WHERE r.is_active AND r.path_pattern = '/returns/filings/:filingId';
+  PERFORM pg_temp.rec('O','O-10','the canonical filing detail route remains active and was not retired with the orphan paths',
+    _n = 1, 'active filing detail routes='||_n);
+
 END $o$;
+
 
 -- ---------------------------------------------------------------------------
 -- Z — zero residue
