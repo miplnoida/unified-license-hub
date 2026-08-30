@@ -948,6 +948,38 @@ BEGIN
       (SELECT status FROM public.return_filing_versions WHERE id=_ver) = 'UNDER_REVIEW',
       'status=UNDER_REVIEW');
 
+    -- decision STATUS without a decision RECORD is an inconsistent regulatory state
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='ACCEPTED' WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-25',
+      'an UNDER_REVIEW version cannot be marked ACCEPTED without acceptance provenance', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='REJECTED' WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-26',
+      'an UNDER_REVIEW version cannot be marked REJECTED without rejection provenance', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions
+              SET status='REJECTED', rejected_by=_chk, rejected_at=now(), rejection_reason='bad'
+            WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-27',
+      'a rejection without a substantive reason is refused by the database', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions
+              SET status='REJECTED', rejected_by=_chk, rejected_at=now(),
+                  rejection_reason='Certification probe: contradictory decision record.',
+                  accepted_by=_rev, accepted_at=now()
+            WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-28',
+      'a rejected version cannot simultaneously carry an acceptance record', _ok, _msg);
+
+
     _ok := false; _msg := '';
     BEGIN UPDATE public.return_filing_versions SET version_number = version_number + 7, submitted_by = _chk WHERE id=_ver;
     EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
