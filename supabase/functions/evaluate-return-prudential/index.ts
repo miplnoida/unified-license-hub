@@ -564,8 +564,16 @@ Deno.serve(async (req) => {
     // Only run on the authoritative post-submit pass (skip pre-submit gating calls).
     if (dispatch_notifications) {
       try {
+        // F8-W1B: pass the in-memory computed ratios so the analysis function
+        // never has to read the retired `return_calculated_ratios` store.
         await admin.functions.invoke("generate-return-analysis", {
-          body: { return_id, compute_ai_summary: true },
+          body: {
+            return_id,
+            compute_ai_summary: true,
+            ratios: computed.map((c) => ({
+              ratio_key: c.ratio_key, value: c.value, null_reason: c.null_reason,
+            })),
+          },
         });
       } catch (_) { /* analysis is optional in the evaluator response */ }
     }

@@ -144,16 +144,23 @@ Deno.serve(async (req) => {
     if (!rf) return json({ error: "Return not found" }, 404);
 
 
-    // Load latest ratios/breaches for THIS return
-    const [{ data: calcRatios = [] }, { data: breachRows = [] }, { data: cfgRatios = [] }] = await Promise.all([
-      admin.from("return_calculated_ratios").select("*").eq("return_id", return_id).order("computed_at", { ascending: false }),
+    // F8-W1B: this function no longer reads the retired `return_calculated_ratios`
+    // store (retired read-only in F8-W1A, writer `record_return_ratio` dropped).
+    // Ratio values are supplied by the caller (`evaluate-return-prudential`),
+    // which computes them in-memory from the same `prudential_ratios`
+    // configuration during the authoritative post-submit pass. No ratio value is
+    // recalculated, re-derived or persisted here.
+    const suppliedRatios: Array<{ ratio_key: string; value: number | null; null_reason?: string | null }> =
+      Array.isArray(body.ratios) ? body.ratios : [];
+
+    const [{ data: breachRows = [] }, { data: cfgRatios = [] }] = await Promise.all([
       admin.from("return_threshold_breaches").select("*").eq("return_id", return_id).order("detected_at", { ascending: false }),
       admin.from("prudential_ratios").select("*").eq("return_config_id", rf.return_configuration_id),
     ]);
 
-    // Latest value per ratio_key
+    // Value per ratio_key, exactly as computed by the canonical evaluator.
     const latestByKey = new Map<string, any>();
-    for (const r of (calcRatios as any[])) if (!latestByKey.has(r.ratio_key)) latestByKey.set(r.ratio_key, r);
+    for (const r of suppliedRatios) if (r?.ratio_key && !latestByKey.has(r.ratio_key)) latestByKey.set(r.ratio_key, r);
 
     // Assemble ratio inputs merged with config metadata
     const cfgByKey = new Map<string, any>((cfgRatios as any[]).map((c) => [c.ratio_key, c]));
@@ -180,24 +187,15 @@ Deno.serve(async (req) => {
       level: b.level, value: Number(b.value), threshold_value: Number(b.threshold_value), comparator: b.comparator,
     }));
 
-    // Trend: last 6 returns' latest ratios for same licensee+config
-    const licensee = rf.on_behalf_of_licensee_id ?? rf.entity_id;
-    const { data: siblingReturns = [] } = await admin
-      .from("returns_filed").select("id, period_end_date")
-      .eq("return_configuration_id", rf.return_configuration_id)
-      .eq("entity_id", licensee)
-      .order("period_end_date", { ascending: true })
-
-      .limit(6);
+    // Trend: historical ratio series is NOT reconstructed here. The retired
+    // ratio store is the only place legacy per-return ratio history exists, and
+    // the legacy `prudential_ratios.ratio_key` space has no governed mapping to
+    // canonical `regulatory_metrics.code`, so a canonical trend cannot be
+    // derived without a client-approved metric mapping. The analysis therefore
+    // reports the current period only and states why the trend is absent.
     const trend: TrendPoint[] = [];
-    for (const sr of (siblingReturns as any[])) {
-      const { data: rows = [] } = await admin.from("return_calculated_ratios")
-        .select("ratio_key,value,computed_at").eq("return_id", sr.id)
-        .order("computed_at", { ascending: false });
-      const latest: Record<string, number | null> = {};
-      for (const r of (rows as any[])) if (!(r.ratio_key in latest)) latest[r.ratio_key] = r.value == null ? null : Number(r.value);
-      trend.push({ return_id: sr.id, period_end: sr.period_end_date, ratios: latest });
-    }
+    const trend_unavailable_reason =
+      "legacy_ratio_keys_not_mapped_to_canonical_metrics";
 
     // Peer snapshot per ratio (best-effort — RPC may error for empty peer group)
     const peer: Array<{ ratio_key: string; label: string; my_value: number | null; distribution: any }> = [];
@@ -275,8 +273,11 @@ Deno.serve(async (req) => {
     // Persist row
     const inputs = {
       cfg_ratio_count: (cfgRatios as any[]).length,
+      supplied_ratio_count: suppliedRatios.length,
       breach_count: breaches.length,
       trend_len: trend.length,
+      trend_unavailable_reason,
+      ratio_source: "evaluate-return-prudential:in-memory",
       ai_error,
     };
     const { data: inserted, error: insErr } = await admin.from("return_consolidated_analysis").insert({
