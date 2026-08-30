@@ -65,7 +65,7 @@ BEGIN
     INSERT INTO public.return_filings
       (filing_reference, entity_id, entity_reporting_obligation_id, reporting_period_id,
        return_definition_id, status, current_version_number)
-    VALUES ('P2GRP-' || left(ent::text, 8), ent, ob, per, v_def, 'ACCEPTED', 1)
+    VALUES ('P2GRP-' || right(ent::text, 12), ent, ob, per, v_def, 'ACCEPTED', 1)
     RETURNING id INTO fil;
 
     -- Holding is restated: v1 (900, superseded) then v2 (1000, accepted).
