@@ -128,11 +128,13 @@ async function main() {
   record('P11.14 supervisor takes the enforcement decision', decision.ok, decision.text);
 
   // --- Sanction ---------------------------------------------------------
+  // The currency is deliberately NOT supplied: it is resolved server-side from
+  // the applicable regulator body's governed monetary configuration.
   const sanction = await rpc(OFFICER, 'enforcement_case_action', {
     _case_id: caseId, _action: 'IMPOSE_SANCTION',
     _payload: {
       rationale: 'Monetary penalty imposed in line with the approved decision.',
-      sanction_type: 'monetary_penalty', penalty_amount: 250000, penalty_currency: 'JMD',
+      sanction_type: 'monetary_penalty', penalty_amount: 250000,
     },
   });
   record('P11.15 SANCTION -> REMEDIATION_MONITORING with penalty imposed', sanction.ok, sanction.text);
