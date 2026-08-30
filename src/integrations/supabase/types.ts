@@ -28338,6 +28338,7 @@ export type Database = {
           cross_currency_settlement_allowed: boolean
           decimal_precision: number
           entity_currency_override_approval_mode: string
+          fx_platform_shared_rates_allowed: boolean
           fx_resolution_policy: string
           fx_source_policy: string
           id: string
@@ -28364,6 +28365,7 @@ export type Database = {
           cross_currency_settlement_allowed?: boolean
           decimal_precision?: number
           entity_currency_override_approval_mode?: string
+          fx_platform_shared_rates_allowed?: boolean
           fx_resolution_policy?: string
           fx_source_policy?: string
           id?: string
@@ -28390,6 +28392,7 @@ export type Database = {
           cross_currency_settlement_allowed?: boolean
           decimal_precision?: number
           entity_currency_override_approval_mode?: string
+          fx_platform_shared_rates_allowed?: boolean
           fx_resolution_policy?: string
           fx_source_policy?: string
           id?: string
@@ -53223,6 +53226,43 @@ export type Database = {
           cross_currency_settlement_allowed: boolean
           decimal_precision: number
           entity_currency_override_approval_mode: string
+          fx_platform_shared_rates_allowed: boolean
+          fx_resolution_policy: string
+          fx_source_policy: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          payment_fx_date_policy: string
+          refund_fx_date_policy: string
+          regulator_id: string | null
+          reporting_currency: string
+          returns_fx_date_policy: string
+          rounding_policy: string
+          settlement_currencies: string[]
+          supported_transaction_currencies: string[]
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "monetary_configs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      monetary_config_resolve_strict: {
+        Args: { _regulator_id: string }
+        Returns: {
+          accepted_payment_currencies: string[]
+          backdating_requires_authority: boolean
+          base_currency: string
+          created_at: string
+          created_by: string | null
+          cross_currency_refund_allowed: boolean
+          cross_currency_settlement_allowed: boolean
+          decimal_precision: number
+          entity_currency_override_approval_mode: string
+          fx_platform_shared_rates_allowed: boolean
           fx_resolution_policy: string
           fx_source_policy: string
           id: string
