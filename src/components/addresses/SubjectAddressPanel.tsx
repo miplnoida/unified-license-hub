@@ -88,7 +88,12 @@ export function SubjectAddressPanel({ subjectKind, subjectId, title = 'Addresses
           <MapPin className="h-4 w-4" aria-hidden /> {title}
         </CardTitle>
         {historical.length > 0 && (
-          <Button variant="outline" size="sm" onClick={() => setShowHistory((v) => !v)}>
+          <Button
+            variant="outline"
+            size="sm"
+            data-rbac="entity_structure.view_history"
+            onClick={() => setShowHistory((v) => !v)}
+          >
             {showHistory ? 'Current only' : `Include ${historical.length} historical`}
           </Button>
         )}

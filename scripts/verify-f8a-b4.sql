@@ -16,7 +16,7 @@ DO $verify$
 DECLARE
   pass int := 0; fail int := 0;
   v_ok boolean; v_n int; v_txt text; v_def text;
-  v_admin uuid; v_outsider uuid; v_viewer uuid;
+  v_admin uuid; v_outsider uuid; v_viewer uuid; v_cert_role uuid;
   v_entity uuid; v_reg uuid; v_role uuid;
   v_person uuid; v_person_b uuid;
   v_addr uuid; v_addr_dup uuid; v_addr_other uuid;
@@ -184,10 +184,45 @@ BEGIN
   SELECT p.id INTO v_outsider FROM public.profiles p
    WHERE NOT public.is_super_admin(p.id)
      AND NOT public.has_permission(p.id,'entity_structure','view') ORDER BY p.id LIMIT 1;
+
+  -- View-only certification persona.
+  -- No live role grants entity_structure.view without the mutating actions, so the
+  -- gate builds a *rollback-scoped* certification role instead of weakening any
+  -- production role. It receives entity_structure.view ONLY.
   SELECT p.id INTO v_viewer FROM public.profiles p
    WHERE NOT public.is_super_admin(p.id)
-     AND public.has_permission(p.id,'entity_structure','view')
-     AND NOT public.has_permission(p.id,'entity_structure','approve') ORDER BY p.id LIMIT 1;
+     AND NOT public.has_permission(p.id,'entity_structure','view')
+     AND p.id <> coalesce(v_outsider, '00000000-0000-0000-0000-000000000000'::uuid)
+   ORDER BY p.id DESC LIMIT 1;
+
+  IF v_viewer IS NOT NULL THEN
+    INSERT INTO public.sec_roles (key, name, description, role_type, status, is_system, is_break_glass)
+    VALUES ('cert_b4_view_only','F8A-B4 certification view-only',
+            'Rollback-scoped certification persona holding entity_structure.view only',
+            'internal','active', false, false)
+    RETURNING id INTO v_cert_role;
+
+    INSERT INTO public.sec_role_permissions (role_id, permission_id)
+    SELECT v_cert_role, p.id
+      FROM public.sec_permissions p
+      JOIN public.sec_modules m ON m.id = p.module_id
+     WHERE m.key = 'entity_structure' AND p.key = 'view';
+
+    INSERT INTO public.sec_user_roles (user_id, role_id, status)
+    VALUES (v_viewer, v_cert_role, 'active');
+
+    -- the persona must hold view and NOT hold any mutating action
+    IF public.has_permission(v_viewer,'entity_structure','view')
+       AND NOT public.has_permission(v_viewer,'entity_structure','propose')
+       AND NOT public.has_permission(v_viewer,'entity_structure','approve')
+       AND NOT public.has_permission(v_viewer,'entity_structure','apply')
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'I-00 the view-only certification persona is not correctly scoped'; END IF;
+  ELSE
+    fail:=fail+1;
+    RAISE WARNING 'I-00 no candidate profile is available for the view-only persona';
+  END IF;
+
   SELECT id INTO v_role FROM public.role_types WHERE is_active ORDER BY sort_order, key LIMIT 1;
 
   SELECT l.id INTO v_entity FROM public.licensees l
@@ -484,9 +519,10 @@ BEGIN
 
     IF v_viewer IS NOT NULL THEN
       PERFORM set_config('request.jwt.claims', json_build_object('sub', v_viewer)::text, true);
-      -- I-01 view-only user may read
+      -- I-01 view-only user may read (governed read surfaces)
       BEGIN
         PERFORM public.address_360_overview(v_addr, v_today);
+        PERFORM count(*) FROM public.relationship_intelligence_search('Church', ARRAY['ADDRESS'], 25);
         pass:=pass+1;
       EXCEPTION WHEN others THEN fail:=fail+1;
         RAISE WARNING 'I-01 a view-only user was denied a governed read: %', SQLERRM; END;
@@ -504,9 +540,30 @@ BEGIN
       EXCEPTION WHEN others THEN
         IF SQLERRM LIKE '%ADDRESS_PERMISSION_DENIED%' THEN pass:=pass+1;
         ELSE fail:=fail+1; RAISE WARNING 'I-03 unexpected error: %', SQLERRM; END IF; END;
+      -- I-03a view-only user may NOT propose a usage or a canonical address
+      BEGIN
+        PERFORM public.address_usage_propose(v_addr,'ENTITY',v_entity,'REGISTERED_OFFICE');
+        fail:=fail+1; RAISE WARNING 'I-03a a view-only user proposed an address usage';
+      EXCEPTION WHEN others THEN
+        IF SQLERRM LIKE '%ADDRESS_PERMISSION_DENIED%' THEN pass:=pass+1;
+        ELSE fail:=fail+1; RAISE WARNING 'I-03a unexpected error: %', SQLERRM; END IF; END;
+      BEGIN
+        PERFORM public.address_upsert_canonical('KN','9 Cert Street', NULL, NULL,
+                  'Basseterre', NULL, NULL, 'view-only probe');
+        fail:=fail+1; RAISE WARNING 'I-03b a view-only user created a canonical address';
+      EXCEPTION WHEN others THEN
+        IF SQLERRM LIKE '%ADDRESS_PERMISSION_DENIED%' THEN pass:=pass+1;
+        ELSE fail:=fail+1; RAISE WARNING 'I-03b unexpected error: %', SQLERRM; END IF; END;
+      -- I-03c view-only user may NOT end (apply) an approved usage
+      BEGIN
+        PERFORM public.address_usage_end(v_use_e, v_today);
+        fail:=fail+1; RAISE WARNING 'I-03c a view-only user ended an address usage';
+      EXCEPTION WHEN others THEN
+        IF SQLERRM LIKE '%ADDRESS_PERMISSION_DENIED%' THEN pass:=pass+1;
+        ELSE fail:=fail+1; RAISE WARNING 'I-03c unexpected error: %', SQLERRM; END IF; END;
     ELSE
-      RAISE NOTICE 'I-01..I-03 skipped: no view-only entity_structure identity exists live';
-      pass:=pass+3;
+      fail:=fail+1;
+      RAISE WARNING 'I-01..I-03c not proven: the view-only certification persona was not built';
     END IF;
 
     IF v_outsider IS NOT NULL THEN
@@ -535,8 +592,8 @@ BEGIN
       THEN pass:=pass+1; ELSE fail:=fail+1;
         RAISE WARNING 'I-07 an unrelated user can see a person address subject'; END IF;
     ELSE
-      RAISE NOTICE 'I-04..I-07 skipped: no permissionless identity exists live';
-      pass:=pass+4;
+      fail:=fail+1;
+      RAISE WARNING 'I-04..I-07 not proven: no permissionless identity exists live';
     END IF;
 
     -- J: calling the RPC directly, with no session, must fail closed
