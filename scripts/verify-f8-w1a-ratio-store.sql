@@ -107,5 +107,28 @@ BEGIN
   END LOOP;
   RAISE NOTICE 'PASS 8: prudential read surfaces read the canonical store only';
 
+  -- 9. Early-warning evaluation reads canonical ratios and canonical breach keys.
+  SELECT prosrc INTO t FROM pg_proc p JOIN pg_namespace ns ON ns.oid = p.pronamespace
+   WHERE ns.nspname = 'public' AND p.proname = 'prudential_ewi_evaluate';
+  IF t IS NULL OR t NOT LIKE '%return_metric_values%' OR t NOT LIKE '%return_filing_id%' THEN
+    RAISE EXCEPTION 'FAIL 9: prudential_ewi_evaluate does not read the canonical ratio/breach source';
+  END IF;
+  PERFORM public.prudential_ewi_evaluate(
+    (SELECT entity_id FROM public.return_filings WHERE status = 'ACCEPTED' LIMIT 1),
+    (SELECT max(w.period_end) FROM public.v_return_filing_workflow_state w));
+  RAISE NOTICE 'PASS 9: early-warning evaluation executes against the canonical source';
+
+  -- 10. Legacy per-return stress variant is gone; canonical per-filing remains.
+  IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace ns ON ns.oid = p.pronamespace
+              WHERE ns.nspname = 'public' AND p.proname = 'evaluate_stress_indicators_for_return') THEN
+    RAISE EXCEPTION 'FAIL 10: retired evaluate_stress_indicators_for_return still exists';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace ns ON ns.oid = p.pronamespace
+                  WHERE ns.nspname = 'public' AND p.proname = 'evaluate_stress_indicators_for_filing') THEN
+    RAISE EXCEPTION 'FAIL 10: canonical evaluate_stress_indicators_for_filing missing';
+  END IF;
+  RAISE NOTICE 'PASS 10: stress evaluation exists only in its canonical per-filing form';
+
+
   RAISE NOTICE 'F8-W1A CANONICAL RATIO STORE: ALL CHECKS PASS';
 END $$;
