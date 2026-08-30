@@ -1,0 +1,28 @@
+{
+  "finding": "SR-16 final route runtime census",
+  "tested_head": "0c839c6da66798cc8e6ac8204ad890a97a605f10",
+  "branch": "edit/edt-2abe95ce-ba41-4ad3-891e-bc6599258932",
+  "tree_at_run_start": "clean",
+  "dirty_files_at_run_start": [],
+  "base_url": "http://localhost:8080",
+  "backend_project_ref": "sndfttzqmbkmkcnrvpfn",
+  "started_at": "2026-08-30T20:49:51.017Z",
+  "finished_at": "2026-08-30T21:06:43.145Z",
+  "route_inventory_count": 347,
+  "covered_routes": 347,
+  "execution_count": 353,
+  "classifications": {
+    "PASS": 297,
+    "REDIRECT": 38,
+    "EXPECTED_NOT_FOUND": 10,
+    "FAIL": 2,
+    "EXPECTED_AUTHORIZATION": 6
+  },
+  "personas_available": {
+    "internal": true,
+    "external": true,
+    "anonymous": true
+  },
+  "harness_exit_code": 1,
+  "artifact": "scripts/system-runtime/route-smoke-results.json"
+}
