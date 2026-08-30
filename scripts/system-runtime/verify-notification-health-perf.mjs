@@ -2,8 +2,9 @@
 /**
  * Notification channel health performance regression (SR-24).
  *
- * Proves public.notification_channel_health() completes far below the 120s
- * statement timeout after the single-scan worker rewrite, that the authorized
+ * Proves public.notification_channel_health() completes well below the REAL
+ * Data API statement timeout for the `authenticated` role (8s, per
+ * pg_roles.rolconfig — NOT the 120s session default), that the authorized
  * persona gets the expected shape, and that an unauthenticated caller is still
  * denied. No timeout is raised and no error is suppressed.
  *
@@ -13,10 +14,11 @@ const URL_BASE = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const ANON = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
 const TOKEN = process.env.LOVABLE_BROWSER_SUPABASE_ACCESS_TOKEN;
 const RUNS = 5;
-const THRESHOLD_MS = 15000;     // 12.5% of the 120s timeout: generous headroom that
-                                // still catches any return of the per-job scan
-                                // (observed: ~0.6s warm, first cold call a few s).
-const TIMEOUT_MS = 120000;
+// Effective PostgREST statement timeout for the `authenticated` role.
+const TIMEOUT_MS = 8000;
+// Regression threshold: 50% of the effective timeout. Any return of the
+// run-history scan (previously 9s+ cold / 57014) breaches this immediately.
+const THRESHOLD_MS = 4000;
 
 async function call(auth) {
   const t0 = performance.now();
