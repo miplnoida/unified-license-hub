@@ -119,11 +119,12 @@ Deno.serve(async (req) => {
   // -- signer profile
   const { data: prof } = await admin
     .from("profiles")
-    .select("full_name,job_title,email")
+    // profiles has no job_title; department is the canonical signer designation.
+    .select("full_name,department,email")
     .eq("id", user.id)
     .maybeSingle();
   const signer_name = (prof?.full_name as string | null) || user.email || "Unknown Signer";
-  const signer_title = body.signer_title || (prof?.job_title as string | null) || null;
+  const signer_title = body.signer_title || (prof?.department as string | null) || null;
 
   // -- write ledger row
   const { data: sigRow, error: sigErr } = await admin
