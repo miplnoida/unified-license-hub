@@ -29,16 +29,24 @@ const navFallback = read('src/config/navigation.tsx');
 ok(navFallback.includes(MANUAL_ROUTE) && navFallback.includes('Help & User Manual'), 'fallback navigation carries the manual');
 const snapshot = read('src/lib/breadcrumbs/navigationSnapshot.ts');
 ok(snapshot.includes('nav_help_user_manual') && snapshot.includes(MANUAL_ROUTE), 'navigation snapshot (breadcrumb source) carries the manual');
+const guards = read('src/routes/routeHelpers.tsx');
+ok(guards.includes(`'${MANUAL_ROUTE}'`), 'pre-licensee registration gate allows the manual');
+
 
 /* ------------------------------------------------- database registration */
 if (process.env.PGHOST) {
   const q = (sql) => execFileSync('psql', ['-At', '-c', sql], { encoding: 'utf8' }).trim();
   ok(q(`select count(*) from sec_routes where path_pattern = '${MANUAL_ROUTE}' and is_active`) === '1', 'sec_routes entry exists and is active');
+  ok(q("select is_protected from sec_routes where key = 'help_user_manual'") === 't', 'sec_routes.help_user_manual is_protected = true (authenticated-only)');
+  ok(q("select audience from sec_routes where key = 'help_user_manual'") === 'any', 'manual route is available to any authenticated audience');
   ok(q(`select count(*) from sec_navigation_items where key = 'nav_help_user_manual' and is_active and show_in_sidebar`) === '1', 'sec_navigation_items entry exists, active and in the sidebar');
+  ok(q("select show_in_search from sec_navigation_items where key = 'nav_help_user_manual'") === 't', 'manual navigation item is searchable');
+  ok(q("select p.key from sec_navigation_items i join sec_navigation_items p on p.id = i.parent_id where i.key = 'nav_help_user_manual'") === 'grp_nav_home', 'manual navigation parent is Home');
   ok(q("select label from sec_navigation_items where key = 'nav_help_user_manual'") === 'Help & User Manual', 'navigation label is "Help & User Manual"');
 } else {
   console.log('verify:user-manual: no database configured — skipping sec_routes / sec_navigation_items checks.');
 }
+
 
 /* -------------------------------------------------------------- registry */
 const src = (f) => read(`src/content/user-manual/${f}`);

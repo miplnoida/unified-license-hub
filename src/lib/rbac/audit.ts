@@ -100,6 +100,8 @@ const PUBLIC_ALLOW_LABELS = new Set(
     'case', 'send test digest', 'test rule',
     // F2-B.1: unauthenticated navigation on the authority-pending screen
     'registration options',
+    // User Manual V1: documentation-only affordances exercise no authority
+    'print / pdf', 'print view', 'exit print view', 'help & user manual',
 
   ].map((s) => s.toLowerCase()),
 );

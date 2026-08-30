@@ -22,7 +22,14 @@ const REGISTRATION_GATE_ALLOWLIST = [
   '/registration/portal',
   '/update-registration-form',
   '/registration/update',
+  // Documentation only — onboarding help must stay readable while a
+  // registration is pending or returned (still authenticated + role-filtered).
+  '/help/user-manual',
 ];
+
+/** Exported for route-guard tests and documentation gates. */
+export { REGISTRATION_GATE_ALLOWLIST };
+
 
 function isRegistrationGateAllowed(pathname: string): boolean {
   return REGISTRATION_GATE_ALLOWLIST.some(

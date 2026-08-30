@@ -38,6 +38,7 @@ export function ScreenHelpLink({ surface, anchor, label, variant = 'button', cla
 
   const text = label ?? target.label;
   const href = manualHref(anchor ?? target.anchor);
+  const labelClass = variant === 'button' ? 'ml-2 hidden sm:inline' : 'sr-only';
 
   if (variant === 'inline') {
     return (
@@ -56,12 +57,10 @@ export function ScreenHelpLink({ surface, anchor, label, variant = 'button', cla
           size={variant === 'icon' ? 'icon' : 'sm'}
           className={`print:hidden ${className ?? ''}`}
           aria-label={text}
-          // Documentation-only navigation: no regulatory authority is exercised.
-          data-rbac="documentation.view"
         >
           <Link to={href}>
             <HelpCircle className="h-4 w-4" />
-            {variant === 'button' && <span className="ml-2 hidden sm:inline">{text}</span>}
+            <span className={labelClass}>{text}</span>
           </Link>
         </Button>
       </TooltipTrigger>

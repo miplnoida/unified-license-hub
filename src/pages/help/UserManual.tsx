@@ -360,7 +360,7 @@ export default function UserManual() {
               <Button variant="outline" size="sm" onClick={() => setPrintView((v) => !v)}>
                 {printView ? 'Exit print view' : 'Print view'}
               </Button>
-              <Button data-rbac="documentation.view" size="sm" onClick={() => window.print()}>
+              <Button size="sm" onClick={() => window.print()}>
                 <Printer className="mr-2 h-4 w-4" /> Print / PDF
               </Button>
             </div>
