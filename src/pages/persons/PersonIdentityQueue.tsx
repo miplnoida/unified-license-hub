@@ -138,9 +138,16 @@ export default function PersonIdentityQueue() {
                           Open person
                         </Link>
                       ) : (
-                        <Button size="sm" variant="outline" onClick={() => setTarget(r)}>
+                        <GuardedButton
+                          module="licensee_management"
+                          action="edit"
+                          data-rbac="licensee_management.edit"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setTarget(r)}
+                        >
                           Resolve
-                        </Button>
+                        </GuardedButton>
                       )}
                     </TableCell>
                   </TableRow>
