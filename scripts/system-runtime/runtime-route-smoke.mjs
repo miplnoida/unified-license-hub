@@ -55,10 +55,24 @@ const CONTRACT_TEXT = [
  *              itself resolved: the routine ran and raised its own guard.
  * The message must match as well as the code, so an unrelated 22023 still FAILs.
  */
+/**
+ * Business not-found guards raised deliberately by conduct SECURITY DEFINER
+ * routines. These are canonical server strings (migration 20260826170609):
+ *   RAISE EXCEPTION 'not_found: attention item does not exist'   ERRCODE 22023
+ *   RAISE EXCEPTION 'not_found: supervisory plan does not exist'  ERRCODE 22023
+ * Matched narrowly on purpose: any other 22023 (invalid uuid, invalid state
+ * transition, unrelated guard) must stay FAIL, and schema-contract codes
+ * (42703/42P01/...) are never routed through here.
+ */
+const BUSINESS_NOT_FOUND_GUARD =
+  /not[_ ]found:\s*(attention item|supervisory plan) does not exist/i;
+
 const NOT_FOUND_BACKEND = [
   { code: 'PGRST116', rx: /0 rows|multiple \(or no\) rows/i },
   { code: '22023', rx: /_REQUIRED\b|not found|does not exist for/i },
+  { code: '22023', rx: BUSINESS_NOT_FOUND_GUARD },
 ];
+
 
 const NOT_FOUND_TEXT = [
   /not found/i,
@@ -265,4 +279,43 @@ function summarize(results) {
   return s;
 }
 
-run().catch((e) => { console.error(e); process.exit(1); });
+
+// ------------------------------------------------------------- self-test
+// `node scripts/system-runtime/runtime-route-smoke.mjs --self-test`
+// Proves the business not-found matcher accepts ONLY the two canonical conduct
+// guards and keeps every other backend failure fatal. Runs no browser.
+function selfTestCases() {
+  const route = { id: 'T', path: '/t', component: 'T', guards: [] };
+  const mk = (backendErrors) => classify({
+    route, persona: 'internal', url: 'http://x/t', finalUrl: 'http://x/t',
+    text: 'Attention item\nSome rendered screen content that is clearly not a loader.',
+    navError: null, consoleErrors: [], pageErrors: [], backendErrors,
+  });
+  const be = (code, message, status = 400) =>
+    [{ status, code, url: '/rest/v1/rpc/x', body: JSON.stringify({ code, message }) }];
+  return [
+    ['guard: attention item', mk(be('22023', 'not_found: attention item does not exist')), 'EXPECTED_NOT_FOUND'],
+    ['guard: supervisory plan', mk(be('22023', 'not_found: supervisory plan does not exist')), 'EXPECTED_NOT_FOUND'],
+    ['22023 invalid uuid', mk(be('22023', 'invalid UUID supplied')), 'FAIL'],
+    ['22023 invalid transition', mk(be('22023', 'invalid state transition')), 'FAIL'],
+    ['22023 unrelated', mk(be('22023', 'entity is embargoed')), 'FAIL'],
+    ['42703 column', mk(be('42703', 'column c.foo does not exist')), 'FAIL'],
+    ['42P01 relation', mk(be('42P01', 'relation "public.nope" does not exist')), 'FAIL'],
+    ['http 500', mk(be('500', 'internal error', 500)), 'FAIL'],
+    ['57014 timeout', mk(be('57014', 'canceling statement due to statement timeout', 500)), 'FAIL'],
+  ];
+}
+
+if (process.argv.includes('--self-test')) {
+  let fails = 0;
+  for (const [name, got, want] of selfTestCases()) {
+    const ok = got.classification === want;
+    if (!ok) fails += 1;
+    console.log(`${ok ? 'PASS' : 'FAIL'}  ${name} -> ${got.classification} (expected ${want})`);
+  }
+  console.log(fails ? `\nSELF-TEST FAILED (${fails})` : '\nSELF-TEST PASSED (9/9)');
+  process.exit(fails ? 1 : 0);
+} else {
+  run().catch((e) => { console.error(e); process.exit(1); });
+}
+

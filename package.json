@@ -52,7 +52,9 @@
     "docs:user-manual": "vite-node scripts/generate-user-manual.ts",
     "docs:user-manual:screenshots": "node scripts/capture-user-manual-screenshots.mjs",
     "verify:system-runtime-schema": "node scripts/system-runtime/verify-system-runtime-schema.mjs",
-    "verify:route-runtime-smoke": "node scripts/system-runtime/runtime-route-smoke.mjs"
+    "verify:route-runtime-smoke": "node scripts/system-runtime/runtime-route-smoke.mjs",
+    "verify:route-harness-selftest": "node scripts/system-runtime/runtime-route-smoke.mjs --self-test",
+    "verify:notification-health-perf": "node scripts/system-runtime/verify-notification-health-perf.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
