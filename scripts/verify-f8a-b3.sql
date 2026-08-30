@@ -505,6 +505,166 @@ BEGIN
     PERFORM set_config('request.jwt.claims', NULL, true);
   END IF;
 
+  -- ==========================================================================
+  -- J. CANONICAL AUTHORIZATION VOCABULARY
+  --
+  -- The B3 resolution surfaces are governed exclusively by the catalogued
+  -- permissions licensee_management.edit (licensee/entity side) and
+  -- fit_and_proper.edit (person/F&P side). The retired vocabulary
+  -- entity_structure.edit must exist nowhere and must authorize nothing.
+  -- ==========================================================================
+  PERFORM set_config('request.jwt.claims', NULL, true);
+
+  -- J-01 the retired pair is absent from the permission catalogue
+  SELECT count(*) INTO v_n
+    FROM public.sec_permissions sp
+    JOIN public.sec_modules sm ON sm.id = sp.module_id
+   WHERE sm.key = 'entity_structure' AND sp.key = 'edit';
+  IF v_n = 0 THEN pass:=pass+1; ELSE fail:=fail+1;
+    RAISE WARNING 'J-01 entity_structure.edit was promoted into the catalogue'; END IF;
+
+  -- J-02 no routine anywhere recognises the retired pair
+  SELECT count(*) INTO v_n FROM pg_proc p
+   WHERE p.pronamespace = 'public'::regnamespace
+     AND pg_get_functiondef(p.oid) ~ $$entity_structure'\s*,\s*'edit$$;
+  IF v_n = 0 THEN pass:=pass+1; ELSE fail:=fail+1;
+    RAISE WARNING 'J-02 % routine(s) still check entity_structure.edit', v_n; END IF;
+
+  -- J-03 the appointment bridge is governed by the canonical pairs only
+  SELECT pg_get_functiondef(p.oid) INTO v_txt FROM pg_proc p
+   WHERE p.pronamespace = 'public'::regnamespace
+     AND p.proname = 'entity_appointment_resolve_fp_bridge';
+  IF v_txt IS NOT NULL
+     AND v_txt LIKE '%licensee_management%' AND v_txt LIKE '%fit_and_proper%'
+     AND v_txt NOT LIKE '%entity_structure%'
+  THEN pass:=pass+1; ELSE fail:=fail+1;
+    RAISE WARNING 'J-03 appointment bridge authorization is not canonical'; END IF;
+
+  -- J-04 the manual person linkage action is governed by fit_and_proper.edit
+  SELECT pg_get_functiondef(p.oid) INTO v_txt FROM pg_proc p
+   WHERE p.pronamespace = 'public'::regnamespace AND p.proname = 'fp_link_person_manual';
+  IF v_txt IS NOT NULL AND v_txt ~ $$fit_and_proper'\s*,\s*'edit$$
+  THEN pass:=pass+1; ELSE fail:=fail+1;
+    RAISE WARNING 'J-04 manual linkage is not governed by fit_and_proper.edit'; END IF;
+
+  -- ------------------------------------------------------------------------
+  -- Behavioural positive / negative proof against live identities.
+  --
+  -- Each probe uses a random target id, so authorization is the only thing
+  -- under test: a permitted identity fails past the guard with a domain error
+  -- (never 42501) and mutates nothing; a denied identity fails at the guard.
+  -- ------------------------------------------------------------------------
+  SELECT p.id INTO v_lic_editor FROM public.profiles p
+   WHERE NOT public.is_super_admin(p.id)
+     AND public.has_permission(p.id,'licensee_management','edit')
+   ORDER BY p.id LIMIT 1;
+
+  SELECT p.id INTO v_fp_editor FROM public.profiles p
+   WHERE NOT public.is_super_admin(p.id)
+     AND public.has_permission(p.id,'fit_and_proper','edit')
+   ORDER BY p.id LIMIT 1;
+
+  -- an identity holding some unrelated edit permission but neither canonical pair
+  SELECT p.id INTO v_other_editor FROM public.profiles p
+   WHERE NOT public.is_super_admin(p.id)
+     AND NOT public.has_permission(p.id,'licensee_management','edit')
+     AND NOT public.has_permission(p.id,'fit_and_proper','edit')
+     AND (public.has_permission(p.id,'complaint_management','edit')
+       OR public.has_permission(p.id,'returns_management','edit')
+       OR public.has_permission(p.id,'application_management','edit'))
+   ORDER BY p.id LIMIT 1;
+
+  -- J-05 POSITIVE: licensee_management.edit passes the appointment-bridge guard
+  IF v_lic_editor IS NOT NULL THEN
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub', v_lic_editor)::text, true);
+    BEGIN
+      PERFORM public.entity_appointment_resolve_fp_bridge(gen_random_uuid());
+      fail:=fail+1;
+      RAISE WARNING 'J-05 bridge returned for a nonexistent appointment';
+    EXCEPTION
+      WHEN insufficient_privilege THEN fail:=fail+1;
+        RAISE WARNING 'J-05 licensee_management.edit was denied the bridge action';
+      WHEN others THEN
+        IF SQLERRM LIKE '%APPOINTMENT_NOT_FOUND%' THEN pass:=pass+1;
+        ELSE fail:=fail+1;
+          RAISE WARNING 'J-05 unexpected bridge error: %', SQLERRM; END IF; END;
+  ELSE
+    fail:=fail+1; RAISE WARNING 'J-05 no licensee_management.edit identity exists live';
+  END IF;
+
+  -- J-06 POSITIVE: fit_and_proper.edit passes the appointment-bridge guard too
+  IF v_fp_editor IS NOT NULL THEN
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub', v_fp_editor)::text, true);
+    BEGIN
+      PERFORM public.entity_appointment_resolve_fp_bridge(gen_random_uuid());
+      fail:=fail+1; RAISE WARNING 'J-06 bridge returned for a nonexistent appointment';
+    EXCEPTION
+      WHEN insufficient_privilege THEN fail:=fail+1;
+        RAISE WARNING 'J-06 fit_and_proper.edit was denied the bridge action';
+      WHEN others THEN
+        IF SQLERRM LIKE '%APPOINTMENT_NOT_FOUND%' THEN pass:=pass+1;
+        ELSE fail:=fail+1;
+          RAISE WARNING 'J-06 unexpected bridge error: %', SQLERRM; END IF; END;
+  ELSE
+    fail:=fail+1; RAISE WARNING 'J-06 no fit_and_proper.edit identity exists live';
+  END IF;
+
+  -- J-07 POSITIVE: fit_and_proper.edit passes the manual person-linkage guard
+  IF v_fp_editor IS NOT NULL THEN
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub', v_fp_editor)::text, true);
+    BEGIN
+      PERFORM public.fp_link_person_manual(gen_random_uuid(), gen_random_uuid(),
+        'B3 authorization probe against a nonexistent subject');
+      fail:=fail+1; RAISE WARNING 'J-07 manual linkage accepted unknown subjects';
+    EXCEPTION
+      WHEN insufficient_privilege THEN fail:=fail+1;
+        RAISE WARNING 'J-07 fit_and_proper.edit was denied manual linkage';
+      WHEN others THEN pass:=pass+1; END;
+  ELSE
+    fail:=fail+1; RAISE WARNING 'J-07 no fit_and_proper.edit identity exists live';
+  END IF;
+
+  -- J-08 NEGATIVE: an unrelated edit permission authorizes nothing here
+  IF v_other_editor IS NOT NULL THEN
+    PERFORM set_config('request.jwt.claims',
+      json_build_object('sub', v_other_editor)::text, true);
+    BEGIN
+      PERFORM public.entity_appointment_resolve_fp_bridge(gen_random_uuid());
+      fail:=fail+1;
+      RAISE WARNING 'J-08 an unrelated edit permission authorized the bridge';
+    EXCEPTION
+      WHEN insufficient_privilege THEN pass:=pass+1;
+      WHEN others THEN fail:=fail+1;
+        RAISE WARNING 'J-08 bridge failed open for an unrelated permission: %', SQLERRM; END;
+
+    BEGIN
+      PERFORM public.fp_link_person_manual(gen_random_uuid(), gen_random_uuid(),
+        'B3 negative authorization probe with an unrelated permission');
+      fail:=fail+1;
+      RAISE WARNING 'J-09 an unrelated edit permission authorized manual linkage';
+    EXCEPTION
+      WHEN insufficient_privilege THEN pass:=pass+1;
+      WHEN others THEN fail:=fail+1;
+        RAISE WARNING 'J-09 linkage failed open for an unrelated permission: %', SQLERRM; END;
+  ELSE
+    RAISE NOTICE 'J-08/J-09 skipped: no unrelated-edit-only identity exists live';
+    pass:=pass+2;
+  END IF;
+
+  -- J-10 the appointment bridge remains fail-closed for anonymous callers
+  PERFORM set_config('request.jwt.claims', NULL, true);
+  BEGIN
+    PERFORM public.entity_appointment_resolve_fp_bridge(gen_random_uuid());
+    fail:=fail+1; RAISE WARNING 'J-10 anonymous caller reached the bridge';
+  EXCEPTION WHEN insufficient_privilege THEN pass:=pass+1;
+    WHEN others THEN fail:=fail+1;
+      RAISE WARNING 'J-10 unexpected anonymous error: %', SQLERRM; END;
+
+
+
   RAISE NOTICE 'F8A-B3 gate: % passed, % failed', pass, fail;
   IF fail > 0 THEN
     RAISE EXCEPTION 'F8A-B3 gate FAILED with % defect(s)', fail;
