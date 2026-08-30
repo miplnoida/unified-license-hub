@@ -33,6 +33,7 @@
     "certify:f6c": "psql -v ON_ERROR_STOP=1 -f scripts/certify-f6c.sql",
     "verify:f8a-b1": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8a-b1.sql",
     "verify:f8a-b2": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8a-b2.sql",
+    "verify:f8a-b4-runtime": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8a-b4-runtime.sql",
     "verify:f8a-b4": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8a-b4.sql",
     "verify:f8a-b3": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8a-b3.sql",
     "verify:f7b": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f7b.sql",
