@@ -159,6 +159,9 @@ const PrudentialTaxonomyAdmin = lazy(() => import('@/pages/prudential/Prudential
 const EntityDirectory = lazy(() => import('@/pages/entities/EntityDirectory'));
 const EntityStructureHub = lazy(() => import('@/pages/entities/EntityStructureHub'));
 const Entity360Detail = lazy(() => import('@/pages/entities/Entity360Detail'));
+// F8A-B3 — canonical person identity surfaces.
+const Person360Detail = lazy(() => import('@/pages/persons/Person360Detail'));
+const PersonIdentityQueue = lazy(() => import('@/pages/persons/PersonIdentityQueue'));
 const Entity360Redirect = lazy(() => import('@/routes/Entity360Redirect'));
 const EntityResolutionQueue = lazy(() => import('@/pages/licensing/EntityResolutionQueue'));
 const EntityResolutionDetail = lazy(() => import('@/pages/licensing/EntityResolutionDetail'));
@@ -383,6 +386,10 @@ export const dashboardRoutes = (
     <Route path="/entities/:entityId/structure" element={<M module="licensee_management"><EntityStructureHub /></M>} />
     {/* Compatibility URL for existing bookmarks — redirects to the canonical profile. */}
     <Route path="/entities/:entityId/360" element={<Entity360Redirect />} />
+    {/* F8A-B3 — canonical person identity: queue is registered before the
+        parameterised person profile so it is never captured as a party id. */}
+    <Route path="/persons/identity-queue" element={<M module="licensee_management"><PersonIdentityQueue /></M>} />
+    <Route path="/persons/:partyId" element={<M module="licensee_management"><Person360Detail /></M>} />
     <Route path="/licensing/entity-resolution" element={<M module="entity_resolution"><EntityResolutionQueue /></M>} />
     <Route path="/licensing/entity-resolution/:caseId" element={<M module="entity_resolution"><EntityResolutionDetail /></M>} />
     <Route path="/admin/entity-memberships" element={<M module="entity_membership"><EntityMemberships /></M>} />

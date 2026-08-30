@@ -22818,9 +22818,12 @@ export type Database = {
           created_at: string
           fp_individual_id: string
           id: string
+          link_reason: string | null
           linked_at: string
           linked_by: string | null
+          match_category: string | null
           match_confidence: string
+          match_evidence: Json
           match_method: string
           person_party_id: string
         }
@@ -22828,9 +22831,12 @@ export type Database = {
           created_at?: string
           fp_individual_id: string
           id?: string
+          link_reason?: string | null
           linked_at?: string
           linked_by?: string | null
+          match_category?: string | null
           match_confidence?: string
+          match_evidence?: Json
           match_method: string
           person_party_id: string
         }
@@ -22838,9 +22844,12 @@ export type Database = {
           created_at?: string
           fp_individual_id?: string
           id?: string
+          link_reason?: string | null
           linked_at?: string
           linked_by?: string | null
+          match_category?: string | null
           match_confidence?: string
+          match_evidence?: Json
           match_method?: string
           person_party_id?: string
         }
@@ -50663,6 +50672,10 @@ export type Database = {
         }
         Returns: Json
       }
+      entity_appointment_resolve_fp_bridge: {
+        Args: { _appointment_id: string }
+        Returns: Json
+      }
       entity_attach_license: {
         Args: {
           _entity_id: string
@@ -51800,6 +51813,14 @@ export type Database = {
         Args: { _individual_id: string; _patch: Json; _reason?: string }
         Returns: Json
       }
+      fp_link_person_manual: {
+        Args: {
+          _fp_individual_id: string
+          _person_party_id: string
+          _reason: string
+        }
+        Returns: Json
+      }
       fp_link_persons_deterministic: { Args: never; Returns: Json }
       fp_monitoring_event_acknowledge: {
         Args: { _event_id: string; _note?: string }
@@ -51824,6 +51845,14 @@ export type Database = {
           _outcome: string
         }
         Returns: string
+      }
+      fp_person_identity_queue: { Args: { _limit?: number }; Returns: Json }
+      fp_person_link_candidates: {
+        Args: { _fp_individual_id: string }
+        Returns: {
+          evidence_kind: string
+          person_party_id: string
+        }[]
       }
       fp_positive_outcomes: { Args: never; Returns: string[] }
       fp_provider_state_conclusive: {
@@ -51903,6 +51932,10 @@ export type Database = {
         }[]
       }
       fp_screening_run_cancel: { Args: { _run_id: string }; Returns: undefined }
+      fp_try_link_individual: {
+        Args: { _fp_individual_id: string }
+        Returns: string
+      }
       fp_user_regulator_id: { Args: { _user_id: string }; Returns: string }
       fx_base_currency: { Args: { _regulator_id?: string }; Returns: string }
       fx_convert: {
@@ -54176,6 +54209,11 @@ export type Database = {
         Returns: Json
       }
       permission_has_dependency: { Args: { _action: string }; Returns: boolean }
+      person_360_overview: { Args: { _person_party_id: string }; Returns: Json }
+      person_relationship_network: {
+        Args: { _as_of?: string; _person_party_id: string }
+        Returns: Json
+      }
       person_upsert_for_appointment: {
         Args: { _fp_individual_id?: string; _full_name: string }
         Returns: Json
