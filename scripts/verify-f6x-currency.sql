@@ -1357,6 +1357,385 @@ BEGIN
   PERFORM pg_temp.rec('N','N-93','the gate-owned FX rate was rolled back', _n=0, 'rows='||_n);
 END $nz$;
 
+-- ===========================================================================
+-- SECTION P — CANONICAL REGULATOR-BODY IDENTITY (static)
+--
+-- A regulator BODY is an institution (public.regulators). A regulator OFFICER
+-- is a person (auth.users). Monetary configuration, FX, return definitions and
+-- entity currency arrangements are institutional and must never be keyed on an
+-- officer assignment column.
+-- ===========================================================================
+DO $p$
+DECLARE _n int; _bad text;
+BEGIN
+  SELECT count(*) INTO _n
+    FROM pg_constraint c
+    JOIN pg_class t ON t.oid = c.conrelid
+    JOIN pg_class f ON f.oid = c.confrelid
+    JOIN pg_namespace fn ON fn.oid = f.relnamespace
+   WHERE c.contype='f' AND t.relname='licensees'
+     AND fn.nspname='auth' AND f.relname='users'
+     AND EXISTS (SELECT 1 FROM unnest(c.conkey) k
+                  JOIN pg_attribute a ON a.attrelid=t.oid AND a.attnum=k
+                 WHERE a.attname IN ('lead_regulator_id','regulator_officer_id','alternate_regulator_id'));
+  PERFORM pg_temp.rec('P','P-01',
+    'the regulator officer assignment fields on an entity reference people, not regulator bodies',
+    _n = 3, 'officer foreign keys to auth.users='||_n);
+
+  SELECT coalesce(string_agg(t.relname||'.'||a.attname, ', '), 'none') INTO _bad
+    FROM pg_constraint c
+    JOIN pg_class t ON t.oid=c.conrelid
+    JOIN pg_namespace tn ON tn.oid=t.relnamespace
+    JOIN pg_class f ON f.oid=c.confrelid
+    JOIN pg_attribute a ON a.attrelid=t.oid AND a.attnum=c.conkey[1]
+   WHERE c.contype='f' AND tn.nspname='public' AND a.attname='regulator_id'
+     AND t.relname IN ('monetary_configs','fx_rates','return_definitions',
+                       'entity_currency_profiles','return_filings','entity_reporting_obligations')
+     AND f.relname <> 'regulators';
+  PERFORM pg_temp.rec('P','P-02',
+    'every institutional regulator reference points at the canonical regulator body table',
+    _bad = 'none', 'non-canonical references='||_bad);
+
+  SELECT count(*) INTO _n FROM pg_proc p JOIN pg_namespace ns ON ns.oid=p.pronamespace
+   WHERE ns.nspname='public'
+     AND p.proname IN ('entity_regulator_body_resolve','entity_regulator_bodies',
+                       'entity_regulator_body_related','monetary_config_resolve_strict')
+     AND p.prosecdef AND p.proconfig IS NOT NULL
+     AND EXISTS (SELECT 1 FROM unnest(p.proconfig) c WHERE c LIKE 'search_path=%');
+  PERFORM pg_temp.rec('P','P-03',
+    'the canonical regulator-body and strict monetary resolvers are hardened definer routines',
+    _n = 4, 'hardened routines='||_n);
+
+  SELECT coalesce(string_agg(p.proname, ', '), 'none') INTO _bad
+    FROM pg_proc p JOIN pg_namespace ns ON ns.oid=p.pronamespace
+   WHERE ns.nspname='public'
+     AND (p.proname LIKE 'entity_currency%' OR p.proname LIKE 'entity_reporting_%'
+          OR p.proname LIKE 'returns_%currency%' OR p.proname LIKE 'monetary_config%'
+          OR p.proname LIKE 'fx_%')
+     AND p.proname <> 'entity_reporting_regulator'
+     AND pg_get_functiondef(p.oid) ~* '(lead_regulator_id|regulator_officer_id|alternate_regulator_id)';
+  PERFORM pg_temp.rec('P','P-04',
+    'no monetary, FX, currency or returns-currency routine derives institutional identity from an officer assignment',
+    _bad = 'none', 'offending routines='||_bad);
+
+  SELECT count(*) INTO _n FROM information_schema.columns
+   WHERE table_schema='public' AND table_name='return_filings'
+     AND column_name IN ('regulator_id','regulator_source','monetary_config_id');
+  PERFORM pg_temp.rec('P','P-05',
+    'every filing snapshots the regulator body, how it was resolved and the monetary configuration of record',
+    _n = 3, 'snapshot columns='||_n);
+
+  SELECT count(*) INTO _n FROM public.entity_currency_profiles
+   WHERE regulator_id IS NULL AND status IN ('ACTIVE','PROPOSED');
+  PERFORM pg_temp.rec('P','P-06',
+    'no live entity currency arrangement exists outside a regulator body scope',
+    _n = 0, 'unscoped live arrangements='||_n);
+
+  SELECT count(*) INTO _n FROM public.return_filings WHERE regulator_id IS NULL;
+  PERFORM pg_temp.rec('P','P-07',
+    'every filing carries its own regulator body provenance',
+    _n = 0, 'filings without a regulator body='||_n);
+END $p$;
+
+-- ---------------------------------------------------------------------------
+-- Q — TWO REGULATOR BODIES, END TO END (always rolled back)
+--
+-- Proves strict regulator monetary scope: an entity supervised by two regulator
+-- bodies resolves ambiguity fail-closed, requires each body's own monetary
+-- configuration, keeps currency arrangements, FX and filing snapshots wholly
+-- separate, and refuses a caller-supplied body that contradicts the return.
+-- ---------------------------------------------------------------------------
+DO $q$
+DECLARE
+  _buf jsonb := '[]'::jsonb; r record; _ctx text; _ok boolean; _msg text;
+  _entity uuid; _regA uuid; _regB uuid; _cfgA uuid; _cfgB uuid;
+  _baseA text; _baseB text; _u1 uuid; _u2 uuid; _sa uuid; _metric uuid;
+  _res jsonb; _pA uuid; _pB uuid; _def uuid; _ob uuid; _per uuid; _fil uuid;
+  _ver uuid; _pe date; _rate uuid; _n int; _bodies jsonb;
+BEGIN
+  SELECT l.id, (public.entity_regulator_body_resolve(l.id, CURRENT_DATE, NULL, NULL)->>'regulator_id')::uuid
+    INTO _entity, _regA
+    FROM public.licensees l
+   WHERE EXISTS (SELECT 1 FROM public.return_filings f WHERE f.entity_id = l.id)
+   ORDER BY l.id LIMIT 1;
+
+  IF _regA IS NOT NULL THEN
+    _cfgA := (public.monetary_config_resolve_strict(_regA)).id;
+    _baseA := (public.monetary_config_resolve_strict(_regA)).base_currency;
+    SELECT c.code INTO _baseB FROM public.currencies c
+     WHERE c.is_active AND c.code <> _baseA AND public.currency_is_supported(c.code, _regA)
+     ORDER BY c.code LIMIT 1;
+  END IF;
+
+  SELECT u.id INTO _sa FROM auth.users u WHERE public.is_super_admin(u.id) ORDER BY u.id LIMIT 1;
+  SELECT u.id INTO _u1 FROM auth.users u
+   WHERE NOT public.is_super_admin(u.id) AND public.has_permission(u.id,'licensee_management','edit')
+   ORDER BY u.id LIMIT 1;
+  SELECT u.id INTO _u2 FROM auth.users u
+   WHERE public.has_permission(u.id,'licensee_management','edit') AND u.id <> _u1
+   ORDER BY u.id LIMIT 1;
+  SELECT m.id INTO _metric FROM public.regulatory_metrics m ORDER BY m.code LIMIT 1;
+
+  PERFORM pg_temp.rec('Q','Q-00',
+    'the two-regulator fixture has a filing-bearing entity with a canonical regulator body and its own monetary configuration, a second supportable currency, two maintainers, a super administrator and a regulatory metric',
+    _entity IS NOT NULL AND _regA IS NOT NULL AND _cfgA IS NOT NULL AND _baseA IS NOT NULL
+      AND _baseB IS NOT NULL AND _u1 IS NOT NULL AND _u2 IS NOT NULL AND _sa IS NOT NULL
+      AND _metric IS NOT NULL,
+    format('entity=%s regulatorA=%s configA=%s baseA=%s baseB=%s', _entity, _regA, _cfgA, _baseA, _baseB));
+
+  IF _entity IS NULL OR _regA IS NULL OR _cfgA IS NULL OR _baseA IS NULL OR _baseB IS NULL
+     OR _u1 IS NULL OR _u2 IS NULL OR _sa IS NULL OR _metric IS NULL THEN
+    RETURN;
+  END IF;
+
+  BEGIN
+    DELETE FROM public.entity_currency_profiles WHERE entity_id = _entity;
+    UPDATE public.monetary_configs SET entity_currency_override_approval_mode='DIRECT_AUTHORIZED'
+     WHERE id = _cfgA;
+
+    -- A genuine second regulator body supervising the same entity.
+    INSERT INTO public.regulators(name, code, status)
+    VALUES ('F6X Gate Second Regulator Body','F6X-GATE-REGB','active')
+    RETURNING id INTO _regB;
+
+    INSERT INTO public.entity_supervision_assignments(entity_id, regulator_id, status, effective_from, notes)
+    VALUES (_entity, _regA, 'active', now() - interval '400 days','F6X gate fixture'),
+           (_entity, _regB, 'active', now() - interval '400 days','F6X gate fixture');
+
+    _bodies := public.entity_regulator_bodies(_entity, CURRENT_DATE);
+    _buf := pg_temp.bufrec(_buf,'Q','Q-01',
+      'an entity supervised by two regulator bodies reports both institutions',
+      jsonb_array_length(_bodies) >= 2
+        AND _bodies::text LIKE '%'||_regB::text||'%', 'bodies='||left(_bodies::text,300));
+
+    _ok := false; _msg := '';
+    BEGIN PERFORM public.entity_reporting_currency_resolve(_entity, CURRENT_DATE, NULL, NULL);
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'Q','Q-02',
+      'with two supervising bodies and no regulatory context the currency of record fails closed instead of guessing',
+      _ok AND _msg LIKE '%AMBIGUOUS%', _msg);
+
+    _ok := false; _msg := '';
+    BEGIN PERFORM public.entity_reporting_currency_resolve(_entity, CURRENT_DATE, NULL, _regB);
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'Q','Q-03',
+      'a regulator body with no monetary configuration of its own never borrows the platform default — it demands configuration',
+      _ok AND _msg LIKE 'REGULATOR_MONETARY_CONFIG_MISSING%', _msg);
+
+    -- give the second body its own configuration, with a different base currency
+    INSERT INTO public.monetary_configs
+    SELECT (jsonb_populate_record(NULL::public.monetary_configs,
+      to_jsonb(m) || jsonb_build_object('id', gen_random_uuid(), 'regulator_id', _regB,
+        'base_currency', _baseB, 'reporting_currency', _baseB,
+        'fx_platform_shared_rates_allowed', false,
+        'created_at', now(), 'updated_at', now()))).*
+      FROM public.monetary_configs m WHERE m.id = _cfgA;
+    SELECT id INTO _cfgB FROM public.monetary_configs WHERE regulator_id = _regB;
+
+    _res := public.entity_reporting_currency_resolve(_entity, CURRENT_DATE, NULL, _regA);
+    _buf := pg_temp.bufrec(_buf,'Q','Q-04',
+      'in the first body''s context the entity reports in that body''s own base currency, from that body''s own configuration',
+      _res->>'currency' = _baseA AND (_res->>'monetary_config_id')::uuid = _cfgA
+        AND _res->>'monetary_config_scope' = 'REGULATOR'
+        AND (_res->>'regulator_id')::uuid = _regA, 'resolveA='||left(_res::text,300));
+
+    _res := public.entity_reporting_currency_resolve(_entity, CURRENT_DATE, NULL, _regB);
+    _buf := pg_temp.bufrec(_buf,'Q','Q-05',
+      'in the second body''s context the same entity reports in the second body''s base currency — the two are never conflated',
+      _res->>'currency' = _baseB AND (_res->>'monetary_config_id')::uuid = _cfgB
+        AND (_res->>'regulator_id')::uuid = _regB, 'resolveB='||left(_res::text,300));
+
+    -- ---- regulator-scoped overrides ---------------------------------------
+    PERFORM pg_temp.act(_u1);
+    _res := public.entity_currency_override_set(_entity, _baseB, CURRENT_DATE - 30,
+              'Gate fixture: the first body accepts a functional currency arrangement.', NULL, _regA);
+    _pA := (_res->>'entity_currency_profile_id')::uuid;
+    _buf := pg_temp.bufrec(_buf,'Q','Q-06',
+      'an override is recorded against the regulator body it was agreed with',
+      (_res->>'regulator_id')::uuid = _regA
+        AND EXISTS (SELECT 1 FROM public.entity_currency_profiles p
+                     WHERE p.id=_pA AND p.regulator_id=_regA AND p.status='ACTIVE'),
+      'setA='||left(_res::text,240));
+
+    PERFORM set_config('request.jwt.claims','{}', true);
+    _res := public.entity_reporting_currency_resolve(_entity, CURRENT_DATE, NULL, _regB);
+    _buf := pg_temp.bufrec(_buf,'Q','Q-07',
+      'an arrangement made with one regulator body never changes what the entity reports to the other',
+      _res->>'source' = 'REGULATOR_BASE' AND _res->>'currency' = _baseB, 'resolveB='||left(_res::text,300));
+
+    PERFORM pg_temp.act(_u1);
+    _res := public.entity_currency_override_set(_entity, _baseA, CURRENT_DATE - 20,
+              'Gate fixture: the second body agrees its own separate arrangement.', NULL, _regB);
+    _pB := (_res->>'entity_currency_profile_id')::uuid;
+    SELECT count(*) INTO _n FROM public.entity_currency_profiles
+     WHERE entity_id=_entity AND status='ACTIVE';
+    _buf := pg_temp.bufrec(_buf,'Q','Q-08',
+      'activating an arrangement for one body never closes the arrangement held with the other — both remain in force',
+      _n = 2
+        AND (SELECT status FROM public.entity_currency_profiles WHERE id=_pA) = 'ACTIVE'
+        AND (SELECT status FROM public.entity_currency_profiles WHERE id=_pB) = 'ACTIVE'
+        AND (SELECT superseded_by FROM public.entity_currency_profiles WHERE id=_pA) IS NULL,
+      'active arrangements='||_n);
+
+    PERFORM set_config('request.jwt.claims','{}', true);
+    _buf := pg_temp.bufrec(_buf,'Q','Q-09',
+      'each body''s context resolves to its own arrangement',
+      (public.entity_reporting_currency_resolve(_entity, CURRENT_DATE, NULL, _regA)->>'currency') = _baseB
+      AND (public.entity_reporting_currency_resolve(_entity, CURRENT_DATE, NULL, _regB)->>'currency') = _baseA,
+      'A='||(public.entity_reporting_currency_resolve(_entity, CURRENT_DATE, NULL, _regA)->>'currency')
+      ||' B='||(public.entity_reporting_currency_resolve(_entity, CURRENT_DATE, NULL, _regB)->>'currency'));
+
+    -- ---- FX scope isolation ------------------------------------------------
+    PERFORM pg_temp.act(_sa);
+    _res := public.fx_rate_propose(_baseB, _baseA, 3.5, CURRENT_DATE - 60, 'EFFECTIVE_UNTIL_CHANGED',
+              'UNITS_OF_TO_PER_ONE_FROM', NULL, 'REGULATOR_MAINTAINED','MID',
+              'F6X gate fixture rate', _regA, 'Gate fixture');
+    _rate := COALESCE((_res->>'fx_rate_id')::uuid, (_res->>'id')::uuid);
+    IF _rate IS NOT NULL AND (SELECT status FROM public.fx_rates WHERE id=_rate) <> 'APPROVED' THEN
+      PERFORM public.fx_rate_decide(_rate, true, 'Gate fixture: rate approved for the first body only.');
+    END IF;
+    _res := public.fx_convert(100, _baseB, _baseA, CURRENT_DATE - 10, _regA, NULL);
+    _buf := pg_temp.bufrec(_buf,'Q','Q-10',
+      'a rate maintained by one regulator body converts in that body''s context',
+      (_res->>'target_amount')::numeric = 350, 'convertA='||left(_res::text,240));
+
+    _ok := false; _msg := '';
+    BEGIN PERFORM public.fx_convert(100, _baseB, _baseA, CURRENT_DATE - 10, _regB, NULL);
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'Q','Q-11',
+      'that rate is never borrowed by the other regulator body, whose declared policy admits no shared rates',
+      _ok, _msg);
+
+    -- ---- return definition context precedence ------------------------------
+    PERFORM set_config('request.jwt.claims','{}', true);
+    INSERT INTO public.return_definitions(code, name, frequency, due_days_after_period_end,
+      requires_declaration, status, is_active, effective_from, regulator_id)
+    VALUES ('F6X-GATE-REGB-DEF','F6X gate second-body return','QUARTERLY',30,false,'ACTIVE',true,
+            CURRENT_DATE - 400, _regB)
+    RETURNING id INTO _def;
+
+    _ok := false; _msg := '';
+    BEGIN PERFORM public.entity_reporting_currency_resolve(_entity, CURRENT_DATE, _def, _regA);
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'Q','Q-12',
+      'a caller-supplied regulator body that contradicts the return''s own regulatory context is refused, never trusted',
+      _ok AND _msg LIKE 'RETURN_REGULATOR_CONTEXT_MISMATCH%', _msg);
+
+    _res := public.entity_reporting_currency_resolve(_entity, CURRENT_DATE, _def, NULL);
+    _buf := pg_temp.bufrec(_buf,'Q','Q-13',
+      'the return''s own regulator body outranks the entity''s general supervision when the currency of record is resolved',
+      (_res->>'regulator_id')::uuid = _regB AND _res->>'regulator_source' = 'RETURN_DEFINITION',
+      'definition context='||left(_res::text,300));
+
+    -- ---- filing snapshot under the second body -----------------------------
+    INSERT INTO public.entity_reporting_obligations(entity_id, return_definition_id, origin,
+      frequency, due_days_after_period_end, effective_from)
+    VALUES (_entity, _def, 'AD_HOC','QUARTERLY',30, CURRENT_DATE - 400)
+    RETURNING id INTO _ob;
+
+    _pe := CURRENT_DATE - 15;
+    INSERT INTO public.reporting_periods(entity_reporting_obligation_id, period_label,
+      period_start, period_end, due_date, status)
+    VALUES (_ob,'F6X-GATE-REGB-P1', _pe - 89, _pe, _pe + 30, 'OPEN')
+    RETURNING id INTO _per;
+
+    INSERT INTO public.return_filings(filing_reference, entity_id, entity_reporting_obligation_id,
+      reporting_period_id, return_definition_id, status, current_version_number)
+    VALUES ('F6X-GATE-REGB-FILING', _entity, _ob, _per, _def, 'DRAFT', 1)
+    RETURNING id INTO _fil;
+
+    INSERT INTO public.return_filing_versions(return_filing_id, version_number, status)
+    VALUES (_fil, 1, 'DRAFT') RETURNING id INTO _ver;
+
+    PERFORM public.returns_snapshot_filing_currency(_fil);
+    _buf := pg_temp.bufrec(_buf,'Q','Q-14',
+      'the filing snapshots the second body, how that body was resolved, its monetary configuration and the currency of record',
+      EXISTS (SELECT 1 FROM public.return_filings f
+               WHERE f.id=_fil AND f.regulator_id = _regB
+                 AND f.regulator_source = 'RETURN_DEFINITION'
+                 AND f.monetary_config_id = _cfgB
+                 AND f.reporting_currency = _baseA),
+      'snapshot='||(SELECT format('reg=%s src=%s cfg=%s cur=%s', f.regulator_id, f.regulator_source,
+                                  f.monetary_config_id, f.reporting_currency)
+                      FROM public.return_filings f WHERE f.id=_fil));
+
+    INSERT INTO public.return_metric_values(return_filing_version_id, entity_id,
+      regulatory_metric_id, reporting_period_id, value_numeric, availability, source_kind)
+    VALUES (_ver, _entity, _metric, _per, 1000, 'AVAILABLE','REPORTED');
+
+    PERFORM pg_temp.act(_sa);
+    _res := public.returns_filing_metrics_display(_fil,'REGULATOR_BASE');
+    _buf := pg_temp.bufrec(_buf,'Q','Q-15',
+      'the historical view of that filing is drawn from the filing''s own regulator and configuration provenance',
+      (_res->>'regulator_id')::uuid = _regB
+        AND _res->>'regulator_provenance' = 'FILING_SNAPSHOT'
+        AND _res->>'monetary_provenance' = 'FILING_SNAPSHOT'
+        AND _res->>'display_currency' = _baseB, 'display='||left(_res::text,300));
+
+    -- changing the arrangements afterwards must not rewrite the filing
+    PERFORM pg_temp.act(_u1);
+    PERFORM public.entity_currency_override_supersede(_pB,
+      'Gate fixture: the second body''s arrangement is withdrawn after the filing.');
+    PERFORM set_config('request.jwt.claims','{}', true);
+    PERFORM pg_temp.act(_sa);
+    _res := public.returns_filing_metrics_display(_fil,'REGULATOR_BASE');
+    _buf := pg_temp.bufrec(_buf,'Q','Q-16',
+      'a later change of arrangement never rewrites a filing already snapshotted',
+      (_res->>'filing_currency') = _baseA AND (_res->>'regulator_id')::uuid = _regB,
+      'display after change='||left(_res::text,240));
+
+    -- ---- Entity 360 multi-regulator read model -----------------------------
+    _res := public.entity_currency_profile_overview(_entity, CURRENT_DATE);
+    _buf := pg_temp.bufrec(_buf,'Q','Q-17',
+      'the entity profile presents each regulator body separately, with its own configuration state and arrangements',
+      (_res->>'multi_regulator')::boolean IS TRUE
+        AND jsonb_array_length(_res->'regulator_bodies') >= 2
+        AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(_res->'regulator_bodies') b
+                         WHERE (b->>'configuration_required')::boolean IS TRUE),
+      'overview='||left(_res::text,300));
+
+    PERFORM set_config('request.jwt.claims','{}', true);
+    UPDATE public.monetary_configs SET is_active = false WHERE id = _cfgB;
+    PERFORM pg_temp.act(_sa);
+    _res := public.entity_currency_profile_overview(_entity, CURRENT_DATE);
+    _buf := pg_temp.bufrec(_buf,'Q','Q-18',
+      'a regulator body without an active monetary configuration is declared as requiring configuration, never silently defaulted',
+      EXISTS (SELECT 1 FROM jsonb_array_elements(_res->'regulator_bodies') b
+               WHERE (b->>'regulator_id')::uuid = _regB
+                 AND (b->>'configuration_required')::boolean IS TRUE),
+      'overview='||left(_res::text,300));
+
+    RAISE EXCEPTION 'F6X_TWO_REGULATOR_ROLLBACK';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM <> 'F6X_TWO_REGULATOR_ROLLBACK' THEN
+      GET STACKED DIAGNOSTICS _ctx = PG_EXCEPTION_CONTEXT;
+      _buf := pg_temp.bufrec(_buf,'Q','Q-ERR','the two-regulator fixture ran to completion',
+        false, SQLSTATE||': '||left(SQLERRM,200)||' | '||left(coalesce(_ctx,''),400));
+    END IF;
+  END;
+
+  RESET ROLE;
+  PERFORM set_config('request.jwt.claims','{}', true);
+
+  FOR r IN SELECT * FROM jsonb_array_elements(_buf) e LOOP
+    PERFORM pg_temp.rec(r.value->>'section', r.value->>'id', r.value->>'descr',
+      (r.value->>'passed')::boolean, r.value->>'detail');
+  END LOOP;
+END $q$;
+
+DO $qz$
+DECLARE _n int;
+BEGIN
+  SELECT count(*) INTO _n FROM public.regulators WHERE code = 'F6X-GATE-REGB';
+  PERFORM pg_temp.rec('Q','Q-90','the gate-owned second regulator body was rolled back', _n=0, 'rows='||_n);
+  SELECT count(*) INTO _n FROM public.entity_supervision_assignments WHERE notes = 'F6X gate fixture';
+  PERFORM pg_temp.rec('Q','Q-91','the gate-owned supervision assignments were rolled back', _n=0, 'rows='||_n);
+  SELECT count(*) INTO _n FROM public.return_filings WHERE filing_reference LIKE 'F6X-GATE-REGB%';
+  PERFORM pg_temp.rec('Q','Q-92','the gate-owned second-body filing was rolled back', _n=0, 'rows='||_n);
+  SELECT count(*) INTO _n FROM public.monetary_configs WHERE fx_platform_shared_rates_allowed = false;
+  PERFORM pg_temp.rec('Q','Q-93','the gate-owned monetary configuration was rolled back', _n=0, 'rows='||_n);
+END $qz$;
+
 \echo ''
 \echo '===================== verify:f6x-currency results ====================='
 SELECT section, id, CASE WHEN passed THEN 'PASS' ELSE 'FAIL' END AS result, descr, detail
