@@ -51468,10 +51468,6 @@ export type Database = {
         Args: { _return_filing_id: string }
         Returns: Json
       }
-      evaluate_stress_indicators_for_return: {
-        Args: { _return_id: string }
-        Returns: Json
-      }
       examination_action_allowed: {
         Args: {
           _action: string
