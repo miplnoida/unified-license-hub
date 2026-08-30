@@ -50672,10 +50672,6 @@ export type Database = {
         }
         Returns: Json
       }
-      entity_appointment_resolve_fp_bridge: {
-        Args: { _appointment_id: string }
-        Returns: Json
-      }
       entity_attach_license: {
         Args: {
           _entity_id: string
