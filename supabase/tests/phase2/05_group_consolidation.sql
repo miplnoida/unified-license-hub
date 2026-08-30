@@ -102,14 +102,14 @@ BEGIN
 
   INSERT INTO public.financial_group_members
     (id, group_id, licensee_id, parent_member_id, member_role, ownership_percentage, consolidation_treatment)
-  VALUES (v_hm, v_g1, v_h, NULL, 'holding', 100, 'full')
+  VALUES (v_hm, v_g1, v_h, NULL, 'ultimate_holding', 100, 'full')
     ON CONFLICT (id) DO NOTHING;
   INSERT INTO public.financial_group_members
     (group_id, licensee_id, parent_member_id, member_role, ownership_percentage, consolidation_treatment)
   VALUES (v_g1, v_s1, v_hm, 'subsidiary', 100, 'full'),
          (v_g1, v_s2, v_hm, 'subsidiary', 100, 'full'),
          (v_g1, v_s3, v_hm, 'subsidiary', 20, 'excluded'),
-         (v_g2, v_x, NULL, 'holding', 100, 'full');
+         (v_g2, v_x, NULL, 'ultimate_holding', 100, 'full');
 
   INSERT INTO public.group_consolidation_methods
     (group_id, version, ratio_rules, eliminate_exposure_types, large_exposure_pct,
