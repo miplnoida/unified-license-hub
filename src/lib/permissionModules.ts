@@ -71,6 +71,12 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   // `licensee_management.view` (the Entity Register is a licensee-population
   // surface, not the licence register).
   ['/entities', 'licensee_management'],
+  // Person 360 and the person-identity resolution queue are licensee-population
+  // surfaces too: they read the canonical `parties`/`persons` spine behind the
+  // licensee register. Both agree with their `ModuleRoute` guard.
+  ['/persons', 'licensee_management'],
+
+
 
 
   // ─── Forms ─────────────────────────────────────────────────────────────
