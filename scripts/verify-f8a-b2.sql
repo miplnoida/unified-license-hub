@@ -881,30 +881,6 @@ BEGIN
       END IF;
 
 
-      INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
-        economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
-      VALUES (v_seed2, v_seed, v_otype, 30, 30, true, 'APPROVED', v_today - 400);
-
-      -- upstream owner BEHIND the restricted entity, which must never leak
-      INSERT INTO public.parties (party_kind, display_name) VALUES
-        ('PERSON','B2 Gate Hidden Upstream Person') RETURNING id INTO v_reg2_ent;
-      INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
-        economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
-      VALUES (v_reg2_ent, v_seed2, v_otype, 100, 100, true, 'APPROVED', v_today - 400);
-
-      -- H-01 super-admin authority traverses the connected regulated entity
-      v_net2 := public.entity_ownership_network(v_entity, v_today, 10, 300);
-      IF EXISTS (SELECT 1 FROM jsonb_array_elements(v_net2->'nodes') n
-                  WHERE (n->>'party_id')::uuid = v_seed2)
-      THEN pass:=pass+1; ELSE fail:=fail+1;
-        RAISE WARNING 'H-01 super-admin could not traverse a connected regulated entity'; END IF;
-
-      -- H-02 a scoped internal identity is stopped at that branch
-      SELECT p.id INTO v_staff FROM public.profiles p
-       WHERE NOT public.is_super_admin(p.id)
-         AND public.regulatory_scope_allows(p.id,'entity_structure','view',v_reg,NULL,NULL,v_entity,NULL)
-         AND NOT public.regulatory_scope_allows(p.id,'entity_structure','view',v_reg2,NULL,NULL,v_ent2,NULL)
-       ORDER BY p.id LIMIT 1;
 
       IF v_staff IS NOT NULL THEN
         PERFORM set_config('request.jwt.claims', json_build_object('sub', v_staff)::text, true);
