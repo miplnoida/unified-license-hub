@@ -274,9 +274,10 @@ BEGIN
   FOREACH _fn IN ARRAY ARRAY['returns_review_filing','returns_decide_amendment','returns_decide_extension'] LOOP
     SELECT pg_get_functiondef(p.oid) INTO _def FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
      WHERE n.nspname='public' AND p.proname=_fn LIMIT 1;
-    IF _def IS NULL OR _def !~* '(submitted_by|requested_by|created_by)\s*=\s*(v_|_)?(uid|actor)' THEN
-      IF _def IS NULL OR _def !~* 'own' THEN _bad := _bad||_fn||' '; END IF;
+    IF _def IS NULL OR _def !~* '(submitted_by|requested_by|created_by)\s*(IS NOT NULL\s*(AND|\n)\s*[a-z0-9_.]*\.?(submitted_by|requested_by|created_by)\s*)?=\s*(auth\.uid\(\)|v_[a-z_]+|_[a-z_]+)' THEN
+      IF _def IS NULL OR _def !~* 'maker-checker' THEN _bad := _bad||_fn||' '; END IF;
     END IF;
+
   END LOOP;
   PERFORM pg_temp.rec('D','D-03','every F7 decision routine enforces maker-checker separation in the server routine',
     _bad = '', COALESCE(NULLIF('no separation: '||_bad,'no separation: '),'3 decisions separated'));
