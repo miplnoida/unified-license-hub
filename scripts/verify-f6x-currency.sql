@@ -1527,6 +1527,7 @@ BEGIN
     SELECT (jsonb_populate_record(NULL::public.monetary_configs,
       to_jsonb(m) || jsonb_build_object('id', gen_random_uuid(), 'regulator_id', _regB,
         'base_currency', _baseB, 'reporting_currency', _baseB,
+        'supported_transaction_currencies', jsonb_build_array(_baseA, _baseB),
         'fx_platform_shared_rates_allowed', false,
         'created_at', now(), 'updated_at', now()))).*
       FROM public.monetary_configs m WHERE m.id = _cfgA;
