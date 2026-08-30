@@ -987,6 +987,14 @@ BEGIN
     _buf := pg_temp.bufrec(_buf,'L','L-17',
       'an accepted version can still be superseded by a governed later amendment', _ok, _msg);
 
+    _buf := pg_temp.bufrec(_buf,'L','L-30',
+      'a superseded version retains the acceptance provenance it legitimately earned',
+      EXISTS (SELECT 1 FROM public.return_filing_versions v
+               WHERE v.id=_ver AND v.status='SUPERSEDED'
+                 AND v.accepted_by=_chk AND v.accepted_at IS NOT NULL),
+      'historical acceptance preserved through supersession');
+
+
     _ok := false; _msg := '';
     BEGIN UPDATE public.return_filing_versions SET status='UNDER_REVIEW' WHERE id=_ver;
     EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
