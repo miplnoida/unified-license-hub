@@ -71,9 +71,10 @@ BEGIN
       VALUES (v_per, v_ob, '2025-Q1', DATE '2025-01-01', DATE '2025-03-31', DATE '2025-04-30')
       ON CONFLICT (id) DO NOTHING;
     INSERT INTO public.return_filings
-      (id, entity_id, entity_reporting_obligation_id, reporting_period_id, return_definition_id,
-       status, current_version_number, accepted_version_id)
-      VALUES (v_fil, v_lic, v_ob, v_per, v_def, 'ACCEPTED', 1, v_ver)
+      (id, filing_reference, entity_id, entity_reporting_obligation_id, reporting_period_id,
+       return_definition_id, status, current_version_number, accepted_version_id)
+      VALUES (v_fil, 'P2PEER-2025Q1-' || lpad(i::text, 2, '0'), v_lic, v_ob, v_per, v_def,
+              'ACCEPTED', 1, v_ver)
       ON CONFLICT (id) DO NOTHING;
     INSERT INTO public.return_filing_versions
       (id, return_filing_id, version_number, status, is_immutable)
