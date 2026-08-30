@@ -40,6 +40,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
   const [effectiveFrom, setEffectiveFrom] = useState('');
   const [reason, setReason] = useState('');
   const [decision, setDecision] = useState<ReasonDialogRequest | null>(null);
+  const [bodyId, setBodyId] = useState<string | null>(null);
 
 
   if (isLoading) {
