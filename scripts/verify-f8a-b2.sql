@@ -152,10 +152,15 @@ BEGIN
      AND NOT EXISTS (SELECT 1 FROM public.ownership_interests o WHERE o.owned_party_id = l.party_id)
    ORDER BY l.id LIMIT 1;
   v_reg := public.entity_reporting_regulator(v_entity);
-  -- the second regulator body must be a genuinely ACTIVE distinct authority
+  -- the second regulator body must be a genuinely ACTIVE distinct authority;
+  -- only one active body exists live, so a rollback-safe one is created here
   SELECT id INTO v_reg2 FROM public.regulators
    WHERE id <> v_reg AND lower(COALESCE(status,'active')) = 'active'
    ORDER BY id LIMIT 1;
+  IF v_reg2 IS NULL THEN
+    INSERT INTO public.regulators (name, code, status)
+    VALUES ('B2 Gate Second Authority','B2GATE2','active') RETURNING id INTO v_reg2;
+  END IF;
 
   IF v_admin IS NULL OR v_entity IS NULL OR v_otype IS NULL OR v_reg IS NULL THEN
     fail:=fail+1;
