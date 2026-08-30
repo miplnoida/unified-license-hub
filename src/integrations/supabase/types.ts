@@ -16669,6 +16669,7 @@ export type Database = {
           proposed_by: string | null
           provenance_reference: string | null
           reason: string | null
+          regulator_id: string | null
           reporting_currency_override: string
           source: string
           status: string
@@ -16693,6 +16694,7 @@ export type Database = {
           proposed_by?: string | null
           provenance_reference?: string | null
           reason?: string | null
+          regulator_id?: string | null
           reporting_currency_override: string
           source?: string
           status?: string
@@ -16717,6 +16719,7 @@ export type Database = {
           proposed_by?: string | null
           provenance_reference?: string | null
           reason?: string | null
+          regulator_id?: string | null
           reporting_currency_override?: string
           source?: string
           status?: string
@@ -16738,6 +16741,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_prudential_early_warnings"
             referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_currency_profiles_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "entity_currency_profiles_reporting_currency_override_fkey"
@@ -17986,6 +17996,7 @@ export type Database = {
           id: string
           next_due_date: string | null
           origin: string
+          regulator_id: string | null
           return_definition_id: string
           source_rule_id: string | null
           status: string
@@ -18003,6 +18014,7 @@ export type Database = {
           id?: string
           next_due_date?: string | null
           origin?: string
+          regulator_id?: string | null
           return_definition_id: string
           source_rule_id?: string | null
           status?: string
@@ -18020,6 +18032,7 @@ export type Database = {
           id?: string
           next_due_date?: string | null
           origin?: string
+          regulator_id?: string | null
           return_definition_id?: string
           source_rule_id?: string | null
           status?: string
@@ -18039,6 +18052,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_prudential_early_warnings"
             referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_reporting_obligations_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "entity_reporting_obligations_return_definition_id_fkey"
@@ -38236,6 +38256,8 @@ export type Database = {
           id: string
           legacy_return_filed_id: string | null
           monetary_config_id: string | null
+          regulator_id: string | null
+          regulator_source: string | null
           rejected_at: string | null
           reporting_currency: string | null
           reporting_period_id: string
@@ -38264,6 +38286,8 @@ export type Database = {
           id?: string
           legacy_return_filed_id?: string | null
           monetary_config_id?: string | null
+          regulator_id?: string | null
+          regulator_source?: string | null
           rejected_at?: string | null
           reporting_currency?: string | null
           reporting_period_id: string
@@ -38292,6 +38316,8 @@ export type Database = {
           id?: string
           legacy_return_filed_id?: string | null
           monetary_config_id?: string | null
+          regulator_id?: string | null
+          regulator_source?: string | null
           rejected_at?: string | null
           reporting_currency?: string | null
           reporting_period_id?: string
@@ -38355,6 +38381,13 @@ export type Database = {
             columns: ["monetary_config_id"]
             isOneToOne: false
             referencedRelation: "monetary_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_filings_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
             referencedColumns: ["id"]
           },
           {
@@ -50475,7 +50508,7 @@ export type Database = {
         Returns: string
       }
       entity_currency_approval_mode: {
-        Args: { _entity_id: string }
+        Args: { _entity_id: string; _regulator_id?: string }
         Returns: string
       }
       entity_currency_override_decide: {
@@ -50489,6 +50522,7 @@ export type Database = {
           _effective_to?: string
           _entity_id: string
           _reason: string
+          _regulator_id?: string
         }
         Returns: Json
       }
@@ -50619,6 +50653,23 @@ export type Database = {
         Returns: Json
       }
       entity_registry_search: { Args: { _criteria: Json }; Returns: Json }
+      entity_regulator_bodies: {
+        Args: { _as_of?: string; _entity_id: string }
+        Returns: Json
+      }
+      entity_regulator_body_related: {
+        Args: { _as_of?: string; _entity_id: string; _regulator_id: string }
+        Returns: boolean
+      }
+      entity_regulator_body_resolve: {
+        Args: {
+          _as_of?: string
+          _entity_id: string
+          _regulatory_function_id?: string
+          _return_definition_id?: string
+        }
+        Returns: Json
+      }
       entity_regulatory_scope: { Args: { _entity_id: string }; Returns: Json }
       entity_relationship_delete: {
         Args: { _reason?: string; _relationship_id: string }
@@ -50642,6 +50693,7 @@ export type Database = {
         Args: {
           _as_of?: string
           _entity_id: string
+          _regulator_id?: string
           _return_definition_id?: string
         }
         Returns: Json
