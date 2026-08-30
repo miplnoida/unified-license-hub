@@ -51,7 +51,8 @@
     "verify:user-manual": "node scripts/verify-user-manual.mjs",
     "docs:user-manual": "vite-node scripts/generate-user-manual.ts",
     "docs:user-manual:screenshots": "node scripts/capture-user-manual-screenshots.mjs",
-    "verify:system-runtime-schema": "node scripts/system-runtime/verify-system-runtime-schema.mjs"
+    "verify:system-runtime-schema": "node scripts/system-runtime/verify-system-runtime-schema.mjs",
+    "verify:route-runtime-smoke": "node scripts/system-runtime/runtime-route-smoke.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
