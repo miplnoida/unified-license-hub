@@ -210,7 +210,11 @@ DECLARE
   _pair_from text := 'XCD'; _pair_to text := 'JMD';
   r record;
 BEGIN
-  SELECT u.id INTO _admin FROM auth.users u WHERE public.fee_can_administer(u.id) LIMIT 1;
+  -- The maker must be an ordinary fee-administering officer: a super
+  -- administrator is a governed break-glass identity and is permitted to decide
+  -- its own proposal, so using one would prove nothing about maker-checker.
+  SELECT u.id INTO _admin FROM auth.users u
+   WHERE public.fee_can_administer(u.id) AND NOT public.is_super_admin(u.id) LIMIT 1;
   SELECT u.id INTO _checker FROM auth.users u
    WHERE public.fee_can_administer(u.id) AND u.id <> _admin LIMIT 1;
   SELECT u.id INTO _outsider FROM auth.users u
