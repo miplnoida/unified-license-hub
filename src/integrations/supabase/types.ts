@@ -55626,32 +55626,6 @@ export type Database = {
         }
         Returns: string
       }
-      record_return_ratio:
-        | {
-            Args: {
-              _computed_by?: string
-              _display_format: string
-              _label: string
-              _ratio_key: string
-              _return_id: string
-              _value: number
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              _computed_by?: string
-              _display_format: string
-              _formula_snapshot?: string
-              _label: string
-              _null_reason?: string
-              _ratio_key: string
-              _ratio_version?: number
-              _return_id: string
-              _value: number
-            }
-            Returns: string
-          }
       record_sufficiency_determination: {
         Args: {
           _application_id: string
