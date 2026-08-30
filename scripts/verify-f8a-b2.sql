@@ -255,10 +255,23 @@ BEGIN
       approval_status, effective_from)
     VALUES (v_pc, v_seed, v_otype, 1, 1, true, true, 'APPROVED', v_today - 400);
 
-    -- trust and unidentified foreign organization terminate chains
+    -- a terminal natural person at 1% / 1% with NO control determination:
+    -- completeness alone must never qualify this person as a UBO
+    INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
+      economic_interest_percentage, voting_rights_percentage, is_direct, is_controller,
+      approval_status, effective_from)
+    VALUES (v_pn, v_seed, v_otype, 1, 1, true, false, 'APPROVED', v_today - 400);
+
+    -- real legal arrangements and an unidentified foreign organization terminate chains
     INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
       economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
     VALUES (v_t1, v_seed, v_otype, 5, 5, true, 'APPROVED', v_today - 400);
+    INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
+      economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
+    VALUES (v_fd, v_seed, v_otype, 3, 3, true, 'APPROVED', v_today - 400);
+    INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
+      economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
+    VALUES (v_pt, v_seed, v_otype, 2, 2, true, 'APPROVED', v_today - 400);
     INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
       economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
     VALUES (v_f1, v_seed, v_otype, 4, 4, true, 'APPROVED', v_today - 400);
