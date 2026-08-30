@@ -29,6 +29,9 @@ const navFallback = read('src/config/navigation.tsx');
 ok(navFallback.includes(MANUAL_ROUTE) && navFallback.includes('Help & User Manual'), 'fallback navigation carries the manual');
 const snapshot = read('src/lib/breadcrumbs/navigationSnapshot.ts');
 ok(snapshot.includes('nav_help_user_manual') && snapshot.includes(MANUAL_ROUTE), 'navigation snapshot (breadcrumb source) carries the manual');
+const guards = read('src/routes/routeHelpers.tsx');
+ok(guards.includes(`'${MANUAL_ROUTE}'`), 'pre-licensee registration gate allows the manual');
+
 
 /* ------------------------------------------------- database registration */
 if (process.env.PGHOST) {
