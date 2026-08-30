@@ -175,6 +175,7 @@ export const navigationSnapshot: NavSnapshotItem[] = [
   { key: "nav_notif_email_sms", parentKey: "nav_adm_notif_overview", label: "Email & SMS Settings", href: "/settings/email-sms", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_notif_settings", parentKey: "nav_adm_notif_overview", label: "Notification Settings", href: "/settings/notifications", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_payments_payment_history", parentKey: "grp_nav_my_work", label: "My Payments", href: "/payments", itemType: "link", audience: "any", showInSidebar: true },
+  { key: "nav_person_identity_queue", parentKey: "grp_nav_entities", label: "Identity Resolution Queue", href: "/persons/identity-queue", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_prudential_supervision_actions_ledger", parentKey: "nav_sup_prudential", label: "Actions Ledger", href: "/prudential/actions", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_prudential_supervision_assessments", parentKey: "nav_sup_prudential", label: "Assessments", href: "/prudential/assessments", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_prudential_supervision_escalations", parentKey: "nav_sup_prudential", label: "Early Warnings", href: "/prudential/escalations", itemType: "link", audience: "internal", showInSidebar: true },
