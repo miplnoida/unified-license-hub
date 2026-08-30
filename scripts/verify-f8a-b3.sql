@@ -24,6 +24,8 @@ DECLARE
   v_net jsonb; v_q jsonb; v_res jsonb; v_row jsonb;
   v_before int; v_after int;
   v_today date := CURRENT_DATE;
+  v_lic_editor uuid; v_fp_editor uuid; v_other_editor uuid;
+
 BEGIN
   -- ==========================================================================
   -- A. IDENTITY MODEL — no second person master, one canonical bridge
