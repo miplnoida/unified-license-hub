@@ -46,7 +46,7 @@ interface Draft {
 }
 
 const EMPTY: Draft = {
-  redress_type_id: '', affected_party_label: '', allegation_id: '', amount: '', currency: 'JMD',
+  redress_type_id: '', affected_party_label: '', allegation_id: '', amount: '', currency: '',
   action_required: '', responsible_entity: '', due_date: '', is_required: true, rationale: '',
 };
 
@@ -267,7 +267,7 @@ export function RedressPanel({ complaintId }: Props) {
                   </div>
                   <div>
                     <Label>Currency</Label>
-                    <Input value={editing.currency} onChange={(e) => setEditing({ ...editing, currency: e.target.value })} placeholder="JMD" />
+                    <Input value={editing.currency} onChange={(e) => setEditing({ ...editing, currency: e.target.value })} placeholder="ISO code, e.g. the regulator base currency" />
                   </div>
                 </>
               )}

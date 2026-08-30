@@ -29,7 +29,7 @@ export function RetailPaymentsPanel({ operatorId }: Props) {
     payment_type: 'card',
     transaction_count: '',
     transaction_value: '',
-    currency: 'JMD',
+    currency: '',
   });
 
   const names = useMemo(() => new Map(operators.map(o => [o.id, o.operator_name])), [operators]);
