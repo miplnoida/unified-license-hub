@@ -13,74 +13,94 @@ DO $$
 DECLARE
   v_sec_a uuid := '00000000-0000-0000-0000-0000000b2001';
   v_sec_b uuid := '00000000-0000-0000-0000-0000000b2002';
-  v_cat_a uuid;
-  v_type  uuid := '00000000-0000-0000-0000-0000000b2003';
-  v_cfg   uuid := '00000000-0000-0000-0000-0000000b2004';
+  v_cat_a uuid := '00000000-0000-0000-0000-0000000b2006';
+  v_def   uuid := '00000000-0000-0000-0000-0000000b2004';
+  v_metric uuid := '00000000-0000-0000-0000-0000000b2007';
   v_lic   uuid;
-  v_ret   uuid;
+  v_ob    uuid;
+  v_per   uuid;
+  v_fil   uuid;
+  v_ver   uuid;
   vals    numeric[] := ARRAY[10,11,12,13,14,20];
   i int;
 BEGIN
   INSERT INTO public.sectors (id, name) VALUES (v_sec_a, 'P2 Peer Sector A'), (v_sec_b, 'P2 Peer Sector B')
     ON CONFLICT (id) DO NOTHING;
-  INSERT INTO public.return_types (id, name, code) VALUES (v_type, 'P2 Peer Return', 'P2PEER')
-    ON CONFLICT (id) DO NOTHING;
-  INSERT INTO public.return_configs (id, name, return_type_id, sector_id)
-    VALUES (v_cfg, 'P2 Peer Config', v_type, v_sec_a) ON CONFLICT (id) DO NOTHING;
-
   INSERT INTO public.sub_sectors (id, name, sector_id)
     VALUES ('00000000-0000-0000-0000-0000000b2005', 'P2 Peer Sub A', v_sec_a)
     ON CONFLICT (id) DO NOTHING;
   INSERT INTO public.categories (id, name, sector_id, sub_sector_id)
-    VALUES ('00000000-0000-0000-0000-0000000b2006', 'P2 Peer Category A', v_sec_a,
-            '00000000-0000-0000-0000-0000000b2005')
+    VALUES (v_cat_a, 'P2 Peer Category A', v_sec_a, '00000000-0000-0000-0000-0000000b2005')
     ON CONFLICT (id) DO NOTHING;
-  v_cat_a := '00000000-0000-0000-0000-0000000b2006';
+
+  INSERT INTO public.return_definitions (id, code, name, frequency)
+    VALUES (v_def, 'P2PEER', 'P2 Peer Return', 'QUARTERLY') ON CONFLICT (id) DO NOTHING;
+  INSERT INTO public.regulatory_metrics (id, code, name, unit)
+    VALUES (v_metric, 'CAR', 'Capital adequacy ratio', 'percent') ON CONFLICT (id) DO NOTHING;
 
   -- Sector A / category A: six entities, subject entity is the last (car 20).
-  FOR i IN 1..6 LOOP
-    v_lic := ('00000000-0000-0000-0000-0000000b21' || lpad(i::text, 2, '0'))::uuid;
-    v_ret := ('00000000-0000-0000-0000-0000000b22' || lpad(i::text, 2, '0'))::uuid;
-    INSERT INTO public.licensees (id, name, sector_id, category_id)
-      VALUES (v_lic, 'P2 Peer Bank A' || i, v_sec_a, v_cat_a)
-      ON CONFLICT (id) DO UPDATE SET sector_id = EXCLUDED.sector_id, category_id = EXCLUDED.category_id;
-    INSERT INTO public.returns_filed
-      (id, return_configuration_id, entity_id, sector_id, return_year, return_period,
-       period_start_date, period_end_date, workflow_status)
-    VALUES (v_ret, v_cfg, v_lic, v_sec_a, 2025, 'Q1', DATE '2025-01-01', DATE '2025-03-31', 'SUB')
-      ON CONFLICT (id) DO NOTHING;
-    PERFORM public.record_return_ratio(v_ret, 'car', 'CAR', vals[i], 'percent', NULL, NULL, 1, 'f');
-  END LOOP;
-
   -- Sector B: three entities with an extreme value that must not leak.
-  FOR i IN 1..3 LOOP
-    v_lic := ('00000000-0000-0000-0000-0000000b23' || lpad(i::text, 2, '0'))::uuid;
-    v_ret := ('00000000-0000-0000-0000-0000000b24' || lpad(i::text, 2, '0'))::uuid;
-    INSERT INTO public.licensees (id, name, sector_id)
-      VALUES (v_lic, 'P2 Peer Bank B' || i, v_sec_b)
-      ON CONFLICT (id) DO UPDATE SET sector_id = EXCLUDED.sector_id;
-    INSERT INTO public.returns_filed
-      (id, return_configuration_id, entity_id, sector_id, return_year, return_period,
-       period_start_date, period_end_date, workflow_status)
-    VALUES (v_ret, v_cfg, v_lic, v_sec_b, 2025, 'Q1', DATE '2025-01-01', DATE '2025-03-31', 'SUB')
+  -- Plus one silent sector A entity that reports no CAR value for the period.
+  FOR i IN 1..10 LOOP
+    IF i <= 6 THEN
+      v_lic := ('00000000-0000-0000-0000-0000000b21' || lpad(i::text, 2, '0'))::uuid;
+      INSERT INTO public.licensees (id, name, sector_id, category_id)
+        VALUES (v_lic, 'P2 Peer Bank A' || i, v_sec_a, v_cat_a)
+        ON CONFLICT (id) DO UPDATE SET sector_id = EXCLUDED.sector_id, category_id = EXCLUDED.category_id;
+    ELSIF i <= 9 THEN
+      v_lic := ('00000000-0000-0000-0000-0000000b23' || lpad((i - 6)::text, 2, '0'))::uuid;
+      INSERT INTO public.licensees (id, name, sector_id)
+        VALUES (v_lic, 'P2 Peer Bank B' || (i - 6), v_sec_b)
+        ON CONFLICT (id) DO UPDATE SET sector_id = EXCLUDED.sector_id, category_id = NULL;
+    ELSE
+      v_lic := '00000000-0000-0000-0000-0000000b2501';
+      INSERT INTO public.licensees (id, name, sector_id, category_id)
+        VALUES (v_lic, 'P2 Peer Bank A Silent', v_sec_a, v_cat_a)
+        ON CONFLICT (id) DO UPDATE SET sector_id = EXCLUDED.sector_id, category_id = EXCLUDED.category_id;
+    END IF;
+
+    v_ob  := ('00000000-0000-0000-0000-0000000b31' || lpad(i::text, 2, '0'))::uuid;
+    v_per := ('00000000-0000-0000-0000-0000000b32' || lpad(i::text, 2, '0'))::uuid;
+    v_fil := ('00000000-0000-0000-0000-0000000b33' || lpad(i::text, 2, '0'))::uuid;
+    v_ver := ('00000000-0000-0000-0000-0000000b34' || lpad(i::text, 2, '0'))::uuid;
+
+    INSERT INTO public.entity_reporting_obligations (id, entity_id, return_definition_id, frequency)
+      VALUES (v_ob, v_lic, v_def, 'QUARTERLY') ON CONFLICT (id) DO NOTHING;
+    INSERT INTO public.reporting_periods
+      (id, entity_reporting_obligation_id, period_label, period_start, period_end, due_date)
+      VALUES (v_per, v_ob, '2025-Q1', DATE '2025-01-01', DATE '2025-03-31', DATE '2025-04-30')
       ON CONFLICT (id) DO NOTHING;
-    PERFORM public.record_return_ratio(v_ret, 'car', 'CAR', 99, 'percent', NULL, NULL, 1, 'f');
+    INSERT INTO public.return_filings
+      (id, filing_reference, entity_id, entity_reporting_obligation_id, reporting_period_id,
+       return_definition_id, status, current_version_number)
+      VALUES (v_fil, 'P2PEER-2025Q1-' || lpad(i::text, 2, '0'), v_lic, v_ob, v_per, v_def,
+              'ACCEPTED', 1)
+      ON CONFLICT (id) DO NOTHING;
+    INSERT INTO public.return_filing_versions
+      (id, return_filing_id, version_number, status, is_immutable)
+      VALUES (v_ver, v_fil, 1, 'ACCEPTED', true) ON CONFLICT (id) DO NOTHING;
+    UPDATE public.return_filings SET accepted_version_id = v_ver WHERE id = v_fil;
+
+    IF i <= 9 THEN
+      INSERT INTO public.return_metric_values
+        (return_filing_version_id, entity_id, regulatory_metric_id, reporting_period_id,
+         value_numeric, source_kind)
+        VALUES (v_ver, v_lic, v_metric, v_per,
+                CASE WHEN i <= 6 THEN vals[i] ELSE 99 END, 'CALCULATED');
+    END IF;
+
+    -- Subject entity also holds a superseded restatement of the same metric for
+    -- the same period: duplicate evidence must never inflate the peer population.
+    IF i = 6 THEN
+      INSERT INTO public.return_filing_versions
+        (id, return_filing_id, version_number, status, is_immutable)
+        VALUES ('00000000-0000-0000-0000-0000000b3506', v_fil, 2, 'SUPERSEDED', true);
+      INSERT INTO public.return_metric_values
+        (return_filing_version_id, entity_id, regulatory_metric_id, reporting_period_id,
+         value_numeric, source_kind)
+        VALUES ('00000000-0000-0000-0000-0000000b3506', v_lic, v_metric, v_per, 25, 'CALCULATED');
+    END IF;
   END LOOP;
-
-  -- An entity in sector A with NO car value for the period: must not be counted.
-  INSERT INTO public.licensees (id, name, sector_id, category_id)
-    VALUES ('00000000-0000-0000-0000-0000000b2501', 'P2 Peer Bank A Silent', v_sec_a, v_cat_a)
-    ON CONFLICT (id) DO UPDATE SET sector_id = EXCLUDED.sector_id;
-  INSERT INTO public.returns_filed
-    (id, return_configuration_id, entity_id, sector_id, return_year, return_period,
-     period_start_date, period_end_date, workflow_status)
-  VALUES ('00000000-0000-0000-0000-0000000b2601', v_cfg, '00000000-0000-0000-0000-0000000b2501',
-          v_sec_a, 2025, 'Q1', DATE '2025-01-01', DATE '2025-03-31', 'SUB')
-    ON CONFLICT (id) DO NOTHING;
-
-  -- A duplicate (restated) car row for the subject entity: must not double count.
-  PERFORM public.record_return_ratio('00000000-0000-0000-0000-0000000b2206'::uuid,
-                                     'car', 'CAR', 20, 'percent', NULL, NULL, 2, 'f');
 END$$;
 
 CREATE TEMP TABLE _p2_peer AS
@@ -135,8 +155,10 @@ SELECT is((SELECT (snap->>'percentile')::numeric FROM _p2_peer), 83.33::numeric,
           'percentile of the subject is 5 below / 6 peers = 83.33');
 
 -- Duplicate/restated rows must not inflate the population.
-SELECT is((SELECT COUNT(*)::int FROM public.return_calculated_ratios
-            WHERE return_id = '00000000-0000-0000-0000-0000000b2206' AND ratio_key = 'car'), 2,
+SELECT is((SELECT COUNT(*)::int FROM public.return_metric_values mv
+            WHERE mv.entity_id = '00000000-0000-0000-0000-0000000b2106'
+              AND mv.regulatory_metric_id = '00000000-0000-0000-0000-0000000b2007'
+              AND mv.reporting_period_id = '00000000-0000-0000-0000-0000000b3206'), 2,
           'the subject entity genuinely has two car evidence rows for the period');
 SELECT is((SELECT (snap->>'peer_count')::int FROM _p2_peer), 6,
           'the subject entity is still counted exactly once despite two evidence rows');
