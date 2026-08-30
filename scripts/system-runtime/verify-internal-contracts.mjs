@@ -137,7 +137,15 @@ for (const file of edgeFiles) {
   let m;
   while ((m = fromRe.exec(src))) {
     const table = m[2];
-    const tail = m[3];
+    // A PostgREST builder chain ends at the statement boundary. Without this cut
+    // the window bleeds into the NEXT query and reports its columns against this
+    // table, which would make the gate useless (false positives) instead of exact.
+    let tail = m[3];
+    const cut = Math.min(
+      ...[tail.indexOf(';'), tail.indexOf('.from('), tail.indexOf('.rpc(')]
+        .map((i) => (i === -1 ? tail.length : i)),
+    );
+    tail = tail.slice(0, cut);
     edgeStats.dependencies++;
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(table)) continue; // storage path, not a relation
     const key = `public.${table}`;
