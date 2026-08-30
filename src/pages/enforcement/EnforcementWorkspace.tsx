@@ -720,6 +720,55 @@ export default function EnforcementWorkspace() {
               </div>
             ))}
 
+            {pending?.action_code === 'IMPOSE_SANCTION' ? (
+              <div className="space-y-2 rounded-md border bg-muted/30 px-3 py-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Penalty currency</Label>
+                {penaltyCurrency.isLoading ? (
+                  <p className="text-sm text-muted-foreground">Resolving the regulator's governed currency…</p>
+                ) : penaltyCurrency.error ? (
+                  <p className="text-sm text-destructive">
+                    The penalty currency cannot be resolved for this entity — a regulator body monetary
+                    configuration is required before a monetary penalty can be imposed.
+                  </p>
+                ) : penaltyCurrency.data ? (
+                  <>
+                    <p className="text-sm font-medium">
+                      {penaltyCurrency.data.currency} — regulator base currency
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Derived server-side from the applicable regulator body's monetary configuration
+                      ({PENALTY_CURRENCY_POLICY_LABELS[penaltyCurrency.data.policy]}). It is not entered here and
+                      is fixed on the sanction once imposed.
+                    </p>
+                    {penaltyCurrency.data.policy === 'EXPLICIT_ALLOWED_CURRENCIES'
+                      && (penaltyCurrency.data.allowed_currencies ?? []).length > 0 ? (
+                      <div className="space-y-2 pt-2">
+                        <Label>Denominate in an approved non-base currency (optional)</Label>
+                        <Select value={overrideCurrency} onValueChange={setOverrideCurrency}>
+                          <SelectTrigger><SelectValue placeholder={`Keep ${penaltyCurrency.data.base_currency}`} /></SelectTrigger>
+                          <SelectContent>
+                            {(penaltyCurrency.data.allowed_currencies ?? []).map((c) => (
+                              <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {overrideCurrency && overrideCurrency !== penaltyCurrency.data.base_currency ? (
+                          <Textarea
+                            rows={2}
+                            value={overrideReason}
+                            onChange={(e) => setOverrideReason(e.target.value)}
+                            placeholder="Legal or configuration basis for denominating this penalty in a non-base currency (minimum 10 characters)."
+                          />
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+
+
+
             {pending?.requires_rationale ? (
               <div className="space-y-2">
                 <Label>Rationale <span className="text-destructive">*</span></Label>
