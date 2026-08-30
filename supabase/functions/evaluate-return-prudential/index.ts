@@ -431,9 +431,18 @@ Deno.serve(async (req) => {
         source: "evaluate-return-prudential", feed_type: "stress_evaluation",
         status: "started", related_return_id: return_id, triggered_by: actor.id,
       });
+      // F8-W1A: the retired per-return stress variant read the retired ratio
+      // store. Resolve the canonical filing for this return and evaluate stress
+      // indicators against the canonical metric store instead.
+      const { data: canonicalFiling } = await admin
+        .from("return_filings").select("id")
+        .eq("legacy_return_filed_id", return_id).maybeSingle();
+      const canonicalFilingId = (canonicalFiling as any)?.id as string | undefined;
+      if (!canonicalFilingId) throw new Error("No canonical filing linked to this return; stress evaluation skipped");
       const { data: stressData, error: stressErr } = await admin.rpc(
-        "evaluate_stress_indicators_for_return", { _return_id: return_id }
+        "evaluate_stress_indicators_for_filing", { _return_filing_id: canonicalFilingId }
       );
+
       if (stressErr) throw stressErr;
       const newEvents = ((stressData as any)?.new_events ?? []) as Array<Record<string, unknown>>;
       const updatedEvents = ((stressData as any)?.updated_events ?? []) as Array<unknown>;
