@@ -33,6 +33,7 @@
     "certify:f6c": "psql -v ON_ERROR_STOP=1 -f scripts/certify-f6c.sql",
     "verify:f7b": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f7b.sql",
     "verify:f6x-currency": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f6x-currency.sql",
+    "verify:enforcement-currency": "psql -v ON_ERROR_STOP=1 -f scripts/verify-enforcement-penalty-currency.sql",
     "verify:f6b": "bash -c 'set -o pipefail; mkdir -p artifacts && psql -v ON_ERROR_STOP=1 -f scripts/verify-f6b.sql 2>&1 | tee artifacts/verify-f6b-latest.log'",
     "verify:f5b1": "bash -c 'set -o pipefail; mkdir -p artifacts && psql -v ON_ERROR_STOP=1 -f scripts/verify-f5b1-privileges.sql 2>&1 | tee artifacts/verify-f5b1-latest.log'",
     "verify:f5b2": "bash -c 'set -o pipefail; mkdir -p artifacts && psql -v ON_ERROR_STOP=1 -f scripts/verify-f5b2-intake.sql 2>&1 | tee artifacts/verify-f5b2-latest.log'",
