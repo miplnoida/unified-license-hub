@@ -1,0 +1,4 @@
+{
+  "_comment": "SYSTEM RUNTIME INTEGRITY GATE — explicit, non-wildcard allow-list of application data dependencies that are knowingly not backed by live objects (future modules). Every entry must name the exact object, the owning module, the route(s) affected, the reason, and the safe fallback behaviour observed on the screen. Wildcards and prefixes are rejected by the gate.",
+  "deferred": []
+}

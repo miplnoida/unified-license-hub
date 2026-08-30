@@ -520,7 +520,7 @@ export async function getReportMetrics() {
   const [appsRes, paysRes, licRes, retRes, cmpRes] = await Promise.allSettled([
     supabase.from('applications').select('status, created_at, license_type').limit(5000),
     supabase.from('payments').select('amount, status, created_at').limit(5000),
-    supabase.from('licenses').select('status, expiry_date').limit(5000),
+    supabase.from('licenses').select('status, valid_until').limit(5000),
     supabase.from('v_return_filing_workflow_state').select('status, due_date, submitted_at').limit(5000),
     supabase.from('complaints').select('status, created_at, complaint_type_id').limit(5000),
   ]);
@@ -558,8 +558,8 @@ export async function getReportMetrics() {
   const activeLicenses = lics.filter((l: any) => (l.status || '').toLowerCase() === 'active').length;
   const expiryTrend: Record<string, number> = {};
   lics.forEach((l: any) => {
-    if (!l.expiry_date) return;
-    const m = monthLabel(l.expiry_date);
+    if (!l.valid_until) return;
+    const m = monthLabel(l.valid_until);
     expiryTrend[m] = (expiryTrend[m] || 0) + 1;
   });
 

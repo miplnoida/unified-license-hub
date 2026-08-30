@@ -96,7 +96,7 @@ export default function LicensingAuditTab({ entityId, onOpenSupervisoryTab }: Pr
         supabase.from('risk_ratings').select('id, overall_rating, risk_score, assessment_date, notes, created_at').eq('entity_id', entityId).order('assessment_date', { ascending: false }).limit(10),
         supabase.from('enforcement_actions' as any).select('id, case_number, enforcement_type, status, date_opened, decision_outcome, decision_at, decision_rationale, resolution_date').eq('entity_id', entityId).order('date_opened', { ascending: false }).limit(10),
         supabase.from('coordination_flags' as any).select('id, title, flag_type, status, created_at, resolved_at, description').or(`linked_license_id.eq.${entityId},linked_application_id.eq.${entityId}`).order('created_at', { ascending: false }).limit(10),
-        supabase.from('coordination_escalations' as any).select('id, reason, status, resolution_notes, created_at, resolved_at').order('created_at', { ascending: false }).limit(10),
+        supabase.from('coordination_escalations' as any).select('id, reason, status, resolution_rationale, created_at, resolved_at').order('created_at', { ascending: false }).limit(10),
         supabase.from('licensing_audit_determinations' as any).select('*').eq('entity_id', entityId).order('issued_at', { ascending: false }),
         supabase.from('licensing_audit_risk_profiles' as any).select('*').eq('entity_id', entityId).order('generated_at', { ascending: false }),
       ]);
@@ -136,11 +136,11 @@ export default function LicensingAuditTab({ entityId, onOpenSupervisoryTab }: Pr
           status: f.status,
         });
       });
-      escalations.filter((e) => e.resolved_at || e.resolution_notes).forEach((e) => items.push({
+      escalations.filter((e) => e.resolved_at || e.resolution_rationale).forEach((e) => items.push({
         kind: 'resolution',
         title: 'Escalation resolved',
         subtitle: e.reason || undefined,
-        detail: e.resolution_notes || undefined,
+        detail: e.resolution_rationale || undefined,
         at: e.resolved_at || e.created_at,
         status: e.status,
       }));

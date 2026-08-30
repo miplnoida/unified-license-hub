@@ -117,7 +117,7 @@ export function ConsolidatedCaseTab({ applicationId, applicantId, hiddenSections
                 .from('v_prudential_current_breaches' as any)
                 .select('id, metric_key, risk_level, level, value, threshold_value, detected_at, return_filing_id')
                 .in('entity_id', entityIds)
-                .order('created_at', { ascending: false })
+                .order('detected_at', { ascending: false })
                 .limit(10)
             : Promise.resolve({ data: [] as any[] }),
         ]);

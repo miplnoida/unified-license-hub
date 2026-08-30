@@ -207,7 +207,7 @@ function MyPayments({ widget, context }: RendererProps) {
     if (!context.activeLicenseeId) return 0;
     const { data: appRows } = await (supabase.from('applications' as any)
       .select('id')
-      .eq('on_behalf_of_licensee_id', context.activeLicenseeId)) as any;
+      .eq('entity_id', context.activeLicenseeId)) as any;
     const appIds = ((appRows || []) as any[]).map((row: any) => row.id).filter(Boolean);
     if (appIds.length === 0) return 0;
     const { count } = await (supabase.from('payments' as any)
@@ -265,9 +265,9 @@ function MyApplications({ widget, context }: RendererProps) {
 
     if (context.isLicensee && context.activeLicenseeId) {
       if (context.licenseeId && context.licenseeId === context.activeLicenseeId) {
-        query.or(`applicant_id.eq.${context.userId},on_behalf_of_licensee_id.eq.${context.activeLicenseeId}`);
+        query.or(`applicant_id.eq.${context.userId},entity_id.eq.${context.activeLicenseeId}`);
       } else {
-        query.eq('on_behalf_of_licensee_id', context.activeLicenseeId);
+        query.eq('entity_id', context.activeLicenseeId);
       }
     } else {
       query.eq('applicant_id', context.userId);
@@ -336,9 +336,9 @@ function DraftApplications({ widget, context }: RendererProps) {
 
     if (context.isLicensee && context.activeLicenseeId) {
       if (context.licenseeId && context.licenseeId === context.activeLicenseeId) {
-        query.or(`applicant_id.eq.${context.userId},on_behalf_of_licensee_id.eq.${context.activeLicenseeId}`);
+        query.or(`applicant_id.eq.${context.userId},entity_id.eq.${context.activeLicenseeId}`);
       } else {
-        query.eq('on_behalf_of_licensee_id', context.activeLicenseeId);
+        query.eq('entity_id', context.activeLicenseeId);
       }
     } else {
       query.eq('applicant_id', context.userId);

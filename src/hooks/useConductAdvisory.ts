@@ -83,7 +83,8 @@ export interface AdvisoryInsight {
 
 export interface AdvisoryUseCaseConfig {
   code: AdvisoryUseCase;
-  name: string | null;
+  /** Canonical display label — `conduct_ai_use_cases.label`. */
+  label: string | null;
   is_enabled: boolean;
 }
 
@@ -99,7 +100,7 @@ export function useAdvisoryUseCases() {
     queryFn: async (): Promise<AdvisoryUseCaseConfig[]> => {
       const { data, error } = await sb
         .from('conduct_ai_use_cases')
-        .select('code,name,is_enabled')
+        .select('code,label,is_enabled')
         .order('code');
       if (error) throw new Error((error as { message: string }).message);
       return (data ?? []) as AdvisoryUseCaseConfig[];
