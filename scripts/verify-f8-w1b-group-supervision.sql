@@ -100,7 +100,12 @@ BEGIN
 
   -- 9. Group EWI / breach surfaces exist and use canonical breach truth.
   PERFORM 1 FROM pg_class WHERE oid = 'public.group_ewi_alerts'::regclass;
-  SELECT pg_get_viewdef('public.prudential_group_consolidated'::regclass, true) INTO t;
+  SELECT pg_get_functiondef(p.oid) INTO t FROM pg_proc p
+    JOIN pg_namespace ns ON ns.oid = p.pronamespace
+   WHERE ns.nspname = 'public' AND p.proname = 'prudential_group_consolidated';
+  IF t IS NULL THEN
+    RAISE EXCEPTION 'FAIL 9: group consolidated read surface prudential_group_consolidated missing';
+  END IF;
   IF t LIKE '%return_calculated_ratios%' THEN
     RAISE EXCEPTION 'FAIL 9: group consolidated read surface depends on the retired ratio store';
   END IF;
