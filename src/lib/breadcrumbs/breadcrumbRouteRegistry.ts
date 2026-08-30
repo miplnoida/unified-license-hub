@@ -43,7 +43,12 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   { pattern: '/registry/entities', label: 'Regulated entities', parent: '/registry', audience: 'public' },
   { pattern: '/registry/entities/:slug', label: 'Entity record', parent: '/registry/entities', audience: 'public' },
   { pattern: '/registry/licensees', label: 'Licensees', parent: '/registry', audience: 'public' },
-  { pattern: '/registry/licensees/:id', resolver: 'entity', param: 'id', parent: '/registry/licensees', audience: 'public' },
+  // Static label on purpose: this route is ANONYMOUS. The `entity` resolver reads
+  // public.licensees directly, which an unauthenticated visitor cannot do, so it
+  // produced an HTTP 401/42501 on every public registry detail view (RF-18). The
+  // page itself renders the licensee name from the public-registry function.
+  { pattern: '/registry/licensees/:id', label: 'Licensee record', parent: '/registry/licensees', audience: 'public' },
+
   { pattern: '/registry/enforcement', label: 'Enforcement register', parent: '/registry', audience: 'public' },
   { pattern: '/submit-complaint', label: 'Submit a complaint', parent: '/', audience: 'public' },
   { pattern: '/complaints/submit', label: 'Submit a complaint', parent: '/', audience: 'public' },

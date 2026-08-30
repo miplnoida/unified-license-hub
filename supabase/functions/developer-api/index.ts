@@ -56,25 +56,27 @@ Deno.serve(async (req) => {
         if (resource === 'licensees') {
           if (id) {
             const { data } = await admin.from('licenses')
-              .select('id, license_number, status, issue_date, expiry_date, licensee:licensees(id, licensee_name, registration_number)')
+              // Canonical columns: issued_at / valid_until. The licensee is reached
+              // through licensees.license_id (there is no licenses -> licensees FK).
+              .select('id, license_number, status, issued_at, valid_until, licensee:licensees!licensees_license_id_fkey(id, name, license_number)')
               .eq('id', id).maybeSingle();
             payload = data ?? {};
             if (!data) status = 404;
           } else {
             const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '50', 10) || 50, 200);
             const { data } = await admin.from('licenses')
-              .select('id, license_number, status, issue_date, expiry_date, licensee:licensees(licensee_name)')
+              .select('id, license_number, status, issued_at, valid_until, licensee:licensees!licensees_license_id_fkey(name)')
               .in('status', ['active', 'suspended'])
-              .order('issue_date', { ascending: false })
+              .order('issued_at', { ascending: false })
               .limit(limit);
             payload = { data: data ?? [] };
           }
         } else if (resource === 'enforcement') {
           const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '50', 10) || 50, 200);
           const { data } = await admin.from('enforcement_actions')
-            .select('id, case_number, action_type, status, decision_date, penalty_amount, currency')
+            .select('id, case_number, enforcement_type, status, decision_at, penalty_amount, penalty_currency')
             .in('status', ['decided', 'closed'])
-            .order('decision_date', { ascending: false, nullsFirst: false })
+            .order('decision_at', { ascending: false, nullsFirst: false })
             .limit(limit);
           payload = { data: data ?? [] };
         } else if (resource === 'health') {

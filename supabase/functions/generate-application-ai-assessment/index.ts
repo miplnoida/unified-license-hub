@@ -270,31 +270,18 @@ Deno.serve(async (req) => {
     const categoryId = (appData.category_id as string | undefined) || null;
     const serviceId = (appData.service_id as string | undefined) || null;
 
-    // Documents: load defensively. The legacy `documents.application_id`
-    // column may or may not exist depending on schema history; try the OR
-    // query first and fall back to entity-only if it fails.
-    let legacyDocsList: Array<Record<string, unknown>> = [];
-    try {
-      const r = await adminClient
-        .from("documents")
-        .select("id, file_name, document_type, file_size, mime_type, created_at, entity_type, entity_id, application_id")
-        .or(
-          `application_id.eq.${application_id},and(entity_type.eq.application,entity_id.eq.${application_id})`,
-        );
-      if (r.error) throw r.error;
-      legacyDocsList = (r.data as Array<Record<string, unknown>>) || [];
-    } catch (e) {
-      console.warn(
-        "[ai-assessment] documents OR query failed, falling back to entity-only:",
-        e instanceof Error ? e.message : e,
-      );
-      const r2 = await adminClient
-        .from("documents")
-        .select("id, file_name, document_type, file_size, mime_type, created_at, entity_type, entity_id")
-        .eq("entity_type", "application")
-        .eq("entity_id", application_id);
-      legacyDocsList = (r2.data as Array<Record<string, unknown>>) || [];
-    }
+    // public.documents is keyed by (entity_type, entity_id) only. There is no
+    // application_id and no document_type column, so the previous defensive
+    // OR-then-fallback pattern could only ever take the fallback branch while
+    // swallowing a real contract error into console.warn. Query the canonical
+    // shape directly and surface failures instead of hiding them.
+    const docsRes = await adminClient
+      .from("documents")
+      .select("id, file_name, file_size, mime_type, created_at, entity_type, entity_id")
+      .eq("entity_type", "application")
+      .eq("entity_id", application_id);
+    if (docsRes.error) throw docsRes.error;
+    const legacyDocsList: Array<Record<string, unknown>> = docsRes.data || [];
 
     const [
       sectorRow,

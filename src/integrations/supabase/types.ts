@@ -52972,6 +52972,7 @@ export type Database = {
         Args: { _after: Json; _before: Json }
         Returns: string[]
       }
+      jsonb_to_learning_text: { Args: { _v: Json }; Returns: string }
       latest_return_analysis: {
         Args: { _return_id: string }
         Returns: {

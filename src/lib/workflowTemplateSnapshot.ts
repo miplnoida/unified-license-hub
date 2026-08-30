@@ -16,6 +16,7 @@ import type { StepAction, NextStepMode, EndState } from '@/hooks/useStepActions'
 import type { StepEntryNotification } from '@/hooks/useStepEntryNotifications';
 import type { ActionNotification } from '@/hooks/useActionNotifications';
 import { approvalStepConfigWrite } from '@/lib/applicationLifecycleGovernedOps';
+import { uuidList } from '@/lib/idFilters';
 
 export const TEMPLATE_SNAPSHOT_VERSION = 2 as const;
 
@@ -167,9 +168,9 @@ export async function fetchSnapshotForWorkflow(workflowId: string): Promise<Temp
   const stepIds = steps.map(s => s.id);
 
   const [actionsRes, entryRes, actionNotifRes] = await Promise.all([
-    supabase.from('approval_step_actions' as any).select('*').in('step_id', stepIds.length ? stepIds : ['__none__']),
-    supabase.from('approval_step_entry_notifications' as any).select('*').in('step_id', stepIds.length ? stepIds : ['__none__']),
-    supabase.from('approval_action_notifications' as any).select('*').in('step_id', stepIds.length ? stepIds : ['__none__']),
+    supabase.from('approval_step_actions' as any).select('*').in('step_id', uuidList(stepIds)),
+    supabase.from('approval_step_entry_notifications' as any).select('*').in('step_id', uuidList(stepIds)),
+    supabase.from('approval_action_notifications' as any).select('*').in('step_id', uuidList(stepIds)),
   ]);
   if (actionsRes.error) throw actionsRes.error;
   if (entryRes.error) throw entryRes.error;

@@ -342,7 +342,7 @@ export default function EmergingRiskDetail() {
                         <Badge variant="outline">
                           Confidence: {CONFIDENCE_LABEL[a.confidence] ?? a.confidence}
                         </Badge>
-                        <span className="ml-auto text-xs text-muted-foreground">{formatDateTime(a.created_at)}</span>
+                        <span className="ml-auto text-xs text-muted-foreground">{formatDateTime(a.assessed_at)}</span>
                       </div>
                       <p className="mt-2 whitespace-pre-wrap text-sm">{a.judgement}</p>
                       {a.actions_considered && (

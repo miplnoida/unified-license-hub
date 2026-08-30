@@ -231,11 +231,12 @@ async function evalSlaBreach(supa: Any, rule: Any, since: string, threshold: num
 }
 
 async function evalRepeatOffender(supa: Any, rule: Any, since: string, threshold: number, defn: Any) {
-  const { data } = await supa.from('enforcement_actions').select('licensee_id, id').gte('created_at', since);
+  // enforcement_actions keys the regulated entity as entity_id (FK -> licensees.id).
+  const { data } = await supa.from('enforcement_actions').select('entity_id, id').gte('created_at', since);
   const counts = new Map<string, number>();
   for (const e of (data as Any[]) || []) {
-    if (!e.licensee_id) continue;
-    counts.set(e.licensee_id, (counts.get(e.licensee_id) || 0) + 1);
+    if (!e.entity_id) continue;
+    counts.set(e.entity_id, (counts.get(e.entity_id) || 0) + 1);
   }
   const out: Any[] = [];
   for (const [ent, n] of counts) {

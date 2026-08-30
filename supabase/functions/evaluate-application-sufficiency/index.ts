@@ -67,8 +67,10 @@ Deno.serve(async (req) => {
 
     // Pre-load evidence pools once
     const [formsRes, docsRes, paymentsRes, aiRes, coordRes] = await Promise.all([
-      svc.from('form_responses').select('*').eq('application_id', body.application_id),
-      svc.from('documents').select('*').eq('application_id', body.application_id),
+      // form_responses and documents are both keyed by (entity_type, entity_id);
+      // neither carries an application_id column.
+      svc.from('form_responses').select('*').eq('entity_type', 'application').eq('entity_id', body.application_id),
+      svc.from('documents').select('*').eq('entity_type', 'application').eq('entity_id', body.application_id),
       svc.from('payments').select('*').eq('application_id', body.application_id),
       svc.from('application_ai_assessments').select('*').eq('application_id', body.application_id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
       svc.from('coordination_participants').select('*, case:coordination_cases!inner(*)').eq('case.subject_id', body.application_id),

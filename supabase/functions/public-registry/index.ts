@@ -11,8 +11,20 @@ import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 import { markPublicFunction } from "../_shared/publicFunction.ts";
 markPublicFunction('Public read of published licensees / registrations');
 
+// Canonical public.licenses columns. `issue_date` / `expiry_date` / `licensee_id`
+// never existed on this table; the stale names made the whole registry return
+// HTTP 500 (RF-17/RF-18). There is no licenses -> licensees FK: the relationship
+// is the reverse one (licensees.license_id -> licenses.id), so the licensee is
+// embedded through that constraint and arrives as an array.
 const SAFE_LICENSE_FIELDS =
-  "id, license_number, license_type, status, issue_date, expiry_date, licensee_id";
+  "id, license_number, license_type, status, issued_at, valid_from, valid_until";
+const LICENSEE_EMBED = "licensees!licensees_license_id_fkey(id, name, sector_id, sectors(name))";
+
+/** Reverse-FK embeds arrive as arrays; collapse to the single holder. */
+function holder(row: Record<string, unknown> | null): Record<string, any> | null {
+  const v = (row as any)?.licensees;
+  return Array.isArray(v) ? (v[0] ?? null) : ((v as any) ?? null);
+}
 
 Deno.serve(async (req) => {
   const pre = handleCorsPreflight(req);
@@ -45,9 +57,9 @@ Deno.serve(async (req) => {
       const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
       let query = admin
         .from("licenses")
-        .select(`${SAFE_LICENSE_FIELDS}, licensees!inner(id, name, sector_id, sectors(name))`, { count: "exact" })
+        .select(`${SAFE_LICENSE_FIELDS}, ${LICENSEE_EMBED}`, { count: "exact" })
         .eq("status", "active")
-        .order("issue_date", { ascending: false })
+        .order("issued_at", { ascending: false })
         .range(offset, offset + limit - 1);
       if (q) query = query.ilike("license_number", `%${q}%`);
       const { data, error, count } = await query;
@@ -56,10 +68,10 @@ Deno.serve(async (req) => {
         id: r.id,
         license_number: r.license_number,
         license_type: r.license_type,
-        issue_date: r.issue_date,
-        expiry_date: r.expiry_date,
-        licensee_name: r.licensees?.name || null,
-        sector_name: r.licensees?.sectors?.name || null,
+        issue_date: r.issued_at,
+        expiry_date: r.valid_until,
+        licensee_name: holder(r)?.name || null,
+        sector_name: holder(r)?.sectors?.name || null,
       }));
       return json({ rows, total: count || 0 });
     }
@@ -69,24 +81,24 @@ Deno.serve(async (req) => {
       if (!id) return json({ error: "id required" }, 400);
       const { data: lic } = await admin
         .from("licenses")
-        .select(`${SAFE_LICENSE_FIELDS}, licensees(id, name, sector_id, sectors(name))`)
+        .select(`${SAFE_LICENSE_FIELDS}, ${LICENSEE_EMBED}`)
         .eq("id", id).eq("status", "active").maybeSingle();
       if (!lic) return json({ error: "not found" }, 404);
-      const licensee_id = (lic as any).licensee_id;
+      const licensee_id = holder(lic)?.id ?? null;
       const { count: enfCount } = await admin
         .from("enforcement_actions")
         .select("id", { count: "exact", head: true })
-        .eq("licensee_id", licensee_id)
+        .eq("entity_id", licensee_id)
         .in("status", ["closed", "decided"]);
       return json({
         license: {
           id: lic.id,
           license_number: lic.license_number,
           license_type: lic.license_type,
-          issue_date: lic.issue_date,
-          expiry_date: lic.expiry_date,
-          licensee_name: (lic as any).licensees?.name || null,
-          sector_name: (lic as any).licensees?.sectors?.name || null,
+          issue_date: (lic as any).issued_at,
+          expiry_date: (lic as any).valid_until,
+          licensee_name: holder(lic)?.name || null,
+          sector_name: holder(lic)?.sectors?.name || null,
         },
         enforcement_count: enfCount || 0,
       });

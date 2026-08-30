@@ -47,6 +47,19 @@ const CONTRACT_TEXT = [
   /could not find the (table|function|column)/i,
   /schema cache/i,
 ];
+/**
+ * Backend outcomes that are a genuine "record absent", not a broken contract:
+ *   PGRST116 - `.single()` matched 0 rows (record missing, or filtered by RLS)
+ *   22023    - a SECURITY DEFINER guard deliberately rejected an id that has no
+ *              corresponding record (e.g. PERSON_PARTY_REQUIRED). The contract
+ *              itself resolved: the routine ran and raised its own guard.
+ * The message must match as well as the code, so an unrelated 22023 still FAILs.
+ */
+const NOT_FOUND_BACKEND = [
+  { code: 'PGRST116', rx: /0 rows|multiple \(or no\) rows/i },
+  { code: '22023', rx: /_REQUIRED\b|not found|does not exist for/i },
+];
+
 const NOT_FOUND_TEXT = [
   /not found/i,
   /could not be found/i,
@@ -69,6 +82,10 @@ function personasFor(route) {
 
 function concreteUrl(route) {
   let p = route.path;
+  // React Router catch-all. `http://host*` is not a navigable URL, so the route
+  // is exercised through a path that is guaranteed not to match anything else
+  // (RF-14 was a harness defect, not a product defect).
+  if (p === '*' || p === '/*') return BASE + '/__runtime_smoke_unmatched_path__';
   if (p.includes(':')) {
     const key = Object.keys(idMap)
       .filter((k) => k.startsWith('/') && p.startsWith(k))
@@ -214,15 +231,21 @@ function classify(o) {
   };
   if (navError) return { ...base, classification: 'ENVIRONMENT_BLOCKED', reasons: [navError] };
 
-  const contract = backendErrors.filter((e) => CONTRACT_CODES.has(e.code));
+  const absent = backendErrors.filter((e) =>
+    NOT_FOUND_BACKEND.some((n) => n.code === e.code && n.rx.test(e.body || '')));
+  const contract = backendErrors.filter((e) => CONTRACT_CODES.has(e.code) && !absent.includes(e));
   const authz = backendErrors.filter((e) => AUTHZ_CODES.has(e.code) || [401, 403].includes(e.status));
-  const other = backendErrors.filter((e) => !contract.includes(e) && !authz.includes(e));
+  const other = backendErrors.filter((e) => !contract.includes(e) && !authz.includes(e) && !absent.includes(e));
   const contractText = CONTRACT_TEXT.filter((rx) => rx.test(text)).map((rx) => String(rx));
   const notFound = NOT_FOUND_TEXT.some((rx) => rx.test(text));
   const stillLoading = /Loading|Please wait/i.test(text) && text.trim().length < 120;
   const redirected = new URL(finalUrl).pathname !== new URL(url).pathname;
   const guardRedirect = redirected && /\/(login|unauthorized|forbidden)$/.test(new URL(finalUrl).pathname);
 
+  if (absent.length && !contract.length && !pageErrors.length) {
+    return { ...base, classification: 'EXPECTED_NOT_FOUND',
+      reasons: absent.map((e) => `record absent (${e.status}/${e.code}) ${e.url}`) };
+  }
   if (contract.length) return { ...base, classification: 'FAIL', severity: 'P0', reasons: contract.map((e) => `${e.code} ${e.url} :: ${e.body}`) };
   if (contractText.length) return { ...base, classification: 'FAIL', severity: 'P0', reasons: [`contract text rendered: ${contractText.join(', ')}`] };
   if (pageErrors.length) return { ...base, classification: 'FAIL', severity: 'P1', reasons: pageErrors };

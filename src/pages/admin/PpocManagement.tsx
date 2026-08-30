@@ -20,6 +20,7 @@ import { Plus, Trash2, Link2, Pencil, X } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { getEligibleUsersForPpocMapping, type EligiblePpocUser } from '@/lib/ppocUsers';
 import { loadApprovedLicenseeOptions, type ApprovedLicenseeOption } from '@/lib/licenseeOptions';
+import { uuidList } from '@/lib/idFilters';
 
 interface PpocMapping {
   id: string;
@@ -80,13 +81,13 @@ export default function PpocManagement() {
     const licenseeIds = [...new Set(rows.map(r => r.licensee_id).filter(Boolean))];
 
     const [{ data: profiles }, enrichedLicensees, { data: mapSectors }, { data: secList }, { data: rawLicRows }] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, email').in('id', userIds.length ? userIds : ['__none__']),
+      supabase.from('profiles').select('id, full_name, email').in('id', uuidList(userIds)),
       // Use enriched helper without dedupe so every licensee id (including
       // "losing" duplicates) has a resolved entity display name available.
       loadApprovedLicenseeOptions({ onlyActive: false, dedupe: false }),
-      supabase.from('ppoc_mapping_sectors' as any).select('mapping_id, sector_id').in('mapping_id', mappingIds.length ? mappingIds : ['__none__']),
+      supabase.from('ppoc_mapping_sectors' as any).select('mapping_id, sector_id').in('mapping_id', uuidList(mappingIds)),
       supabase.from('sectors').select('id, name'),
-      supabase.from('licensees').select('id, name').in('id', licenseeIds.length ? licenseeIds : ['__none__']),
+      supabase.from('licensees').select('id, name').in('id', uuidList(licenseeIds)),
     ]);
 
 
