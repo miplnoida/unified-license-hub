@@ -95,8 +95,72 @@ reporting (13), currency of record (14).
 - Supervision-module prompt-based flows (`ThematicReviewDetail`, `EntitySupervisionTab`)
   are outside the F7 returns boundary and unchanged.
 
-## Gate status (2026-08-31)
+## Gate status (2026-08-30)
 
 `npm run verify:f7b` 105/105 pass. `npm run verify:f6x-currency` 141/141 pass including the
 strict two-regulator scope fixture. Frontend 143 files / 1312 tests pass; `tsgo --noEmit`
 clean; production build green.
+
+## Final F7-B re-freeze regression battery (2026-08-30)
+
+No new product capability was added in this pass. Two genuine security defects were exposed
+by the permanent security battery and repaired:
+
+- GAP-F0-08: eleven F7-B/F6-X/enforcement routines were executable by `anon`/`PUBLIC`.
+  Anonymous and `PUBLIC` execution was revoked; signed-in execution is retained only where
+  the routine performs its own permission check. The four trigger functions
+  (`returns_touch_updated_at`, `return_filing_currency_snapshot_protect`,
+  `tg_enforcement_penalty_currency_authority`, `tg_enforcement_penalty_payment_currency`)
+  are no longer executable by any browser role.
+- F0-B7: `returns_overdue_sweep(date)` authorized a system run on `current_user`. It now
+  uses the canonical `public.is_trusted_service_request()` identity and otherwise fails
+  closed; the signed-in branch still requires `returns_require('workflow_action')`.
+
+Gate hygiene: F1/F2/F5/F6/F6-X/F7 gate scripts now drop pooled-session `pg_temp` helpers
+before recreating them, so a pooled backend reused across gates cannot fail on differing
+helper parameter names.
+
+### Executed results
+
+| Gate | Result |
+| --- | --- |
+| `verify:f7b` | 105/105 pass (twice) |
+| `verify:f6x-currency` | 141/141 pass (twice) |
+| `verify:enforcement-currency` | 37/37 pass (twice) |
+| `verify:f1c` | 96/96 pass (twice) |
+| `verify:f2b` | 63/63 pass |
+| `certify:f5c` | 73 assertions pass |
+| `verify:f6b` | 38/38 pass |
+| `certify:f6c` | 80/80 pass |
+| `verify:anon-execute` | PASS (7 allowlisted, 0 defects) |
+| `verify:definer-guards` | PASS |
+| `verify:permission-refs`, `verify:audit-contract`, `verify:write-contract`, `verify:hardening`, `verify:outbox-delivery`, `verify:service-completeness` | PASS |
+| `verify:breadcrumbs` | 340 routes, 0 uncovered |
+| `validate-nav-icons` | 213 items, all approved |
+| authz/ownership/traceability source gates | PASS |
+| `scripts/cert-v2/p11-enforcement.ts` | 26/26 steps pass |
+| Frontend | 143 files / 1312 tests pass |
+| `tsgo --noEmit` | clean |
+| `npm run build` | green (chunk-size warnings only) |
+
+### Live census
+
+- Enforcement penalties: six positive sanctions, all XCD. ENF-2026-00006…00010 carry
+  `DATA_REMEDIATION_REGULATOR_BASE`; the new P11 sanction ENF-2026-00011 was minted with
+  `REGULATOR_BASE` provenance without any client-supplied currency — positive proof of
+  server authority. Settlements: 6 rows, XCD only, 1,500,000 XCD total.
+- `entity_currency_profiles`: zero rows lacking a regulator body scope.
+- `return_filings`: 93 rows, zero lacking a snapshotted reporting currency or regulator.
+
+### Residual documented boundaries (not F7 defects)
+
+- Supabase linter baseline remains ~1,488 findings (security-definer/search-path classes)
+  and is a platform-wide backlog item, not an F7 regression.
+- One historical entity identifier remains `DATA_REMEDIATION_REQUIRED` (ambiguous source).
+- Display-only `currency: 'USD'` formatter defaults remain in legacy dashboard/fee-catalogue
+  screens (`SupervisoryDashboard`, `LicenseeDashboard`, `ApplicantDashboard`,
+  `ExecutiveSupervisoryDashboard`, `PrudentialEntityProfile`, `FeeManagement`,
+  `LateFeesPage`, `PostLicenseeDashboard`). They format already-authoritative amounts and
+  hold no monetary authority; conversion to canonical `src/lib/money.ts` is queued as a
+  presentation follow-up outside this freeze.
+- F20 deployment/commissioning and scheduling of `returns_overdue_sweep` remain operational.
