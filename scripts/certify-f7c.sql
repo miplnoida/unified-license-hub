@@ -604,7 +604,10 @@ BEGIN
     'resolver hierarchy present');
 
   PERFORM pg_temp.rec('F','F-02','only an APPROVED override can govern; proposed or superseded overrides cannot',
-    _def ~* 'APPROVED', 'approved-only override selection');
+  PERFORM pg_temp.rec('F','F-02','only an authorised override that reached ACTIVE (or the ACTIVE override in force at a historical date, later superseded) can govern; proposed and rejected overrides never can',
+    _def ~* $$status IN \('ACTIVE','SUPERSEDED'\)$$ AND _def !~* 'PROPOSED' AND _def !~* 'REJECTED',
+    'ACTIVE/SUPERSEDED-only override selection');
+
 
   PERFORM pg_temp.rec('F','F-03','entity currency overrides are scoped to the institutional regulator body',
     EXISTS (SELECT 1 FROM information_schema.columns
