@@ -14,6 +14,159 @@ export type Database = {
   }
   public: {
     Tables: {
+      address_usages: {
+        Row: {
+          address_id: string
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          source_detail: string | null
+          source_id: string | null
+          source_kind: string
+          subject_id: string
+          subject_kind: string
+          updated_at: string
+          usage_type: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          address_id: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          source_detail?: string | null
+          source_id?: string | null
+          source_kind: string
+          subject_id: string
+          subject_kind: string
+          updated_at?: string
+          usage_type: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          address_id?: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          source_detail?: string | null
+          source_id?: string | null
+          source_kind?: string
+          subject_id?: string
+          subject_kind?: string
+          updated_at?: string
+          usage_type?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "address_usages_address_id_fkey"
+            columns: ["address_id"]
+            isOneToOne: false
+            referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      addresses: {
+        Row: {
+          admin_area: string | null
+          admin_area_item_id: string | null
+          country_code: string
+          country_item_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          locality: string | null
+          locality_item_id: string | null
+          normalization_version: number
+          normalized_key: string | null
+          postal_code: string | null
+          raw_text: string | null
+          street_line1: string
+          street_line2: string | null
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_area?: string | null
+          admin_area_item_id?: string | null
+          country_code: string
+          country_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          locality?: string | null
+          locality_item_id?: string | null
+          normalization_version?: number
+          normalized_key?: string | null
+          postal_code?: string | null
+          raw_text?: string | null
+          street_line1: string
+          street_line2?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_area?: string | null
+          admin_area_item_id?: string | null
+          country_code?: string
+          country_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          locality?: string | null
+          locality_item_id?: string | null
+          normalization_version?: number
+          normalized_key?: string | null
+          postal_code?: string | null
+          raw_text?: string | null
+          street_line1?: string
+          street_line2?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addresses_admin_area_item_id_fkey"
+            columns: ["admin_area_item_id"]
+            isOneToOne: false
+            referencedRelation: "master_data_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addresses_country_item_id_fkey"
+            columns: ["country_item_id"]
+            isOneToOne: false
+            referencedRelation: "master_data_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addresses_locality_item_id_fkey"
+            columns: ["locality_item_id"]
+            isOneToOne: false
+            referencedRelation: "master_data_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_assurance_criteria_assessments: {
         Row: {
           assessed_by: string
@@ -45948,6 +46101,107 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      address_360_overview: {
+        Args: { _address_id: string; _as_of?: string }
+        Returns: Json
+      }
+      address_audit: {
+        Args: {
+          _action: string
+          _entity_id: string
+          _entity_type: string
+          _meta: Json
+          _new: Json
+          _old: Json
+          _uid: string
+        }
+        Returns: undefined
+      }
+      address_common_matches: {
+        Args: { _address_id: string; _as_of?: string; _limit?: number }
+        Returns: {
+          address_id: string
+          approval_status: string
+          effective_from: string
+          effective_to: string
+          match_class: string
+          source_kind: string
+          subject_id: string
+          subject_kind: string
+          subject_name: string
+          usage_type: string
+        }[]
+      }
+      address_master_data_iso2: { Args: { _item_id: string }; Returns: string }
+      address_master_data_label: { Args: { _item_id: string }; Returns: string }
+      address_norm_street: { Args: { _in: string }; Returns: string }
+      address_norm_text: { Args: { _in: string }; Returns: string }
+      address_normalization_version: { Args: never; Returns: number }
+      address_normalize_key: {
+        Args: {
+          _admin_area: string
+          _country_code: string
+          _locality: string
+          _postal_code: string
+          _street_line1: string
+          _street_line2: string
+          _unit: string
+        }
+        Returns: string
+      }
+      address_project_sources: { Args: never; Returns: Json }
+      address_projection_queue: {
+        Args: never
+        Returns: {
+          address_preview: string
+          reason: string
+          source_id: string
+          source_kind: string
+          subject_label: string
+        }[]
+      }
+      address_require: { Args: { _action: string }; Returns: string }
+      address_upsert_canonical: {
+        Args: {
+          _admin_area?: string
+          _admin_area_item_id?: string
+          _country_code: string
+          _country_item_id?: string
+          _locality?: string
+          _locality_item_id?: string
+          _postal_code?: string
+          _raw_text?: string
+          _street_line1: string
+          _street_line2?: string
+          _unit?: string
+        }
+        Returns: string
+      }
+      address_usage_approve: {
+        Args: { _usage_id: string; _verify?: boolean }
+        Returns: string
+      }
+      address_usage_end: {
+        Args: { _effective_to: string; _usage_id: string }
+        Returns: string
+      }
+      address_usage_propose: {
+        Args: {
+          _address_id: string
+          _effective_from?: string
+          _source_detail?: string
+          _source_id?: string
+          _source_kind?: string
+          _subject_id: string
+          _subject_kind: string
+          _usage_type: string
+        }
+        Returns: string
+      }
+      address_usage_visible: {
+        Args: { _kind: string; _subject_id: string; _user_id: string }
+        Returns: boolean
+      }
       admin_override_form_version_assignment: {
         Args: {
           _application_id: string
@@ -54210,6 +54464,10 @@ export type Database = {
       }
       permission_has_dependency: { Args: { _action: string }; Returns: boolean }
       person_360_overview: { Args: { _person_party_id: string }; Returns: Json }
+      person_address_intelligence: {
+        Args: { _as_of?: string; _party_id: string }
+        Returns: Json
+      }
       person_relationship_network: {
         Args: { _as_of?: string; _person_party_id: string }
         Returns: Json
@@ -55725,6 +55983,16 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      relationship_intelligence_search: {
+        Args: { _kinds?: string[]; _limit?: number; _query: string }
+        Returns: {
+          detail: string
+          result_id: string
+          result_kind: string
+          subtitle: string
+          title: string
+        }[]
       }
       release_debt_summary: { Args: never; Returns: Json }
       reorder_approval_steps: {
