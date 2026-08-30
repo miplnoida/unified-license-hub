@@ -1,21 +1,20 @@
 {
   "finding": "SR-16 final route runtime census",
-  "run_verdict": "INVALID_ENVIRONMENT_RUN",
-  "tested_head": "99d7b82d45c5f106f2ff91b91f0fd7203473c44d",
-  "branch": "edit/edt-91b07f4a-6cba-4faa-8001-a2c262c2efb5",
+  "run_verdict": "CERTIFICATION_ELIGIBLE",
+  "tested_head": "f3aeca3d2e93706b8f6fb4ec7fdd7fbbf64d0eb4",
+  "branch": "edit/edt-88152aa6-b89b-4431-a6c0-6c4d106289b5",
   "tree_at_run_start": "clean",
   "dirty_files_at_run_start": [],
   "base_url": "http://localhost:8080",
-  "started_at": "2026-08-30T21:57:34.206Z",
-  "finished_at": "2026-08-30T22:16:03.257Z",
+  "started_at": "2026-08-30T22:25:10.830Z",
+  "finished_at": "2026-08-30T22:44:36.235Z",
   "route_inventory_count": 347,
   "covered_routes": 347,
   "execution_count": 353,
   "classifications": {
-    "PASS": 297,
+    "PASS": 299,
     "REDIRECT": 38,
     "EXPECTED_NOT_FOUND": 10,
-    "FAIL": 2,
     "EXPECTED_AUTHORIZATION": 6
   },
   "dataapi_sentinel": {
@@ -23,16 +22,12 @@
     "failures": [],
     "aborted_early": false
   },
-  "infrastructure_contaminated_executions": [
-    "R-189",
-    "R-190"
-  ],
+  "infrastructure_contaminated_executions": [],
   "personas_available": {
     "internal": true,
     "external": true,
     "anonymous": true
   },
-  "harness_exit_code": 1,
-  "artifact": "docs/certification/evidence-route-smoke-attempt-2026-08-30T22-16-03-257Z.json",
-  "note": "Infrastructure-contaminated attempt preserved separately; NOT certification evidence."
+  "harness_exit_code": 0,
+  "artifact": "scripts/system-runtime/route-smoke-results.json"
 }
