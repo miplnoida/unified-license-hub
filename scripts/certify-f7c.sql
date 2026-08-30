@@ -1277,9 +1277,7 @@ BEGIN
   -- N-05 service role retains the governed operational path
   _bad := '';
   FOR r IN SELECT g.name FROM f7c_register g WHERE g.kind='TABLE' AND g.classification='ACTIVE CANONICAL' LOOP
-    IF NOT EXISTS (SELECT 1 FROM information_schema.role_table_grants t
-                    WHERE t.table_schema='public' AND t.table_name=r.name
-                      AND t.grantee='service_role' AND t.privilege_type='SELECT') THEN
+    IF NOT has_table_privilege('service_role', format('public.%I', r.name), 'SELECT') THEN
       _bad := _bad||r.name||' ';
     END IF;
   END LOOP;
