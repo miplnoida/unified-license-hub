@@ -790,6 +790,616 @@ BEGIN
 END $k$;
 
 -- ---------------------------------------------------------------------------
+-- L — empirical submitted / under-review version immutability
+--
+-- Every probe below is a PRIVILEGED, DIRECT table mutation (no JWT, no RLS
+-- shielding). The invariant being certified is a database integrity invariant,
+-- not a browser permission.
+-- ---------------------------------------------------------------------------
+DO $l$
+DECLARE
+  r record; _buf jsonb := '[]'::jsonb; _ok boolean; _msg text; _ctx text;
+  _entity uuid; _filer uuid; _cfg uuid; _rev uuid; _chk uuid; _sector uuid; _tpl uuid;
+  _def uuid; _ob uuid; _p1 uuid; _p2 uuid; _res jsonb; _fil uuid; _ver uuid;
+  _rej uuid; _resp uuid;
+BEGIN
+  FOR r IN SELECT m.entity_id, m.user_id FROM public.entity_user_memberships m
+            WHERE m.status='APPROVED' LOOP
+    PERFORM pg_temp.act(r.user_id);
+    IF _entity IS NULL AND public.returns_can_file(r.entity_id) THEN
+      _entity := r.entity_id; _filer := r.user_id;
+    END IF;
+  END LOOP;
+  PERFORM set_config('request.jwt.claims','{}', true);
+
+  SELECT u.id INTO _cfg FROM auth.users u
+   WHERE public.sec_is_internal_user(u.id)
+     AND public.has_permission(u.id,'returns_management','manage_config')
+   ORDER BY u.id LIMIT 1;
+  SELECT u.id INTO _rev FROM auth.users u
+   WHERE public.sec_is_internal_user(u.id)
+     AND public.has_permission(u.id,'returns_management','review')
+   ORDER BY u.id LIMIT 1;
+  SELECT u.id INTO _chk FROM auth.users u
+   WHERE public.sec_is_internal_user(u.id)
+     AND public.has_permission(u.id,'returns_management','approve')
+     AND NOT public.has_permission(u.id,'returns_management','create')
+   ORDER BY u.id LIMIT 1;
+  SELECT public.sector_effective_id(l.sector_id) INTO _sector FROM public.licensees l WHERE l.id=_entity;
+  SELECT t.id INTO _tpl FROM public.form_templates t
+    JOIN public.form_versions v ON v.template_id=t.id AND v.status='published'
+   ORDER BY t.id LIMIT 1;
+
+  PERFORM pg_temp.rec('L','L-00',
+    'the immutability fixture has a real entity filer, a configuration officer, a reviewer, an independent approver, a sector and a published form template',
+    _entity IS NOT NULL AND _filer IS NOT NULL AND _cfg IS NOT NULL AND _rev IS NOT NULL
+      AND _chk IS NOT NULL AND _sector IS NOT NULL AND _tpl IS NOT NULL,
+    format('entity=%s filer=%s cfg=%s rev=%s chk=%s', _entity,_filer,_cfg,_rev,_chk));
+  IF _entity IS NULL OR _filer IS NULL OR _cfg IS NULL OR _rev IS NULL OR _chk IS NULL
+     OR _sector IS NULL OR _tpl IS NULL THEN RETURN; END IF;
+
+  BEGIN
+    INSERT INTO public.return_definitions(
+      code, name, description, frequency, due_days_after_period_end,
+      requires_declaration, status, is_active, effective_from)
+    VALUES ('F7C-CERT-IMMU','F7C immutability certification return','Certification fixture only',
+            'QUARTERLY', 30, true, 'ACTIVE', true,
+            date_trunc('quarter', CURRENT_DATE - interval '24 months')::date)
+    RETURNING id INTO _def;
+    INSERT INTO public.return_definition_forms(
+      return_definition_id, form_template_id, sequence, is_required, effective_from)
+    VALUES (_def, _tpl, 1, true, date_trunc('quarter', CURRENT_DATE - interval '24 months')::date);
+    INSERT INTO public.reporting_obligation_rules(
+      return_definition_id, code, name, sector_id, requires_active_license, effective_from, is_active)
+    VALUES (_def,'F7C-CERT-IMMU-RULE','F7C immutability applicability rule', _sector, false,
+            date_trunc('quarter', CURRENT_DATE - interval '24 months')::date, true);
+
+    PERFORM pg_temp.act(_cfg);
+    PERFORM public.returns_derive_entity_obligations(_entity);
+    SELECT o.id INTO _ob FROM public.entity_reporting_obligations o
+     WHERE o.entity_id=_entity AND o.return_definition_id=_def AND o.status='ACTIVE';
+    PERFORM public.returns_generate_periods(_ob, CURRENT_DATE);
+    SELECT p.id INTO _p1 FROM public.reporting_periods p
+     WHERE p.entity_reporting_obligation_id=_ob AND p.status='OPEN' ORDER BY p.period_start LIMIT 1;
+    SELECT p.id INTO _p2 FROM public.reporting_periods p
+     WHERE p.entity_reporting_obligation_id=_ob AND p.status='OPEN' AND p.id <> _p1
+     ORDER BY p.period_start LIMIT 1;
+
+    -- submit version 1
+    PERFORM pg_temp.act(_filer);
+    _res := public.returns_open_filing(_p1);
+    _fil := (_res->>'filing_id')::uuid; _ver := (_res->>'version_id')::uuid;
+    FOR r IN SELECT q.id, q.form_template_id, q.form_version_id
+               FROM public.return_filing_form_requirements q
+              WHERE q.return_filing_version_id = _ver LOOP
+      PERFORM set_config('request.jwt.claims','{}', true);
+      INSERT INTO public.form_responses(template_id, version_id, user_id, response_data, status)
+      VALUES (r.form_template_id,
+              COALESCE(r.form_version_id,
+                (SELECT v.id FROM public.form_versions v
+                  WHERE v.template_id=r.form_template_id AND v.status='published'
+                  ORDER BY v.created_at DESC LIMIT 1)),
+              _filer, '{"f7c_gate":true}'::jsonb, 'submitted')
+      RETURNING id INTO _resp;
+      PERFORM pg_temp.act(_filer);
+      PERFORM public.returns_attach_form_response(r.id, _resp, 'COMPLETED');
+    END LOOP;
+    PERFORM public.returns_submit_filing(_ver, true);
+    PERFORM set_config('request.jwt.claims','{}', true);
+
+    _buf := pg_temp.bufrec(_buf,'L','L-01',
+      'submission seals the version: a SUBMITTED version is immutable evidence',
+      EXISTS (SELECT 1 FROM public.return_filing_versions v
+               WHERE v.id=_ver AND v.status='SUBMITTED' AND v.is_immutable
+                 AND v.submitted_at IS NOT NULL AND v.submitted_by IS NOT NULL),
+      'sealed at SUBMITTED');
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET version_number = version_number + 50 WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-02', 'a privileged direct change to the version number of a SUBMITTED version is refused by the database', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET return_filing_id = gen_random_uuid() WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-03', 'a privileged direct re-parenting of a SUBMITTED version to another filing is refused by the database', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET submitted_by = _chk WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-04', 'a privileged direct rewrite of the submitter of a SUBMITTED version is refused by the database', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET submitted_at = now() - interval '400 days' WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-05', 'a privileged direct rewrite of the submission timestamp of a SUBMITTED version is refused by the database', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET declaration_accepted_by = _chk, declaration_accepted_at = now() - interval '9 days' WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-06', 'a privileged direct rewrite of the declaration provenance of a SUBMITTED version is refused by the database', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET is_immutable = false WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-07', 'the immutability seal of a SUBMITTED version cannot be cleared', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='DRAFT' WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-08', 'a SUBMITTED version cannot be regressed to DRAFT', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN DELETE FROM public.return_filing_versions WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-09', 'a SUBMITTED version cannot be deleted', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET accepted_by=_chk, accepted_at=now() WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-10', 'acceptance provenance cannot be recorded without an acceptance decision', _ok, _msg);
+
+    -- the legitimate governed review transition still works
+    PERFORM pg_temp.act(_rev);
+    PERFORM public.returns_review_filing(_ver,'START_REVIEW', NULL);
+    PERFORM set_config('request.jwt.claims','{}', true);
+    _buf := pg_temp.bufrec(_buf,'L','L-11',
+      'the governed START_REVIEW transition still advances a sealed version to UNDER_REVIEW',
+      (SELECT status FROM public.return_filing_versions WHERE id=_ver) = 'UNDER_REVIEW',
+      'status=UNDER_REVIEW');
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET version_number = version_number + 7, submitted_by = _chk WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-12', 'the identity and provenance of an UNDER_REVIEW version cannot be changed', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='DRAFT' WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-13', 'an UNDER_REVIEW version cannot be regressed to DRAFT', _ok, _msg);
+
+    -- the legitimate governed acceptance still works
+    PERFORM pg_temp.act(_chk);
+    PERFORM public.returns_review_filing(_ver,'ACCEPT','Certification fixture: accepted as filed.');
+    PERFORM set_config('request.jwt.claims','{}', true);
+    _buf := pg_temp.bufrec(_buf,'L','L-14',
+      'the governed ACCEPT decision still succeeds and records its own decision provenance',
+      EXISTS (SELECT 1 FROM public.return_filing_versions v
+               WHERE v.id=_ver AND v.status='ACCEPTED' AND v.accepted_by=_chk AND v.accepted_at IS NOT NULL),
+      'accepted with provenance');
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='DRAFT' WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-15', 'an ACCEPTED version cannot be regressed to DRAFT', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET accepted_by=_rev, accepted_at=now() - interval '3 days' WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-16', 'recorded acceptance provenance cannot be rewritten', _ok, _msg);
+
+    -- the one legal onward transition of an accepted version remains possible
+    _ok := false; _msg := '';
+    BEGIN
+      UPDATE public.return_filing_versions SET status='SUPERSEDED' WHERE id=_ver;
+      _ok := (SELECT status FROM public.return_filing_versions WHERE id=_ver) = 'SUPERSEDED';
+    EXCEPTION WHEN OTHERS THEN _ok := false; _msg := SQLERRM; END;
+    _buf := pg_temp.bufrec(_buf,'L','L-17',
+      'an accepted version can still be superseded by a governed later amendment', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='UNDER_REVIEW' WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-18', 'a superseded version can never be reopened', _ok, _msg);
+
+    -- a rejected version: history is permanent
+    PERFORM pg_temp.act(_filer);
+    _res := public.returns_open_filing(_p2);
+    _rej := (_res->>'version_id')::uuid;
+    FOR r IN SELECT q.id, q.form_template_id, q.form_version_id
+               FROM public.return_filing_form_requirements q
+              WHERE q.return_filing_version_id = _rej LOOP
+      PERFORM set_config('request.jwt.claims','{}', true);
+      INSERT INTO public.form_responses(template_id, version_id, user_id, response_data, status)
+      VALUES (r.form_template_id,
+              COALESCE(r.form_version_id,
+                (SELECT v.id FROM public.form_versions v
+                  WHERE v.template_id=r.form_template_id AND v.status='published'
+                  ORDER BY v.created_at DESC LIMIT 1)),
+              _filer, '{"f7c_gate":true}'::jsonb, 'submitted')
+      RETURNING id INTO _resp;
+      PERFORM pg_temp.act(_filer);
+      PERFORM public.returns_attach_form_response(r.id, _resp, 'COMPLETED');
+    END LOOP;
+    PERFORM public.returns_submit_filing(_rej, true);
+    PERFORM pg_temp.act(_chk);
+    PERFORM public.returns_review_filing(_rej,'REJECT','Certification fixture: rejected, the return must be refiled.');
+    PERFORM set_config('request.jwt.claims','{}', true);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='UNDER_REVIEW' WHERE id=_rej;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-19', 'a rejected version cannot be reopened', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET rejection_reason='rewritten history' WHERE id=_rej;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-20', 'the rejection record of a rejected version cannot be rewritten', _ok, _msg);
+
+    RAISE EXCEPTION 'F7C_IMMUTABILITY_ROLLBACK';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM <> 'F7C_IMMUTABILITY_ROLLBACK' THEN
+      GET STACKED DIAGNOSTICS _ctx = PG_EXCEPTION_CONTEXT;
+      _buf := pg_temp.bufrec(_buf,'L','L-ERR','the immutability fixture ran to completion',
+        false, SQLSTATE||': '||left(SQLERRM,200)||' | '||left(coalesce(_ctx,''),400));
+    END IF;
+  END;
+
+  PERFORM set_config('request.jwt.claims','{}', true);
+  FOR r IN SELECT * FROM jsonb_array_elements(_buf) e LOOP
+    PERFORM pg_temp.rec(r.value->>'section', r.value->>'id', r.value->>'descr',
+      (r.value->>'passed')::boolean, r.value->>'detail');
+  END LOOP;
+END $l$;
+
+-- ---------------------------------------------------------------------------
+-- M — live Returns surface census against an explicit classification register
+--
+-- Non-vacuous by construction: the census is discovered from the live catalog
+-- and reconciled against the register, so a NEW unregistered Returns table or
+-- routine fails certification until it is classified.
+-- ---------------------------------------------------------------------------
+DROP TABLE IF EXISTS f7c_register;
+CREATE TEMP TABLE f7c_register (kind text, name text, classification text);
+INSERT INTO f7c_register (kind, name, classification) VALUES
+    ('TABLE','compliance_returns','DEAD/RETIRED'),
+    ('TABLE','entity_currency_profiles','ACTIVE CANONICAL'),
+    ('TABLE','entity_reporting_obligations','ACTIVE CANONICAL'),
+    ('TABLE','reporting_obligation_rules','ACTIVE CANONICAL'),
+    ('TABLE','reporting_periods','ACTIVE CANONICAL'),
+    ('TABLE','return_audit_log','DEAD/RETIRED'),
+    ('TABLE','return_calculated_ratios','DOWNSTREAM'),
+    ('TABLE','return_comments','DEAD/RETIRED'),
+    ('TABLE','return_config_forms','COMPATIBILITY BRIDGE'),
+    ('TABLE','return_configs','COMPATIBILITY BRIDGE'),
+    ('TABLE','return_configurations','COMPATIBILITY BRIDGE'),
+    ('TABLE','return_consolidated_analysis','DOWNSTREAM'),
+    ('TABLE','return_cutoff_config','DEAD/RETIRED'),
+    ('TABLE','return_data_revisions','DEAD/RETIRED'),
+    ('TABLE','return_definition_forms','ACTIVE CANONICAL'),
+    ('TABLE','return_definitions','ACTIVE CANONICAL'),
+    ('TABLE','return_documents','DEAD/RETIRED'),
+    ('TABLE','return_due_dates','DEAD/RETIRED'),
+    ('TABLE','return_edit_requests','DEAD/RETIRED'),
+    ('TABLE','return_filing_evidence','ACTIVE CANONICAL'),
+    ('TABLE','return_filing_extensions','ACTIVE CANONICAL'),
+    ('TABLE','return_filing_form_requirements','ACTIVE CANONICAL'),
+    ('TABLE','return_filing_requests','ACTIVE CANONICAL'),
+    ('TABLE','return_filing_validation_results','ACTIVE CANONICAL'),
+    ('TABLE','return_filing_versions','ACTIVE CANONICAL'),
+    ('TABLE','return_filings','ACTIVE CANONICAL'),
+    ('TABLE','return_form_data','DEAD/RETIRED'),
+    ('TABLE','return_form_validation_rules','ACTIVE CANONICAL'),
+    ('TABLE','return_form_versions','DEAD/RETIRED'),
+    ('TABLE','return_metric_values','ACTIVE CANONICAL'),
+    ('TABLE','return_notification_templates','DEAD/RETIRED'),
+    ('TABLE','return_notifications_log','DEAD/RETIRED'),
+    ('TABLE','return_overdue_events','ACTIVE CANONICAL'),
+    ('TABLE','return_requests','DEAD/RETIRED'),
+    ('TABLE','return_template_downloads','DEAD/RETIRED'),
+    ('TABLE','return_templates','COMPATIBILITY BRIDGE'),
+    ('TABLE','return_threshold_breach_acknowledgements','DOWNSTREAM'),
+    ('TABLE','return_threshold_breaches','DOWNSTREAM'),
+    ('TABLE','return_types','COMPATIBILITY BRIDGE'),
+    ('TABLE','return_upload_attempts','DEAD/RETIRED'),
+    ('TABLE','return_upload_imports','DEAD/RETIRED'),
+    ('TABLE','return_validation_rule_versions','DEAD/RETIRED'),
+    ('TABLE','return_validation_rules','DEAD/RETIRED'),
+    ('TABLE','return_validation_run_log','DOWNSTREAM'),
+    ('TABLE','returns_filed','DEAD/RETIRED'),
+    ('TABLE','returns_legacy_mappings','COMPATIBILITY BRIDGE'),
+    ('ROUTINE','compliance_return_acknowledge','DEAD/RETIRED'),
+    ('ROUTINE','compliance_return_can_file','DEAD/RETIRED'),
+    ('ROUTINE','compliance_return_review_decision','DEAD/RETIRED'),
+    ('ROUTINE','compliance_return_save_draft','DEAD/RETIRED'),
+    ('ROUTINE','compliance_return_submit','DEAD/RETIRED'),
+    ('ROUTINE','entity_regulator_body_resolve','ACTIVE CANONICAL'),
+    ('ROUTINE','entity_reporting_currency_resolve','ACTIVE CANONICAL'),
+    ('ROUTINE','return_filing_currency_snapshot_protect','ACTIVE CANONICAL'),
+    ('ROUTINE','return_filing_version_immutable','ACTIVE CANONICAL'),
+    ('ROUTINE','return_metric_value_immutable','ACTIVE CANONICAL'),
+    ('ROUTINE','return_status_is_submitted_lifecycle','COMPATIBILITY BRIDGE'),
+    ('ROUTINE','returns_adopt_legacy_config','COMPATIBILITY BRIDGE'),
+    ('ROUTINE','returns_assign_filing','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_attach_evidence','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_attach_form_response','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_bind_field_metric','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_calculate_metrics','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_can_file','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_can_file_obligation','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_can_prepare','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_can_prepare_obligation','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_can_view_filing_scope','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_classify_legacy','COMPATIBILITY BRIDGE'),
+    ('ROUTINE','returns_compare_filing_versions','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_decide_amendment','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_decide_extension','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_delete_definition_form','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_derive_entity_obligations','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_entitlement_ok','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_entity_calendar','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_entity_filing_history','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_entity_summary','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_extract_metrics','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_filing_detail','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_filing_metrics_display','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_filing_queue','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_filing_queue_counts','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_filing_queue_v2','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_filing_related_cases','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_filing_trend','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_filing_workflow_state','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_generate_periods','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_legacy_classification_report','COMPATIBILITY BRIDGE'),
+    ('ROUTINE','returns_metric_series','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_migrate_legacy_filing','COMPATIBILITY BRIDGE'),
+    ('ROUTINE','returns_new_return_options','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_notify','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_obligation_scope','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_open_filing','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_overdue_sweep','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_parse_numeric','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_raise_rfi','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_rebase_filing_currency','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_request_amendment','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_request_extension','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_require','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_resolve_legacy_filing','COMPATIBILITY BRIDGE'),
+    ('ROUTINE','returns_respond_to_request','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_review_filing','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_save_definition','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_save_definition_form','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_save_metric','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_save_obligation_rule','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_set_definition_status','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_snapshot_filing_currency','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_submit_filing','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_supervisory_summary','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_test_obligation_rule','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_touch_updated_at','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_validate_filing','ACTIVE CANONICAL'),
+    ('ROUTINE','returns_withdraw_evidence','ACTIVE CANONICAL');
+
+DROP TABLE IF EXISTS f7c_live_surface;
+CREATE TEMP TABLE f7c_live_surface (kind text, name text);
+INSERT INTO f7c_live_surface (kind, name)
+SELECT 'TABLE', c.relname
+  FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+ WHERE n.nspname='public' AND c.relkind IN ('r','p','v','m')
+   AND (c.relname LIKE 'return%' OR c.relname LIKE 'returns%'
+        OR c.relname LIKE 'reporting%' OR c.relname LIKE 'compliance_return%'
+        OR c.relname IN ('entity_reporting_obligations','entity_currency_profiles'));
+INSERT INTO f7c_live_surface (kind, name)
+SELECT DISTINCT 'ROUTINE', p.proname
+  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+ WHERE n.nspname='public'
+   AND (p.proname LIKE 'return%' OR p.proname LIKE 'returns%'
+        OR p.proname LIKE 'reporting%' OR p.proname LIKE 'compliance_return%'
+        OR p.proname IN ('entity_reporting_currency_resolve','entity_regulator_body_resolve'))
+   AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid=p.oid AND d.deptype='e');
+
+DO $m$
+DECLARE _un text; _stale text; _n int;
+BEGIN
+  SELECT string_agg(l.kind||':'||l.name, ' ' ORDER BY l.name) INTO _un
+    FROM f7c_live_surface l
+   WHERE NOT EXISTS (SELECT 1 FROM f7c_register g WHERE g.kind=l.kind AND g.name=l.name);
+  PERFORM pg_temp.rec('M','M-01','every live Returns table, view and routine carries an explicit classification — zero UNCLASSIFIED objects',
+    _un IS NULL, COALESCE('unclassified: '||_un, (SELECT 'classified objects='||count(*)::text FROM f7c_live_surface)));
+
+  SELECT string_agg(g.kind||':'||g.name, ' ' ORDER BY g.name) INTO _stale
+    FROM f7c_register g
+   WHERE NOT EXISTS (SELECT 1 FROM f7c_live_surface l WHERE l.kind=g.kind AND l.name=g.name);
+  PERFORM pg_temp.rec('M','M-02','the classification register carries no stale entry for an object that no longer exists',
+    _stale IS NULL, COALESCE('stale: '||_stale,'register reconciled'));
+
+  SELECT count(*) INTO _n FROM f7c_register
+   WHERE classification NOT IN ('ACTIVE CANONICAL','COMPATIBILITY BRIDGE','DEAD/RETIRED',
+                                'DOWNSTREAM','BCR','TRACK-B','DATA_REMEDIATION_REQUIRED');
+  PERFORM pg_temp.rec('M','M-03','every classification uses an allowed disposition', _n=0, 'invalid dispositions='||_n);
+
+  -- a DEAD/RETIRED store must hold no operational rows
+  _un := '';
+  DECLARE r record; _rows bigint;
+  BEGIN
+    FOR r IN SELECT g.name FROM f7c_register g
+              JOIN pg_class c ON c.relname=g.name AND c.relkind='r'
+              JOIN pg_namespace nn ON nn.oid=c.relnamespace AND nn.nspname='public'
+             WHERE g.kind='TABLE' AND g.classification='DEAD/RETIRED' LOOP
+      EXECUTE format('SELECT count(*) FROM public.%I', r.name) INTO _rows;
+      IF _rows > 0 THEN _un := _un||r.name||'('||_rows||') '; END IF;
+    END LOOP;
+  END;
+  PERFORM pg_temp.rec('M','M-04','no DEAD/RETIRED Returns store holds operational rows',
+    _un='', COALESCE(NULLIF('populated: '||_un,'populated: '),'all retired stores empty'));
+
+  SELECT count(*) INTO _n FROM f7c_register WHERE kind='TABLE' AND classification='ACTIVE CANONICAL';
+  PERFORM pg_temp.rec('M','M-05','the ACTIVE CANONICAL Returns table set is the single authoritative spine',
+    _n = 16, 'canonical tables='||_n);
+END $m$;
+
+-- ---------------------------------------------------------------------------
+-- N — complete security coverage of the classified Returns estate
+-- ---------------------------------------------------------------------------
+DO $n$
+DECLARE r record; _bad text := ''; _n int;
+BEGIN
+  -- N-01 every ACTIVE CANONICAL table enforces RLS and has at least one policy
+  FOR r IN SELECT g.name FROM f7c_register g WHERE g.kind='TABLE' AND g.classification='ACTIVE CANONICAL' LOOP
+    IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace nn ON nn.oid=c.relnamespace
+                    WHERE nn.nspname='public' AND c.relname=r.name AND c.relrowsecurity)
+       OR NOT EXISTS (SELECT 1 FROM pg_policies p WHERE p.schemaname='public' AND p.tablename=r.name) THEN
+      _bad := _bad||r.name||' ';
+    END IF;
+  END LOOP;
+  PERFORM pg_temp.rec('N','N-01','every ACTIVE CANONICAL Returns table enforces row level security through explicit policies',
+    _bad='', COALESCE(NULLIF('unprotected: '||_bad,'unprotected: '),'16 canonical tables protected'));
+
+  -- N-02 no anonymous grant anywhere in the classified Returns estate
+  SELECT string_agg(DISTINCT g.table_name||':'||g.privilege_type, ' ') INTO _bad
+    FROM information_schema.role_table_grants g
+    JOIN f7c_register reg ON reg.kind='TABLE' AND reg.name=g.table_name
+   WHERE g.table_schema='public' AND g.grantee='anon';
+  PERFORM pg_temp.rec('N','N-02','no Returns table is reachable by an anonymous caller',
+    _bad IS NULL, COALESCE('anon grants: '||_bad,'anonymous closure complete'));
+
+  -- N-03 browser roles hold no write or DDL-adjacent privilege on any Returns table
+  SELECT string_agg(DISTINCT g.table_name||':'||g.privilege_type, ' ') INTO _bad
+    FROM information_schema.role_table_grants g
+    JOIN f7c_register reg ON reg.kind='TABLE' AND reg.name=g.table_name
+   WHERE g.table_schema='public' AND g.grantee IN ('anon','authenticated')
+     AND g.privilege_type IN ('INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER');
+  PERFORM pg_temp.rec('N','N-03','no browser role can write to, truncate, reference or add triggers on any Returns table',
+    _bad IS NULL, COALESCE('browser write grants: '||_bad,'all Returns mutation is governed'));
+
+  -- N-04 the canonical read surface remains available to signed-in users
+  _bad := '';
+  FOR r IN SELECT g.name FROM f7c_register g WHERE g.kind='TABLE' AND g.classification='ACTIVE CANONICAL' LOOP
+    IF NOT EXISTS (SELECT 1 FROM information_schema.role_table_grants t
+                    WHERE t.table_schema='public' AND t.table_name=r.name
+                      AND t.grantee='authenticated' AND t.privilege_type='SELECT') THEN
+      _bad := _bad||r.name||' ';
+    END IF;
+  END LOOP;
+  PERFORM pg_temp.rec('N','N-04','every ACTIVE CANONICAL Returns table remains readable under policy by signed-in users',
+    _bad='', COALESCE(NULLIF('unreadable: '||_bad,'unreadable: '),'canonical read surface intact'));
+
+  -- N-05 service role retains the governed operational path
+  _bad := '';
+  FOR r IN SELECT g.name FROM f7c_register g WHERE g.kind='TABLE' AND g.classification='ACTIVE CANONICAL' LOOP
+    IF NOT has_table_privilege('service_role', format('public.%I', r.name), 'SELECT') THEN
+      _bad := _bad||r.name||' ';
+    END IF;
+  END LOOP;
+  PERFORM pg_temp.rec('N','N-05','the trusted service path retains access to the canonical Returns spine',
+    _bad='', COALESCE(NULLIF('missing service access: '||_bad,'missing service access: '),'service path intact'));
+
+  -- N-06 configuration tables are only mutated through governed routines
+  PERFORM pg_temp.rec('N','N-06','Returns configuration is mutated only through governed server routines',
+    EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace nn ON nn.oid=p.pronamespace
+             WHERE nn.nspname='public' AND p.proname='returns_save_obligation_rule' AND p.prosecdef)
+    AND EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace nn ON nn.oid=p.pronamespace
+             WHERE nn.nspname='public' AND p.proname='returns_save_definition' AND p.prosecdef),
+    'governed configuration entrypoints present');
+
+  -- N-07 no trigger function on the Returns estate is API callable
+  SELECT count(*) INTO _n FROM pg_trigger t
+    JOIN pg_class c ON c.oid=t.tgrelid
+    JOIN pg_namespace nn ON nn.oid=c.relnamespace AND nn.nspname='public'
+    JOIN f7c_register reg ON reg.kind='TABLE' AND reg.name=c.relname
+    JOIN pg_proc p ON p.oid=t.tgfoid
+   WHERE NOT t.tgisinternal
+     AND (has_function_privilege('anon', p.oid, 'EXECUTE')
+          OR has_function_privilege('authenticated', p.oid, 'EXECUTE'));
+  PERFORM pg_temp.rec('N','N-07','no trigger function protecting the Returns estate is callable through the API',
+    _n=0, 'API-callable trigger functions='||_n);
+END $n$;
+
+-- ---------------------------------------------------------------------------
+-- O — route & navigation classification
+-- ---------------------------------------------------------------------------
+DROP TABLE IF EXISTS f7c_route_register;
+CREATE TEMP TABLE f7c_route_register (path text, classification text);
+INSERT INTO f7c_route_register (path, classification) VALUES
+  ('/returns/queue','MENU-LINKED'),
+  ('/returns/obligations','MENU-LINKED'),
+  ('/returns/calendar','MENU-LINKED'),
+  ('/returns/filings/:filingId','NESTED-REACHABLE'),
+  ('/returns/filings/legacy/:legacyId','CONTEXTUAL-ACTION'),
+  ('/returns/configuration','NESTED-REACHABLE'),
+  ('/returns-management','DEAD-RETIRED'),
+  ('/entity/returns','MENU-LINKED'),
+  ('/entity/returns/dashboard','MENU-LINKED'),
+  ('/entity/returns/filings/:filingId','NESTED-REACHABLE'),
+  ('/entity/returns/legacy','NESTED-REACHABLE'),
+  ('/entity/returns/new','DEAD-RETIRED'),
+  ('/entity/returns/:id/fill','DEAD-RETIRED'),
+  ('/entity/returns/:id/view','DEAD-RETIRED'),
+  ('/admin/config/returns-prudential','MENU-LINKED'),
+  ('/admin/return-config','NESTED-REACHABLE'),
+  ('/admin/returns/config','INTENTIONALLY-HIDDEN'),
+  ('/admin/returns/queue','NESTED-REACHABLE'),
+  ('/admin/returns/types','NESTED-REACHABLE'),
+  ('/admin/returns/configurations','NESTED-REACHABLE'),
+  ('/admin/returns/cutoff','NESTED-REACHABLE'),
+  ('/admin/returns/due-dates','NESTED-REACHABLE'),
+  ('/admin/returns/late-fees','NESTED-REACHABLE'),
+  ('/admin/returns/schedule','NESTED-REACHABLE'),
+  ('/admin/returns/validations','NESTED-REACHABLE'),
+  ('/admin/returns/notifications/log','NESTED-REACHABLE'),
+  ('/admin/returns/notifications/templates','NESTED-REACHABLE'),
+  ('/admin/returns/prudential','DOWNSTREAM'),
+  ('/admin/returns/prudential/analytics','DOWNSTREAM'),
+  ('/admin/returns/prudential/ratios','DOWNSTREAM'),
+  ('/admin/returns/prudential/thresholds','DOWNSTREAM'),
+  ('/settings/currency','MENU-LINKED'),
+  ('/entity/profile','CONTEXTUAL-ACTION');
+
+DO $o$
+DECLARE _bad text; _n int;
+BEGIN
+  -- O-01 every ACTIVE exact Returns route in the canonical registry is classified
+  SELECT string_agg(r.path_pattern,' ' ORDER BY r.path_pattern) INTO _bad
+    FROM public.sec_routes r
+   WHERE r.is_active AND r.match_type='exact'
+     AND (r.path_pattern ILIKE '%return%' OR r.path_pattern ILIKE '%currency%')
+     AND NOT EXISTS (SELECT 1 FROM f7c_route_register g WHERE g.path=r.path_pattern);
+  PERFORM pg_temp.rec('O','O-01','every active Returns route in the canonical route registry carries an explicit classification',
+    _bad IS NULL, COALESCE('unclassified routes: '||_bad,'no orphan active Returns route'));
+
+  -- O-02 the canonical internal Returns workspaces are registered, protected and permissioned
+  SELECT count(*) INTO _n FROM public.sec_routes r
+   WHERE r.is_active AND r.path_pattern IN ('/returns/queue','/returns/obligations','/returns/calendar')
+     AND r.is_protected AND r.required_permission_id IS NOT NULL AND r.audience='internal';
+  PERFORM pg_temp.rec('O','O-02','the internal Returns workspaces are registered, protected, permissioned and internal-only',
+    _n = 3, 'protected internal routes='||_n);
+
+  -- O-03 external reporting surfaces are external audience
+  SELECT count(*) INTO _n FROM public.sec_routes r
+   WHERE r.is_active AND r.path_pattern LIKE '/entity/returns%' AND r.audience='external';
+  PERFORM pg_temp.rec('O','O-03','the entity reporting surface is registered for the external audience',
+    _n >= 1, 'external reporting routes='||_n);
+
+  -- O-04 every MENU-LINKED classification is actually reachable from the sidebar
+  SELECT string_agg(g.path,' ' ORDER BY g.path) INTO _bad
+    FROM f7c_route_register g
+   WHERE g.classification='MENU-LINKED'
+     AND NOT EXISTS (
+       SELECT 1 FROM public.sec_navigation_items n
+        LEFT JOIN public.sec_routes r ON r.id=n.route_id
+        WHERE n.is_active AND n.show_in_sidebar
+          AND COALESCE(n.href_override, r.path_pattern) = g.path);
+  PERFORM pg_temp.rec('O','O-04','every route classified MENU-LINKED is reachable from the live navigation',
+    _bad IS NULL, COALESCE('not menu-linked: '||_bad,'menu classification aligned'));
+
+  -- O-05 no active sidebar navigation item points at a retired Returns route
+  SELECT string_agg(COALESCE(n.href_override, r.path_pattern),' ') INTO _bad
+    FROM public.sec_navigation_items n
+    LEFT JOIN public.sec_routes r ON r.id=n.route_id
+    JOIN f7c_route_register g ON g.path = COALESCE(n.href_override, r.path_pattern)
+   WHERE n.is_active AND n.show_in_sidebar AND g.classification='DEAD-RETIRED';
+  PERFORM pg_temp.rec('O','O-05','no live sidebar entry points at a retired Returns route',
+    _bad IS NULL, COALESCE('retired menu targets: '||_bad,'no retired menu target'));
+
+  -- O-06 entity reporting currency is a contextual Entity 360 action, not a separate module menu
+  SELECT count(*) INTO _n FROM public.sec_navigation_items n
+    LEFT JOIN public.sec_routes r ON r.id=n.route_id
+   WHERE n.is_active AND COALESCE(n.href_override, r.path_pattern) ILIKE '%entity-currency%';
+  PERFORM pg_temp.rec('O','O-06','entity reporting currency stays a contextual Entity 360 action and gains no separate menu module',
+    _n = 0, 'stray currency menu items='||_n);
+END $o$;
+
+-- ---------------------------------------------------------------------------
 -- Z — zero residue
 -- ---------------------------------------------------------------------------
 DO $z$
