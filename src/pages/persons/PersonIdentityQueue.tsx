@@ -13,6 +13,7 @@ import { Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { GuardedButton } from '@/components/rbac/GuardedButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -181,13 +182,16 @@ export default function PersonIdentityQueue() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setTarget(null)}>Cancel</Button>
-            <Button
+            <GuardedButton
+              module="licensee_management"
+              action="edit"
+              data-rbac="licensee_management.edit"
               onClick={submit}
               disabled={link.isPending || !partyId.trim() || reason.trim().length < 5}
             >
               {link.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Confirm link
-            </Button>
+            </GuardedButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
