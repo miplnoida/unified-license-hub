@@ -56,6 +56,8 @@ export function ScreenHelpLink({ surface, anchor, label, variant = 'button', cla
           size={variant === 'icon' ? 'icon' : 'sm'}
           className={`print:hidden ${className ?? ''}`}
           aria-label={text}
+          // Documentation-only navigation: no regulatory authority is exercised.
+          data-rbac="documentation.view"
         >
           <Link to={href}>
             <HelpCircle className="h-4 w-4" />
