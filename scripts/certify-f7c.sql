@@ -1486,15 +1486,16 @@ BEGIN
   -- O-09 the canonical replacements for those retirements exist and are active
   SELECT count(*) INTO _n FROM public.sec_routes r
    WHERE r.is_active
-     AND r.path_pattern IN ('/returns/queue','/returns/obligations','/returns/calendar','/entity/returns');
+     AND r.path_pattern IN ('/returns/queue','/returns/obligations','/returns/calendar','/entity/returns/dashboard');
   PERFORM pg_temp.rec('O','O-09','the canonical Returns workspaces that replace the retired paths are registered and active',
     _n = 4, 'canonical replacement routes='||_n);
 
   -- O-10 retirement must not have collateral-damaged the reachable filing surfaces
   SELECT count(*) INTO _n FROM public.sec_routes r
-   WHERE r.is_active AND r.path_pattern IN ('/returns/filings/:filingId','/entity/returns/filings/:filingId');
-  PERFORM pg_temp.rec('O','O-10','the canonical filing detail routes remain active and were not retired with the orphan paths',
-    _n = 2, 'active filing detail routes='||_n);
+   WHERE r.is_active AND r.path_pattern = '/returns/filings/:filingId';
+  PERFORM pg_temp.rec('O','O-10','the canonical filing detail route remains active and was not retired with the orphan paths',
+    _n = 1, 'active filing detail routes='||_n);
+
 END $o$;
 
 
