@@ -939,6 +939,31 @@ BEGIN
     EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
     _buf := pg_temp.bufrec(_buf,'L','L-10', 'acceptance provenance cannot be recorded without an acceptance decision', _ok, _msg);
 
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='ACCEPTED' WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-21',
+      'a SUBMITTED version cannot be marked ACCEPTED without acceptance provenance', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='ACCEPTED', accepted_by=_chk WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-22',
+      'an acceptance recording an officer but no acceptance time is refused', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='ACCEPTED', accepted_at=now() WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-23',
+      'an acceptance recording a time but no accepting officer is refused', _ok, _msg);
+
+    _ok := false; _msg := '';
+    BEGIN UPDATE public.return_filing_versions SET status='REJECTED' WHERE id=_ver;
+    EXCEPTION WHEN OTHERS THEN _ok := true; _msg := SQLSTATE||': '||left(SQLERRM,120); END;
+    _buf := pg_temp.bufrec(_buf,'L','L-24',
+      'a SUBMITTED version cannot be marked REJECTED without rejection provenance', _ok, _msg);
+
+
     -- the legitimate governed review transition still works
     PERFORM pg_temp.act(_rev);
     PERFORM public.returns_review_filing(_ver,'START_REVIEW', NULL);
