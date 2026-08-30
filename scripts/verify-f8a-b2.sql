@@ -26,6 +26,7 @@ DECLARE
   v_t1_res jsonb; v_hist_ubo_before int; v_hist_ubo_after int;
   v_wide_root uuid; v_wide uuid; v_prev uuid; v_i int; v_j int;
   v_ent2 uuid; v_seed2 uuid; v_reg2_ent uuid;
+  v_mod uuid; v_perm uuid; v_stype uuid; v_role uuid; v_scope uuid;
   v_today date := CURRENT_DATE;
 BEGIN
   -- ==========================================================================
