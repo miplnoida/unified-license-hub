@@ -94,3 +94,9 @@ reporting (13), currency of record (14).
   surface as `UNCONVERTED`.
 - Supervision-module prompt-based flows (`ThematicReviewDetail`, `EntitySupervisionTab`)
   are outside the F7 returns boundary and unchanged.
+
+## Gate status (2026-08-31)
+
+`npm run verify:f7b` 105/105 pass. `npm run verify:f6x-currency` 141/141 pass including the
+strict two-regulator scope fixture. Frontend 143 files / 1312 tests pass; `tsgo --noEmit`
+clean; production build green.
