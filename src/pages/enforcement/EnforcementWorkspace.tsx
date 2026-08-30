@@ -192,10 +192,18 @@ export default function EnforcementWorkspace() {
     const missing = spec.find((f) => f.required && !String(fields[f.name] ?? '').trim());
     if (missing) { toast.error(`${missing.label} is required`); return; }
     try {
+      // Governed non-base denomination is recorded before the sanction amount so
+      // the server keeps sole authority over the currency of record.
+      if (pending.action_code === 'IMPOSE_SANCTION'
+          && overrideCurrency
+          && overrideCurrency !== penaltyCurrency.data?.base_currency) {
+        await currencyOverride.mutateAsync({ currency: overrideCurrency, reason: overrideReason.trim() });
+      }
       const res = await act.mutateAsync({
         action: pending.action_code,
         payload: { ...fields, rationale: rationale.trim() },
       });
+
       toast.success(
         res.to_stage === res.from_stage
           ? 'Recorded on the case'
