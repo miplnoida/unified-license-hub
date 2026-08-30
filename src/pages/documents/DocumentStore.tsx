@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import { secureDownload, secureDelete, getSignedUrl, replaceSecureUpload, validateFile, ACCEPT_STRING } from '@/lib/secureFileUpload';
 import { useAuth } from '@/contexts/AuthContext';
+import { isUuid, uuidList } from '@/lib/idFilters';
 
 interface FileUpload {
   id: string;
@@ -100,9 +101,11 @@ export default function DocumentStore() {
     allFiles.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     // Resolve emails
-    const userIds = [...new Set(allFiles.map(f => f.uploaded_by))];
+    // uploaded_by is nullable, and a null in an `.in()` UUID list makes PostgREST
+    // reject the whole request with 22P02 (the /documents screen showed an error).
+    const userIds = [...new Set(allFiles.map(f => f.uploaded_by))].filter(isUuid);
     if (userIds.length) {
-      const { data: profiles } = await supabase.from('profiles').select('id, email').in('id', userIds);
+      const { data: profiles } = await supabase.from('profiles').select('id, email').in('id', uuidList(userIds));
       const emailMap: Record<string, string> = {};
       profiles?.forEach(p => { emailMap[p.id] = p.email; });
       allFiles.forEach(f => { f.uploader_email = emailMap[f.uploaded_by] || 'Unknown'; });

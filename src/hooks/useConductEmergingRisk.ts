@@ -201,7 +201,7 @@ export interface EmergingRiskAssessment {
   next_review_date: string | null;
   fact_fingerprint: string | null;
   assessed_by: string | null;
-  created_at: string;
+  assessed_at: string;
 }
 
 const RISK_COLUMNS =
@@ -241,8 +241,9 @@ export function useEmergingRisk(riskId: string | undefined) {
           .select('id,risk_id,event_type,from_status,to_status,rationale,metadata,actor_id,created_at')
           .eq('risk_id', riskId).order('created_at', { ascending: false }),
         sb.from('conduct_emerging_risk_assessments')
+          // conduct_emerging_risk_assessments records assessed_at, not created_at.
           .select('id,risk_id,version,severity,systemic_potential,confidence,judgement,' +
-            'actions_considered,next_review_date,fact_fingerprint,assessed_by,created_at')
+            'actions_considered,next_review_date,fact_fingerprint,assessed_by,assessed_at')
           .eq('risk_id', riskId).order('version', { ascending: false }),
       ]);
       if (risk.error) throw new Error(risk.error.message);
