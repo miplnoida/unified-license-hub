@@ -111,6 +111,11 @@ BEGIN
          (v_g1, v_s3, v_hm, 'subsidiary', 20, 'excluded'),
          (v_g2, v_x, NULL, 'ultimate_holding', 100, 'full');
 
+  -- Real prudential assignment for the positive persona path (analyst supervises H).
+  INSERT INTO public.entity_supervision_assignments
+    (entity_id, lead_supervisor_user_id, status, effective_from)
+  VALUES (v_h, v_actor, 'active', now() - interval '1 day');
+
   INSERT INTO public.group_consolidation_methods
     (group_id, version, ratio_rules, eliminate_exposure_types, large_exposure_pct,
      total_assets_ratio_key, is_active)
