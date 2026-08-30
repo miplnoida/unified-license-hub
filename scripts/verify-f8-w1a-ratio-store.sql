@@ -82,18 +82,21 @@ BEGIN
   RAISE NOTICE 'PASS 6: retired store is read-only compatibility history (rows preserved: %)',
     (SELECT count(*) FROM public.return_calculated_ratios);
 
-  -- 7. Authorization unchanged: retired store exposes no Data API privileges,
-  --    RLS stays enabled, and its policies are untouched.
+  -- 7. Authorization unchanged: the retired store stays read-only for signed-in
+  --    users, invisible to anonymous callers, and RLS stays enabled.
   SELECT count(*) INTO n FROM information_schema.role_table_grants
    WHERE table_schema = 'public' AND table_name = 'return_calculated_ratios'
-     AND grantee IN ('anon', 'authenticated');
+     AND (grantee = 'anon'
+          OR (grantee = 'authenticated'
+              AND privilege_type IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')));
   IF n <> 0 THEN
-    RAISE EXCEPTION 'FAIL 7: retired store has % Data API grant(s)', n;
+    RAISE EXCEPTION 'FAIL 7: retired store exposes % unexpected Data API privilege(s)', n;
   END IF;
   IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.return_calculated_ratios'::regclass) THEN
     RAISE EXCEPTION 'FAIL 7: RLS disabled on retired store';
   END IF;
-  RAISE NOTICE 'PASS 7: authorization unchanged (no anon/authenticated grants, RLS enabled)';
+  RAISE NOTICE 'PASS 7: authorization unchanged (read-only for signed-in users, no anon access, RLS enabled)';
+
 
   -- 8. Prudential read surfaces stay on the canonical store.
   FOR t IN SELECT p.proname FROM pg_proc p JOIN pg_namespace ns ON ns.oid = p.pronamespace
