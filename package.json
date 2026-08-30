@@ -58,6 +58,7 @@
     "verify:internal-contracts": "node scripts/system-runtime/verify-internal-contracts.mjs",
     "verify:internal-contracts-selftest": "node scripts/system-runtime/verify-internal-contracts.mjs --self-test",
     "verify:forms-semantics": "node scripts/system-runtime/verify-forms-semantics.mjs",
+    "verify:prudential-universe-perf": "node scripts/system-runtime/verify-prudential-universe-perf.mjs",
     "verify:dataapi-readiness": "node scripts/system-runtime/verify-dataapi-readiness.mjs",
     "verify:final-census": "node scripts/system-runtime/run-final-census.mjs"
   },
