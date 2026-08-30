@@ -101,7 +101,7 @@ export default function EntityStructureHub() {
   const [reviewNotes, setReviewNotes] = useState('');
 
   const controllers = useMemo(() => ownership.filter((o) => o.is_controller), [ownership]);
-  const ubos = useMemo(() => ownership.filter((o) => o.is_ubo), [ownership]);
+  const ubos = useMemo(() => ownership.filter((o) => o.recorded_ubo), [ownership]);
   const currentPolicy = (overview as any)?.publication_policy as string | undefined;
 
   if (dtoLoading) {
@@ -128,7 +128,7 @@ export default function EntityStructureHub() {
         {[
           { label: 'Licences held', value: dto?.licences?.length ?? 0 },
           { label: 'Ownership records', value: ownership.length },
-          { label: 'Controllers / UBOs', value: `${controllers.length} / ${ubos.length}` },
+          { label: 'Controllers / recorded UBOs', value: `${controllers.length} / ${ubos.length}` },
           { label: 'Open change sets', value: changeSets.filter((c) => !['APPLIED', 'REJECTED', 'WITHDRAWN'].includes(String(c.status).toUpperCase())).length },
         ].map((m) => (
           <Card key={m.label}>
@@ -230,14 +230,14 @@ export default function EntityStructureHub() {
                   {ownership.length === 0 && <Empty colSpan={7} text="No ownership records captured for this entity." />}
                   {ownership.map((o) => (
                     <TableRow key={o.id}>
-                      <TableCell className="font-medium">{o.parties?.display_name || o.owner_party_id?.slice(0, 8)}</TableCell>
+                      <TableCell className="font-medium">{o.owner_name || o.owner_party_id?.slice(0, 8)}</TableCell>
                       <TableCell className="font-mono text-xs">{pct(o.economic_interest_percentage)}</TableCell>
                       <TableCell className="font-mono text-xs">{pct(o.voting_rights_percentage)}</TableCell>
                       <TableCell className="font-mono text-xs">{pct(o.beneficial_interest_percentage)}</TableCell>
                       <TableCell className="space-x-1">
                         {o.is_direct && <Badge variant="outline" className="text-xs">direct</Badge>}
                         {o.is_controller && <Badge variant="outline" className="text-xs">controller</Badge>}
-                        {o.is_ubo && <Badge variant="outline" className="text-xs">UBO</Badge>}
+                        {o.recorded_ubo && <Badge variant="outline" className="text-xs">recorded UBO</Badge>}
                       </TableCell>
                       <TableCell className="text-xs">{o.approval_status || '—'}</TableCell>
                       <TableCell className="text-xs">{formatDateTime(o.effective_from)}</TableCell>
@@ -265,8 +265,8 @@ export default function EntityStructureHub() {
                   {appointments.length === 0 && <Empty colSpan={6} text="No appointments recorded." />}
                   {appointments.map((a) => (
                     <TableRow key={a.id}>
-                      <TableCell className="font-medium">{a.parties?.display_name || a.person_party_id?.slice(0, 8)}</TableCell>
-                      <TableCell className="text-sm">{a.role_types?.label || '—'}</TableCell>
+                      <TableCell className="font-medium">{a.person_name || a.person_party_id?.slice(0, 8)}</TableCell>
+                      <TableCell className="text-sm">{a.role_label || '—'}</TableCell>
                       <TableCell className="text-xs">{a.appointment_date || '—'}</TableCell>
                       <TableCell className="text-xs">{a.is_executive ? 'Yes' : 'No'}</TableCell>
                       <TableCell><Badge variant="outline" className="text-xs">{a.status || '—'}</Badge></TableCell>
@@ -288,14 +288,14 @@ export default function EntityStructureHub() {
             <CardContent className="overflow-x-auto">
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Relationship</TableHead><TableHead>Status</TableHead>
+                  <TableHead>Related party</TableHead><TableHead>Relationship</TableHead><TableHead>Status</TableHead>
                   <TableHead>Effective from</TableHead><TableHead>Notes</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {relationships.length === 0 && <Empty colSpan={4} text="No relationships recorded." />}
+                  {relationships.length === 0 && <Empty colSpan={5} text="No relationships recorded." />}
                   {relationships.map((r) => (
                     <TableRow key={r.id}>
-                      <TableCell className="font-medium">{r.relationship_types?.label || '—'}</TableCell>
+                      <TableCell className="font-medium">{r.related_party_name || '—'}</TableCell><TableCell className="text-sm">{r.relationship_label || '—'}</TableCell>
                       <TableCell><Badge variant="outline" className="text-xs">{r.status || '—'}</Badge></TableCell>
                       <TableCell className="text-xs">{formatDateTime(r.effective_from)}</TableCell>
                       <TableCell className="text-xs">{r.notes || '—'}</TableCell>
