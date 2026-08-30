@@ -15018,7 +15018,13 @@ export type Database = {
           opened_by: string | null
           penalty_amount: number | null
           penalty_currency: string | null
+          penalty_currency_policy: string | null
+          penalty_currency_reason: string | null
+          penalty_currency_set_at: string | null
+          penalty_currency_source: string | null
+          penalty_monetary_config_id: string | null
           penalty_paid_amount: number | null
+          penalty_regulator_id: string | null
           penalty_waived_amount: number
           proposal_rationale: string | null
           proposed_action: string | null
@@ -15090,7 +15096,13 @@ export type Database = {
           opened_by?: string | null
           penalty_amount?: number | null
           penalty_currency?: string | null
+          penalty_currency_policy?: string | null
+          penalty_currency_reason?: string | null
+          penalty_currency_set_at?: string | null
+          penalty_currency_source?: string | null
+          penalty_monetary_config_id?: string | null
           penalty_paid_amount?: number | null
+          penalty_regulator_id?: string | null
           penalty_waived_amount?: number
           proposal_rationale?: string | null
           proposed_action?: string | null
@@ -15162,7 +15174,13 @@ export type Database = {
           opened_by?: string | null
           penalty_amount?: number | null
           penalty_currency?: string | null
+          penalty_currency_policy?: string | null
+          penalty_currency_reason?: string | null
+          penalty_currency_set_at?: string | null
+          penalty_currency_source?: string | null
+          penalty_monetary_config_id?: string | null
           penalty_paid_amount?: number | null
+          penalty_regulator_id?: string | null
           penalty_waived_amount?: number
           proposal_rationale?: string | null
           proposed_action?: string | null
@@ -15210,6 +15228,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_prudential_early_warnings"
             referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "enforcement_actions_penalty_monetary_config_id_fkey"
+            columns: ["penalty_monetary_config_id"]
+            isOneToOne: false
+            referencedRelation: "monetary_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enforcement_actions_penalty_regulator_id_fkey"
+            columns: ["penalty_regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -28337,6 +28369,8 @@ export type Database = {
           cross_currency_refund_allowed: boolean
           cross_currency_settlement_allowed: boolean
           decimal_precision: number
+          enforcement_penalty_allowed_currencies: string[]
+          enforcement_penalty_currency_policy: string
           entity_currency_override_approval_mode: string
           fx_platform_shared_rates_allowed: boolean
           fx_resolution_policy: string
@@ -28364,6 +28398,8 @@ export type Database = {
           cross_currency_refund_allowed?: boolean
           cross_currency_settlement_allowed?: boolean
           decimal_precision?: number
+          enforcement_penalty_allowed_currencies?: string[]
+          enforcement_penalty_currency_policy?: string
           entity_currency_override_approval_mode?: string
           fx_platform_shared_rates_allowed?: boolean
           fx_resolution_policy?: string
@@ -28391,6 +28427,8 @@ export type Database = {
           cross_currency_refund_allowed?: boolean
           cross_currency_settlement_allowed?: boolean
           decimal_precision?: number
+          enforcement_penalty_allowed_currencies?: string[]
+          enforcement_penalty_currency_policy?: string
           entity_currency_override_approval_mode?: string
           fx_platform_shared_rates_allowed?: boolean
           fx_resolution_policy?: string
@@ -50309,6 +50347,19 @@ export type Database = {
         Args: { _breach_note?: string; _obligation_id: string; _status: string }
         Returns: Json
       }
+      enforcement_penalty_currency_override: {
+        Args: { _case_id: string; _currency: string; _reason: string }
+        Returns: Json
+      }
+      enforcement_penalty_currency_resolve: {
+        Args: {
+          _as_of?: string
+          _entity_id: string
+          _reason?: string
+          _requested?: string
+        }
+        Returns: Json
+      }
       enforcement_referral_create: { Args: { _payload: Json }; Returns: string }
       enforcement_resolve_source: {
         Args: { _id: string; _kind: string }
@@ -53225,6 +53276,8 @@ export type Database = {
           cross_currency_refund_allowed: boolean
           cross_currency_settlement_allowed: boolean
           decimal_precision: number
+          enforcement_penalty_allowed_currencies: string[]
+          enforcement_penalty_currency_policy: string
           entity_currency_override_approval_mode: string
           fx_platform_shared_rates_allowed: boolean
           fx_resolution_policy: string
@@ -53261,6 +53314,8 @@ export type Database = {
           cross_currency_refund_allowed: boolean
           cross_currency_settlement_allowed: boolean
           decimal_precision: number
+          enforcement_penalty_allowed_currencies: string[]
+          enforcement_penalty_currency_policy: string
           entity_currency_override_approval_mode: string
           fx_platform_shared_rates_allowed: boolean
           fx_resolution_policy: string

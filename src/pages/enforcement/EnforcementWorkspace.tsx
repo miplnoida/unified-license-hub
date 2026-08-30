@@ -47,6 +47,12 @@ import {
   useEnforcementCaseAction,
   type EnforcementAvailableAction,
 } from '@/hooks/useEnforcementProcess';
+import {
+  PENALTY_CURRENCY_POLICY_LABELS,
+  useEnforcementPenaltyCurrency,
+  usePenaltyCurrencyOverride,
+} from '@/hooks/useEnforcementPenaltyCurrency';
+
 
 type SectionKey = 'current' | 'case' | 'evidence' | 'obligations' | 'appeals' | 'ai' | 'history';
 
@@ -100,7 +106,9 @@ const ACTION_FIELDS: Record<string, FieldSpec[]> = {
     { name: 'sanction_type', label: 'Sanction type', type: 'select', options: ['monetary_penalty', 'public_censure', 'condition_variation', 'suspension', 'revocation', 'undertaking'] },
     { name: 'sanction_detail', label: 'Sanction detail', type: 'textarea' },
     { name: 'penalty_amount', label: 'Monetary penalty', type: 'number' },
-    { name: 'penalty_currency', label: 'Currency', type: 'text' },
+    // Currency is NOT captured here: it is resolved server-side from the
+    // applicable regulator body's governed monetary configuration.
+
     { name: 'effective_date', label: 'Effective date', type: 'date' },
     { name: 'appeal_deadline', label: 'Appeal deadline', type: 'date' },
   ],
@@ -156,8 +164,13 @@ export default function EnforcementWorkspace() {
 
   const view = caseQuery.data ?? null;
   const kase = view?.case;
+  const penaltyCurrency = useEnforcementPenaltyCurrency(kase?.entity_id);
+  const currencyOverride = usePenaltyCurrencyOverride(id);
+  const [overrideCurrency, setOverrideCurrency] = useState('');
+  const [overrideReason, setOverrideReason] = useState('');
   const blockers = view?.blockers ?? [];
   const actions = useMemo(() => view?.available_actions ?? [], [view?.available_actions]);
+
   const advancing = actions.filter((a) => a.advances_stage);
   const recording = actions.filter((a) => !a.advances_stage);
 
@@ -179,10 +192,18 @@ export default function EnforcementWorkspace() {
     const missing = spec.find((f) => f.required && !String(fields[f.name] ?? '').trim());
     if (missing) { toast.error(`${missing.label} is required`); return; }
     try {
+      // Governed non-base denomination is recorded before the sanction amount so
+      // the server keeps sole authority over the currency of record.
+      if (pending.action_code === 'IMPOSE_SANCTION'
+          && overrideCurrency
+          && overrideCurrency !== penaltyCurrency.data?.base_currency) {
+        await currencyOverride.mutateAsync({ currency: overrideCurrency, reason: overrideReason.trim() });
+      }
       const res = await act.mutateAsync({
         action: pending.action_code,
         payload: { ...fields, rationale: rationale.trim() },
       });
+
       toast.success(
         res.to_stage === res.from_stage
           ? 'Recorded on the case'
@@ -712,6 +733,55 @@ export default function EnforcementWorkspace() {
                 )}
               </div>
             ))}
+
+            {pending?.action_code === 'IMPOSE_SANCTION' ? (
+              <div className="space-y-2 rounded-md border bg-muted/30 px-3 py-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Penalty currency</Label>
+                {penaltyCurrency.isLoading ? (
+                  <p className="text-sm text-muted-foreground">Resolving the regulator's governed currency…</p>
+                ) : penaltyCurrency.error ? (
+                  <p className="text-sm text-destructive">
+                    The penalty currency cannot be resolved for this entity — a regulator body monetary
+                    configuration is required before a monetary penalty can be imposed.
+                  </p>
+                ) : penaltyCurrency.data ? (
+                  <>
+                    <p className="text-sm font-medium">
+                      {penaltyCurrency.data.currency} — regulator base currency
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Derived server-side from the applicable regulator body's monetary configuration
+                      ({PENALTY_CURRENCY_POLICY_LABELS[penaltyCurrency.data.policy]}). It is not entered here and
+                      is fixed on the sanction once imposed.
+                    </p>
+                    {penaltyCurrency.data.policy === 'EXPLICIT_ALLOWED_CURRENCIES'
+                      && (penaltyCurrency.data.allowed_currencies ?? []).length > 0 ? (
+                      <div className="space-y-2 pt-2">
+                        <Label>Denominate in an approved non-base currency (optional)</Label>
+                        <Select value={overrideCurrency} onValueChange={setOverrideCurrency}>
+                          <SelectTrigger><SelectValue placeholder={`Keep ${penaltyCurrency.data.base_currency}`} /></SelectTrigger>
+                          <SelectContent>
+                            {(penaltyCurrency.data.allowed_currencies ?? []).map((c) => (
+                              <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {overrideCurrency && overrideCurrency !== penaltyCurrency.data.base_currency ? (
+                          <Textarea
+                            rows={2}
+                            value={overrideReason}
+                            onChange={(e) => setOverrideReason(e.target.value)}
+                            placeholder="Legal or configuration basis for denominating this penalty in a non-base currency (minimum 10 characters)."
+                          />
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+
+
 
             {pending?.requires_rationale ? (
               <div className="space-y-2">

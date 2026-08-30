@@ -1,3 +1,4 @@
+import { formatMoney as canonicalFormatMoney } from '@/lib/money';
 /**
  * Conduct Intelligence — Published Reports (MCS-ANA-003).
  *
@@ -229,7 +230,7 @@ export function sectionMetrics(metricKey: string | undefined, metrics: Record<st
   } else if (metricKey === 'enforcement') {
     stats.push(
       { label: 'Actions opened', value: String(num(m.total)) },
-      { label: 'Penalties imposed', value: formatMoney(num(m.penalty_total)) },
+      { label: 'Penalties imposed', value: formatMoney(num(m.penalty_total), m.penalty_currency ?? null) },
     );
     series.push({ label: 'By type', rows: fromArray(m.by_type) });
     series.push({ label: 'By status', rows: fromObject(m.by_status) });
@@ -238,8 +239,12 @@ export function sectionMetrics(metricKey: string | undefined, metrics: Record<st
   return { stats, series: series.filter((s) => s.rows.length > 0), notes };
 }
 
-export function formatMoney(v: number) {
-  return new Intl.NumberFormat('en-JM', { style: 'currency', currency: 'JMD', maximumFractionDigits: 0 }).format(v);
+/**
+ * F6-X: there is no default currency. An amount without an authoritative
+ * currency is presented as unavailable, never assumed.
+ */
+export function formatMoney(v: number, currency: string | null | undefined) {
+  return canonicalFormatMoney(v, currency ?? undefined);
 }
 
 export function formatPeriod(start: string, end: string) {

@@ -40,7 +40,9 @@ export function FeeOperationsPanel() {
 
   const [source, setSource] = useState('BANK_STATEMENT');
   const [statementRef, setStatementRef] = useState('');
-  const [itemsJson, setItemsJson] = useState('[{"reference":"TXN-0001","amount":1000,"currency":"JMD"}]');
+  // No currency literal is seeded here: the example is primed from the governed
+  // monetary configuration so the screen can never imply a default currency.
+  const [itemsJson, setItemsJson] = useState('[{"reference":"TXN-0001","amount":1000}]');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,6 +60,20 @@ export function FeeOperationsPanel() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Prime the reconciliation example with the configured base currency.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { data } = await (supabase as any).rpc('monetary_config_resolve');
+      const cfg = Array.isArray(data) ? data[0] : data;
+      const code = cfg?.base_currency;
+      if (cancelled || !code) return;
+      setItemsJson(`[{"reference":"TXN-0001","amount":1000,"currency":"${code}"}]`);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
 
   const guarded = async (fn: () => Promise<unknown>, ok: string) => {
     setBusy(true);
