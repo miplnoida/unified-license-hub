@@ -218,25 +218,37 @@ const RESERVED = new Set(['as', 'on', 'where', 'select', 'from', 'join', 'left',
 
 for (const [name, def] of bodies) {
   routineStats.routines++;
-  // alias -> table, from `FROM public.t alias` / `JOIN public.t AS alias`
-  const aliasMap = new Map();
-  const aliasRe = new RegExp(
-    String.raw`\b(?:FROM|JOIN)\s+(?:public\.)?(${IDENT})\s+(?:AS\s+)?(${IDENT})\b`, 'gi');
+
+  // ---- alias binding census -------------------------------------------------
+  // SQL aliases are scoped per sub-query/CTE, and the same short alias (`l`, `e`,
+  // `s`) is routinely re-bound in sibling CTEs. Resolving the wrong binding would
+  // produce false defects, so an alias is only trusted when the WHOLE body binds
+  // it exactly once — and that single binding is a real relation. Every other
+  // alias is reported as an unresolved binding and must be audited explicitly.
+  const bindCount = new Map(); // alias -> occurrences (tables, CTEs, sub-queries)
+  const bindTable = new Map(); // alias -> relation name when the source is a relation
+  const bindRe = new RegExp(String.raw`\b(?:FROM|JOIN)\s+(?:public\.)?(${IDENT})\s+(?:AS\s+)?(${IDENT})\b`, 'gi');
   let a;
-  while ((a = aliasRe.exec(def))) {
-    const table = a[1].toLowerCase();
+  while ((a = bindRe.exec(def))) {
+    const source = a[1].toLowerCase();
     const alias = a[2].toLowerCase();
-    if (RESERVED.has(alias) || RESERVED.has(table)) continue;
-    if (!relations.has(`public.${table}`)) continue;
-    if (aliasMap.has(alias) && aliasMap.get(alias) !== table) {
-      aliasMap.set(alias, null); // ambiguous inside one routine: audited, never guessed
-    } else aliasMap.set(alias, table);
+    if (RESERVED.has(alias) || RESERVED.has(source)) continue;
+    bindCount.set(alias, (bindCount.get(alias) || 0) + 1);
+    if (relations.has(`public.${source}`)) bindTable.set(alias, source);
   }
-  for (const [alias, table] of aliasMap) {
-    if (!table) continue;
-    routineStats.aliases++;
+  // Sub-query and CTE aliases: `) alias` / `) AS alias`
+  const subRe = new RegExp(String.raw`\)\s+(?:AS\s+)?(${IDENT})\b`, 'gi');
+  while ((a = subRe.exec(def))) {
+    const alias = a[1].toLowerCase();
+    if (RESERVED.has(alias)) continue;
+    bindCount.set(alias, (bindCount.get(alias) || 0) + 1);
+  }
+
+  for (const [alias, table] of bindTable) {
+    if (bindCount.get(alias) !== 1) continue; // re-bound alias: not statically resolvable
     const live = columns.get(`public.${table}`);
     if (!live) continue;
+    routineStats.aliases++;
     const seen = new Set();
     const colRe = new RegExp(String.raw`\b${alias}\.(${IDENT})\b`, 'g');
     let c;
@@ -245,12 +257,33 @@ for (const [name, def] of bodies) {
       if (seen.has(col)) continue;
       seen.add(col);
       routineStats.dependencies++;
-      if (live.has(col)) continue;
-      if (live.has(col.toLowerCase())) continue;
+      if (live.has(col) || live.has(col.toLowerCase())) continue;
       const expr = `${alias}.${col} → public.${table}`;
       if (auditedRoutine.has(`${name}|${expr}`)) { deferrals.push({ surface: 'ROUTINE_BODY', routine: name, expression: expr }); continue; }
       defect('ROUTINE_BODY', { routine: name, object: `public.${table}`, column: col, type: 'MISSING COLUMN', expression: expr });
     }
+  }
+
+  // ---- unaliased scalar sub-selects ----------------------------------------
+  // `(SELECT col FROM public.t WHERE ...)` is the other shape that reaches a
+  // column without an alias. RF-07 (licensees.entity_name) was exactly this.
+  const scalarRe = new RegExp(
+    String.raw`SELECT\s+(${IDENT})\s+FROM\s+public\.(${IDENT})\s+WHERE`, 'gi');
+  const seenScalar = new Set();
+  let sc;
+  while ((sc = scalarRe.exec(def))) {
+    const col = sc[1];
+    const table = sc[2].toLowerCase();
+    const k = `${table}.${col}`;
+    if (seenScalar.has(k)) continue;
+    seenScalar.add(k);
+    const live = columns.get(`public.${table}`);
+    if (!live) continue;
+    routineStats.dependencies++;
+    if (live.has(col) || live.has(col.toLowerCase())) continue;
+    const expr = `SELECT ${col} FROM public.${table}`;
+    if (auditedRoutine.has(`${name}|${expr}`)) { deferrals.push({ surface: 'ROUTINE_BODY', routine: name, expression: expr }); continue; }
+    defect('ROUTINE_BODY', { routine: name, object: `public.${table}`, column: col, type: 'MISSING COLUMN', expression: expr });
   }
 }
 
