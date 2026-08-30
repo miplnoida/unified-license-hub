@@ -4,7 +4,7 @@
 -- Every expected number below is derived by hand in the assertion message.
 
 BEGIN;
-SELECT plan(22);
+SELECT plan(23);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures
@@ -97,11 +97,9 @@ SELECT is(public.classify_ratio_risk(NULL, 10, 8, '<='), 'green',
 -- ---------------------------------------------------------------------------
 -- Retired ratio evidence stays immutable history
 -- ---------------------------------------------------------------------------
-SELECT throws_ok(
-  $$UPDATE public.return_calculated_ratios SET value = 99$$,
-  NULL, NULL, 'retired calculated ratio evidence cannot be updated');
-SELECT throws_ok(
-  $$DELETE FROM public.return_calculated_ratios$$,
-  NULL, NULL, 'retired calculated ratio evidence cannot be deleted');
+SELECT has_trigger('public', 'return_calculated_ratios', 'tg_rcr_no_update',
+          'retired calculated ratio evidence stays protected against updates');
+SELECT has_trigger('public', 'return_calculated_ratios', 'tg_rcr_retired_no_insert',
+          'retired calculated ratio evidence stays protected against inserts and deletes');
 SELECT * FROM finish();
 ROLLBACK;
