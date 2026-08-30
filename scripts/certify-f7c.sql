@@ -1462,7 +1462,41 @@ BEGIN
    WHERE n.is_active AND COALESCE(n.href_override, r.path_pattern) ILIKE '%entity-currency%';
   PERFORM pg_temp.rec('O','O-06','entity reporting currency stays a contextual Entity 360 action and gains no separate menu module',
     _n = 0, 'stray currency menu items='||_n);
+
+  -- O-07 the four obsolete Returns registry paths are retired in the live registry
+  SELECT string_agg(r.path_pattern,' ' ORDER BY r.path_pattern) INTO _bad
+    FROM public.sec_routes r
+   WHERE r.is_active
+     AND r.path_pattern IN ('/admin/returns/definitions','/admin/returns/metrics',
+                            '/admin/returns/migration','/returns/filings');
+  PERFORM pg_temp.rec('O','O-07','the obsolete Returns registry routes with no application implementation are inactive',
+    _bad IS NULL, COALESCE('still active: '||_bad,'all four orphan registry routes retired'));
+
+  -- O-08 no navigation item, sidebar or otherwise, still targets them
+  SELECT string_agg(n.key,' ' ORDER BY n.key) INTO _bad
+    FROM public.sec_navigation_items n
+    LEFT JOIN public.sec_routes r ON r.id=n.route_id
+   WHERE n.is_active
+     AND COALESCE(n.href_override, r.path_pattern) IN
+         ('/admin/returns/definitions','/admin/returns/metrics',
+          '/admin/returns/migration','/returns/filings');
+  PERFORM pg_temp.rec('O','O-08','no active navigation item targets a retired Returns registry route',
+    _bad IS NULL, COALESCE('active nav items: '||_bad,'no navigation item targets a retired route'));
+
+  -- O-09 the canonical replacements for those retirements exist and are active
+  SELECT count(*) INTO _n FROM public.sec_routes r
+   WHERE r.is_active
+     AND r.path_pattern IN ('/returns/queue','/returns/obligations','/returns/calendar','/entity/returns');
+  PERFORM pg_temp.rec('O','O-09','the canonical Returns workspaces that replace the retired paths are registered and active',
+    _n = 4, 'canonical replacement routes='||_n);
+
+  -- O-10 retirement must not have collateral-damaged the reachable filing surfaces
+  SELECT count(*) INTO _n FROM public.sec_routes r
+   WHERE r.is_active AND r.path_pattern IN ('/returns/filings/:filingId','/entity/returns/filings/:filingId');
+  PERFORM pg_temp.rec('O','O-10','the canonical filing detail routes remain active and were not retired with the orphan paths',
+    _n = 2, 'active filing detail routes='||_n);
 END $o$;
+
 
 -- ---------------------------------------------------------------------------
 -- Z — zero residue
