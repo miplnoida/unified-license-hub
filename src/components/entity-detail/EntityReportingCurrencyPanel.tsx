@@ -55,11 +55,29 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
     );
   }
 
-  const activeProfile = data.history.find((p) => p.id === data.entity_currency_profile_id) ?? null;
+  const bodies = data.regulator_bodies ?? [];
+  // Each applicable regulator body carries its own monetary configuration,
+  // override history and approval control, so the panel is always scoped to one
+  // canonical regulator body (regulators.id) at a time.
+  const selectedBody =
+    bodies.find((b) => b.regulator_id === bodyId) ??
+    bodies.find((b) => b.regulator_id === data.regulator_id) ??
+    bodies[0] ?? null;
+  const scopedRegulatorId = selectedBody?.regulator_id ?? data.regulator_id ?? null;
+  const scopedHistory = selectedBody ? selectedBody.overrides ?? [] : data.history;
+  const activeProfileId = selectedBody
+    ? selectedBody.entity_currency_profile_id ?? null
+    : data.entity_currency_profile_id;
+  const activeProfile = scopedHistory.find((p) => p.id === activeProfileId) ?? null;
   const canManage = !!data.can_manage;
-  const approvalMode = data.approval_mode ?? 'DIRECT_AUTHORIZED';
+  const approvalMode = selectedBody?.approval_mode ?? data.approval_mode ?? 'DIRECT_AUTHORIZED';
   const makerChecker = approvalMode === 'MAKER_CHECKER';
-  const pending = data.pending_proposals ?? [];
+  const pending = (selectedBody ? selectedBody.pending_proposals : data.pending_proposals) ?? [];
+  const configurationRequired = !!selectedBody && !selectedBody.monetary_config_present;
+  const resolvedCurrency = selectedBody ? selectedBody.currency ?? null : data.currency;
+  const resolvedSource = (selectedBody ? selectedBody.source : data.source) ?? null;
+  const baseCurrency = selectedBody?.base_currency ?? data.regulator_base_currency;
+  const consolidatedCurrency = selectedBody?.reporting_currency ?? data.regulator_reporting_currency;
 
   const submitOverride = async () => {
     if (!code || !effectiveFrom || reason.trim().length < 10) {
@@ -67,7 +85,9 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
       return;
     }
     try {
-      const res = await setOverride.mutateAsync({ entityId, currency: code, effectiveFrom, reason: reason.trim() });
+      const res = await setOverride.mutateAsync({
+        entityId, currency: code, effectiveFrom, reason: reason.trim(), regulatorId: scopedRegulatorId,
+      });
       toast.success(res?.status === 'PROPOSED'
         ? `Override to ${code} proposed. It takes effect only once an independent approver accepts it.`
         : `Reporting currency override set to ${code}.`);
