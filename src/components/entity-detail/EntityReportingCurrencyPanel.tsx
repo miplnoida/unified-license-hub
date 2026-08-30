@@ -108,7 +108,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
         { label: 'Proposed currency', value: <span className="font-mono">{p.reporting_currency_override}</span> },
         { label: 'Effective from', value: formatDateOnly(p.effective_from) },
         { label: 'Proposal reason', value: p.reason ?? '—' },
-        { label: 'Current reporting currency', value: <span className="font-mono">{data.currency}</span> },
+        { label: 'Current reporting currency', value: <span className="font-mono">{resolvedCurrency ?? '—'}</span> },
       ],
       confirmLabel: decision === 'APPROVE' ? 'Approve override' : 'Reject proposal',
       destructive: decision === 'REJECT',
@@ -141,7 +141,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
       context: [
         { label: 'Current override', value: <span className="font-mono">{p.reporting_currency_override}</span> },
         { label: 'Effective from', value: formatDateOnly(p.effective_from) },
-        { label: 'Regulator base currency', value: <span className="font-mono">{data.regulator_base_currency}</span> },
+        { label: 'Regulator base currency', value: <span className="font-mono">{baseCurrency ?? '—'}</span> },
       ],
       confirmLabel: 'Supersede override',
       destructive: true,
@@ -385,7 +385,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
           <CardDescription>Superseded overrides are retained so historical periods stay resolvable.</CardDescription>
         </CardHeader>
         <CardContent>
-          {data.history.length === 0 ? (
+          {scopedHistory.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">No override has ever been recorded for this entity.</p>
           ) : (
             <Table>
@@ -397,7 +397,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.history.map((p) => (
+                {scopedHistory.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell className="font-mono">{p.reporting_currency_override}</TableCell>
                     <TableCell>{formatDateOnly(p.effective_from)}</TableCell>
