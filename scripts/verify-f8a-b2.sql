@@ -400,7 +400,7 @@ BEGIN
     v_net2 := public.entity_ownership_network(v_entity, v_today - 300, 10, 300);
     SELECT n INTO v_node FROM jsonb_array_elements(v_net2->'nodes') n
      WHERE (n->>'party_id')::uuid = v_p2;
-    IF v_node IS NOT NULL AND (v_node->>'economic_percentage')::numeric = 80
+    IF v_node IS NOT NULL AND (v_node->>'economic_percentage')::numeric = 90
     THEN pass:=pass+1; ELSE fail:=fail+1;
       RAISE WARNING 'D-15 historical as-of ownership not honoured: %', v_node; END IF;
 
