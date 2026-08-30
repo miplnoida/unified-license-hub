@@ -318,16 +318,14 @@ Deno.serve(async (req) => {
       const c = computedByKey.get(r.ratio_key);
       if (c) computed.push(c);
     }
-    for (const c of computed) {
-      // Provenance (null_reason / formula snapshot / ratio version) must be
-      // supplied at insert time: return_calculated_ratios is append-only, so a
-      // follow-up UPDATE is rejected by tg_rcr_no_update and would be lost.
-      await admin.rpc("record_return_ratio", {
-        _return_id: return_id, _ratio_key: c.ratio_key, _label: c.label,
-        _value: c.value, _display_format: c.display_format, _computed_by: actor.id,
-        _null_reason: c.null_reason, _ratio_version: c.version, _formula_snapshot: c.formula,
-      });
-    }
+    // F8-W1A (GAP-F8-09): no second ratio-result store is written here.
+    // The canonical calculated-ratio store is `return_metric_values`
+    // (source_kind = 'CALCULATED'), written by `returns_calculate_metrics` and
+    // read by `_prudential_canonical_detect_run` for threshold evaluation and
+    // breach detection. `return_calculated_ratios` is retired/read-only, and
+    // the `record_return_ratio` writer has been dropped. Ratio values computed
+    // above stay in-memory and feed the threshold comparison below unchanged.
+
 
 
     // Detect breaches with Green/Amber/Red classification.
