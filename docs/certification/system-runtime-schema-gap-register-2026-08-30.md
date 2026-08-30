@@ -78,15 +78,23 @@ with an explicit, wildcard-rejecting allow-list at
 `scripts/system-runtime/deferred-dependencies.json` (currently empty).
 Result: **347 routes, 871 dependencies, 0 defects, PASS.**
 
-## Open (blocking certification)
-| ID | Item | Note |
+## Closed (2026-08-31) — all F8A blockers resolved
+Historical failed/contaminated runs are retained above and under
+`docs/certification/evidence-route-smoke-*.json` for audit.
+
+| ID | Item | Closure |
 | --- | --- | --- |
-| SR-16 | Runtime route smoke incomplete | Playwright pass over all 347 routes was still running; ~196 routes observed. Must complete and be classified. |
-| SR-17 | `403` on `sup_dashboard_summary`, `sup_entity_supervisory_state`, `correspondence_thread_case` | **authorization**, not schema — the smoke persona lacks the permissions. Needs persona-correct re-run before classification. |
-| SR-18 | `400 rpc/prudential_sector_risk` on `/executive` | candidate argument/signature or input-validation defect — not yet diagnosed. |
-| SR-19 | `CONTRACT_ERROR` marker on `/forms/:id` | page text matched a contract marker; needs confirmation (may be a legitimate "not found" message). |
-| SR-20 | Post-remediation regression battery | B1–B4, B4 runtime, frontend, breadcrumbs, nav icons, RBAC/security guards not yet re-run after this wave's edits. |
-| SR-21 | Certification record | `docs/certification/system-screen-schema-runtime-integrity-2026-08-30.md` not yet written. |
+| SR-16 | Runtime route smoke incomplete | CLOSED — complete clean census at implementation HEAD `f3aeca3d2e93706b8f6fb4ec7fdd7fbbf64d0eb4`: 347/347 routes, 353 executions, PASS 299 / REDIRECT 38 / EXPECTED_AUTHORIZATION 6 / EXPECTED_NOT_FOUND 10, FAIL 0, UNKNOWN 0, ENVIRONMENT_BLOCKED 0, PGRST002 0, `run_verdict=CERTIFICATION_ELIGIBLE`. |
+| SR-17 | `403` on supervisory RPCs / correspondence | CLOSED — root cause was a missing authenticated Data API `SELECT` on `entity_user_access`; granted read-only (no writes, RLS unchanged). Authenticated calls 200. |
+| SR-18 | `400 rpc/prudential_sector_risk` | CLOSED — ambiguous `sector_id` in `prudential_sector_risk(integer)`; reference qualified to `g.sector_id`. Authenticated 200, anonymous 401, malformed input deterministic 404. |
+| SR-19 | `CONTRACT_ERROR` marker on `/forms/:id` | CLOSED — legitimate not-found text, not a contract defect. `verify:forms-semantics` PASSES 15/15 including anonymous redirect to `/login`. |
+| SR-20 | Post-remediation regression battery | CLOSED — B1 64/64, B2 96/96, B3 67/67, B4 88/88, B4 runtime 28/28, frontend 1317/1317 (144 files), typecheck clean, production build clean, `verify:system-runtime-schema` 0 defects, internal contracts + self-test PASS, route-harness self-test 9/9, forms semantics 15/15, notification-health perf PASS, prudential-universe perf 5/5, Data API readiness 70/70 (0 PGRST002). |
+| SR-21 | Certification record | CLOSED — `docs/certification/system-screen-schema-runtime-integrity-2026-08-31.md`. |
+| SR-23 | Internal contract drift in routines/Edge Functions | CLOSED — 15 routines repaired; 7,554 contracts verified, 0 defects, 0 deferrals. |
+| SR-24 | `prudential_entity_universe` authenticated timeout (R-229) | CLOSED — generic-plan degradation; converted to PL/pgSQL `RETURN QUERY` with custom planning plus `license_id::text` cast. Signature, 26-column contract, semantics, `SECURITY INVOKER` and grants preserved; 217–706 ms, no 57014. |
+| SR-25 | `/fpa/monitoring` `compliance_audit_logs` 57014 (R-277) | CLOSED — volatile RLS helper functions re-evaluated per row; policy rewritten with scalar sub-selects (identical semantics/grants). ~7.16 s → ~86 ms warm. No timeout increase. |
+| RF/R-042, R-140, R-155, R-313, R-314, R-174, R-189, R-190 | Prior route failures | CLOSED — notification history rewritten to a single `DISTINCT ON` scan; exact `22023` conduct not-found matcher (9/9 self-test); canonical public-registry deployed and anonymously proven; R-189/R-190 were 503/PGRST002 infrastructure only and now PASS. |
+
 
 ## Phase 14 — Carried non-blocking inventory (unchanged)
 3 proposed B4 address usages · 35 unresolved F&P identities (intentionally
