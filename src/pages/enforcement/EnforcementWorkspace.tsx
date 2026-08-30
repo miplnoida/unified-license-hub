@@ -47,6 +47,12 @@ import {
   useEnforcementCaseAction,
   type EnforcementAvailableAction,
 } from '@/hooks/useEnforcementProcess';
+import {
+  PENALTY_CURRENCY_POLICY_LABELS,
+  useEnforcementPenaltyCurrency,
+  usePenaltyCurrencyOverride,
+} from '@/hooks/useEnforcementPenaltyCurrency';
+
 
 type SectionKey = 'current' | 'case' | 'evidence' | 'obligations' | 'appeals' | 'ai' | 'history';
 
