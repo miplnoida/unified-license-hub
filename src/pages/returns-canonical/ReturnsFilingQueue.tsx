@@ -286,6 +286,7 @@ export default function ReturnsFilingQueue() {
       <div className="space-y-6">
         <PageHeader
           title="Returns Filing Queue"
+          helpSurface="returns"
           description="Canonical return filings across all supervised entities — stage, ownership, service level and next action are supplied by the supervisory read model."
         />
 

@@ -282,7 +282,7 @@ export const PROCESS_SECTIONS: ProcessSection[] = [
     exceptions: ['Overdue', 'Rejected and re-filed', 'Amended', 'Extension granted', 'Nil return where permitted'],
     aiInvolvement: 'DETERMINISTIC AUTOMATION',
     aiNote: 'Validation, due-date generation and late-fee calculation are deterministic rules. AI is not used to accept or reject a filing.',
-    screenshots: ['ret-queue', 'ret-obligations', 'ret-calendar', 'ret-management', 'ext-licensee-returns', 'ext-licensee-secondary'],
+    screenshots: ['ret-queue', 'ret-obligations', 'ret-calendar', 'ret-filing', 'ext-licensee-returns', 'ext-licensee-secondary'],
     demoNotes: [
       'Show the obligation → filing → review chain rather than a single screen.',
       'Show the historical schema/currency snapshot: an old filing still reads as it was filed.',

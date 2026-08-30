@@ -1,0 +1,278 @@
+{
+  "baseUrl": "http://localhost:8080",
+  "captured": [
+    {
+      "id": "pub-landing",
+      "route": "/",
+      "file": "/user-manual/screenshots/public/public-portal/pub-landing.png"
+    },
+    {
+      "id": "pub-register",
+      "route": "/register",
+      "file": "/user-manual/screenshots/public/registration/pub-register.png"
+    },
+    {
+      "id": "pub-registry",
+      "route": "/registry/entities",
+      "file": "/user-manual/screenshots/public/public-register/pub-registry.png"
+    },
+    {
+      "id": "pub-complaint",
+      "route": "/complaints/submit",
+      "file": "/user-manual/screenshots/public/complaints/pub-complaint.png"
+    },
+    {
+      "id": "pub-track",
+      "route": "/complaints/track",
+      "file": "/user-manual/screenshots/public/complaints/pub-track.png"
+    },
+    {
+      "id": "int-dashboard",
+      "route": "/dashboard",
+      "file": "/user-manual/screenshots/supervisor/getting-started/int-dashboard.png"
+    },
+    {
+      "id": "int-my-work",
+      "route": "/my-work",
+      "file": "/user-manual/screenshots/supervisor/work-queue/int-my-work.png"
+    },
+    {
+      "id": "int-manual",
+      "route": "/help/user-manual",
+      "file": "/user-manual/screenshots/shared/documentation/int-manual.png"
+    },
+    {
+      "id": "adm-control-panel",
+      "route": "/admin",
+      "file": "/user-manual/screenshots/admin/administration/adm-control-panel.png"
+    },
+    {
+      "id": "adm-users",
+      "route": "/admin/users",
+      "file": "/user-manual/screenshots/admin/administration/adm-users.png"
+    },
+    {
+      "id": "adm-roles",
+      "route": "/admin/roles",
+      "file": "/user-manual/screenshots/admin/administration/adm-roles.png"
+    },
+    {
+      "id": "adm-settings",
+      "route": "/settings",
+      "file": "/user-manual/screenshots/admin/administration/adm-settings.png"
+    },
+    {
+      "id": "adm-audit-logs",
+      "route": "/admin/audit-logs",
+      "file": "/user-manual/screenshots/admin/audit/adm-audit-logs.png"
+    },
+    {
+      "id": "adm-sla",
+      "route": "/admin/sla-manager",
+      "file": "/user-manual/screenshots/admin/sla/adm-sla.png"
+    },
+    {
+      "id": "reg-review-queue",
+      "route": "/admin/registration-review",
+      "file": "/user-manual/screenshots/licensing_officer/registration/reg-review-queue.png"
+    },
+    {
+      "id": "lic-app-queue",
+      "route": "/applications/queue",
+      "file": "/user-manual/screenshots/licensing_officer/licensing/lic-app-queue.png"
+    },
+    {
+      "id": "lic-applications",
+      "route": "/applications",
+      "file": "/user-manual/screenshots/licensing_officer/licensing/lic-applications.png"
+    },
+    {
+      "id": "lic-register",
+      "route": "/licenses",
+      "file": "/user-manual/screenshots/licensing_officer/licensing/lic-register.png"
+    },
+    {
+      "id": "lic-lifecycle",
+      "route": "/licenses/lifecycle",
+      "file": "/user-manual/screenshots/licensing_officer/licensing/lic-lifecycle.png"
+    },
+    {
+      "id": "lic-requests",
+      "route": "/licensing/regulatory-requests",
+      "file": "/user-manual/screenshots/licensing_officer/post-licensing/lic-requests.png"
+    },
+    {
+      "id": "e360-entities",
+      "route": "/entities",
+      "file": "/user-manual/screenshots/supervisor/entity-360/e360-entities.png"
+    },
+    {
+      "id": "e360-overview",
+      "route": "/entities/6efc6754-abc1-4834-83d0-eb052dfcb136/360",
+      "file": "/user-manual/screenshots/supervisor/entity-360/e360-overview.png"
+    },
+    {
+      "id": "e360-structure",
+      "route": "/entities/6efc6754-abc1-4834-83d0-eb052dfcb136/structure",
+      "file": "/user-manual/screenshots/supervisor/ownership-ubo/e360-structure.png"
+    },
+    {
+      "id": "ret-queue",
+      "route": "/returns/queue",
+      "file": "/user-manual/screenshots/analyst/returns/ret-queue.png"
+    },
+    {
+      "id": "ret-obligations",
+      "route": "/returns/obligations",
+      "file": "/user-manual/screenshots/analyst/returns/ret-obligations.png"
+    },
+    {
+      "id": "ret-calendar",
+      "route": "/returns/calendar",
+      "file": "/user-manual/screenshots/analyst/returns/ret-calendar.png"
+    },
+    {
+      "id": "ret-filing",
+      "route": "/returns/filings/59ba6d7a-d101-4bd5-a38a-fffbfa127350",
+      "file": "/user-manual/screenshots/analyst/returns/ret-filing.png"
+    },
+    {
+      "id": "fee-config",
+      "route": "/admin/fees",
+      "file": "/user-manual/screenshots/admin/fees-payments/fee-config.png"
+    },
+    {
+      "id": "pay-history",
+      "route": "/payments",
+      "file": "/user-manual/screenshots/admin/fees-payments/pay-history.png"
+    },
+    {
+      "id": "cur-settings",
+      "route": "/settings/currency",
+      "file": "/user-manual/screenshots/admin/fees-payments/cur-settings.png"
+    },
+    {
+      "id": "pen-register",
+      "route": "/billing/penalties",
+      "file": "/user-manual/screenshots/admin/fees-payments/pen-register.png"
+    },
+    {
+      "id": "cmp-list",
+      "route": "/complaints",
+      "file": "/user-manual/screenshots/analyst/complaints/cmp-list.png"
+    },
+    {
+      "id": "cmp-intake",
+      "route": "/complaints/intake-queue",
+      "file": "/user-manual/screenshots/analyst/complaints/cmp-intake.png"
+    },
+    {
+      "id": "cmp-analytics",
+      "route": "/complaints/analytics",
+      "file": "/user-manual/screenshots/analyst/complaints/cmp-analytics.png"
+    },
+    {
+      "id": "cond-work-queue",
+      "route": "/conduct/work-queue",
+      "file": "/user-manual/screenshots/analyst/market-conduct/cond-work-queue.png"
+    },
+    {
+      "id": "cond-attention",
+      "route": "/conduct/attention",
+      "file": "/user-manual/screenshots/supervisor/market-conduct/cond-attention.png"
+    },
+    {
+      "id": "cond-investigations",
+      "route": "/conduct/investigations",
+      "file": "/user-manual/screenshots/analyst/investigations/cond-investigations.png"
+    },
+    {
+      "id": "enf-queue",
+      "route": "/enforcement",
+      "file": "/user-manual/screenshots/legal_compliance/enforcement/enf-queue.png"
+    },
+    {
+      "id": "app-appeals",
+      "route": "/admin/license-appeals",
+      "file": "/user-manual/screenshots/legal_compliance/appeals/app-appeals.png"
+    },
+    {
+      "id": "thm-reviews",
+      "route": "/supervision/thematic-reviews",
+      "file": "/user-manual/screenshots/supervisor/thematic-reviews/thm-reviews.png"
+    },
+    {
+      "id": "prud-dashboard",
+      "route": "/prudential/dashboard",
+      "file": "/user-manual/screenshots/supervisor/prudential/prud-dashboard.png"
+    },
+    {
+      "id": "fpa-individuals",
+      "route": "/fpa/individuals",
+      "file": "/user-manual/screenshots/licensing_officer/fit-and-proper/fpa-individuals.png"
+    },
+    {
+      "id": "corr-inbox",
+      "route": "/correspondence/inbox",
+      "file": "/user-manual/screenshots/analyst/correspondence/corr-inbox.png"
+    },
+    {
+      "id": "corr-dashboard",
+      "route": "/correspondence/dashboard",
+      "file": "/user-manual/screenshots/analyst/correspondence/corr-dashboard.png"
+    },
+    {
+      "id": "ai-overview",
+      "route": "/governance/ai",
+      "file": "/user-manual/screenshots/super_admin/ai-governance/ai-overview.png"
+    },
+    {
+      "id": "ai-models",
+      "route": "/governance/ai/models",
+      "file": "/user-manual/screenshots/super_admin/ai-governance/ai-models.png"
+    },
+    {
+      "id": "ai-surfaces",
+      "route": "/governance/ai/surfaces",
+      "file": "/user-manual/screenshots/super_admin/ai-governance/ai-surfaces.png"
+    },
+    {
+      "id": "ai-instructions",
+      "route": "/governance/ai/instructions",
+      "file": "/user-manual/screenshots/super_admin/ai-governance/ai-instructions.png"
+    },
+    {
+      "id": "ai-assurance",
+      "route": "/governance/ai/assurance",
+      "file": "/user-manual/screenshots/super_admin/ai-governance/ai-assurance.png"
+    },
+    {
+      "id": "ai-exceptions",
+      "route": "/governance/ai/exceptions",
+      "file": "/user-manual/screenshots/super_admin/ai-governance/ai-exceptions.png"
+    },
+    {
+      "id": "ai-activity",
+      "route": "/governance/ai/activity",
+      "file": "/user-manual/screenshots/super_admin/ai-governance/ai-activity.png"
+    },
+    {
+      "id": "ai-insights",
+      "route": "/analytics/ai-insights",
+      "file": "/user-manual/screenshots/analyst/ai-governance/ai-insights.png"
+    },
+    {
+      "id": "ana-dashboard",
+      "route": "/analytics",
+      "file": "/user-manual/screenshots/supervisor/analytics/ana-dashboard.png"
+    },
+    {
+      "id": "rep-dashboard",
+      "route": "/reports",
+      "file": "/user-manual/screenshots/analyst/analytics/rep-dashboard.png"
+    }
+  ],
+  "failed": [],
+  "capturedCount": 54,
+  "failedCount": 0
+}

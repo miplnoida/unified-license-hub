@@ -11,6 +11,8 @@ import type { PortalArea, PortalCapability } from '@/lib/portalAccess';
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const MyWork = lazy(() => import('@/pages/MyWork'));
 const SupportCenter = lazy(() => import('@/pages/support/SupportCenter'));
+// Documentation only: role-aware in-application User Manual & Demo Playbook.
+const UserManual = lazy(() => import('@/pages/help/UserManual'));
 const LegacyReturnFilingRedirect = lazy(() => import('@/routes/LegacyReturnFilingRedirect'));
 const ApplicationsList = lazy(() => import('@/pages/applications/ApplicationsList'));
 const ApplicationQueue = lazy(() => import('@/pages/applications/ApplicationQueue'));
@@ -194,6 +196,9 @@ export const dashboardRoutes = (
     <Route path="/dashboard" element={<P><Dashboard /></P>} />
     {/* Checkpoint F: read-only aggregation of module work owned by the signed-in person. */}
     <Route path="/my-work" element={<P><MyWork /></P>} />
+    {/* User Manual — available to every authenticated user; the page itself
+        filters internal-only documentation. No new permission is required. */}
+    <Route path="/help/user-manual" element={<P><UserManual /></P>} />
 
     <Route path="/applications" element={<EP area="licensing" capability="can_view_status"><ApplicationsList /></EP>} />
     <Route path="/applications/new" element={<EP area="licensing" capability="can_submit"><NewApplication /></EP>} />

@@ -115,6 +115,7 @@ export default function EntityStructureHub() {
         description="Canonical entity record — identity, licences, ownership and control, governance, relationships and controlled change."
         backHref={`/entities/${entityId}`}
         backLabel="Entity 360"
+        helpSurface="entity-structure"
         actions={
           <Button variant="outline" size="sm" asChild>
             <Link to={`/entities/${entityId}`}>

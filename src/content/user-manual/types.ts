@@ -218,7 +218,11 @@ export interface DemoScript {
   steps: DemoScriptStep[];
 }
 
-export type ScreenshotStatus = 'CURRENT' | 'NEEDS_REFRESH' | 'FINAL_E2E_VERIFIED';
+export type ScreenshotStatus =
+  | 'CURRENT'
+  | 'NEEDS_CAPTURE'
+  | 'NEEDS_REFRESH'
+  | 'FINAL_E2E_VERIFIED';
 
 export interface ScreenshotEntry {
   id: string;
@@ -234,6 +238,12 @@ export interface ScreenshotEntry {
   dataClassification: 'SYNTHETIC/DEMO-SAFE' | 'NON-SENSITIVE CONFIGURATION' | 'PENDING CAPTURE';
   chapter: string;
   status: ScreenshotStatus;
+  /**
+   * Mandatory whenever `status` is NEEDS_CAPTURE: the honest reason the running
+   * environment could not produce the shot (missing persona session, missing
+   * demo-safe record, configuration required). Never fabricate the image.
+   */
+  needsCaptureReason?: string;
 }
 
 export interface ManualMeta {

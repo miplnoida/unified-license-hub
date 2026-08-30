@@ -61,6 +61,7 @@ export default function AiGovernanceOverview() {
       <div className="space-y-6">
         <PageHeader
           title="AI Governance"
+          helpSurface="ai-governance"
           description="How artificial intelligence is authorised, controlled, used and reviewed across supervision. AI assistance is advisory only: recorded facts and rule outcomes come first, AI may suggest wording, and a person always decides."
           actions={canApprove ? undefined : <Badge variant="outline">View only</Badge>}
         />
