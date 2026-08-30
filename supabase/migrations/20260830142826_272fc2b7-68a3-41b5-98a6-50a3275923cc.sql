@@ -195,7 +195,7 @@ DECLARE uid uuid := auth.uid(); v_person uuid; v_count int; v_fp uuid; v_existin
 BEGIN
   IF uid IS NULL THEN RAISE EXCEPTION 'AUTH_REQUIRED' USING ERRCODE='42501'; END IF;
   IF NOT (public.is_super_admin(uid)
-          OR public.has_permission(uid,'entity_structure','edit')
+          OR public.has_permission(uid,'licensee_management','edit')
           OR public.has_permission(uid,'fit_and_proper','edit')) THEN
     RAISE EXCEPTION 'PERMISSION_DENIED' USING ERRCODE='42501';
   END IF;
