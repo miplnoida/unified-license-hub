@@ -38,7 +38,7 @@ export function ScreenHelpLink({ surface, anchor, label, variant = 'button', cla
 
   const text = label ?? target.label;
   const href = manualHref(anchor ?? target.anchor);
-  const showLabel = variant === 'button';
+  const labelClass = variant === 'button' ? 'ml-2 hidden sm:inline' : 'sr-only';
 
   if (variant === 'inline') {
     return (
@@ -60,7 +60,7 @@ export function ScreenHelpLink({ surface, anchor, label, variant = 'button', cla
         >
           <Link to={href}>
             <HelpCircle className="h-4 w-4" />
-            {showLabel ? <span className="ml-2 hidden sm:inline">{text}</span> : null}
+            <span className={labelClass}>{text}</span>
           </Link>
         </Button>
       </TooltipTrigger>
