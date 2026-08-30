@@ -21,6 +21,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { ScreenHelpLink } from '@/components/help/ScreenHelpLink';
+import { PersonAddressIntelligencePanel } from '@/components/addresses/PersonAddressIntelligencePanel';
 import { usePerson360, usePersonNetworkAsOf, type PersonNetwork } from '@/hooks/usePerson360';
 
 function Stat({ label, value }: { label: string; value: string | number }) {
@@ -244,6 +245,11 @@ export default function Person360Detail() {
           )}
         </CardContent>
       </Card>
+
+      {/* F8A-B4 — canonical address usage and deterministic co-location evidence.
+          Person 360 stays a projection: this section performs no address or
+          identity mutation. */}
+      {partyId && <PersonAddressIntelligencePanel partyId={partyId} asOf={asOfInput || undefined} />}
 
       <Card>
         <CardHeader><CardTitle>Relationships</CardTitle></CardHeader>

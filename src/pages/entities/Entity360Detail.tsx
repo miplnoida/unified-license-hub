@@ -14,7 +14,7 @@
  */
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CalendarClock, Coins, Loader2, LayoutDashboard, History, UserSearch } from 'lucide-react';
+import { CalendarClock, Coins, Loader2, LayoutDashboard, History, MapPin, UserSearch } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -36,10 +36,11 @@ import { Entity360SectionView } from '@/components/entity-detail/Entity360Sectio
 import { Entity360TimelinePanel } from '@/components/entity-detail/Entity360TimelinePanel';
 import { E360_GROUPS, E360_SECTIONS } from '@/components/entity-detail/sectionCatalogue';
 import { EntityReportingCurrencyPanel } from '@/components/entity-detail/EntityReportingCurrencyPanel';
+import { SubjectAddressPanel } from '@/components/addresses/SubjectAddressPanel';
 import { useEntity360Overview, type E360SectionKey } from '@/hooks/useEntity360';
 
 
-type ViewKey = 'overview' | 'timeline' | 'onboarding' | 'reporting_currency' | E360SectionKey;
+type ViewKey = 'overview' | 'timeline' | 'onboarding' | 'reporting_currency' | 'addresses' | E360SectionKey;
 
 export default function Entity360Detail() {
   const { entityId } = useParams<{ entityId: string }>();
@@ -125,6 +126,14 @@ export default function Entity360Detail() {
               active={view === 'reporting_currency'}
               onClick={() => setView('reporting_currency')}
             />
+            {/* F8A-B4 — canonical address usage and co-location intelligence. */}
+            <NavButton
+              label="Addresses & co-location"
+              icon={MapPin}
+              active={view === 'addresses'}
+              onClick={() => setView('addresses')}
+            />
+
 
 
             {groups.map((group) => (
@@ -198,6 +207,11 @@ export default function Entity360Detail() {
           {view === 'reporting_currency' && (
             <EntityReportingCurrencyPanel entityId={entity.id} asOf={asOf} />
           )}
+
+          {view === 'addresses' && (
+            <SubjectAddressPanel subjectKind="ENTITY" subjectId={entity.id} />
+          )}
+
 
 
           {activeSection && (

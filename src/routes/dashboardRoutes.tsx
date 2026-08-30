@@ -162,6 +162,9 @@ const Entity360Detail = lazy(() => import('@/pages/entities/Entity360Detail'));
 // F8A-B3 — canonical person identity surfaces.
 const Person360Detail = lazy(() => import('@/pages/persons/Person360Detail'));
 const PersonIdentityQueue = lazy(() => import('@/pages/persons/PersonIdentityQueue'));
+// F8A-B4 — canonical address & relationship intelligence surfaces.
+const Address360Detail = lazy(() => import('@/pages/intelligence/Address360Detail'));
+const RelationshipIntelligenceSearch = lazy(() => import('@/pages/intelligence/RelationshipIntelligenceSearch'));
 const Entity360Redirect = lazy(() => import('@/routes/Entity360Redirect'));
 const EntityResolutionQueue = lazy(() => import('@/pages/licensing/EntityResolutionQueue'));
 const EntityResolutionDetail = lazy(() => import('@/pages/licensing/EntityResolutionDetail'));
@@ -390,6 +393,9 @@ export const dashboardRoutes = (
         parameterised person profile so it is never captured as a party id. */}
     <Route path="/persons/identity-queue" element={<M module="licensee_management"><PersonIdentityQueue /></M>} />
     <Route path="/persons/:partyId" element={<M module="licensee_management"><Person360Detail /></M>} />
+    {/* F8A-B4 — canonical address 360 and deterministic relationship intelligence. */}
+    <Route path="/intelligence/network" element={<M module="entity_structure"><RelationshipIntelligenceSearch /></M>} />
+    <Route path="/intelligence/addresses/:addressId" element={<M module="entity_structure"><Address360Detail /></M>} />
     <Route path="/licensing/entity-resolution" element={<M module="entity_resolution"><EntityResolutionQueue /></M>} />
     <Route path="/licensing/entity-resolution/:caseId" element={<M module="entity_resolution"><EntityResolutionDetail /></M>} />
     <Route path="/admin/entity-memberships" element={<M module="entity_membership"><EntityMemberships /></M>} />
