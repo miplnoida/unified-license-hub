@@ -92,7 +92,7 @@ BEGIN
   PERFORM 1 FROM pg_class WHERE oid = 'public.group_consolidated_snapshots'::regclass;
   SELECT count(*) INTO n FROM information_schema.columns
    WHERE table_schema='public' AND table_name='group_consolidated_snapshots'
-     AND column_name IN ('group_id','period_end');
+     AND column_name IN ('group_id','period_key');
   IF n < 2 THEN
     RAISE EXCEPTION 'FAIL 8: consolidated snapshots lack group/period keys';
   END IF;
@@ -151,7 +151,7 @@ BEGIN
   -- 14. Traceability: consolidated snapshots record the methodology used.
   SELECT count(*) INTO n FROM information_schema.columns
    WHERE table_schema='public' AND table_name='group_consolidated_snapshots'
-     AND column_name IN ('method_id','methodology','inputs','computed_at','computed_by');
+     AND column_name IN ('methodology_version','eliminations','excluded_members','data_state','computed_at','computed_by');
   IF n = 0 THEN
     RAISE EXCEPTION 'FAIL 14: consolidated snapshots carry no methodology/computation trace';
   END IF;
