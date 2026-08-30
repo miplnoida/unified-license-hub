@@ -157,11 +157,32 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
     <div className="space-y-4">
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">
-          <div>
+          <div className="space-y-2">
             <CardTitle className="flex items-center gap-2 text-base"><Coins className="h-4 w-4" />Reporting &amp; currency</CardTitle>
             <CardDescription>
-              The currency this entity prepares its regulatory returns in. Overrides are maintained only here.
+              The currency this entity prepares its regulatory returns in, per regulator. Overrides are maintained only here.
             </CardDescription>
+            {bodies.length > 1 && (
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Regulator</Label>
+                <Select value={scopedRegulatorId ?? undefined} onValueChange={setBodyId}>
+                  <SelectTrigger className="h-8 w-[20rem]"><SelectValue placeholder="Select regulator" /></SelectTrigger>
+                  <SelectContent>
+                    {bodies.map((b) => (
+                      <SelectItem key={b.regulator_id} value={b.regulator_id}>
+                        {b.name ?? b.code ?? b.regulator_id}{b.code ? ` (${b.code})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Badge variant="secondary">Supervised by {bodies.length} regulators</Badge>
+              </div>
+            )}
+            {selectedBody?.sources?.length ? (
+              <p className="text-xs text-muted-foreground">
+                Regulator determined from: {selectedBody.sources.join(', ').toLowerCase().replace(/_/g, ' ')}
+              </p>
+            ) : null}
           </div>
           {canManage && (
             <Dialog open={open} onOpenChange={setOpen}>
