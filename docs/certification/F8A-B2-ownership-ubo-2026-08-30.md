@@ -3,6 +3,7 @@
 Date: 2026-08-30
 Protected B1 code baseline: `741dfb5611870650570400ba23c8f7eaa12a633c`
 Entry HEAD: `d2405cfd1950d5df4ca43a600005cad46c45a8d9`
+Final HEAD: `25472b86efd9fbe63fe41192d94b88b4c57c72a3` (+ this closure commit)
 
 ## 1. Ownership-target limitation — confirmed and repaired
 
