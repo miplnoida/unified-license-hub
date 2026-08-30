@@ -234,16 +234,29 @@ serve(async (req) => {
       for (const tmpl of templates || []) {
         if (tmpl.channel === "in_app") continue;
 
-        // Check user preferences
+        // notification_preferences stores one row per user: `channels` holds the
+        // globally enabled channels and `type_settings` holds per-event overrides.
+        // There are no enabled/channel/event_type columns.
         const { data: pref } = await supabase
           .from("notification_preferences")
-          .select("enabled")
+          .select("channels, type_settings")
           .eq("user_id", user_id)
-          .eq("channel", tmpl.channel)
-          .eq("event_type", event_type)
           .maybeSingle();
 
-        if (pref?.enabled === false) {
+        const channels = (pref?.channels ?? null) as Record<string, unknown> | string[] | null;
+        const override = ((pref?.type_settings ?? null) as Record<string, any> | null)?.[event_type];
+        const channelAllowed = (() => {
+          if (override && typeof override === "object" && tmpl.channel in override) {
+            return override[tmpl.channel] !== false;
+          }
+          if (Array.isArray(channels)) return channels.includes(tmpl.channel);
+          if (channels && typeof channels === "object" && tmpl.channel in channels) {
+            return (channels as Record<string, unknown>)[tmpl.channel] !== false;
+          }
+          return true; // no stored preference: default to sending
+        })();
+
+        if (!channelAllowed) {
           results.push({ channel: tmpl.channel, status: "skipped_preference" });
           continue;
         }
