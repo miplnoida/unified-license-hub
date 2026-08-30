@@ -30032,6 +30032,56 @@ export type Database = {
           party_kind?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "parties_party_kind_catalogue_fk"
+            columns: ["party_kind"]
+            isOneToOne: false
+            referencedRelation: "party_kinds"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      party_kinds: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_legal_arrangement: boolean
+          is_natural_person: boolean
+          is_system: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_legal_arrangement?: boolean
+          is_natural_person?: boolean
+          is_system?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_legal_arrangement?: boolean
+          is_natural_person?: boolean
+          is_system?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
         Relationships: []
       }
       party_relationships: {
@@ -35517,6 +35567,8 @@ export type Database = {
       }
       relationship_types: {
         Row: {
+          allows_self: boolean
+          allows_structural_entry: boolean
           category: string
           created_at: string
           description: string | null
@@ -35525,7 +35577,10 @@ export type Database = {
           inverse_relationship_type_id: string | null
           is_active: boolean
           is_group: boolean
+          is_hierarchical: boolean
           is_ownership: boolean
+          is_ownership_authority: boolean
+          is_symmetric: boolean
           is_system: boolean
           key: string
           label: string
@@ -35533,6 +35588,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allows_self?: boolean
+          allows_structural_entry?: boolean
           category?: string
           created_at?: string
           description?: string | null
@@ -35541,7 +35598,10 @@ export type Database = {
           inverse_relationship_type_id?: string | null
           is_active?: boolean
           is_group?: boolean
+          is_hierarchical?: boolean
           is_ownership?: boolean
+          is_ownership_authority?: boolean
+          is_symmetric?: boolean
           is_system?: boolean
           key: string
           label: string
@@ -35549,6 +35609,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allows_self?: boolean
+          allows_structural_entry?: boolean
           category?: string
           created_at?: string
           description?: string | null
@@ -35557,7 +35619,10 @@ export type Database = {
           inverse_relationship_type_id?: string | null
           is_active?: boolean
           is_group?: boolean
+          is_hierarchical?: boolean
           is_ownership?: boolean
+          is_ownership_authority?: boolean
+          is_symmetric?: boolean
           is_system?: boolean
           key?: string
           label?: string
@@ -50791,7 +50856,31 @@ export type Database = {
         Args: { _entity_id: string; _policy_key: string; _reason?: string }
         Returns: Json
       }
+      entity_structure_appointments: {
+        Args: { _entity_id: string }
+        Returns: Json
+      }
+      entity_structure_can_view: {
+        Args: { _entity_id: string }
+        Returns: boolean
+      }
+      entity_structure_change_items: {
+        Args: { _change_set_id: string }
+        Returns: Json
+      }
+      entity_structure_change_sets: {
+        Args: { _entity_id: string }
+        Returns: Json
+      }
       entity_structure_overview: { Args: { _entity_id: string }; Returns: Json }
+      entity_structure_ownership: {
+        Args: { _entity_id: string }
+        Returns: Json
+      }
+      entity_structure_relationships: {
+        Args: { _entity_id: string }
+        Returns: Json
+      }
       entity360_as_of: {
         Args: { _as_of: string; _entity_id: string }
         Returns: Json
