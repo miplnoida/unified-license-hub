@@ -75,6 +75,10 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   // surfaces too: they read the canonical `parties`/`persons` spine behind the
   // licensee register. Both agree with their `ModuleRoute` guard.
   ['/persons', 'licensee_management'],
+  // F8A-B4 — canonical address 360 and relationship intelligence are governed by
+  // the entity-structure permission family (view/propose/approve/apply); this
+  // agrees with their `ModuleRoute` guard.
+  ['/intelligence', 'entity_structure'],
 
 
 

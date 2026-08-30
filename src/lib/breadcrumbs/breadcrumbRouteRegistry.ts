@@ -95,6 +95,9 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   { pattern: '/entities/:entityId/structure', label: 'Structure workspace', parent: '/entities/:entityId' },
   { pattern: '/persons/identity-queue', label: 'Identity resolution queue', parent: '/entities' },
   { pattern: '/persons/:partyId', label: 'Person profile', parent: '/entities' },
+  // F8A-B4 — canonical address intelligence.
+  { pattern: '/intelligence/network', label: 'Relationship intelligence', parent: '/entities' },
+  { pattern: '/intelligence/addresses/:addressId', label: 'Address 360', parent: '/intelligence/network' },
   { pattern: '/licensing/entity-resolution', label: 'Entity resolution', parent: '/dashboard' },
   { pattern: '/licensing/entity-resolution/:caseId', label: 'Resolution case', parent: '/licensing/entity-resolution' },
 
