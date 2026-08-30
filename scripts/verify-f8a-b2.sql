@@ -526,9 +526,32 @@ BEGIN
     THEN pass:=pass+1; ELSE fail:=fail+1;
       RAISE WARNING 'E-07 controller below the ownership threshold not identified: %', v_node; END IF;
 
-    -- natural person terminating the chain is reported as such
-    IF (v_node->'qualification_reasons') @> '["NATURAL_PERSON_TERMINATION"]'::jsonb
-    THEN pass:=pass+1; ELSE fail:=fail+1; RAISE WARNING 'E-08 natural-person termination not reported'; END IF;
+    -- natural-person termination is DESCRIPTIVE completeness metadata only
+    IF (v_node->'path_metadata') @> '["NATURAL_PERSON_TERMINATION"]'::jsonb
+       AND NOT ((v_node->'qualification_reasons') @> '["NATURAL_PERSON_TERMINATION"]'::jsonb)
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'E-08 natural-person termination is not descriptive metadata: %', v_node; END IF;
+
+    -- NEGATIVE: a terminal natural person at 1%/1% with no control is NOT a UBO
+    IF NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_ubo->'ubos') n
+                    WHERE (n->>'party_id')::uuid = v_pn)
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'E-08b terminal natural person below every threshold was reported as UBO'; END IF;
+
+    -- no UBO may be listed without a governed qualification criterion
+    SELECT count(*) INTO v_n FROM jsonb_array_elements(v_ubo->'ubos') n
+     WHERE jsonb_array_length(n->'qualification_reasons') = 0
+        OR (n->'qualification_reasons') @> '["NATURAL_PERSON_TERMINATION"]'::jsonb;
+    IF v_n = 0 THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'E-08c % UBO(s) qualified without a governed criterion', v_n; END IF;
+
+    -- but the person IS still discovered as a complete terminal owner in the network
+    IF EXISTS (SELECT 1 FROM jsonb_array_elements(v_net->'nodes') n
+                WHERE (n->>'party_id')::uuid = v_pn
+                  AND (n->>'is_natural_person')::boolean
+                  AND (n->>'terminal')::boolean)
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'E-08d complete terminal person missing from the network'; END IF;
 
     -- no natural person is ever invented
     SELECT count(*) INTO v_n FROM jsonb_array_elements(v_ubo->'ubos') n
@@ -538,15 +561,27 @@ BEGIN
     IF v_n = 0 THEN pass:=pass+1; ELSE fail:=fail+1;
       RAISE WARNING 'E-09 % invented natural person(s) in the UBO result', v_n; END IF;
 
-    -- incomplete chains are explicit
-    -- canonical parties.party_kind is currently constrained to PERSON/ORGANIZATION,
-    -- so the legal-arrangement branch is proven on the resolver contract itself.
-    IF position('TRUST_LEGAL_ARRANGEMENT' in
-         (SELECT pg_get_functiondef(q.oid) FROM pg_proc q
-           JOIN pg_namespace m ON m.oid=q.pronamespace AND m.nspname='public'
-          WHERE q.proname='entity_ubo_resolve' LIMIT 1)) > 0
+    -- incomplete chains are explicit: a REAL TRUST party is behaviourally reported
+    IF EXISTS (SELECT 1 FROM jsonb_array_elements(v_ubo->'unresolved') u
+                WHERE (u->>'party_id')::uuid = v_t1
+                  AND u->>'reason'='TRUST_LEGAL_ARRANGEMENT'
+                  AND u->>'party_kind'='TRUST')
     THEN pass:=pass+1; ELSE fail:=fail+1;
-      RAISE WARNING 'E-10 resolver cannot report a trust/legal arrangement as unresolved'; END IF;
+      RAISE WARNING 'E-10 real TRUST party not reported as TRUST_LEGAL_ARRANGEMENT'; END IF;
+
+    -- foundation and partnership arrangements behave the same way
+    SELECT count(*) INTO v_n FROM jsonb_array_elements(v_ubo->'unresolved') u
+     WHERE (u->>'party_id')::uuid IN (v_fd, v_pt)
+       AND u->>'reason'='TRUST_LEGAL_ARRANGEMENT';
+    IF v_n = 2 THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'E-10b foundation/partnership arrangements not unresolved (% of 2)', v_n; END IF;
+
+    -- a legal arrangement is never treated as a natural person / UBO
+    IF NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_ubo->'ubos') n
+                    WHERE (n->>'party_id')::uuid IN (v_t1, v_fd, v_pt)
+                      AND (n->>'is_natural_person')::boolean)
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'E-10c legal arrangement treated as a natural person'; END IF;
 
     IF EXISTS (SELECT 1 FROM jsonb_array_elements(v_ubo->'unresolved') u
                 WHERE (u->>'party_id')::uuid = v_f1 AND u->>'reason'='FOREIGN_UNIDENTIFIED')
