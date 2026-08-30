@@ -54,7 +54,10 @@
     "verify:system-runtime-schema": "node scripts/system-runtime/verify-system-runtime-schema.mjs",
     "verify:route-runtime-smoke": "node scripts/system-runtime/runtime-route-smoke.mjs",
     "verify:route-harness-selftest": "node scripts/system-runtime/runtime-route-smoke.mjs --self-test",
-    "verify:notification-health-perf": "node scripts/system-runtime/verify-notification-health-perf.mjs"
+    "verify:notification-health-perf": "node scripts/system-runtime/verify-notification-health-perf.mjs",
+    "verify:internal-contracts": "node scripts/system-runtime/verify-internal-contracts.mjs",
+    "verify:internal-contracts-selftest": "node scripts/system-runtime/verify-internal-contracts.mjs --self-test",
+    "verify:forms-semantics": "node scripts/system-runtime/verify-forms-semantics.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
