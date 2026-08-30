@@ -29833,7 +29833,8 @@ export type Database = {
           is_controller: boolean
           is_direct: boolean
           is_ubo: boolean
-          owned_entity_id: string
+          owned_entity_id: string | null
+          owned_party_id: string | null
           owner_party_id: string
           ownership_type_id: string | null
           recorded_at: string
@@ -29863,7 +29864,8 @@ export type Database = {
           is_controller?: boolean
           is_direct?: boolean
           is_ubo?: boolean
-          owned_entity_id: string
+          owned_entity_id?: string | null
+          owned_party_id?: string | null
           owner_party_id: string
           ownership_type_id?: string | null
           recorded_at?: string
@@ -29893,7 +29895,8 @@ export type Database = {
           is_controller?: boolean
           is_direct?: boolean
           is_ubo?: boolean
-          owned_entity_id?: string
+          owned_entity_id?: string | null
+          owned_party_id?: string | null
           owner_party_id?: string
           ownership_type_id?: string | null
           recorded_at?: string
@@ -29923,6 +29926,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_prudential_early_warnings"
             referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "ownership_interests_owned_party_id_fkey"
+            columns: ["owned_party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ownership_interests_owner_party_id_fkey"
@@ -43928,6 +43938,68 @@ export type Database = {
           },
         ]
       }
+      ubo_policies: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          control_test_enabled: boolean
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          notes: string | null
+          ownership_threshold: number
+          regulator_id: string | null
+          status: string
+          updated_at: string
+          version: number
+          voting_threshold: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          control_test_enabled?: boolean
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          notes?: string | null
+          ownership_threshold: number
+          regulator_id?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+          voting_threshold: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          control_test_enabled?: boolean
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          notes?: string | null
+          ownership_threshold?: number
+          regulator_id?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+          voting_threshold?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ubo_policies_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_dynamic_roles: {
         Row: {
           created_at: string
@@ -45882,6 +45954,10 @@ export type Database = {
       }
       admin_upsert_license_lifecycle_config: {
         Args: { _config_id: string; _payload: Json }
+        Returns: string
+      }
+      admin_upsert_ubo_policy: {
+        Args: { _id: string; _payload: Json }
         Returns: string
       }
       ai_assurance_assess: {
@@ -50767,6 +50843,24 @@ export type Database = {
         Args: { _entity_id: string }
         Returns: Json
       }
+      entity_ownership_network: {
+        Args: {
+          _as_of?: string
+          _entity_id: string
+          _max_depth?: number
+          _max_nodes?: number
+        }
+        Returns: Json
+      }
+      entity_ownership_network_core: {
+        Args: {
+          _as_of: string
+          _entity_id: string
+          _max_depth: number
+          _max_nodes: number
+        }
+        Returns: Json
+      }
       entity_registry_entity_dto: {
         Args: { _entity_id: string }
         Returns: Json
@@ -50879,6 +50973,15 @@ export type Database = {
       }
       entity_structure_relationships: {
         Args: { _entity_id: string }
+        Returns: Json
+      }
+      entity_ubo_resolve: {
+        Args: {
+          _as_of?: string
+          _entity_id: string
+          _max_depth?: number
+          _max_nodes?: number
+        }
         Returns: Json
       }
       entity360_as_of: {
@@ -57525,6 +57628,10 @@ export type Database = {
       }
       twinpeaks_resolve_disagreement: {
         Args: { _disagreement_id: string; _resolution: string }
+        Returns: Json
+      }
+      ubo_policy_resolve: {
+        Args: { _as_of?: string; _regulator_id: string }
         Returns: Json
       }
       update_complaint_severity:
