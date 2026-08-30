@@ -139,13 +139,14 @@ export function useEntityCurrencyMutations() {
 
   return {
     setOverride: useMutation({
-      mutationFn: (v: { entityId: string; currency: string; effectiveFrom: string; reason: string; effectiveTo?: string | null }) =>
+      mutationFn: (v: { entityId: string; currency: string; effectiveFrom: string; reason: string; effectiveTo?: string | null; regulatorId?: string | null }) =>
         rpc<{ ok: boolean; entity_currency_profile_id: string; currency: string; status: CurrencyProfileStatus }>('entity_currency_override_set', {
           _entity_id: v.entityId,
           _currency: v.currency,
           _effective_from: v.effectiveFrom,
           _reason: v.reason,
           _effective_to: v.effectiveTo ?? null,
+          _regulator_id: v.regulatorId ?? null,
         }),
       onSuccess: invalidate,
     }),
