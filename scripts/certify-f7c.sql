@@ -564,14 +564,16 @@ BEGIN
     _buf := pg_temp.bufrec(_buf,'E','E-15',
       'the currency of record of a submitted or accepted filing can never be rebased', _ok, _msg);
 
-    -- notifications: stable keys, one per business event
+    -- notifications: stable keys, one per business event, one submission event
+    -- per submitted version (the original and the amended version)
     SELECT count(*) INTO _n FROM public.notification_event_queue q
      WHERE q.entity_type='return_filing' AND q.entity_id=_fil AND q.event_key='return.submitted';
     SELECT count(DISTINCT q.event_key) INTO _n2 FROM public.notification_event_queue q
      WHERE q.entity_type='return_filing' AND q.entity_id=_fil;
     _buf := pg_temp.bufrec(_buf,'E','E-16',
-      'the lifecycle emits stable, non-duplicated notification events through the shared queue',
-      _n = 1 AND _n2 >= 3, format('submitted=%s distinct keys=%s', _n, _n2));
+      'the lifecycle emits stable notification keys, one submission event per submitted version and no duplicates',
+      _n = 2 AND _n2 >= 3, format('submitted=%s distinct keys=%s', _n, _n2));
+
 
     RAISE EXCEPTION 'F7C_LIFECYCLE_ROLLBACK';
   EXCEPTION WHEN OTHERS THEN
