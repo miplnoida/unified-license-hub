@@ -4,7 +4,7 @@
 -- Every expected number below is derived by hand in the assertion message.
 
 BEGIN;
-SELECT plan(32);
+SELECT plan(22);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures
@@ -58,67 +58,23 @@ SELECT is(public.derive_ratio_result_state(NULL, NULL), 'INSUFFICIENT_DATA',
           'null value without a reason degrades to INSUFFICIENT_DATA, not CALCULATED');
 
 -- ---------------------------------------------------------------------------
--- Persistence path: record_return_ratio must persist provenance at insert time
--- (return_calculated_ratios is append-only, so a follow-up UPDATE is rejected).
+-- F8-W1A: the calculated-ratio store is canonical (return_metric_values).
+-- The duplicate store (return_calculated_ratios) is retired: its writer is
+-- dropped and it accepts no new rows, so no second ratio result can exist.
 -- ---------------------------------------------------------------------------
-CREATE TEMP TABLE _p2_ratio_ids(kind text, id uuid);
-
-DO $$
-DECLARE v_ret uuid := '00000000-0000-0000-0000-0000000a2005'; v uuid;
-BEGIN
-  -- 250 / 2000 * 100 = 12.5
-  v := public.record_return_ratio(v_ret, 'car', 'Capital adequacy ratio', 12.5, 'percent',
-                                  NULL, NULL, 3, '(cap.tier1 / cap.rwa) * 100');
-  INSERT INTO _p2_ratio_ids VALUES ('ok', v);
-
-  v := public.record_return_ratio(v_ret, 'npl_ratio', 'NPL ratio', NULL, 'percent',
-                                  NULL, 'division_by_zero', 1, '(loans.npl / loans.gross) * 100');
-  INSERT INTO _p2_ratio_ids VALUES ('div0', v);
-
-  v := public.record_return_ratio(v_ret, 'lcr', 'Liquidity coverage ratio', NULL, 'percent',
-                                  NULL, 'missing_input', 1, '(liq.hqla / liq.outflows) * 100');
-  INSERT INTO _p2_ratio_ids VALUES ('missing', v);
-
-  v := public.record_return_ratio(v_ret, 'lev', 'Leverage ratio', NULL, 'percent',
-                                  NULL, 'not_configured', 1, '');
-  INSERT INTO _p2_ratio_ids VALUES ('notcfg', v);
-
-  v := public.record_return_ratio(v_ret, 'roa', 'Return on assets', NULL, 'percent');
-  INSERT INTO _p2_ratio_ids VALUES ('noreason', v);
-END$$;
-
-SELECT is((SELECT value FROM public.return_calculated_ratios
-            WHERE id = (SELECT id FROM _p2_ratio_ids WHERE kind='ok')),
-          12.5::numeric, 'car persists the hand-derived 250/2000*100 = 12.5');
-SELECT is((SELECT result_state FROM public.return_calculated_ratios
-            WHERE id = (SELECT id FROM _p2_ratio_ids WHERE kind='ok')),
-          'CALCULATED', 'a persisted value is CALCULATED');
-SELECT is((SELECT ratio_version FROM public.return_calculated_ratios
-            WHERE id = (SELECT id FROM _p2_ratio_ids WHERE kind='ok')),
-          3, 'ratio version provenance is retained on the row');
-SELECT is((SELECT formula_snapshot FROM public.return_calculated_ratios
-            WHERE id = (SELECT id FROM _p2_ratio_ids WHERE kind='ok')),
-          '(cap.tier1 / cap.rwa) * 100', 'formula snapshot provenance is retained on the row');
-SELECT is((SELECT return_config_id FROM public.return_calculated_ratios
-            WHERE id = (SELECT id FROM _p2_ratio_ids WHERE kind='ok')),
-          '00000000-0000-0000-0000-0000000a2003'::uuid,
-          'source configuration is linked to the calculated ratio');
-
-SELECT is((SELECT value FROM public.return_calculated_ratios
-            WHERE id = (SELECT id FROM _p2_ratio_ids WHERE kind='div0')),
-          NULL::numeric, 'a zero denominator stores NULL, not a fake 0');
-SELECT is((SELECT result_state FROM public.return_calculated_ratios
-            WHERE id = (SELECT id FROM _p2_ratio_ids WHERE kind='div0')),
-          'CALCULATION_ERROR', 'zero denominator surfaces CALCULATION_ERROR');
-SELECT is((SELECT result_state FROM public.return_calculated_ratios
-            WHERE id = (SELECT id FROM _p2_ratio_ids WHERE kind='missing')),
-          'INSUFFICIENT_DATA', 'missing source input surfaces INSUFFICIENT_DATA');
-SELECT is((SELECT result_state FROM public.return_calculated_ratios
-            WHERE id = (SELECT id FROM _p2_ratio_ids WHERE kind='notcfg')),
-          'NOT_CONFIGURED', 'absent applicable configuration surfaces NOT_CONFIGURED');
-SELECT is((SELECT null_reason FROM public.return_calculated_ratios
-            WHERE id = (SELECT id FROM _p2_ratio_ids WHERE kind='noreason')),
-          'missing_input', 'a null value without a supplied reason still records a reason');
+SELECT hasnt_function('public', 'record_return_ratio',
+          'the retired duplicate-ratio writer no longer exists');
+SELECT throws_ok(
+  $$INSERT INTO public.return_calculated_ratios (return_id, ratio_key, value)
+    VALUES ('00000000-0000-0000-0000-0000000a2005', 'car', 12.5)$$,
+  NULL, NULL, 'the retired ratio store rejects new rows');
+SELECT ok((SELECT COUNT(*) FROM public.return_metric_values
+            WHERE source_kind = 'CALCULATED') > 0,
+          'calculated ratio results live in the canonical metric store');
+SELECT is((SELECT COUNT(*)::int FROM public.return_metric_values
+            WHERE source_kind = 'CALCULATED'
+              AND (calculation_rule_id IS NULL OR calculated_at IS NULL)),
+          0, 'every canonical calculated ratio retains rule and timing provenance');
 
 -- ---------------------------------------------------------------------------
 -- Threshold classification (warning vs breach, both comparator directions)
@@ -139,35 +95,13 @@ SELECT is(public.classify_ratio_risk(NULL, 10, 8, '<='), 'green',
           'a null ratio never fabricates a breach');
 
 -- ---------------------------------------------------------------------------
--- Recalculation must append, never overwrite historical evidence
+-- Retired ratio evidence stays immutable history
 -- ---------------------------------------------------------------------------
-DO $$
-DECLARE v_ret uuid := '00000000-0000-0000-0000-0000000a2005';
-BEGIN
-  -- restated numbers: 300 / 2000 * 100 = 15
-  PERFORM public.record_return_ratio(v_ret, 'car', 'Capital adequacy ratio', 15, 'percent',
-                                     NULL, NULL, 4, '(cap.tier1 / cap.rwa) * 100');
-END$$;
-
-SELECT is((SELECT COUNT(*)::int FROM public.return_calculated_ratios
-            WHERE return_id = '00000000-0000-0000-0000-0000000a2005' AND ratio_key = 'car'),
-          2, 'recalculation appends a second car row instead of replacing the first');
-SELECT is((SELECT value FROM public.return_calculated_ratios
-            WHERE id = (SELECT id FROM _p2_ratio_ids WHERE kind='ok')),
-          12.5::numeric, 'the original 12.5 evidence row is untouched after recalculation');
-SELECT is((SELECT value FROM public.return_calculated_ratios
-            WHERE return_id = '00000000-0000-0000-0000-0000000a2005' AND ratio_key='car'
-            ORDER BY computed_at DESC, ratio_version DESC LIMIT 1),
-          15::numeric, 'the latest car row carries the restated 300/2000*100 = 15');
-
 SELECT throws_ok(
-  $$UPDATE public.return_calculated_ratios SET value = 99
-     WHERE return_id = '00000000-0000-0000-0000-0000000a2005' AND ratio_key = 'car'$$,
-  NULL, NULL, 'calculated ratio evidence cannot be updated (append-only)');
+  $$UPDATE public.return_calculated_ratios SET value = 99$$,
+  NULL, NULL, 'retired calculated ratio evidence cannot be updated');
 SELECT throws_ok(
-  $$DELETE FROM public.return_calculated_ratios
-     WHERE return_id = '00000000-0000-0000-0000-0000000a2005'$$,
-  NULL, NULL, 'calculated ratio evidence cannot be deleted (append-only)');
-
+  $$DELETE FROM public.return_calculated_ratios$$,
+  NULL, NULL, 'retired calculated ratio evidence cannot be deleted');
 SELECT * FROM finish();
 ROLLBACK;
