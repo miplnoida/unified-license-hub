@@ -59,11 +59,12 @@ BEGIN
   END IF;
   SELECT count(*) INTO n FROM pg_proc p JOIN pg_namespace ns ON ns.oid = p.pronamespace
    WHERE ns.nspname = 'public'
-     AND p.prosrc ILIKE '%INTO%return_calculated_ratios%';
+     AND p.prosrc ~* '(insert|update|delete)[[:space:]]+(into[[:space:]]+)?(public\.)?return_calculated_ratios';
   IF n <> 0 THEN
-    RAISE EXCEPTION 'FAIL 5: % routine(s) still insert into the retired store', n;
+    RAISE EXCEPTION 'FAIL 5: % routine(s) still write the retired store', n;
   END IF;
   RAISE NOTICE 'PASS 5: no routine writes the retired store — no duplicate ratio result possible';
+
 
   -- 6. Retired store is read-only and its history is preserved (not deleted).
   ok := false;
