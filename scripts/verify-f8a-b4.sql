@@ -588,8 +588,9 @@ BEGIN
     RAISE WARNING 'N-03 B4 navigation entries missing/unguarded (% of 2)', v_n; END IF;
 
   -- the canonical permission family is used; no new permission was invented
-  IF NOT EXISTS (SELECT 1 FROM public.sec_permissions
-                  WHERE module IN ('relationship_intelligence','address_intelligence','addresses'))
+  IF NOT EXISTS (SELECT 1 FROM public.sec_modules
+                  WHERE key IN ('relationship_intelligence','address_intelligence','addresses'))
+
   THEN pass:=pass+1; ELSE fail:=fail+1;
     RAISE WARNING 'N-04 an uncatalogued B4 permission module exists'; END IF;
 
