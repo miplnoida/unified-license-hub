@@ -71,50 +71,91 @@ anon-readable and not browser-writable.
 `idx_ownership_owner_party_effective` (reverse/owner side), both partial to
 `superseded_at IS NULL AND is_direct` — the exact edge set the walk reads.
 
-## 7. Gate — `verify:f8a-b2`
+## 7. Certification repairs applied after the first gate pass
+
+1. **A natural person is not automatically a UBO.** `NATURAL_PERSON_TERMINATION`
+   is now descriptive `path_metadata` describing chain completeness. Membership
+   of `ubos[]` requires a governed criterion only: effective economic ownership
+   at or above the policy threshold, effective voting ownership at or above the
+   policy threshold, or an explicit control determination while the control test
+   is enabled.
+2. **UBO policy history is immutable.** `ACTIVE`/`SUPERSEDED` rows cannot be
+   rewritten or deleted in place (`UBO_POLICY_IMMUTABLE`, enforced additionally
+   by `ubo_policies_history_immutable`). A change creates a new effective-dated
+   version and supersedes the prior period; overlapping active periods are
+   rejected. Only `DRAFT` may be edited in place.
+3. **`max_nodes` bounds the traversal work itself.** Expansion is a
+   deterministic level-by-level walk that admits candidates against the node
+   budget *before* expanding them; there is no full walk trimmed by
+   `LIMIT _max_nodes`. Default 300, hard cap 1000, with `NODE_LIMIT`,
+   `truncated=true` and explicit frontier/boundary information.
+4. **Regulator scope is enforced on every regulated expansion.** Each connected
+   party that resolves to another regulated entity is checked against the
+   caller's scope. Super-admin authority traverses; otherwise the branch is
+   neither admitted nor expanded and is surfaced as
+   `REGULATOR_SCOPE_RESTRICTED`, with nothing behind it disclosed.
+5. **Legal-arrangement party kinds really work.** The legacy
+   `parties_party_kind_check` (PERSON/ORGANIZATION only) is removed; the B1
+   catalogue (`parties_party_kind_catalogue_fk`) is authoritative. `TRUST`,
+   `FOUNDATION` and `PARTNERSHIP` parties are creatable without any person or
+   organization projection, and the resolver reports them behaviourally as
+   `TRUST_LEGAL_ARRANGEMENT`.
+6. **Privilege residue closed.** `MAINTAIN` on `ubo_policies` was revoked from
+   signed-in users, and `party_kinds` browser DML was revoked (read-only for
+   `anon`/`authenticated`, governed writes only).
+
+## 8. Gate — `verify:f8a-b2`
 
 `scripts/verify-f8a-b2.sql`, rollback-safe, run twice with identical results:
 
 ```
-F8A-B2 gate: 64 passed, 0 failed
-F8A-B2 gate: PASS (64 assertions, all fixtures rolled back)
+F8A-B2 gate: 96 passed, 0 failed
+F8A-B2 gate: PASS (96 assertions, all fixtures rolled back)
 ```
 
-Scenarios proven behaviourally: direct person owner; non-regulated
-`P → H → E`; three ownership levels through two non-regulated holdings; two
-independent paths from the same person aggregated once each; economic 60% vs
-voting 24% from the same structure; controller at 1% qualifying only on the
-control test; circular ownership detected without looping; unapproved and
-derived rows excluded; historical as-of ownership; two policy versions producing
-different UBO outcomes from one structure; another regulator's policy not
-leaking; depth and node truncation reported; unauthenticated, external and
-out-of-scope denials; deterministic repeated output; zero residue.
+All 64 original assertions are retained. Added behavioural coverage: real
+`TRUST`/`FOUNDATION`/`PARTNERSHIP` parties with no person/organization
+projection and catalogue-only governance; a terminal natural person at 1%
+economic / 1% voting with no control determination that is discovered as a
+complete terminal owner but is **not** a UBO; no UBO listed without a governed
+qualification reason; policy A governing T1 while policy B supersedes from T2,
+with in-place mutation rejected, historical results unchanged and
+`version`/`approved_by`/`approved_at`/provenance preserved; overlapping active
+periods rejected; a wide synthetic network proving bounded expansion,
+`NODE_LIMIT` boundary reporting, determinism and full expansion under a
+sufficient budget, plus a static check that the core does not trim a full walk;
+and a second ACTIVE regulator body with its own licensee upstream of the seed,
+where a scoped internal reviewer (built in-transaction, since no live
+non-super-admin holds `entity_structure.view`) is stopped at that branch with an
+explicit restricted boundary while super-admin authority traverses it.
 
-## 8. Regressions
+## 9. Regressions
 
 | Gate | Result |
 |------|--------|
-| `verify:f8a-b2` (×2) | 64 / 64 PASS, zero residue |
+| `verify:f8a-b2` (×2) | 96 / 96 PASS, zero residue |
 | `verify:f8a-b1` | 64 / 64 PASS |
+| `verify:f1c` | 96 TESTED_PASS / 0 FAIL (after the `ubo_policies` privilege repair) |
+| `verify:f2b` | 63 TESTED_PASS / 0 FAIL (re-run after the party-kind identity change) |
+| `verify:f5b3` | 53 PASS / 0 FAIL |
+| `certify:f5c` | 73 / 73 PASS |
+| `verify:anon-execute` | PASS — 0 defects |
+| `verify:definer-guards` | PASS |
+| `verify:permission-refs` | PASS |
+| `verify:audit-contract` | PASS — 0 stale audit writers |
+| `verify:write-contract` | OK — 0 stale write column references |
+| typecheck (`tsgo --noEmit`) | PASS |
+| `npm run build` | PASS |
 
-Remaining required regressions for closure (not yet executed at the time of
-writing): `verify:f2b`, `verify:f5b3`, `certify:f5c`, `verify:f1c`,
-`verify:anon-execute`, `verify:definer-guards`,
-`verify:permission-references`, `verify:audit-contract`,
-`verify:write-contract`, typecheck/build.
+## 10. Known gaps
 
-## 9. Known gaps
+- No UI surface for the network or UBO output (later wave).
+- Only one ACTIVE regulator body owns live licensees; cross-regulator scope and
+  policy divergence are therefore proven with rollback-safe fixtures.
+- Baseline Supabase linter findings (SECURITY DEFINER breadth, extensions in
+  public) remain as previously recorded; none were introduced here.
 
-- `parties.party_kind` is still constrained to `PERSON` / `ORGANIZATION`, so
-  trusts/foundations/partnerships cannot yet be stored as first-class parties;
-  the resolver's `TRUST_LEGAL_ARRANGEMENT` branch is therefore contract-proven
-  rather than fixture-proven. Widening the party-kind constraint belongs to a
-  later wave.
-- No UI surface for the network or UBO output (B5 scope).
-- Only one regulator currently owns licensees, so cross-regulator UBO divergence
-  is proven through two policy versions plus policy isolation.
+## 11. Status
 
-## 10. Status
+F8A-B2 OWNERSHIP TRAVERSAL & UBO CLOSED — READY FOR F8A-B3
 
-Ownership traversal and UBO calculation are implemented, gated and green;
-closure verdict is pending the full regression battery in §8.
