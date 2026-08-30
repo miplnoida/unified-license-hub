@@ -18,7 +18,7 @@
 --   anonymous (role anon, no JWT)
 
 BEGIN;
-SELECT plan(35);
+SELECT plan(39);
 
 DO $$
 DECLARE
@@ -207,12 +207,17 @@ SELECT throws_ok(
   NULL, NULL, 'V read-only prudential viewer cannot acknowledge an EWI alert');
 
 SET LOCAL "request.jwt.claims" = '{"sub":"cf2c227e-52fd-46ff-b751-db30ecd20ec1","role":"authenticated"}';
-SELECT throws_ok(
-  $$UPDATE public.prudential_ewi_alerts
-      SET status = 'acknowledged',
-          acknowledged_by = '021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce'
-    WHERE id = '00000000-0000-0000-0000-0000000f2020'$$,
-  NULL, NULL, 'E2 entity user cannot spoof an acknowledgement actor by direct update');
+-- RLS makes the row invisible, so the spoofing UPDATE matches nothing at all.
+UPDATE public.prudential_ewi_alerts
+   SET status = 'acknowledged',
+       acknowledged_by = '021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce'
+ WHERE id = '00000000-0000-0000-0000-0000000f2020';
+RESET ROLE;
+SELECT is((SELECT status || '/' || COALESCE(acknowledged_by::text,'none')
+             FROM public.prudential_ewi_alerts
+            WHERE id = '00000000-0000-0000-0000-0000000f2020'), 'open/none',
+          'E2 entity user cannot spoof an acknowledgement actor by direct update');
+SET LOCAL ROLE authenticated;
 
 SET LOCAL "request.jwt.claims" = '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
 SELECT lives_ok(
@@ -243,15 +248,19 @@ SELECT throws_ok(
 -- ---------------------------------------------------------------------------
 -- 6. Configuration objects are admin-only
 -- ---------------------------------------------------------------------------
-SET LOCAL "request.jwt.claims" = '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
-SELECT throws_ok(
-  $$UPDATE public.prudential_ewi_rules SET severity = 'low'
-     WHERE id = '00000000-0000-0000-0000-0000000f2016'$$,
-  NULL, NULL, 'an ordinary supervisor cannot mutate EWI rule configuration');
+SET LOCAL "request.jwt.claims" = '{"sub":"ef43e80a-e17e-4f26-aa91-bcf0d99e3d89","role":"authenticated"}';
+UPDATE public.prudential_ewi_rules SET severity = 'low'
+ WHERE id = '00000000-0000-0000-0000-0000000f2016';
+RESET ROLE;
+SELECT is((SELECT severity FROM public.prudential_ewi_rules
+            WHERE id = '00000000-0000-0000-0000-0000000f2016'), 'medium',
+          'a persona without manage_config cannot mutate EWI rule configuration');
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = '{"sub":"ef43e80a-e17e-4f26-aa91-bcf0d99e3d89","role":"authenticated"}';
 SELECT throws_ok(
   $$INSERT INTO public.prudential_assessment_components (code, label, weight, sort_order)
     VALUES ('ZZ', 'Rogue component', 1, 99)$$,
-  '42501', NULL, 'an ordinary supervisor cannot add assessment components');
+  '42501', NULL, 'a persona without manage_config cannot add assessment components');
 
 SET LOCAL "request.jwt.claims" = '{"sub":"4248640c-3397-4cf6-a274-fa09bad4ba64","role":"authenticated"}';
 SELECT lives_ok(
