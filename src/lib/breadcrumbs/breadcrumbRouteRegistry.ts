@@ -93,6 +93,8 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   { pattern: '/entities/:entityId', resolver: 'entity', param: 'entityId', parent: '/entities' },
   { pattern: '/entities/:entityId/360', resolver: 'entity', param: 'entityId', parent: '/entities' },
   { pattern: '/entities/:entityId/structure', label: 'Structure workspace', parent: '/entities/:entityId' },
+  { pattern: '/persons/identity-queue', label: 'Identity resolution queue', parent: '/entities' },
+  { pattern: '/persons/:partyId', label: 'Person profile', parent: '/entities' },
   { pattern: '/licensing/entity-resolution', label: 'Entity resolution', parent: '/dashboard' },
   { pattern: '/licensing/entity-resolution/:caseId', label: 'Resolution case', parent: '/licensing/entity-resolution' },
 
