@@ -199,11 +199,18 @@ for (const file of edgeFiles) {
 
 // -------------------------------------------------------- 2. routine bodies
 const routineStats = { routines: 0, aliases: 0, dependencies: 0 };
+// Function bodies are multi-line, so newlines are encoded before transport and
+// restored here. Extension-owned routines (pgtap et al.) are not application
+// contracts and are excluded.
 const bodies = q(`
-  SELECT p.proname, pg_get_functiondef(p.oid)
+  SELECT p.proname, replace(pg_get_functiondef(p.oid), chr(10), '~~NL~~')
   FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
-  WHERE n.nspname='public' AND p.prokind='f'
-`);
+  WHERE n.nspname='public' AND p.prokind IN ('f','p')
+    AND NOT EXISTS (
+      SELECT 1 FROM pg_depend d
+      WHERE d.objid = p.oid AND d.deptype = 'e'
+    )
+`).map(([name, def]) => [name, def.split('~~NL~~').join('\n')]);
 
 const RESERVED = new Set(['as', 'on', 'where', 'select', 'from', 'join', 'left', 'right', 'inner', 'outer',
   'lateral', 'group', 'order', 'limit', 'using', 'set', 'and', 'or', 'not', 'union', 'all', 'when',
