@@ -46,3 +46,19 @@ definer/`search_path` hardening, absence of browser write grants, RLS, filing sn
 columns, absence of competing preference columns, approval mode as configuration,
 server-side resolution with provenance, and fail-closed behaviour for an unresolvable
 entity. Result: 82/82 assertions pass, run twice, with zero residue.
+
+## Strict regulator-body scope (2026-08-31)
+
+Canonical institutional identity is `regulators.id`; `licensees.lead_regulator_id`,
+`regulator_officer_id` and `alternate_regulator_id` remain officer/user assignments and are
+never used as regulator identity. Entity currency profiles, approval mode, monetary
+configuration, FX resolution, filing snapshots and historical display are all resolved
+strictly per regulator body, with fail-closed behaviour when a body is ambiguous or has no
+monetary configuration. `scripts/verify-f6x-currency.sql` now adds Section P (static identity
+assertions) and Section Q (rollback-safe two-regulator behavioural fixture): 141/141 pass.
+
+Entity 360 → Reporting & currency renders one card per applicable regulator body with a
+regulator selector, per-body resolved currency and provenance, per-body override history,
+approval control, pending proposals, and an explicit "monetary configuration required" state.
+`ComplaintEntityCard` now scopes licensed-entity search by the regulator body reached through
+the entity's sector instead of the officer assignment field.

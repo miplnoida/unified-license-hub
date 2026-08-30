@@ -74,22 +74,31 @@ export function ComplaintEntityCard({ complaintId, regulatorId, enforcementActio
       const term = search.trim();
       const pageSize = 50;
 
-      const nameQ = (supabase as any)
-        .from('licensees')
-        .select('id, name, license_id, lead_regulator_id, licenses:license_id(license_number)')
-        .order('name')
-        .limit(pageSize);
+      // Scope by the canonical regulator BODY (regulators.id, reached through
+      // the entity's sector). `lead_regulator_id` and friends are officer/user
+      // assignments, never institutional identity, so they must never be
+      // compared with a regulator context id.
+      const bodyScoped = (q: any) =>
+        regulatorId ? q.eq('sectors.regulator_id', regulatorId) : q;
+
+      const nameQ = bodyScoped(
+        (supabase as any)
+          .from('licensees')
+          .select('id, name, license_id, sector_id, sectors:sector_id!inner(regulator_id), licenses:license_id(license_number)')
+          .order('name')
+          .limit(pageSize),
+      );
       if (term) nameQ.ilike('name', `%${term}%`);
-      if (regulatorId) nameQ.eq('lead_regulator_id', regulatorId);
 
       const numberQ = term
-        ? (supabase as any)
-            .from('licensees')
-            .select('id, name, license_id, lead_regulator_id, licenses:license_id!inner(license_number)')
-            .ilike('licenses.license_number', `%${term}%`)
-            .limit(pageSize)
+        ? bodyScoped(
+            (supabase as any)
+              .from('licensees')
+              .select('id, name, license_id, sector_id, sectors:sector_id!inner(regulator_id), licenses:license_id!inner(license_number)')
+              .ilike('licenses.license_number', `%${term}%`)
+              .limit(pageSize),
+          )
         : null;
-      if (numberQ && regulatorId) numberQ.eq('lead_regulator_id', regulatorId);
 
       const [nameRes, numberRes] = await Promise.all([
         nameQ,

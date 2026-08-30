@@ -40,6 +40,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
   const [effectiveFrom, setEffectiveFrom] = useState('');
   const [reason, setReason] = useState('');
   const [decision, setDecision] = useState<ReasonDialogRequest | null>(null);
+  const [bodyId, setBodyId] = useState<string | null>(null);
 
 
   if (isLoading) {
@@ -55,11 +56,29 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
     );
   }
 
-  const activeProfile = data.history.find((p) => p.id === data.entity_currency_profile_id) ?? null;
+  const bodies = data.regulator_bodies ?? [];
+  // Each applicable regulator body carries its own monetary configuration,
+  // override history and approval control, so the panel is always scoped to one
+  // canonical regulator body (regulators.id) at a time.
+  const selectedBody =
+    bodies.find((b) => b.regulator_id === bodyId) ??
+    bodies.find((b) => b.regulator_id === data.regulator_id) ??
+    bodies[0] ?? null;
+  const scopedRegulatorId = selectedBody?.regulator_id ?? data.regulator_id ?? null;
+  const scopedHistory = selectedBody ? selectedBody.overrides ?? [] : data.history;
+  const activeProfileId = selectedBody
+    ? selectedBody.entity_currency_profile_id ?? null
+    : data.entity_currency_profile_id;
+  const activeProfile = scopedHistory.find((p) => p.id === activeProfileId) ?? null;
   const canManage = !!data.can_manage;
-  const approvalMode = data.approval_mode ?? 'DIRECT_AUTHORIZED';
+  const approvalMode = selectedBody?.approval_mode ?? data.approval_mode ?? 'DIRECT_AUTHORIZED';
   const makerChecker = approvalMode === 'MAKER_CHECKER';
-  const pending = data.pending_proposals ?? [];
+  const pending = (selectedBody ? selectedBody.pending_proposals : data.pending_proposals) ?? [];
+  const configurationRequired = !!selectedBody && !selectedBody.monetary_config_present;
+  const resolvedCurrency = selectedBody ? selectedBody.currency ?? null : data.currency;
+  const resolvedSource = (selectedBody ? selectedBody.source : data.source) ?? null;
+  const baseCurrency = selectedBody?.base_currency ?? data.regulator_base_currency;
+  const consolidatedCurrency = selectedBody?.reporting_currency ?? data.regulator_reporting_currency;
 
   const submitOverride = async () => {
     if (!code || !effectiveFrom || reason.trim().length < 10) {
@@ -67,7 +86,9 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
       return;
     }
     try {
-      const res = await setOverride.mutateAsync({ entityId, currency: code, effectiveFrom, reason: reason.trim() });
+      const res = await setOverride.mutateAsync({
+        entityId, currency: code, effectiveFrom, reason: reason.trim(), regulatorId: scopedRegulatorId,
+      });
       toast.success(res?.status === 'PROPOSED'
         ? `Override to ${code} proposed. It takes effect only once an independent approver accepts it.`
         : `Reporting currency override set to ${code}.`);
@@ -87,7 +108,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
         { label: 'Proposed currency', value: <span className="font-mono">{p.reporting_currency_override}</span> },
         { label: 'Effective from', value: formatDateOnly(p.effective_from) },
         { label: 'Proposal reason', value: p.reason ?? '—' },
-        { label: 'Current reporting currency', value: <span className="font-mono">{data.currency}</span> },
+        { label: 'Current reporting currency', value: <span className="font-mono">{resolvedCurrency ?? '—'}</span> },
       ],
       confirmLabel: decision === 'APPROVE' ? 'Approve override' : 'Reject proposal',
       destructive: decision === 'REJECT',
@@ -120,7 +141,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
       context: [
         { label: 'Current override', value: <span className="font-mono">{p.reporting_currency_override}</span> },
         { label: 'Effective from', value: formatDateOnly(p.effective_from) },
-        { label: 'Regulator base currency', value: <span className="font-mono">{data.regulator_base_currency}</span> },
+        { label: 'Regulator base currency', value: <span className="font-mono">{baseCurrency ?? '—'}</span> },
       ],
       confirmLabel: 'Supersede override',
       destructive: true,
@@ -136,23 +157,46 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
     <div className="space-y-4">
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">
-          <div>
+          <div className="space-y-2">
             <CardTitle className="flex items-center gap-2 text-base"><Coins className="h-4 w-4" />Reporting &amp; currency</CardTitle>
             <CardDescription>
-              The currency this entity prepares its regulatory returns in. Overrides are maintained only here.
+              The currency this entity prepares its regulatory returns in, per regulator. Overrides are maintained only here.
             </CardDescription>
+            {bodies.length > 1 && (
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Regulator</Label>
+                <Select value={scopedRegulatorId ?? undefined} onValueChange={setBodyId}>
+                  <SelectTrigger className="h-8 w-[20rem]"><SelectValue placeholder="Select regulator" /></SelectTrigger>
+                  <SelectContent>
+                    {bodies.map((b) => (
+                      <SelectItem key={b.regulator_id} value={b.regulator_id}>
+                        {b.name ?? b.code ?? b.regulator_id}{b.code ? ` (${b.code})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Badge variant="secondary">Supervised by {bodies.length} regulators</Badge>
+              </div>
+            )}
+            {selectedBody?.sources?.length ? (
+              <p className="text-xs text-muted-foreground">
+                Regulator determined from: {selectedBody.sources.join(', ').toLowerCase().replace(/_/g, ' ')}
+              </p>
+            ) : null}
           </div>
           {canManage && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <GuardedButton module="licensee_management" action="edit" size="sm">Set override</GuardedButton>
+                <GuardedButton module="licensee_management" action="edit" size="sm" disabled={configurationRequired}>
+                  Set override
+                </GuardedButton>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{makerChecker ? 'Propose entity reporting currency' : 'Set entity reporting currency'}</DialogTitle>
                   <DialogDescription>
-                    The override applies from the effective date onwards. Earlier reporting periods and already
-                    opened filings keep the currency recorded at the time.
+                    The override applies to {selectedBody?.name ?? 'this regulator'} only, from the effective date onwards.
+                    Earlier reporting periods and already opened filings keep the currency recorded at the time.
                     {makerChecker && ' This regulator requires an independent approver, so the change is recorded as a proposal first.'}
                   </DialogDescription>
                 </DialogHeader>
@@ -192,18 +236,45 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
             </Dialog>
           )}
         </CardHeader>
+        {configurationRequired && (
+          <CardContent className="pt-0">
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <p className="font-medium">Monetary configuration required</p>
+              <p className="mt-1">
+                {selectedBody?.name ?? 'This regulator'} has no monetary configuration of its own, so no base currency
+                can be resolved and no override may be recorded. Configure this regulator&rsquo;s currency settings first.
+              </p>
+            </div>
+          </CardContent>
+        )}
+        {data.data_remediation_required && (
+          <CardContent className="pt-0">
+            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+              <p className="font-medium text-destructive">Historical record requires remediation</p>
+              <p className="mt-1 text-muted-foreground">
+                At least one historical override is not attributed to a regulator. It is retained unchanged and is
+                excluded from currency resolution until it is remediated.
+              </p>
+            </div>
+          </CardContent>
+        )}
         <CardContent className="grid gap-4 md:grid-cols-3">
-          <Field label="Regulator base currency" value={data.regulator_base_currency} />
+          <Field label="Regulator" value={selectedBody?.name ?? '—'} />
+          <Field label="Regulator base currency" value={baseCurrency ?? 'Not configured'} />
           <Field
             label="Entity reporting currency"
             value={
-              <span className="flex items-center gap-2">
-                <span className="font-mono">{data.currency}</span>
-                <Badge variant="outline">{CURRENCY_SOURCE_LABELS[data.source]}</Badge>
-              </span>
+              resolvedCurrency ? (
+                <span className="flex items-center gap-2">
+                  <span className="font-mono">{resolvedCurrency}</span>
+                  {resolvedSource && <Badge variant="outline">{CURRENCY_SOURCE_LABELS[resolvedSource]}</Badge>}
+                </span>
+              ) : (
+                <span className="text-muted-foreground">Not resolvable — {selectedBody?.error ?? 'configuration required'}</span>
+              )
             }
           />
-          <Field label="Regulator consolidated reporting currency" value={data.regulator_reporting_currency} />
+          <Field label="Regulator consolidated reporting currency" value={consolidatedCurrency ?? 'Not configured'} />
           <Field label="Resolved as at" value={formatDateOnly(data.as_of)} />
           <Field label="Effective from" value={activeProfile ? formatDateOnly(activeProfile.effective_from) : '—'} />
           <Field label="Effective to" value={activeProfile?.effective_to ? formatDateOnly(activeProfile.effective_to) : 'Open-ended'} />
@@ -213,9 +284,9 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
           <Field label="Override approval control" value={CURRENCY_APPROVAL_MODE_LABELS[approvalMode]} />
         </CardContent>
 
-        {data.source === 'REGULATOR_BASE' && (
+        {resolvedSource === 'REGULATOR_BASE' && (
           <CardContent className="pt-0 text-sm text-muted-foreground">
-            Reporting currency: <span className="font-mono">{data.currency}</span> — inherited from the regulator base
+            Reporting currency: <span className="font-mono">{resolvedCurrency}</span> — inherited from the regulator base
             currency. No override record is stored for the default.
           </CardContent>
         )}
@@ -314,7 +385,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
           <CardDescription>Superseded overrides are retained so historical periods stay resolvable.</CardDescription>
         </CardHeader>
         <CardContent>
-          {data.history.length === 0 ? (
+          {scopedHistory.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">No override has ever been recorded for this entity.</p>
           ) : (
             <Table>
@@ -326,7 +397,7 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.history.map((p) => (
+                {scopedHistory.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell className="font-mono">{p.reporting_currency_override}</TableCell>
                     <TableCell>{formatDateOnly(p.effective_from)}</TableCell>
