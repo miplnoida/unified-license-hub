@@ -824,8 +824,62 @@ BEGIN
       VALUES ('B2 Gate Other-Regulator Licensee','ACTIVE', v_seed2, 1)
       RETURNING id INTO v_ent2;
 
-      INSERT INTO public.entity_reporting_regulators (entity_id, regulator_id, is_primary, effective_from)
-      VALUES (v_ent2, v_reg2, true, v_today - 400);
+      -- canonical supervision assignment binds it to the OTHER regulator body
+      INSERT INTO public.entity_supervision_assignments
+        (entity_id, regulator_id, status, is_primary, effective_from)
+      VALUES (v_ent2, v_reg2, 'active', true, v_today - 400);
+
+      IF public.entity_reporting_regulator(v_ent2) = v_reg2
+      THEN pass:=pass+1; ELSE fail:=fail+1;
+        RAISE WARNING 'H-00b connected entity did not resolve to the other regulator body'; END IF;
+
+      INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
+        economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
+      VALUES (v_seed2, v_seed, v_otype, 30, 30, true, 'APPROVED', v_today - 400);
+
+      -- upstream owner BEHIND the restricted entity, which must never leak
+      INSERT INTO public.parties (party_kind, display_name) VALUES
+        ('PERSON','B2 Gate Hidden Upstream Person') RETURNING id INTO v_reg2_ent;
+      INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
+        economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
+      VALUES (v_reg2_ent, v_seed2, v_otype, 100, 100, true, 'APPROVED', v_today - 400);
+
+      -- H-01 super-admin authority traverses the connected regulated entity
+      v_net2 := public.entity_ownership_network(v_entity, v_today, 10, 300);
+      IF EXISTS (SELECT 1 FROM jsonb_array_elements(v_net2->'nodes') n
+                  WHERE (n->>'party_id')::uuid = v_seed2)
+      THEN pass:=pass+1; ELSE fail:=fail+1;
+        RAISE WARNING 'H-01 super-admin could not traverse a connected regulated entity'; END IF;
+
+      -- H-02 an internal identity scoped ONLY to the seed entity is stopped there.
+      -- The scoped reviewer is built in-transaction: no live profile currently
+      -- holds entity_structure.view without super-admin authority.
+      SELECT sm.id, sp.id INTO v_mod, v_perm FROM public.sec_permissions sp
+        JOIN public.sec_modules sm ON sm.id = sp.module_id
+       WHERE sm.key='entity_structure' AND sp.key='view';
+      SELECT id INTO v_stype FROM public.sec_scope_types WHERE key='institution';
+      SELECT p.id INTO v_staff FROM public.profiles p
+       WHERE NOT public.is_super_admin(p.id) ORDER BY p.id LIMIT 1;
+
+      IF v_staff IS NOT NULL AND v_mod IS NOT NULL AND v_perm IS NOT NULL AND v_stype IS NOT NULL THEN
+        INSERT INTO public.sec_roles (key, name, role_type, status)
+        VALUES ('b2_gate_scoped_reviewer','B2 Gate Scoped Reviewer','internal','active')
+        RETURNING id INTO v_role;
+        INSERT INTO public.sec_role_permissions (role_id, permission_id) VALUES (v_role, v_perm);
+        INSERT INTO public.sec_role_scopes (role_id, module_id, scope_type_id)
+        VALUES (v_role, v_mod, v_stype) RETURNING id INTO v_scope;
+        INSERT INTO public.sec_role_scope_values (role_scope_id, value_kind, value_id)
+        VALUES (v_scope, 'licensee', v_entity);
+        INSERT INTO public.sec_user_roles (user_id, role_id) VALUES (v_staff, v_role);
+
+        IF public.regulatory_scope_allows(v_staff,'entity_structure','view',v_reg,NULL,NULL,v_entity,NULL)
+           AND NOT public.regulatory_scope_allows(v_staff,'entity_structure','view',v_reg2,NULL,NULL,v_ent2,NULL)
+        THEN pass:=pass+1; ELSE fail:=fail+1;
+          RAISE WARNING 'H-02a scoped reviewer fixture does not have the expected scope'; END IF;
+      ELSE
+        v_staff := NULL;
+      END IF;
+
 
       INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
         economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
