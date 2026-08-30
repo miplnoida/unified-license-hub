@@ -171,13 +171,45 @@ BEGIN
     INSERT INTO public.parties (party_kind, display_name) VALUES
       ('ORGANIZATION','B2 Gate Holding Two (non-regulated)') RETURNING id INTO v_h2;
     INSERT INTO public.parties (party_kind, display_name) VALUES
-      ('ORGANIZATION','B2 Gate Trust Vehicle') RETURNING id INTO v_t1;
+      ('PERSON','B2 Gate Minor Terminal Person') RETURNING id INTO v_pn;
     INSERT INTO public.parties (party_kind, display_name) VALUES
       ('ORGANIZATION','B2 Gate Foreign Unidentified') RETURNING id INTO v_f1;
     INSERT INTO public.parties (party_kind, display_name) VALUES
       ('ORGANIZATION','B2 Gate Cycle X') RETURNING id INTO v_x;
     INSERT INTO public.parties (party_kind, display_name) VALUES
       ('ORGANIZATION','B2 Gate Cycle Y') RETURNING id INTO v_y;
+
+    -- REAL legal-arrangement party kinds: the B1 catalogue is authoritative and
+    -- the old PERSON/ORGANIZATION-only check must no longer exist.
+    INSERT INTO public.parties (party_kind, display_name) VALUES
+      ('TRUST','B2 Gate Trust Vehicle') RETURNING id INTO v_t1;
+    INSERT INTO public.parties (party_kind, display_name) VALUES
+      ('FOUNDATION','B2 Gate Foundation') RETURNING id INTO v_fd;
+    INSERT INTO public.parties (party_kind, display_name) VALUES
+      ('PARTNERSHIP','B2 Gate Partnership') RETURNING id INTO v_pt;
+
+    -- A-07 legal arrangements are storable as first-class canonical parties
+    SELECT count(*) INTO v_n FROM public.parties
+     WHERE id IN (v_t1, v_fd, v_pt) AND party_kind IN ('TRUST','FOUNDATION','PARTNERSHIP');
+    IF v_n = 3 THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'A-07 legal-arrangement party kinds are not storable (% of 3)', v_n; END IF;
+
+    -- A-08 they must NOT be projected as persons or organizations
+    IF NOT EXISTS (SELECT 1 FROM public.persons WHERE party_id IN (v_t1, v_fd, v_pt))
+       AND NOT EXISTS (SELECT 1 FROM public.organizations WHERE party_id IN (v_t1, v_fd, v_pt))
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'A-08 legal arrangements were projected as persons/organizations'; END IF;
+
+    -- A-09 party kind is governed by the catalogue alone
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                    WHERE conrelid='public.parties'::regclass
+                      AND conname='parties_party_kind_check')
+       AND EXISTS (SELECT 1 FROM pg_constraint
+                    WHERE conrelid='public.parties'::regclass
+                      AND conname='parties_party_kind_catalogue_fk')
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'A-09 parties.party_kind is not governed by the catalogue alone'; END IF;
+
 
     -- A NON-REGULATED holding company can own a regulated entity without a
     -- fake licensee row: this is the B2 pre-condition.
