@@ -50347,6 +50347,10 @@ export type Database = {
         Args: { _breach_note?: string; _obligation_id: string; _status: string }
         Returns: Json
       }
+      enforcement_penalty_currency_override: {
+        Args: { _case_id: string; _currency: string; _reason: string }
+        Returns: Json
+      }
       enforcement_penalty_currency_resolve: {
         Args: {
           _as_of?: string
