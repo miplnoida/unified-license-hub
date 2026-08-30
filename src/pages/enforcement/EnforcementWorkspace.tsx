@@ -158,8 +158,13 @@ export default function EnforcementWorkspace() {
 
   const view = caseQuery.data ?? null;
   const kase = view?.case;
+  const penaltyCurrency = useEnforcementPenaltyCurrency(kase?.entity_id);
+  const currencyOverride = usePenaltyCurrencyOverride(id);
+  const [overrideCurrency, setOverrideCurrency] = useState('');
+  const [overrideReason, setOverrideReason] = useState('');
   const blockers = view?.blockers ?? [];
   const actions = useMemo(() => view?.available_actions ?? [], [view?.available_actions]);
+
   const advancing = actions.filter((a) => a.advances_stage);
   const recording = actions.filter((a) => !a.advances_stage);
 
