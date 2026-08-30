@@ -603,7 +603,7 @@ BEGIN
     _def ~* 'mandatory_currency_code' AND _def ~* 'entity_currency_profiles' AND _def ~* 'base_currency',
     'resolver hierarchy present');
 
-  PERFORM pg_temp.rec('F','F-02','only an APPROVED override can govern; proposed or superseded overrides cannot',
+  
   PERFORM pg_temp.rec('F','F-02','only an authorised override that reached ACTIVE (or the ACTIVE override in force at a historical date, later superseded) can govern; proposed and rejected overrides never can',
     _def ~* 'status IN \(''ACTIVE'',''SUPERSEDED''\)' AND _def !~* 'PROPOSED' AND _def !~* 'REJECTED',
     'ACTIVE/SUPERSEDED-only override selection');
