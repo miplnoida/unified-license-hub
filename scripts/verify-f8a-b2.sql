@@ -19,9 +19,14 @@ DECLARE
   v_entity uuid; v_seed uuid; v_reg uuid; v_reg2 uuid;
   v_admin uuid; v_outsider uuid; v_staff uuid;
   v_p1 uuid; v_p2 uuid; v_pc uuid; v_h1 uuid; v_h2 uuid; v_t1 uuid; v_f1 uuid;
-  v_x uuid; v_y uuid;
+  v_x uuid; v_y uuid; v_pn uuid; v_fd uuid; v_pt uuid;
   v_otype uuid; v_pol_a uuid; v_pol_b uuid; v_pol_other uuid;
   v_net jsonb; v_net2 jsonb; v_ubo jsonb; v_node jsonb; v_res jsonb;
+  v_pol_a_ver int; v_pol_a_by uuid; v_pol_a_at timestamptz; v_pol_a_thr numeric;
+  v_t1_res jsonb; v_hist_ubo_before int; v_hist_ubo_after int;
+  v_wide_root uuid; v_wide uuid; v_prev uuid; v_i int; v_j int;
+  v_ent2 uuid; v_seed2 uuid; v_reg2_ent uuid;
+  v_mod uuid; v_perm uuid; v_stype uuid; v_role uuid; v_scope uuid;
   v_today date := CURRENT_DATE;
 BEGIN
   -- ==========================================================================
@@ -147,7 +152,15 @@ BEGIN
      AND NOT EXISTS (SELECT 1 FROM public.ownership_interests o WHERE o.owned_party_id = l.party_id)
    ORDER BY l.id LIMIT 1;
   v_reg := public.entity_reporting_regulator(v_entity);
-  SELECT id INTO v_reg2 FROM public.regulators WHERE id <> v_reg ORDER BY id LIMIT 1;
+  -- the second regulator body must be a genuinely ACTIVE distinct authority;
+  -- only one active body exists live, so a rollback-safe one is created here
+  SELECT id INTO v_reg2 FROM public.regulators
+   WHERE id <> v_reg AND lower(COALESCE(status,'active')) = 'active'
+   ORDER BY id LIMIT 1;
+  IF v_reg2 IS NULL THEN
+    INSERT INTO public.regulators (name, code, status)
+    VALUES ('B2 Gate Second Authority','B2GATE2','active') RETURNING id INTO v_reg2;
+  END IF;
 
   IF v_admin IS NULL OR v_entity IS NULL OR v_otype IS NULL OR v_reg IS NULL THEN
     fail:=fail+1;
@@ -167,13 +180,45 @@ BEGIN
     INSERT INTO public.parties (party_kind, display_name) VALUES
       ('ORGANIZATION','B2 Gate Holding Two (non-regulated)') RETURNING id INTO v_h2;
     INSERT INTO public.parties (party_kind, display_name) VALUES
-      ('ORGANIZATION','B2 Gate Trust Vehicle') RETURNING id INTO v_t1;
+      ('PERSON','B2 Gate Minor Terminal Person') RETURNING id INTO v_pn;
     INSERT INTO public.parties (party_kind, display_name) VALUES
       ('ORGANIZATION','B2 Gate Foreign Unidentified') RETURNING id INTO v_f1;
     INSERT INTO public.parties (party_kind, display_name) VALUES
       ('ORGANIZATION','B2 Gate Cycle X') RETURNING id INTO v_x;
     INSERT INTO public.parties (party_kind, display_name) VALUES
       ('ORGANIZATION','B2 Gate Cycle Y') RETURNING id INTO v_y;
+
+    -- REAL legal-arrangement party kinds: the B1 catalogue is authoritative and
+    -- the old PERSON/ORGANIZATION-only check must no longer exist.
+    INSERT INTO public.parties (party_kind, display_name) VALUES
+      ('TRUST','B2 Gate Trust Vehicle') RETURNING id INTO v_t1;
+    INSERT INTO public.parties (party_kind, display_name) VALUES
+      ('FOUNDATION','B2 Gate Foundation') RETURNING id INTO v_fd;
+    INSERT INTO public.parties (party_kind, display_name) VALUES
+      ('PARTNERSHIP','B2 Gate Partnership') RETURNING id INTO v_pt;
+
+    -- A-07 legal arrangements are storable as first-class canonical parties
+    SELECT count(*) INTO v_n FROM public.parties
+     WHERE id IN (v_t1, v_fd, v_pt) AND party_kind IN ('TRUST','FOUNDATION','PARTNERSHIP');
+    IF v_n = 3 THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'A-07 legal-arrangement party kinds are not storable (% of 3)', v_n; END IF;
+
+    -- A-08 they must NOT be projected as persons or organizations
+    IF NOT EXISTS (SELECT 1 FROM public.persons WHERE party_id IN (v_t1, v_fd, v_pt))
+       AND NOT EXISTS (SELECT 1 FROM public.organizations WHERE party_id IN (v_t1, v_fd, v_pt))
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'A-08 legal arrangements were projected as persons/organizations'; END IF;
+
+    -- A-09 party kind is governed by the catalogue alone
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                    WHERE conrelid='public.parties'::regclass
+                      AND conname='parties_party_kind_check')
+       AND EXISTS (SELECT 1 FROM pg_constraint
+                    WHERE conrelid='public.parties'::regclass
+                      AND conname='parties_party_kind_catalogue_fk')
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'A-09 parties.party_kind is not governed by the catalogue alone'; END IF;
+
 
     -- A NON-REGULATED holding company can own a regulated entity without a
     -- fake licensee row: this is the B2 pre-condition.
@@ -219,10 +264,23 @@ BEGIN
       approval_status, effective_from)
     VALUES (v_pc, v_seed, v_otype, 1, 1, true, true, 'APPROVED', v_today - 400);
 
-    -- trust and unidentified foreign organization terminate chains
+    -- a terminal natural person at 1% / 1% with NO control determination:
+    -- completeness alone must never qualify this person as a UBO
+    INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
+      economic_interest_percentage, voting_rights_percentage, is_direct, is_controller,
+      approval_status, effective_from)
+    VALUES (v_pn, v_seed, v_otype, 1, 1, true, false, 'APPROVED', v_today - 400);
+
+    -- real legal arrangements and an unidentified foreign organization terminate chains
     INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
       economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
     VALUES (v_t1, v_seed, v_otype, 5, 5, true, 'APPROVED', v_today - 400);
+    INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
+      economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
+    VALUES (v_fd, v_seed, v_otype, 3, 3, true, 'APPROVED', v_today - 400);
+    INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
+      economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
+    VALUES (v_pt, v_seed, v_otype, 2, 2, true, 'APPROVED', v_today - 400);
     INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
       economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
     VALUES (v_f1, v_seed, v_otype, 4, 4, true, 'APPROVED', v_today - 400);
@@ -477,9 +535,32 @@ BEGIN
     THEN pass:=pass+1; ELSE fail:=fail+1;
       RAISE WARNING 'E-07 controller below the ownership threshold not identified: %', v_node; END IF;
 
-    -- natural person terminating the chain is reported as such
-    IF (v_node->'qualification_reasons') @> '["NATURAL_PERSON_TERMINATION"]'::jsonb
-    THEN pass:=pass+1; ELSE fail:=fail+1; RAISE WARNING 'E-08 natural-person termination not reported'; END IF;
+    -- natural-person termination is DESCRIPTIVE completeness metadata only
+    IF (v_node->'path_metadata') @> '["NATURAL_PERSON_TERMINATION"]'::jsonb
+       AND NOT ((v_node->'qualification_reasons') @> '["NATURAL_PERSON_TERMINATION"]'::jsonb)
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'E-08 natural-person termination is not descriptive metadata: %', v_node; END IF;
+
+    -- NEGATIVE: a terminal natural person at 1%/1% with no control is NOT a UBO
+    IF NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_ubo->'ubos') n
+                    WHERE (n->>'party_id')::uuid = v_pn)
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'E-08b terminal natural person below every threshold was reported as UBO'; END IF;
+
+    -- no UBO may be listed without a governed qualification criterion
+    SELECT count(*) INTO v_n FROM jsonb_array_elements(v_ubo->'ubos') n
+     WHERE jsonb_array_length(n->'qualification_reasons') = 0
+        OR (n->'qualification_reasons') @> '["NATURAL_PERSON_TERMINATION"]'::jsonb;
+    IF v_n = 0 THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'E-08c % UBO(s) qualified without a governed criterion', v_n; END IF;
+
+    -- but the person IS still discovered as a complete terminal owner in the network
+    IF EXISTS (SELECT 1 FROM jsonb_array_elements(v_net->'nodes') n
+                WHERE (n->>'party_id')::uuid = v_pn
+                  AND (n->>'is_natural_person')::boolean
+                  AND (n->>'terminal')::boolean)
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'E-08d complete terminal person missing from the network'; END IF;
 
     -- no natural person is ever invented
     SELECT count(*) INTO v_n FROM jsonb_array_elements(v_ubo->'ubos') n
@@ -489,15 +570,27 @@ BEGIN
     IF v_n = 0 THEN pass:=pass+1; ELSE fail:=fail+1;
       RAISE WARNING 'E-09 % invented natural person(s) in the UBO result', v_n; END IF;
 
-    -- incomplete chains are explicit
-    -- canonical parties.party_kind is currently constrained to PERSON/ORGANIZATION,
-    -- so the legal-arrangement branch is proven on the resolver contract itself.
-    IF position('TRUST_LEGAL_ARRANGEMENT' in
-         (SELECT pg_get_functiondef(q.oid) FROM pg_proc q
-           JOIN pg_namespace m ON m.oid=q.pronamespace AND m.nspname='public'
-          WHERE q.proname='entity_ubo_resolve' LIMIT 1)) > 0
+    -- incomplete chains are explicit: a REAL TRUST party is behaviourally reported
+    IF EXISTS (SELECT 1 FROM jsonb_array_elements(v_ubo->'unresolved') u
+                WHERE (u->>'party_id')::uuid = v_t1
+                  AND u->>'reason'='TRUST_LEGAL_ARRANGEMENT'
+                  AND u->>'party_kind'='TRUST')
     THEN pass:=pass+1; ELSE fail:=fail+1;
-      RAISE WARNING 'E-10 resolver cannot report a trust/legal arrangement as unresolved'; END IF;
+      RAISE WARNING 'E-10 real TRUST party not reported as TRUST_LEGAL_ARRANGEMENT'; END IF;
+
+    -- foundation and partnership arrangements behave the same way
+    SELECT count(*) INTO v_n FROM jsonb_array_elements(v_ubo->'unresolved') u
+     WHERE (u->>'party_id')::uuid IN (v_fd, v_pt)
+       AND u->>'reason'='TRUST_LEGAL_ARRANGEMENT';
+    IF v_n = 2 THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'E-10b foundation/partnership arrangements not unresolved (% of 2)', v_n; END IF;
+
+    -- a legal arrangement is never treated as a natural person / UBO
+    IF NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_ubo->'ubos') n
+                    WHERE (n->>'party_id')::uuid IN (v_t1, v_fd, v_pt)
+                      AND (n->>'is_natural_person')::boolean)
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'E-10c legal arrangement treated as a natural person'; END IF;
 
     IF EXISTS (SELECT 1 FROM jsonb_array_elements(v_ubo->'unresolved') u
                 WHERE (u->>'party_id')::uuid = v_f1 AND u->>'reason'='FOREIGN_UNIDENTIFIED')
@@ -577,6 +670,270 @@ BEGIN
       PERFORM set_config('request.jwt.claims', json_build_object('sub', v_admin)::text, true);
     ELSE
       fail:=fail+1; RAISE WARNING 'E-22 no external user fixture available';
+    END IF;
+
+    -- ======================================================================
+    -- F. UBO POLICY HISTORY IS IMMUTABLE
+    -- ======================================================================
+    SELECT version, approved_by, approved_at, ownership_threshold
+      INTO v_pol_a_ver, v_pol_a_by, v_pol_a_at, v_pol_a_thr
+      FROM public.ubo_policies WHERE id = v_pol_a;
+    v_hist_ubo_before := jsonb_array_length(
+      public.entity_ubo_resolve(v_entity, v_today - 5)->'ubos');
+
+    -- F-01 a SUPERSEDED version cannot be edited in place through the writer
+    BEGIN
+      PERFORM public.admin_upsert_ubo_policy(v_pol_a, jsonb_build_object(
+        'regulator_id', v_reg, 'ownership_threshold', 90, 'voting_threshold', 90,
+        'effective_from', v_today - 10));
+      fail:=fail+1; RAISE WARNING 'F-01 superseded policy version was rewritten in place';
+    EXCEPTION WHEN others THEN
+      IF SQLERRM LIKE '%UBO_POLICY_IMMUTABLE%' THEN pass:=pass+1;
+      ELSE fail:=fail+1; RAISE WARNING 'F-01 unexpected error: %', SQLERRM; END IF; END;
+
+    -- F-02 an ACTIVE version cannot be edited in place either
+    BEGIN
+      PERFORM public.admin_upsert_ubo_policy(v_pol_b, jsonb_build_object(
+        'regulator_id', v_reg, 'ownership_threshold', 5, 'voting_threshold', 5,
+        'effective_from', v_today));
+      fail:=fail+1; RAISE WARNING 'F-02 active policy version was rewritten in place';
+    EXCEPTION WHEN others THEN
+      IF SQLERRM LIKE '%UBO_POLICY_IMMUTABLE%' THEN pass:=pass+1;
+      ELSE fail:=fail+1; RAISE WARNING 'F-02 unexpected error: %', SQLERRM; END IF; END;
+
+    -- F-03 direct DML against approved history is refused by the ledger itself
+    BEGIN
+      UPDATE public.ubo_policies SET ownership_threshold = 99 WHERE id = v_pol_a;
+      fail:=fail+1; RAISE WARNING 'F-03 approved policy history is directly mutable';
+    EXCEPTION WHEN others THEN pass:=pass+1; END;
+
+    BEGIN
+      DELETE FROM public.ubo_policies WHERE id = v_pol_a;
+      fail:=fail+1; RAISE WARNING 'F-04 approved policy history is deletable';
+    EXCEPTION WHEN others THEN pass:=pass+1; END;
+
+    -- F-05 provenance of the historical version is preserved exactly
+    IF (SELECT version FROM public.ubo_policies WHERE id=v_pol_a) = v_pol_a_ver
+       AND (SELECT approved_by FROM public.ubo_policies WHERE id=v_pol_a) = v_pol_a_by
+       AND (SELECT approved_at FROM public.ubo_policies WHERE id=v_pol_a) = v_pol_a_at
+       AND (SELECT ownership_threshold FROM public.ubo_policies WHERE id=v_pol_a) = v_pol_a_thr
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'F-05 historical policy provenance changed'; END IF;
+
+    -- F-06 policy B is a NEW version, not a rewrite of A
+    IF v_pol_b <> v_pol_a
+       AND (SELECT version FROM public.ubo_policies WHERE id=v_pol_b) > v_pol_a_ver
+       AND (SELECT effective_to FROM public.ubo_policies WHERE id=v_pol_a) IS NOT NULL
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'F-06 policy change did not create a new effective-dated version'; END IF;
+
+    -- F-07 the historical T1 UBO result is unchanged by later policy activity
+    v_hist_ubo_after := jsonb_array_length(
+      public.entity_ubo_resolve(v_entity, v_today - 5)->'ubos');
+    IF v_hist_ubo_before = v_hist_ubo_after
+       AND (public.entity_ubo_resolve(v_entity, v_today - 5)->'policy'->>'id')::uuid = v_pol_a
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'F-07 historical UBO result changed (% -> %)', v_hist_ubo_before, v_hist_ubo_after; END IF;
+
+    -- F-08 overlapping active periods are refused deterministically
+    BEGIN
+      PERFORM public.admin_upsert_ubo_policy(NULL, jsonb_build_object(
+        'regulator_id', v_reg, 'ownership_threshold', 30, 'voting_threshold', 30,
+        'effective_from', v_today));
+      fail:=fail+1; RAISE WARNING 'F-08 an overlapping active policy period was accepted';
+    EXCEPTION WHEN others THEN
+      IF SQLERRM LIKE '%UBO_POLICY_PERIOD_OVERLAP%' THEN pass:=pass+1;
+      ELSE fail:=fail+1; RAISE WARNING 'F-08 unexpected error: %', SQLERRM; END IF; END;
+
+    -- F-09 exactly one ACTIVE version covers today for this regulator
+    SELECT count(*) INTO v_n FROM public.ubo_policies
+     WHERE regulator_id = v_reg AND status='ACTIVE'
+       AND effective_from <= v_today AND (effective_to IS NULL OR effective_to >= v_today);
+    IF v_n = 1 THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'F-09 % active policy version(s) cover today', v_n; END IF;
+
+    -- ======================================================================
+    -- G. max_nodes BOUNDS THE EXPANSION ITSELF
+    -- ======================================================================
+    -- a wide synthetic network: 40 owners of a fresh holding, each with its own
+    -- upstream owner, so an unbounded walk would discover >80 parties.
+    INSERT INTO public.parties (party_kind, display_name) VALUES
+      ('ORGANIZATION','B2 Gate Wide Root') RETURNING id INTO v_wide_root;
+    INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
+      economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
+    VALUES (v_wide_root, v_seed, v_otype, 1, 1, true, 'APPROVED', v_today - 400);
+
+    FOR v_i IN 1..40 LOOP
+      INSERT INTO public.parties (party_kind, display_name)
+      VALUES ('ORGANIZATION','B2 Gate Wide '||v_i) RETURNING id INTO v_wide;
+      INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
+        economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
+      VALUES (v_wide, v_wide_root, v_otype, 2, 2, true, 'APPROVED', v_today - 400);
+      INSERT INTO public.parties (party_kind, display_name)
+      VALUES ('PERSON','B2 Gate Wide Person '||v_i) RETURNING id INTO v_prev;
+      INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
+        economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
+      VALUES (v_prev, v_wide, v_otype, 100, 100, true, 'APPROVED', v_today - 400);
+    END LOOP;
+
+    -- G-01 expansion admits at most the configured node budget
+    v_net2 := public.entity_ownership_network(v_entity, v_today, 10, 25);
+    IF (v_net2->>'node_count')::int <= 25 THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'G-01 node budget exceeded (%)', v_net2->>'node_count'; END IF;
+
+    -- G-02 the returned node array matches the admitted budget (no post-trim illusion)
+    IF jsonb_array_length(v_net2->'nodes') = (v_net2->>'node_count')::int
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'G-02 returned nodes disagree with the admitted node count'; END IF;
+
+    -- G-03 truncation is explicit with a NODE_LIMIT boundary/frontier
+    IF (v_net2->>'truncated')::boolean
+       AND (v_net2->'truncation_reasons') @> '["NODE_LIMIT"]'::jsonb
+       AND EXISTS (SELECT 1 FROM jsonb_array_elements(v_net2->'frontier') f
+                    WHERE f->>'reason'='NODE_LIMIT')
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'G-03 NODE_LIMIT truncation/frontier not reported'; END IF;
+
+    -- G-04 edges never reference a party that was not admitted
+    SELECT count(*) INTO v_n FROM jsonb_array_elements(v_net2->'edges') e
+     WHERE NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_net2->'nodes') n
+                        WHERE n->'party_id' = e->'owner_party_id');
+    IF v_n = 0 THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'G-04 % edge(s) reference an unadmitted party', v_n; END IF;
+
+    -- G-05 bounded output is deterministic across repeated calls
+    IF public.entity_ownership_network(v_entity, v_today, 10, 25)
+       = public.entity_ownership_network(v_entity, v_today, 10, 25)
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'G-05 bounded traversal is not deterministic'; END IF;
+
+    -- G-06 the wide network is fully discoverable when the budget allows it
+    v_net2 := public.entity_ownership_network(v_entity, v_today, 10, 1000);
+    IF (v_net2->>'node_count')::int > 40
+       AND NOT ((v_net2->'truncation_reasons') @> '["NODE_LIMIT"]'::jsonb)
+    THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'G-06 wide network not fully expanded under a sufficient budget (%)',
+        v_net2->>'node_count'; END IF;
+
+    -- G-07 the traversal core is a bounded expansion, not discover-then-LIMIT
+    SELECT pg_get_functiondef(p.oid) INTO v_txt FROM pg_proc p
+      JOIN pg_namespace n ON n.oid=p.pronamespace AND n.nspname='public'
+     WHERE p.proname='entity_ownership_network_core' LIMIT 1;
+    IF v_txt !~* 'limit\s+_max_nodes' THEN pass:=pass+1; ELSE fail:=fail+1;
+      RAISE WARNING 'G-07 traversal still trims a full walk with LIMIT _max_nodes'; END IF;
+
+    -- ======================================================================
+    -- H. REGULATOR SCOPE ON EVERY REGULATED EXPANSION
+    -- ======================================================================
+    IF v_reg2 IS NOT NULL THEN
+      -- a regulated entity of ANOTHER regulator becomes an upstream owner
+      INSERT INTO public.parties (party_kind, display_name) VALUES
+        ('ORGANIZATION','B2 Gate Foreign-Regulator Entity') RETURNING id INTO v_seed2;
+      INSERT INTO public.licensees (name, status, party_id, structure_version)
+      VALUES ('B2 Gate Other-Regulator Licensee','ACTIVE', v_seed2, 1)
+      RETURNING id INTO v_ent2;
+
+      -- canonical supervision assignment binds it to the OTHER regulator body
+      INSERT INTO public.entity_supervision_assignments
+        (entity_id, regulator_id, status, is_primary, effective_from)
+      VALUES (v_ent2, v_reg2, 'active', true, v_today - 400);
+
+      IF public.entity_reporting_regulator(v_ent2) = v_reg2
+      THEN pass:=pass+1; ELSE fail:=fail+1;
+        RAISE WARNING 'H-00b connected entity did not resolve to the other regulator body'; END IF;
+
+      INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
+        economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
+      VALUES (v_seed2, v_seed, v_otype, 30, 30, true, 'APPROVED', v_today - 400);
+
+      -- upstream owner BEHIND the restricted entity, which must never leak
+      INSERT INTO public.parties (party_kind, display_name) VALUES
+        ('PERSON','B2 Gate Hidden Upstream Person') RETURNING id INTO v_reg2_ent;
+      INSERT INTO public.ownership_interests (owner_party_id, owned_party_id, ownership_type_id,
+        economic_interest_percentage, voting_rights_percentage, is_direct, approval_status, effective_from)
+      VALUES (v_reg2_ent, v_seed2, v_otype, 100, 100, true, 'APPROVED', v_today - 400);
+
+      -- H-01 super-admin authority traverses the connected regulated entity
+      v_net2 := public.entity_ownership_network(v_entity, v_today, 10, 300);
+      IF EXISTS (SELECT 1 FROM jsonb_array_elements(v_net2->'nodes') n
+                  WHERE (n->>'party_id')::uuid = v_seed2)
+      THEN pass:=pass+1; ELSE fail:=fail+1;
+        RAISE WARNING 'H-01 super-admin could not traverse a connected regulated entity'; END IF;
+
+      -- H-02 an internal identity scoped ONLY to the seed entity is stopped there.
+      -- The scoped reviewer is built in-transaction: no live profile currently
+      -- holds entity_structure.view without super-admin authority.
+      SELECT sm.id, sp.id INTO v_mod, v_perm FROM public.sec_permissions sp
+        JOIN public.sec_modules sm ON sm.id = sp.module_id
+       WHERE sm.key='entity_structure' AND sp.key='view';
+      SELECT id INTO v_stype FROM public.sec_scope_types WHERE key='institution';
+      SELECT p.id INTO v_staff FROM public.profiles p
+       WHERE NOT public.is_super_admin(p.id) ORDER BY p.id LIMIT 1;
+
+      IF v_staff IS NOT NULL AND v_mod IS NOT NULL AND v_perm IS NOT NULL AND v_stype IS NOT NULL THEN
+        INSERT INTO public.sec_roles (key, name, role_type, status)
+        VALUES ('b2_gate_scoped_reviewer','B2 Gate Scoped Reviewer','internal','active')
+        RETURNING id INTO v_role;
+        INSERT INTO public.sec_role_permissions (role_id, permission_id) VALUES (v_role, v_perm);
+        INSERT INTO public.sec_role_scopes (role_id, module_id, scope_type_id)
+        VALUES (v_role, v_mod, v_stype) RETURNING id INTO v_scope;
+        INSERT INTO public.sec_role_scope_values (role_scope_id, value_kind, value_id)
+        VALUES (v_scope, 'licensee', v_entity);
+        INSERT INTO public.sec_user_roles (user_id, role_id) VALUES (v_staff, v_role);
+
+        IF public.regulatory_scope_allows(v_staff,'entity_structure','view',v_reg,NULL,NULL,v_entity,NULL)
+           AND NOT public.regulatory_scope_allows(v_staff,'entity_structure','view',v_reg2,NULL,NULL,v_ent2,NULL)
+        THEN pass:=pass+1; ELSE fail:=fail+1;
+          RAISE WARNING 'H-02a scoped reviewer fixture does not have the expected scope'; END IF;
+      ELSE
+        v_staff := NULL;
+      END IF;
+
+
+
+      IF v_staff IS NOT NULL THEN
+        PERFORM set_config('request.jwt.claims', json_build_object('sub', v_staff)::text, true);
+        v_net2 := public.entity_ownership_network(v_entity, v_today, 10, 300);
+        IF NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_net2->'nodes') n
+                        WHERE (n->>'party_id')::uuid = v_seed2)
+        THEN pass:=pass+1; ELSE fail:=fail+1;
+          RAISE WARNING 'H-02 restricted regulated entity leaked into the network'; END IF;
+
+        -- H-03 the branch is not expanded any deeper
+        IF NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_net2->'nodes') n
+                        WHERE (n->>'party_id')::uuid = v_reg2_ent)
+        THEN pass:=pass+1; ELSE fail:=fail+1;
+          RAISE WARNING 'H-03 traversal continued behind a restricted entity'; END IF;
+
+        -- H-04 an explicit boundary is returned
+        IF (v_net2->'truncation_reasons') @> '["REGULATOR_SCOPE_RESTRICTED"]'::jsonb
+           AND EXISTS (SELECT 1 FROM jsonb_array_elements(v_net2->'frontier') f
+                        WHERE f->>'reason'='REGULATOR_SCOPE_RESTRICTED')
+        THEN pass:=pass+1; ELSE fail:=fail+1;
+          RAISE WARNING 'H-04 REGULATOR_SCOPE_RESTRICTED boundary not reported'; END IF;
+
+        -- H-05 no restricted entity detail is exposed on the boundary
+        IF NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_net2->'frontier') f
+                        WHERE f->>'reason'='REGULATOR_SCOPE_RESTRICTED'
+                          AND (f ? 'display_name' OR f ? 'licensee_id'))
+        THEN pass:=pass+1; ELSE fail:=fail+1;
+          RAISE WARNING 'H-05 restricted branch exposed entity details'; END IF;
+
+        -- H-06 the UBO resolver surfaces the same restriction as unresolved
+        v_res := public.entity_ubo_resolve(v_entity, v_today, 10, 300);
+        IF EXISTS (SELECT 1 FROM jsonb_array_elements(v_res->'unresolved') u
+                    WHERE u->>'reason'='REGULATOR_SCOPE_RESTRICTED')
+           AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_res->'ubos') n
+                    WHERE (n->>'party_id')::uuid IN (v_seed2, v_reg2_ent))
+        THEN pass:=pass+1; ELSE fail:=fail+1;
+          RAISE WARNING 'H-06 restricted branch not reported as an unresolved boundary'; END IF;
+
+        PERFORM set_config('request.jwt.claims', json_build_object('sub', v_admin)::text, true);
+      ELSE
+        fail:=fail+1; RAISE WARNING 'H-02 no scoped internal identity fixture available';
+      END IF;
+    ELSE
+      fail:=fail+1; RAISE WARNING 'H-00 no second regulator fixture available';
     END IF;
 
     PERFORM set_config('request.jwt.claims', NULL, true);
