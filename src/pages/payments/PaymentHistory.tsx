@@ -289,7 +289,7 @@ export default function PaymentHistory() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader title="Payments & Receipts" description="Manage payments, receipts, and refunds" />
+        <PageHeader title="Payments & Receipts" description="Manage payments, receipts, and refunds" helpSurface="fees-payments" />
 
         {!isPreLicensee ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -11,6 +11,7 @@ import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowUpRight, Gavel, Search } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { ScreenHelpLink } from '@/components/help/ScreenHelpLink';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -103,9 +104,12 @@ export default function EnforcementWorkQueue() {
     <DashboardLayout>
       <div className="space-y-4">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold">
-            <Gavel className="h-5 w-5 text-primary" /> Enforcement work queue
-          </h1>
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="flex items-center gap-2 text-2xl font-semibold">
+              <Gavel className="h-5 w-5 text-primary" /> Enforcement work queue
+            </h1>
+            <ScreenHelpLink surface="enforcement" />
+          </div>
           <p className="text-sm text-muted-foreground">
             Every enforcement case in your scope — referred from complaints, conduct investigations,
             thematic findings, prudential breaches, examinations, licensing and fit-and-proper matters.

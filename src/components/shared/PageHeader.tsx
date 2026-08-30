@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useBreadcrumbLabelStore } from '@/components/layout/BreadcrumbLabelContext';
+import { ScreenHelpLink } from '@/components/help/ScreenHelpLink';
 
 interface PageHeaderProps {
   title: string;
@@ -16,9 +17,17 @@ interface PageHeaderProps {
    * registry — pages never define their own trail.
    */
   breadcrumbLabel?: string | null;
+  /**
+   * Contextual help surface key from `src/content/user-manual/helpLinks.ts`.
+   * Renders the canonical manual link beside the page actions. Documentation
+   * only — never a functional control.
+   */
+  helpSurface?: string;
+  /** Optional manual anchor override for a sub-surface of the same screen. */
+  helpAnchor?: string;
 }
 
-export function PageHeader({ title, description, actions, backHref, backLabel, breadcrumbLabel }: PageHeaderProps) {
+export function PageHeader({ title, description, actions, backHref, backLabel, breadcrumbLabel, helpSurface, helpAnchor }: PageHeaderProps) {
   const { setCurrentLabel } = useBreadcrumbLabelStore();
 
   useEffect(() => {
@@ -44,7 +53,12 @@ export function PageHeader({ title, description, actions, backHref, backLabel, b
             <p className="mt-1 text-sm text-muted-foreground">{description}</p>
           )}
         </div>
-        {actions && <div className="flex items-center gap-2 flex-shrink-0">{actions}</div>}
+        {(actions || helpSurface) && (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {actions}
+            {helpSurface && <ScreenHelpLink surface={helpSurface} anchor={helpAnchor} />}
+          </div>
+        )}
       </div>
     </div>
   );

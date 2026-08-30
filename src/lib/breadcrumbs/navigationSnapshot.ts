@@ -118,6 +118,7 @@ export const navigationSnapshot: NavSnapshotItem[] = [
   { key: "nav_fit_proper_verification_assessment_screening_hub", parentKey: "nav_lic_fitproper", label: "Screening Hub", href: "/fpa/screening", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_form_management_form_management", parentKey: "nav_adm_cfg_licensing", label: "Form Management", href: "/admin/forms", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_form_management_registration_forms", parentKey: "nav_adm_cfg_licensing", label: "Registration Forms", href: "/admin/registration-forms", itemType: "link", audience: "internal", showInSidebar: false },
+  { key: "nav_help_user_manual", parentKey: "grp_nav_home", label: "Help & User Manual", href: "/help/user-manual", itemType: "link", audience: "any", showInSidebar: true },
   { key: "nav_insights_ai_hub", parentKey: "grp_nav_insights", label: "AI Insights Hub", href: "/analytics/ai-insights", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_insights_alerts", parentKey: "grp_nav_insights", label: "Alert Centre", href: "/alerts", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_insights_executive", parentKey: "grp_nav_insights", label: "Executive Dashboard", href: "/executive", itemType: "link", audience: "internal", showInSidebar: true },

@@ -541,6 +541,7 @@ export default function ComplaintsList() {
       <div className="space-y-6">
         <PageHeader
           title="Complaints"
+          helpSurface="complaints"
           description={isInternal ? 'Intake, classification, triage & routing' : 'Submit and track your complaints'}
           actions={
             <div className="flex gap-2">

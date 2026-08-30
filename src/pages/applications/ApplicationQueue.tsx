@@ -211,6 +211,7 @@ export default function ApplicationQueue() {
       <div className="space-y-6">
         <PageHeader
           title="Licensing Work Queue"
+          helpSurface="licensing"
           description="Server-derived stage, priority, service level and next required action for every licensing case."
           actions={
             canManage ? (

@@ -11,7 +11,7 @@ export const MANUAL_META: ManualMeta = {
   version: '1.0.0',
   generatedDate: '2026-08-30',
   verifiedDate: '2026-08-30',
-  repositoryHead: '2f3b9d9c18e8167ad6cbb2afe48d83b10d45e183',
+  repositoryHead: 'a24f6286782683ed414584405cce4e8b7e8a589e',
   certificationStatus:
     'Modules F0–F7 certified and frozen. F8A-B1 and F8A-B2 (ownership traversal & UBO) closed. F8/F9 and later waves not certified.',
   lastE2eVerifiedHead: null,

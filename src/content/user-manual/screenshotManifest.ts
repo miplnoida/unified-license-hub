@@ -1,6 +1,6 @@
 import type { ScreenshotEntry } from './types';
 
-const HEAD = '2f3b9d9c18e8167ad6cbb2afe48d83b10d45e183';
+const HEAD = 'a24f6286782683ed414584405cce4e8b7e8a589e';
 const DATE = '2026-08-30';
 const BASE = '/user-manual/screenshots';
 
@@ -52,7 +52,7 @@ export const SCREENSHOTS: ScreenshotEntry[] = [
   s('ret-queue', 'analyst', 'returns', '/returns/queue', 'returns', 'Return review queue.', 'returns'),
   s('ret-obligations', 'analyst', 'returns', '/returns/obligations', 'returns', 'Reporting obligations register.', 'returns'),
   s('ret-calendar', 'analyst', 'returns', '/returns/calendar', 'returns', 'Reporting calendar with due dates.', 'returns'),
-  s('ret-management', 'analyst', 'returns', '/returns-management', 'returns', 'Returns management workspace.', 'returns'),
+  s('ret-filing', 'analyst', 'returns', '/returns/filings/:filingId', 'returns', 'Return filing workspace on the canonical returns spine.', 'returns'),
 
   /* ------------------------------------------------------ fees & payments */
   s('fee-config', 'admin', 'fees-payments', '/admin/fees', 'fees-payments', 'Fee configuration and schedules.', 'fees-payments'),
@@ -100,13 +100,13 @@ export const SCREENSHOTS: ScreenshotEntry[] = [
   s('rep-dashboard', 'analyst', 'analytics', '/reports', 'analytics', 'Reporting dashboard and templates.', 'analytics'),
 
   /* ------------------------------- external personas (capture pass pending) */
-  p('ext-applicant-dashboard', 'applicant', 'registration', '/dashboard', 'registration', 'Applicant dashboard with draft application and outstanding fees.', 'registration'),
-  p('ext-applicant-application', 'applicant', 'licensing', '/applications', 'licensing', 'Applicant application list and status.', 'licensing'),
-  p('ext-applicant-payment', 'applicant', 'fees-payments', '/payments', 'fees-payments', 'Applicant fee settlement and receipts.', 'fees-payments'),
-  p('ext-licensee-dashboard', 'licensee_primary', 'post-licensing', '/dashboard', 'post-licensing', 'Licensee dashboard with deadlines and requests.', 'post-licensing'),
-  p('ext-licensee-returns', 'licensee_primary', 'returns', '/entity/returns/dashboard', 'returns', 'Licensee returns dashboard with due filings.', 'returns'),
-  p('ext-licensee-service', 'licensee_primary', 'post-licensing', '/post-license/new', 'post-licensing', 'Licensee post-licensing service request intake.', 'post-licensing'),
-  p('ext-licensee-secondary', 'licensee_secondary', 'returns', '/entity/returns', 'returns', 'Secondary user preparing a filing (no submit authority).', 'returns'),
+  p('ext-applicant-dashboard', 'applicant', 'registration', '/dashboard', 'registration', 'Applicant dashboard with draft application and outstanding fees.', 'registration', 'No external-portal persona session exists in this environment; capture requires a demo-safe applicant/licensee sign-in.'),
+  p('ext-applicant-application', 'applicant', 'licensing', '/applications', 'licensing', 'Applicant application list and status.', 'licensing', 'No external-portal persona session exists in this environment; capture requires a demo-safe applicant/licensee sign-in.'),
+  p('ext-applicant-payment', 'applicant', 'fees-payments', '/payments', 'fees-payments', 'Applicant fee settlement and receipts.', 'fees-payments', 'No external-portal persona session exists in this environment; capture requires a demo-safe applicant/licensee sign-in.'),
+  p('ext-licensee-dashboard', 'licensee_primary', 'post-licensing', '/dashboard', 'post-licensing', 'Licensee dashboard with deadlines and requests.', 'post-licensing', 'No external-portal persona session exists in this environment; capture requires a demo-safe applicant/licensee sign-in.'),
+  p('ext-licensee-returns', 'licensee_primary', 'returns', '/entity/returns/dashboard', 'returns', 'Licensee returns dashboard with due filings.', 'returns', 'No external-portal persona session exists in this environment; capture requires a demo-safe applicant/licensee sign-in.'),
+  p('ext-licensee-service', 'licensee_primary', 'post-licensing', '/post-license/new', 'post-licensing', 'Licensee post-licensing service request intake.', 'post-licensing', 'No external-portal persona session exists in this environment; capture requires a demo-safe applicant/licensee sign-in.'),
+  p('ext-licensee-secondary', 'licensee_secondary', 'returns', '/entity/returns', 'returns', 'Secondary user preparing a filing (no submit authority).', 'returns', 'No external-portal persona session exists in this environment; capture requires a demo-safe applicant/licensee sign-in.'),
 ];
 
 function s(
@@ -134,7 +134,11 @@ function s(
   };
 }
 
-/** Declared-but-not-yet-captured coverage. */
+/**
+ * Declared coverage that the current environment genuinely cannot capture.
+ * `reason` is mandatory and is printed in the manual and the generated manifest —
+ * an unavailable persona screenshot is never fabricated.
+ */
 function p(
   id: string,
   persona: ScreenshotEntry['persona'],
@@ -143,12 +147,14 @@ function p(
   section: string,
   caption: string,
   chapter: string,
+  reason: string,
 ): ScreenshotEntry {
   return {
     ...s(id, persona, process, route, section, caption, chapter),
     file: '',
     dataClassification: 'PENDING CAPTURE',
-    status: 'NEEDS_REFRESH',
+    status: 'NEEDS_CAPTURE',
+    needsCaptureReason: reason,
   };
 }
 
