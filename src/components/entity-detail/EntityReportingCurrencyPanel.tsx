@@ -236,18 +236,45 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
             </Dialog>
           )}
         </CardHeader>
+        {configurationRequired && (
+          <CardContent className="pt-0">
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <p className="font-medium">Monetary configuration required</p>
+              <p className="mt-1">
+                {selectedBody?.name ?? 'This regulator'} has no monetary configuration of its own, so no base currency
+                can be resolved and no override may be recorded. Configure this regulator&rsquo;s currency settings first.
+              </p>
+            </div>
+          </CardContent>
+        )}
+        {data.data_remediation_required && (
+          <CardContent className="pt-0">
+            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+              <p className="font-medium text-destructive">Historical record requires remediation</p>
+              <p className="mt-1 text-muted-foreground">
+                At least one historical override is not attributed to a regulator. It is retained unchanged and is
+                excluded from currency resolution until it is remediated.
+              </p>
+            </div>
+          </CardContent>
+        )}
         <CardContent className="grid gap-4 md:grid-cols-3">
-          <Field label="Regulator base currency" value={data.regulator_base_currency} />
+          <Field label="Regulator" value={selectedBody?.name ?? '—'} />
+          <Field label="Regulator base currency" value={baseCurrency ?? 'Not configured'} />
           <Field
             label="Entity reporting currency"
             value={
-              <span className="flex items-center gap-2">
-                <span className="font-mono">{data.currency}</span>
-                <Badge variant="outline">{CURRENCY_SOURCE_LABELS[data.source]}</Badge>
-              </span>
+              resolvedCurrency ? (
+                <span className="flex items-center gap-2">
+                  <span className="font-mono">{resolvedCurrency}</span>
+                  {resolvedSource && <Badge variant="outline">{CURRENCY_SOURCE_LABELS[resolvedSource]}</Badge>}
+                </span>
+              ) : (
+                <span className="text-muted-foreground">Not resolvable — {selectedBody?.error ?? 'configuration required'}</span>
+              )
             }
           />
-          <Field label="Regulator consolidated reporting currency" value={data.regulator_reporting_currency} />
+          <Field label="Regulator consolidated reporting currency" value={consolidatedCurrency ?? 'Not configured'} />
           <Field label="Resolved as at" value={formatDateOnly(data.as_of)} />
           <Field label="Effective from" value={activeProfile ? formatDateOnly(activeProfile.effective_from) : '—'} />
           <Field label="Effective to" value={activeProfile?.effective_to ? formatDateOnly(activeProfile.effective_to) : 'Open-ended'} />
@@ -257,9 +284,9 @@ export function EntityReportingCurrencyPanel({ entityId, asOf }: { entityId: str
           <Field label="Override approval control" value={CURRENCY_APPROVAL_MODE_LABELS[approvalMode]} />
         </CardContent>
 
-        {data.source === 'REGULATOR_BASE' && (
+        {resolvedSource === 'REGULATOR_BASE' && (
           <CardContent className="pt-0 text-sm text-muted-foreground">
-            Reporting currency: <span className="font-mono">{data.currency}</span> — inherited from the regulator base
+            Reporting currency: <span className="font-mono">{resolvedCurrency}</span> — inherited from the regulator base
             currency. No override record is stored for the default.
           </CardContent>
         )}
