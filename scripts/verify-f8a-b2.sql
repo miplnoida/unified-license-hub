@@ -19,9 +19,13 @@ DECLARE
   v_entity uuid; v_seed uuid; v_reg uuid; v_reg2 uuid;
   v_admin uuid; v_outsider uuid; v_staff uuid;
   v_p1 uuid; v_p2 uuid; v_pc uuid; v_h1 uuid; v_h2 uuid; v_t1 uuid; v_f1 uuid;
-  v_x uuid; v_y uuid;
+  v_x uuid; v_y uuid; v_pn uuid; v_fd uuid; v_pt uuid;
   v_otype uuid; v_pol_a uuid; v_pol_b uuid; v_pol_other uuid;
   v_net jsonb; v_net2 jsonb; v_ubo jsonb; v_node jsonb; v_res jsonb;
+  v_pol_a_ver int; v_pol_a_by uuid; v_pol_a_at timestamptz; v_pol_a_thr numeric;
+  v_t1_res jsonb; v_hist_ubo_before int; v_hist_ubo_after int;
+  v_wide_root uuid; v_wide uuid; v_prev uuid; v_i int; v_j int;
+  v_ent2 uuid; v_seed2 uuid; v_reg2_ent uuid;
   v_today date := CURRENT_DATE;
 BEGIN
   -- ==========================================================================
