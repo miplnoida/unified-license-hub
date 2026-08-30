@@ -60,6 +60,7 @@
     "verify:forms-semantics": "node scripts/system-runtime/verify-forms-semantics.mjs",
     "verify:prudential-universe-perf": "node scripts/system-runtime/verify-prudential-universe-perf.mjs",
     "verify:f8-w1a-ratio-store": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8-w1a-ratio-store.sql",
+    "verify:f8-w1b-group-supervision": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8-w1b-group-supervision.sql",
 
     "verify:dataapi-readiness": "node scripts/system-runtime/verify-dataapi-readiness.mjs",
     "verify:final-census": "node scripts/system-runtime/run-final-census.mjs"
