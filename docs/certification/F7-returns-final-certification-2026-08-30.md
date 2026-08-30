@@ -3,9 +3,23 @@
 Date: 2026-08-30
 Protected F7-B baseline entering certification: `5968a3c78403a526d2cfc467ad84dc710bf7feb6`
 F7-C delta start HEAD: `c68cfbfd6eb81f826c36aa10de2705f068c093b4`
-Final protected HEAD at freeze: `fecb806f992136341ce67a8205a3c0116761235d`
 Permanent certification gate: `npm run certify:f7c`
 (`scripts/verify-f7c-route-retirement.mjs` + `scripts/certify-f7c.sql`)
+
+## 0. Code baseline vs certification evidence HEAD
+
+| Kind | Commit | Meaning |
+| --- | --- | --- |
+| **Protected production/code baseline** | `fecb806f992136341ce67a8205a3c0116761235d` | The F7 frozen functional baseline: application code, migrations, database contract, gates and tests as certified. |
+| Certification evidence HEAD (prior) | `fe306f2c8952e948fba0fedc048cc77e7028a2e8` | Documentation-only evidence commit. |
+| Certification evidence HEAD (current) | this documentation-only commit completing the formal freeze record | Documentation-only evidence commit. |
+
+Documentation commits after `fecb806f992136341ce67a8205a3c0116761235d` touch only files under
+`docs/` and therefore do **not** modify the frozen F7 runtime/code contract. The protected code
+SHA must never be replaced by a documentation-only commit: certification of behaviour attaches to
+`fecb806f…`, and evidence heads only extend the written record. No certification run is repeated
+for a documentation-only pass; the already executed results below remain authoritative.
+
 
 ## 1. Result
 
