@@ -179,9 +179,10 @@ SELECT is((SELECT COUNT(*)::int FROM public.financial_groups
 RESET ROLE;
 SET LOCAL ROLE anon;
 SET LOCAL "request.jwt.claims" = '';
-SELECT is((SELECT COUNT(*)::int FROM public.return_metric_values
-            WHERE id = '00000000-0000-0000-0000-0000000f2040'), 0,
-          'anonymous callers see no canonical prudential analytics');
+SELECT throws_ok(
+  $$SELECT COUNT(*) FROM public.return_metric_values
+     WHERE id = '00000000-0000-0000-0000-0000000f2040'$$,
+  '42501', NULL, 'anonymous callers are denied the canonical prudential analytics store');
 SELECT is((SELECT COUNT(*)::int FROM public.financial_groups
             WHERE id = '00000000-0000-0000-0000-0000000f2015'), 0,
           'anonymous callers see no financial groups');
