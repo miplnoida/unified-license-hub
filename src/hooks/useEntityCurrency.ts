@@ -68,6 +68,32 @@ export interface EntityCurrencyProfile {
   approval_mode?: CurrencyApprovalMode | null;
 }
 
+/**
+ * One canonical regulator BODY (regulators.id) applicable to the entity, with
+ * its own monetary configuration, override history and approval control. Officer
+ * assignment fields are never regulator identity.
+ */
+export interface EntityCurrencyRegulatorBody {
+  regulator_id: string;
+  name: string | null;
+  code: string | null;
+  status: string | null;
+  sources: string[] | null;
+  ok?: boolean;
+  error?: string | null;
+  currency?: string | null;
+  source?: CurrencySource | null;
+  entity_currency_profile_id?: string | null;
+  monetary_config_present: boolean;
+  monetary_config_id: string | null;
+  base_currency: string | null;
+  reporting_currency: string | null;
+  configuration_required: boolean;
+  approval_mode: CurrencyApprovalMode | null;
+  overrides: EntityCurrencyProfile[];
+  pending_proposals: EntityCurrencyProfile[];
+}
+
 export interface EntityCurrencyOverview {
   ok: boolean;
   entity_id: string;
@@ -83,6 +109,9 @@ export interface EntityCurrencyOverview {
   can_manage: boolean;
   approval_mode: CurrencyApprovalMode;
   current_user_id: string | null;
+  regulator_bodies: EntityCurrencyRegulatorBody[];
+  multi_regulator: boolean;
+  data_remediation_required: boolean;
   pending_proposals: EntityCurrencyProfile[];
   history: EntityCurrencyProfile[];
   mandated_definitions: Array<{ return_definition_id: string; code: string; name: string; currency: string }>;
