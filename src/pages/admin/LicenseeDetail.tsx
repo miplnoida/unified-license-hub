@@ -15,8 +15,6 @@ import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 
 // Lazy-load tab components
 const BackgroundInfoTab = lazy(() => import('@/components/entity-detail/BackgroundInfoTab'));
-const RelationshipsTab = lazy(() => import('@/components/entity-detail/RelationshipsTab'));
-const OwnershipTab = lazy(() => import('@/components/entity-detail/OwnershipTab'));
 const LicensesTab = lazy(() => import('@/components/entity-detail/LicensesTab'));
 const EnforcementTab = lazy(() => import('@/components/entity-detail/EnforcementTab'));
 const RiskRatingsTab = lazy(() => import('@/components/entity-detail/RiskRatingsTab'));
@@ -243,14 +241,6 @@ export default function LicenseeDetail() {
                   onDirtyChange={setIsDirty}
                 />
               )}
-            </TabsContent>
-
-            <TabsContent value="relationships" className="mt-6">
-              {loadedTabs.has('relationships') && <RelationshipsTab entityId={id!} />}
-            </TabsContent>
-
-            <TabsContent value="ownership" className="mt-6">
-              {loadedTabs.has('ownership') && <OwnershipTab entityId={id!} entityName={displayName || licensee.name} />}
             </TabsContent>
 
             <TabsContent value="licenses" className="mt-6">

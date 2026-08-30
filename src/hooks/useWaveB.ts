@@ -295,19 +295,15 @@ export function useEntityStructureOverview(entityId?: string | null) {
   });
 }
 
+/**
+ * F8A-B1: structural reads go through governed SECURITY DEFINER read services.
+ * The canonical structural tables carry no browser grants.
+ */
 export function useEntityOwnership(entityId?: string | null) {
   return useQuery({
     queryKey: ['wave-b', 'entity-ownership', entityId],
     enabled: !!entityId,
-    queryFn: async () => {
-      const { data, error } = await db()
-        .from('ownership_interests')
-        .select('*, parties(display_name, party_kind)')
-        .eq('owned_entity_id', entityId)
-        .order('economic_interest_percentage', { ascending: false });
-      if (error) throw new Error(error.message);
-      return (data || []) as Array<Record<string, any>>;
-    },
+    queryFn: () => rpc<Array<Record<string, any>>>('entity_structure_ownership', { _entity_id: entityId }),
   });
 }
 
@@ -315,15 +311,7 @@ export function useEntityAppointments(entityId?: string | null) {
   return useQuery({
     queryKey: ['wave-b', 'entity-appointments', entityId],
     enabled: !!entityId,
-    queryFn: async () => {
-      const { data, error } = await db()
-        .from('entity_appointments')
-        .select('*, parties(display_name), role_types(label, key)')
-        .eq('entity_id', entityId)
-        .order('appointment_date', { ascending: false });
-      if (error) throw new Error(error.message);
-      return (data || []) as Array<Record<string, any>>;
-    },
+    queryFn: () => rpc<Array<Record<string, any>>>('entity_structure_appointments', { _entity_id: entityId }),
   });
 }
 
@@ -331,28 +319,15 @@ export function useEntityPartyRelationships(entityId?: string | null) {
   return useQuery({
     queryKey: ['wave-b', 'entity-party-relationships', entityId],
     enabled: !!entityId,
-    queryFn: async () => {
-      const { data, error } = await db()
-        .from('party_relationships')
-        .select('*, relationship_types(label, key)')
-        .eq('entity_id', entityId)
-        .order('effective_from', { ascending: false });
-      if (error) throw new Error(error.message);
-      return (data || []) as Array<Record<string, any>>;
-    },
+    queryFn: () => rpc<Array<Record<string, any>>>('entity_structure_relationships', { _entity_id: entityId }),
   });
 }
 
 export function useEntityChangeSets(entityId?: string | null) {
   return useQuery({
-    queryKey: ['wave-b', 'entity-change-sets', entityId ?? 'all'],
-    queryFn: async () => {
-      let q = db().from('entity_change_sets').select('*').order('created_at', { ascending: false }).limit(200);
-      if (entityId) q = q.eq('entity_id', entityId);
-      const { data, error } = await q;
-      if (error) throw new Error(error.message);
-      return (data || []) as Array<Record<string, any>>;
-    },
+    queryKey: ['wave-b', 'entity-change-sets', entityId ?? 'none'],
+    enabled: !!entityId,
+    queryFn: () => rpc<Array<Record<string, any>>>('entity_structure_change_sets', { _entity_id: entityId }),
   });
 }
 
@@ -360,15 +335,7 @@ export function useChangeSetItems(changeSetId?: string | null) {
   return useQuery({
     queryKey: ['wave-b', 'change-set-items', changeSetId],
     enabled: !!changeSetId,
-    queryFn: async () => {
-      const { data, error } = await db()
-        .from('entity_change_items')
-        .select('*, data_concepts(code, name)')
-        .eq('change_set_id', changeSetId)
-        .order('sequence');
-      if (error) throw new Error(error.message);
-      return (data || []) as Array<Record<string, any>>;
-    },
+    queryFn: () => rpc<Array<Record<string, any>>>('entity_structure_change_items', { _change_set_id: changeSetId }),
   });
 }
 
