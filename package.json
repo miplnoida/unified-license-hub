@@ -41,6 +41,7 @@
     "verify:f5b3": "bash -c 'set -o pipefail; mkdir -p artifacts && psql -v ON_ERROR_STOP=1 -f scripts/verify-f5b3-effects.sql 2>&1 | tee artifacts/verify-f5b3-latest.log'",
     "verify:f5b4": "bash -c 'set -o pipefail; mkdir -p artifacts && psql -v ON_ERROR_STOP=1 -f scripts/verify-f5b4-fit-and-proper.sql 2>&1 | tee artifacts/verify-f5b4-latest.log'",
     "verify:f5b5x": "bash -c 'set -o pipefail; mkdir -p artifacts && psql -v ON_ERROR_STOP=1 -f scripts/verify-f5b5x.sql 2>&1 | tee artifacts/verify-f5b5x-latest.log && bash scripts/verify-f5b5x-surfaces.sh 2>&1 | tee -a artifacts/verify-f5b5x-latest.log'",
+    "certify:f7c": "bash -c 'set -o pipefail; mkdir -p artifacts && psql -v ON_ERROR_STOP=1 -f scripts/certify-f7c.sql 2>&1 | tee artifacts/certify-f7c-latest.log'",
     "certify:f5c": "bash -c 'set -o pipefail; mkdir -p artifacts && psql -v ON_ERROR_STOP=1 -f scripts/certify-f5c.sql 2>&1 | tee artifacts/certify-f5c-latest.log'"
   },
   "dependencies": {
