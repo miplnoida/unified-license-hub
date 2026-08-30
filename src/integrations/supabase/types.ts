@@ -50854,6 +50854,7 @@ export type Database = {
       }
       entity_ownership_network_core: {
         Args: {
+          _actor: string
           _as_of: string
           _entity_id: string
           _max_depth: number
