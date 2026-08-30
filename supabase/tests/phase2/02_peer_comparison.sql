@@ -88,6 +88,18 @@ BEGIN
         VALUES (v_ver, v_lic, v_metric, v_per,
                 CASE WHEN i <= 6 THEN vals[i] ELSE 99 END, 'CALCULATED');
     END IF;
+
+    -- Subject entity also holds a superseded restatement of the same metric for
+    -- the same period: duplicate evidence must never inflate the peer population.
+    IF i = 6 THEN
+      INSERT INTO public.return_filing_versions
+        (id, return_filing_id, version_number, status, is_immutable)
+        VALUES ('00000000-0000-0000-0000-0000000b3506', v_fil, 2, 'SUPERSEDED', true);
+      INSERT INTO public.return_metric_values
+        (return_filing_version_id, entity_id, regulatory_metric_id, reporting_period_id,
+         value_numeric, source_kind)
+        VALUES ('00000000-0000-0000-0000-0000000b3506', v_lic, v_metric, v_per, 25, 'CALCULATED');
+    END IF;
   END LOOP;
 END$$;
 
@@ -143,8 +155,10 @@ SELECT is((SELECT (snap->>'percentile')::numeric FROM _p2_peer), 83.33::numeric,
           'percentile of the subject is 5 below / 6 peers = 83.33');
 
 -- Duplicate/restated rows must not inflate the population.
-SELECT is((SELECT COUNT(*)::int FROM public.return_calculated_ratios
-            WHERE return_id = '00000000-0000-0000-0000-0000000b2206' AND ratio_key = 'car'), 2,
+SELECT is((SELECT COUNT(*)::int FROM public.return_metric_values mv
+            WHERE mv.entity_id = '00000000-0000-0000-0000-0000000b2106'
+              AND mv.regulatory_metric_id = '00000000-0000-0000-0000-0000000b2007'
+              AND mv.reporting_period_id = '00000000-0000-0000-0000-0000000b3206'), 2,
           'the subject entity genuinely has two car evidence rows for the period');
 SELECT is((SELECT (snap->>'peer_count')::int FROM _p2_peer), 6,
           'the subject entity is still counted exactly once despite two evidence rows');
