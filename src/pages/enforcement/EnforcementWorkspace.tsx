@@ -100,7 +100,9 @@ const ACTION_FIELDS: Record<string, FieldSpec[]> = {
     { name: 'sanction_type', label: 'Sanction type', type: 'select', options: ['monetary_penalty', 'public_censure', 'condition_variation', 'suspension', 'revocation', 'undertaking'] },
     { name: 'sanction_detail', label: 'Sanction detail', type: 'textarea' },
     { name: 'penalty_amount', label: 'Monetary penalty', type: 'number' },
-    { name: 'penalty_currency', label: 'Currency', type: 'text' },
+    // Currency is NOT captured here: it is resolved server-side from the
+    // applicable regulator body's governed monetary configuration.
+
     { name: 'effective_date', label: 'Effective date', type: 'date' },
     { name: 'appeal_deadline', label: 'Appeal deadline', type: 'date' },
   ],
