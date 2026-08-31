@@ -46,22 +46,14 @@ interface Props extends RegistrationUploadContext {
   onChange: (fieldName: string, value: unknown) => void;
   onBlur?: (fieldName: string, value: unknown, field: RegField) => void;
   readOnly?: boolean;
-  /**
-   * `true` when the surrounding wizard already owns email OTP verification
-   * (dedicated verification stage / declarations block). The inline
-   * field-level verify control is then suppressed so the applicant is never
-   * asked to verify the same address twice. Uniqueness checking is unaffected.
-   */
-  suppressEmailVerification?: boolean;
 }
 
 /**
  * Renders a single registration step using the builder's row → column → field
  * grid layout. Responsive: columns collapse on mobile.
  */
-export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur, readOnly, suppressEmailVerification, userId, entityType, entityId, formId }: Props) {
+export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur, readOnly, userId, entityType, entityId, formId }: Props) {
   const uploadCtx: RegistrationUploadContext = { userId, entityType, entityId, formId };
-
 
   const allFields = useMemo(() => {
     return step.rows.flatMap(r => r.columns.map(c => c.field).filter(Boolean)) as RegField[];
@@ -145,7 +137,6 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
                   onChange={onChange}
                   onBlur={onBlur}
                   readOnly={readOnly}
-                  suppressEmailVerification={suppressEmailVerification}
                   allData={data}
                   allFields={allFields}
                   uploadCtx={uploadCtx}
@@ -232,7 +223,6 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
                         onChange={onChange}
                         onBlur={onBlur}
                         readOnly={readOnly}
-                        suppressEmailVerification={suppressEmailVerification}
                         allData={data}
                         allFields={allFields}
                         uploadCtx={uploadCtx}
@@ -264,7 +254,6 @@ interface FieldProps {
   onChange: (fieldName: string, value: unknown) => void;
   onBlur?: (fieldName: string, value: unknown, field: RegField) => void;
   readOnly?: boolean;
-  suppressEmailVerification?: boolean;
   allData: Record<string, unknown>;
   allFields: RegField[];
   uploadCtx?: RegistrationUploadContext;
@@ -350,7 +339,7 @@ function useDynamicOptions(field: RegField, allData: Record<string, unknown>) {
   }, [field.dataSource, field.dependsOn, allData, sectors, allSubSectors, allCategories, countries, allStates]);
 }
 
-function InteractiveField({ field, value, error, onChange, onBlur, readOnly, suppressEmailVerification, allData, allFields, uploadCtx }: FieldProps) {
+function InteractiveField({ field, value, error, onChange, onBlur, readOnly, allData, allFields, uploadCtx }: FieldProps) {
   const handleChange = (val: unknown) => {
     onChange(field.fieldName, val);
 
@@ -417,13 +406,9 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, sup
           ? 'email'
           : field.type;
 
-  const resolvedEmailSettings = effectiveType === 'email'
+  const emailSettings = effectiveType === 'email'
     ? resolveEmailFieldSettings({ type: 'email', validation: field.validation as any })
     : EMAIL_FIELD_SETTINGS_OFF;
-  // The wizard's own verification stage owns the OTP: never ask twice.
-  const emailSettings = suppressEmailVerification
-    ? { ...resolvedEmailSettings, requireVerification: false }
-    : resolvedEmailSettings;
 
   switch (effectiveType) {
     case 'email':

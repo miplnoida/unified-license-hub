@@ -198,22 +198,10 @@ export async function handler(req: Request): Promise<Response> {
       if (reviewerProfile?.full_name) reviewer_name = String(reviewerProfile.full_name);
       else if (reviewerProfile?.email) reviewer_name = String(reviewerProfile.email);
 
-      // Recipient-facing links must use the configured public application URL;
-      // the caller's browser origin (which may be a preview host) is only a
-      // last-resort fallback.
-      const { data: siteConfigRow } = await admin
-        .from("site_settings")
-        .select("value")
-        .eq("key", "site_config")
-        .maybeSingle();
-      const configuredBase = String(
-        (siteConfigRow?.value as Record<string, unknown> | null)?.app_base_url ?? "",
-      ).trim();
       const origin =
-        configuredBase.replace(/\/+$/, "") ||
-        Deno.env.get("APP_BASE_URL") ||
         req.headers.get("origin") ||
         req.headers.get("referer")?.replace(/\/[^/]*$/, "") ||
+        Deno.env.get("APP_BASE_URL") ||
         "";
 
       // Only actions that genuinely require applicant input carry an action

@@ -32,7 +32,6 @@ import { PQ_STATE_META, type PqState } from '@/lib/fp/pqState';
 import { FpPqAmendmentDialog } from '@/components/fit-and-proper/FpPqAmendmentDialog';
 import { generateToken, computeVerificationHash, computeIdentityHashes, getAssessmentEntityName } from '@/lib/fpDeclarationInvitation';
 import { SubmittedDeclarationView } from '@/components/fit-and-proper/SubmittedDeclarationView';
-import { publicAppUrl } from '@/lib/publicAppUrl';
 
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -359,7 +358,7 @@ export default function FpaDeclarations() {
         recipientEmail: recipientEmail || null,
       });
 
-      const portalLink = await publicAppUrl(`/declaration/${rawToken}`);
+      const portalLink = `${window.location.origin}/declaration/${rawToken}`;
       let emailSent = false;
       if (recipientEmail) {
         const individualName = (individual as any)?.full_name || 'Applicant';
@@ -461,7 +460,7 @@ export default function FpaDeclarations() {
       });
 
       // 6. Send the invitation email with the secure portal link
-      const portalLink = await publicAppUrl(`/declaration/${rawToken}`);
+      const portalLink = `${window.location.origin}/declaration/${rawToken}`;
       let emailSent = false;
       if (recipientEmail.trim()) {
         const individualName = (individuals ?? []).find((i: any) => i.id === selectedIndividual)?.full_name || 'Applicant';
@@ -515,7 +514,7 @@ export default function FpaDeclarations() {
 
       return { rawToken, emailSent, recipientEmail: recipientEmail.trim() };
     },
-    onSuccess: async ({ rawToken, emailSent, recipientEmail: toEmail }: { rawToken: string; emailSent: boolean; recipientEmail: string }) => {
+    onSuccess: ({ rawToken, emailSent, recipientEmail: toEmail }: { rawToken: string; emailSent: boolean; recipientEmail: string }) => {
       if (toEmail && !emailSent) {
         toast.warning('Invitation created but email could not be sent — SMTP may not be configured. Share the portal link below manually.');
       } else {
@@ -524,7 +523,7 @@ export default function FpaDeclarations() {
       qc.invalidateQueries({ queryKey: ['fpa_declaration_queue'] });
       qc.invalidateQueries({ queryKey: ['fpa_declaration_stats'] });
       qc.invalidateQueries({ queryKey: ['fpa_notif_log'] });
-      const link = await publicAppUrl(`/declaration/${rawToken}`);
+      const link = `${window.location.origin}/declaration/${rawToken}`;
       setPortalLink(link);
       setSubmitted(true);
     },

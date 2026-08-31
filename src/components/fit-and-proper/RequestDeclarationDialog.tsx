@@ -11,7 +11,6 @@ import { fpDeclarationInvitationCreate } from '@/lib/fpGovernedOps';
 import { toast } from 'sonner';
 import { Send, Loader2, CheckCheck, Copy, AlertCircle } from 'lucide-react';
 import { generateToken, computeVerificationHash, computeIdentityHashes, getAssessmentEntityName } from '@/lib/fpDeclarationInvitation';
-import { publicAppUrl } from '@/lib/publicAppUrl';
 
 /**
  * The single "Request Declaration" flow for the F&P module — creates an
@@ -157,7 +156,7 @@ export function RequestDeclarationDialog({
       });
 
       // Send the invitation email with the secure portal link
-      const link = await publicAppUrl(`/declaration/${rawToken}`);
+      const link = `${window.location.origin}/declaration/${rawToken}`;
       let emailSent = false;
       if (recipientEmail.trim()) {
         const entityLine = entityName ? ` in connection with your role at ${entityName}` : '';
@@ -209,13 +208,13 @@ export function RequestDeclarationDialog({
 
       return { rawToken, emailSent, recipientEmail: recipientEmail.trim() };
     },
-    onSuccess: async ({ rawToken, emailSent, recipientEmail: sentTo }) => {
+    onSuccess: ({ rawToken, emailSent, recipientEmail: sentTo }) => {
       if (sentTo && !emailSent) {
         toast.warning('Invitation created but email could not be sent — SMTP may not be configured. Share the portal link below manually.');
       } else {
         toast.success(sentTo ? `Declaration request sent to ${sentTo}` : 'Declaration invitation created');
       }
-      const link = await publicAppUrl(`/declaration/${rawToken}`);
+      const link = `${window.location.origin}/declaration/${rawToken}`;
       setPortalLink(link);
       setSubmitted(true);
       onSent?.();

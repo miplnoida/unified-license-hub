@@ -24,7 +24,6 @@ import {
   OUTCOME_LABEL, OUTCOME_VARIANT, RISK_LABEL, REVIEW_STATE_LABEL, label,
 } from '@/lib/aiGovernanceLabels';
 import { formatDate, formatDateTime } from '@/lib/datetime';
-import { aiServiceLabel } from '@/lib/ai/aiServiceLabel';
 
 function Field({ label: l, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
@@ -143,7 +142,7 @@ export default function AiUseCaseDetail() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field label="Model" value={model.display_name} />
                     <Field label="Version" value={model.model_version ?? model.technical_identifier} mono />
-                    <Field label="Service" value={aiServiceLabel(model.provider)} />
+                    <Field label="Service" value={model.provider} />
                     <Field label="Status" value={label(LIFECYCLE_LABEL, model.lifecycle_state)} />
                     <Field label="Data handling" value={model.data_handling_class ?? 'Not recorded'} />
                     <Field label="External data" value={model.external_data_capable ? 'Capable — not permitted here' : 'None'} />

@@ -12,7 +12,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { Loader2, Sparkles, AlertTriangle } from 'lucide-react';
 import { useAiInsights, useReviewAiInsight, isLiveInsight, type AiInsight } from '@/hooks/useAiInsights';
-import { aiServiceLabel } from '@/lib/ai/aiServiceLabel';
 
 const STATUS_TONE: Record<string, string> = {
   pending: 'bg-muted text-muted-foreground',
@@ -148,7 +147,7 @@ export default function AiInsightsHub() {
                     <SourceList insight={i} />
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {aiServiceLabel(i.provider, 'provider not configured')}{i.model ? ` · ${i.model}` : ''} ·{' '}
+                    {i.provider ?? 'provider not configured'}{i.model ? ` · ${i.model}` : ''} ·{' '}
                     {new Date(i.generated_at).toLocaleString()}
                   </div>
                   {i.review_status === 'pending' ? (

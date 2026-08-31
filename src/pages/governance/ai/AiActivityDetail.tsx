@@ -26,7 +26,6 @@ import {
 import { advisoryPlainText } from '@/components/conduct/three-sixty/advisory/advisoryText';
 import { formatDate, formatDateTime } from '@/lib/datetime';
 import { useCan } from '@/hooks/useCan';
-import { aiServiceLabel } from '@/lib/ai/aiServiceLabel';
 
 export default function AiActivityDetail() {
   const { kind = 'INSIGHT', id = '' } = useParams();
@@ -128,7 +127,7 @@ export default function AiActivityDetail() {
         {/* AI EXECUTION */}
         <Section title="AI execution">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <F l="AI service" v={aiServiceLabel(insight?.provider ?? primaryAttempt?.provider)} />
+            <F l="AI service" v={insight?.provider ?? primaryAttempt?.provider ?? 'Not recorded'} />
             <F l="Model" v={insight?.model ?? primaryAttempt?.model ?? 'Not recorded'} mono />
             <F l="Model version" v={insight?.model_version ?? primaryAttempt?.model_version ?? 'Not recorded'} mono />
             <F l="Instruction version" v={`${insight?.prompt_template_code ?? primaryAttempt?.instruction_template_code ?? 'Not recorded'} ${insight?.prompt_template_version ?? primaryAttempt?.instruction_version ?? ''}`} mono />

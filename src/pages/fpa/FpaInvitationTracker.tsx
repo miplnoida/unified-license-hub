@@ -25,7 +25,6 @@ import { logFpAction } from '@/lib/fpAudit';
 import { getAssessmentEntityName } from '@/lib/fpDeclarationInvitation';
 import { canRequestDeclaration } from '@/lib/fpaAssessmentStatus';
 import { Loader2, Plus, Copy, Check, RefreshCw } from 'lucide-react';
-import { publicAppUrl } from '@/lib/publicAppUrl';
 
 // ── Status badge config ────────────────────────────────────────────────────
 const STATUS_BADGE: Record<string, string> = {
@@ -154,7 +153,7 @@ export default function FpaInvitationTracker() {
       });
 
       // f. Build invitation URL
-      const invUrl = await publicAppUrl(`/declaration/${rawToken}`);
+      const invUrl = `${window.location.origin}/declaration/${rawToken}`;
 
       // g. Audit log
       await logFpAction('fp.invitation.created', 'declaration_invitation', created.invitation_id, {
@@ -202,7 +201,7 @@ export default function FpaInvitationTracker() {
 
       let emailSent = false;
       if (recipientEmail) {
-        const portalLink = await publicAppUrl(`/declaration/${rawToken}`);
+        const portalLink = `${window.location.origin}/declaration/${rawToken}`;
         const individualName = row.fp_individuals?.full_name || 'Applicant';
         const entityName = await getAssessmentEntityName(row.assessment_id);
         const entityLine = entityName ? ` in connection with your role at ${entityName}` : '';

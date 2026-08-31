@@ -21,13 +21,6 @@ interface Args {
   ownEmail?: string | null;
   /** Hidden / conditionally inapplicable fields are never checked. */
   applicable?: boolean;
-  /**
-   * `true` when the surrounding wizard owns email OTP verification through its
-   * own verification stage. The field-level verified check is then skipped so
-   * the applicant is not blocked by (or asked for) a second verification.
-   * Uniqueness checking still applies.
-   */
-  skipVerification?: boolean;
 }
 
 /**
@@ -41,7 +34,6 @@ export function validateEmailFieldSettings({
   value,
   ownEmail,
   applicable = true,
-  skipVerification = false,
 }: Args): string | null {
   if (!applicable) return null;
   const settings = resolveEmailFieldSettings(field);
@@ -58,7 +50,7 @@ export function validateEmailFieldSettings({
     if (state?.unique === 'checking') return EMAIL_UNIQUENESS_CHECKING_MESSAGE;
   }
 
-  if (settings.requireVerification && !skipVerification && !isOwnEmail && !state?.verified) {
+  if (settings.requireVerification && !isOwnEmail && !state?.verified) {
     return EMAIL_NOT_VERIFIED_MESSAGE;
   }
 

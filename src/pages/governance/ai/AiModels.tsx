@@ -27,7 +27,6 @@ import { LIFECYCLE_LABEL, LIFECYCLE_VARIANT, label } from '@/lib/aiGovernanceLab
 import { formatDateTime } from '@/lib/datetime';
 import { useCan } from '@/hooks/useCan';
 import { useAuth } from '@/contexts/AuthContext';
-import { aiServiceLabel } from '@/lib/ai/aiServiceLabel';
 
 const RELEASED = ['ACTIVE', 'SUSPENDED', 'RETIRED'];
 
@@ -121,7 +120,7 @@ export default function AiModels() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <F l="Service" v={aiServiceLabel(m.provider)} />
+                  <F l="Service" v={m.provider} />
                   <F l="Technical identifier" v={m.technical_identifier} mono />
                   <F l="Version" v={m.model_version ?? m.technical_identifier} mono />
                   <F l="Data handling" v={m.data_handling_class ?? 'Not recorded'} />

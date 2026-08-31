@@ -12,7 +12,6 @@ import { ChevronDown, Info } from 'lucide-react';
 import { formatDate, formatDateTime } from '@/lib/conductFactLabels';
 import { confidenceLabel } from '@/lib/conductAdvisoryLabels';
 import type { AdvisoryInsight } from '@/hooks/useConductAdvisory';
-import { aiServiceLabel } from '@/lib/ai/aiServiceLabel';
 
 export function AdvisoryProvenance({ insight }: { insight: AdvisoryInsight }) {
   const limitations = (insight.limitations ?? []).filter(Boolean);
@@ -70,7 +69,8 @@ export function AdvisoryProvenance({ insight }: { insight: AdvisoryInsight }) {
   );
 }
 
-const providerLabel = (value?: string | null) => aiServiceLabel(value);
+const providerLabel = (value?: string | null) =>
+  value === 'lovable_ai_gateway' ? 'Platform AI service' : (value ?? 'Not recorded');
 
 function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
