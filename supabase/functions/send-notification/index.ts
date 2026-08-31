@@ -18,10 +18,32 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
-
-  const __workerGate = requireWorkerInvocation(req);
-  if (!__workerGate.ok) return __workerGate.response;
   }
+
+  // Accept either a worker/cron invocation (service key or worker token) OR a
+  // signed-in user session — client screens (FPA declarations/invitations,
+  // settings tests) invoke this function with their user JWT.
+  const __workerGate = requireWorkerInvocation(req);
+  if (!__workerGate.ok) {
+    const authHeader = req.headers.get("Authorization") || "";
+    let authorizedUser = false;
+    if (authHeader.startsWith("Bearer ")) {
+      try {
+        const userClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "",
+          { global: { headers: { Authorization: authHeader } } },
+        );
+        const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+        const { data, error } = await userClient.auth.getClaims(token);
+        authorizedUser = !error && !!data?.claims?.sub;
+      } catch {
+        authorizedUser = false;
+      }
+    }
+    if (!authorizedUser) return __workerGate.response;
+  }
+
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -261,7 +283,7 @@ serve(async (req) => {
           if (queueResult.success) {
             await supabase
               .from("notifications")
-              .update({ delivery_status: "delivered" } as any)
+              .update({ delivery_status: "sent" } as any)
               .eq("id", notif.id);
             await logIntegration(supabase, {
               direction: "outbound",

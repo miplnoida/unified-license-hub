@@ -38,14 +38,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    // SMTP configured?
+    // Effective email delivery configuration (Resend primary, SMTP fallback).
     const { data: settingsRow } = await admin
       .from("site_settings")
       .select("value")
       .eq("key", "email_sms_settings")
       .maybeSingle();
     const smtp = (settingsRow as any)?.value?.smtp || {};
+    const resendCfg = (settingsRow as any)?.value?.resend || {};
+    const generalCfg = (settingsRow as any)?.value?.email || {};
     const smtpConfigured = !!(smtp.enabled && smtp.host && smtp.port && smtp.username && smtp.password && smtp.fromEmail);
+    let resendKeyPresent = !!Deno.env.get("RESEND_API_KEY");
+    if (!resendKeyPresent) {
+      const { data: secret } = await admin
+        .from("email_provider_secrets")
+        .select("key")
+        .eq("key", "resend_api_key")
+        .maybeSingle();
+      resendKeyPresent = !!secret;
+    }
+    const resendConfigured = !!(resendCfg.enabled && resendKeyPresent);
+
 
     const adminEmails = (Deno.env.get("ADMIN_NOTIFICATION_EMAILS") || "").split(",").map(s => s.trim()).filter(Boolean);
     const appBaseUrl = Deno.env.get("APP_BASE_URL") || "";
@@ -73,9 +86,18 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       ok: true,
+      email_enabled: generalCfg.enabled !== false,
+      email_configured: resendConfigured || smtpConfigured,
+      primary_provider: resendConfigured ? "resend" : (smtpConfigured ? "smtp" : null),
+      resend_configured: resendConfigured,
+      resend_enabled: !!resendCfg.enabled,
+      resend_key_present: resendKeyPresent,
+      resend_status: resendCfg.status || "not_configured",
+      auto_fallback: generalCfg.autoFallback !== false,
       smtp_configured: smtpConfigured,
       smtp_host_set: !!smtp.host,
       smtp_enabled: !!smtp.enabled,
+
       admin_emails_configured: adminEmails.length > 0,
       admin_email_count: adminEmails.length,
       app_base_url_configured: !!appBaseUrl,
