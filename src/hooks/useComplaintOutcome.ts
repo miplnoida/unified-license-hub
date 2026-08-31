@@ -1,3 +1,4 @@
+import { formatRecordMoney } from '@/lib/money';
 /**
  * MC-04 — Outcome, redress, closure & QA and reconsideration read model.
  *
@@ -482,6 +483,6 @@ export const redressStatusVariant = (s?: string | null): 'default' | 'secondary'
   s === 'VERIFIED' ? 'secondary' : s === 'CANCELLED' ? 'destructive' : s === 'COMPLETED' ? 'default' : 'outline';
 
 export const formatMoney = (amount?: number | null, currency?: string | null) =>
-  amount == null ? '—' : `${currency || ''} ${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`.trim();
+  amount == null ? '—' : formatRecordMoney(amount, currency);
 
 export default useComplaintOutcome;

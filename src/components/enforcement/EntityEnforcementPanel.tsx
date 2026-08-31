@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/datetime';
-import { formatMoney } from '@/lib/money';
+import { formatBaseMoney, formatMoney } from '@/lib/money';
 import { ENFORCEMENT_SOURCE_LABEL, type EnforcementSourceKind } from '@/lib/enforcementProcessOps';
 import { useEnforcementEntitySummary } from '@/hooks/useEnforcementProcess';
 
@@ -61,8 +61,8 @@ export function EntityEnforcementPanel({ entityId }: { entityId: string }) {
           <Stat label="Closed cases" value={data.closed_cases} />
           <Stat label="SLA breached" value={data.breached_sla} tone={data.breached_sla > 0 ? 'danger' : undefined} />
           <Stat label="Open obligations" value={data.open_obligations} />
-          <Stat label="Penalty imposed" value={Number(data.penalty_imposed).toLocaleString()} />
-          <Stat label="Penalty outstanding" value={Number(data.penalty_outstanding).toLocaleString()}
+          <Stat label="Penalty imposed" value={formatBaseMoney(data.penalty_imposed)} />
+          <Stat label="Penalty outstanding" value={formatBaseMoney(data.penalty_outstanding)}
                 tone={Number(data.penalty_outstanding) > 0 ? 'danger' : undefined} />
         </div>
 

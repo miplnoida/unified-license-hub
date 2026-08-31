@@ -1,3 +1,4 @@
+import { formatBaseMoney } from '@/lib/money';
 import { useParams, Link } from 'react-router-dom';
 import { objectRoute } from '@/lib/routes/objectRoutes';
 import { useEntityHistoricalProfile, useEvaluateStressForReturn, useEntityAuditHistory } from '@/hooks/usePrudentialSupervision';
@@ -64,7 +65,7 @@ function formatRatio(value: any, fmt?: string) {
     case 'ratio':
       return `${n.toFixed(2)}x`;
     case 'currency':
-      return n.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+      return formatBaseMoney(n);
     default:
       return n.toLocaleString(undefined, { maximumFractionDigits: 4 });
   }

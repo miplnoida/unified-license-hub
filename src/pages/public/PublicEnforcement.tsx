@@ -1,3 +1,4 @@
+import { formatBaseMoney } from '@/lib/money';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LandingNav } from '@/components/landing/LandingNav';
@@ -68,7 +69,7 @@ export default function PublicEnforcement() {
                 {r.penalty_amount != null && r.penalty_amount > 0 && (
                   <div className="text-right shrink-0">
                     <div className="text-xs uppercase tracking-wide text-muted-foreground">Penalty</div>
-                    <div className="text-lg font-semibold text-destructive">${Number(r.penalty_amount).toLocaleString()}</div>
+                    <div className="text-lg font-semibold text-destructive">{formatBaseMoney(r.penalty_amount)}</div>
                   </div>
                 )}
               </div>

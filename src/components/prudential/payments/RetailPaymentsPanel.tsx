@@ -1,3 +1,4 @@
+import { baseCurrency, formatRecordMoney } from '@/lib/money';
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -42,7 +43,7 @@ export function RetailPaymentsPanel({ operatorId }: Props) {
     for (const r of visible) {
       const cur = m.get(r.payment_type) ?? { count: 0, values: new Map<string, number>() };
       cur.count += Number(r.transaction_count ?? 0);
-      const ccy = r.currency || 'JMD';
+      const ccy = r.currency || baseCurrency() || '';
       cur.values.set(ccy, (cur.values.get(ccy) ?? 0) + Number(r.transaction_value ?? 0));
       m.set(r.payment_type, cur);
     }
@@ -126,7 +127,7 @@ export function RetailPaymentsPanel({ operatorId }: Props) {
                   </TableCell>
                   <TableCell>{labelOf(PAYMENT_TYPES, r.payment_type)}</TableCell>
                   <TableCell className="text-right font-mono">{Number(r.transaction_count).toLocaleString()}</TableCell>
-                  <TableCell className="text-right font-mono">{Number(r.transaction_value).toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-mono">{formatRecordMoney(r.transaction_value, r.currency)}</TableCell>
                   <TableCell>{r.currency}</TableCell>
                 </TableRow>
               ))}

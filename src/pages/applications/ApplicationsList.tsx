@@ -1,3 +1,4 @@
+import { formatRecordMoney } from '@/lib/money';
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { isPostLicenseApplicationRow } from '@/lib/applicationCategory';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -930,7 +931,7 @@ export default function ApplicationsList() {
                   setPaymentDialogOpen(true);
                 }}
               >
-                <span className="text-xs font-medium">{payment.currency === 'USD' ? '$' : payment.currency}{Number(payment.amount).toLocaleString()}</span>
+                <span className="text-xs font-medium">{formatRecordMoney(payment.amount, payment.currency)}</span>
                   <Badge variant={paymentBadgeVariant(payment.status) as any} className="text-[10px]">
                     {paymentStatusLabel(payment.status)}
                 </Badge>

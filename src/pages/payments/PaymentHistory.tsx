@@ -1,3 +1,4 @@
+import { formatBaseMoney, formatRecordMoney } from '@/lib/money';
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -299,15 +300,15 @@ export default function PaymentHistory() {
           </CardContent></Card>
           <Card><CardContent className="pt-6 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-green-500/10"><CheckCircle className="h-5 w-5 text-green-600" /></div>
-            <div><p className="text-2xl font-bold">${totalCollected.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p><p className="text-sm text-muted-foreground">Collected</p></div>
+            <div><p className="text-2xl font-bold">{formatBaseMoney(totalCollected)}</p><p className="text-sm text-muted-foreground">Collected</p></div>
           </CardContent></Card>
           <Card><CardContent className="pt-6 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-yellow-500/10"><Clock className="h-5 w-5 text-yellow-600" /></div>
-            <div><p className="text-2xl font-bold">${totalPending.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p><p className="text-sm text-muted-foreground">Pending</p></div>
+            <div><p className="text-2xl font-bold">{formatBaseMoney(totalPending)}</p><p className="text-sm text-muted-foreground">Pending</p></div>
           </CardContent></Card>
           <Card><CardContent className="pt-6 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-red-500/10"><RotateCcw className="h-5 w-5 text-red-600" /></div>
-            <div><p className="text-2xl font-bold">${totalRefunded.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p><p className="text-sm text-muted-foreground">Refunded</p></div>
+            <div><p className="text-2xl font-bold">{formatBaseMoney(totalRefunded)}</p><p className="text-sm text-muted-foreground">Refunded</p></div>
           </CardContent></Card>
         </div>
         ) : (
@@ -322,7 +323,7 @@ export default function PaymentHistory() {
           <Card><CardContent className="pt-6 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-green-500/10"><CheckCircle className="h-5 w-5 text-green-600" /></div>
             <div>
-              <p className="text-2xl font-bold">${totalCollected.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+              <p className="text-2xl font-bold">{formatBaseMoney(totalCollected)}</p>
               <p className="text-sm text-muted-foreground">Total Paid</p>
             </div>
           </CardContent></Card>
@@ -386,7 +387,7 @@ export default function PaymentHistory() {
                           <TableCell className="text-sm">{getApplicantName(p)}</TableCell>
                           <TableCell className="text-sm">{p.application?.license_type || '-'}</TableCell>
                           <TableCell className="text-sm">{getSectorCategory(p)}</TableCell>
-                          <TableCell className="font-mono whitespace-nowrap">{p.currency} {Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="font-mono whitespace-nowrap">{formatRecordMoney(p.amount, p.currency)}</TableCell>
                           <TableCell><Badge variant={statusVariant[p.status] || 'outline'} className="capitalize">{p.status}</Badge></TableCell>
                           <TableCell className="text-sm text-muted-foreground capitalize">{p.payment_method?.replace('_', ' ') || '—'}</TableCell>
                           <TableCell className="text-sm font-mono">{p.transaction_ref || '—'}</TableCell>
@@ -428,7 +429,7 @@ export default function PaymentHistory() {
                       <TableRow key={r.id}>
                         <TableCell className="font-mono font-medium">{r.receipt_number}</TableCell>
                         <TableCell>{r.issued_to_name}</TableCell>
-                        <TableCell className="font-mono">{r.currency} {Number(r.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="font-mono">{formatRecordMoney(r.amount, r.currency)}</TableCell>
                         <TableCell className="text-sm">{new Date(r.issued_at).toLocaleDateString()}</TableCell>
                         <TableCell><Badge variant={r.voided_at ? 'destructive' : 'default'}>{r.voided_at ? 'Voided' : 'Valid'}</Badge></TableCell>
                         <TableCell className="text-right">
@@ -462,7 +463,7 @@ export default function PaymentHistory() {
                     ) : refunds.map(r => (
                       <TableRow key={r.id}>
                         <TableCell className="text-sm">{new Date(r.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell className="font-mono">${Number(r.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="font-mono">{formatBaseMoney(r.amount)}</TableCell>
                         <TableCell className="text-sm max-w-[200px] truncate">{r.reason}</TableCell>
                         <TableCell>
                           <Badge variant={r.status === 'processed' ? 'default' : r.status === 'rejected' ? 'destructive' : 'outline'} className="capitalize">
@@ -511,7 +512,7 @@ export default function PaymentHistory() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div><span className="text-muted-foreground">Issued To:</span><p className="font-medium">{selectedReceipt.issued_to_name}</p></div>
                   <div><span className="text-muted-foreground">Email:</span><p className="font-medium">{selectedReceipt.issued_to_email || '—'}</p></div>
-                  <div><span className="text-muted-foreground">Amount:</span><p className="font-mono font-bold text-lg">{selectedReceipt.currency} {Number(selectedReceipt.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
+                  <div><span className="text-muted-foreground">Amount:</span><p className="font-mono font-bold text-lg">{formatRecordMoney(selectedReceipt.amount, selectedReceipt.currency)}</p></div>
                   <div><span className="text-muted-foreground">Date:</span><p className="font-medium">{new Date(selectedReceipt.issued_at).toLocaleDateString()}</p></div>
                 </div>
                 {selectedReceipt.fee_breakdown && selectedReceipt.fee_breakdown.length > 0 && (

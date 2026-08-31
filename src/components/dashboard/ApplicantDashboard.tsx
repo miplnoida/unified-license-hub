@@ -1,3 +1,4 @@
+import { formatBaseMoney } from '@/lib/money';
 import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApplicantMetrics } from '@/hooks/useApplicantMetrics';
@@ -21,7 +22,7 @@ import { ApplicationTimeline } from './applicant/ApplicationTimeline';
 import { RequiredFormsList } from './applicant/RequiredFormsList';
 
 const fmtMoney = (v: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
+  formatBaseMoney(v);
 
 export function ApplicantDashboard() {
   const { user } = useAuth();
