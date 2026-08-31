@@ -22,9 +22,10 @@ import { actorLabel, useUserDisplayNames } from '@/hooks/useUserDisplayNames';
 import { cleanTaxonomyText, isTaxonomyNamingNoise } from '@/lib/licensing/taxonomyNoise';
 
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
-import {
 import { aiServiceLabel } from '@/lib/ai/aiServiceLabel';
+import {
   AiReportEmptyState,
+
   AiReportMetaChip,
   AiReportNotice,
   AiReportSection,
