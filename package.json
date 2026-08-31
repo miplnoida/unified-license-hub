@@ -62,6 +62,7 @@
     "verify:f8-w1a-ratio-store": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8-w1a-ratio-store.sql",
     "verify:f8-w1b-group-supervision": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8-w1b-group-supervision.sql",
     "verify:f8-w1c-breach-lifecycle": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8-w1c-breach-lifecycle.sql",
+    "verify:f8-w1d-prudential-config-governance": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8-w1d-prudential-config-governance.sql && vitest run src/test/prudentialConfigGovernance.test.ts",
 
     "verify:dataapi-readiness": "node scripts/system-runtime/verify-dataapi-readiness.mjs",
     "verify:final-census": "node scripts/system-runtime/run-final-census.mjs"
