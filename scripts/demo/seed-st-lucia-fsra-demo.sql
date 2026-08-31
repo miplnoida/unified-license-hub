@@ -136,29 +136,32 @@ ON CONFLICT (id) DO NOTHING;
 -- ---------------------------------------------------------------------
 -- 4. Appointments — control/management layer (separate from ownership)
 -- ---------------------------------------------------------------------
+-- effective_from is set explicitly from the appointment date: the column default
+-- (now()) would stamp every appointment with the seed run time, which breaks the
+-- governance chronology and can end an appointment before it starts.
 INSERT INTO public.entity_appointments
-  (id, entity_id, person_party_id, role_type_id, appointment_date, is_executive, status,
+  (id, entity_id, person_party_id, role_type_id, appointment_date, effective_from, is_executive, status,
    regulatory_approval_status)
 VALUES
   -- Alicia Joseph: CEO + Director
   ('5c1e0001-0000-4000-8000-000000000001','5c1a0001-0000-4000-8000-000000000001',
-   '5c1c0001-0000-4000-8000-000000000001','71fb18d0-8a7c-48af-a749-82cfd146ee6a','2025-11-03',true,'ACTIVE','APPROVED'),
+   '5c1c0001-0000-4000-8000-000000000001','71fb18d0-8a7c-48af-a749-82cfd146ee6a','2025-11-03','2025-11-03T00:00:00Z',true,'ACTIVE','APPROVED'),
   ('5c1e0002-0000-4000-8000-000000000002','5c1a0001-0000-4000-8000-000000000001',
-   '5c1c0001-0000-4000-8000-000000000001','4a0f0d82-55ec-4c54-81b9-9a5df0ec0602','2025-11-03',false,'ACTIVE','APPROVED'),
+   '5c1c0001-0000-4000-8000-000000000001','4a0f0d82-55ec-4c54-81b9-9a5df0ec0602','2025-11-03','2025-11-03T00:00:00Z',false,'ACTIVE','APPROVED'),
   -- Daniel Mercer: Director
   ('5c1e0003-0000-4000-8000-000000000003','5c1a0001-0000-4000-8000-000000000001',
-   '5c1c0002-0000-4000-8000-000000000002','4a0f0d82-55ec-4c54-81b9-9a5df0ec0602','2025-11-03',false,'ACTIVE','APPROVED'),
+   '5c1c0002-0000-4000-8000-000000000002','4a0f0d82-55ec-4c54-81b9-9a5df0ec0602','2025-11-03','2025-11-03T00:00:00Z',false,'ACTIVE','APPROVED'),
   -- Nadine Pierre: Compliance Officer + MLRO (0% ownership)
   ('5c1e0004-0000-4000-8000-000000000004','5c1a0001-0000-4000-8000-000000000001',
-   '5c1c0003-0000-4000-8000-000000000003','c1b45b28-621b-4ed2-8032-c5c7cccbd06d','2025-12-01',true,'ACTIVE','APPROVED'),
+   '5c1c0003-0000-4000-8000-000000000003','c1b45b28-621b-4ed2-8032-c5c7cccbd06d','2025-12-01','2025-12-01T00:00:00Z',true,'ACTIVE','APPROVED'),
   ('5c1e0005-0000-4000-8000-000000000005','5c1a0001-0000-4000-8000-000000000001',
-   '5c1c0003-0000-4000-8000-000000000003','f077a5d4-97f9-4e8f-83a0-0dd2f70894fa','2025-12-01',true,'ACTIVE','APPROVED'),
+   '5c1c0003-0000-4000-8000-000000000003','f077a5d4-97f9-4e8f-83a0-0dd2f70894fa','2025-12-01','2025-12-01T00:00:00Z',true,'ACTIVE','APPROVED'),
   -- Sophia Baptiste: Finance Director (CFO role type, 0% ownership)
   ('5c1e0006-0000-4000-8000-000000000006','5c1a0001-0000-4000-8000-000000000001',
-   '5c1c0004-0000-4000-8000-000000000004','60086ccb-e16b-48d0-8033-3c83ffc9e38f','2025-12-01',true,'ACTIVE','APPROVED'),
+   '5c1c0004-0000-4000-8000-000000000004','60086ccb-e16b-48d0-8033-3c83ffc9e38f','2025-12-01','2025-12-01T00:00:00Z',true,'ACTIVE','APPROVED'),
   -- Daniel Mercer historic cross-entity appointment (Person 360 richness, ENDED)
   ('5c1e0007-0000-4000-8000-000000000007','5c1a0007-0000-4000-8000-000000000007',
-   '5c1c0002-0000-4000-8000-000000000002','4a0f0d82-55ec-4c54-81b9-9a5df0ec0602','2021-06-01',false,'ENDED','APPROVED')
+   '5c1c0002-0000-4000-8000-000000000002','4a0f0d82-55ec-4c54-81b9-9a5df0ec0602','2021-06-01','2021-06-01T00:00:00Z',false,'ENDED','APPROVED')
 ON CONFLICT (id) DO NOTHING;
 
 UPDATE public.entity_appointments

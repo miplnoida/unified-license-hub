@@ -117,10 +117,12 @@ UPDATE public.prudential_actions
        action_reference = 'PA-2026-0002-R'
  WHERE id = '5c310002-0000-4000-8000-000000000002';
 
+-- created_at is explicit: the default (now()) would raise each action after its own
+-- due date and after its recorded closure, inverting the supervisory chronology.
 INSERT INTO public.prudential_actions
   (id, entity_id, source_type, source_id, action_type, title, description, severity,
    due_date, status, action_reference, evidence_required, breach_after_days, progress_percent,
-   review_status, created_by)
+   review_status, created_by, created_at)
 VALUES
   ('5c310011-0000-4000-8000-000000000011',
    '5855bf85-9fde-4cf8-a082-7ea904d46184',
