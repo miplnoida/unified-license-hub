@@ -226,17 +226,152 @@ export default function EmailSmsSettings() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
+                <CardTitle className="text-lg">Email Delivery — General</CardTitle>
+                <CardDescription>
+                  Global sender identity and fallback behaviour. Resend is tried first, SMTP second.
+                </CardDescription>
+              </div>
+              <Badge
+                variant="outline"
+                className={emailDeliveryAvailable ? 'text-green-600 border-green-600' : 'text-muted-foreground'}
+              >
+                {emailDeliveryAvailable ? 'Email Delivery Available' : 'No Provider Operational'}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="grid md:grid-cols-2 gap-6">
+            <div className="flex items-center gap-3">
+              <Switch
+                id="email-enabled"
+                checked={form.email.enabled}
+                onCheckedChange={(v) => updateEmail('enabled', v)}
+              />
+              <Label htmlFor="email-enabled">Enable Email Delivery</Label>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch
+                id="email-fallback"
+                checked={form.email.autoFallback}
+                onCheckedChange={(v) => updateEmail('autoFallback', v)}
+              />
+              <Label htmlFor="email-fallback">Automatic Fallback to SMTP</Label>
+            </div>
+            <div className="space-y-2">
+              <Label>From Name</Label>
+              <Input
+                value={form.email.fromName}
+                onChange={(e) => updateEmail('fromName', e.target.value)}
+                placeholder="OLRAS"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>From Email</Label>
+              <Input
+                type="email"
+                value={form.email.fromEmail}
+                onChange={(e) => updateEmail('fromEmail', e.target.value)}
+                placeholder="OLRAS@mishainfotech.us"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label>Reply-To (optional)</Label>
+              <Input
+                type="email"
+                value={form.email.replyTo}
+                onChange={(e) => updateEmail('replyTo', e.target.value)}
+                placeholder="support@example.com"
+                className="md:max-w-md"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="animate-slide-up delay-150">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">Resend</CardTitle>
+                <CardDescription>
+                  <Badge variant="outline" className="mr-2 text-primary border-primary">PRIMARY EMAIL PROVIDER</Badge>
+                  Delivery is attempted here first.
+                </CardDescription>
+              </div>
+              <Badge
+                variant="outline"
+                className={resendHealthy ? 'text-green-600 border-green-600' : 'text-muted-foreground'}
+              >
+                {resendStatusLabel}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="grid md:grid-cols-2 gap-6">
+            <div className="flex items-center gap-3">
+              <Switch
+                id="resend-enabled"
+                checked={form.resend.enabled}
+                onCheckedChange={(v) => updateResend('enabled', v)}
+              />
+              <Label htmlFor="resend-enabled">Enable Resend</Label>
+            </div>
+            <div className="space-y-2">
+              <Label>API Key</Label>
+              <Input
+                type="password"
+                value={resendApiKey}
+                onChange={(e) => setResendApiKey(e.target.value)}
+                placeholder={resendKeyPresent ? 'Leave blank to keep existing API key' : 'Enter Resend API key'}
+                autoComplete="new-password"
+              />
+              <p className="text-xs text-muted-foreground">
+                Stored server-side only; it is never returned to this screen.
+              </p>
+            </div>
+            {form.resend.lastError && (
+              <p className="md:col-span-2 text-xs text-destructive">{form.resend.lastError}</p>
+            )}
+            <div className="md:col-span-2 border-t pt-4 space-y-2">
+              <Label>Test Recipient Email</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  value={testTo}
+                  onChange={(e) => setTestTo(e.target.value)}
+                  placeholder="recipient@example.com"
+                  className="max-w-md"
+                />
+                <Button
+                  data-rbac="settings.edit"
+                  variant="outline"
+                  onClick={handleSendResendTest}
+                  disabled={sendingResendTest}
+                >
+                  {sendingResendTest ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                  Send Test via Resend
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="animate-slide-up delay-200">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
                 <CardTitle className="text-lg">SMTP Configuration</CardTitle>
-                <CardDescription>Configure the outbound email server.</CardDescription>
+                <CardDescription>
+                  <Badge variant="outline" className="mr-2">FALLBACK EMAIL PROVIDER</Badge>
+                  Used when Resend is unavailable. Existing configuration is preserved.
+                </CardDescription>
               </div>
               <Badge
                 variant="outline"
                 className={smtpReady ? 'text-green-600 border-green-600' : 'text-muted-foreground'}
               >
-                {smtpReady ? 'Connected' : 'Not Configured'}
+                {smtpReady ? 'Configured' : 'Not Configured'}
               </Badge>
             </div>
           </CardHeader>
+
           <CardContent className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label>SMTP Host</Label>
