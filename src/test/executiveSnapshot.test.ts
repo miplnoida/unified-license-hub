@@ -84,12 +84,12 @@ describe('governed executive briefing export', () => {
     analysisType: 'executive_briefing',
     insightId: 'i1',
     payload: { summary: 'draft prose' },
-    reviewState: 'unreviewed',
+    reviewState: 'pending',
   } as BriefingNarrative;
 
   const approved: BriefingNarrative = {
     ...draft,
-    reviewState: 'approved',
+    reviewState: 'accepted',
     reviewerId: 'u1',
     reviewedAt: '2026-09-01T11:00:00Z',
   } as BriefingNarrative;
@@ -113,7 +113,7 @@ describe('governed executive briefing export', () => {
 
   it('binds every exported document to the snapshot fingerprint it was built from', () => {
     const id = documentIdFor(snapshot, 'approved');
-    expect(id).toContain(snapshot.fingerprint.slice(0, 12));
+    expect(id).toContain(snapshot.fingerprint.slice(0, 8).toUpperCase());
     expect(documentIdFor(snapshot, 'facts')).not.toBe(id);
   });
 });
