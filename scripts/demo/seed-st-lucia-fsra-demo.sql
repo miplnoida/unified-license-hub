@@ -164,9 +164,17 @@ VALUES
    '5c1c0002-0000-4000-8000-000000000002','4a0f0d82-55ec-4c54-81b9-9a5df0ec0602','2021-06-01','2021-06-01T00:00:00Z',false,'ENDED','APPROVED')
 ON CONFLICT (id) DO NOTHING;
 
+-- Repair rows seeded before effective_from was explicit (ON CONFLICT DO NOTHING
+-- leaves existing rows untouched).
+UPDATE public.entity_appointments
+   SET effective_from = appointment_date::timestamptz
+ WHERE id::text LIKE '5c1e%'
+   AND effective_from <> appointment_date::timestamptz;
+
 UPDATE public.entity_appointments
    SET effective_to = '2024-12-31T00:00:00Z'
  WHERE id = '5c1e0007-0000-4000-8000-000000000007' AND effective_to IS NULL;
+
 
 -- ---------------------------------------------------------------------
 -- 5. Ownership — legal ledger only. Effective/indirect interest is
