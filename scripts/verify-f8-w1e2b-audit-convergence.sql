@@ -166,8 +166,13 @@ DECLARE
   v_lead  uuid := 'b597c405-e0c4-421b-9092-820a444f2429'; -- inspection_supervisor
 BEGIN
   INSERT INTO public.sectors (id, name) VALUES (v_sec, 'W1E2B Sector') ON CONFLICT (id) DO NOTHING;
-  INSERT INTO public.licensees (id, name, sector_id) VALUES (v_ent, 'W1E2B Bank', v_sec)
-    ON CONFLICT (id) DO UPDATE SET sector_id = EXCLUDED.sector_id;
+  -- the prudential supervisor persona holds scoped ('view') prudential authority,
+  -- so the fixture entity is assigned to that supervisor via the existing
+  -- licensee supervision mapping (no permission or policy is changed).
+  INSERT INTO public.licensees (id, name, sector_id, lead_regulator_id)
+  VALUES (v_ent, 'W1E2B Bank', v_sec, '021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce')
+    ON CONFLICT (id) DO UPDATE SET sector_id = EXCLUDED.sector_id,
+                                   lead_regulator_id = EXCLUDED.lead_regulator_id;
 
   SELECT id INTO v_cfg FROM public.return_configurations ORDER BY created_at LIMIT 1;
   IF v_cfg IS NULL THEN RAISE EXCEPTION 'fixture: no return configuration available'; END IF;
