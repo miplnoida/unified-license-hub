@@ -20,14 +20,13 @@ interface Summary {
   enforcement_open: number;
 }
 
+// Only conduct-specific measures live here. Complaint, conduct-alert and
+// enforcement totals are owned by the canonical executive snapshot KPI cards, so
+// they are deliberately NOT repeated with a second, differently scoped count.
 const TILES: Array<{ key: keyof Summary; label: string; href: string; alarming?: boolean }> = [
-  { key: 'complaints_total', label: 'Complaints', href: '/complaints' },
-  { key: 'complaints_open', label: 'Open complaints', href: '/complaints' },
-  { key: 'complaints_severe', label: 'High / critical', href: '/complaints', alarming: true },
-  { key: 'sla_breaches', label: 'SLA breaches', href: '/complaints', alarming: true },
+  { key: 'complaints_severe', label: 'High / critical complaints', href: '/complaints', alarming: true },
+  { key: 'sla_breaches', label: 'Complaint SLA breaches', href: '/complaints', alarming: true },
   { key: 'investigations_open', label: 'Open investigations', href: '/conduct/investigations' },
-  { key: 'pattern_alerts_open', label: 'Open conduct alerts', href: '/conduct/alerts' },
-  { key: 'enforcement_open', label: 'Open enforcement', href: '/enforcement' },
 ];
 
 export function ConductExecutivePanel() {
