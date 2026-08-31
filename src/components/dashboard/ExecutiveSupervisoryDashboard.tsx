@@ -1,3 +1,4 @@
+import { formatBaseMoney } from '@/lib/money';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -240,7 +241,7 @@ export function ExecutiveSupervisoryDashboard() {
     .slice(0, 8);
 
   const currency = (v: number) =>
-    v.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+    formatBaseMoney(v);
 
   return (
     <div className="space-y-6">

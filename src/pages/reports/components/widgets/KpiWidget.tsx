@@ -1,3 +1,4 @@
+import { formatBaseMoney } from '@/lib/money';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -18,7 +19,7 @@ interface Props {
 
 function formatValue(value: number | string, format?: string) {
   if (typeof value !== 'number') return String(value);
-  if (format === 'currency') return `$${value.toLocaleString()}`;
+  if (format === 'currency') return formatBaseMoney(value);
   if (format === 'percent') return `${value}%`;
   return value.toLocaleString();
 }

@@ -1,3 +1,4 @@
+import { baseCurrency } from '@/lib/money';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -540,7 +541,7 @@ export function useSaveRetailVolume() {
         _payment_type: payload.payment_type,
         _transaction_count: payload.transaction_count ?? 0,
         _transaction_value: payload.transaction_value ?? 0,
-        _currency: (payload.currency || 'JMD').toUpperCase(),
+        _currency: (payload.currency || baseCurrency() || '').toUpperCase(),
       });
       if (error) throw error;
       return data;

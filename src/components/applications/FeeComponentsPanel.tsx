@@ -272,7 +272,7 @@ export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
                     <TableCell className="font-medium">{c.fee_type_name}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{c.description || '—'}</TableCell>
                     <TableCell className="text-right font-mono">
-                      {Number(c.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      {money(c.amount, (c as { currency?: string | null }).currency ?? currency)}
                     </TableCell>
                     {editable && (
                       <TableCell className="text-right">

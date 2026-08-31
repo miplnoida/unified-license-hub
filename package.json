@@ -72,9 +72,9 @@
     "verify:st-lucia-demo": "psql -v ON_ERROR_STOP=1 -f scripts/verify-st-lucia-demo.sql",
     "seed:st-lucia-demo": "psql -v ON_ERROR_STOP=1 -f scripts/demo/seed-st-lucia-fsra-demo.sql && psql -v ON_ERROR_STOP=1 -f scripts/demo/seed-st-lucia-fsra-supervision.sql",
     "cleanup:st-lucia-demo": "psql -v ON_ERROR_STOP=1 -f scripts/demo/cleanup-st-lucia-fsra-demo.sql",
-
     "verify:dataapi-readiness": "node scripts/system-runtime/verify-dataapi-readiness.mjs",
-    "verify:final-census": "node scripts/system-runtime/run-final-census.mjs"
+    "verify:final-census": "node scripts/system-runtime/run-final-census.mjs",
+    "verify:currency-integrity": "node scripts/verify-currency-integrity.mjs && vitest run src/test/currencyIntegrity.test.ts src/test/moneyPresentation.test.ts src/test/paymentGatewayCurrencyContract.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

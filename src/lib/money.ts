@@ -81,3 +81,91 @@ export function formatBookedMoney(
 export function isAuthoritativeMoney(amount: unknown, currency: unknown): boolean {
   return formatMoney(amount, currency) !== MONEY_UNAVAILABLE;
 }
+
+/* ------------------------------------------------------------------ *
+ * Configured base currency (jurisdiction configuration)
+ *
+ * The base currency is server-authoritative: it comes from
+ * `monetary_configs.base_currency` via `monetary_config_resolve` and is primed
+ * once per session. It is NEVER derived from the browser or user locale, so an
+ * operator working from another country can never re-denominate a local
+ * amount. When it is unknown, base-currency amounts render as `—` rather than
+ * guessing.
+ * ------------------------------------------------------------------ */
+
+let configuredBaseCurrency: string | null = null;
+let configuredReportingCurrency: string | null = null;
+
+export function primeConfiguredCurrencies(input: {
+  baseCurrency?: string | null;
+  reportingCurrency?: string | null;
+}): void {
+  const base = input.baseCurrency?.trim().toUpperCase();
+  const reporting = input.reportingCurrency?.trim().toUpperCase();
+  if (base && isIsoCode(base)) configuredBaseCurrency = base;
+  if (reporting && isIsoCode(reporting)) configuredReportingCurrency = reporting;
+}
+
+export function baseCurrency(): string | null {
+  return configuredBaseCurrency;
+}
+
+export function reportingCurrency(): string | null {
+  return configuredReportingCurrency ?? configuredBaseCurrency;
+}
+
+export function resetConfiguredCurrencies(): void {
+  configuredBaseCurrency = null;
+  configuredReportingCurrency = null;
+}
+
+/**
+ * Rule B — a local monetary amount whose record carries no currency of its own
+ * is presented in the configured base currency (Saint Lucia: XCD → `EC$ …`).
+ */
+export function formatBaseMoney(amount: unknown, opts?: { showCode?: boolean }): string {
+  return formatMoney(amount, configuredBaseCurrency, opts);
+}
+
+/** Regulatory reporting presentation (falls back to base currency). */
+export function formatReportingMoney(amount: unknown, opts?: { showCode?: boolean }): string {
+  return formatMoney(amount, reportingCurrency(), opts);
+}
+
+/**
+ * Rule A + Rule B — use the record's own currency when it has one, otherwise
+ * the configured base currency. Never substitutes a hardcoded currency.
+ */
+export function formatRecordMoney(
+  amount: unknown,
+  currency?: unknown,
+  opts?: { showCode?: boolean },
+): string {
+  if (isIsoCode(currency)) return formatMoney(amount, currency, opts);
+  return formatBaseMoney(amount, opts);
+}
+
+/**
+ * Rule E — mixed-currency data is never summed into one figure. Returns one
+ * formatted total per currency, in stable currency order.
+ */
+export function formatTotalsByCurrency(
+  rows: Array<{ amount: unknown; currency?: unknown }>,
+  opts?: { showCode?: boolean },
+): string {
+  const totals = new Map<string, number>();
+  for (const row of rows) {
+    const code = isIsoCode(row.currency)
+      ? row.currency.trim().toUpperCase()
+      : configuredBaseCurrency;
+    if (!code) continue;
+    const n = typeof row.amount === 'number' ? row.amount : Number(row.amount);
+    if (!Number.isFinite(n)) continue;
+    totals.set(code, (totals.get(code) ?? 0) + n);
+  }
+  if (totals.size === 0) return MONEY_UNAVAILABLE;
+  return [...totals.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([code, sum]) => formatMoney(sum, code, opts))
+    .join(' + ');
+}

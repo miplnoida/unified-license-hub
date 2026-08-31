@@ -1,3 +1,4 @@
+import { formatRecordMoney } from '@/lib/money';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -125,7 +126,7 @@ export function PaymentVerificationDialog({
 
 
   const normalizedPaymentStatus = normalizePaymentStatus(payment.status);
-  const formattedAmount = `${payment.currency} ${Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  const formattedAmount = formatRecordMoney(payment.amount, payment.currency);
 
   const handleVerify = async () => {
     if (!draftRemark.trim()) {

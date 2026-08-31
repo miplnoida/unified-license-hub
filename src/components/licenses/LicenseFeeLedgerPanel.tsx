@@ -1,3 +1,4 @@
+import { formatBaseMoney, formatRecordMoney } from '@/lib/money';
 /**
  * P04 A.15–A.17 — licence lifecycle fee ledger.
  *
@@ -90,7 +91,7 @@ export default function LicenseFeeLedgerPanel({ licenseId }: { licenseId: string
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {[
               ['Outstanding', String(data.summary.outstanding)],
-              ['Outstanding value', data.summary.outstanding_amount.toLocaleString()],
+              ['Outstanding value', formatBaseMoney(data.summary.outstanding_amount)],
               ['Verified', String(data.summary.verified)],
               ['Waived', String(data.summary.waived)],
             ].map(([label, value]) => (
@@ -124,7 +125,7 @@ export default function LicenseFeeLedgerPanel({ licenseId }: { licenseId: string
                     {r.payment_reference && <p className="font-mono text-xs text-muted-foreground">{r.payment_reference}</p>}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{r.matter_kind ?? '—'}</TableCell>
-                  <TableCell className="text-right font-mono">{r.currency} {Number(r.amount).toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-mono">{formatRecordMoney(r.amount, r.currency)}</TableCell>
                   <TableCell>{formatDateOnly(r.due_date)}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={STATUS_STYLES[r.status]}>{r.status}</Badge>

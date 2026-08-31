@@ -1,3 +1,4 @@
+import { formatBaseMoney } from '@/lib/money';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
@@ -242,7 +243,7 @@ export function ConsolidatedCaseTab({ applicationId, applicantId, hiddenSections
                 <Badge variant="outline" className="text-xs">{e.status}</Badge>
                 {e.penalty_amount ? (
                   <span className="text-xs text-muted-foreground">
-                    ${Number(e.penalty_amount).toLocaleString()}
+                    {formatBaseMoney(e.penalty_amount)}
                   </span>
                 ) : null}
               </div>

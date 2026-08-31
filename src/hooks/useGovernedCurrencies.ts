@@ -11,7 +11,7 @@
 import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { primeCurrencyRegistry, type CurrencyMasterRow } from '@/lib/money';
+import { primeConfiguredCurrencies, primeCurrencyRegistry, type CurrencyMasterRow } from '@/lib/money';
 
 interface ResolvedMonetaryConfig {
   base_currency: string | null;
@@ -62,6 +62,15 @@ export function useGovernedCurrencies() {
   useEffect(() => {
     if (master.data?.length) primeCurrencyRegistry(master.data);
   }, [master.data]);
+
+  useEffect(() => {
+    if (config.data) {
+      primeConfiguredCurrencies({
+        baseCurrency: config.data.base_currency,
+        reportingCurrency: config.data.reporting_currency,
+      });
+    }
+  }, [config.data]);
 
   const active = useMemo(
     () => (master.data ?? []).filter((c) => c.is_active !== false),

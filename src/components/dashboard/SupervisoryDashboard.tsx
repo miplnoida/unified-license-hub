@@ -1,3 +1,4 @@
+import { formatBaseMoney } from '@/lib/money';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -28,7 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 
-const fmtMoney = (v: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
+const fmtMoney = (v: number) => formatBaseMoney(v);
 
 export function SupervisoryDashboard() {
   const [filters, setFilters] = useState<SupervisoryFilters>({});

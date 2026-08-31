@@ -1,3 +1,4 @@
+import { formatRecordMoney } from '@/lib/money';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -66,7 +67,7 @@ export const num = (v: unknown): number => {
 };
 
 export const money = (amount: unknown, currency?: string | null): string =>
-  `${currency || ''} ${num(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`.trim();
+  formatRecordMoney(num(amount), currency);
 
 /** Thrown when the server returns a financial payload the UI must not interpret. */
 export class MalformedFinancialStateError extends Error {

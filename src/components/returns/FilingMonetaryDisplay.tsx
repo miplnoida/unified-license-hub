@@ -1,3 +1,4 @@
+import { formatRecordMoney } from '@/lib/money';
 /**
  * F7-B — monetary display modes for a return filing.
  *
@@ -79,7 +80,7 @@ export function FilingMonetaryDisplay({ filingId }: { filingId: string }) {
                         {m.as_reported !== null ? `${m.as_reported_currency ?? ''} ${Number(m.as_reported).toLocaleString()}`.trim() : '—'}
                       </TableCell>
                       <TableCell className="text-right font-mono">
-                        {m.display_value !== null ? `${m.display_currency ?? ''} ${Number(m.display_value).toLocaleString()}`.trim() : '—'}
+                        {formatRecordMoney(m.display_value, m.display_currency)}
                       </TableCell>
                       <TableCell>
                         <Badge variant={m.status === 'OK' ? 'outline' : 'secondary'}>

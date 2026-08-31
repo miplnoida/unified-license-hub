@@ -188,7 +188,7 @@ export default function FeeManagement() {
   };
 
   const resetForm = () => {
-    setName(''); setFeeTypesSelected([]); setFeeTypeAmounts({}); setCurrency('USD');
+    setName(''); setFeeTypesSelected([]); setFeeTypeAmounts({}); setCurrency(governedCurrencies.baseCurrency);
     setSectorId(''); setSubSectorId(''); setCategoryId(''); setServiceIds([]); setFormIds([]);
     setFeeScope('category');
     setIsActive(true); setIsPaid(true); setEditing(null); setLegacyNote(false);

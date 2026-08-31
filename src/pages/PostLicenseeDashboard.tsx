@@ -1,3 +1,4 @@
+import { formatBaseMoney } from '@/lib/money';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -15,12 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LicenseExpiryBanner } from '@/components/dashboard/LicenseExpiryBanner';
 
-const fmtMoney = (value: number) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value || 0);
+const fmtMoney = (value: number) => formatBaseMoney(value || 0);
 
 export default function PostLicenseeDashboard() {
   const { user } = useAuth();

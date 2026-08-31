@@ -1,3 +1,4 @@
+import { formatRecordMoney } from '@/lib/money';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -64,7 +65,7 @@ export default function PaymentDetail() {
     );
   }
 
-  const formattedAmount = `${payment.currency} ${Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  const formattedAmount = formatRecordMoney(payment.amount, payment.currency);
 
   return (
     <DashboardLayout>

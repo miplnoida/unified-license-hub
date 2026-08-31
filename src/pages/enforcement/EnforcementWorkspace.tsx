@@ -1,3 +1,4 @@
+import { formatRecordMoney } from '@/lib/money';
 /**
  * EPR-03 — Enforcement Case Workspace (P11).
  *
@@ -466,12 +467,12 @@ export default function EnforcementWorkspace() {
             <Card>
               <CardHeader className="pb-3"><CardTitle className="text-base">Monetary penalty</CardTitle></CardHeader>
               <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Detail label="Imposed">{kase.penalty_amount ? `${currency} ${Number(kase.penalty_amount).toLocaleString()}` : '—'}</Detail>
-                <Detail label="Settled">{kase.penalty_paid_amount ? `${currency} ${Number(kase.penalty_paid_amount).toLocaleString()}` : '—'}</Detail>
-                <Detail label="Waived">{kase.penalty_waived_amount ? `${currency} ${Number(kase.penalty_waived_amount).toLocaleString()}` : '—'}</Detail>
+                <Detail label="Imposed">{kase.penalty_amount ? formatRecordMoney(kase.penalty_amount, currency) : '—'}</Detail>
+                <Detail label="Settled">{kase.penalty_paid_amount ? formatRecordMoney(kase.penalty_paid_amount, currency) : '—'}</Detail>
+                <Detail label="Waived">{kase.penalty_waived_amount ? formatRecordMoney(kase.penalty_waived_amount, currency) : '—'}</Detail>
                 <Detail label="Outstanding">
                   <span className={outstanding > 0 ? 'font-medium text-destructive' : ''}>
-                    {kase.penalty_amount ? `${currency} ${outstanding.toLocaleString()}` : '—'}
+                    {kase.penalty_amount ? formatRecordMoney(outstanding, currency) : '—'}
                   </span>
                 </Detail>
               </CardContent>
@@ -520,7 +521,7 @@ export default function EnforcementWorkspace() {
                       <TableRow key={p.id}>
                         <TableCell className="text-sm">{formatDateOnly(p.paid_on)}</TableCell>
                         <TableCell className="text-sm capitalize">{p.kind}</TableCell>
-                        <TableCell className="text-sm">{p.currency} {Number(p.amount).toLocaleString()}</TableCell>
+                        <TableCell className="text-sm">{formatRecordMoney(p.amount, p.currency)}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{p.payment_reference ?? '—'}</TableCell>
                       </TableRow>
                     ))}

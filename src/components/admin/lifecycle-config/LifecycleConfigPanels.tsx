@@ -1,3 +1,4 @@
+import { formatBaseMoney, formatRecordMoney } from '@/lib/money';
 /**
  * P04 configuration closure — configuration workspace panels.
  *
@@ -98,7 +99,7 @@ export function FeeCataloguePanel() {
                     <TableCell>
                       {schedule ? (
                         <span className="font-mono text-xs">
-                          {schedule.currency} {Number(schedule.amount ?? 0).toLocaleString()}
+                          {formatRecordMoney(schedule.amount ?? 0, schedule.currency)}
                         </span>
                       ) : (
                         <span className="text-muted-foreground text-xs">Not configured</span>
@@ -507,7 +508,7 @@ export function FeeSimulatorPanel() {
                     </TableCell>
                     <TableCell><YesNo value={c.binding_enabled} /></TableCell>
                     <TableCell className="font-mono text-xs">
-                      {c.currency} {Number(c.total).toLocaleString()}
+                      {formatRecordMoney(c.total, c.currency)}
                     </TableCell>
                     <TableCell className="font-mono text-xs">{c.charge_basis} × {c.quantity}</TableCell>
                     <TableCell className="text-xs">
@@ -677,7 +678,7 @@ export function ProcessPreviewPanel() {
                   {s.resolved_fee && (
                     <div>
                       Fee: {s.resolved_fee.fee_type_code} · {s.resolved_fee.currency}{' '}
-                      {Number(s.resolved_fee.total).toLocaleString()} · {s.resolved_fee.gate_policy}
+                      {formatBaseMoney(s.resolved_fee.total)} · {s.resolved_fee.gate_policy}
                     </div>
                   )}
                   {s.resolved_verification && (

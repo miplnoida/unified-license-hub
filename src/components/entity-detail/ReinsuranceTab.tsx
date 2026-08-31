@@ -1,3 +1,4 @@
+import { formatBaseMoney } from '@/lib/money';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,8 +69,8 @@ export default function ReinsuranceTab({ entityId }: { entityId: string }) {
                   <TableCell className="font-medium">{r.reinsurer_name}</TableCell>
                   <TableCell className="font-mono">{r.contract_number || '—'}</TableCell>
                   <TableCell className="capitalize">{r.coverage_type}</TableCell>
-                  <TableCell>${Number(r.coverage_amount || 0).toLocaleString()}</TableCell>
-                  <TableCell>${Number(r.premium_amount || 0).toLocaleString()}</TableCell>
+                  <TableCell>{formatBaseMoney(r.coverage_amount || 0)}</TableCell>
+                  <TableCell>{formatBaseMoney(r.premium_amount || 0)}</TableCell>
                   <TableCell>{r.effective_from ? `${new Date(r.effective_from).toLocaleDateString()} – ${r.effective_to ? new Date(r.effective_to).toLocaleDateString() : 'Open'}` : '—'}</TableCell>
                   <TableCell><Badge variant="outline" className={`capitalize ${r.status === 'active' ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200' : ''}`}>{r.status}</Badge></TableCell>
                   <TableCell className="text-right space-x-1">

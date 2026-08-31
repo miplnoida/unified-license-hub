@@ -1,3 +1,4 @@
+import { formatBaseMoney } from '@/lib/money';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
@@ -41,7 +42,7 @@ const LICENSE_BADGE_VARIANT: Record<string, 'approved' | 'destructive' | 'warnin
 
 
 const fmtMoney = (v: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
+  formatBaseMoney(v);
 
 export function LicenseeDashboard() {
   const { user } = useAuth();
