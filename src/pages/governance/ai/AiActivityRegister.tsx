@@ -61,7 +61,7 @@ export default function AiActivityRegister() {
         )}
       </TableCell>
       <TableCell className="text-xs">
-        <p>{r.model_version ?? r.model ?? 'Not recorded'}</p>
+        <p>{r.governance_version_label ?? r.governance_model_label ?? 'Not recorded'}</p>
         <p className="text-muted-foreground">
           {r.prompt_template_code ? `${r.prompt_template_code} ${r.prompt_template_version ?? ''}` : 'Instruction not recorded'}
         </p>

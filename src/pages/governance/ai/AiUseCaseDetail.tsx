@@ -140,9 +140,8 @@ export default function AiUseCaseDetail() {
               {model ? (
                 <>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="Model" value={model.display_name} />
-                    <Field label="Version" value={model.model_version ?? model.technical_identifier} mono />
-                    <Field label="Service" value={model.provider} />
+                    <Field label="Model" value={model.governance_display_name} />
+                    <Field label="Governance version" value={model.governance_version_label ?? 'Not recorded'} mono />
                     <Field label="Status" value={label(LIFECYCLE_LABEL, model.lifecycle_state)} />
                     <Field label="Data handling" value={model.data_handling_class ?? 'Not recorded'} />
                     <Field label="External data" value={model.external_data_capable ? 'Capable — not permitted here' : 'None'} />
@@ -209,7 +208,7 @@ export default function AiUseCaseDetail() {
                         <Badge variant={OUTCOME_VARIANT[a.outcome] ?? 'outline'}>{label(OUTCOME_LABEL, a.outcome)}</Badge>
                       </TableCell>
                       <TableCell className="text-xs">
-                        {a.model_version ?? a.model ?? 'Not recorded'}
+                        {a.governance_version_label ?? a.governance_model_label ?? 'Not recorded'}
                         <p className="text-muted-foreground">
                           {a.prompt_template_code ? `${a.prompt_template_code} ${a.prompt_template_version ?? ''}` : '—'}
                         </p>
