@@ -52,7 +52,6 @@ describe('Saint Lucia currency integrity', () => {
     (locale) => {
       const original = Intl.NumberFormat;
       // Force every formatter to resolve as if the browser were in `locale`.
-      // @ts-expect-error deliberate narrow test double
       Intl.NumberFormat = function (_l?: string, o?: Intl.NumberFormatOptions) {
         return new original(locale, o);
       } as unknown as typeof Intl.NumberFormat;
