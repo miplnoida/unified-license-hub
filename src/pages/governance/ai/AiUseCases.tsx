@@ -103,7 +103,7 @@ export default function AiUseCases() {
                         </TableCell>
                         <TableCell className="text-right">
                           <Button asChild size="sm" variant="ghost">
-                            <Link to={`/governance/ai/capabilities/${u.code}`}>Open</Link>
+                            <Link to={`/governance/ai/use-cases/${u.code}`}>Open</Link>
                           </Button>
                         </TableCell>
                       </TableRow>
