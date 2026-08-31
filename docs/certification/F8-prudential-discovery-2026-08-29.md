@@ -87,7 +87,7 @@ Zero rows: `prudential_assessment_components`, `prudential_assessment_component_
 | GAP-F8-11 | LOW | Parallel state machines instead of shared approval engine | no `approval_*` reference in prudential functions | Accept and document, or converge; avoid further duplication |
 | GAP-F8-12 | LOW | Detection-run observability | 222 detection runs, 39 feed logs, no surfaced failure queue confirmed | Expose detection failure/exception queue |
 
-Track-A PRODUCT GAP count: **8** (02, 03, 04, 05, 08, 09, 10, 12). BCR: **4** (01 taxonomy, 06 scenarios, 07 templates, plus threshold calibration values). Downstream/architecture: 11.
+Track-A PRODUCT GAP count: **8** (02, 03, 04, 05, 08, 09, 10, 12) → **2 remaining** (08 findings contract, 12 detection observability) after W1/W2 closures of 02, 03, 04, 05, 09, 10. BCR: **4** (01 taxonomy, 06 scenarios, 07 templates, plus threshold calibration values). Downstream/architecture: 11.
 
 ## 6. Frozen-contract dependencies
 
