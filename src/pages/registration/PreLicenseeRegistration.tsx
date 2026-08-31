@@ -1203,11 +1203,15 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
               errors={dynamicErrorsWithUniqueness}
               onChange={handleDynamicFieldChange}
               onBlur={handleDynamicFieldBlur}
+              /* The wizard has its own email verification stage — suppress the
+               * inline field-level OTP so it is never requested twice. */
+              suppressEmailVerification={requireOtp}
               userId={session?.user?.id ?? null}
               entityType="registration"
               entityId={updateContext?.registration?.id ?? null}
               formId={config?.id ?? null}
             />
+
           );
         }
         return <p className="text-muted-foreground">No form section configured for this step.</p>;
