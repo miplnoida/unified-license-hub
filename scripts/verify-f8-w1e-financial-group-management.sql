@@ -205,7 +205,7 @@ BEGIN
     RAISE EXCEPTION 'FAIL 18: governed group mutations are not fully audited';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.compliance_audit_logs
-                  WHERE record_id::text = v_group::text AND table_name = 'financial_group') THEN
+                  WHERE object_id::text = v_group::text AND object_type = 'financial_group') THEN
     RAISE EXCEPTION 'FAIL 18: dual-surface compliance audit evidence missing';
   END IF;
   RAISE NOTICE 'PASS 18: create/member/methodology mutations produced canonical dual-surface audit evidence';
