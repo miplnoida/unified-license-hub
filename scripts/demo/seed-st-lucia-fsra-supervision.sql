@@ -106,6 +106,23 @@ BEGIN
   END IF;
 END $$;
 
+-- Retarget the first-cut (2025-Q4 based) demo actions if they exist, so the
+-- Actions tab never quotes a period whose ratios are not displayable.
+UPDATE public.prudential_actions
+   SET source_id = '5c300011-0000-4000-8000-000000000011',
+       title = 'Liquidity remediation plan required (2025-Q3 liquidity ratio 14.5%)',
+       description = 'Superseded demonstration record — see PA-2026-0001.',
+       status = 'completed', progress_percent = 100, review_status = 'accepted',
+       action_reference = 'PA-2026-0001-R'
+ WHERE id = '5c310001-0000-4000-8000-000000000001';
+UPDATE public.prudential_actions
+   SET source_id = '5c300012-0000-4000-8000-000000000012',
+       title = 'Explanation of rising non-performing loans (2025-Q3 NPL ratio 5.8%)',
+       description = 'Superseded demonstration record — see PA-2026-0002.',
+       status = 'completed', progress_percent = 100, review_status = 'accepted',
+       action_reference = 'PA-2026-0002-R'
+ WHERE id = '5c310002-0000-4000-8000-000000000002';
+
 INSERT INTO public.prudential_actions
   (id, entity_id, source_type, source_id, action_type, title, description, severity,
    due_date, status, action_reference, evidence_required, breach_after_days, progress_percent,
@@ -130,23 +147,6 @@ VALUES
    'medium','2026-03-31','completed','PA-2026-0002',false,14,100,'accepted',
    (SELECT id FROM auth.users WHERE email = 'super_admin@mishainfotech.com'))
 ON CONFLICT (id) DO NOTHING;
-
--- Retarget the first-cut (2025-Q4 based) demo actions if they exist, so the
--- Actions tab never quotes a period whose ratios are not displayable.
-UPDATE public.prudential_actions
-   SET source_id = '5c300011-0000-4000-8000-000000000011',
-       title = 'Liquidity remediation plan required (2025-Q3 liquidity ratio 14.5%)',
-       description = 'Superseded demonstration record — see PA-2026-0001.',
-       status = 'completed', progress_percent = 100, review_status = 'accepted',
-       action_reference = 'PA-2026-0001-R'
- WHERE id = '5c310001-0000-4000-8000-000000000001';
-UPDATE public.prudential_actions
-   SET source_id = '5c300012-0000-4000-8000-000000000012',
-       title = 'Explanation of rising non-performing loans (2025-Q3 NPL ratio 5.8%)',
-       description = 'Superseded demonstration record — see PA-2026-0002.',
-       status = 'completed', progress_percent = 100, review_status = 'accepted',
-       action_reference = 'PA-2026-0002-R'
- WHERE id = '5c310002-0000-4000-8000-000000000002';
 
 UPDATE public.prudential_actions
    SET completion_notes = 'Ageing analysis and provisioning basis received and assessed as adequate. '
