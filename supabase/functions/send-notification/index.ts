@@ -2,81 +2,13 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logIntegration } from "../_shared/integration-log.ts";
 import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
-import { isHardFailure, maskEmail, redact } from "../_shared/notification-redact.ts";
+import { maskEmail, redact } from "../_shared/notification-redact.ts";
+import {
+  EmailDeliveryConfig,
+  loadEmailDeliveryConfig,
+  sendEmailWithFallback,
+} from "../_shared/email-provider.ts";
 
-interface SmtpConfig {
-  host: string;
-  port: number;
-  username: string;
-  password?: string;
-  encryption: "none" | "ssl" | "tls";
-  fromName: string;
-  fromEmail: string;
-  enabled: boolean;
-}
-
-async function loadSmtpConfig(supabase: any): Promise<SmtpConfig | null> {
-  // Always read latest dynamic settings from site_settings (no caching).
-  const { data } = await supabase
-    .from("site_settings")
-    .select("value")
-    .eq("key", "email_sms_settings")
-    .maybeSingle();
-  const smtp = data?.value?.smtp as SmtpConfig | undefined;
-  if (!smtp || !smtp.enabled || !smtp.host || !smtp.port || !smtp.username || !smtp.password || !smtp.fromEmail) {
-    return null;
-  }
-  return smtp;
-}
-
-async function sendSmtpEmail(
-  smtp: SmtpConfig,
-  to: string,
-  subject: string,
-  text: string,
-  html?: string,
-): Promise<{ messageId: string | null }> {
-  // Use nodemailer for proper STARTTLS handling (denomailer fails the TLS
-  // handshake on common providers like Gmail/Office365 on port 587).
-  const nodemailer = (await import("npm:nodemailer@6.9.16")).default;
-  const secure = smtp.encryption === "ssl";       // implicit TLS (e.g. 465)
-  const requireTLS = smtp.encryption === "tls";   // STARTTLS upgrade (e.g. 587)
-  const transporter = nodemailer.createTransport({
-    host: smtp.host,
-    port: Number(smtp.port),
-    secure,
-    requireTLS,
-    auth: { user: smtp.username, pass: smtp.password! },
-    tls: { rejectUnauthorized: false },
-    connectionTimeout: 15000,
-    greetingTimeout: 10000,
-    socketTimeout: 20000,
-  });
-  try {
-    const info: any = await transporter.sendMail({
-      from: `"${smtp.fromName || "Notifications"}" <${smtp.fromEmail}>`,
-      to,
-      subject,
-      text,
-      html: html || undefined,
-    });
-    // SMTP acceptance only. Delivery is NOT confirmed here — see
-    // notification-delivery-webhook for provider-confirmed states.
-    return { messageId: typeof info?.messageId === "string" ? info.messageId : null };
-  } catch (e: any) {
-    const raw = e?.message || String(e);
-    const code = e?.code || "";
-    let friendly = raw;
-    if (/ETIMEDOUT|ESOCKET|ECONNRESET|wrong version number|SSL|TLS/i.test(raw)) {
-      friendly = `TLS/connection issue: ${raw}. Check encryption (SSL=465, TLS=587, None=25).`;
-    } else if (code === "EAUTH" || /535|534|invalid login|authentication/i.test(raw)) {
-      friendly = "SMTP authentication failed. Check username and password.";
-    } else if (code === "ECONNECTION" || /ECONNREFUSED|ENOTFOUND|getaddrinfo|dns/i.test(raw)) {
-      friendly = `Cannot reach SMTP server ${smtp.host}:${smtp.port}. ${raw}`;
-    }
-    throw new Error(redact(friendly));
-  }
-}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -101,40 +33,28 @@ serve(async (req) => {
 
     // ─── Direct email send path (used by dispatch-notification-event and admin Retry) ───
     if (body?.type === "email" && body?.to && body?.subject) {
-      const smtpConfig = await loadSmtpConfig(supabase);
+      const emailConfig: EmailDeliveryConfig = await loadEmailDeliveryConfig(supabase);
       const logId: string | undefined = body.dispatch_log_id;
-      if (!smtpConfig) {
-        if (logId) {
-          await supabase
-            .from("notification_dispatch_log")
-            .update({
-              status: "failed",
-              error: "smtp_not_configured",
-              error_details: { reason: "smtp_not_configured", channel: "email" },
-              failed_at: new Date().toISOString(),
-              last_attempt_at: new Date().toISOString(),
-            })
-            .eq("id", logId);
-        }
-        console.warn("send-notification: SMTP not configured; email skipped", body.to);
-        return new Response(JSON.stringify({ success: false, error: "smtp_not_configured" }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const smtpStarted = Date.now();
+      const sendStarted = Date.now();
       const attemptNo = Number(body.attempt ?? 0) || null;
-      try {
-        const { messageId } = await sendSmtpEmail(smtpConfig, body.to, body.subject, body.body || "", body.html);
+
+      const result = await sendEmailWithFallback(emailConfig, {
+        to: body.to,
+        subject: body.subject,
+        text: body.body || "",
+        html: body.html,
+      });
+
+      if (result.success) {
         if (logId) {
           await supabase
             .from("notification_dispatch_log")
             .update({
-              // SMTP accepted the message. This is `sent`, never `delivered`:
+              // The provider accepted the message. This is `sent`, never `delivered`:
               // delivery confirmation can only come from a provider callback.
               status: "sent",
-              provider: "smtp",
-              provider_message_id: messageId,
+              provider: result.provider,
+              provider_message_id: result.messageId,
               sent_at: new Date().toISOString(),
               last_attempt_at: new Date().toISOString(),
               next_attempt_at: null,
@@ -148,62 +68,85 @@ serve(async (req) => {
 
         await logIntegration(supabase, {
           direction: "outbound",
-          integrationKey: "smtp.send-notification",
+          integrationKey: `${result.provider}.send-notification`,
           status: "success",
           entityType: entity_type ?? null,
           entityId: entity_id ?? null,
           requestSummary: `Email to ${maskEmail(body.to)}: ${body.subject}`,
-          durationMs: Date.now() - smtpStarted,
+          durationMs: Date.now() - sendStarted,
         });
-        return new Response(JSON.stringify({ success: true, provider_message_id: messageId }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      } catch (e: any) {
-        const errMsg = redact(e?.message || e);
-        console.error("send-notification SMTP send failed:", errMsg);
-        const hard = isHardFailure(errMsg);
-        if (logId) {
-          const { data: row } = await supabase
-            .from("notification_dispatch_log")
-            .select("retry_count, attempts")
-            .eq("id", logId)
-            .maybeSingle();
-          const attempts = attemptNo ?? ((row?.attempts ?? row?.retry_count ?? 0) + 1);
-          const delayMinutes = Math.min(60, Math.pow(2, attempts));
-          await supabase
-            .from("notification_dispatch_log")
-            .update({
-              status: hard ? "bounced" : "failed",
-              error: errMsg,
-              error_details: { message: errMsg, channel: "email", provider: "smtp", attempts, hard_failure: hard },
-              failed_at: new Date().toISOString(),
-              last_attempt_at: new Date().toISOString(),
-              retry_count: attempts,
-              attempts,
-              poisoned: hard || attempts >= 5,
-              next_attempt_at: hard || attempts >= 5
-                ? null
-                : new Date(Date.now() + delayMinutes * 60_000).toISOString(),
-              claimed_at: null,
-              claimed_by: null,
-            })
-            .eq("id", logId);
-
-        }
-        await logIntegration(supabase, {
-          direction: "outbound",
-          integrationKey: "smtp.send-notification",
-          status: "failure",
-          entityType: entity_type ?? null,
-          entityId: entity_id ?? null,
-          error: errMsg,
-          durationMs: Date.now() - smtpStarted,
-        });
-        return new Response(JSON.stringify({ success: false, error: errMsg }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({
+            success: true,
+            provider: result.provider,
+            provider_message_id: result.messageId,
+            attempts: result.attempts,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
+
+      // Controlled failure: never propagate into the calling business workflow.
+      const errMsg = redact(result.error || "email_delivery_failed");
+      console.error("send-notification email delivery failed:", errMsg);
+      // The router already distinguished recipient hard failures from
+      // retryable infrastructure failures (quota, rate limit, outage, timeout).
+      const hard = result.hardFailure;
+
+      if (logId) {
+        const { data: row } = await supabase
+          .from("notification_dispatch_log")
+          .select("retry_count, attempts")
+          .eq("id", logId)
+          .maybeSingle();
+        const attempts = attemptNo ?? ((row?.attempts ?? row?.retry_count ?? 0) + 1);
+        const delayMinutes = Math.min(60, Math.pow(2, attempts));
+        await supabase
+          .from("notification_dispatch_log")
+          .update({
+            status: hard ? "bounced" : "failed",
+            error: errMsg,
+            error_details: {
+              message: errMsg,
+              channel: "email",
+              provider: result.attempts.map((a) => a.provider).join(","),
+              provider_attempts: result.attempts,
+              attempts,
+              hard_failure: hard,
+            },
+            failed_at: new Date().toISOString(),
+            last_attempt_at: new Date().toISOString(),
+            retry_count: attempts,
+            attempts,
+            poisoned: hard || attempts >= 5,
+            next_attempt_at: hard || attempts >= 5
+              ? null
+              : new Date(Date.now() + delayMinutes * 60_000).toISOString(),
+            claimed_at: null,
+            claimed_by: null,
+          })
+          .eq("id", logId);
+      }
+      await logIntegration(supabase, {
+        direction: "outbound",
+        integrationKey: "email.send-notification",
+        status: "failure",
+        entityType: entity_type ?? null,
+        entityId: entity_id ?? null,
+        error: errMsg,
+        durationMs: Date.now() - sendStarted,
+      });
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: errMsg,
+          email_delivery_failed: true,
+          hard_failure: hard,
+          attempts: result.attempts,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+
     }
 
 
@@ -290,7 +233,7 @@ serve(async (req) => {
         .limit(50);
 
       let processed = 0;
-      const smtpConfig = await loadSmtpConfig(supabase);
+      const emailConfig: EmailDeliveryConfig = await loadEmailDeliveryConfig(supabase);
 
       for (const notif of queued || []) {
         const { data: profile } = await supabase
@@ -302,13 +245,6 @@ serve(async (req) => {
         if (!profile) continue;
 
         if (notif.channel === "email") {
-          if (!smtpConfig) {
-            await supabase
-              .from("notifications")
-              .update({ delivery_status: "failed"} as any)
-              .eq("id", notif.id);
-            continue;
-          }
           if (!profile.email) {
             await supabase
               .from("notifications")
@@ -316,40 +252,45 @@ serve(async (req) => {
               .eq("id", notif.id);
             continue;
           }
-          const queueSmtpStarted = Date.now();
-          try {
-            await sendSmtpEmail(smtpConfig, profile.email, notif.title, notif.message);
+          const queueSendStarted = Date.now();
+          const queueResult = await sendEmailWithFallback(emailConfig, {
+            to: profile.email,
+            subject: notif.title,
+            text: notif.message,
+          });
+          if (queueResult.success) {
             await supabase
               .from("notifications")
               .update({ delivery_status: "delivered" } as any)
               .eq("id", notif.id);
             await logIntegration(supabase, {
               direction: "outbound",
-              integrationKey: "smtp.send-notification",
+              integrationKey: `${queueResult.provider}.send-notification`,
               status: "success",
               entityType: notif.entity_type ?? null,
               entityId: notif.entity_id ?? null,
-              requestSummary: `Queued email to ${profile.email}: ${notif.title}`,
-              durationMs: Date.now() - queueSmtpStarted,
+              requestSummary: `Queued email to ${maskEmail(profile.email)}: ${notif.title}`,
+              durationMs: Date.now() - queueSendStarted,
             });
             processed++;
-          } catch (e: any) {
-            const errMsg = e?.message || String(e);
-            console.error("SMTP delivery failed:", errMsg);
+          } else {
+            const errMsg = redact(queueResult.error || "email_delivery_failed");
+            console.error("Queued email delivery failed:", errMsg);
             await supabase
               .from("notifications")
               .update({ delivery_status: "failed"} as any)
               .eq("id", notif.id);
             await logIntegration(supabase, {
               direction: "outbound",
-              integrationKey: "smtp.send-notification",
+              integrationKey: "email.send-notification",
               status: "failure",
               entityType: notif.entity_type ?? null,
               entityId: notif.entity_id ?? null,
               error: errMsg,
-              durationMs: Date.now() - queueSmtpStarted,
+              durationMs: Date.now() - queueSendStarted,
             });
           }
+
         } else if (notif.channel === "sms") {
           // No SMS provider integration exists yet. Never record a successful
           // SMS delivery — fail loudly and audit the reason instead.
