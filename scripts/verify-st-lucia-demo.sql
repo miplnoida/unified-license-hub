@@ -109,13 +109,13 @@ BEGIN
        + (SELECT economic_interest_percentage FROM public.ownership_interests WHERE id = '5c1f0001-0000-4000-8000-000000000001')
        * (SELECT economic_interest_percentage FROM public.ownership_interests WHERE id = '5c1f0004-0000-4000-8000-000000000004') / 100
     INTO v;
-  IF round(v, 2) <> 54.00 THEN RAISE EXCEPTION 'G06e FAIL: Alicia Joseph effective ownership derives to %%, not 54%%', v; END IF;
+  IF round(v, 2) <> 54.00 THEN RAISE EXCEPTION 'G06e FAIL: Alicia Joseph effective ownership derives to % (expected 54)', v; END IF;
 
   SELECT (SELECT economic_interest_percentage FROM public.ownership_interests WHERE id = '5c1f0002-0000-4000-8000-000000000002')
        + (SELECT economic_interest_percentage FROM public.ownership_interests WHERE id = '5c1f0001-0000-4000-8000-000000000001')
        * (SELECT economic_interest_percentage FROM public.ownership_interests WHERE id = '5c1f0005-0000-4000-8000-000000000005') / 100
     INTO v;
-  IF round(v, 2) <> 46.00 THEN RAISE EXCEPTION 'G06e FAIL: Daniel Mercer effective ownership derives to %%, not 46%%', v; END IF;
+  IF round(v, 2) <> 46.00 THEN RAISE EXCEPTION 'G06e FAIL: Daniel Mercer effective ownership derives to % (expected 46)', v; END IF;
 
 
   -- G07 canonical addresses are linked through address_usages (not free text)
