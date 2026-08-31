@@ -173,7 +173,7 @@ BEGIN
   IF v_cfg IS NULL THEN RAISE EXCEPTION 'fixture: no return configuration available'; END IF;
 
   INSERT INTO public.prudential_ratios (id, return_config_id, ratio_key, label, formula, display_format)
-  VALUES (v_ratio, v_cfg, 'W1E2B_TEST_RATIO', 'W1E2B Test Ratio', 'a / b', 'percentage');
+  VALUES (v_ratio, v_cfg, 'W1E2B_TEST_RATIO', 'W1E2B Test Ratio', 'a / b', 'decimal');
 
   SELECT * INTO v_rule FROM public.prudential_ewi_rules ORDER BY created_at LIMIT 1;
   IF v_rule IS NULL THEN RAISE EXCEPTION 'fixture: no EWI rule available'; END IF;
