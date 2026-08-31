@@ -225,7 +225,7 @@ export default function EntityDirectory() {
       priority: 3,
       defaultVisible: false,
     },
-  ], [lifecycleOptions, identityOptions, rows]);
+  ], [lifecycleOptions, identityOptions, sectorOptions, rows]);
 
   return (
     <DashboardLayout>
