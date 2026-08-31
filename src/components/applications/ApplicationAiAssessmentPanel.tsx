@@ -23,6 +23,7 @@ import { cleanTaxonomyText, isTaxonomyNamingNoise } from '@/lib/licensing/taxono
 
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import {
+import { aiServiceLabel } from '@/lib/ai/aiServiceLabel';
   AiReportEmptyState,
   AiReportMetaChip,
   AiReportNotice,
@@ -831,7 +832,7 @@ function AssessmentFooter({ assessment }: { assessment: Assessment }) {
       </div>
       {showTech && (
         <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono">
-          {assessment.model_provider && <span>Provider: {assessment.model_provider}</span>}
+          {assessment.model_provider && <span>Provider: {aiServiceLabel(assessment.model_provider)}</span>}
           {assessment.model_name && <span>Model: {assessment.model_name}</span>}
           {assessment.prompt_version && <span>Prompt: {assessment.prompt_version}</span>}
         </div>
