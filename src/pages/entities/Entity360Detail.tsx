@@ -230,6 +230,14 @@ export default function Entity360Detail() {
               {activeSection.key === 'fit_and_proper' && (
                 <EntityFitAndProperPanel entityId={entity.id} />
               )}
+              {/* Ownership reads as a structure tree first, records second. */}
+              {activeSection.key === 'ownership' && (
+                <OwnershipTreePanel
+                  entityId={entity.id}
+                  entityName={entity.display_name ?? entity.legal_name ?? null}
+                  asOf={asOf}
+                />
+              )}
               <Entity360SectionView
                 entityId={entity.id}
                 section={activeSection.key}
