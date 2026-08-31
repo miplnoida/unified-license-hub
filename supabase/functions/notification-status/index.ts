@@ -86,9 +86,18 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       ok: true,
+      email_enabled: generalCfg.enabled !== false,
+      email_configured: resendConfigured || smtpConfigured,
+      primary_provider: resendConfigured ? "resend" : (smtpConfigured ? "smtp" : null),
+      resend_configured: resendConfigured,
+      resend_enabled: !!resendCfg.enabled,
+      resend_key_present: resendKeyPresent,
+      resend_status: resendCfg.status || "not_configured",
+      auto_fallback: generalCfg.autoFallback !== false,
       smtp_configured: smtpConfigured,
       smtp_host_set: !!smtp.host,
       smtp_enabled: !!smtp.enabled,
+
       admin_emails_configured: adminEmails.length > 0,
       admin_email_count: adminEmails.length,
       app_base_url_configured: !!appBaseUrl,
