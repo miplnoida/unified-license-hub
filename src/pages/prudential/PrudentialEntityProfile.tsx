@@ -35,12 +35,13 @@ import { severityLabel, severityTone, worstSeverity, isEscalatable } from '@/lib
 import { formatDateOnly, formatDateTime } from '@/lib/datetime';
 import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
 import {
-import {
   isOpenPrudentialAction,
   isOpenPrudentialEscalation,
   isOverduePrudentialAction,
 } from '@/lib/supervision/canonicalStatusPredicates';
+import {
   humanizeToken,
+
   stressSeverityLabel,
 
   returnStatusLabel,
