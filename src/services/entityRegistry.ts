@@ -46,6 +46,8 @@ export interface EntityDto {
   identity_status_label: string | null;
   merged_into_entity_id: string | null;
   sector_id: string | null;
+  sector_name: string | null;
+  sector_code: string | null;
   assigned_supervisor_id: string | null;
   identifiers: EntityIdentifierDto[];
   licences: EntityLicenceDto[];
