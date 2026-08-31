@@ -63,9 +63,10 @@ import { AlertCircle } from 'lucide-react';
 import type { Json } from '@/integrations/supabase/types';
 import { useCaptchaRuntime } from '@/hooks/useCaptchaConfig';
 import { useAuth } from '@/contexts/AuthContext';
-import {
 import { publicAppBaseUrl } from '@/lib/publicAppUrl';
+import {
   buildUpdateRegistrationUrl,
+
   deepMergeRegistrationData,
   guardAgainstBlankOverwrite,
   isEffectivelyEmpty,
