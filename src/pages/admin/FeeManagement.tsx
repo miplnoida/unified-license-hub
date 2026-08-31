@@ -93,7 +93,11 @@ export default function FeeManagement() {
   const [ftCode, setFtCode] = useState('');
   const [ftStatus, setFtStatus] = useState('active');
 
+  // Governed currency authority (currency master + monetary configuration)
+  const governedCurrencies = useGovernedCurrencies();
+
   // Fee form state
+
   const [name, setName] = useState('');
   const [feeTypes, setFeeTypesSelected] = useState<string[]>([]);
   const [feeTypeAmounts, setFeeTypeAmounts] = useState<Record<string, FeeTypeAmountRow>>({});
