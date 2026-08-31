@@ -200,7 +200,8 @@ export function createInitialState(): WizardState {
     location: '',
     transaction_reference: '',
     amount_involved: '',
-    currency: 'XCD',
+    // Left blank so the configured jurisdiction currency applies server-side.
+    currency: '',
     amount_disputed: '',
     claimed_loss: '',
     continuing_loss: false,
