@@ -459,12 +459,12 @@ BEGIN
    WHERE return_filing_id = '00000000-0000-0000-0000-00000f83a010';
   SELECT count(*) INTO n FROM public.audit_logs
    WHERE action = 'prudential_stress_event_acknowledged'
-     AND record_id = ev::text
+     AND entity_id = ev
      AND user_id = '021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce'::uuid;
   IF n < 1 THEN RAISE EXCEPTION 'FAIL 20: no operational audit_logs evidence for acknowledgement'; END IF;
   SELECT count(*) INTO n FROM public.compliance_audit_logs
    WHERE object_type = 'prudential_stress_event'
-     AND object_id = ev
+     AND object_id = ev::text
      AND user_id = '021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce'::uuid;
   IF n < 1 THEN RAISE EXCEPTION 'FAIL 20: no compliance audit evidence for acknowledgement'; END IF;
   RAISE NOTICE 'PASS 20: acknowledgement recorded on both canonical audit surfaces with the correct actor and object';

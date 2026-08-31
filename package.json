@@ -68,6 +68,7 @@
     "verify:f8-w2a-payment-incidents": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8-w2a-payment-incidents.sql",
     "verify:f8-w2b-pfmi-assessment": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8-w2b-pfmi-assessment.sql",
     "verify:f8-w2c-retail-volumes": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8-w2c-retail-volumes.sql",
+    "verify:f8-w3a-stress-events": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8-w3a-stress-events.sql",
 
     "verify:dataapi-readiness": "node scripts/system-runtime/verify-dataapi-readiness.mjs",
     "verify:final-census": "node scripts/system-runtime/run-final-census.mjs"
