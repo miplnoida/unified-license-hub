@@ -68,7 +68,19 @@ function TreeBranch({
         <NodeIcon node={node} root={isRoot} />
 
         <span className={cn('text-sm', isRoot ? 'font-semibold' : 'font-medium')}>
-          {isRoot ? rootLabel || item.label : item.label}
+          {isRoot ? (
+            rootLabel || item.label
+          ) : target ? (
+            <Link
+              to={target}
+              className="underline-offset-2 hover:underline"
+              title={node?.is_natural_person ? `Open person 360 for ${item.label}` : `Open entity 360 for ${item.label}`}
+            >
+              {item.label}
+            </Link>
+          ) : (
+            item.label
+          )}
         </span>
 
         {edge && (
