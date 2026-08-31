@@ -49,7 +49,18 @@ function TreeRow({ node, onSelect, onEdit, canEdit }: {
         {node.ownership_percentage != null && (
           <span className="font-mono text-xs text-muted-foreground">{Number(node.ownership_percentage).toFixed(2)}%</span>
         )}
-        <Badge variant="outline" className="text-[11px]">{TREATMENT_LABEL[node.consolidation_treatment] ?? node.consolidation_treatment}</Badge>
+        <Badge
+          variant="outline"
+          className="text-[11px]"
+          title={(node as any).exclusion_rationale ?? undefined}
+        >
+          {TREATMENT_LABEL[node.consolidation_treatment] ?? node.consolidation_treatment}
+        </Badge>
+        {(node as any).ownership_variance_reason && (
+          <Badge variant="outline" className="text-[11px] text-amber-600" title={(node as any).ownership_variance_note ?? undefined}>
+            ownership variance recorded
+          </Badge>
+        )}
         {node.sector_name && <span className="hidden md:inline text-xs text-muted-foreground">{node.sector_name}</span>}
         <div className="ml-auto flex items-center gap-2">
           {node.risk_band && (

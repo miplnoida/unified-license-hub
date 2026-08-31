@@ -134,24 +134,137 @@ function useInvalidateGroup(groupId?: string | null) {
   };
 }
 
+export interface StagedGroupMember {
+  licensee_id: string;
+  member_role: string;
+  consolidation_treatment: string;
+  ownership_percentage: number | null;
+  effective_date: string | null;
+  end_date: string | null;
+  exclusion_rationale: string | null;
+  ownership_variance_reason: string | null;
+  ownership_variance_note: string | null;
+  /** index into the staged list of the parent member; null = top of group */
+  parent_index: number | null;
+  notes?: string | null;
+}
+
+export interface CreateGroupInput {
+  group_code: string;
+  name: string;
+  holding_entity_id?: string | null;
+  sector_id?: string | null;
+  supervisory_lead_id?: string | null;
+  status?: string;
+  notes?: string | null;
+  members?: StagedGroupMember[];
+  methodology?: {
+    ratio_rules: any[];
+    eliminate_exposure_types: string[];
+    large_exposure_pct: number;
+    notes?: string | null;
+  } | null;
+}
+
 export function useCreateFinancialGroup() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (row: { group_code: string; name: string; holding_entity_id?: string | null; sector_id?: string | null; supervisory_lead_id?: string | null; notes?: string | null }) => {
+    mutationFn: async (input: CreateGroupInput) => {
+      const { members = [], methodology, ...row } = input;
       const { data: auth } = await supabase.auth.getUser();
+      const actor = auth?.user?.id ?? null;
       const { data, error } = await sb.from('financial_groups')
-        .insert({ ...row, created_by: auth?.user?.id ?? null }).select('id').single();
+        .insert({ ...row, created_by: actor }).select('id').single();
       if (error) throw error;
+      const groupId = data.id as string;
+
+      // Members are inserted parents-first so `parent_member_id` can be resolved
+      // server-side against real rows; the hierarchy trigger validates each one.
+      const idByIndex = new Map<number, string>();
+      const pending = members.map((m, i) => ({ m, i }));
+      let guard = 0;
+      while (pending.length && guard++ < 200) {
+        const next = pending.findIndex(({ m }) => m.parent_index == null || idByIndex.has(m.parent_index));
+        if (next < 0) break;
+        const [{ m, i }] = pending.splice(next, 1);
+        const { parent_index, ...rest } = m;
+        const { data: inserted, error: mErr } = await sb.from('financial_group_members')
+          .insert({
+            ...rest,
+            group_id: groupId,
+            parent_member_id: parent_index == null ? null : idByIndex.get(parent_index) ?? null,
+          }).select('id').single();
+        if (mErr) throw mErr;
+        idByIndex.set(i, inserted.id as string);
+      }
+
       // Seed a version 1 methodology so consolidation is always traceable.
-      await sb.from('group_consolidation_methods').insert({
-        group_id: data.id, version: 1, created_by: auth?.user?.id ?? null,
+      const { error: methErr } = await sb.from('group_consolidation_methods').insert({
+        group_id: groupId, version: 1, is_active: true, created_by: actor,
+        ...(methodology ?? {}),
       });
-      return data.id as string;
+      if (methErr) throw methErr;
+      return groupId;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['financial_groups'] }); toast.success('Financial group created'); },
     onError: (e: any) => toast.error(e.message || 'Failed to create group'),
   });
 }
+
+/** Canonical entity list used by the group and member forms. */
+export function useGroupEntityOptions() {
+  return useQuery({
+    queryKey: ['group_entity_options'],
+    queryFn: async () => {
+      const { data, error } = await sb.from('licensees')
+        .select('id, name, status, sector_id').order('name').limit(1000);
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; name: string; status: string | null; sector_id: string | null }>;
+    },
+  });
+}
+
+export interface OwnershipReference {
+  available: boolean;
+  reason?: string;
+  as_of?: string;
+  economic_interest_percentage?: number | null;
+  voting_rights_percentage?: number | null;
+  is_controller?: boolean | null;
+  control_determination?: string | null;
+  approval_status?: string | null;
+  effective_from?: string | null;
+  verified?: boolean;
+  verified_at?: string | null;
+}
+
+/**
+ * Canonical legal ownership evidence between a parent and a member entity.
+ * Read-only: the group ownership reference is a supervisory figure and never
+ * overwrites the ownership ledger.
+ */
+export function useGroupOwnershipReference(
+  groupId?: string | null,
+  parentLicenseeId?: string | null,
+  memberLicenseeId?: string | null,
+  asOf?: string | null,
+) {
+  return useQuery({
+    queryKey: ['group_ownership_reference', groupId, parentLicenseeId, memberLicenseeId, asOf ?? 'today'],
+    enabled: !!groupId && !!parentLicenseeId && !!memberLicenseeId,
+    queryFn: async (): Promise<OwnershipReference> => {
+      const { data, error } = await sb.rpc('financial_group_ownership_reference', {
+        _group_id: groupId,
+        _parent_licensee_id: parentLicenseeId,
+        _member_licensee_id: memberLicenseeId,
+        ...(asOf ? { _as_of: asOf } : {}),
+      });
+      if (error) throw error;
+      return (data ?? { available: false, reason: 'NO_RESULT' }) as OwnershipReference;
+    },
+  });
+}
+
 
 export function useUpdateFinancialGroup(groupId?: string | null) {
   const invalidate = useInvalidateGroup(groupId);
@@ -179,7 +292,6 @@ export function useSaveGroupMember(groupId?: string | null) {
         const { error } = await sb.from('financial_group_members').insert(payload);
         if (error) throw error;
       }
-      await logGroupAudit(groupId, 'GROUP_STRUCTURE_UPDATED', { member: row.licensee_id ?? row.id });
     },
     onSuccess: () => { invalidate(); toast.success('Group structure saved'); },
     onError: (e: any) => toast.error(e.message || 'Failed to save member'),
@@ -192,7 +304,6 @@ export function useRemoveGroupMember(groupId?: string | null) {
     mutationFn: async (memberId: string) => {
       const { error } = await sb.from('financial_group_members').delete().eq('id', memberId);
       if (error) throw error;
-      await logGroupAudit(groupId, 'GROUP_STRUCTURE_UPDATED', { removed_member: memberId });
     },
     onSuccess: () => { invalidate(); toast.success('Member removed'); },
     onError: (e: any) => toast.error(e.message || 'Failed to remove member'),
@@ -213,9 +324,6 @@ export function useSaveExposure(groupId?: string | null) {
         const { error } = await sb.from('intragroup_exposures').insert(payload);
         if (error) throw error;
       }
-      await logGroupAudit(groupId, 'INTRAGROUP_EXPOSURE_RECORDED', {
-        from: row.from_entity_id, to: row.to_entity_id, period_key: row.period_key,
-      });
     },
     onSuccess: () => { invalidate(); toast.success('Exposure saved'); },
     onError: (e: any) => toast.error(e.message || 'Failed to save exposure'),
@@ -295,17 +403,5 @@ export function useLicenseeGroupMembership(licenseeId?: string | null) {
       if (error) throw error;
       return data as { is_member: boolean; authorised?: boolean; group_id?: string; group_code?: string; group_name?: string; member_role?: string; ownership_percentage?: number | null; consolidation_treatment?: string };
     },
-  });
-}
-
-export async function logGroupAudit(groupId: string | null | undefined, action: string, meta: Record<string, any> = {}) {
-  if (!groupId) return;
-  const { data: auth } = await supabase.auth.getUser();
-  await sb.from('audit_logs').insert({
-    user_id: auth?.user?.id ?? null,
-    action,
-    entity_type: 'financial_group',
-    entity_id: groupId,
-    new_value: meta,
   });
 }

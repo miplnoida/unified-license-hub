@@ -21008,12 +21008,15 @@ export type Database = {
           created_at: string
           effective_date: string | null
           end_date: string | null
+          exclusion_rationale: string | null
           group_id: string
           id: string
           licensee_id: string
           member_role: string
           notes: string | null
           ownership_percentage: number | null
+          ownership_variance_note: string | null
+          ownership_variance_reason: string | null
           parent_member_id: string | null
           updated_at: string
         }
@@ -21022,12 +21025,15 @@ export type Database = {
           created_at?: string
           effective_date?: string | null
           end_date?: string | null
+          exclusion_rationale?: string | null
           group_id: string
           id?: string
           licensee_id: string
           member_role?: string
           notes?: string | null
           ownership_percentage?: number | null
+          ownership_variance_note?: string | null
+          ownership_variance_reason?: string | null
           parent_member_id?: string | null
           updated_at?: string
         }
@@ -21036,12 +21042,15 @@ export type Database = {
           created_at?: string
           effective_date?: string | null
           end_date?: string | null
+          exclusion_rationale?: string | null
           group_id?: string
           id?: string
           licensee_id?: string
           member_role?: string
           notes?: string | null
           ownership_percentage?: number | null
+          ownership_variance_note?: string | null
+          ownership_variance_reason?: string | null
           parent_member_id?: string | null
           updated_at?: string
         }
@@ -51794,6 +51803,15 @@ export type Database = {
       }
       finalize_complaint_with_attachments: {
         Args: { p_complaint_id: string; p_file_upload_ids: string[] }
+        Returns: Json
+      }
+      financial_group_ownership_reference: {
+        Args: {
+          _as_of?: string
+          _group_id: string
+          _member_licensee_id: string
+          _parent_licensee_id: string
+        }
         Returns: Json
       }
       findfuncs: { Args: { "": string }; Returns: string[] }
