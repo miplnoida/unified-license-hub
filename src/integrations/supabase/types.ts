@@ -817,6 +817,7 @@ export type Database = {
           feedback_by: string | null
           generated_at: string
           generated_by: string | null
+          human_payload: Json | null
           id: string
           input_fingerprint: string | null
           insight_kind: string
@@ -830,13 +831,16 @@ export type Database = {
           provider_state: string
           recommendation: string | null
           regulator_id: string | null
+          review_rationale: string | null
           review_status: string
           reviewed_at: string | null
+          reviewed_snapshot_fingerprint: string | null
           reviewer_id: string | null
           scope: string | null
           scope_id: string | null
           source_modules: string[]
           source_records: Json
+          superseded_at: string | null
           title: string
           updated_at: string
         }
@@ -852,6 +856,7 @@ export type Database = {
           feedback_by?: string | null
           generated_at?: string
           generated_by?: string | null
+          human_payload?: Json | null
           id?: string
           input_fingerprint?: string | null
           insight_kind?: string
@@ -865,13 +870,16 @@ export type Database = {
           provider_state?: string
           recommendation?: string | null
           regulator_id?: string | null
+          review_rationale?: string | null
           review_status?: string
           reviewed_at?: string | null
+          reviewed_snapshot_fingerprint?: string | null
           reviewer_id?: string | null
           scope?: string | null
           scope_id?: string | null
           source_modules?: string[]
           source_records?: Json
+          superseded_at?: string | null
           title: string
           updated_at?: string
         }
@@ -887,6 +895,7 @@ export type Database = {
           feedback_by?: string | null
           generated_at?: string
           generated_by?: string | null
+          human_payload?: Json | null
           id?: string
           input_fingerprint?: string | null
           insight_kind?: string
@@ -900,13 +909,16 @@ export type Database = {
           provider_state?: string
           recommendation?: string | null
           regulator_id?: string | null
+          review_rationale?: string | null
           review_status?: string
           reviewed_at?: string | null
+          reviewed_snapshot_fingerprint?: string | null
           reviewer_id?: string | null
           scope?: string | null
           scope_id?: string | null
           source_modules?: string[]
           source_records?: Json
+          superseded_at?: string | null
           title?: string
           updated_at?: string
         }
@@ -20018,6 +20030,42 @@ export type Database = {
           stage?: string
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      executive_dashboard_snapshots: {
+        Row: {
+          as_of: string
+          captured_by: string | null
+          created_at: string
+          fingerprint: string
+          id: string
+          regulator_id: string | null
+          sector_id: string | null
+          snapshot: Json
+          window_days: number
+        }
+        Insert: {
+          as_of: string
+          captured_by?: string | null
+          created_at?: string
+          fingerprint: string
+          id?: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          snapshot: Json
+          window_days: number
+        }
+        Update: {
+          as_of?: string
+          captured_by?: string | null
+          created_at?: string
+          fingerprint?: string
+          id?: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          snapshot?: Json
+          window_days?: number
         }
         Relationships: []
       }
@@ -46947,6 +46995,16 @@ export type Database = {
           volume: number
         }[]
       }
+      ai_insight_executive_review: {
+        Args: {
+          _decision: string
+          _human_payload?: Json
+          _insight_id: string
+          _rationale?: string
+          _snapshot_fingerprint?: string
+        }
+        Returns: Json
+      }
       ai_insight_review: {
         Args: {
           _action: string
@@ -52086,6 +52144,14 @@ export type Database = {
       }
       executive_conduct_summary: {
         Args: { _from?: string; _to?: string }
+        Returns: Json
+      }
+      executive_dashboard_snapshot: {
+        Args: { _sector_id?: string; _window_days?: number }
+        Returns: Json
+      }
+      executive_dashboard_snapshot_capture: {
+        Args: { _sector_id?: string; _window_days?: number }
         Returns: Json
       }
       expire_delegation_rules: { Args: never; Returns: number }
