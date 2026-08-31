@@ -209,7 +209,7 @@ export function RequestDeclarationDialog({
 
       return { rawToken, emailSent, recipientEmail: recipientEmail.trim() };
     },
-    onSuccess: ({ rawToken, emailSent, recipientEmail: sentTo }) => {
+    onSuccess: async ({ rawToken, emailSent, recipientEmail: sentTo }) => {
       if (sentTo && !emailSent) {
         toast.warning('Invitation created but email could not be sent — SMTP may not be configured. Share the portal link below manually.');
       } else {
