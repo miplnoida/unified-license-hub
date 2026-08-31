@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import {
   useAiGovernanceExceptions, useAiGovernanceOverview, useAiStopControlSet, useAiStopControls,
-  useGovernanceEvents, useProhibitedActions,
+  useGovernanceEvents, useProhibitedActions, governanceMessage,
 } from '@/hooks/useAiGovernance';
 import { EVENT_LABEL, EXCEPTION_LABEL, OBJECT_LABEL, label } from '@/lib/aiGovernanceLabels';
 import { formatDateTime } from '@/lib/datetime';
@@ -185,6 +185,9 @@ export default function AiGovernanceOverview() {
                 ))}
               </TableBody>
             </Table>
+            {stops.length === 0 && (
+              <p className="text-sm text-muted-foreground">No AI stop-control scopes are configured.</p>
+            )}
           </CardContent>
         </Card>
 
