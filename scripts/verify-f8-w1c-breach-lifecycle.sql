@@ -165,7 +165,7 @@ BEGIN
      metric_key, level, value, threshold_value, comparator, risk_level,
      detection_source, detection_run_id)
   VALUES ('00000000-0000-0000-0000-0000000f1c10', v_entA, fil, ver, per,
-          'CAR', 'breach', 6.2, 8.0, 'lt', 'high', 'CANONICAL_ENGINE', run);
+          'CAR', 'breach', 6.2, 8.0, 'lt', 'red', 'CANONICAL_ENGINE', run);
 
   -- a second, unrelated entity's breach for cross-entity isolation
   INSERT INTO public.return_threshold_breaches
