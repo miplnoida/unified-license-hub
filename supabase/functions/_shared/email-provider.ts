@@ -129,15 +129,25 @@ export async function loadEmailDeliveryConfig(supabase: any): Promise<EmailDeliv
 /** Classify a provider error: hard recipient failure vs retryable infrastructure failure. */
 export function classifyProviderError(message: string, status?: number): { hard: boolean } {
   const m = (message || "").toLowerCase();
-  if (isHardFailure(message)) return { hard: true };
+  // Infrastructure problems come first: quota, rate limit, throttling, outage,
+  // timeouts and connectivity must trigger fallback, never poison the message.
   if (
-    /invalid.*(recipient|email|to address)|recipient.*(invalid|rejected|not found)|no such user|mailbox (unavailable|not found)|user unknown|domain not found|5\.1\.[01]|550/.test(m)
+    /quota|sending limit|rate limit|too many|throttl|try again later|temporar|timeout|timed out|econn|etimedout|enotfound|socket|unavailable|service (is )?down|5\.4\.5|4\.7\.0|\b421\b|\b429\b|\b45\d\b|\b50[023]\b|\b504\b/
+      .test(m)
+  ) {
+    return { hard: false };
+  }
+  if (
+    /invalid.*(recipient|email|to address)|recipient.*(invalid|rejected|not found)|no such user|mailbox (unavailable|not found)|user unknown|domain not found|5\.1\.[01]|\b550\b|\b553\b/
+      .test(m)
   ) {
     return { hard: true };
   }
   if (status === 422) return { hard: true };
+  if (isHardFailure(message)) return { hard: true };
   return { hard: false };
 }
+
 
 export interface SendEmailInput {
   to: string;
