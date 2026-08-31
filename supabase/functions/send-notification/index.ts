@@ -3,80 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logIntegration } from "../_shared/integration-log.ts";
 import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
 import { isHardFailure, maskEmail, redact } from "../_shared/notification-redact.ts";
+import {
+  EmailDeliveryConfig,
+  loadEmailDeliveryConfig,
+  sendEmailWithFallback,
+} from "../_shared/email-provider.ts";
 
-interface SmtpConfig {
-  host: string;
-  port: number;
-  username: string;
-  password?: string;
-  encryption: "none" | "ssl" | "tls";
-  fromName: string;
-  fromEmail: string;
-  enabled: boolean;
-}
-
-async function loadSmtpConfig(supabase: any): Promise<SmtpConfig | null> {
-  // Always read latest dynamic settings from site_settings (no caching).
-  const { data } = await supabase
-    .from("site_settings")
-    .select("value")
-    .eq("key", "email_sms_settings")
-    .maybeSingle();
-  const smtp = data?.value?.smtp as SmtpConfig | undefined;
-  if (!smtp || !smtp.enabled || !smtp.host || !smtp.port || !smtp.username || !smtp.password || !smtp.fromEmail) {
-    return null;
-  }
-  return smtp;
-}
-
-async function sendSmtpEmail(
-  smtp: SmtpConfig,
-  to: string,
-  subject: string,
-  text: string,
-  html?: string,
-): Promise<{ messageId: string | null }> {
-  // Use nodemailer for proper STARTTLS handling (denomailer fails the TLS
-  // handshake on common providers like Gmail/Office365 on port 587).
-  const nodemailer = (await import("npm:nodemailer@6.9.16")).default;
-  const secure = smtp.encryption === "ssl";       // implicit TLS (e.g. 465)
-  const requireTLS = smtp.encryption === "tls";   // STARTTLS upgrade (e.g. 587)
-  const transporter = nodemailer.createTransport({
-    host: smtp.host,
-    port: Number(smtp.port),
-    secure,
-    requireTLS,
-    auth: { user: smtp.username, pass: smtp.password! },
-    tls: { rejectUnauthorized: false },
-    connectionTimeout: 15000,
-    greetingTimeout: 10000,
-    socketTimeout: 20000,
-  });
-  try {
-    const info: any = await transporter.sendMail({
-      from: `"${smtp.fromName || "Notifications"}" <${smtp.fromEmail}>`,
-      to,
-      subject,
-      text,
-      html: html || undefined,
-    });
-    // SMTP acceptance only. Delivery is NOT confirmed here — see
-    // notification-delivery-webhook for provider-confirmed states.
-    return { messageId: typeof info?.messageId === "string" ? info.messageId : null };
-  } catch (e: any) {
-    const raw = e?.message || String(e);
-    const code = e?.code || "";
-    let friendly = raw;
-    if (/ETIMEDOUT|ESOCKET|ECONNRESET|wrong version number|SSL|TLS/i.test(raw)) {
-      friendly = `TLS/connection issue: ${raw}. Check encryption (SSL=465, TLS=587, None=25).`;
-    } else if (code === "EAUTH" || /535|534|invalid login|authentication/i.test(raw)) {
-      friendly = "SMTP authentication failed. Check username and password.";
-    } else if (code === "ECONNECTION" || /ECONNREFUSED|ENOTFOUND|getaddrinfo|dns/i.test(raw)) {
-      friendly = `Cannot reach SMTP server ${smtp.host}:${smtp.port}. ${raw}`;
-    }
-    throw new Error(redact(friendly));
-  }
-}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
