@@ -242,7 +242,7 @@ BEGIN
     RAISE EXCEPTION 'G21 FAIL: this is a production environment — demo data must not be present';
   END IF;
 
-  RAISE NOTICE 'DEMO_SLU_FSRA_2026 SMOKE: 21/21 GATES PASSED';
+  RAISE NOTICE 'DEMO_SLU_FSRA_2026 SMOKE: 26/26 GATES PASSED';
 END $$;
 
 ROLLBACK;
