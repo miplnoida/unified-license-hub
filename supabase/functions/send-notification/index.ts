@@ -283,7 +283,7 @@ serve(async (req) => {
           if (queueResult.success) {
             await supabase
               .from("notifications")
-              .update({ delivery_status: "delivered" } as any)
+              .update({ delivery_status: "sent" } as any)
               .eq("id", notif.id);
             await logIntegration(supabase, {
               direction: "outbound",
