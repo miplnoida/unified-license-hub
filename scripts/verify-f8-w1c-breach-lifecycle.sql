@@ -168,11 +168,24 @@ BEGIN
           'CAR', 'breach', 6.2, 8.0, 'lt', 'red', 'CANONICAL_ENGINE', run);
 
   -- a second, unrelated entity's breach for cross-entity isolation
+  INSERT INTO public.entity_reporting_obligations (entity_id, return_definition_id, frequency, status)
+  VALUES (v_entB, v_def, 'QUARTERLY', 'ACTIVE') RETURNING id INTO ob;
+  INSERT INTO public.reporting_periods
+    (entity_reporting_obligation_id, period_label, period_start, period_end, due_date, status)
+  VALUES (ob, '2025-Q2', DATE '2025-04-01', DATE '2025-06-30', DATE '2025-07-31', 'OPEN')
+  RETURNING id INTO per;
+  INSERT INTO public.return_filings
+    (filing_reference, entity_id, entity_reporting_obligation_id, reporting_period_id,
+     return_definition_id, status, current_version_number)
+  VALUES ('W1C-F2', v_entB, ob, per, v_def, 'ACCEPTED', 1) RETURNING id INTO fil;
+  INSERT INTO public.return_filing_versions (return_filing_id, version_number, status)
+  VALUES (fil, 1, 'ACCEPTED') RETURNING id INTO ver;
   INSERT INTO public.return_threshold_breaches
-    (id, entity_id, metric_key, level, value, threshold_value, comparator,
-     detection_source)
-  VALUES ('00000000-0000-0000-0000-0000000f1c11', v_entB, 'CAR', 'breach', 5.0, 8.0, 'lt',
-          'CANONICAL_ENGINE');
+    (id, entity_id, return_filing_id, return_filing_version_id, reporting_period_id,
+     metric_key, level, value, threshold_value, comparator, detection_source)
+  VALUES ('00000000-0000-0000-0000-0000000f1c11', v_entB, fil, ver, per,
+          'CAR', 'breach', 5.0, 8.0, 'lt', 'CANONICAL_ENGINE');
+
 
   -- real supervisory assignment for the authorised personas
   INSERT INTO public.entity_supervision_assignments
