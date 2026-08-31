@@ -156,8 +156,22 @@ export function OwnershipTreeGraph({ root, rootLabel }: { root: TreeNode; rootLa
               const node = n.item.node;
               const edge = n.item.edge;
               const label = n.depth === 0 ? (rootLabel || n.item.label) : n.item.label;
+              const target = nodeTarget(n.item, n.depth);
               return (
-                <g key={n.item.key}>
+                <g
+                  key={n.item.key}
+                  role={target ? 'link' : undefined}
+                  tabIndex={target ? 0 : undefined}
+                  aria-label={target ? `Open ${label}` : undefined}
+                  className={target ? 'cursor-pointer' : undefined}
+                  onClick={target ? () => navigate(target) : undefined}
+                  onKeyDown={target ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(target); } } : undefined}
+                >
+                  <title>
+                    {target
+                      ? `${label} — open ${node?.is_natural_person ? 'person 360' : 'entity 360'}`
+                      : label}
+                  </title>
                   <rect
                     x={n.x} y={n.y} width={NODE_W} height={NODE_H} rx={8}
                     fill={tone.fill} stroke={tone.stroke} strokeWidth={1.5}
