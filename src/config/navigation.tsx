@@ -195,7 +195,14 @@ export const mainNavSections: NavSection[] = [
     label: 'Governance',
     items: [
       { label: 'AI Governance', href: '/governance/ai', icon: <ShieldCheck className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'ai_management' as PermissionModule },
+      { label: 'AI Use Cases', href: '/governance/ai/use-cases', icon: <ShieldCheck className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'ai_management' as PermissionModule },
+      { label: 'AI Models', href: '/governance/ai/models', icon: <ShieldCheck className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'ai_management' as PermissionModule },
+      { label: 'AI Instructions', href: '/governance/ai/instructions', icon: <ShieldCheck className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'ai_management' as PermissionModule },
+      { label: 'AI Surfaces', href: '/governance/ai/surfaces', icon: <ShieldCheck className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'ai_management' as PermissionModule },
+      { label: 'AI Assurance', href: '/governance/ai/assurance', icon: <ShieldCheck className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'ai_management' as PermissionModule },
+      { label: 'AI Exceptions', href: '/governance/ai/exceptions', icon: <ShieldCheck className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'ai_management' as PermissionModule },
       { label: 'AI Activity Register', href: '/governance/ai/activity', icon: <ScrollText className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'ai_management' as PermissionModule },
+
     ],
   },
   {
