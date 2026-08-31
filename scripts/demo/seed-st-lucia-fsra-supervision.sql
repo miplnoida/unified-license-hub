@@ -45,10 +45,9 @@ DELETE FROM public.return_threshold_breach_acknowledgements
  WHERE breach_id IN ('5c300001-0000-4000-8000-000000000001',
                      '5c300002-0000-4000-8000-000000000002',
                      '5c300003-0000-4000-8000-000000000003');
-DELETE FROM public.return_threshold_breaches
- WHERE id IN ('5c300001-0000-4000-8000-000000000001',
-              '5c300002-0000-4000-8000-000000000002',
-              '5c300003-0000-4000-8000-000000000003');
+-- return_threshold_breaches is immutable (append-only detection evidence), so the
+-- first-cut 2025-Q4 detections stay on record. They reference filing version 1,
+-- which was later superseded; the demonstration filters the Breaches tab to Q3.
 
 -- Observed values, thresholds and evidence pointers (2025-Q3 accepted version).
 INSERT INTO public.return_threshold_breaches
