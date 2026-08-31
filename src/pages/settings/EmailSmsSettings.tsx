@@ -16,6 +16,8 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   useEmailSmsSettings,
   useSaveEmailSmsSettings,
+  useResendKeyPresent,
+  useSaveResendApiKey,
   DEFAULTS,
   EmailSmsSettings as EmailSmsSettingsT,
 } from '@/hooks/useEmailSmsSettings';
@@ -27,12 +29,16 @@ export default function EmailSmsSettings() {
   const { user } = useAuth();
   const { data: saved, isLoading } = useEmailSmsSettings();
   const saveMutation = useSaveEmailSmsSettings();
+  const { data: resendKeyPresent } = useResendKeyPresent();
+  const saveResendKey = useSaveResendApiKey();
 
   const [form, setForm] = useState<EmailSmsSettingsT>(DEFAULTS);
   const [hasSavedPassword, setHasSavedPassword] = useState(false);
   const [hasSavedApiKey, setHasSavedApiKey] = useState(false);
+  const [resendApiKey, setResendApiKey] = useState('');
   const [testTo, setTestTo] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
+  const [sendingResendTest, setSendingResendTest] = useState(false);
 
   useEffect(() => {
     if (saved) {
@@ -40,6 +46,8 @@ export default function EmailSmsSettings() {
       setHasSavedApiKey(!!saved.sms.apiKey);
       // Don't expose stored secrets in inputs
       setForm({
+        email: saved.email,
+        resend: saved.resend,
         smtp: { ...saved.smtp, password: '' },
         sms: { ...saved.sms, apiKey: '' },
       });
@@ -50,6 +58,10 @@ export default function EmailSmsSettings() {
     if (!testTo && user?.email) setTestTo(user.email);
   }, [user, testTo]);
 
+  const updateEmail = <K extends keyof EmailSmsSettingsT['email']>(k: K, v: EmailSmsSettingsT['email'][K]) =>
+    setForm((p) => ({ ...p, email: { ...p.email, [k]: v } }));
+  const updateResend = <K extends keyof EmailSmsSettingsT['resend']>(k: K, v: EmailSmsSettingsT['resend'][K]) =>
+    setForm((p) => ({ ...p, resend: { ...p.resend, [k]: v } }));
   const updateSmtp = <K extends keyof EmailSmsSettingsT['smtp']>(k: K, v: EmailSmsSettingsT['smtp'][K]) =>
     setForm((p) => ({ ...p, smtp: { ...p.smtp, [k]: v } }));
   const updateSms = <K extends keyof EmailSmsSettingsT['sms']>(k: K, v: EmailSmsSettingsT['sms'][K]) =>
@@ -62,6 +74,18 @@ export default function EmailSmsSettings() {
     !!form.smtp.fromEmail &&
     (hasSavedPassword || !!form.smtp.password) &&
     form.smtp.enabled;
+
+  const resendKeyAvailable = !!resendKeyPresent || resendApiKey.length > 0;
+  const resendStatusLabel = (() => {
+    if (!form.resend.enabled) return 'Disabled';
+    if (!resendKeyAvailable) return 'Missing API Key';
+    if (form.resend.status === 'tested_ok') return 'Tested OK';
+    if (form.resend.status === 'domain_not_verified') return 'Resend Domain Not Verified';
+    if (form.resend.status === 'provider_error') return 'Provider Error';
+    return 'Configured (not tested)';
+  })();
+  const resendHealthy = form.resend.enabled && resendKeyAvailable && form.resend.status === 'tested_ok';
+  const emailDeliveryAvailable = form.email.enabled && (resendHealthy || smtpReady);
 
   const validateSmtp = (): string | null => {
     if (!form.smtp.host) return 'SMTP host is required';
@@ -78,11 +102,21 @@ export default function EmailSmsSettings() {
       toast.error(err);
       return;
     }
+    if (form.email.fromEmail && !EMAIL_RE.test(form.email.fromEmail)) {
+      toast.error('Valid global From Email is required');
+      return;
+    }
     try {
+      if (resendApiKey.trim().length > 0) {
+        await saveResendKey.mutateAsync(resendApiKey.trim());
+        setResendApiKey('');
+      }
       const result = await saveMutation.mutateAsync(form);
       setHasSavedPassword(!!result.smtp.password);
       setHasSavedApiKey(!!result.sms.apiKey);
       setForm({
+        email: result.email,
+        resend: result.resend,
         smtp: { ...result.smtp, password: '' },
         sms: { ...result.sms, apiKey: '' },
       });
@@ -118,6 +152,46 @@ export default function EmailSmsSettings() {
       setSendingTest(false);
     }
   };
+
+  const handleSendResendTest = async () => {
+    if (!testTo || !EMAIL_RE.test(testTo)) {
+      toast.error('Enter a valid recipient email');
+      return;
+    }
+    setSendingResendTest(true);
+    try {
+      // Persist a newly typed key server-side first: it is never sent to the provider from the browser.
+      if (resendApiKey.trim().length > 0) {
+        await saveResendKey.mutateAsync(resendApiKey.trim());
+        setResendApiKey('');
+      }
+      const { data, error } = await supabase.functions.invoke('test-resend-email', {
+        body: { to: testTo },
+      });
+      if (error) throw error;
+      const status = (data?.status || 'provider_error') as EmailSmsSettingsT['resend']['status'];
+      updateResend('status', status);
+      updateResend('lastTestedAt', new Date().toISOString());
+      updateResend('lastError', data?.success ? null : (data?.error ?? 'Unknown error'));
+      // Persist the observed provider health immediately (SMTP config untouched).
+      await saveMutation.mutateAsync({
+        ...form,
+        resend: {
+          ...form.resend,
+          status,
+          lastTestedAt: new Date().toISOString(),
+          lastError: data?.success ? null : (data?.error ?? 'Unknown error'),
+        },
+      });
+      if (!data?.success) throw new Error(data?.error || 'Unknown error');
+      toast.success(`Resend test email accepted for ${data.to || testTo}`);
+    } catch (e: any) {
+      toast.error('Resend test failed: ' + (e.message || 'Unknown error'));
+    } finally {
+      setSendingResendTest(false);
+    }
+  };
+
 
   if (isLoading) {
     return (
