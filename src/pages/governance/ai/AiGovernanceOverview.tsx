@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import {
   useAiGovernanceExceptions, useAiGovernanceOverview, useAiStopControlSet, useAiStopControls,
-  useGovernanceEvents, useProhibitedActions,
+  useGovernanceEvents, useProhibitedActions, governanceMessage,
 } from '@/hooks/useAiGovernance';
 import { EVENT_LABEL, EXCEPTION_LABEL, OBJECT_LABEL, label } from '@/lib/aiGovernanceLabels';
 import { formatDateTime } from '@/lib/datetime';
@@ -44,11 +44,13 @@ const Tile = ({ title, value, help, tone = 'default' }: {
 
 export default function AiGovernanceOverview() {
   const canApprove = useCan('ai_management', 'approve');
-  const { data: o, isLoading } = useAiGovernanceOverview();
-  const { data: exceptions = [] } = useAiGovernanceExceptions(100);
-  const { data: stops = [] } = useAiStopControls();
-  const { data: events = [] } = useGovernanceEvents(undefined, undefined, 20);
-  const { data: prohibited = [] } = useProhibitedActions();
+  const { data: o, isLoading, error: overviewError } = useAiGovernanceOverview();
+  const { data: exceptions = [], error: exceptionsError } = useAiGovernanceExceptions(100);
+  const { data: stops = [], error: stopsError } = useAiStopControls();
+  const { data: events = [], error: eventsError } = useGovernanceEvents(undefined, undefined, 20);
+  const { data: prohibited = [], error: prohibitedError } = useProhibitedActions();
+
+  const loadError = overviewError ?? exceptionsError ?? stopsError ?? eventsError ?? prohibitedError;
   const setStop = useAiStopControlSet();
 
   const [target, setTarget] = useState<{ scopeKey: string; scopeLabel: string; engage: boolean } | null>(null);
@@ -91,6 +93,17 @@ export default function AiGovernanceOverview() {
                 </p>
               ))}
               <p className="mt-1">Regulatory records, deterministic rule outcomes and supervisory workflow are unaffected and remain fully available.</p>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {loadError && (
+          <Alert variant="destructive">
+            <ShieldAlert className="h-4 w-4" />
+            <AlertTitle>The governance position could not be loaded</AlertTitle>
+            <AlertDescription>
+              {governanceMessage(loadError)} No regulatory record has been changed. If this persists, your account may
+              not hold AI governance viewing rights.
             </AlertDescription>
           </Alert>
         )}
@@ -172,6 +185,9 @@ export default function AiGovernanceOverview() {
                 ))}
               </TableBody>
             </Table>
+            {stops.length === 0 && (
+              <p className="text-sm text-muted-foreground">No AI stop-control scopes are configured.</p>
+            )}
           </CardContent>
         </Card>
 
