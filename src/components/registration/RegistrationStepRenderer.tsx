@@ -145,6 +145,7 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
                   onChange={onChange}
                   onBlur={onBlur}
                   readOnly={readOnly}
+                  suppressEmailVerification={suppressEmailVerification}
                   allData={data}
                   allFields={allFields}
                   uploadCtx={uploadCtx}
@@ -231,6 +232,7 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
                         onChange={onChange}
                         onBlur={onBlur}
                         readOnly={readOnly}
+                        suppressEmailVerification={suppressEmailVerification}
                         allData={data}
                         allFields={allFields}
                         uploadCtx={uploadCtx}
@@ -262,6 +264,7 @@ interface FieldProps {
   onChange: (fieldName: string, value: unknown) => void;
   onBlur?: (fieldName: string, value: unknown, field: RegField) => void;
   readOnly?: boolean;
+  suppressEmailVerification?: boolean;
   allData: Record<string, unknown>;
   allFields: RegField[];
   uploadCtx?: RegistrationUploadContext;
@@ -347,7 +350,7 @@ function useDynamicOptions(field: RegField, allData: Record<string, unknown>) {
   }, [field.dataSource, field.dependsOn, allData, sectors, allSubSectors, allCategories, countries, allStates]);
 }
 
-function InteractiveField({ field, value, error, onChange, onBlur, readOnly, allData, allFields, uploadCtx }: FieldProps) {
+function InteractiveField({ field, value, error, onChange, onBlur, readOnly, suppressEmailVerification, allData, allFields, uploadCtx }: FieldProps) {
   const handleChange = (val: unknown) => {
     onChange(field.fieldName, val);
 
@@ -414,9 +417,13 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
           ? 'email'
           : field.type;
 
-  const emailSettings = effectiveType === 'email'
+  const resolvedEmailSettings = effectiveType === 'email'
     ? resolveEmailFieldSettings({ type: 'email', validation: field.validation as any })
     : EMAIL_FIELD_SETTINGS_OFF;
+  // The wizard's own verification stage owns the OTP: never ask twice.
+  const emailSettings = suppressEmailVerification
+    ? { ...resolvedEmailSettings, requireVerification: false }
+    : resolvedEmailSettings;
 
   switch (effectiveType) {
     case 'email':
