@@ -35,6 +35,11 @@ import { severityLabel, severityTone, worstSeverity, isEscalatable } from '@/lib
 import { formatDateOnly, formatDateTime } from '@/lib/datetime';
 import { useUserDisplayNames, actorLabel } from '@/hooks/useUserDisplayNames';
 import {
+import {
+  isOpenPrudentialAction,
+  isOpenPrudentialEscalation,
+  isOverduePrudentialAction,
+} from '@/lib/supervision/canonicalStatusPredicates';
   humanizeToken,
   stressSeverityLabel,
 
@@ -177,9 +182,11 @@ export default function PrudentialEntityProfile() {
   );
   const latestRatedAssess = (data.assessments || []).find((a: any) => isRatedAssessmentStatus(a.status));
 
-  const openActions = (data.actions || []).filter((a: any) => ['open','in_progress','overdue'].includes(a.status));
-  const overdueActions = openActions.filter((a: any) => a.status === 'overdue');
-  const openEsc = (data.escalations || []).filter((es: any) => ['open','under_review'].includes(es.status));
+  // DCI-01: shared canonical predicates — identical definition to the
+  // prudential work queue and the executive dashboard.
+  const openActions = (data.actions || []).filter((a: any) => isOpenPrudentialAction(a.status));
+  const overdueActions = openActions.filter((a: any) => isOverduePrudentialAction(a.status));
+  const openEsc = (data.escalations || []).filter((es: any) => isOpenPrudentialEscalation(es.status));
   const worstBreachSev = worstSeverity(
     (data.breaches || []).map((b: any) => b.risk_level || b.severity || b.level),
   );
@@ -205,7 +212,10 @@ export default function PrudentialEntityProfile() {
     latest_submitted_return_period: latestSubmittedReturn?.period_end_date ?? null,
     latest_rating: latestRatedAssess?.overall_rating ?? null,
     worst_breach_severity: worstBreachSev ? severityLabel(worstBreachSev) : null,
-    breach_count: (data.breaches || []).length,
+    // DCI-01: both figures named explicitly so "breach count" can never be
+    // read as the dashboard's open (unacknowledged) breach KPI.
+    current_breach_count: (data.breaches || []).length,
+    unacknowledged_breach_count: (data.breaches || []).filter((b: any) => !b.acknowledged_at).length,
     breaches_by_severity: (data.breaches || []).reduce((acc: Record<string, number>, b: any) => {
       const key = severityLabel(b.risk_level || b.severity || b.level) || 'Unclassified';
       acc[key] = (acc[key] || 0) + 1;
