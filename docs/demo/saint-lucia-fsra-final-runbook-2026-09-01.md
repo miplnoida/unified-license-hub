@@ -54,29 +54,32 @@ Say: *"Every state change here is a governed function call with an actor, a time
 | # | Action | URL | What must appear |
 |---|--------|-----|------------------|
 | 11 | Returns oversight | `/returns/queue` | Filing periods, obligations, submission and review states |
-| 12 | The accepted filing | `/entities/5855bf85-9fde-4cf8-a082-7ea904d46184` → Returns tab | Coral Harbour Bank Limited, filing **CV2-E02-2025-Q4**, status **ACCEPTED**, accepted 31 Dec 2025 |
-| 13 | Prudential analysis | `/prudential/analysis/5855bf85-9fde-4cf8-a082-7ea904d46184` | Header tiles: latest submitted return 31 Dec 2025 · Accepted; worst breach **Breach**; open actions **7**; open escalations **10** |
-| 14 | "Ratios & Trends" tab | same screen | CAR **12.20%**, liquidity **13.00%**, NPL **6.00%**, cost/income **76.00%** |
+| 12 | The accepted filing | `/entities/5855bf85-9fde-4cf8-a082-7ea904d46184` → Returns tab | Coral Harbour Bank Limited, filing **CV2-E02-2025-Q3**, status **ACCEPTED** |
+| 13 | Prudential analysis | `/prudential/analysis/5855bf85-9fde-4cf8-a082-7ea904d46184` | Header tiles: latest accepted return, worst breach **Breach**, open actions and open escalations counts |
+| 14 | "Ratios & Trends" tab | same screen | CAR **12.50%**, liquidity **14.50%**, NPL **5.80%**, cost/income **74.00%** |
 | 15 | "Peer Comparison" tab | same screen | The bank positioned against sector peers on the same metrics |
 
-Prove the arithmetic live if asked: capital 146.4m ÷ RWA 1,200m = 12.20%; liquid assets 78m ÷ short-term liabilities 600m = 13.00%; NPL 57.6m ÷ gross loans 960m = 6.00%; operating expenses 45.6m ÷ net interest income 60m = 76.00%.
+Prove the arithmetic live if asked: capital 150m ÷ RWA 1,200m = 12.50%; liquid assets 87m ÷ short-term liabilities 600m = 14.50%; NPL 55.68m ÷ gross loans 960m = 5.80%; operating expenses 44.4m ÷ net interest income 60m = 74.00%.
 
 Say: *"There is exactly one store of metric truth. Ratios are read from the accepted filing — there is no second spreadsheet of numbers anywhere in the platform."*
 
 ## Act 5 — Breach, acknowledgement, action, closure (10 min) — the centrepiece
 
+On the Breaches tab, filter to **2025 / Q3** first. Older 2025-Q4 detections against a superseded filing version remain on record because detection evidence is append-only — say so if asked; nothing in this platform is deleted.
+
 | # | Action | URL | What must appear |
 |---|--------|-----|------------------|
-| 16 | "Breaches" tab | `/prudential/analysis/5855bf85-9fde-4cf8-a082-7ea904d46184` | Liquidity 13.00% vs 15.00% floor (**breach**, acknowledged); cost/income 76.00% vs 75.00% ceiling (**breach, not yet acknowledged**); NPL 6.00% vs 5.00% (**warning**) |
-| 17 | **Live action:** acknowledge the cost/income breach | same tab | Enter the rationale below, submit, and show the recorded actor, timestamp and rationale |
+| 16 | "Breaches" tab (filtered 2025 / Q3) | `/prudential/analysis/5855bf85-9fde-4cf8-a082-7ea904d46184` | Liquidity 14.50% vs 15.00% floor (**breach, not yet acknowledged**); NPL 5.80% vs 5.00% (**warning**, acknowledged); cost/income 74.00% vs 65.00% (**warning**) |
+| 17 | **Live action:** acknowledge the liquidity breach | same tab | Enter the rationale below, submit, and show the recorded actor, timestamp and rationale |
 | 18 | Try to acknowledge it a second time | same tab | The platform refuses — one acknowledgement per breach |
-| 19 | "Actions" tab | same screen | **PA-2026-0001** liquidity remediation plan — in progress, 40%, due 30 Apr 2026, awaiting review; **PA-2026-0002** NPL information request — completed, 100%, closed 20 Mar 2026, review accepted |
+| 19 | "Actions" tab | same screen | **PA-2026-0001** liquidity remediation plan (2025-Q3 liquidity ratio 14.5%) — in progress, 40%, due 30 Apr 2026, awaiting review; **PA-2026-0002** NPL explanation — completed, 100%, closed 20 Mar 2026, review accepted. Rows titled *"[Superseded record retained on file]"* are the retained 2025-Q4 originals |
 | 20 | Open PA-2026-0002 | Actions ledger | Closure notes, who closed it, when, and the supervisory review that accepted the closure |
 
 Rationale to type at step 17:
-> Cost-to-income ratio of 76.0% exceeds the 75.0% supervisory ceiling for 2025-Q4. Acknowledged by prudential supervision; efficiency remediation to be pursued under the existing liquidity remediation plan.
+> Liquid asset ratio of 14.5% is below the 15.0% supervisory floor for 2025-Q3. Acknowledged by prudential supervision; remediation to be pursued under prudential action PA-2026-0001.
 
 Say: *"Detection is automatic. Acknowledgement, escalation and closure are human decisions — and every one of them is signed and timestamped."*
+
 
 ## Act 6 — Supervisory work, conduct and communication (5 min)
 
