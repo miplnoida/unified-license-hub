@@ -148,6 +148,20 @@ export default function EntityDirectory() {
       priority: 1,
     },
     {
+      id: 'sector',
+      header: 'Sector',
+      minWidth: '12rem',
+      accessor: (e) => e.sector_name ?? '',
+      cell: (e) => (e.sector_name
+        ? <span>{e.sector_name}</span>
+        : <span className="text-muted-foreground">—</span>),
+      sortable: true,
+      filterable: true,
+      filterType: 'multiEnum',
+      filterOptions: sectorOptions,
+      priority: 1,
+    },
+    {
       id: 'lifecycle',
       header: 'Authorisation status',
       accessor: (e) => e.lifecycle,
