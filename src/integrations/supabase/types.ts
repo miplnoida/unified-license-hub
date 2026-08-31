@@ -53771,6 +53771,10 @@ export type Database = {
         }
       }
       mc03_require_gate: { Args: { _complaint_id: string }; Returns: Json }
+      monetary_base_currency: {
+        Args: { _regulator_id?: string }
+        Returns: string
+      }
       monetary_config_provision: {
         Args: { _payload: Json; _reason?: string; _regulator_id?: string }
         Returns: Json
