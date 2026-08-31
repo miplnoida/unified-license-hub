@@ -1,29 +1,42 @@
 # Saint Lucia FSRA — Demo Discrepancy Register
 
-HEAD `6919e2384a1332e06b810dcb3fdda998b4c4722f`. Read-only certification, 2026-08-31.
-No remediation has been applied in this wave. Remediation type is stated so the next wave stays minimal.
+HEAD `687a4b892b0752a4448efdf64fff2b1be3f94c0d` · migrations 1317 · refreshed 2026-08-31
+(read-only wave; nothing was remediated).
 
-| ID | Discrepancy | Severity | Screen impact | Remediation type | Order |
-|---|---|---|---|---|---|
-| D1 | No Saint Lucia entity has a risk score; all 19 scored entities are band `low` with all-zero components, so no risk-based supervision result and no HIGH rating can be shown | P0 | Risk views, Executive risk band tile, AI portfolio insight ("19 entities low") | **Engine run over demo data** — score the Saint Lucia entities using the existing weighted engine (breaches, complaints, overdue returns, enforcement, findings, F&P). Never hard-code a band | 1 |
-| D2 | `ubo_policies` is empty, so `entity_ubo_resolve` returns `CONFIGURATION_REQUIRED` for regulator `8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3` | P0 | UBO tab shows configuration-required instead of identified UBOs | **Configuration** via the existing governed `admin_upsert_ubo_policy` (ownership/voting thresholds, control test). No schema or code change | 2 |
-| D3 | AI stop control writes `ai_governance_kill_switches.is_engaged` but no edge function or client hook reads it; `SUPERVISORY_ADVISORY_AI_ENABLED` is a hardcoded `true` | P1 | Governance screen implies enforceable AI suspension that is not enforced | **Presenter language now** ("the suspension decision is recorded and governed"); code enforcement is a separate governance wave | 3 |
-| D4 | No examination and no F&P assessment is linked to any Saint Lucia demo entity (13 examinations on Meridian/Windward; 36 F&P assessments unlinked) | P1 | Examination and F&P steps must switch entity mid-journey | **Demo data** — create one examination and one F&P case on Coral Harbour through the existing governed paths, or drop these steps from the journey | 4 |
-| D5 | The 47 "breaches" are 38 `warn` + 9 `breach`; Executive Dashboard and Breach Inbox count them unfiltered, Alert Center titles all of them "Breach:", and warning rows display the **breach** threshold | P1 | Presenter would misstate severity; warning rows contradict the scripted 5.0 / 65 warning thresholds | **Label/UI correction** — split counts into breaches vs early warnings and show the threshold that was actually crossed. Interim: use the certified wording | 5 |
-| D6 | `prudential_stress_events` = 0 and `conduct_attention_items` = 0 | P1 | Stress and supervisory attention screens are empty | **Demo data** through the certified stress evaluation path (F8-W3A), or omit these screens | 6 |
-| D7 | Two completed USD payments remain (USD 25,000 on APP-2026-000148, USD 112.00 on APP-2026-000159) alongside 10 XCD payments | P2 | Contradicts the XCD narrative if those applications are opened | **Avoid in journey** — records are append-only regulatory evidence and must not be deleted | 7 |
-| D8 | Breach Inbox "Critical / High" tile filters `level in ('critical','high')`, values absent from the `warn`/`breach` schema; row severity chips fall back to unstyled raw text | P2 | Permanently-zero KPI and unstyled chips | **Small UI fix** in the same change as D5 | 8 |
-| D9 | `ChartWidget.tsx:75` hardcodes `$` for currency-formatted chart values | P2 | Report charts show `$` in an XCD demo | **Small UI fix** — route through `formatBaseMoney` | 9 |
-| D10 | General Settings currency dropdown (USD/EUR/GBP) is never consumed anywhere | P2 | Regulator-visible dead control | **Small UI fix** — remove or bind to governed currency configuration | 10 |
-| D11 | `RetailPaymentsPanel.tsx:81` and `FilingMonetaryDisplay.tsx:80` render data-driven currency codes without `money.ts`, so decimal precision is not governed | P3 | Precision may differ from `currencies.decimal_precision` | **Small UI fix** | 11 |
-| D12 | Complaint `CMP-2026-000103` has NULL `licensee_id` and both respondent rows have NULL `licensee_id` | P2 | Cannot be presented as a complaint against a specific entity | **Demo data** — link the respondent to Coral Harbour through the existing governed complaint path | 12 |
-| D13 | Entity 360 "Breaches" tab heading covers a mixed breach/warning list (counts are correctly separated underneath) | P3 | Minor ambiguity | **Label correction** with D5 | 13 |
-| D14 | `PrudentialEntityHistoryDrawer` and `sup_entity_supervisory_state` already distinguish breach vs EWI correctly — the portfolio surfaces diverge from this correct server contract | Informational | — | Adopt the server contract in the portfolio surfaces (D5) | — |
+Severity: **P0** demo cannot proceed · **P1** materially misleading · **P2** presentation risk.
+Correction type: DATA (prepare a real record via governed path) · CONFIG · UI · SCRIPT.
 
-## Interpretation
+| ID | Screen | Scripted statement | Expected | Actual | Evidence | Sev | Demo impact | Correction | Order |
+|---|---|---|---|---|---|---|---|---|---|
+| D1 | Risk-based supervision / Entity 360 | "the engine calculates Coral Harbour as HIGH risk" | at least one calculated non-low band for a Saint Lucia entity | all 19 current rows in `entity_risk_scores` have `band = low` | `entity_risk_scores` | P0 | risk-based supervision story unsupported | CONFIG (Saint Lucia scoring model + run the engine; never hard-code HIGH) | 1 |
+| D2 | Ownership / UBO | "the system resolves the ultimate beneficial owner" | UBO policy configured so `entity_ubo_resolve` returns a determination | `ubo_policies` empty → `CONFIGURATION_REQUIRED` | `ubo_policies` | P0 | UBO claim must be withdrawn | CONFIG (create the Saint Lucia UBO policy) | 2 |
+| D4 | Examination workspace / F&P case | prepared examination and F&P case on a demo entity | ≥1 each | 0 examinations and 0 `fp_assessments` on all 8 demo entities | `examinations.entity_id`, `fp_assessments.licensee_id` | P0 | two scripted sections have nothing to open | DATA (prepare via governed intake, not direct inserts) | 3 |
+| D5 | Breach Inbox / Alert Center / Entity 360 | "47 breaches" | population labelled by level; warnings labelled as warnings against the warning threshold | 38 of 47 are `level='warn'` yet titled `Breach: <metric>` and shown against the breach threshold | `v_prudential_current_breaches`, `src/pages/supervision/BreachInbox.tsx`, `src/pages/analytics/AlertCenter.tsx:131` | P1 | overstates severity to the regulator | UI (level-aware labels/thresholds) + SCRIPT | 4 |
+| D6 | Supervisory Attention / Stress indicators | "attention queue and stress events" | ≥1 open item each | `conduct_attention_items` = 0, `prudential_stress_events` = 0 | tables | P1 | two empty screens | DATA (trigger the existing engines on prepared filings) | 5 |
+| D16 | Prudential thresholds / breach detail | "NPL breaches a 5.0 threshold; cost-to-income breaches 65.0" | stored thresholds match the script | stored: NPL `<= 10.0` → **warn**; cost/income `<= 75.0` → **warn**; only liquidity `>= 15.0` is a breach | breach rows for filing version `5568551b-…f751f` | P1 | presenter would state figures the screen contradicts | SCRIPT (state liquidity breach, NPL/cost-income as early warnings) or CONFIG (adopt real FSRA thresholds) | 6 |
+| D8 | Breach Inbox | "critical/high open" tile | tile reflects real severities | severity filter/tile uses `critical`/`high`, values that never occur (`breach`/`warn` only) — permanently 0 | `BreachInbox.tsx:55-56,160` | P1 | dead filter and always-zero KPI on screen | UI | 7 |
+| D18 | AI review surfaces | "an officer accepted / modified / rejected an AI output" | ≥1 attributable decision | `ai_insight_actions` = 0 (18 insights all awaiting review) | tables | P1 | human-in-the-loop cannot be shown as history | DATA (record one genuine supervisory decision pre-demo) | 8 |
+| D7 | Payments / approved applications | "all monetary values are XCD" | no non-XCD completed payments on demo surfaces | 2 completed **USD** payments totalling 25,112.00 (vs 10 XCD totalling 10,000.00), on `APP-2026-000148`/`APP-2026-000159` | `payments` | P1 | contradicts the XCD base-currency statement | DATA (avoid those records in the path; do not delete append-only evidence) + SCRIPT | 9 |
+| D12 | Complaint CMP-2026-000103 | "complaint linked to the licensee" | `licensee_id` populated | `licensee_id` NULL, status `submitted` | `complaints` | P1 | conduct→entity linkage unavailable | DATA (link via governed complaint update) | 10 |
+| D3 | AI Governance | "kill switch stops the model" | enforcement demonstrable | 3 kill switches recorded; enforcement not proven | `ai_governance_kill_switches` | P2 | must be described as recorded control | SCRIPT | 11 |
+| D15 | Licensing queue / application detail | "a Saint Lucia application in progress" | demo-entity application | 29 applications exist but all belong to certification/Apex fixtures (`VRF-RS-*`, `VRF-WF-*`, `APP-2026-0001xx`); 0 on the 8 demo entities | `applications` | P2 | licensing walk-through uses fixture references | DATA or SCRIPT (name the actual reference numbers) | 12 |
+| D9 | Report chart tooltips | currency shown as configured base | XCD | `ChartWidget.tsx:75` hardcodes `$${v.toLocaleString()}` | source | P2 | wrong symbol in a chart tooltip | UI | 13 |
+| D10 | General Settings | currency options governed | governed currency registry | `GeneralSettings.tsx:133-135` still offers usd/eur/gbp literals | source | P2 | contradicts XCD governance if opened | UI | 14 |
+| D11 | Misc monetary displays | all money via `src/lib/money.ts` | shared helpers | 128 files still contain raw `toLocaleString` usage (many non-monetary) | static scan | P2 | residual formatting drift | UI (targeted) | 15 |
+| D17 | Coral Harbour action ledger | — | no test rows in the demo ledger | `PA-2026-000012` titled `probe`, status open | `prudential_actions` | P2 | visible test noise | DATA (retitle/close via governed path) | 16 |
 
-- No fabricated data, fabricated AI output, fabricated ownership or hard-coded risk result was found.
-- Everything asserted about ratios, thresholds, breach semantics, ownership derivation, actions,
-  audit, notification and AI provenance is genuinely supported by data.
-- The blocking gaps are **missing engine output and missing configuration** (D1, D2) plus
-  **labelling** (D5), not architectural defects.
+## Closed since the previous register
+
+- Cross-screen breach count divergence — 47 on Executive Dashboard and Breach Inbox (verified).
+- Application/complaint open counts — canonical queue and dashboard aggregates (verified).
+- Prudential action and escalation open-state predicates — shared (verified).
+- Entity breach counts separated into `current_breach_count` / `unacknowledged_breach_count`.
+- Returns administration uses the canonical returns aggregate.
+- No `INR`/`₹` remains anywhere in `src`; currency gate 23/23.
+- Ownership group structure now has a runtime-drawn tree diagram plus the collapsible list.
+
+## Verdict
+
+**NOT READY — REMEDIATION REQUIRED.**
+Blocking set: D1, D2, D4 (P0) and D5, D6, D16 (P1). Remediation order is the Order column;
+items 1–8 must be complete before rehearsal.
