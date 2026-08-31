@@ -338,4 +338,105 @@ VALUES
 ON CONFLICT (group_id, version) DO NOTHING;
 
 
+
+-- =====================================================================
+-- CANONICAL LICENCE ATTACHMENTS (DEMO INTEGRITY REMEDIATION 2026-08-31)
+--
+-- Defect repaired: the demo entities appeared on the licence-holder register
+-- purely because licensees.status = 'active'. public.entity_licenses is the
+-- ONLY authority for entity-to-licence relationships; licensees.license_id is
+-- deprecated and is NOT written here.
+--
+-- The manifest describes nine REGULATED demo entities plus one NON-FINANCIAL
+-- group member (Piton Property Holdings Ltd). Each regulated entity therefore
+-- receives exactly one canonical licence; Piton Property Holdings deliberately
+-- receives none and must never be presented as a licence holder.
+--
+-- These are controlled historical demonstration records: no application is
+-- invented, licence type mirrors the manifest sector wording, and the existing
+-- trg_license_open_original_term trigger owns term creation (exactly one
+-- current original term per licence). Deterministic IDs keep this idempotent.
+-- =====================================================================
+
+DO $$
+DECLARE
+  r          record;
+  v_conflict int;
+BEGIN
+  FOR r IN
+    SELECT * FROM (VALUES
+      ('01','5c1a0001-0000-4000-8000-000000000001','Virtual asset service provider'),
+      ('02','5c1a0002-0000-4000-8000-000000000002','Credit union'),
+      ('03','5c1a0003-0000-4000-8000-000000000003','Registered agent / trustee'),
+      ('04','5c1a0004-0000-4000-8000-000000000004','Domestic general insurance'),
+      ('05','5c1a0005-0000-4000-8000-000000000005','International bank (class B)'),
+      ('06','5c1a0006-0000-4000-8000-000000000006','Mutual fund administrator'),
+      ('07','5c1a0007-0000-4000-8000-000000000007','Money services business (class B)'),
+      ('08','5c1a0008-0000-4000-8000-000000000008','Pension fund plan'),
+      ('09','5c1a0009-0000-4000-8000-000000000009','Money services business (class A)')
+    ) AS t(seq, entity_id, licence_type)
+  LOOP
+    -- Collision guard: never guess if another licence already owns the number.
+    SELECT count(*) INTO v_conflict
+      FROM public.licenses
+     WHERE license_number = 'FSRA-SLU-2023-00' || r.seq
+       AND id <> ('5c4000' || r.seq || '-0000-4000-8000-0000000000' || r.seq)::uuid;
+    IF v_conflict > 0 THEN
+      RAISE EXCEPTION 'DEMO seed blocked: licence number FSRA-SLU-2023-00% already used elsewhere', r.seq;
+    END IF;
+
+    INSERT INTO public.licenses
+      (id, application_id, holder_id, license_number, license_type,
+       sector_id, sub_sector_id, category_id, status,
+       issued_at, valid_from, valid_until, conditions)
+    SELECT ('5c4000' || r.seq || '-0000-4000-8000-0000000000' || r.seq)::uuid,
+           NULL, l.id, 'FSRA-SLU-2023-00' || r.seq, r.licence_type,
+           l.sector_id, l.sub_sector_id, l.category_id, 'active',
+           '2023-01-15 00:00:00+00', '2023-01-15 00:00:00+00', '2027-12-31 00:00:00+00',
+           'Controlled historical demonstration record (SAINT-LUCIA-FSRA-DEMO).'
+      FROM public.licensees l
+     WHERE l.id = r.entity_id::uuid
+    ON CONFLICT (id) DO UPDATE
+      SET holder_id      = EXCLUDED.holder_id,
+          license_number = EXCLUDED.license_number,
+          license_type   = EXCLUDED.license_type,
+          sector_id      = EXCLUDED.sector_id,
+          sub_sector_id  = EXCLUDED.sub_sector_id,
+          status         = 'active',
+          valid_until    = EXCLUDED.valid_until;
+
+    -- Canonical entity <-> licence attachment: the authoritative reader.
+    INSERT INTO public.entity_licenses
+      (id, entity_id, license_id, effective_from, effective_to, is_primary, source)
+    VALUES
+      (('5c4100' || r.seq || '-0000-4000-8000-0000000000' || r.seq)::uuid,
+       r.entity_id::uuid,
+       ('5c4000' || r.seq || '-0000-4000-8000-0000000000' || r.seq)::uuid,
+       '2023-01-15 00:00:00+00', NULL, true, 'MANUAL')
+    ON CONFLICT (id) DO UPDATE
+      SET effective_to = NULL, is_primary = true;
+
+    -- The append-only term mechanism owns terms; assert its invariant only.
+    SELECT count(*) INTO v_conflict
+      FROM public.license_terms
+     WHERE license_id = ('5c4000' || r.seq || '-0000-4000-8000-0000000000' || r.seq)::uuid
+       AND is_current;
+    IF v_conflict <> 1 THEN
+      RAISE EXCEPTION 'DEMO seed: expected 1 current term for FSRA-SLU-2023-00%, found %', r.seq, v_conflict;
+    END IF;
+  END LOOP;
+
+  -- Piton Property Holdings Ltd (5c1a0010…) is a NON-FINANCIAL group member:
+  -- no licence by design. Its presence proves the "Not licensed" presentation.
+  IF EXISTS (
+    SELECT 1 FROM public.entity_licenses
+     WHERE entity_id = '5c1a0010-0000-4000-8000-000000000010'
+       AND (effective_to IS NULL OR effective_to > now())
+  ) THEN
+    RAISE EXCEPTION 'DEMO seed: non-financial group member must not hold a licence';
+  END IF;
+END $$;
+
+
+
 COMMIT;
