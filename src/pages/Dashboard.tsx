@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
@@ -9,6 +10,8 @@ import { ExecutiveSupervisoryDashboard } from '@/components/dashboard/ExecutiveS
 import { LicenseeDashboard } from '@/components/dashboard/LicenseeDashboard';
 import { ApplicantDashboard } from '@/components/dashboard/ApplicantDashboard';
 import { AdminOnlyDashboard } from '@/components/dashboard/AdminOnlyDashboard';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 /**
  * Audience-aware dashboard router.
