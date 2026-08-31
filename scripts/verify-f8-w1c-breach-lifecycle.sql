@@ -328,7 +328,10 @@ BEGIN
   RAISE NOTICE 'PASS 14: duplicate, insufficient-rationale and unknown-breach acknowledgements are all rejected';
 END $$;
 
--- 15. audit evidence for the governed acknowledgement
+-- 15. audit evidence for the governed acknowledgement.
+--     compliance_audit_logs is deliberately not readable by ordinary
+--     supervisory personas, so the compliance ledger is inspected privileged.
+RESET ROLE;
 DO $$
 DECLARE n1 int; n2 int;
 BEGIN
@@ -339,12 +342,16 @@ BEGIN
   SELECT count(*) INTO n2 FROM public.compliance_audit_logs
    WHERE object_type = 'return_threshold_breach'
      AND object_id = '00000000-0000-0000-0000-0000000f1c10'
-     AND action_type = 'WORKFLOW_TRANSITION';
+     AND action_type = 'WORKFLOW_TRANSITION'
+     AND user_id = '021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce';
   IF n1 < 1 OR n2 < 1 THEN
     RAISE EXCEPTION 'FAIL 15: acknowledgement audit evidence missing (audit_logs=%, compliance=%)', n1, n2;
   END IF;
-  RAISE NOTICE 'PASS 15: acknowledgement wrote both operational and compliance audit evidence';
+  RAISE NOTICE 'PASS 15: acknowledgement wrote both operational and compliance audit evidence with the session actor';
 END $$;
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
+
 
 -- 16. acknowledgement leads to the existing remediation action path
 DO $$
