@@ -60,7 +60,7 @@ export function PrudentialEntityHistoryDrawer({ open, onOpenChange, entityId, en
       const filingIds = returns.map((r) => r.filing_id);
 
       const breachesR = filingIds.length
-        ? await supabase.from('return_threshold_breaches')
+        ? await supabase.from('v_prudential_current_breaches')
             .select('id, return_filing_id, metric_key, level, risk_level, value, threshold_value, detected_at')
             .in('return_filing_id', filingIds).order('detected_at', { ascending: false })
         : { data: [] as any[] };

@@ -117,7 +117,9 @@ export function ExecutiveSupervisoryDashboard() {
       ] = await Promise.all([
         supabase.from('applications').select('id, status, created_at', { count: 'exact' }),
         supabase.from('licenses').select('id, status', { count: 'exact' }),
-        (supabase.from('return_threshold_breaches') as any).select(
+        // DCI-01: canonical breach surface — latest detection run per filing version,
+        // withdrawn filings excluded. Same source as the Breach Inbox.
+        (supabase.from('v_prudential_current_breaches') as any).select(
           'id, acknowledged_at, risk_level, detected_at',
         ),
         supabase.from('enforcement_actions').select('id, status, penalty_amount, penalty_paid_amount, created_at'),

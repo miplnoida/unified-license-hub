@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
       Array.isArray(body.ratios) ? body.ratios : [];
 
     const [{ data: breachRows = [] }, { data: cfgRatios = [] }] = await Promise.all([
-      admin.from("return_threshold_breaches").select("*").eq("return_id", return_id).order("detected_at", { ascending: false }),
+      admin.from("v_prudential_current_breaches").select("*").eq("return_id", return_id).order("detected_at", { ascending: false }),
       admin.from("prudential_ratios").select("*").eq("return_config_id", rf.return_configuration_id),
     ]);
 

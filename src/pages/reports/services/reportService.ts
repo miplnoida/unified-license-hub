@@ -110,7 +110,7 @@ export async function previewReport(
     return { rows: res.rows, count: res.totalCount ?? res.rowCount };
   } catch {
     // Client-side fallback (dev only)
-    const table = source === 'users' ? 'profiles' : source;
+    const table = CANONICAL_SOURCE_RELATION[source] ?? source;
     let q = (supabase.from(table as any).select('*', { count: 'exact' }) as any).limit(limit);
     const { from, to } = resolveDateRange(filters);
     if (from) q = q.gte('created_at', from);
