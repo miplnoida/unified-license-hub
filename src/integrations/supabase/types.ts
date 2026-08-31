@@ -15132,6 +15132,27 @@ export type Database = {
         }
         Relationships: []
       }
+      email_provider_secrets: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       enforcement_actions: {
         Row: {
           appeal_deadline: string | null
@@ -50675,6 +50696,18 @@ export type Database = {
       e360_section_allowed: {
         Args: { _section: string; _user: string }
         Returns: boolean
+      }
+      email_provider_secret_clear: {
+        Args: { _key: string }
+        Returns: undefined
+      }
+      email_provider_secret_present: {
+        Args: { _key: string }
+        Returns: boolean
+      }
+      email_provider_secret_set: {
+        Args: { _key: string; _value: string }
+        Returns: undefined
       }
       end_entity_supervision_assignment: {
         Args: {
