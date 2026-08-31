@@ -15,9 +15,20 @@ export const ALLOWED_SOURCES: ReportSource[] = [
   'compliance_returns',
 ];
 
+/**
+ * DCI-01 — a report source name is a stable contract for saved/scheduled runs,
+ * but the relation it reads must be the canonical one, so a report total can
+ * never disagree with the screen that owns the same figure.
+ */
+export const CANONICAL_SOURCE_RELATION: Partial<Record<ReportSource, string>> = {
+  users: 'profiles',
+  return_threshold_breaches: 'v_prudential_current_breaches',
+};
+
 export function isAllowedSource(s: string): s is ReportSource {
   return (ALLOWED_SOURCES as string[]).includes(s);
 }
+
 
 /** Mirrors REPORT_DEFINITIONS source values; used to resolve schedule source from slug. */
 export const REPORT_SLUG_SOURCE_MAP: Record<string, ReportSource> = {
