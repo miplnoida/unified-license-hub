@@ -117,10 +117,12 @@ UPDATE public.prudential_actions
        action_reference = 'PA-2026-0002-R'
  WHERE id = '5c310002-0000-4000-8000-000000000002';
 
+-- created_at is explicit: the default (now()) would raise each action after its own
+-- due date and after its recorded closure, inverting the supervisory chronology.
 INSERT INTO public.prudential_actions
   (id, entity_id, source_type, source_id, action_type, title, description, severity,
    due_date, status, action_reference, evidence_required, breach_after_days, progress_percent,
-   review_status, created_by)
+   review_status, created_by, created_at)
 VALUES
   ('5c310011-0000-4000-8000-000000000011',
    '5855bf85-9fde-4cf8-a082-7ea904d46184',
@@ -130,7 +132,8 @@ VALUES
    'Submit a board-approved liquidity remediation plan restoring the liquid asset ratio to at least '
    || '15.0% within two reporting quarters, including a funding contingency plan and weekly liquidity monitoring.',
    'high','2026-04-30','in_progress','PA-2026-0001',true,14,40,'awaiting_review',
-   (SELECT id FROM auth.users WHERE email = 'super_admin@mishainfotech.com')),
+   (SELECT id FROM auth.users WHERE email = 'super_admin@mishainfotech.com'),
+   '2025-11-13T09:30:00Z'),
   ('5c310012-0000-4000-8000-000000000012',
    '5855bf85-9fde-4cf8-a082-7ea904d46184',
    'return_breach','5c300012-0000-4000-8000-000000000012',
@@ -139,8 +142,20 @@ VALUES
    'Provide an ageing analysis of the non-performing loan portfolio and the provisioning basis applied, '
    || 'together with management''s recovery strategy.',
    'medium','2026-03-31','completed','PA-2026-0002',false,14,100,'accepted',
-   (SELECT id FROM auth.users WHERE email = 'super_admin@mishainfotech.com'))
+   (SELECT id FROM auth.users WHERE email = 'super_admin@mishainfotech.com'),
+   '2025-11-13T09:30:00Z')
 ON CONFLICT (id) DO NOTHING;
+
+-- The retained first-cut actions were inserted before created_at was seeded
+-- explicitly, so realign them to the same detection-driven date.
+UPDATE public.prudential_actions
+   SET created_at = '2025-11-13T09:30:00Z'
+ WHERE id IN ('5c310001-0000-4000-8000-000000000001',
+              '5c310002-0000-4000-8000-000000000002',
+              '5c310011-0000-4000-8000-000000000011',
+              '5c310012-0000-4000-8000-000000000012')
+   AND created_at > '2025-11-13T09:30:00Z'::timestamptz;
+
 
 UPDATE public.prudential_actions
    SET completion_notes = 'Ageing analysis and provisioning basis received and assessed as adequate. '
