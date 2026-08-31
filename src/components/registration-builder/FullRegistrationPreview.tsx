@@ -133,6 +133,7 @@ export function FullRegistrationPreview({
     stepType: currentStepType,
     placement,
     requireOtp: effectiveRequireOtp,
+    previewMode: true,
   });
 
   const otpPreviewBlock = (

@@ -38,6 +38,13 @@ export interface ShouldRenderArgs {
   placement: string;
   requireOtp: boolean;
   updateMode?: boolean;
+  /**
+   * Builder preview only. The preview does not insert the generated
+   * verification stage, so it shows the block on the configured placement step
+   * itself. The applicant runtime must never do this — that would render OTP
+   * twice (placement step + dedicated stage).
+   */
+  previewMode?: boolean;
 }
 
 /**
@@ -51,16 +58,20 @@ export function shouldRenderEmailVerification({
   placement,
   requireOtp,
   updateMode = false,
+  previewMode = false,
 }: ShouldRenderArgs): boolean {
   if (!requireOtp || updateMode) return false;
   if (placement === BEFORE_SUBMISSION_PLACEMENT) {
     // Legacy placement lives in the final declarations stage.
     return stepType === 'declarations' || stepId === 'declarations';
   }
-  // Verification gets its own stage right after the configured step, so the
-  // applicant enters the email first and verifies it after pressing Next.
-  return stepId === verificationStageId(placement) || stepId === placement;
+  // Verification gets its own generated stage right after the configured step,
+  // so the applicant enters the email first and verifies it after pressing Next.
+  if (stepId === verificationStageId(placement)) return true;
+  // Preview has no generated stage, so it renders on the placement step.
+  return previewMode && stepId === placement;
 }
+
 
 /** Suffix marking the generated verification stage that follows a step. */
 export const VERIFICATION_STAGE_SUFFIX = '::email-verification';
