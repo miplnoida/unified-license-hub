@@ -158,12 +158,15 @@ export function OwnershipTreeGraph({ root, rootLabel }: { root: TreeNode; rootLa
                       : 'root of structure'}
                   </text>
                   <text x={n.x + 10} y={n.y + 50} className="fill-muted-foreground text-[10px] font-mono">
-                    {node && n.depth > 0
-                      ? `effective ${pct(node.economic_percentage)}${node.economic_incomplete ? '*' : ''}`
-                      : ''}
-                    {edge?.is_controller ? ' · controller' : ''}
-                    {node?.is_natural_person ? ' · person' : ''}
-                    {n.item.repeated ? ' · shown elsewhere' : ''}
+                    {truncate([
+                      node && n.depth > 0
+                        ? `eff ${pct(node.economic_percentage)}${node.economic_incomplete ? '*' : ''}`
+                        : null,
+                      edge?.is_controller ? 'controller' : null,
+                      node?.is_natural_person ? 'person' : null,
+                      n.item.repeated ? 'shown elsewhere' : null,
+                      isUltimateBeneficiary(n.item, n.depth) ? 'UBO' : null,
+                    ].filter(Boolean).join(' · '), 30)}
                   </text>
                 </g>
               );
