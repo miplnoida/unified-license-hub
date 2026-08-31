@@ -22366,6 +22366,7 @@ export type Database = {
           created_by: string | null
           declaration_data: Json
           determined_at: string | null
+          external_reference: string | null
           form_response_id: string | null
           form_template_id: string | null
           form_version_id: string | null
@@ -22390,6 +22391,7 @@ export type Database = {
           created_by?: string | null
           declaration_data?: Json
           determined_at?: string | null
+          external_reference?: string | null
           form_response_id?: string | null
           form_template_id?: string | null
           form_version_id?: string | null
@@ -22414,6 +22416,7 @@ export type Database = {
           created_by?: string | null
           declaration_data?: Json
           determined_at?: string | null
+          external_reference?: string | null
           form_response_id?: string | null
           form_template_id?: string | null
           form_version_id?: string | null
