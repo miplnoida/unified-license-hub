@@ -40,9 +40,83 @@ BEGIN
    WHERE id::text LIKE '5c1f%' AND owned_party_id IS NULL;
   IF n <> 0 THEN RAISE EXCEPTION 'G05 FAIL: % demo ownership rows lack owned_party_id', n; END IF;
 
-  -- G06 financial group with members
-  SELECT count(*) INTO n FROM public.financial_group_members WHERE group_id::text LIKE '5c21%';
-  IF n < 3 THEN RAISE EXCEPTION 'G06 FAIL: demo financial group has only % members', n; END IF;
+  -- G06 financial group is structurally exact: master, holding entity, three
+  -- members, correct parents, roles, legal ownership and treatments, plus an
+  -- active methodology. A flat or mis-parented group must FAIL here.
+  SELECT count(*) INTO n FROM public.financial_groups
+   WHERE id = '5c210001-0000-4000-8000-000000000001'
+     AND group_code = 'SLU-GROUP-001'
+     AND holding_entity_id = '5c1a0002-0000-4000-8000-000000000002'
+     AND status = 'active';
+  IF n <> 1 THEN RAISE EXCEPTION 'G06 FAIL: Piton group master row is missing or incorrect'; END IF;
+
+  SELECT count(*) INTO n FROM public.financial_group_members
+   WHERE group_id = '5c210001-0000-4000-8000-000000000001';
+  IF n <> 3 THEN RAISE EXCEPTION 'G06 FAIL: expected exactly 3 Piton members, found %', n; END IF;
+
+  SELECT count(*) INTO n FROM public.financial_group_members
+   WHERE group_id = '5c210001-0000-4000-8000-000000000001'
+     AND ((id = '5c220001-0000-4000-8000-000000000001'
+           AND licensee_id = '5c1a0002-0000-4000-8000-000000000002'
+           AND member_role = 'ultimate_holding' AND parent_member_id IS NULL
+           AND consolidation_treatment = 'full')
+       OR (id = '5c220002-0000-4000-8000-000000000002'
+           AND licensee_id = '5c1a0009-0000-4000-8000-000000000009'
+           AND member_role = 'subsidiary'
+           AND parent_member_id = '5c220001-0000-4000-8000-000000000001'
+           AND ownership_percentage = 100 AND consolidation_treatment = 'full')
+       OR (id = '5c220003-0000-4000-8000-000000000003'
+           AND licensee_id = '5c1a0010-0000-4000-8000-000000000010'
+           AND member_role = 'subsidiary'
+           AND parent_member_id = '5c220001-0000-4000-8000-000000000001'
+           AND ownership_percentage = 75 AND consolidation_treatment = 'excluded'));
+  IF n <> 3 THEN
+    RAISE EXCEPTION 'G06 FAIL: only % of 3 Piton members match the intended hierarchy/role/ownership/treatment', n;
+  END IF;
+
+  -- G06b group membership percentages are backed by canonical legal ownership
+  SELECT count(*) INTO n FROM public.ownership_interests oi
+   WHERE oi.owner_party_id = (SELECT party_id FROM public.licensees WHERE id = '5c1a0002-0000-4000-8000-000000000002')
+     AND oi.approval_status = 'APPROVED' AND oi.control_determination = 'VERIFIED'
+     AND oi.is_direct AND oi.is_controller AND oi.superseded_at IS NULL
+     AND ((oi.owned_entity_id = '5c1a0009-0000-4000-8000-000000000009'
+           AND oi.economic_interest_percentage = 100 AND oi.voting_rights_percentage = 100)
+       OR (oi.owned_entity_id = '5c1a0010-0000-4000-8000-000000000010'
+           AND oi.economic_interest_percentage = 75 AND oi.voting_rights_percentage = 75));
+  IF n <> 2 THEN
+    RAISE EXCEPTION 'G06b FAIL: Piton legal ownership facts (100%%/75%%) are not both canonical and approved (found %)', n;
+  END IF;
+
+  -- G06c an active consolidation methodology exists so consolidation is traceable
+  SELECT count(*) INTO n FROM public.group_consolidation_methods
+   WHERE group_id = '5c210001-0000-4000-8000-000000000001' AND is_active;
+  IF n < 1 THEN RAISE EXCEPTION 'G06c FAIL: Piton group has no active consolidation methodology'; END IF;
+
+  -- G06d the group perimeter is NOT modelled as an extra licensed entity
+  SELECT count(*) INTO n FROM public.licensees
+   WHERE id = '5c210001-0000-4000-8000-000000000001' OR name = 'Piton Financial Cooperative Group (SAINT-LUCIA-FSRA-DEMO)';
+  IF n <> 0 THEN RAISE EXCEPTION 'G06d FAIL: the financial group has been duplicated into the entity register'; END IF;
+
+  -- G06e Hewanorra ownership story: declared inputs that derive 54%% / 46%%
+  SELECT count(*) INTO n FROM public.ownership_interests
+   WHERE superseded_at IS NULL AND approval_status = 'APPROVED'
+     AND id IN ('5c1f0001-0000-4000-8000-000000000001','5c1f0002-0000-4000-8000-000000000002',
+                '5c1f0003-0000-4000-8000-000000000003','5c1f0004-0000-4000-8000-000000000004',
+                '5c1f0005-0000-4000-8000-000000000005');
+  IF n <> 5 THEN RAISE EXCEPTION 'G06e FAIL: only % of 5 Hewanorra ownership inputs are approved and current', n; END IF;
+
+  SELECT (SELECT economic_interest_percentage FROM public.ownership_interests WHERE id = '5c1f0003-0000-4000-8000-000000000003')
+       + (SELECT economic_interest_percentage FROM public.ownership_interests WHERE id = '5c1f0001-0000-4000-8000-000000000001')
+       * (SELECT economic_interest_percentage FROM public.ownership_interests WHERE id = '5c1f0004-0000-4000-8000-000000000004') / 100
+    INTO v;
+  IF round(v, 2) <> 54.00 THEN RAISE EXCEPTION 'G06e FAIL: Alicia Joseph effective ownership derives to %%, not 54%%', v; END IF;
+
+  SELECT (SELECT economic_interest_percentage FROM public.ownership_interests WHERE id = '5c1f0002-0000-4000-8000-000000000002')
+       + (SELECT economic_interest_percentage FROM public.ownership_interests WHERE id = '5c1f0001-0000-4000-8000-000000000001')
+       * (SELECT economic_interest_percentage FROM public.ownership_interests WHERE id = '5c1f0005-0000-4000-8000-000000000005') / 100
+    INTO v;
+  IF round(v, 2) <> 46.00 THEN RAISE EXCEPTION 'G06e FAIL: Daniel Mercer effective ownership derives to %%, not 46%%', v; END IF;
+
 
   -- G07 canonical addresses are linked through address_usages (not free text)
   SELECT count(*) INTO n FROM public.address_usages WHERE subject_id::text LIKE '5c1%';
