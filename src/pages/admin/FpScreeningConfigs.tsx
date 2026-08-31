@@ -105,7 +105,7 @@ export default function FpScreeningConfigs() {
       <div className="space-y-6">
         <PageHeader
           title="FP Screening Rules"
-          description="Rule packs run by the fit-and-proper screening engine. Enable the checks that apply to your regime; adverse-media uses Lovable AI."
+          description="Rule packs run by the fit-and-proper screening engine. Enable the checks that apply to your regime; adverse-media uses the MIPL AI Service."
           backHref="/admin"
           backLabel="Admin"
           actions={

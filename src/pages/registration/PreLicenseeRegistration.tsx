@@ -63,8 +63,10 @@ import { AlertCircle } from 'lucide-react';
 import type { Json } from '@/integrations/supabase/types';
 import { useCaptchaRuntime } from '@/hooks/useCaptchaConfig';
 import { useAuth } from '@/contexts/AuthContext';
+import { publicAppBaseUrl } from '@/lib/publicAppUrl';
 import {
   buildUpdateRegistrationUrl,
+
   deepMergeRegistrationData,
   guardAgainstBlankOverwrite,
   isEffectivelyEmpty,
@@ -943,7 +945,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
             applicant_email: form.email,
             registration_reference: existingRegistration.registration_reference,
             registration_number: existingRegistration.registration_reference,
-            portal_url: window.location.origin,
+            portal_url: await publicAppBaseUrl(),
           },
         },
       });
