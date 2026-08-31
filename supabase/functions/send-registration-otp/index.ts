@@ -2,6 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { markPublicFunction } from "../_shared/publicFunction.ts";
 import { renderBrandedEmail } from "../_shared/email-layout.ts";
 import { loadEmailBranding } from "../_shared/email-branding.ts";
+import { loadEmailDeliveryConfig, sendEmailWithFallback } from "../_shared/email-provider.ts";
+
 markPublicFunction('Public OTP dispatch for registration flow');
 
 const corsHeaders = {
