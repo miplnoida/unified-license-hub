@@ -81,11 +81,13 @@ BEGIN
               WHERE pronamespace='public'::regnamespace
                 AND proname IN ('prudential_stress_indicator_save','prudential_stress_indicator_delete')
   LOOP
-    IF def NOT LIKE '%SECURITY DEFINER%' OR def NOT LIKE '%can_manage_prudential_config%' THEN
+    IF def NOT LIKE '%SECURITY DEFINER%'
+       OR (def NOT LIKE '%can_manage_prudential_config%'
+           AND def NOT LIKE '%enforce_permission(''prudential_supervision'',''manage_config'')%') THEN
       RAISE EXCEPTION 'FAIL 5: stress indicator config RPC not bound to prudential config authority';
     END IF;
   END LOOP;
-  RAISE NOTICE 'PASS 5: stress indicator save/delete remain bound to can_manage_prudential_config';
+  RAISE NOTICE 'PASS 5: stress indicator save/delete remain bound to prudential_supervision manage_config authority';
 
   -- 6. RLS + execute privileges
   IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.prudential_stress_events'::regclass) THEN
