@@ -7,14 +7,18 @@
  */
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useGovernanceEvents, type GovernanceEventRow } from '@/hooks/useAiGovernance';
+import {
+  useGovernanceEvents, useGovernanceEventsForObject, type GovernanceEventRow,
+} from '@/hooks/useAiGovernance';
 import { EVENT_LABEL, LIFECYCLE_LABEL, label } from '@/lib/aiGovernanceLabels';
 import { formatDateTime } from '@/lib/datetime';
 
 export function GovernanceHistory({
-  objectType, objectCode, title = 'Governance history',
-}: { objectType: string; objectCode: string; title?: string }) {
-  const { data: events = [], isLoading } = useGovernanceEvents(objectType, objectCode, 200);
+  objectType, objectCode, objectId, title = 'Governance history',
+}: { objectType: string; objectCode?: string; objectId?: string; title?: string }) {
+  const byCode = useGovernanceEvents(objectType, objectId ? undefined : objectCode, 200);
+  const byId = useGovernanceEventsForObject(objectType, objectId ?? null);
+  const { data: events = [], isLoading } = objectId ? byId : byCode;
 
   return (
     <Card>

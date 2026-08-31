@@ -73,8 +73,13 @@ export interface AdvisoryInsight {
   staleness_checked_at: string | null;
   review_state: string | null;
   reviewed_at: string | null;
+  governance_service_label: string | null;
+  governance_model_label: string | null;
+  governance_version_label: string | null;
+  technical_provenance_available: boolean;
   provider: string | null;
   model: string | null;
+  model_version: string | null;
   prompt_template_code: string | null;
   prompt_template_version: string | null;
   snapshot_fingerprint: string | null;
@@ -91,7 +96,7 @@ export interface AdvisoryUseCaseConfig {
 const INSIGHT_COLUMNS =
   'id,use_case_code,window_start,window_end,generated_at,ai_output,human_output,human_rationale,' +
   'source_references,confidence,uncertainty,limitations,staleness_state,staleness_checked_at,' +
-  'review_state,reviewed_at,provider,model,prompt_template_code,prompt_template_version,snapshot_fingerprint';
+  'review_state,reviewed_at,provider,model,model_version,technical_provenance_available,governance_service_label,governance_model_label,governance_version_label,prompt_template_code,prompt_template_version,snapshot_fingerprint';
 
 /** The approved advisory types, as configured by the regulator. */
 export function useAdvisoryUseCases() {
@@ -120,7 +125,7 @@ export function useAdvisoryInsights(entityId: string | undefined, choice: Conduc
     staleTime: 30_000,
     queryFn: async (): Promise<AdvisoryInsight[]> => {
       const { data, error } = await sb
-        .from('conduct_ai_insights')
+        .from('conduct_ai_insights_presentation_v')
         .select(INSIGHT_COLUMNS)
         .eq('entity_id', entityId)
         .eq('window_start', start)

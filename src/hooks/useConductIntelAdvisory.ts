@@ -26,7 +26,8 @@ export type IntelSubject =
 const INSIGHT_COLUMNS =
   'id,use_case_code,subject_type,subject_key,emerging_risk_id,window_start,window_end,generated_at,' +
   'ai_output,human_output,human_rationale,source_references,confidence,uncertainty,limitations,' +
-  'staleness_state,staleness_checked_at,review_state,reviewed_at,provider,model,' +
+  'staleness_state,staleness_checked_at,review_state,reviewed_at,provider,model,model_version,' +
+  'technical_provenance_available,governance_service_label,governance_model_label,governance_version_label,' +
   'prompt_template_code,prompt_template_version,snapshot_fingerprint,subject_population';
 
 function subjectKey(subject: IntelSubject): unknown[] {
@@ -43,7 +44,7 @@ export function useIntelAdvisoryInsights(subject: IntelSubject | null) {
     retry: false,
     staleTime: 30_000,
     queryFn: async (): Promise<AdvisoryInsight[]> => {
-      let query = sb.from('conduct_ai_insights').select(INSIGHT_COLUMNS);
+      let query = sb.from('conduct_ai_insights_presentation_v').select(INSIGHT_COLUMNS);
       if (subject!.kind === 'emerging_risk') {
         query = query.eq('subject_type', 'emerging_risk').eq('emerging_risk_id', subject!.riskId);
       } else {

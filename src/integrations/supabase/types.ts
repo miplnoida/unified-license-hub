@@ -274,6 +274,13 @@ export type Database = {
             referencedRelation: "conduct_ai_insights"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ai_assurance_reviews_conduct_ai_insight_id_fkey"
+            columns: ["conduct_ai_insight_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_ai_insights_presentation_v"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ai_governance_activity_attempts: {
@@ -358,6 +365,13 @@ export type Database = {
             columns: ["conduct_ai_insight_id"]
             isOneToOne: false
             referencedRelation: "conduct_ai_insights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_governance_activity_attempts_conduct_ai_insight_id_fkey"
+            columns: ["conduct_ai_insight_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_ai_insights_presentation_v"
             referencedColumns: ["id"]
           },
         ]
@@ -531,6 +545,8 @@ export type Database = {
           display_name: string
           effective_from: string | null
           external_data_capable: boolean
+          governance_display_name: string | null
+          governance_version_label: string | null
           id: string
           known_limitations: string | null
           lifecycle_state: Database["public"]["Enums"]["ai_gov_lifecycle"]
@@ -555,6 +571,8 @@ export type Database = {
           display_name: string
           effective_from?: string | null
           external_data_capable?: boolean
+          governance_display_name?: string | null
+          governance_version_label?: string | null
           id?: string
           known_limitations?: string | null
           lifecycle_state?: Database["public"]["Enums"]["ai_gov_lifecycle"]
@@ -579,6 +597,8 @@ export type Database = {
           display_name?: string
           effective_from?: string | null
           external_data_capable?: boolean
+          governance_display_name?: string | null
+          governance_version_label?: string | null
           id?: string
           known_limitations?: string | null
           lifecycle_state?: Database["public"]["Enums"]["ai_gov_lifecycle"]
@@ -592,6 +612,36 @@ export type Database = {
           suspended_by?: string | null
           suspension_reason?: string | null
           technical_identifier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_governance_presentation_aliases: {
+        Row: {
+          alias_kind: string
+          created_at: string
+          display_value: string
+          id: string
+          notes: string | null
+          source_value: string
+          updated_at: string
+        }
+        Insert: {
+          alias_kind: string
+          created_at?: string
+          display_value: string
+          id?: string
+          notes?: string | null
+          source_value: string
+          updated_at?: string
+        }
+        Update: {
+          alias_kind?: string
+          created_at?: string
+          display_value?: string
+          id?: string
+          notes?: string | null
+          source_value?: string
           updated_at?: string
         }
         Relationships: []
@@ -669,6 +719,13 @@ export type Database = {
             columns: ["approved_model_id"]
             isOneToOne: false
             referencedRelation: "ai_governance_models"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_governance_surfaces_approved_model_id_fkey"
+            columns: ["approved_model_id"]
+            isOneToOne: false
+            referencedRelation: "ai_governance_models_presentation_v"
             referencedColumns: ["id"]
           },
         ]
@@ -8704,6 +8761,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conduct_ai_insights_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_ai_insights_presentation_v"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "conduct_ai_insights_use_case_code_fkey"
             columns: ["use_case_code"]
             isOneToOne: false
@@ -8752,6 +8816,13 @@ export type Database = {
             columns: ["conduct_ai_insight_id"]
             isOneToOne: false
             referencedRelation: "conduct_ai_insights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_ai_review_events_conduct_ai_insight_id_fkey"
+            columns: ["conduct_ai_insight_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_ai_insights_presentation_v"
             referencedColumns: ["id"]
           },
         ]
@@ -8884,6 +8955,13 @@ export type Database = {
             columns: ["approved_model_id"]
             isOneToOne: false
             referencedRelation: "ai_governance_models"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_ai_use_cases_approved_model_id_fkey"
+            columns: ["approved_model_id"]
+            isOneToOne: false
+            referencedRelation: "ai_governance_models_presentation_v"
             referencedColumns: ["id"]
           },
         ]
@@ -12361,6 +12439,13 @@ export type Database = {
             columns: ["conduct_ai_insight_id"]
             isOneToOne: false
             referencedRelation: "conduct_ai_insights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_reporting_adopted_narratives_conduct_ai_insight_id_fkey"
+            columns: ["conduct_ai_insight_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_ai_insights_presentation_v"
             referencedColumns: ["id"]
           },
           {
@@ -44480,6 +44565,51 @@ export type Database = {
       }
     }
     Views: {
+      ai_governance_activity_presentation_v: {
+        Row: {
+          activity_id: string | null
+          activity_kind: string | null
+          advisory_classification: string | null
+          citation_count: number | null
+          conduct_ai_insight_id: string | null
+          confidence: number | null
+          entity_id: string | null
+          governance_model_label: string | null
+          governance_service_label: string | null
+          governance_version_label: string | null
+          has_human_wording: boolean | null
+          human_rationale: string | null
+          latency_ms: number | null
+          limitations: string[] | null
+          model: string | null
+          model_version: string | null
+          occurred_at: string | null
+          outcome: string | null
+          owning_module: string | null
+          prompt_template_code: string | null
+          prompt_template_version: string | null
+          provider: string | null
+          reason_code: string | null
+          regulator_id: string | null
+          requested_by: string | null
+          requested_role: string | null
+          review_state: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sector_id: string | null
+          snapshot_fingerprint: string | null
+          staleness_checked_at: string | null
+          staleness_state: string | null
+          technical_provenance_available: boolean | null
+          uncertainty: string | null
+          use_case_code: string | null
+          use_case_label: string | null
+          use_case_lifecycle: string | null
+          window_end: string | null
+          window_start: string | null
+        }
+        Relationships: []
+      }
       ai_governance_activity_v: {
         Row: {
           activity_id: string | null
@@ -44521,6 +44651,198 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_governance_attempts_presentation_v: {
+        Row: {
+          completed_at: string | null
+          conduct_ai_insight_id: string | null
+          created_at: string | null
+          detail: string | null
+          entity_id: string | null
+          governance_model_label: string | null
+          governance_service_label: string | null
+          governance_version_label: string | null
+          id: string | null
+          instruction_template_code: string | null
+          instruction_version: string | null
+          latency_ms: number | null
+          metadata: Json | null
+          model: string | null
+          model_version: string | null
+          outcome: string | null
+          owning_module: string | null
+          provider: string | null
+          reason_code: string | null
+          requested_at: string | null
+          requested_by: string | null
+          requested_role: string | null
+          snapshot_fingerprint: string | null
+          technical_provenance_available: boolean | null
+          use_case_code: string | null
+          window_end: string | null
+          window_start: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          conduct_ai_insight_id?: string | null
+          created_at?: string | null
+          detail?: string | null
+          entity_id?: string | null
+          governance_model_label?: never
+          governance_service_label?: never
+          governance_version_label?: never
+          id?: string | null
+          instruction_template_code?: string | null
+          instruction_version?: string | null
+          latency_ms?: number | null
+          metadata?: Json | null
+          model?: never
+          model_version?: never
+          outcome?: string | null
+          owning_module?: string | null
+          provider?: never
+          reason_code?: string | null
+          requested_at?: string | null
+          requested_by?: string | null
+          requested_role?: string | null
+          snapshot_fingerprint?: string | null
+          technical_provenance_available?: never
+          use_case_code?: string | null
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          conduct_ai_insight_id?: string | null
+          created_at?: string | null
+          detail?: string | null
+          entity_id?: string | null
+          governance_model_label?: never
+          governance_service_label?: never
+          governance_version_label?: never
+          id?: string | null
+          instruction_template_code?: string | null
+          instruction_version?: string | null
+          latency_ms?: number | null
+          metadata?: Json | null
+          model?: never
+          model_version?: never
+          outcome?: string | null
+          owning_module?: string | null
+          provider?: never
+          reason_code?: string | null
+          requested_at?: string | null
+          requested_by?: string | null
+          requested_role?: string | null
+          snapshot_fingerprint?: string | null
+          technical_provenance_available?: never
+          use_case_code?: string | null
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_governance_activity_attempts_conduct_ai_insight_id_fkey"
+            columns: ["conduct_ai_insight_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_ai_insights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_governance_activity_attempts_conduct_ai_insight_id_fkey"
+            columns: ["conduct_ai_insight_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_ai_insights_presentation_v"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_governance_models_presentation_v: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          created_by: string | null
+          data_handling_class: string | null
+          effective_from: string | null
+          external_data_capable: boolean | null
+          governance_display_name: string | null
+          governance_version_label: string | null
+          id: string | null
+          known_limitations: string | null
+          lifecycle_state:
+            | Database["public"]["Enums"]["ai_gov_lifecycle"]
+            | null
+          model_key: string | null
+          model_version: string | null
+          provider: string | null
+          registered_display_name: string | null
+          regulatory_purpose: string | null
+          retired_at: string | null
+          suspended_at: string | null
+          suspended_by: string | null
+          suspension_reason: string | null
+          technical_identifier: string | null
+          technical_provenance_available: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_handling_class?: string | null
+          effective_from?: string | null
+          external_data_capable?: boolean | null
+          governance_display_name?: never
+          governance_version_label?: never
+          id?: string | null
+          known_limitations?: string | null
+          lifecycle_state?:
+            | Database["public"]["Enums"]["ai_gov_lifecycle"]
+            | null
+          model_key?: never
+          model_version?: never
+          provider?: never
+          registered_display_name?: never
+          regulatory_purpose?: string | null
+          retired_at?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
+          technical_identifier?: never
+          technical_provenance_available?: never
+          updated_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_handling_class?: string | null
+          effective_from?: string | null
+          external_data_capable?: boolean | null
+          governance_display_name?: never
+          governance_version_label?: never
+          id?: string | null
+          known_limitations?: string | null
+          lifecycle_state?:
+            | Database["public"]["Enums"]["ai_gov_lifecycle"]
+            | null
+          model_key?: never
+          model_version?: never
+          provider?: never
+          registered_display_name?: never
+          regulatory_purpose?: string | null
+          retired_at?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
+          technical_identifier?: never
+          technical_provenance_available?: never
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       audit_timeline: {
         Row: {
           action: string | null
@@ -44539,6 +44861,168 @@ export type Database = {
           user_id: string | null
         }
         Relationships: []
+      }
+      conduct_ai_insights_presentation_v: {
+        Row: {
+          ai_output: Json | null
+          confidence: number | null
+          created_at: string | null
+          emerging_risk_id: string | null
+          entity_id: string | null
+          generated_at: string | null
+          generated_by: string | null
+          governance_model_label: string | null
+          governance_service_label: string | null
+          governance_version_label: string | null
+          human_output: Json | null
+          human_rationale: string | null
+          id: string | null
+          insight_id: string | null
+          limitations: string[] | null
+          model: string | null
+          model_version: string | null
+          prompt_template_code: string | null
+          prompt_template_version: string | null
+          provider: string | null
+          regulator_id: string | null
+          review_state: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sector_id: string | null
+          snapshot_fingerprint: string | null
+          source_references: Json | null
+          staleness_checked_at: string | null
+          staleness_state: string | null
+          subject_key: string | null
+          subject_population: Json | null
+          subject_type: string | null
+          superseded_by_id: string | null
+          technical_provenance_available: boolean | null
+          uncertainty: string | null
+          updated_at: string | null
+          use_case_code: string | null
+          window_end: string | null
+          window_start: string | null
+        }
+        Insert: {
+          ai_output?: Json | null
+          confidence?: number | null
+          created_at?: string | null
+          emerging_risk_id?: string | null
+          entity_id?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          governance_model_label?: never
+          governance_service_label?: never
+          governance_version_label?: never
+          human_output?: Json | null
+          human_rationale?: string | null
+          id?: string | null
+          insight_id?: string | null
+          limitations?: string[] | null
+          model?: never
+          model_version?: never
+          prompt_template_code?: string | null
+          prompt_template_version?: string | null
+          provider?: never
+          regulator_id?: string | null
+          review_state?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sector_id?: string | null
+          snapshot_fingerprint?: string | null
+          source_references?: Json | null
+          staleness_checked_at?: string | null
+          staleness_state?: string | null
+          subject_key?: string | null
+          subject_population?: Json | null
+          subject_type?: string | null
+          superseded_by_id?: string | null
+          technical_provenance_available?: never
+          uncertainty?: string | null
+          updated_at?: string | null
+          use_case_code?: string | null
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          ai_output?: Json | null
+          confidence?: number | null
+          created_at?: string | null
+          emerging_risk_id?: string | null
+          entity_id?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          governance_model_label?: never
+          governance_service_label?: never
+          governance_version_label?: never
+          human_output?: Json | null
+          human_rationale?: string | null
+          id?: string | null
+          insight_id?: string | null
+          limitations?: string[] | null
+          model?: never
+          model_version?: never
+          prompt_template_code?: string | null
+          prompt_template_version?: string | null
+          provider?: never
+          regulator_id?: string | null
+          review_state?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sector_id?: string | null
+          snapshot_fingerprint?: string | null
+          source_references?: Json | null
+          staleness_checked_at?: string | null
+          staleness_state?: string | null
+          subject_key?: string | null
+          subject_population?: Json | null
+          subject_type?: string | null
+          superseded_by_id?: string | null
+          technical_provenance_available?: never
+          uncertainty?: string | null
+          updated_at?: string | null
+          use_case_code?: string | null
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_ai_insights_emerging_risk_id_fkey"
+            columns: ["emerging_risk_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_emerging_risks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_ai_insights_insight_id_fkey"
+            columns: ["insight_id"]
+            isOneToOne: false
+            referencedRelation: "ai_insights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_ai_insights_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_ai_insights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_ai_insights_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_ai_insights_presentation_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_ai_insights_use_case_code_fkey"
+            columns: ["use_case_code"]
+            isOneToOne: false
+            referencedRelation: "conduct_ai_use_cases"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       escalation_health_signals: {
         Row: {
@@ -46287,6 +46771,14 @@ export type Database = {
       }
       ai_gov_actor_role: { Args: { _uid: string }; Returns: string }
       ai_gov_can_read: { Args: { _uid: string }; Returns: boolean }
+      ai_gov_can_view_technical_provenance: {
+        Args: { _uid: string }
+        Returns: boolean
+      }
+      ai_gov_display_alias: {
+        Args: { _kind: string; _value: string }
+        Returns: string
+      }
       ai_gov_log_event: {
         Args: {
           _actor_id: string
@@ -46349,6 +46841,8 @@ export type Database = {
           _data_handling_class?: string
           _display_name: string
           _external_data_capable?: boolean
+          _governance_display_name?: string
+          _governance_version_label?: string
           _id: string
           _known_limitations?: string
           _model_key: string

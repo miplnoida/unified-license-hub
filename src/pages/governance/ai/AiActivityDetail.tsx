@@ -26,6 +26,7 @@ import {
 import { advisoryPlainText } from '@/components/conduct/three-sixty/advisory/advisoryText';
 import { formatDate, formatDateTime } from '@/lib/datetime';
 import { useCan } from '@/hooks/useCan';
+import { TechnicalProvenance } from '@/components/governance/ai/TechnicalProvenance';
 
 export default function AiActivityDetail() {
   const { kind = 'INSIGHT', id = '' } = useParams();
@@ -127,9 +128,9 @@ export default function AiActivityDetail() {
         {/* AI EXECUTION */}
         <Section title="AI execution">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <F l="AI service" v={insight?.provider ?? primaryAttempt?.provider ?? 'Not recorded'} />
-            <F l="Model" v={insight?.model ?? primaryAttempt?.model ?? 'Not recorded'} mono />
-            <F l="Model version" v={insight?.model_version ?? primaryAttempt?.model_version ?? 'Not recorded'} mono />
+            <F l="AI service" v={insight?.governance_service_label ?? primaryAttempt?.governance_service_label ?? 'Not recorded'} />
+            <F l="Model" v={insight?.governance_model_label ?? primaryAttempt?.governance_model_label ?? 'Not recorded'} />
+            <F l="Model version" v={insight?.governance_version_label ?? primaryAttempt?.governance_version_label ?? 'Not recorded'} mono />
             <F l="Instruction version" v={`${insight?.prompt_template_code ?? primaryAttempt?.instruction_template_code ?? 'Not recorded'} ${insight?.prompt_template_version ?? primaryAttempt?.instruction_version ?? ''}`} mono />
             <F l="Requested at" v={primaryAttempt ? formatDateTime(primaryAttempt.requested_at) : insight ? formatDateTime(insight.generated_at) : '—'} />
             <F l="Completed at" v={primaryAttempt?.completed_at ? formatDateTime(primaryAttempt.completed_at) : insight ? formatDateTime(insight.generated_at) : '—'} />
@@ -137,6 +138,17 @@ export default function AiActivityDetail() {
             <F l="Result" v={primaryAttempt
               ? <Badge variant={OUTCOME_VARIANT[primaryAttempt.outcome] ?? 'outline'}>{label(OUTCOME_LABEL, primaryAttempt.outcome)}</Badge>
               : <Badge>{label(OUTCOME_LABEL, 'SUCCESS')}</Badge>} />
+          </div>
+          <div className="mt-3">
+            <TechnicalProvenance
+              available={insight?.technical_provenance_available ?? primaryAttempt?.technical_provenance_available ?? false}
+              fields={[
+                { label: 'Actual AI service / gateway', value: insight?.provider ?? primaryAttempt?.provider },
+                { label: 'Technical model identifier', value: insight?.model ?? primaryAttempt?.model, mono: true },
+                { label: 'Provider model version', value: insight?.model_version ?? primaryAttempt?.model_version, mono: true },
+                { label: 'Facts signature', value: insight?.snapshot_fingerprint ?? primaryAttempt?.snapshot_fingerprint, mono: true },
+              ]}
+            />
           </div>
           {primaryAttempt?.reason_code && (
             <p className="mt-3 text-sm">
