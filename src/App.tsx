@@ -15,6 +15,8 @@ import { ActiveSectorProvider } from "@/contexts/ActiveSectorContext";
 import { Suspense } from "react";
 import { AuthLoadingScreen } from "@/components/shared/AuthLoadingScreen";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { CurrencyRegistryPrimer } from "@/components/shared/CurrencyRegistryPrimer";
+
 
 import { publicRoutes } from "@/routes/publicRoutes";
 import { dashboardRoutes } from "@/routes/dashboardRoutes";
@@ -72,8 +74,10 @@ const App = () => (
             <PpocProvider>
               <ActiveSectorProvider>
                 <TooltipProvider>
+                  <CurrencyRegistryPrimer />
                   <Toaster />
                   <Sonner />
+
                   <BrowserRouter>
                     <AppRoutes />
                   </BrowserRouter>

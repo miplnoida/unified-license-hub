@@ -24,6 +24,9 @@ import { toast } from 'sonner';
 import { CALCULATION_TYPE_LABELS, CalculationType, FEE_RULE_TYPE_LABELS, FeeRuleType } from '@/types/platform';
 import { PlusCircle, Pencil, Trash2, Loader2, Calculator, ShieldOff, Percent, DollarSign, Info } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
+import { useGovernedCurrencies } from '@/hooks/useGovernedCurrencies';
+import { formatMoney } from '@/lib/money';
+
 
 interface FeeConfig {
   id: string;
@@ -90,11 +93,20 @@ export default function FeeManagement() {
   const [ftCode, setFtCode] = useState('');
   const [ftStatus, setFtStatus] = useState('active');
 
+  // Governed currency authority (currency master + monetary configuration)
+  const governedCurrencies = useGovernedCurrencies();
+
   // Fee form state
+
   const [name, setName] = useState('');
   const [feeTypes, setFeeTypesSelected] = useState<string[]>([]);
   const [feeTypeAmounts, setFeeTypeAmounts] = useState<Record<string, FeeTypeAmountRow>>({});
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState('');
+  // The default currency is server-authoritative (configured base currency).
+  useEffect(() => {
+    if (!currency && governedCurrencies.baseCurrency) setCurrency(governedCurrencies.baseCurrency);
+  }, [currency, governedCurrencies.baseCurrency]);
+
   const [sectorId, setSectorId] = useState('');
   const [subSectorId, setSubSectorId] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -647,10 +659,15 @@ export default function FeeManagement() {
                           <div className="space-y-2">
                             <Label>Currency</Label>
                             <Select value={currency} onValueChange={setCurrency}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectTrigger><SelectValue placeholder={governedCurrencies.isLoading ? 'Loading currencies…' : 'Select currency'} /></SelectTrigger>
                               <SelectContent>
-                                {['USD','EUR','GBP','LSL','ZAR','INR'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                {governedCurrencies.supportedCurrencies.map(c => (
+                                  <SelectItem key={c.code} value={c.code}>
+                                    {c.code}{c.name ? ` — ${c.name}` : ''}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
+
                             </Select>
                           </div>
                         </div>
@@ -756,7 +773,7 @@ export default function FeeManagement() {
                             <TableCell><Badge variant="outline">{fee.fee_type}</Badge></TableCell>
                             <TableCell><Badge variant="secondary" className="text-xs">{CALCULATION_TYPE_LABELS[fee.calculation_type] || 'Fixed'}</Badge></TableCell>
                             <TableCell className="font-mono">
-                              {fee.calculation_type === 'percentage' ? `${fee.amount}%` : `${fee.currency} ${Number(fee.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+                              {fee.calculation_type === 'percentage' ? `${fee.amount}%` : formatMoney(fee.amount, fee.currency)}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">{getSectorName(fee.sector_id)}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">{getSubSectorName(fee.sub_sector_id)}</TableCell>
