@@ -73,9 +73,15 @@ export function RetailPaymentsPanel({ operatorId }: Props) {
               <p className="text-lg font-semibold font-mono">
                 {(byType.get(t.value)?.count ?? 0).toLocaleString()}
               </p>
-              <p className="text-xs text-muted-foreground font-mono">
-                {(byType.get(t.value)?.value ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              </p>
+              {[...(byType.get(t.value)?.values ?? new Map<string, number>())].map(([ccy, val]) => (
+                <p key={ccy} className="text-xs text-muted-foreground font-mono">
+                  {ccy} {val.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </p>
+              ))}
+              {!byType.get(t.value)?.values.size && (
+                <p className="text-xs text-muted-foreground font-mono">—</p>
+              )}
+
             </CardContent>
           </Card>
         ))}
