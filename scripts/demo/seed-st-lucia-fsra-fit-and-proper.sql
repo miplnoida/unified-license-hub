@@ -441,7 +441,7 @@ BEGIN
             to_char(v_committee, 'DD Mon YYYY'), v_effective),
      c_supervisor, v_determined,
      (v_determined)::date, (v_determined + interval '12 months')::date, true, c_regulator,
-     encode(digest('FPA-SLU-2026-0001|conditional|' || c_supervisor::text, 'sha256'), 'hex'))
+     md5('FPA-SLU-2026-0001|conditional|' || c_supervisor::text))
   ON CONFLICT (id) DO NOTHING;
 
   -- Now that a determination artifact exists, move the case to Determined.
