@@ -668,7 +668,6 @@ export default function FeeManagement() {
                                 ))}
                               </SelectContent>
 
-                              </SelectContent>
                             </Select>
                           </div>
                         </div>
