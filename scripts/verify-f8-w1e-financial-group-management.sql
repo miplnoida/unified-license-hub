@@ -200,12 +200,12 @@ BEGIN
 
   -- 18. every governed mutation left canonical audit evidence
   IF (SELECT count(*) FROM public.audit_logs
-       WHERE entity_type = 'financial_group' AND entity_id = v_group
+       WHERE entity_type = 'financial_group' AND entity_id = v_group::text
          AND action IN ('GROUP_CREATED','GROUP_MEMBER_ADDED','GROUP_MEMBER_UPDATED','GROUP_METHODOLOGY_VERSION_CREATED')) < 4 THEN
     RAISE EXCEPTION 'FAIL 18: governed group mutations are not fully audited';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.compliance_audit_logs
-                  WHERE record_id = v_group AND table_name = 'financial_group') THEN
+                  WHERE record_id::text = v_group::text AND table_name = 'financial_group') THEN
     RAISE EXCEPTION 'FAIL 18: dual-surface compliance audit evidence missing';
   END IF;
   RAISE NOTICE 'PASS 18: create/member/methodology mutations produced canonical dual-surface audit evidence';
