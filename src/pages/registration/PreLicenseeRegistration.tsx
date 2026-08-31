@@ -585,7 +585,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     setDynamicErrors(errs);
     lastDynamicErrorsRef.current = { errs, step: stepData };
     return Object.keys(errs).length === 0;
-  }, [dynamicFormData, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName, getPrimaryEmailBlockers, getPrimaryEmailFieldsForStep, pendingPrimaryEmailChecks, dynamicErrors, isUpdateMode]);
+  }, [dynamicFormData, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName, getPrimaryEmailBlockers, getPrimaryEmailFieldsForStep, pendingPrimaryEmailChecks, dynamicErrors, isUpdateMode, requireOtp]);
 
   // Build declaration keys for validation
   const effectiveDeclarations = useMemo(() => {
