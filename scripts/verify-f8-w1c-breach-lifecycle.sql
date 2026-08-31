@@ -364,6 +364,7 @@ BEGIN
         _description := 'Remediation issued following the acknowledged CAR breach.',
         _severity := 'high',
         _due_date := CURRENT_DATE + 30,
+        _assigned_to := '021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce',
         _source_type := 'return_breach',
         _source_id := '00000000-0000-0000-0000-0000000f1c10');
   act := r.id;
