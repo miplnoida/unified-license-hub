@@ -15,6 +15,8 @@ import { useSectors } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { PlusCircle, Pencil, Trash2, Loader2, ChevronRight, Layers } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
+import { CurrencySelect } from '@/components/shared/CurrencySelect';
+import { formatRecordMoney } from '@/lib/money';
 
 export default function LateFeesPage() {
   const { activeRegulatorId } = useRegulator();
@@ -31,10 +33,10 @@ export default function LateFeesPage() {
   const [sectorId, setSectorId] = useState('');
   const [returnTypeId, setReturnTypeId] = useState('');
   const [baseAmount, setBaseAmount] = useState('0');
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState('');
   const [status, setStatus] = useState(true);
 
-  const reset = () => { setFeeName(''); setSectorId(''); setReturnTypeId(''); setBaseAmount('0'); setCurrency('USD'); setStatus(true); setEditing(null); };
+  const reset = () => { setFeeName(''); setSectorId(''); setReturnTypeId(''); setBaseAmount('0'); setCurrency(''); setStatus(true); setEditing(null); };
   const openEdit = (s: any) => { setEditing(s); setFeeName(s.fee_name); setSectorId(s.sector_id || ''); setReturnTypeId(s.return_type_id || ''); setBaseAmount(String(s.base_amount)); setCurrency(s.currency); setStatus(s.status === 'active'); setOpen(true); };
 
   const handleSave = () => {
@@ -76,7 +78,7 @@ export default function LateFeesPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2"><Label>Base Amount</Label><Input type="number" value={baseAmount} onChange={e => setBaseAmount(e.target.value)} /></div>
-                    <div className="space-y-2"><Label>Currency</Label><Input value={currency} onChange={e => setCurrency(e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Currency</Label><CurrencySelect value={currency} onChange={setCurrency} /></div>
                   </div>
                   <div className="flex items-center gap-2"><Switch checked={status} onCheckedChange={setStatus} /><Label>Active</Label></div>
                   <Button onClick={handleSave} disabled={create.isPending || update.isPending} className="w-full">
@@ -105,7 +107,7 @@ export default function LateFeesPage() {
                       <TableCell className="font-medium">{s.fee_name}</TableCell>
                       <TableCell>{s.sectors?.name || 'All'}</TableCell>
                       <TableCell>{s.return_types?.name || 'All'}</TableCell>
-                      <TableCell>{s.currency} {s.base_amount}</TableCell>
+                      <TableCell>{formatRecordMoney(s.base_amount, s.currency)}</TableCell>
                       <TableCell><Badge variant={s.status === 'active' ? 'default' : 'secondary'}>{s.status}</Badge></TableCell>
                       <TableCell className="text-right">
                         <RowActionsMenu actions={[

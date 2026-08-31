@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, Plus } from 'lucide-react';
 import {
+import { CurrencySelect } from '@/components/shared/CurrencySelect';
   PAYMENT_TYPES,
   labelOf,
   usePaymentOperators,
@@ -172,7 +173,7 @@ export function RetailPaymentsPanel({ operatorId }: Props) {
             </div>
             <div>
               <Label>Currency</Label>
-              <Input value={form.currency} onChange={e => setForm((f: any) => ({ ...f, currency: e.target.value }))} />
+              <CurrencySelect value={form.currency} onChange={code => setForm((f: any) => ({ ...f, currency: code }))} />
             </div>
             <div>
               <Label>Transaction count</Label>

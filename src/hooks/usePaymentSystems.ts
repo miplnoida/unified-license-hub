@@ -540,7 +540,7 @@ export function useSaveRetailVolume() {
         _payment_type: payload.payment_type,
         _transaction_count: payload.transaction_count ?? 0,
         _transaction_value: payload.transaction_value ?? 0,
-        _currency: (payload.currency || 'JMD').toUpperCase(),
+        _currency: (payload.currency || baseCurrency() || '').toUpperCase(),
       });
       if (error) throw error;
       return data;
