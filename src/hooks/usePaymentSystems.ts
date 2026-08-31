@@ -533,18 +533,24 @@ export function useSaveRetailVolume() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: Record<string, any>) => {
-      const { data: auth } = await supabase.auth.getUser();
-      const { error } = await sb.from('payment_retail_volumes').upsert(
-        { ...payload, created_by: auth?.user?.id ?? null },
-        { onConflict: 'operator_id,period_start,period_end,payment_type' },
-      );
+      const { data, error } = await sb.rpc('payment_retail_volume_record', {
+        _operator_id: payload.operator_id,
+        _period_start: payload.period_start,
+        _period_end: payload.period_end,
+        _payment_type: payload.payment_type,
+        _transaction_count: payload.transaction_count ?? 0,
+        _transaction_value: payload.transaction_value ?? 0,
+        _currency: (payload.currency || 'JMD').toUpperCase(),
+      });
       if (error) throw error;
-      return true;
+      return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['payment-retail-volumes'] });
+      qc.invalidateQueries({ queryKey: ['payment-oversight-events'] });
       toast.success('Retail payments figures saved');
     },
+
     onError: (e: any) => toast.error(paymentOversightErrorMessage(e)),
   });
 }
