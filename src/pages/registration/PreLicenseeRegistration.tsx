@@ -537,6 +537,8 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
               fieldKey: effectiveName,
               value: val,
               ownEmail: isUpdateMode ? (initialDynamicDataRef.current?.[effectiveName] as string | undefined) ?? null : null,
+              // The wizard's verification stage handles the OTP for this address.
+              skipVerification: requireOtp,
             });
             if (emailIssue) errs[effectiveName] = emailIssue;
           }
