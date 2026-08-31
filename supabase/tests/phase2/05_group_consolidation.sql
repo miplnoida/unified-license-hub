@@ -105,11 +105,11 @@ BEGIN
   VALUES (v_hm, v_g1, v_h, NULL, 'ultimate_holding', 100, 'full')
     ON CONFLICT (id) DO NOTHING;
   INSERT INTO public.financial_group_members
-    (group_id, licensee_id, parent_member_id, member_role, ownership_percentage, consolidation_treatment)
-  VALUES (v_g1, v_s1, v_hm, 'subsidiary', 100, 'full'),
-         (v_g1, v_s2, v_hm, 'subsidiary', 100, 'full'),
-         (v_g1, v_s3, v_hm, 'subsidiary', 20, 'excluded'),
-         (v_g2, v_x, NULL, 'ultimate_holding', 100, 'full');
+    (group_id, licensee_id, parent_member_id, member_role, ownership_percentage, consolidation_treatment, exclusion_rationale)
+  VALUES (v_g1, v_s1, v_hm, 'subsidiary', 100, 'full', NULL),
+         (v_g1, v_s2, v_hm, 'subsidiary', 100, 'full', NULL),
+         (v_g1, v_s3, v_hm, 'subsidiary', 20, 'excluded', 'Out of prudential perimeter (test fixture)'),
+         (v_g2, v_x, NULL, 'ultimate_holding', 100, 'full', NULL);
 
   -- Real prudential assignment for the positive persona path (analyst supervises H).
   INSERT INTO public.entity_supervision_assignments
