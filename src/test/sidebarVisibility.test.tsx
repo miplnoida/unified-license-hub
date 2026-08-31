@@ -244,7 +244,7 @@ describe('Sidebar persona audit', () => {
       'Return Types', 'Configurations', 'Cutoff Config',
       'Due Dates', 'Late Fees', 'Schedule Calendar',
       'Notif Templates', 'Notif Log', 'Notification Templates',
-      'Prudential Analytics', 'Analytics',
+      'Prudential Analytics', 'Prudential Analysis', 'Analytics',
       'Prudential Ratios', 'Prudential Thresholds',
       'Returns Admin',
       'Approval Workflows', 'Reports',
