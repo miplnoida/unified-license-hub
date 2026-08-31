@@ -433,6 +433,9 @@ async function assembleFacts(
   scopeId: string | null,
   extra: { question?: string | null; context?: unknown },
   sources: SourceModule[],
+  /** Caller-scoped client. Required for the executive canonical snapshot so RLS,
+   *  regulator scoping and entity-assignment restrictions all still apply. */
+  authClient?: any,
 ): Promise<{ facts: Record<string, unknown>; used: SourceModule[]; evidence: EvidenceRef[] }> {
   const can = (s: SourceModule) => sources.includes(s);
   const used = new Set<SourceModule>();
