@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logIntegration } from "../_shared/integration-log.ts";
 import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
-import { isHardFailure, maskEmail, redact } from "../_shared/notification-redact.ts";
+import { maskEmail, redact } from "../_shared/notification-redact.ts";
 import {
   EmailDeliveryConfig,
   loadEmailDeliveryConfig,
