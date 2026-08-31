@@ -61,6 +61,7 @@
     "verify:prudential-universe-perf": "node scripts/system-runtime/verify-prudential-universe-perf.mjs",
     "verify:f8-w1a-ratio-store": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8-w1a-ratio-store.sql",
     "verify:f8-w1b-group-supervision": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8-w1b-group-supervision.sql",
+    "verify:financial-group-management": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8-w1e-financial-group-management.sql",
     "verify:f8-w1c-breach-lifecycle": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8-w1c-breach-lifecycle.sql",
     "verify:f8-w1d-prudential-config-governance": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8-w1d-prudential-config-governance.sql && vitest run src/test/prudentialConfigGovernance.test.ts",
     "verify:f8-w1e2a-audit-mutations": "psql -v ON_ERROR_STOP=1 -f scripts/verify-f8-w1e2a-audit-mutations.sql",
