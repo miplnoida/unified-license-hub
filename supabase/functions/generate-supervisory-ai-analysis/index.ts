@@ -931,6 +931,7 @@ Deno.serve(async (req) => {
         scopeId,
         { question: body.question ?? null, context: body.context ?? null },
         permittedSources,
+        gate.authClient,
       );
       facts = assembled.facts;
       usedSources = assembled.used;
