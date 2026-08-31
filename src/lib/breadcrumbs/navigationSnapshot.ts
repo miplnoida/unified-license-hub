@@ -137,7 +137,7 @@ export const navigationSnapshot: NavSnapshotItem[] = [
   { key: "nav_lic_penalties", parentKey: "grp_nav_licensing", label: "Fees & Penalties", href: "/billing/penalties", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_lic_registration", parentKey: "grp_nav_licensing", label: "Registration", href: null, itemType: "group", audience: "internal", showInSidebar: true },
   { key: "nav_lic_regulatory_requests", parentKey: "grp_nav_licensing", label: "Regulatory Requests", href: "/licensing/regulatory-requests", itemType: "link", audience: "internal", showInSidebar: true },
-  { key: "nav_license_requests_all_license_requests", parentKey: "nav_lic_applications", label: "Review Queue", href: "/applications/queue", itemType: "link", audience: "internal", showInSidebar: true },
+  { key: "nav_license_requests_all_license_requests", parentKey: "nav_lic_applications", label: "Licence Requests Queue", href: "/applications/queue", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_license_requests_appeal_panels", parentKey: "nav_lic_appeals", label: "Appeal Panels", href: "/admin/appeal-panels", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_license_requests_license_action_forms", parentKey: "nav_adm_cfg_licensing", label: "License Action Forms", href: "/admin/license-action-forms", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_license_requests_licensee_entities", parentKey: "nav_lic_licenses", label: "Licence Holders", href: "/admin/licensees", itemType: "link", audience: "internal", showInSidebar: true },
