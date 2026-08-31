@@ -46,14 +46,22 @@ interface Props extends RegistrationUploadContext {
   onChange: (fieldName: string, value: unknown) => void;
   onBlur?: (fieldName: string, value: unknown, field: RegField) => void;
   readOnly?: boolean;
+  /**
+   * `true` when the surrounding wizard already owns email OTP verification
+   * (dedicated verification stage / declarations block). The inline
+   * field-level verify control is then suppressed so the applicant is never
+   * asked to verify the same address twice. Uniqueness checking is unaffected.
+   */
+  suppressEmailVerification?: boolean;
 }
 
 /**
  * Renders a single registration step using the builder's row → column → field
  * grid layout. Responsive: columns collapse on mobile.
  */
-export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur, readOnly, userId, entityType, entityId, formId }: Props) {
+export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur, readOnly, suppressEmailVerification, userId, entityType, entityId, formId }: Props) {
   const uploadCtx: RegistrationUploadContext = { userId, entityType, entityId, formId };
+
 
   const allFields = useMemo(() => {
     return step.rows.flatMap(r => r.columns.map(c => c.field).filter(Boolean)) as RegField[];
