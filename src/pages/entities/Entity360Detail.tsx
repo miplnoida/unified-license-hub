@@ -235,7 +235,7 @@ export default function Entity360Detail() {
               {activeSection.key === 'ownership' && (
                 <OwnershipTreePanel
                   entityId={entity.id}
-                  entityName={entity.display_name ?? entity.legal_name ?? null}
+                  entityName={entity.name ?? null}
                   asOf={asOf}
                 />
               )}
