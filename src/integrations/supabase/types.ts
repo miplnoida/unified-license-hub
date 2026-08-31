@@ -54381,6 +54381,19 @@ export type Database = {
         Args: { _decision: string; _reason: string; _refund_id: string }
         Returns: Json
       }
+      payment_retail_volume_record: {
+        Args: {
+          _currency?: string
+          _operator_id: string
+          _payment_type: string
+          _period_end: string
+          _period_start: string
+          _source?: string
+          _transaction_count: number
+          _transaction_value: number
+        }
+        Returns: Json
+      }
       peer_ratio_snapshot: {
         Args: {
           _entity_id?: string
