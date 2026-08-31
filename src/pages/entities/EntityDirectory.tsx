@@ -120,6 +120,11 @@ export default function EntityDirectory() {
       .map((value) => ({ value, label: presentStatus(value)?.label ?? value })),
     [rows],
   );
+  const sectorOptions = useMemo(
+    () => [...new Set(rows.map((e) => e.sector_name).filter(Boolean) as string[])].sort()
+      .map((value) => ({ value, label: value })),
+    [rows],
+  );
 
   const columns = useMemo<Array<GridColumn<EntityDto>>>(() => [
     {
@@ -145,6 +150,20 @@ export default function EntityDirectory() {
       sticky: 'left',
       minWidth: '20rem',
       mandatory: true,
+      priority: 1,
+    },
+    {
+      id: 'sector',
+      header: 'Sector',
+      minWidth: '12rem',
+      accessor: (e) => e.sector_name ?? '',
+      cell: (e) => (e.sector_name
+        ? <span>{e.sector_name}</span>
+        : <span className="text-muted-foreground">—</span>),
+      sortable: true,
+      filterable: true,
+      filterType: 'multiEnum',
+      filterOptions: sectorOptions,
       priority: 1,
     },
     {
@@ -206,7 +225,7 @@ export default function EntityDirectory() {
       priority: 3,
       defaultVisible: false,
     },
-  ], [lifecycleOptions, identityOptions, rows]);
+  ], [lifecycleOptions, identityOptions, sectorOptions, rows]);
 
   return (
     <DashboardLayout>
