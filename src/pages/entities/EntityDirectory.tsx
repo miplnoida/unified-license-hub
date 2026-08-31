@@ -120,6 +120,11 @@ export default function EntityDirectory() {
       .map((value) => ({ value, label: presentStatus(value)?.label ?? value })),
     [rows],
   );
+  const sectorOptions = useMemo(
+    () => [...new Set(rows.map((e) => e.sector_name).filter(Boolean) as string[])].sort()
+      .map((value) => ({ value, label: value })),
+    [rows],
+  );
 
   const columns = useMemo<Array<GridColumn<EntityDto>>>(() => [
     {
