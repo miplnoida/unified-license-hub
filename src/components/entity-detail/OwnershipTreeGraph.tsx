@@ -10,9 +10,22 @@
  * nothing is hard-coded and no percentage is invented here.
  */
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Minus, Plus, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { isUltimateBeneficiary, pct, type TreeNode } from './ownershipTreeModel';
+
+/**
+ * Where a node leads when opened. Natural persons open the canonical Person 360
+ * view; regulated counterparties open their own Entity 360. Anything else has no
+ * governed destination and stays non-navigable.
+ */
+export function nodeTarget(item: TreeNode, depth: number): string | null {
+  if (depth === 0) return null;
+  if (item.node?.is_natural_person) return `/persons/${item.partyId}`;
+  if (item.node?.is_regulated && item.node.licensee_id) return `/entities/${item.node.licensee_id}`;
+  return null;
+}
 
 const NODE_W = 196;
 const NODE_H = 62;
@@ -70,6 +83,7 @@ function nodeTone(n: Laid) {
 
 export function OwnershipTreeGraph({ root, rootLabel }: { root: TreeNode; rootLabel?: string }) {
   const [zoom, setZoom] = useState(1);
+  const navigate = useNavigate();
   const { laid, flat, width, height } = useMemo(() => layout(root), [root]);
 
   const links = useMemo(() => {
@@ -143,8 +157,22 @@ export function OwnershipTreeGraph({ root, rootLabel }: { root: TreeNode; rootLa
               const node = n.item.node;
               const edge = n.item.edge;
               const label = n.depth === 0 ? (rootLabel || n.item.label) : n.item.label;
+              const target = nodeTarget(n.item, n.depth);
               return (
-                <g key={n.item.key}>
+                <g
+                  key={n.item.key}
+                  role={target ? 'link' : undefined}
+                  tabIndex={target ? 0 : undefined}
+                  aria-label={target ? `Open ${label}` : undefined}
+                  className={target ? 'cursor-pointer' : undefined}
+                  onClick={target ? () => navigate(target) : undefined}
+                  onKeyDown={target ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(target); } } : undefined}
+                >
+                  <title>
+                    {target
+                      ? `${label} — open ${node?.is_natural_person ? 'person 360' : 'entity 360'}`
+                      : label}
+                  </title>
                   <rect
                     x={n.x} y={n.y} width={NODE_W} height={NODE_H} rx={8}
                     fill={tone.fill} stroke={tone.stroke} strokeWidth={1.5}

@@ -24,7 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { cn } from '@/lib/utils';
 import { useEntityOwnershipNetwork, type OwnershipNetworkNode } from '@/hooks/useWaveB';
 import { buildTree, isUltimateBeneficiary, pct, type TreeNode } from './ownershipTreeModel';
-import { OwnershipTreeGraph } from './OwnershipTreeGraph';
+import { OwnershipTreeGraph, nodeTarget } from './OwnershipTreeGraph';
 
 function NodeIcon({ node, root }: { node?: OwnershipNetworkNode; root?: boolean }) {
   if (root) return <Building2 className="h-4 w-4 shrink-0 text-primary" aria-hidden />;
@@ -41,6 +41,7 @@ function TreeBranch({
   const isRoot = depth === 0;
   const hasChildren = item.children.length > 0;
   const isUbo = isUltimateBeneficiary(item, depth);
+  const target = nodeTarget(item, depth);
 
   return (
     <li className={cn(depth > 0 && 'relative pl-5 before:absolute before:left-0 before:top-0 before:h-full before:border-l before:border-border')}>
@@ -68,7 +69,19 @@ function TreeBranch({
         <NodeIcon node={node} root={isRoot} />
 
         <span className={cn('text-sm', isRoot ? 'font-semibold' : 'font-medium')}>
-          {isRoot ? rootLabel || item.label : item.label}
+          {isRoot ? (
+            rootLabel || item.label
+          ) : target ? (
+            <Link
+              to={target}
+              className="underline-offset-2 hover:underline"
+              title={node?.is_natural_person ? `Open person 360 for ${item.label}` : `Open entity 360 for ${item.label}`}
+            >
+              {item.label}
+            </Link>
+          ) : (
+            item.label
+          )}
         </span>
 
         {edge && (
@@ -224,7 +237,7 @@ export function OwnershipTreePanel({
                   {beneficiaries.map((b) => (
                     <li key={b.party_id} className="flex flex-wrap items-center gap-2 text-sm">
                       <User className="h-3.5 w-3.5 text-emerald-600" aria-hidden />
-                      <span className="font-medium">{b.display_name}</span>
+                      <Link to={`/persons/${b.party_id}`} className="font-medium underline-offset-2 hover:underline" title={`Open person 360 for ${b.display_name ?? 'this person'}`}>{b.display_name || b.party_id.slice(0, 8)}</Link>
                       <span className="font-mono text-xs">
                         {pct(b.economic_percentage)}{b.economic_incomplete ? '*' : ''} effective economic
                       </span>
