@@ -18,25 +18,40 @@ Every URL below is absolute from the application root.
 | # | Action | URL | What must appear |
 |---|--------|-----|------------------|
 | 1 | Open the executive dashboard | `/executive` | Portfolio counts across the nine FSRA sectors; supervisory workload tiles |
-| 2 | Open the entity register | `/entities` | Licensees list; use search for `SAINT-LUCIA-FSRA-DEMO` to show the nine prepared demonstration entities across VASP, credit union, registered agent, insurance, international bank, fund administration, MSB and pensions |
+| 2 | Open the entity register | `/entities` | Licensees list; use search for `SAINT-LUCIA-FSRA-DEMO` to show the ten prepared demonstration organisations across nine FSRA sectors (VASP, credit union, registered agent, insurance, international bank, fund administration, MSB and pensions), plus one non-financial group member |
 | 3 | Open one non-bank entity | `/entities/5c1a0001-0000-4000-8000-000000000001` | "Hewanorra Nexus Digital Finance Ltd" — sector, sub-sector, lifecycle stage, identity status, appointments, addresses |
 
 Say: *"One register, nine sectors, one taxonomy. Every record you see is the same canonical entity object."*
 
 ## Act 2 — Ownership, control and group structure (7 min)
 
+These are **two separate stories**. Do not mix the percentages.
+
+### Story A — Ownership network and effective beneficial interest (Hewanorra Nexus)
+
 | # | Action | URL | What must appear |
 |---|--------|-----|------------------|
-| 4 | Open the group entity | `/entities/5c1a0002-0000-4000-8000-000000000002` | Piton Community Credit Union Ltd |
-| 5 | Open the ownership/network view | `/intelligence/network` | Graph linking the credit union, its two holding companies and the two natural persons |
-| 6 | Open the financial group | `/prudential/groups/5c210001-0000-4000-8000-000000000001` | "Piton Financial Cooperative Group" with 3 members |
+| 4 | Open the entity | `/entities/5c1a0001-0000-4000-8000-000000000001` | Hewanorra Nexus Digital Finance Ltd |
+| 5 | Open its ownership/network view | same screen → ownership tree / `/intelligence/network` | Declared direct holders: Nexus Caribbean Holdings 60%, Daniel Mercer 25%, Alicia Joseph 15%; above Nexus Caribbean Holdings: Alicia 65%, Daniel 35% |
 
 Expected effective ownership, traversed through the upper holding layer:
-**Alicia Joseph 54%**, **Daniel Mercer 46%**.
+**Alicia Joseph 54%** (15 + 60 × 65%), **Daniel Mercer 46%** (25 + 60 × 35%).
 
 Say: *"The system does not store an effective percentage — it derives it by walking the ownership chain, so it cannot silently go stale."*
 
 Do **not** open the UBO determination panel: no UBO policy is configured in this environment (see fallbacks).
+
+### Story B — Supervisory financial group and consolidation treatment (Piton)
+
+| # | Action | URL | What must appear |
+|---|--------|-----|------------------|
+| 6 | Open the holding entity | `/entities/5c1a0002-0000-4000-8000-000000000002` → Group Structure | Piton Community Credit Union Ltd, group **SLU-GROUP-001**, relationship *Ultimate holding company*, link into the group profile |
+| 7 | Open the financial group | `/prudential/groups/5c210001-0000-4000-8000-000000000001` | "Piton Financial Cooperative Group" — holding entity plus two subsidiaries under it: Piton Finance Services (100%, **full consolidation**) and Piton Property Holdings (75%, **excluded**) |
+
+Say: *"A financial group is a supervisory perimeter, not another licence. Legal ownership of 75% and exclusion from prudential consolidation are two different facts, and the platform keeps both."*
+
+Note the honest limitation: the Piton members have no accepted returns, so no consolidated position is computed for this group; consolidated ratio mechanics are shown on the Coral Harbour Bank prudential analysis screen instead.
+
 
 ## Act 3 — Licensing and fit & proper (7 min)
 

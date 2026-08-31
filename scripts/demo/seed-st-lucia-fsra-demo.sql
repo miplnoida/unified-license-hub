@@ -294,17 +294,37 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.financial_group_members
-  (id, group_id, licensee_id, member_role, ownership_percentage, consolidation_treatment, effective_date, notes)
+  (id, group_id, licensee_id, parent_member_id, member_role, ownership_percentage, consolidation_treatment, effective_date, notes)
 VALUES
   ('5c220001-0000-4000-8000-000000000001','5c210001-0000-4000-8000-000000000001',
-   '5c1a0002-0000-4000-8000-000000000002','ultimate_holding',NULL,'full','2023-01-01',
+   '5c1a0002-0000-4000-8000-000000000002',NULL,'ultimate_holding',NULL,'full','2023-01-01',
    'Regulated credit union — parent of the group perimeter.'),
   ('5c220002-0000-4000-8000-000000000002','5c210001-0000-4000-8000-000000000001',
-   '5c1a0009-0000-4000-8000-000000000009','subsidiary',100,'full','2023-01-01',
+   '5c1a0009-0000-4000-8000-000000000009','5c220001-0000-4000-8000-000000000001','subsidiary',100,'full','2023-01-01',
    'Regulated money services subsidiary — fully consolidated.'),
   ('5c220003-0000-4000-8000-000000000003','5c210001-0000-4000-8000-000000000001',
-   '5c1a0010-0000-4000-8000-000000000010','subsidiary',75,'excluded','2023-01-01',
+   '5c1a0010-0000-4000-8000-000000000010','5c220001-0000-4000-8000-000000000001','subsidiary',75,'excluded','2023-01-01',
    'Non-regulated property holding company — excluded from prudential consolidation.')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE
+  SET parent_member_id = EXCLUDED.parent_member_id;
+
+-- Active version 1 consolidation methodology so consolidated figures are
+-- always traceable to a configured method (matches the app's own default
+-- behaviour when a group is created through the UI).
+INSERT INTO public.group_consolidation_methods
+  (group_id, version, ratio_rules, eliminate_exposure_types, large_exposure_pct,
+   total_assets_ratio_key, capital_ratio_key, is_active, notes)
+VALUES
+  ('5c210001-0000-4000-8000-000000000001', 1,
+   '[{"ratio_key":"TOTAL_ASSETS","method":"sum","eliminate":true},
+     {"ratio_key":"TOTAL_CAPITAL","method":"sum","eliminate":false},
+     {"ratio_key":"CAPITAL_ADEQUACY_RATIO","method":"weighted_avg","eliminate":false},
+     {"ratio_key":"LIQUIDITY_RATIO","method":"weighted_avg","eliminate":false},
+     {"ratio_key":"NPL_RATIO","method":"weighted_avg","eliminate":false}]'::jsonb,
+   ARRAY['loan','deposit','capital']::text[], 10,
+   'TOTAL_ASSETS', 'TOTAL_CAPITAL', true,
+   'Demonstration methodology (SAINT-LUCIA-FSRA-DEMO). Members treated per configured consolidation_treatment; excluded members contribute nothing.')
+ON CONFLICT (group_id, version) DO NOTHING;
+
 
 COMMIT;
