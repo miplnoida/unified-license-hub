@@ -102,6 +102,11 @@ export default function FeeManagement() {
   const [feeTypes, setFeeTypesSelected] = useState<string[]>([]);
   const [feeTypeAmounts, setFeeTypeAmounts] = useState<Record<string, FeeTypeAmountRow>>({});
   const [currency, setCurrency] = useState('');
+  // The default currency is server-authoritative (configured base currency).
+  useEffect(() => {
+    if (!currency && governedCurrencies.baseCurrency) setCurrency(governedCurrencies.baseCurrency);
+  }, [currency, governedCurrencies.baseCurrency]);
+
   const [sectorId, setSectorId] = useState('');
   const [subSectorId, setSubSectorId] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -769,7 +774,7 @@ export default function FeeManagement() {
                             <TableCell><Badge variant="outline">{fee.fee_type}</Badge></TableCell>
                             <TableCell><Badge variant="secondary" className="text-xs">{CALCULATION_TYPE_LABELS[fee.calculation_type] || 'Fixed'}</Badge></TableCell>
                             <TableCell className="font-mono">
-                              {fee.calculation_type === 'percentage' ? `${fee.amount}%` : `${fee.currency} ${Number(fee.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+                              {fee.calculation_type === 'percentage' ? `${fee.amount}%` : formatMoney(fee.amount, fee.currency)}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">{getSectorName(fee.sector_id)}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">{getSubSectorName(fee.sub_sector_id)}</TableCell>
