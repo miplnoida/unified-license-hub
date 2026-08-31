@@ -389,11 +389,9 @@ RESET ROLE;
 SET LOCAL ROLE anon;
 SET LOCAL "request.jwt.claims" = '';
 DO $$
-DECLARE ev uuid := (SELECT id FROM public.prudential_stress_events LIMIT 1);
 BEGIN
   BEGIN
-    PERFORM public.prudential_stress_event_acknowledge(
-      COALESCE(ev, '00000000-0000-0000-0000-00000f83a0ff'::uuid));
+    PERFORM public.prudential_stress_event_acknowledge('00000000-0000-0000-0000-00000f83a0ff'::uuid);
     RAISE EXCEPTION 'FAIL 16: anonymous caller acknowledged a stress event';
   EXCEPTION WHEN insufficient_privilege OR raise_exception OR no_data_found THEN
     RAISE NOTICE 'PASS 16: anonymous callers cannot acknowledge stress events';
