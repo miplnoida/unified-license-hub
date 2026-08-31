@@ -376,14 +376,24 @@ BEGIN
                     AND source_id = '00000000-0000-0000-0000-0000000f1c10') THEN
     RAISE EXCEPTION 'FAIL 16: action is not traceable to the acknowledged breach';
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.notification_event_queue q
-                  WHERE q.payload->>'action_id' = act::text
-                     OR q.entity_id = act) THEN
-    RAISE EXCEPTION 'FAIL 16: no notification enqueued for the issued supervisory action';
-  END IF;
   PERFORM set_config('w1c.action_id', act::text, true);
-  RAISE NOTICE 'PASS 16: acknowledged breach produced a traceable, notified supervisory remediation action (status %)', st;
+  RAISE NOTICE 'PASS 16: acknowledged breach produced a traceable supervisory remediation action (status %)', st;
 END $$;
+
+-- 16b. issuance notification (queue is privileged-read only)
+RESET ROLE;
+DO $$
+DECLARE act uuid := current_setting('w1c.action_id')::uuid;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.notification_event_queue q
+                  WHERE q.entity_type = 'prudential_action' AND q.entity_id = act) THEN
+    RAISE EXCEPTION 'FAIL 16b: no notification enqueued for the issued supervisory action';
+  END IF;
+  RAISE NOTICE 'PASS 16b: issued supervisory action enqueued its existing assignment notification';
+END $$;
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
+
 
 -- 17. action progresses through its valid lifecycle
 DO $$
