@@ -89,7 +89,10 @@ serve(async (req) => {
       // Controlled failure: never propagate into the calling business workflow.
       const errMsg = redact(result.error || "email_delivery_failed");
       console.error("send-notification email delivery failed:", errMsg);
-      const hard = result.hardFailure || isHardFailure(errMsg);
+      // The router already distinguished recipient hard failures from
+      // retryable infrastructure failures (quota, rate limit, outage, timeout).
+      const hard = result.hardFailure;
+
       if (logId) {
         const { data: row } = await supabase
           .from("notification_dispatch_log")
