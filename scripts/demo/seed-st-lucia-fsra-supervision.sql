@@ -84,21 +84,21 @@ INSERT INTO public.prudential_actions
 VALUES
   ('5c310001-0000-4000-8000-000000000001',
    '5855bf85-9fde-4cf8-a082-7ea904d46184',
-   'threshold_breach','5c300001-0000-4000-8000-000000000001',
+   'return_breach','5c300001-0000-4000-8000-000000000001',
    'remediation_plan',
    'Liquidity remediation plan required (2025-Q4 liquidity ratio 13.0%)',
    'Submit a board-approved liquidity remediation plan restoring the liquid asset ratio to at least '
    || '15.0% within two reporting quarters, including a funding contingency plan and weekly liquidity monitoring.',
-   'high','2026-04-30','in_progress','PA-2026-0001',true,14,40,'pending',
+   'high','2026-04-30','in_progress','PA-2026-0001',true,14,40,'awaiting_review',
    (SELECT id FROM auth.users WHERE email = 'super_admin@mishainfotech.com')),
   ('5c310002-0000-4000-8000-000000000002',
    '5855bf85-9fde-4cf8-a082-7ea904d46184',
-   'threshold_breach','5c300003-0000-4000-8000-000000000003',
-   'information_request',
+   'return_breach','5c300003-0000-4000-8000-000000000003',
+   'remediation_plan',
    'Explanation of rising non-performing loans (2025-Q4 NPL ratio 6.0%)',
    'Provide an ageing analysis of the non-performing loan portfolio and the provisioning basis applied, '
    || 'together with management''s recovery strategy.',
-   'medium','2026-03-31','closed','PA-2026-0002',false,14,100,'accepted',
+   'medium','2026-03-31','completed','PA-2026-0002',false,14,100,'accepted',
    (SELECT id FROM auth.users WHERE email = 'super_admin@mishainfotech.com'))
 ON CONFLICT (id) DO NOTHING;
 
