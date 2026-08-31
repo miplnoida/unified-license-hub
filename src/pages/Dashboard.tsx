@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
@@ -9,6 +10,8 @@ import { ExecutiveSupervisoryDashboard } from '@/components/dashboard/ExecutiveS
 import { LicenseeDashboard } from '@/components/dashboard/LicenseeDashboard';
 import { ApplicantDashboard } from '@/components/dashboard/ApplicantDashboard';
 import { AdminOnlyDashboard } from '@/components/dashboard/AdminOnlyDashboard';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 /**
  * Audience-aware dashboard router.
@@ -28,6 +31,7 @@ export default function Dashboard() {
   const ctx = useEffectivePortalContext();
   const { tier } = useDashboardTier();
   const { hasModuleAccess, isBypassRole } = useUserDynamicPermissions();
+  const [view, setView] = useState<'operational' | 'executive' | 'admin' | null>(null);
 
   if (ctx.loading) return <AuthLoadingScreen />;
   if (!user) return null;
@@ -47,27 +51,36 @@ export default function Dashboard() {
     && !hasSupervisoryAccess
     && hasModuleAccess('admin_dashboard');
 
-  if (import.meta.env.DEV) {
-    // eslint-disable-next-line no-console
-    console.log('[Dashboard] audience routing', {
-      audience: ctx.audience,
-      effectiveRole: ctx.effectiveRole,
-      isInternal: ctx.isInternal,
-      hasSupervisoryAccess,
-      hasAdminOnlyAccess,
-    });
-  }
+  // Which internal views this user may switch between. Super admins (bypass)
+  // and executive-tier roles can reach the executive view even when their
+  // default landing dashboard is the operational one.
+  const canSeeExecutive = ctx.isInternal
+    && (isBypassRole || tier === 'executive' || hasModuleAccess('report_management'));
+  const canSeeAdmin = ctx.isInternal && (isBypassRole || hasModuleAccess('admin_dashboard'));
+  const defaultView: 'operational' | 'executive' | 'admin' = hasAdminOnlyAccess
+    ? 'admin'
+    : tier === 'executive'
+      ? 'executive'
+      : 'operational';
+  const activeView = view ?? defaultView;
+  const availableViews = ctx.isInternal
+    ? ([
+      hasSupervisoryAccess ? 'operational' : null,
+      canSeeExecutive ? 'executive' : null,
+      canSeeAdmin ? 'admin' : null,
+    ].filter(Boolean) as Array<'operational' | 'executive' | 'admin'>)
+    : [];
 
   const { title, subtitle, content } = (() => {
     if (ctx.isInternal) {
-      if (hasAdminOnlyAccess) {
+      if (activeView === 'admin') {
         return {
           title: 'Administration',
           subtitle: `Welcome back, ${user.fullName}. Administrative tools available to you.`,
           content: <AdminOnlyDashboard />,
         };
       }
-      if (tier === 'executive') {
+      if (activeView === 'executive') {
         return {
           title: 'Executive Dashboard',
           subtitle: `Welcome back, ${user.fullName}. Cross-module supervisory intelligence.`,
@@ -96,7 +109,27 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout title={title} subtitle={subtitle}>
+      {availableViews.length > 1 && (
+        <Tabs
+          value={activeView}
+          onValueChange={(v) => setView(v as 'operational' | 'executive' | 'admin')}
+          className="mb-6"
+        >
+          <TabsList>
+            {availableViews.includes('operational') && (
+              <TabsTrigger value="operational">Supervisory</TabsTrigger>
+            )}
+            {availableViews.includes('executive') && (
+              <TabsTrigger value="executive">Executive</TabsTrigger>
+            )}
+            {availableViews.includes('admin') && (
+              <TabsTrigger value="admin">Administration</TabsTrigger>
+            )}
+          </TabsList>
+        </Tabs>
+      )}
       {content}
     </DashboardLayout>
   );
+
 }
