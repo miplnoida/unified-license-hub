@@ -307,6 +307,74 @@ export function useEntityOwnership(entityId?: string | null) {
   });
 }
 
+/* ------------------------------------------------------------------ */
+/* Ownership network (tree / look-through view)                         */
+/* ------------------------------------------------------------------ */
+
+export interface OwnershipNetworkNode {
+  party_id: string;
+  display_name: string | null;
+  party_kind: string | null;
+  is_natural_person: boolean;
+  is_legal_arrangement: boolean;
+  is_regulated: boolean;
+  licensee_id: string | null;
+  min_depth: number;
+  path_count: number;
+  economic_percentage: number | null;
+  voting_percentage: number | null;
+  economic_incomplete: boolean;
+  voting_incomplete: boolean;
+  controller_on_path: boolean;
+  recorded_ubo_declared: boolean;
+  terminal: boolean;
+}
+
+export interface OwnershipNetworkEdge {
+  id: string;
+  depth: number;
+  owner_party_id: string;
+  owned_party_id: string;
+  owned_entity_id: string | null;
+  owned_is_regulated: boolean;
+  economic_interest_percentage: number | null;
+  voting_rights_percentage: number | null;
+  is_controller: boolean;
+  ownership_type: string | null;
+  effective_from: string | null;
+  effective_to: string | null;
+  approval_status: string | null;
+}
+
+export interface OwnershipNetwork {
+  seed: { entity_id: string; party_id: string; regulator_id: string | null; display_name?: string | null };
+  as_of: string;
+  node_count: number;
+  restricted_node_count: number;
+  nodes: OwnershipNetworkNode[];
+  edges: OwnershipNetworkEdge[];
+  cycles: Array<Record<string, any>>;
+  frontier: Array<{ party_id: string; depth: number; reason: string }>;
+  cycle_detected: boolean;
+  truncated: boolean;
+  truncation_reasons: string[];
+}
+
+/**
+ * Governed bounded upward ownership walk used by the ownership tree. Every
+ * expansion is re-authorized server-side; the browser only renders the result.
+ */
+export function useEntityOwnershipNetwork(entityId?: string | null, asOf?: string | null) {
+  return useQuery({
+    queryKey: ['wave-b', 'entity-ownership-network', entityId, asOf ?? 'current'],
+    enabled: !!entityId,
+    queryFn: () => rpc<OwnershipNetwork>('entity_ownership_network', {
+      _entity_id: entityId,
+      ...(asOf ? { _as_of: asOf } : {}),
+    }),
+  });
+}
+
 export function useEntityAppointments(entityId?: string | null) {
   return useQuery({
     queryKey: ['wave-b', 'entity-appointments', entityId],

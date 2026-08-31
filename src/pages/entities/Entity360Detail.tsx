@@ -36,6 +36,7 @@ import { Entity360SectionView } from '@/components/entity-detail/Entity360Sectio
 import { Entity360TimelinePanel } from '@/components/entity-detail/Entity360TimelinePanel';
 import { E360_GROUPS, E360_SECTIONS } from '@/components/entity-detail/sectionCatalogue';
 import { EntityReportingCurrencyPanel } from '@/components/entity-detail/EntityReportingCurrencyPanel';
+import { OwnershipTreePanel } from '@/components/entity-detail/OwnershipTreePanel';
 import { SubjectAddressPanel } from '@/components/addresses/SubjectAddressPanel';
 import { useEntity360Overview, type E360SectionKey } from '@/hooks/useEntity360';
 
@@ -229,6 +230,14 @@ export default function Entity360Detail() {
                   links out to the canonical assessment case workspace. */}
               {activeSection.key === 'fit_and_proper' && (
                 <EntityFitAndProperPanel entityId={entity.id} />
+              )}
+              {/* Ownership reads as a structure tree first, records second. */}
+              {activeSection.key === 'ownership' && (
+                <OwnershipTreePanel
+                  entityId={entity.id}
+                  entityName={entity.name ?? null}
+                  asOf={asOf}
+                />
               )}
               <Entity360SectionView
                 entityId={entity.id}

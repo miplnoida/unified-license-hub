@@ -31,6 +31,7 @@ import {
   useEntityChangeSets, useEntityOwnership, useEntityPartyRelationships, useEntityStructureOverview,
   usePublicationPolicies, useRegulatoryRequestMutations, useRegulatoryRequests, useSetPublicationPolicy,
 } from '@/hooks/useWaveB';
+import { OwnershipTreePanel } from '@/components/entity-detail/OwnershipTreePanel';
 
 const pct = (v: unknown) => (v === null || v === undefined ? '—' : `${Number(v).toFixed(2)}%`);
 
@@ -215,7 +216,8 @@ export default function EntityStructureHub() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="ownership" className="mt-4">
+        <TabsContent value="ownership" className="mt-4 space-y-4">
+          <OwnershipTreePanel entityId={entityId} entityName={dto?.display_name ?? dto?.legal_name ?? null} />
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Ownership, control and beneficial ownership</CardTitle>
