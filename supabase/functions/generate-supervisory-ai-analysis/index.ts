@@ -791,69 +791,56 @@ async function assembleFacts(
   }
 
   if (module === 'executive') {
-    // Honour the window and scope the dashboard is actually showing.
-    const windowDays = Math.min(Math.max(Number(ctx.window_days ?? 0) || 0, 0), 3650);
-    const sinceIso = typeof ctx.since === 'string' && ctx.since ? ctx.since : null;
-    const since = sinceIso ?? (windowDays ? new Date(Date.now() - windowDays * 24 * 3600 * 1000).toISOString() : null);
+    // The canonical executive snapshot is the ONLY source of executive figures.
+    // It is produced server-side under the caller's own permissions, so the model
+    // can never be handed a figure the caller is not entitled to see, and can
+    // never be handed a browser-computed number as if it were a system fact.
+    const windowDays = Math.min(Math.max(Number(ctx.window_days ?? 30) || 30, 1), 3650);
     const sectorId = typeof ctx.sector_id === 'string' && ctx.sector_id !== 'all' ? ctx.sector_id : null;
+    const client = authClient ?? supa;
 
+    const { data: snapshot, error: snapErr } = await client.rpc('executive_dashboard_snapshot', {
+      p_window_days: windowDays,
+      p_sector_id: sectorId,
+    });
+    if (snapErr) throw new Error(`executive snapshot unavailable: ${snapErr.message}`);
+
+    facts.executive_snapshot = snapshot;
+    facts.snapshot_fingerprint = (snapshot as any)?.fingerprint ?? null;
     facts.window = {
-      label: (typeof ctx.window_label === 'string' ? ctx.window_label : null) ?? (windowDays ? `${windowDays} days` : null),
-      since,
+      label: `${windowDays} days`,
+      window_days: windowDays,
+      since: (snapshot as any)?.window?.since ?? null,
       sector_filter: sectorId,
     };
-    if (!since) {
+    facts.figure_authority =
+      'Every figure in executive_snapshot is a recorded system fact calculated by the platform. Quote them exactly. Never recompute, round, extrapolate or invent a figure, and never introduce a metric that is not present in executive_snapshot.';
+
+    // Period-on-period comparison, only where a prior snapshot genuinely exists.
+    const prior = (ctx.comparison && typeof ctx.comparison === 'object' ? ctx.comparison : null) as
+      | Record<string, unknown>
+      | null;
+    if (prior) {
+      facts.comparison_snapshot = prior;
       facts.comparison_note =
-        'No comparison window was supplied. State that a period-on-period comparison cannot be calculated rather than inferring movement.';
+        'comparison_snapshot is a previously captured snapshot of the same scope. Describe movement only where both snapshots contain the figure.';
+    } else {
+      facts.comparison_note =
+        'No prior snapshot exists for this scope. State plainly that a period-on-period comparison cannot be calculated. Do not infer movement.';
     }
 
-    // Prefer the aggregates the dashboard itself computed and displayed.
-    if (ctx.dashboard_aggregates && typeof ctx.dashboard_aggregates === 'object') {
-      facts.dashboard_aggregates = ctx.dashboard_aggregates;
+    const unavailable = (snapshot as any)?.unavailable_sources ?? [];
+    if (Array.isArray(unavailable) && unavailable.length) {
+      facts.sources_not_visible_to_caller = unavailable;
+      facts.sources_not_visible_note =
+        'These sources are outside the caller\'s permissions. Do not comment on, count or imply anything about them.';
     }
-    if (ctx.filters && typeof ctx.filters === 'object') facts.applied_filters = ctx.filters;
 
-    const counts: Record<string, unknown> = {};
-    const tables: Array<[string, string, SourceModule]> = [
-      ['complaints', 'complaints', 'complaints'],
-      ['examinations', 'examinations', 'examinations'],
-      ['enforcement_actions', 'enforcement_actions', 'enforcement'],
-      ['prudential_actions', 'supervisory_actions', 'supervisory_actions'],
-    ];
-    for (const [table, key, source] of tables) {
-      if (!can(source)) continue;
-      used.add(source);
-      const total = await supa.from(table).select('id', { count: 'exact', head: true });
-      let recent: { count: number | null } = { count: null };
-      if (since) {
-        recent = await supa.from(table).select('id', { count: 'exact', head: true }).gte('created_at', since);
-      }
-      counts[key] = {
-        total: total.count ?? 0,
-        ...(since ? { in_selected_window: recent.count ?? 0 } : {}),
-      };
-    }
-    facts.portfolio_counts = counts;
-
-    if (can('prudential')) {
-      used.add('prudential');
-      const { data: bands } = await supa
-        .from('entity_risk_scores')
-        .select('band, entity_id, computed_at')
-        .order('computed_at', { ascending: false })
-        .limit(400);
-      const bandCounts: Record<string, number> = {};
-      const seen = new Set<string>();
-      for (const r of (bands ?? []) as any[]) {
-        if (seen.has(r.entity_id)) continue;
-        seen.add(r.entity_id);
-        const b = r.band ?? 'unrated';
-        bandCounts[b] = (bandCounts[b] ?? 0) + 1;
-      }
-      facts.entities_by_risk_band = bandCounts;
-    }
+    evidence.push({ kind: 'executive_snapshot', id: String((snapshot as any)?.fingerprint ?? 'unknown') } as EvidenceRef);
+    for (const s of sources) used.add(s);
     facts.available_sources = [...used];
   }
+
 
   return { facts, used: [...used], evidence };
 }
