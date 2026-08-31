@@ -79,13 +79,7 @@ FROM (VALUES
    '2025-11-12T09:15:00Z'::timestamptz,'fd8a0241-2362-4521-a071-ca42ada6856a')
 ) AS x(id, metric_key, level, value, threshold_value, comparator, risk_level, detected_at, metric_value_id)
 JOIN public.regulatory_metrics m ON m.code = x.metric_key
-ON CONFLICT (id) DO UPDATE
-   SET value = EXCLUDED.value,
-       threshold_value = EXCLUDED.threshold_value,
-       comparator = EXCLUDED.comparator,
-       level = EXCLUDED.level,
-       risk_level = EXCLUDED.risk_level,
-       evidence = EXCLUDED.evidence;
+ON CONFLICT (id) DO NOTHING;   -- detection rows are immutable once written
 
 -- Governed acknowledgement of the NPL warning only.
 -- The LIQUIDITY BREACH is deliberately left UNACKNOWLEDGED so the presenter
