@@ -171,54 +171,48 @@ UPDATE public.entity_appointments
 -- ---------------------------------------------------------------------
 -- Hewanorra Nexus direct shareholders = exactly 100%
 INSERT INTO public.ownership_interests
-  (id, owner_party_id, owned_entity_id, ownership_type_id, economic_interest_percentage,
+  (id, owner_party_id, owned_entity_id, owned_party_id, ownership_type_id, economic_interest_percentage,
    voting_rights_percentage, is_direct, is_controller, control_determination,
    effective_from, approval_status, verified_at)
 VALUES
   ('5c1f0001-0000-4000-8000-000000000001','5c1d0001-0000-4000-8000-000000000001',
-   '5c1a0001-0000-4000-8000-000000000001','dca687d0-4b0b-4432-aa74-33b1a7b3f279',60,60,true,true,'VERIFIED',
+   '5c1a0001-0000-4000-8000-000000000001',NULL,'dca687d0-4b0b-4432-aa74-33b1a7b3f279',60,60,true,true,'VERIFIED',
    '2025-11-03T00:00:00Z','APPROVED','2026-08-05T00:00:00Z'),
   ('5c1f0002-0000-4000-8000-000000000002','5c1c0002-0000-4000-8000-000000000002',
-   '5c1a0001-0000-4000-8000-000000000001','dca687d0-4b0b-4432-aa74-33b1a7b3f279',25,25,true,false,'VERIFIED',
+   '5c1a0001-0000-4000-8000-000000000001',NULL,'dca687d0-4b0b-4432-aa74-33b1a7b3f279',25,25,true,false,'VERIFIED',
    '2025-11-03T00:00:00Z','APPROVED','2026-08-05T00:00:00Z'),
   ('5c1f0003-0000-4000-8000-000000000003','5c1c0001-0000-4000-8000-000000000001',
-   '5c1a0001-0000-4000-8000-000000000001','dca687d0-4b0b-4432-aa74-33b1a7b3f279',15,15,true,false,'VERIFIED',
+   '5c1a0001-0000-4000-8000-000000000001',NULL,'dca687d0-4b0b-4432-aa74-33b1a7b3f279',15,15,true,false,'VERIFIED',
    '2025-11-03T00:00:00Z','APPROVED','2026-08-05T00:00:00Z'),
   -- Upper corporate layer: Nexus Caribbean Holdings Ltd (Barbados) = 100%
   ('5c1f0004-0000-4000-8000-000000000004','5c1c0001-0000-4000-8000-000000000001',
-   NULL,'dca687d0-4b0b-4432-aa74-33b1a7b3f279',65,65,true,true,'VERIFIED',
+   NULL,'5c1d0001-0000-4000-8000-000000000001','dca687d0-4b0b-4432-aa74-33b1a7b3f279',65,65,true,true,'VERIFIED',
    '2024-04-01T00:00:00Z','APPROVED','2026-08-05T00:00:00Z'),
   ('5c1f0005-0000-4000-8000-000000000005','5c1c0002-0000-4000-8000-000000000002',
-   NULL,'dca687d0-4b0b-4432-aa74-33b1a7b3f279',35,35,true,false,'VERIFIED',
+   NULL,'5c1d0001-0000-4000-8000-000000000001','dca687d0-4b0b-4432-aa74-33b1a7b3f279',35,35,true,false,'VERIFIED',
    '2024-04-01T00:00:00Z','APPROVED','2026-08-05T00:00:00Z'),
   -- Castries Remittance current structure (ownership-change case)
   ('5c1f0006-0000-4000-8000-000000000006','5c1d0002-0000-4000-8000-000000000002',
-   '5c1a0007-0000-4000-8000-000000000007','dca687d0-4b0b-4432-aa74-33b1a7b3f279',70,70,true,true,'VERIFIED',
+   '5c1a0007-0000-4000-8000-000000000007',NULL,'dca687d0-4b0b-4432-aa74-33b1a7b3f279',70,70,true,true,'VERIFIED',
    '2022-01-01T00:00:00Z','APPROVED','2026-01-15T00:00:00Z'),
   ('5c1f0007-0000-4000-8000-000000000007','5c1c0005-0000-4000-8000-000000000005',
-   '5c1a0007-0000-4000-8000-000000000007','dca687d0-4b0b-4432-aa74-33b1a7b3f279',30,30,true,false,'VERIFIED',
+   '5c1a0007-0000-4000-8000-000000000007',NULL,'dca687d0-4b0b-4432-aa74-33b1a7b3f279',30,30,true,false,'VERIFIED',
    '2022-01-01T00:00:00Z','APPROVED','2026-01-15T00:00:00Z'),
   -- Castries Remittance PROPOSED structure — pending regulatory review
   ('5c1f0008-0000-4000-8000-000000000008','5c1d0002-0000-4000-8000-000000000002',
-   '5c1a0007-0000-4000-8000-000000000007','dca687d0-4b0b-4432-aa74-33b1a7b3f279',50,50,true,true,'NOT_ASSESSED',
+   '5c1a0007-0000-4000-8000-000000000007',NULL,'dca687d0-4b0b-4432-aa74-33b1a7b3f279',50,50,true,true,'NOT_ASSESSED',
    '2026-10-01T00:00:00Z','PROPOSED',NULL),
   ('5c1f0009-0000-4000-8000-000000000009','5c1d0003-0000-4000-8000-000000000003',
-   '5c1a0007-0000-4000-8000-000000000007','dca687d0-4b0b-4432-aa74-33b1a7b3f279',20,20,true,false,'NOT_ASSESSED',
+   '5c1a0007-0000-4000-8000-000000000007',NULL,'dca687d0-4b0b-4432-aa74-33b1a7b3f279',20,20,true,false,'NOT_ASSESSED',
    '2026-10-01T00:00:00Z','PROPOSED',NULL),
   -- Piton group ownership (holding CU owns the two service companies)
   ('5c1f0010-0000-4000-8000-000000000010','5c1b0002-0000-4000-8000-000000000002',
-   '5c1a0009-0000-4000-8000-000000000009','dca687d0-4b0b-4432-aa74-33b1a7b3f279',100,100,true,true,'VERIFIED',
+   '5c1a0009-0000-4000-8000-000000000009',NULL,'dca687d0-4b0b-4432-aa74-33b1a7b3f279',100,100,true,true,'VERIFIED',
    '2023-01-01T00:00:00Z','APPROVED','2026-02-01T00:00:00Z'),
   ('5c1f0011-0000-4000-8000-000000000011','5c1b0002-0000-4000-8000-000000000002',
-   '5c1a0010-0000-4000-8000-000000000010','dca687d0-4b0b-4432-aa74-33b1a7b3f279',75,75,true,true,'VERIFIED',
+   '5c1a0010-0000-4000-8000-000000000010',NULL,'dca687d0-4b0b-4432-aa74-33b1a7b3f279',75,75,true,true,'VERIFIED',
    '2023-01-01T00:00:00Z','APPROVED','2026-02-01T00:00:00Z')
 ON CONFLICT (id) DO NOTHING;
-
--- The two upper-layer rows own a PARTY (non-licensee holding company).
-UPDATE public.ownership_interests
-   SET owned_party_id = '5c1d0001-0000-4000-8000-000000000001'
- WHERE id IN ('5c1f0004-0000-4000-8000-000000000004','5c1f0005-0000-4000-8000-000000000005')
-   AND owned_party_id IS NULL;
 
 -- ---------------------------------------------------------------------
 -- 6. Registered agent relationship (NOT ownership)
