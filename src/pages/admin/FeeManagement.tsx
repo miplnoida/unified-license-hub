@@ -24,6 +24,9 @@ import { toast } from 'sonner';
 import { CALCULATION_TYPE_LABELS, CalculationType, FEE_RULE_TYPE_LABELS, FeeRuleType } from '@/types/platform';
 import { PlusCircle, Pencil, Trash2, Loader2, Calculator, ShieldOff, Percent, DollarSign, Info } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
+import { useGovernedCurrencies } from '@/hooks/useGovernedCurrencies';
+import { formatMoney } from '@/lib/money';
+
 
 interface FeeConfig {
   id: string;
