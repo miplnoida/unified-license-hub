@@ -120,7 +120,7 @@ export const mainNavSections: NavSection[] = [
     items: [
       { label: 'Pre Licensing Applications', href: '/applications?type=pre', icon: <FileText className="h-5 w-5" />, roles: [...PRE_LICENSEE, ...LICENSEE_ALL, 'applicant'] },
       { label: 'Post Licensing Applications', href: '/applications?type=post', icon: <FileText className="h-5 w-5" />, roles: LICENSEE_ALL, requiresLicenceEntitlement: true },
-      { label: 'All License Requests', href: '/applications/queue', icon: <ClipboardList className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst'], module: 'application_management' },
+      { label: 'Licence Requests Queue', href: '/applications/queue', icon: <ClipboardList className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst'], module: 'application_management' },
       { label: 'Licensee Entities', href: '/admin/licensees', icon: <Briefcase className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'license_management' },
       { label: 'License Action Forms', href: '/admin/license-action-forms', icon: <Shield className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'license_management' },
       { label: 'Licensing Appeals', href: '/admin/license-appeals', icon: <Gavel className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'license_appeals' as PermissionModule },
