@@ -35,16 +35,20 @@ export function RetailPaymentsPanel({ operatorId }: Props) {
   const names = useMemo(() => new Map(operators.map(o => [o.id, o.operator_name])), [operators]);
   const visible = operatorId ? rows.filter(r => r.operator_id === operatorId) : rows;
 
+  // Transaction counts aggregate across currencies; values MUST NOT be summed
+  // across different currencies, so values are grouped per currency.
   const byType = useMemo(() => {
-    const m = new Map<string, { count: number; value: number }>();
+    const m = new Map<string, { count: number; values: Map<string, number> }>();
     for (const r of visible) {
-      const cur = m.get(r.payment_type) ?? { count: 0, value: 0 };
+      const cur = m.get(r.payment_type) ?? { count: 0, values: new Map<string, number>() };
       cur.count += Number(r.transaction_count ?? 0);
-      cur.value += Number(r.transaction_value ?? 0);
+      const ccy = r.currency || 'JMD';
+      cur.values.set(ccy, (cur.values.get(ccy) ?? 0) + Number(r.transaction_value ?? 0));
       m.set(r.payment_type, cur);
     }
     return m;
   }, [visible]);
+
 
   const submit = async () => {
     await save.mutateAsync({
@@ -69,9 +73,15 @@ export function RetailPaymentsPanel({ operatorId }: Props) {
               <p className="text-lg font-semibold font-mono">
                 {(byType.get(t.value)?.count ?? 0).toLocaleString()}
               </p>
-              <p className="text-xs text-muted-foreground font-mono">
-                {(byType.get(t.value)?.value ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              </p>
+              {[...(byType.get(t.value)?.values ?? new Map<string, number>())].map(([ccy, val]) => (
+                <p key={ccy} className="text-xs text-muted-foreground font-mono">
+                  {ccy} {val.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </p>
+              ))}
+              {!byType.get(t.value)?.values.size && (
+                <p className="text-xs text-muted-foreground font-mono">—</p>
+              )}
+
             </CardContent>
           </Card>
         ))}
