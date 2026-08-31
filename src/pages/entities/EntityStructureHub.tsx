@@ -31,6 +31,7 @@ import {
   useEntityChangeSets, useEntityOwnership, useEntityPartyRelationships, useEntityStructureOverview,
   usePublicationPolicies, useRegulatoryRequestMutations, useRegulatoryRequests, useSetPublicationPolicy,
 } from '@/hooks/useWaveB';
+import { OwnershipTreePanel } from '@/components/entity-detail/OwnershipTreePanel';
 
 const pct = (v: unknown) => (v === null || v === undefined ? '—' : `${Number(v).toFixed(2)}%`);
 
