@@ -163,7 +163,7 @@ function TreeBranch({
         {item.repeated && <Badge variant="outline" className="text-xs">shown on another branch</Badge>}
         {item.boundary && (
           <Badge variant="destructive" className="gap-1 text-xs">
-            <AlertTriangle className="h-3 w-3" /> {item.boundary.replaceAll('_', ' ').toLowerCase()}
+            <AlertTriangle className="h-3 w-3" /> {item.boundary.split('_').join(' ').toLowerCase()}
           </Badge>
         )}
         {node && (node.path_count ?? 1) > 1 && (
@@ -286,7 +286,7 @@ export function OwnershipTreePanel({
               {data?.cycle_detected && <span>Circular ownership detected and stopped</span>}
               {data?.truncated && (
                 <span className="text-destructive">
-                  Structure truncated: {(data.truncation_reasons ?? []).join(', ').replaceAll('_', ' ').toLowerCase()}
+                  Structure truncated: {(data.truncation_reasons ?? []).join(', ').split('_').join(' ').toLowerCase()}
                 </span>
               )}
             </div>
