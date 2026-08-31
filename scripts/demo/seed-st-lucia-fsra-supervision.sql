@@ -39,9 +39,8 @@ BEGIN
 END $$;
 
 -- Retire the superseded first-cut demo rows (2025-Q4 based) if present.
-DELETE FROM public.prudential_actions
- WHERE id IN ('5c310001-0000-4000-8000-000000000001',
-              '5c310002-0000-4000-8000-000000000002');
+-- prudential_actions cannot be deleted (their event log is append-only), so the
+-- two demo actions are retargeted in place further below.
 DELETE FROM public.return_threshold_breach_acknowledgements
  WHERE breach_id IN ('5c300001-0000-4000-8000-000000000001',
                      '5c300002-0000-4000-8000-000000000002',
