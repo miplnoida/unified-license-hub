@@ -204,8 +204,15 @@ export function useAiUseCases() {
 }
 
 export interface ModelRow {
-  id: string; provider: string; model_key: string; technical_identifier: string;
-  model_version: string | null; display_name: string; regulatory_purpose: string | null;
+  id: string;
+  /** Vendor-neutral governance identity — always present. */
+  governance_display_name: string;
+  governance_version_label: string | null;
+  /** True only for authorised technical/audit users; the technical fields below are null otherwise. */
+  technical_provenance_available: boolean;
+  registered_display_name: string | null;
+  provider: string | null; model_key: string | null; technical_identifier: string | null;
+  model_version: string | null; regulatory_purpose: string | null;
   known_limitations: string | null; data_handling_class: string | null;
   external_data_capable: boolean; lifecycle_state: string;
   approved_at: string | null; effective_from: string | null; retired_at: string | null;
@@ -382,6 +389,7 @@ export const useAiModelSave = () => useGovernedMutation<{
   id?: string | null; provider: string; technicalIdentifier: string; modelKey: string;
   displayName: string; regulatoryPurpose: string; modelVersion?: string | null;
   knownLimitations?: string | null; dataHandlingClass?: string; externalDataCapable?: boolean;
+  governanceDisplayName?: string | null; governanceVersionLabel?: string | null;
 }>(
   'ai_governance_model_save',
   (a) => ({
@@ -390,6 +398,8 @@ export const useAiModelSave = () => useGovernedMutation<{
     _model_version: a.modelVersion ?? null, _known_limitations: a.knownLimitations ?? null,
     _data_handling_class: a.dataHandlingClass ?? 'INTERNAL_REGULATORY_FACTS',
     _external_data_capable: a.externalDataCapable ?? false,
+    _governance_display_name: a.governanceDisplayName ?? null,
+    _governance_version_label: a.governanceVersionLabel ?? null,
   }),
   'Model record saved as a draft.',
   ['ai-gov-models', 'ai-gov-events'],
@@ -480,7 +490,10 @@ export const useAssuranceConclude = () => useGovernedMutation<{
 export interface InsightDetail {
   id: string; insight_id: string; use_case_code: string; entity_id: string | null;
   window_start: string | null; window_end: string | null; snapshot_fingerprint: string | null;
-  source_references: unknown; provider: string | null; model: string | null;
+  source_references: unknown;
+  governance_service_label: string | null; governance_model_label: string | null;
+  governance_version_label: string | null; technical_provenance_available: boolean;
+  provider: string | null; model: string | null;
   model_version: string | null; prompt_template_code: string | null; prompt_template_version: string | null;
   generated_at: string; generated_by: string | null; ai_output: Record<string, unknown> | null;
   confidence: number | null; uncertainty: string | null; limitations: string[] | null;
@@ -522,7 +535,10 @@ export function useConductAiReviewEvents(insightId?: string | null) {
 export interface AttemptDetail {
   id: string; use_case_code: string | null; owning_module: string | null; entity_id: string | null;
   requested_by: string | null; requested_role: string | null; outcome: string; reason_code: string | null;
-  detail: string | null; provider: string | null; model: string | null; model_version: string | null;
+  detail: string | null;
+  governance_service_label: string | null; governance_model_label: string | null;
+  governance_version_label: string | null; technical_provenance_available: boolean;
+  provider: string | null; model: string | null; model_version: string | null;
   instruction_template_code: string | null; instruction_version: string | null;
   snapshot_fingerprint: string | null; window_start: string | null; window_end: string | null;
   latency_ms: number | null; conduct_ai_insight_id: string | null;
