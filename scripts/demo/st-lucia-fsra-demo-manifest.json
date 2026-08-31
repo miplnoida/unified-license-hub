@@ -10,16 +10,56 @@
   "cleanup_script": "scripts/demo/cleanup-st-lucia-fsra-demo.sql",
   "verification": "npm run verify:st-lucia-demo",
   "personas": [
-    { "role": "Presenter / Super Admin", "login": "super_admin@mishainfotech.com", "use": "whole journey, admin governance, audit log" },
-    { "role": "Prudential Supervisor", "login": "prudential_supervisor@mishainfotech.com", "use": "breach acknowledgement, prudential actions" },
-    { "role": "Prudential Analyst", "login": "prudential_analyst@mishainfotech.com", "use": "read-only analysis; proves config authority is withheld" },
-    { "role": "Returns Officer", "login": "returns_officer@mishainfotech.com", "use": "returns review; proves no prudential config authority" },
-    { "role": "Licensing Officer", "login": "licensing_officer@mishainfotech.com", "use": "application review queue" },
-    { "role": "Fit & Proper Officer", "login": "fit_proper_officer@mishainfotech.com", "use": "F&P assessment and determination" },
-    { "role": "Complaints Officer", "login": "complaints_officer@mishainfotech.com", "use": "complaint triage" },
-    { "role": "Inspector", "login": "inspector@mishainfotech.com", "use": "examination workpapers and findings" },
-    { "role": "Executive", "login": "executive_management@mishainfotech.com", "use": "executive dashboard view" },
-    { "role": "Licensee user", "login": "licensee_primary_user@mishainfotech.com", "use": "entity-side portal view / isolation proof" }
+    {
+      "role": "Presenter / Super Admin",
+      "login": "super_admin@mishainfotech.com",
+      "use": "whole journey, admin governance, audit log"
+    },
+    {
+      "role": "Prudential Supervisor",
+      "login": "prudential_supervisor@mishainfotech.com",
+      "use": "breach acknowledgement, prudential actions"
+    },
+    {
+      "role": "Prudential Analyst",
+      "login": "prudential_analyst@mishainfotech.com",
+      "use": "read-only analysis; proves config authority is withheld"
+    },
+    {
+      "role": "Returns Officer",
+      "login": "returns_officer@mishainfotech.com",
+      "use": "returns review; proves no prudential config authority"
+    },
+    {
+      "role": "Licensing Officer",
+      "login": "licensing_officer@mishainfotech.com",
+      "use": "application review queue"
+    },
+    {
+      "role": "Fit & Proper Officer",
+      "login": "fit_proper_officer@mishainfotech.com",
+      "use": "F&P assessment and determination"
+    },
+    {
+      "role": "Complaints Officer",
+      "login": "complaints_officer@mishainfotech.com",
+      "use": "complaint triage"
+    },
+    {
+      "role": "Inspector",
+      "login": "inspector@mishainfotech.com",
+      "use": "examination workpapers and findings"
+    },
+    {
+      "role": "Executive",
+      "login": "executive_management@mishainfotech.com",
+      "use": "executive dashboard view"
+    },
+    {
+      "role": "Licensee user",
+      "login": "licensee_primary_user@mishainfotech.com",
+      "use": "entity-side portal view / isolation proof"
+    }
   ],
   "hero_entity": {
     "name": "Coral Harbour Bank Limited",
@@ -28,68 +68,80 @@
     "why": "only entity with a full accepted returns history (8 accepted filings, 1,640 canonical metric values)"
   },
   "hero_filing": {
-    "filing_reference": "CV2-E02-2025-Q4",
-    "return_filing_id": "efc5bc25-ba44-45a9-a3ed-94c06a72b1a8",
-    "return_filing_version_id": "93712161-e11b-4dd4-a35a-1c3ebee442da",
-    "reporting_period_id": "8731481c-d1eb-4541-aa98-c49cecfe60f5",
+    "filing_reference": "CV2-E02-2025-Q3",
+    "return_filing_id": "e124d2dc-f08c-4b17-a92f-0db411a8b985",
+    "return_filing_version_id": "5568551b-5574-48b8-aa9a-5f1ac283751f",
+    "reporting_period_id": "76e59e62-af5f-47cc-a4c0-7d6c33510011",
+    "period_label": "2025-Q3",
     "status": "ACCEPTED",
+    "why": "newest ACCEPTED version whose calculated ratios are all AVAILABLE, so every figure on screen is real",
     "expected_values": {
-      "TOTAL_CAPITAL": 146400000,
+      "TOTAL_CAPITAL": 150000000,
       "RWA": 1200000000,
-      "CAPITAL_ADEQUACY_RATIO": 12.2,
-      "LIQUID_ASSETS": 78000000,
+      "CAPITAL_ADEQUACY_RATIO": 12.5,
+      "LIQUID_ASSETS": 87000000,
       "SHORT_TERM_LIABILITIES": 600000000,
-      "LIQUIDITY_RATIO": 13.0,
+      "LIQUIDITY_RATIO": 14.5,
       "GROSS_LOANS": 960000000,
-      "NON_PERFORMING_LOANS": 57600000,
-      "NPL_RATIO": 6.0,
-      "OPERATING_EXPENSES": 45600000,
+      "NON_PERFORMING_LOANS": 55680000,
+      "NPL_RATIO": 5.8,
+      "OPERATING_EXPENSES": 44400000,
       "NET_INTEREST_INCOME": 60000000,
-      "COST_INCOME_RATIO": 76.0,
+      "COST_INCOME_RATIO": 74.0,
       "TOTAL_ASSETS": 1500000000,
-      "CUSTOMER_DEPOSITS": 1050000000
+      "CUSTOMER_DEPOSITS": 1050000000,
+      "TOTAL_EQUITY": 180000000,
+      "TOTAL_LIABILITIES": 1320000000,
+      "NET_PROFIT": 15000000,
+      "BRANCH_COUNT": 7,
+      "STAFF_COUNT": 144
     }
   },
   "supervision_thread": {
+    "period": "2025-Q3",
     "breach_liquidity": {
-      "id": "5c300001-0000-4000-8000-000000000001",
+      "id": "5c300011-0000-4000-8000-000000000011",
       "metric": "LIQUIDITY_RATIO",
-      "observed": 13.0,
+      "observed": 14.5,
       "threshold": 15.0,
       "level": "breach",
-      "state": "ACKNOWLEDGED (seeded via governed RPC)"
-    },
-    "breach_cost_income": {
-      "id": "5c300002-0000-4000-8000-000000000002",
-      "metric": "COST_INCOME_RATIO",
-      "observed": 76.0,
-      "threshold": 75.0,
-      "level": "breach",
-      "state": "UNACKNOWLEDGED — reserved for the live on-screen acknowledgement"
+      "state": "UNACKNOWLEDGED \u2014 reserved for the live on-screen acknowledgement"
     },
     "warning_npl": {
-      "id": "5c300003-0000-4000-8000-000000000003",
+      "id": "5c300012-0000-4000-8000-000000000012",
       "metric": "NPL_RATIO",
-      "observed": 6.0,
+      "observed": 5.8,
       "threshold": 5.0,
-      "level": "warn"
+      "level": "warn",
+      "state": "ACKNOWLEDGED via governed RPC prudential_breach_acknowledge"
+    },
+    "warning_cost_income": {
+      "id": "5c300013-0000-4000-8000-000000000013",
+      "metric": "COST_INCOME_RATIO",
+      "observed": 74.0,
+      "threshold": 65.0,
+      "level": "warn",
+      "state": "UNACKNOWLEDGED"
     },
     "action_open": {
-      "id": "5c310001-0000-4000-8000-000000000001",
+      "id": "5c310011-0000-4000-8000-000000000011",
       "reference": "PA-2026-0001",
+      "title": "Liquidity remediation plan required (2025-Q3 liquidity ratio 14.5%)",
       "status": "in_progress",
       "progress_percent": 40,
       "review_status": "awaiting_review",
       "due_date": "2026-04-30"
     },
     "action_closed": {
-      "id": "5c310002-0000-4000-8000-000000000002",
+      "id": "5c310012-0000-4000-8000-000000000012",
       "reference": "PA-2026-0002",
+      "title": "Explanation of rising non-performing loans (2025-Q3 NPL ratio 5.8%)",
       "status": "completed",
       "progress_percent": 100,
       "review_status": "accepted",
       "closed_at": "2026-03-20"
-    }
+    },
+    "superseded_records": "The first-cut 2025-Q4 breach detections and their two actions cannot be deleted (append-only regulatory evidence). The actions are retitled '[Superseded record retained on file]'. On the Breaches tab filter to 2025 / Q3."
   },
   "ownership_group": {
     "financial_group_id": "5c210001-0000-4000-8000-000000000001",
@@ -103,30 +155,100 @@
     "note": "Effective percentages are computed by entity_ownership_network traversal; no stored effective figure is seeded."
   },
   "demo_entities": [
-    { "id": "5c1a0001-0000-4000-8000-000000000001", "name": "Hewanorra Nexus Digital Finance Ltd", "sector": "Virtual asset service provider" },
-    { "id": "5c1a0002-0000-4000-8000-000000000002", "name": "Piton Community Credit Union Ltd", "sector": "Credit union" },
-    { "id": "5c1a0003-0000-4000-8000-000000000003", "name": "Coral Corporate & Fiduciary Services Ltd", "sector": "Registered agent / trustee" },
-    { "id": "5c1a0004-0000-4000-8000-000000000004", "name": "Soufriere Shield Insurance Ltd", "sector": "Domestic general insurance" },
-    { "id": "5c1a0005-0000-4000-8000-000000000005", "name": "Marigot International Bank Ltd", "sector": "International bank (class B)" },
-    { "id": "5c1a0006-0000-4000-8000-000000000006", "name": "Rodney Bay Fund Administrators Ltd", "sector": "Mutual fund administrator" },
-    { "id": "5c1a0007-0000-4000-8000-000000000007", "name": "Castries Remittance Services Ltd", "sector": "Money services business (class B)" },
-    { "id": "5c1a0008-0000-4000-8000-000000000008", "name": "Lucia Pension Services Ltd", "sector": "Pension fund plan" },
-    { "id": "5c1a0009-0000-4000-8000-000000000009", "name": "Piton Finance Services Ltd", "sector": "Money services business (class A)" },
-    { "id": "5c1a0010-0000-4000-8000-000000000010", "name": "Piton Property Holdings Ltd", "sector": "Group member (non-financial)" }
+    {
+      "id": "5c1a0001-0000-4000-8000-000000000001",
+      "name": "Hewanorra Nexus Digital Finance Ltd",
+      "sector": "Virtual asset service provider"
+    },
+    {
+      "id": "5c1a0002-0000-4000-8000-000000000002",
+      "name": "Piton Community Credit Union Ltd",
+      "sector": "Credit union"
+    },
+    {
+      "id": "5c1a0003-0000-4000-8000-000000000003",
+      "name": "Coral Corporate & Fiduciary Services Ltd",
+      "sector": "Registered agent / trustee"
+    },
+    {
+      "id": "5c1a0004-0000-4000-8000-000000000004",
+      "name": "Soufriere Shield Insurance Ltd",
+      "sector": "Domestic general insurance"
+    },
+    {
+      "id": "5c1a0005-0000-4000-8000-000000000005",
+      "name": "Marigot International Bank Ltd",
+      "sector": "International bank (class B)"
+    },
+    {
+      "id": "5c1a0006-0000-4000-8000-000000000006",
+      "name": "Rodney Bay Fund Administrators Ltd",
+      "sector": "Mutual fund administrator"
+    },
+    {
+      "id": "5c1a0007-0000-4000-8000-000000000007",
+      "name": "Castries Remittance Services Ltd",
+      "sector": "Money services business (class B)"
+    },
+    {
+      "id": "5c1a0008-0000-4000-8000-000000000008",
+      "name": "Lucia Pension Services Ltd",
+      "sector": "Pension fund plan"
+    },
+    {
+      "id": "5c1a0009-0000-4000-8000-000000000009",
+      "name": "Piton Finance Services Ltd",
+      "sector": "Money services business (class A)"
+    },
+    {
+      "id": "5c1a0010-0000-4000-8000-000000000010",
+      "name": "Piton Property Holdings Ltd",
+      "sector": "Group member (non-financial)"
+    }
   ],
   "supporting_records": {
-    "complaint_live_triage": { "id": "a3a79bc6-b27d-45db-aa26-5d39ee5c4ed5", "reference": "CMP-2026-000103", "subject": "Unauthorised debits from my savings account", "status": "submitted" },
-    "complaint_closed_outcome": { "id": "36725bd3-0593-41e0-9def-229e081125f5", "reference": "CMP-2026-000099", "subject": "Unexplained account fees", "status": "closed" },
-    "examination_in_remediation": { "id": "2c718694-6bb7-4ec3-9fd9-2ba620718d10", "reference": "EXM-2026-00009", "stage": "remediation" },
-    "examination_closed": { "id": "7d2408c7-0a97-4f03-9749-e8a265ca1d44", "reference": "EXM-2026-00012", "stage": "closed" },
-    "application_approved": { "id": "aa6cdba1-c2ca-4159-8535-62b07c104270", "reference": "VRF-WF-044b385b", "status": "approved" },
-    "application_submitted": { "id": "b4069cc6-3d0a-48b4-ba47-62d6d1a77bb8", "reference": "VRF-RS-a3845614", "status": "submitted" },
-    "fp_assessment_determined": { "id": "4c16364c-2ccf-4336-ab28-338c2cb3dbbe", "status": "determined" }
+    "complaint_live_triage": {
+      "id": "a3a79bc6-b27d-45db-aa26-5d39ee5c4ed5",
+      "reference": "CMP-2026-000103",
+      "subject": "Unauthorised debits from my savings account",
+      "status": "submitted"
+    },
+    "complaint_closed_outcome": {
+      "id": "36725bd3-0593-41e0-9def-229e081125f5",
+      "reference": "CMP-2026-000099",
+      "subject": "Unexplained account fees",
+      "status": "closed"
+    },
+    "examination_in_remediation": {
+      "id": "2c718694-6bb7-4ec3-9fd9-2ba620718d10",
+      "reference": "EXM-2026-00009",
+      "stage": "remediation"
+    },
+    "examination_closed": {
+      "id": "7d2408c7-0a97-4f03-9749-e8a265ca1d44",
+      "reference": "EXM-2026-00012",
+      "stage": "closed"
+    },
+    "application_approved": {
+      "id": "aa6cdba1-c2ca-4159-8535-62b07c104270",
+      "reference": "VRF-WF-044b385b",
+      "status": "approved"
+    },
+    "application_submitted": {
+      "id": "b4069cc6-3d0a-48b4-ba47-62d6d1a77bb8",
+      "reference": "VRF-RS-a3845614",
+      "status": "submitted"
+    },
+    "fp_assessment_determined": {
+      "id": "4c16364c-2ccf-4336-ab28-338c2cb3dbbe",
+      "status": "determined"
+    }
   },
   "known_limitations": [
-    "Form-field-to-metric mapping is not configured for the International Bank return templates, so a brand-new filing cannot be pushed through automated metric extraction on stage. Demonstrate returns using the already ACCEPTED filing CV2-E02-2025-Q4.",
+    "Form-field-to-metric mapping is not configured for the International Bank return templates, so a brand-new filing cannot be pushed through automated metric extraction on stage. Demonstrate returns using the already ACCEPTED filing CV2-E02-2025-Q3.",
     "No UBO policy is configured, so entity_ubo_resolve returns CONFIGURATION_REQUIRED. Demonstrate ownership using the ownership network view, not the UBO panel.",
     "Legacy inspection tables are empty; supervision on-site work is demonstrated through the examinations module.",
-    "There is no standalone regulatory-universe or risk-explainability route; both are shown inside the executive dashboard and prudential analysis screens."
+    "There is no standalone regulatory-universe or risk-explainability route; both are shown inside the executive dashboard and prudential analysis screens.",
+    "The aggregate entity risk score is recomputed by a worker-authenticated engine (risk-score-recompute) that is not invoked from the browser, so the stored score may pre-date the seeded Q3 breaches. Present risk using the breaches, actions and peer comparison evidence and disclose this openly if asked."
   ]
 }
