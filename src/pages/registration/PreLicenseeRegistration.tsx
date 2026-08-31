@@ -537,6 +537,8 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
               fieldKey: effectiveName,
               value: val,
               ownEmail: isUpdateMode ? (initialDynamicDataRef.current?.[effectiveName] as string | undefined) ?? null : null,
+              // The wizard's verification stage handles the OTP for this address.
+              skipVerification: requireOtp,
             });
             if (emailIssue) errs[effectiveName] = emailIssue;
           }
@@ -583,7 +585,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     setDynamicErrors(errs);
     lastDynamicErrorsRef.current = { errs, step: stepData };
     return Object.keys(errs).length === 0;
-  }, [dynamicFormData, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName, getPrimaryEmailBlockers, getPrimaryEmailFieldsForStep, pendingPrimaryEmailChecks, dynamicErrors, isUpdateMode]);
+  }, [dynamicFormData, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName, getPrimaryEmailBlockers, getPrimaryEmailFieldsForStep, pendingPrimaryEmailChecks, dynamicErrors, isUpdateMode, requireOtp]);
 
   // Build declaration keys for validation
   const effectiveDeclarations = useMemo(() => {
@@ -1203,11 +1205,15 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
               errors={dynamicErrorsWithUniqueness}
               onChange={handleDynamicFieldChange}
               onBlur={handleDynamicFieldBlur}
+              /* The wizard has its own email verification stage — suppress the
+               * inline field-level OTP so it is never requested twice. */
+              suppressEmailVerification={requireOtp}
               userId={session?.user?.id ?? null}
               entityType="registration"
               entityId={updateContext?.registration?.id ?? null}
               formId={config?.id ?? null}
             />
+
           );
         }
         return <p className="text-muted-foreground">No form section configured for this step.</p>;
