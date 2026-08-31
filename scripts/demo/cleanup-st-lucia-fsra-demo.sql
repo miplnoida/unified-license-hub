@@ -16,9 +16,13 @@ BEGIN
 END $$;
 
 -- Supervision thread (stage 3)
-DELETE FROM public.prudential_actions WHERE id::text LIKE '5c31%';
+-- return_threshold_breaches, its acknowledgements and prudential_action_events are
+-- append-only regulatory evidence. Breach detections and their actions are therefore
+-- retained; only their demo linkage is neutralised so no demo narrative survives.
 DELETE FROM public.return_threshold_breach_acknowledgements WHERE breach_id::text LIKE '5c30%';
-DELETE FROM public.return_threshold_breaches WHERE id::text LIKE '5c30%';
+UPDATE public.prudential_actions
+   SET status = 'cancelled', title = '[Retired demonstration record] ' || title
+ WHERE id::text LIKE '5c31%' AND status <> 'cancelled';
 
 -- Group, ownership, relationships, addresses, entities (stage 1)
 DELETE FROM public.financial_group_members WHERE group_id::text LIKE '5c21%';
