@@ -97,6 +97,17 @@ export default function AiGovernanceOverview() {
           </Alert>
         )}
 
+        {loadError && (
+          <Alert variant="destructive">
+            <ShieldAlert className="h-4 w-4" />
+            <AlertTitle>The governance position could not be loaded</AlertTitle>
+            <AlertDescription>
+              {governanceMessage(loadError)} No regulatory record has been changed. If this persists, your account may
+              not hold AI governance viewing rights.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {isLoading ? (
           <div className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Preparing governance position…
