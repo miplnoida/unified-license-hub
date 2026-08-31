@@ -268,7 +268,17 @@ export default function EntityStructureHub() {
                   {appointments.length === 0 && <Empty colSpan={6} text="No appointments recorded." />}
                   {appointments.map((a) => (
                     <TableRow key={a.id}>
-                      <TableCell className="font-medium">{a.person_name || a.person_party_id?.slice(0, 8)}</TableCell>
+                      <TableCell className="font-medium">
+                        {a.person_party_id ? (
+                          <Link
+                            to={`/persons/${a.person_party_id}`}
+                            className="underline-offset-2 hover:underline"
+                            title="Open person 360"
+                          >
+                            {a.person_name || a.person_party_id.slice(0, 8)}
+                          </Link>
+                        ) : (a.person_name || '—')}
+                      </TableCell>
                       <TableCell className="text-sm">{a.role_label || '—'}</TableCell>
                       <TableCell className="text-xs">{a.appointment_date || '—'}</TableCell>
                       <TableCell className="text-xs">{a.is_executive ? 'Yes' : 'No'}</TableCell>
