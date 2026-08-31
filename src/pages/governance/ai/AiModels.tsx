@@ -22,6 +22,7 @@ import {
 import { Loader2, Lock, Plus } from 'lucide-react';
 import { useAiModelSave, useAiModels, useAiUseCases, type ModelRow } from '@/hooks/useAiGovernance';
 import { LifecycleActions } from '@/components/governance/ai/LifecycleActions';
+import { TechnicalProvenance } from '@/components/governance/ai/TechnicalProvenance';
 import { GovernanceHistory } from '@/components/governance/ai/GovernanceHistory';
 import { LIFECYCLE_LABEL, LIFECYCLE_VARIANT, label } from '@/lib/aiGovernanceLabels';
 import { formatDateTime } from '@/lib/datetime';
@@ -33,11 +34,13 @@ const RELEASED = ['ACTIVE', 'SUSPENDED', 'RETIRED'];
 interface FormState {
   id: string | null; provider: string; technicalIdentifier: string; modelKey: string;
   displayName: string; modelVersion: string; regulatoryPurpose: string; knownLimitations: string;
+  governanceDisplayName: string; governanceVersionLabel: string;
 }
 
 const EMPTY: FormState = {
-  id: null, provider: 'lovable_ai_gateway', technicalIdentifier: '', modelKey: '',
+  id: null, provider: '', technicalIdentifier: '', modelKey: '',
   displayName: '', modelVersion: '', regulatoryPurpose: '', knownLimitations: '',
+  governanceDisplayName: '', governanceVersionLabel: '',
 };
 
 export default function AiModels() {
@@ -50,9 +53,13 @@ export default function AiModels() {
   const [openHistory, setOpenHistory] = useState<string | null>(null);
 
   const newVersionFrom = (m: ModelRow) => setForm({
-    id: null, provider: m.provider, technicalIdentifier: m.technical_identifier, modelKey: m.model_key,
-    displayName: m.display_name, modelVersion: '', regulatoryPurpose: m.regulatory_purpose ?? '',
+    id: null, provider: m.provider ?? '', technicalIdentifier: m.technical_identifier ?? '',
+    modelKey: m.model_key ?? '',
+    displayName: m.registered_display_name ?? m.governance_display_name,
+    modelVersion: '', regulatoryPurpose: m.regulatory_purpose ?? '',
     knownLimitations: m.known_limitations ?? '',
+    governanceDisplayName: m.governance_display_name ?? '',
+    governanceVersionLabel: '',
   });
 
   const approvedFor = (id: string) =>
@@ -60,6 +67,7 @@ export default function AiModels() {
 
   const canSubmit = !!form
     && form.provider.trim() && form.technicalIdentifier.trim() && form.displayName.trim()
+    && form.governanceDisplayName.trim()
     && form.regulatoryPurpose.trim().length >= 10;
 
   const submit = async () => {
@@ -73,6 +81,8 @@ export default function AiModels() {
       modelVersion: form.modelVersion.trim() || null,
       regulatoryPurpose: form.regulatoryPurpose.trim(),
       knownLimitations: form.knownLimitations.trim() || null,
+      governanceDisplayName: form.governanceDisplayName.trim() || null,
+      governanceVersionLabel: form.governanceVersionLabel.trim() || null,
     });
     setForm(null);
   };
@@ -111,7 +121,7 @@ export default function AiModels() {
             <Card key={m.id}>
               <CardHeader className="pb-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <CardTitle className="text-base">{m.display_name}</CardTitle>
+                  <CardTitle className="text-base">{m.governance_display_name}</CardTitle>
                   <Badge variant={LIFECYCLE_VARIANT[m.lifecycle_state] ?? 'outline'}>
                     {label(LIFECYCLE_LABEL, m.lifecycle_state)}
                   </Badge>
@@ -120,9 +130,8 @@ export default function AiModels() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <F l="Service" v={m.provider} />
-                  <F l="Technical identifier" v={m.technical_identifier} mono />
-                  <F l="Version" v={m.model_version ?? m.technical_identifier} mono />
+                  <F l="Governance identity" v={m.governance_display_name} />
+                  <F l="Governance version" v={m.governance_version_label ?? 'Not recorded'} mono />
                   <F l="Data handling" v={m.data_handling_class ?? 'Not recorded'} />
                   <F l="External data capability" v={m.external_data_capable ? 'Capable — not permitted for supervisory advice' : 'None'} />
                   <F l="Registered on" v={formatDateTime(m.created_at)} />
@@ -155,6 +164,16 @@ export default function AiModels() {
                   </div>
                 </div>
 
+                <TechnicalProvenance
+                  available={m.technical_provenance_available}
+                  fields={[
+                    { label: 'Actual AI service / gateway', value: m.provider },
+                    { label: 'Technical model identifier', value: m.technical_identifier, mono: true },
+                    { label: 'Provider model version', value: m.model_version, mono: true },
+                    { label: 'Registered technical name', value: m.registered_display_name },
+                  ]}
+                />
+
                 <Separator />
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -164,17 +183,21 @@ export default function AiModels() {
                     currentState={m.lifecycle_state}
                     authoredByCurrentUser={authored}
                   />
-                  {canAuthor && (
+                  {canAuthor && m.technical_provenance_available && (
                     <Button data-rbac="ai_management.create" size="sm" variant="outline" onClick={() => newVersionFrom(m)}>Create new version</Button>
                   )}
-                  {canAuthor && !released && (
+                  {canAuthor && !released && m.technical_provenance_available && (
                     <Button data-rbac="ai_management.edit"
                       size="sm"
                       variant="ghost"
                       onClick={() => setForm({
-                        id: m.id, provider: m.provider, technicalIdentifier: m.technical_identifier,
-                        modelKey: m.model_key, displayName: m.display_name, modelVersion: m.model_version ?? '',
+                        id: m.id, provider: m.provider ?? '', technicalIdentifier: m.technical_identifier ?? '',
+                        modelKey: m.model_key ?? '',
+                        displayName: m.registered_display_name ?? m.governance_display_name,
+                        modelVersion: m.model_version ?? '',
                         regulatoryPurpose: m.regulatory_purpose ?? '', knownLimitations: m.known_limitations ?? '',
+                        governanceDisplayName: m.governance_display_name ?? '',
+                        governanceVersionLabel: m.governance_version_label ?? '',
                       })}
                     >
                       Edit draft
@@ -185,7 +208,7 @@ export default function AiModels() {
                   </Button>
                 </div>
 
-                {openHistory === m.id && <GovernanceHistory objectType="MODEL" objectCode={m.display_name} />}
+                {openHistory === m.id && <GovernanceHistory objectType="MODEL" objectId={m.id} />}
               </CardContent>
             </Card>
           );
@@ -210,20 +233,30 @@ export default function AiModels() {
             <div className="space-y-3">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor="m-provider">AI service</Label>
+                  <Label htmlFor="m-gov-name">Governance identity shown to supervisors <span className="text-destructive">*</span></Label>
+                  <Input id="m-gov-name" value={form.governanceDisplayName}
+                    onChange={(e) => setForm({ ...form, governanceDisplayName: e.target.value })} />
+                </div>
+                <div>
+                  <Label htmlFor="m-gov-version">Governance version label</Label>
+                  <Input id="m-gov-version" value={form.governanceVersionLabel}
+                    onChange={(e) => setForm({ ...form, governanceVersionLabel: e.target.value })} />
+                </div>
+                <div>
+                  <Label htmlFor="m-provider">Actual AI service / gateway (restricted)</Label>
                   <Input id="m-provider" value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })} />
                 </div>
                 <div>
-                  <Label htmlFor="m-ident">Technical identifier</Label>
+                  <Label htmlFor="m-ident">Technical model identifier (restricted)</Label>
                   <Input id="m-ident" value={form.technicalIdentifier}
                     onChange={(e) => setForm({ ...form, technicalIdentifier: e.target.value })} />
                 </div>
                 <div>
-                  <Label htmlFor="m-name">Name shown to supervisors</Label>
+                  <Label htmlFor="m-name">Registered technical name (restricted)</Label>
                   <Input id="m-name" value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} />
                 </div>
                 <div>
-                  <Label htmlFor="m-version">Version</Label>
+                  <Label htmlFor="m-version">Provider model version (restricted)</Label>
                   <Input id="m-version" value={form.modelVersion} onChange={(e) => setForm({ ...form, modelVersion: e.target.value })} />
                 </div>
               </div>
@@ -237,6 +270,11 @@ export default function AiModels() {
                 <Textarea id="m-limits" rows={3} value={form.knownLimitations}
                   onChange={(e) => setForm({ ...form, knownLimitations: e.target.value })} />
               </div>
+              <p className="text-xs text-muted-foreground">
+                Fields marked restricted record the true technical provenance. They are retained in full and shown only
+                to authorised technical administrators and auditors; supervisory and customer-facing screens show the
+                governance identity.
+              </p>
               <p className="text-xs text-muted-foreground">
                 Data handling is fixed to internal regulatory facts and external data access is not permitted.
               </p>
