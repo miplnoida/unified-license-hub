@@ -38,14 +38,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    // SMTP configured?
+    // Effective email delivery configuration (Resend primary, SMTP fallback).
     const { data: settingsRow } = await admin
       .from("site_settings")
       .select("value")
       .eq("key", "email_sms_settings")
       .maybeSingle();
     const smtp = (settingsRow as any)?.value?.smtp || {};
+    const resendCfg = (settingsRow as any)?.value?.resend || {};
+    const generalCfg = (settingsRow as any)?.value?.email || {};
     const smtpConfigured = !!(smtp.enabled && smtp.host && smtp.port && smtp.username && smtp.password && smtp.fromEmail);
+    let resendKeyPresent = !!Deno.env.get("RESEND_API_KEY");
+    if (!resendKeyPresent) {
+      const { data: secret } = await admin
+        .from("email_provider_secrets")
+        .select("key")
+        .eq("key", "resend_api_key")
+        .maybeSingle();
+      resendKeyPresent = !!secret;
+    }
+    const resendConfigured = !!(resendCfg.enabled && resendKeyPresent);
+
 
     const adminEmails = (Deno.env.get("ADMIN_NOTIFICATION_EMAILS") || "").split(",").map(s => s.trim()).filter(Boolean);
     const appBaseUrl = Deno.env.get("APP_BASE_URL") || "";
