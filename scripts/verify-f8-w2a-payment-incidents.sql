@@ -284,12 +284,9 @@ BEGIN
                     AND (metadata->>'delay_minutes')::numeric = 540) THEN
     RAISE EXCEPTION 'FAIL 12: no canonical SLA breach oversight event';
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.notification_event_queue
-                  WHERE event_key = 'prudential.payment_incident_late_notification'
-                    AND entity_type = 'payment_incident' AND entity_id = i.id) THEN
-    RAISE EXCEPTION 'FAIL 12: existing late-notification behaviour did not fire';
-  END IF;
-  RAISE NOTICE 'PASS 12: late notification breached the configured SLA, raised a breach event and enqueued the existing notification';
+  CREATE TEMP TABLE w2a_late_incident (id uuid);
+  INSERT INTO w2a_late_incident VALUES (i.id);
+  RAISE NOTICE 'PASS 12: late notification breached the configured SLA and raised a canonical breach event';
 END $$;
 
 -- 13. canonical read surface visibility + cross-entity isolation
@@ -403,6 +400,20 @@ BEGIN
 END $$;
 
 RESET ROLE;
+
+-- 18. existing late-notification behaviour fired (queue inspected without RLS scoping)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.notification_event_queue q
+     JOIN w2a_late_incident t ON t.id = q.entity_id
+     WHERE q.event_key = 'prudential.payment_incident_late_notification'
+       AND q.entity_type = 'payment_incident') THEN
+    RAISE EXCEPTION 'FAIL 18: existing late-notification behaviour did not fire';
+  END IF;
+  RAISE NOTICE 'PASS 18: existing late-notification event enqueued for the SLA-breaching incident';
+END $$;
+
 ROLLBACK;
 
 DO $$ BEGIN
