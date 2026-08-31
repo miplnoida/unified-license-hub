@@ -364,7 +364,10 @@ BEGIN
   RAISE NOTICE 'PASS 14: invalid regulatory score and out-of-scope principle rejected';
 END $$;
 
--- 15. pfmi_save_principle still satisfies the W1E2A canonical dual-surface audit contract
+-- 15. pfmi_save_principle still satisfies the W1E2A canonical dual-surface audit
+--     contract. The audit surfaces are inspected outside the persona session
+--     because compliance_audit_logs is deliberately not readable by supervisors.
+RESET ROLE;
 DO $$
 DECLARE pid uuid := current_setting('w2b.principle_id')::uuid; a public.audit_logs; n int;
 BEGIN
@@ -380,10 +383,13 @@ BEGIN
     RAISE EXCEPTION 'FAIL 15: PFMI audit after-state not recorded';
   END IF;
   SELECT count(*) INTO n FROM public.compliance_audit_logs
-   WHERE object_type = 'pfmi_assessment_principle' AND object_id = pid::text;
+   WHERE object_type = 'pfmi_assessment_principle' AND object_id = pid::text
+     AND user_id = '4180b172-8435-4511-a152-ccfd1701cbbc'::uuid;
   IF n = 0 THEN RAISE EXCEPTION 'FAIL 15: no compliance audit counterpart for pfmi_save_principle'; END IF;
   RAISE NOTICE 'PASS 15: pfmi_save_principle satisfies the W1E2A dual-surface canonical audit contract';
 END $$;
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = '{"sub":"4180b172-8435-4511-a152-ccfd1701cbbc","role":"authenticated"}';
 
 -- 16. completion is blocked while any applicable principle is unassessed
 DO $$
