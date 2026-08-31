@@ -97,7 +97,7 @@ export default function FeeManagement() {
   const [name, setName] = useState('');
   const [feeTypes, setFeeTypesSelected] = useState<string[]>([]);
   const [feeTypeAmounts, setFeeTypeAmounts] = useState<Record<string, FeeTypeAmountRow>>({});
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState('');
   const [sectorId, setSectorId] = useState('');
   const [subSectorId, setSubSectorId] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -650,9 +650,15 @@ export default function FeeManagement() {
                           <div className="space-y-2">
                             <Label>Currency</Label>
                             <Select value={currency} onValueChange={setCurrency}>
-                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectTrigger><SelectValue placeholder={governedCurrencies.isLoading ? 'Loading currencies…' : 'Select currency'} /></SelectTrigger>
                               <SelectContent>
-                                {['USD','EUR','GBP','LSL','ZAR','INR'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                {governedCurrencies.supportedCurrencies.map(c => (
+                                  <SelectItem key={c.code} value={c.code}>
+                                    {c.code}{c.name ? ` — ${c.name}` : ''}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+
                               </SelectContent>
                             </Select>
                           </div>
