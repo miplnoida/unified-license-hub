@@ -46,13 +46,20 @@ interface Props extends RegistrationUploadContext {
   onChange: (fieldName: string, value: unknown) => void;
   onBlur?: (fieldName: string, value: unknown, field: RegField) => void;
   readOnly?: boolean;
+  /**
+   * True when the wizard itself owns email OTP verification (form-level
+   * `require_otp` with a dedicated verification stage). Only the field-level
+   * OTP control is suppressed — syntax, uniqueness and blur handling stay on.
+   */
+  suppressEmailVerification?: boolean;
 }
 
 /**
  * Renders a single registration step using the builder's row → column → field
  * grid layout. Responsive: columns collapse on mobile.
  */
-export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur, readOnly, userId, entityType, entityId, formId }: Props) {
+export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur, readOnly, suppressEmailVerification, userId, entityType, entityId, formId }: Props) {
+
   const uploadCtx: RegistrationUploadContext = { userId, entityType, entityId, formId };
 
   const allFields = useMemo(() => {
@@ -140,6 +147,7 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
                   allData={data}
                   allFields={allFields}
                   uploadCtx={uploadCtx}
+                  suppressEmailVerification={suppressEmailVerification}
                 />
 
               ) : (
@@ -226,6 +234,7 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
                         allData={data}
                         allFields={allFields}
                         uploadCtx={uploadCtx}
+                        suppressEmailVerification={suppressEmailVerification}
                       />
                     ) : (
                       <div className="h-10" />
@@ -257,6 +266,8 @@ interface FieldProps {
   allData: Record<string, unknown>;
   allFields: RegField[];
   uploadCtx?: RegistrationUploadContext;
+  /** Wizard-owned OTP: suppress only the field-level verification control. */
+  suppressEmailVerification?: boolean;
 }
 
 function useCountries() {
@@ -339,7 +350,7 @@ function useDynamicOptions(field: RegField, allData: Record<string, unknown>) {
   }, [field.dataSource, field.dependsOn, allData, sectors, allSubSectors, allCategories, countries, allStates]);
 }
 
-function InteractiveField({ field, value, error, onChange, onBlur, readOnly, allData, allFields, uploadCtx }: FieldProps) {
+function InteractiveField({ field, value, error, onChange, onBlur, readOnly, allData, allFields, uploadCtx, suppressEmailVerification }: FieldProps) {
   const handleChange = (val: unknown) => {
     onChange(field.fieldName, val);
 
@@ -406,9 +417,14 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
           ? 'email'
           : field.type;
 
-  const emailSettings = effectiveType === 'email'
+  const configuredEmailSettings = effectiveType === 'email'
     ? resolveEmailFieldSettings({ type: 'email', validation: field.validation as any })
     : EMAIL_FIELD_SETTINGS_OFF;
+  // The wizard's dedicated verification stage is the single runtime owner of OTP
+  // when form-level OTP is on. Uniqueness/syntax checks are never suppressed.
+  const emailSettings = suppressEmailVerification
+    ? { ...configuredEmailSettings, requireVerification: false }
+    : configuredEmailSettings;
 
   switch (effectiveType) {
     case 'email':

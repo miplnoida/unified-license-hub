@@ -58,6 +58,8 @@ export function EmailVerificationSection({ form, errors, setField, verificationE
   };
 
   const handleSendOtp = async () => {
+    // One click === one send: block re-entry while a send is in flight.
+    if (otpSending) return;
     if (!resolvedEmail) {
       toast.error('Please provide an email address first');
       return;
@@ -85,6 +87,7 @@ export function EmailVerificationSection({ form, errors, setField, verificationE
   };
 
   const handleVerifyOtp = async () => {
+    if (otpVerifying) return;
     if (!otpCode || otpCode.length !== 6) {
       toast.error('Please enter the 6-digit code');
       return;

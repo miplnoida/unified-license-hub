@@ -530,14 +530,20 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
             errs[effectiveName] = 'Invalid email address';
           }
           if (isRegistrationEmailField(field) && val) {
+            // Form-level OTP owns verification (dedicated stage), so the
+            // field-level verification gate must not block this step. Uniqueness
+            // and every other field rule stay fully enforced.
+            const fieldValidation = { ...(field.validation as any) };
+            if (requireOtp && !isUpdateMode) fieldValidation.requireEmailVerification = false;
             const emailIssue = validateEmailFieldSettings({
-              field: { type: 'email', validation: field.validation as any },
+              field: { type: 'email', validation: fieldValidation },
               fieldKey: effectiveName,
               value: val,
               ownEmail: isUpdateMode ? (initialDynamicDataRef.current?.[effectiveName] as string | undefined) ?? null : null,
             });
             if (emailIssue) errs[effectiveName] = emailIssue;
           }
+
 
           if (field.type === 'phone' && val && !/^[+]?[\d\s\-()]{7,20}$/.test(String(val))) {
             errs[effectiveName] = 'Invalid phone number';
@@ -581,7 +587,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     setDynamicErrors(errs);
     lastDynamicErrorsRef.current = { errs, step: stepData };
     return Object.keys(errs).length === 0;
-  }, [dynamicFormData, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName, getPrimaryEmailBlockers, getPrimaryEmailFieldsForStep, pendingPrimaryEmailChecks, dynamicErrors, isUpdateMode]);
+  }, [dynamicFormData, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName, getPrimaryEmailBlockers, getPrimaryEmailFieldsForStep, pendingPrimaryEmailChecks, dynamicErrors, isUpdateMode, requireOtp]);
 
   // Build declaration keys for validation
   const effectiveDeclarations = useMemo(() => {
@@ -1205,6 +1211,8 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
               entityType="registration"
               entityId={updateContext?.registration?.id ?? null}
               formId={config?.id ?? null}
+              /* Form-level OTP owns verification: suppress field-level OTP only. */
+              suppressEmailVerification={requireOtp && !isUpdateMode}
             />
           );
         }
