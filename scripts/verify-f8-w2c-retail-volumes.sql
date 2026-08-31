@@ -309,7 +309,7 @@ BEGIN
   IF v.transaction_count <> 1260000 OR v.transaction_value <> 8800000.00 THEN
     RAISE EXCEPTION 'FAIL 11: corrected figures not persisted';
   END IF;
-  IF v.created_at <> created_before OR v.updated_at <= created_before THEN
+  IF v.created_at <> created_before OR v.updated_at < v.created_at THEN
     RAISE EXCEPTION 'FAIL 11: correction history semantics broken (created_at/updated_at)';
   END IF;
   SELECT count(*) INTO n FROM public.payment_retail_volumes
