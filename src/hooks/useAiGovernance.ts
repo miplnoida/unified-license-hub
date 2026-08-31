@@ -89,9 +89,16 @@ export interface ActivityRow {
   requested_role: string | null;
   outcome: string;
   reason_code: string | null;
+  /** Vendor-neutral governance identity shown on regulator-facing screens. */
+  governance_service_label: string | null;
+  governance_model_label: string | null;
+  governance_version_label: string | null;
+  /** True only for authorised technical/audit users; the three fields below are null otherwise. */
+  technical_provenance_available: boolean;
   provider: string | null;
   model: string | null;
   model_version: string | null;
+
   prompt_template_code: string | null;
   prompt_template_version: string | null;
   snapshot_fingerprint: string | null;
