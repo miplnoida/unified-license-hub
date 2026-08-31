@@ -187,7 +187,11 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege OR raise_exception THEN denied := denied + 1;
   END;
   IF denied <> 2 THEN RAISE EXCEPTION 'FAIL 8: expected 2 anonymous denials, got %', denied; END IF;
-  RAISE NOTICE 'PASS 8: anonymous callers cannot record or resolve payment incidents';
+  IF (SELECT count(*) FROM public.payment_system_incidents) <> 0
+     OR (SELECT count(*) FROM public.payment_oversight_events) <> 0 THEN
+    RAISE EXCEPTION 'FAIL 8: anonymous caller can read the incident surface';
+  END IF;
+  RAISE NOTICE 'PASS 8: anonymous callers cannot record, resolve or read payment incidents';
 END $$;
 RESET ROLE;
 
