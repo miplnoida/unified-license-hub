@@ -490,7 +490,7 @@ BEGIN
   -- 2.10 final approve completes workflow + creates license/licensee
   -- Licence provisioning is payment-gated by design, so seed a completed payment.
   INSERT INTO public.payments (application_id, user_id, amount, currency, status, payment_method, paid_at)
-  VALUES (v_app_id, v_applicant_a, 1000, 'INR', 'completed', 'simulated', now());
+  VALUES (v_app_id, v_applicant_a, 1000, (SELECT base_currency FROM public.monetary_configs WHERE is_active AND regulator_id IS NULL LIMIT 1), 'completed', 'simulated', now());
 
   -- F4-B licensing readiness is fail-closed: an initial licence decision needs an
   -- approved F3 registration handoff, satisfied form/document requirements and a
@@ -628,7 +628,7 @@ BEGIN
 
     -- Seed a completed payment so submit_application passes its payment guard.
     INSERT INTO public.payments (application_id, user_id, amount, currency, status, payment_method, paid_at)
-    VALUES (v_rs_app, v_applicant_a, 1000, 'INR', 'completed', 'simulated', now())
+    VALUES (v_rs_app, v_applicant_a, 1000, (SELECT base_currency FROM public.monetary_configs WHERE is_active AND regulator_id IS NULL LIMIT 1), 'completed', 'simulated', now())
     RETURNING id INTO v_pay_id;
 
     -- Resubmit as the applicant
