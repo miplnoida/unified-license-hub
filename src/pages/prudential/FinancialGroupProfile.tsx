@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { GuardedButton } from '@/components/auth/GuardedButton';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { ArrowLeft, RefreshCw, Plus, Trash2, AlertTriangle, Building2 } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Plus, Trash2, AlertTriangle, Building2, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -28,23 +28,15 @@ import {
   useGroupConsolidated, useGroupPeriods, useGroupExposures, useGroupSnapshots,
   useSaveGroupMember, useRemoveGroupMember, useSaveExposure, useDeleteExposure,
   useRecomputeGroup, useAcknowledgeGroupAlert, useSaveMethodology,
+  useUpdateFinancialGroup, useGroupEntityOptions,
 } from '@/hooks/useFinancialGroups';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
-
-const EXPOSURE_TYPES = ['loan', 'deposit', 'capital', 'guarantee', 'other'];
-
-function useLicenseeOptions() {
-  return useQuery({
-    queryKey: ['licensee_options_for_group'],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('licensees').select('id, name').order('name').limit(500);
-      if (error) throw error;
-      return (data ?? []) as Array<{ id: string; name: string }>;
-    },
-  });
-}
+import { GroupMemberFields, type MemberFormValue } from '@/components/prudential/GroupMemberFields';
+import {
+  MethodologyRulesEditor, methodologyIssue, EXPOSURE_TYPES,
+  type MethodologyValue,
+} from '@/components/prudential/MethodologyRulesEditor';
+import { useSectors, useStaffDirectory } from '@/hooks/useOperatingStructure';
+import { baseCurrency } from '@/lib/money';
 
 /** PRU-GRP-001 — Financial Group consolidated risk profile. */
 export default function FinancialGroupProfile() {
@@ -58,7 +50,9 @@ export default function FinancialGroupProfile() {
   const activePeriod: string = period || data?.period_key || '';
   const { data: exposures = [] } = useGroupExposures(groupId, activePeriod || null);
   const { data: snapshots = [] } = useGroupSnapshots(groupId);
-  const { data: licensees = [] } = useLicenseeOptions();
+  const { data: licensees = [] } = useGroupEntityOptions();
+  const { data: sectors = [] } = useSectors();
+  const { data: staff = [] } = useStaffDirectory();
 
   const saveMember = useSaveGroupMember(groupId);
   const removeMember = useRemoveGroupMember(groupId);
@@ -67,10 +61,13 @@ export default function FinancialGroupProfile() {
   const recompute = useRecomputeGroup(groupId);
   const acknowledge = useAcknowledgeGroupAlert(groupId);
   const saveMethod = useSaveMethodology(groupId);
+  const updateGroup = useUpdateFinancialGroup(groupId);
 
-  const [memberDialog, setMemberDialog] = useState<any | null>(null);
+  const [memberDialog, setMemberDialog] = useState<MemberFormValue | null>(null);
+  const [memberIssue, setMemberIssue] = useState<string | null>(null);
   const [exposureDialog, setExposureDialog] = useState<any | null>(null);
   const [methodOpen, setMethodOpen] = useState(false);
+  const [editGroup, setEditGroup] = useState<any | null>(null);
 
   const group = data?.group ?? {};
   const members: GroupMember[] = data?.members ?? [];
@@ -151,6 +148,17 @@ export default function FinancialGroupProfile() {
             >
               <RefreshCw className={cn('mr-2 h-4 w-4', recompute.isPending && 'animate-spin')} />
               Recompute
+            </Button>
+          )}
+          {canEdit && (
+            <Button data-rbac="prudential_supervision.edit" variant="outline"
+              onClick={() => setEditGroup({
+                name: group.name ?? '', group_code: group.group_code ?? '',
+                holding_entity_id: group.holding_entity_id ?? '', sector_id: group.sector_id ?? '',
+                supervisory_lead_id: group.supervisory_lead_id ?? '',
+                status: group.status ?? 'active', notes: group.notes ?? '',
+              })}>
+              <Pencil className="mr-2 h-4 w-4" />Edit group
             </Button>
           )}
           <Button variant="ghost" onClick={() => refetch()}>Refresh</Button>
@@ -239,6 +247,10 @@ export default function FinancialGroupProfile() {
                   member_role: m.member_role, ownership_percentage: m.ownership_percentage,
                   consolidation_treatment: m.consolidation_treatment,
                   effective_date: m.effective_date, end_date: m.end_date,
+                  exclusion_rationale: (m as any).exclusion_rationale ?? null,
+                  ownership_variance_reason: (m as any).ownership_variance_reason ?? null,
+                  ownership_variance_note: (m as any).ownership_variance_note ?? null,
+                  notes: (m as any).notes ?? null,
                 })}
               />
             </CardContent>
@@ -408,94 +420,27 @@ export default function FinancialGroupProfile() {
 
       {/* Member dialog */}
       <Dialog open={!!memberDialog} onOpenChange={(o) => !o && setMemberDialog(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader><DialogTitle>{memberDialog?.id ? 'Edit member' : 'Add group member'}</DialogTitle></DialogHeader>
           {memberDialog && (
-            <div className="space-y-3">
-              <div>
-                <Label>Entity</Label>
-                <Select
-                  value={memberDialog.licensee_id ?? ''}
-                  onValueChange={(v) => setMemberDialog({ ...memberDialog, licensee_id: v })}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select entity" /></SelectTrigger>
-                  <SelectContent>
-                    {licensees.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Parent within group</Label>
-                <Select
-                  value={memberDialog.parent_member_id ?? 'none'}
-                  onValueChange={(v) => setMemberDialog({ ...memberDialog, parent_member_id: v === 'none' ? null : v })}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No parent (top of group)</SelectItem>
-                    {members
-                      .filter((m) => m.member_id !== memberDialog.id)
-                      .map((m) => <SelectItem key={m.member_id} value={m.member_id}>{m.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Role</Label>
-                  <Select
-                    value={memberDialog.member_role ?? 'subsidiary'}
-                    onValueChange={(v) => setMemberDialog({ ...memberDialog, member_role: v })}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(ROLE_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Consolidation treatment</Label>
-                  <Select
-                    value={memberDialog.consolidation_treatment ?? 'full'}
-                    onValueChange={(v) => setMemberDialog({ ...memberDialog, consolidation_treatment: v })}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(TREATMENT_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <Label>Ownership %</Label>
-                  <Input
-                    type="number" step="0.01"
-                    value={memberDialog.ownership_percentage ?? ''}
-                    onChange={(e) => setMemberDialog({ ...memberDialog, ownership_percentage: e.target.value === '' ? null : Number(e.target.value) })}
-                  />
-                </div>
-                <div>
-                  <Label>Effective date</Label>
-                  <Input
-                    type="date" value={memberDialog.effective_date ?? ''}
-                    onChange={(e) => setMemberDialog({ ...memberDialog, effective_date: e.target.value || null })}
-                  />
-                </div>
-                <div>
-                  <Label>End date</Label>
-                  <Input
-                    type="date" value={memberDialog.end_date ?? ''}
-                    onChange={(e) => setMemberDialog({ ...memberDialog, end_date: e.target.value || null })}
-                  />
-                </div>
-              </div>
-            </div>
+            <GroupMemberFields
+              groupId={groupId}
+              value={memberDialog}
+              onChange={setMemberDialog}
+              onIssueChange={setMemberIssue}
+              entities={licensees}
+              parentField="parent_member_id"
+              parentOptions={members
+                .filter((m) => m.member_id !== memberDialog.id)
+                .map((m) => ({ value: m.member_id, label: m.name, licensee_id: m.licensee_id }))}
+            />
           )}
+          {memberIssue && <p className="text-xs text-destructive">{memberIssue}</p>}
           <DialogFooter className="justify-between">
             {memberDialog?.id && (
               <GuardedButton module="prudential_supervision" action="edit" data-rbac="prudential_supervision.edit"
                 variant="ghost"
-                onClick={() => { removeMember.mutate(memberDialog.id); setMemberDialog(null); }}
+                onClick={() => { removeMember.mutate(memberDialog.id as string); setMemberDialog(null); }}
               >
                 <Trash2 className="mr-2 h-4 w-4 text-destructive" />Remove
               </GuardedButton>
@@ -503,8 +448,8 @@ export default function FinancialGroupProfile() {
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setMemberDialog(null)}>Cancel</Button>
               <Button data-rbac="prudential_supervision.edit"
-                disabled={!memberDialog?.licensee_id || saveMember.isPending}
-                onClick={async () => { await saveMember.mutateAsync(memberDialog); setMemberDialog(null); }}
+                disabled={!!memberIssue || saveMember.isPending}
+                onClick={async () => { await saveMember.mutateAsync(memberDialog as any); setMemberDialog(null); }}
               >Save</Button>
             </div>
           </DialogFooter>
@@ -572,6 +517,14 @@ export default function FinancialGroupProfile() {
                   />
                 </div>
               </div>
+              <div className="w-40">
+                <Label>Currency</Label>
+                <Input
+                  className="font-mono"
+                  value={exposureDialog.currency ?? baseCurrency() ?? ''}
+                  onChange={(e) => setExposureDialog({ ...exposureDialog, currency: e.target.value.toUpperCase().slice(0, 3) })}
+                />
+              </div>
               <div>
                 <Label>Notes</Label>
                 <Textarea
@@ -590,6 +543,100 @@ export default function FinancialGroupProfile() {
                 !exposureDialog?.period_key || saveExposure.isPending
               }
               onClick={async () => { await saveExposure.mutateAsync(exposureDialog); setExposureDialog(null); }}
+            >Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Group master dialog */}
+      <Dialog open={!!editGroup} onOpenChange={(o) => !o && setEditGroup(null)}>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader><DialogTitle>Edit group details</DialogTitle></DialogHeader>
+          {editGroup && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Group code</Label>
+                  <Input value={editGroup.group_code}
+                    onChange={(e) => setEditGroup({ ...editGroup, group_code: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Group name</Label>
+                  <Input value={editGroup.name}
+                    onChange={(e) => setEditGroup({ ...editGroup, name: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <Label>Ultimate holding entity</Label>
+                <Select value={editGroup.holding_entity_id || 'none'}
+                  onValueChange={(v) => setEditGroup({ ...editGroup, holding_entity_id: v === 'none' ? '' : v })}>
+                  <SelectTrigger><SelectValue placeholder="Select holding entity" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not identified</SelectItem>
+                    {licensees.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label>Sector</Label>
+                  <Select value={editGroup.sector_id || 'none'}
+                    onValueChange={(v) => setEditGroup({ ...editGroup, sector_id: v === 'none' ? '' : v })}>
+                    <SelectTrigger><SelectValue placeholder="Sector" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Not assigned</SelectItem>
+                      {(sectors as any[]).map((sec) => <SelectItem key={sec.id} value={sec.id}>{sec.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Supervisory lead</Label>
+                  <Select value={editGroup.supervisory_lead_id || 'none'}
+                    onValueChange={(v) => setEditGroup({ ...editGroup, supervisory_lead_id: v === 'none' ? '' : v })}>
+                    <SelectTrigger><SelectValue placeholder="Supervisor" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Not assigned</SelectItem>
+                      {staff.map((u) => <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <Select value={editGroup.status}
+                    onValueChange={(v) => setEditGroup({ ...editGroup, status: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="dissolved">Dissolved</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Notes</Label>
+                <Textarea rows={3} value={editGroup.notes}
+                  onChange={(e) => setEditGroup({ ...editGroup, notes: e.target.value })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditGroup(null)}>Cancel</Button>
+            <Button data-rbac="prudential_supervision.edit"
+              disabled={updateGroup.isPending || !editGroup?.name?.trim() || !editGroup?.group_code?.trim()}
+              onClick={async () => {
+                await updateGroup.mutateAsync({
+                  group_code: editGroup.group_code.trim(),
+                  name: editGroup.name.trim(),
+                  holding_entity_id: editGroup.holding_entity_id || null,
+                  sector_id: editGroup.sector_id || null,
+                  supervisory_lead_id: editGroup.supervisory_lead_id || null,
+                  status: editGroup.status,
+                  notes: editGroup.notes?.trim() || null,
+                });
+                setEditGroup(null);
+                refetch();
+              }}
             >Save</Button>
           </DialogFooter>
         </DialogContent>
@@ -615,76 +662,50 @@ function MethodologyDialog({ open, onOpenChange, method, onSave, saving }: {
   onSave: (payload: any) => Promise<void>;
   saving: boolean;
 }) {
-  const [rules, setRules] = useState('');
-  const [types, setTypes] = useState('');
-  const [pct, setPct] = useState('10');
-  const [notes, setNotes] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [value, setValue] = useState<MethodologyValue>({
+    ratio_rules: [], eliminate_exposure_types: [], large_exposure_pct: 10, notes: null,
+  });
   const [initialised, setInitialised] = useState(false);
 
   if (open && !initialised) {
-    setRules(JSON.stringify(method?.ratio_rules ?? [], null, 2));
-    setTypes((method?.eliminate_exposure_types ?? ['loan', 'deposit', 'capital']).join(', '));
-    setPct(String(method?.large_exposure_pct ?? 10));
-    setNotes(method?.notes ?? '');
+    setValue({
+      ratio_rules: (method?.ratio_rules ?? []).map((r: any) => ({
+        ratio_key: String(r.ratio_key ?? ''),
+        method: r.method === 'sum' || r.method === 'weighted_avg' ? r.method : 'sum',
+        eliminate: !!r.eliminate,
+      })),
+      eliminate_exposure_types: method?.eliminate_exposure_types ?? ['loan', 'deposit', 'capital'],
+      large_exposure_pct: Number(method?.large_exposure_pct ?? 10),
+      notes: method?.notes ?? null,
+    });
     setInitialised(true);
   }
   if (!open && initialised) setInitialised(false);
 
-  const submit = async () => {
-    let parsed: any[];
-    try {
-      parsed = JSON.parse(rules || '[]');
-      if (!Array.isArray(parsed)) throw new Error('Ratio rules must be a JSON array');
-    } catch (e: any) {
-      setError(e.message || 'Invalid JSON');
-      return;
-    }
-    setError(null);
-    await onSave({
-      ratio_rules: parsed,
-      eliminate_exposure_types: types.split(',').map((t) => t.trim()).filter(Boolean),
-      large_exposure_pct: Number(pct) || 0,
-      total_assets_ratio_key: method?.total_assets_ratio_key ?? null,
-      capital_ratio_key: method?.capital_ratio_key ?? null,
-      notes: notes || null,
-    });
-  };
+  const issue = methodologyIssue(value);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Consolidation methodology {method?.version ? `(current v${method.version})` : ''}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
-          <div>
-            <Label>Ratio rules (JSON array)</Label>
-            <Textarea rows={10} className="font-mono text-xs" value={rules} onChange={(e) => setRules(e.target.value)} />
-            <p className="mt-1 text-xs text-muted-foreground">
-              Each rule: {'{ "ratio_key": "total_assets", "method": "sum" | "weighted_average" | "average" }'}
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Eliminate exposure types</Label>
-              <Input value={types} onChange={(e) => setTypes(e.target.value)} placeholder="loan, deposit, capital" />
-            </div>
-            <div>
-              <Label>Large exposure threshold (%)</Label>
-              <Input type="number" step="0.1" value={pct} onChange={(e) => setPct(e.target.value)} />
-            </div>
-          </div>
-          <div>
-            <Label>Notes</Label>
-            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <p className="text-xs text-muted-foreground">Saving creates a new immutable methodology version.</p>
-        </div>
+        <MethodologyRulesEditor value={value} onChange={setValue} />
+        {issue && <p className="text-sm text-destructive">{issue}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit} disabled={saving}>{saving ? 'Saving…' : 'Save new version'}</Button>
+          <Button
+            data-rbac="prudential_supervision.edit"
+            disabled={saving || !!issue}
+            onClick={() => onSave({
+              ratio_rules: value.ratio_rules,
+              eliminate_exposure_types: value.eliminate_exposure_types,
+              large_exposure_pct: value.large_exposure_pct,
+              total_assets_ratio_key: method?.total_assets_ratio_key ?? null,
+              capital_ratio_key: method?.capital_ratio_key ?? null,
+              notes: value.notes || null,
+            })}
+          >{saving ? 'Saving…' : 'Save new version'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
