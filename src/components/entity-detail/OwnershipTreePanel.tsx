@@ -22,67 +22,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { useEntityOwnershipNetwork, type OwnershipNetwork, type OwnershipNetworkEdge, type OwnershipNetworkNode } from '@/hooks/useWaveB';
-
-const pct = (v: unknown) =>
-  v === null || v === undefined || Number.isNaN(Number(v)) ? '—' : `${Number(v).toFixed(2)}%`;
-
-interface TreeNode {
-  key: string;
-  node?: OwnershipNetworkNode;
-  edge?: OwnershipNetworkEdge;
-  partyId: string;
-  label: string;
-  children: TreeNode[];
-  repeated: boolean;
-  boundary?: string;
-}
-
-function buildTree(network?: OwnershipNetwork | null): TreeNode | null {
-  if (!network?.seed?.party_id) return null;
-
-  const nodes = new Map((network.nodes ?? []).map((n) => [n.party_id, n]));
-  const edgesByOwned = new Map<string, OwnershipNetworkEdge[]>();
-  for (const e of network.edges ?? []) {
-    const list = edgesByOwned.get(e.owned_party_id) ?? [];
-    list.push(e);
-    edgesByOwned.set(e.owned_party_id, list);
-  }
-  const boundary = new Map<string, string>();
-  for (const f of network.frontier ?? []) {
-    if (f?.party_id) boundary.set(f.party_id, f.reason);
-  }
-
-  const expand = (partyId: string, path: string[], keyPrefix: string): TreeNode[] =>
-    (edgesByOwned.get(partyId) ?? [])
-      .slice()
-      .sort((a, b) =>
-        Number(b.economic_interest_percentage ?? 0) - Number(a.economic_interest_percentage ?? 0))
-      .map((edge) => {
-        const owner = nodes.get(edge.owner_party_id);
-        const repeated = path.includes(edge.owner_party_id);
-        const key = `${keyPrefix}/${edge.id}`;
-        return {
-          key,
-          node: owner,
-          edge,
-          partyId: edge.owner_party_id,
-          label: owner?.display_name || edge.owner_party_id.slice(0, 8),
-          repeated,
-          boundary: boundary.get(edge.owner_party_id),
-          children: repeated ? [] : expand(edge.owner_party_id, [...path, edge.owner_party_id], key),
-        } satisfies TreeNode;
-      });
-
-  const seedParty = network.seed.party_id;
-  return {
-    key: 'root',
-    partyId: seedParty,
-    label: network.seed.display_name || 'Regulated entity',
-    repeated: false,
-    children: expand(seedParty, [seedParty], 'root'),
-  };
-}
+import { useEntityOwnershipNetwork, type OwnershipNetworkNode } from '@/hooks/useWaveB';
+import { buildTree, isUltimateBeneficiary, pct, type TreeNode } from './ownershipTreeModel';
+import { OwnershipTreeGraph } from './OwnershipTreeGraph';
 
 function NodeIcon({ node, root }: { node?: OwnershipNetworkNode; root?: boolean }) {
   if (root) return <Building2 className="h-4 w-4 shrink-0 text-primary" aria-hidden />;
@@ -98,7 +40,7 @@ function TreeBranch({
   const edge = item.edge;
   const isRoot = depth === 0;
   const hasChildren = item.children.length > 0;
-  const isUbo = !isRoot && !hasChildren && !item.repeated && node?.is_natural_person;
+  const isUbo = isUltimateBeneficiary(item, depth);
 
   return (
     <li className={cn(depth > 0 && 'relative pl-5 before:absolute before:left-0 before:top-0 before:h-full before:border-l before:border-border')}>
@@ -188,6 +130,7 @@ export function OwnershipTreePanel({
   const asOfDate = asOf ? asOf.slice(0, 10) : undefined;
   const { data, isLoading, error } = useEntityOwnershipNetwork(entityId, asOfDate);
   const [expandAll, setExpandAll] = useState(true);
+  const [view, setView] = useState<'diagram' | 'list'>('diagram');
 
   const tree = useMemo(() => buildTree(data), [data]);
 
@@ -214,9 +157,27 @@ export function OwnershipTreePanel({
               recorded structure; effective percentages are look-through products of the chain.
             </CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setExpandAll((v) => !v)}>
-            {expandAll ? 'Collapse all' : 'Expand all'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-md border p-0.5">
+              <Button
+                variant={view === 'diagram' ? 'secondary' : 'ghost'} size="sm" className="h-7 px-2 text-xs"
+                onClick={() => setView('diagram')}
+              >
+                Diagram
+              </Button>
+              <Button
+                variant={view === 'list' ? 'secondary' : 'ghost'} size="sm" className="h-7 px-2 text-xs"
+                onClick={() => setView('list')}
+              >
+                List
+              </Button>
+            </div>
+            {view === 'list' && (
+              <Button variant="outline" size="sm" onClick={() => setExpandAll((v) => !v)}>
+                {expandAll ? 'Collapse all' : 'Expand all'}
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -241,9 +202,13 @@ export function OwnershipTreePanel({
 
         {!isLoading && !error && tree && tree.children.length > 0 && (
           <>
-            <ul key={String(expandAll)} className="text-sm">
-              <TreeBranch item={tree} depth={0} rootLabel={entityName ?? undefined} defaultOpen={expandAll} />
-            </ul>
+            {view === 'diagram' ? (
+              <OwnershipTreeGraph root={tree} rootLabel={entityName ?? undefined} />
+            ) : (
+              <ul key={String(expandAll)} className="text-sm">
+                <TreeBranch item={tree} depth={0} rootLabel={entityName ?? undefined} defaultOpen={expandAll} />
+              </ul>
+            )}
 
             <div className="rounded-md border bg-muted/30 p-3">
               <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
