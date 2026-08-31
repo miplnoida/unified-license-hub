@@ -207,7 +207,7 @@ BEGIN
   PERFORM set_config('w1e2a.member_id', mid::text, true);
 
   SELECT * INTO a FROM public.audit_logs
-   WHERE action = 'examination_team_member_added' AND entity_id = mid;
+   WHERE action = 'examination_team_member_added' AND entity_id = mid::text;
   IF a IS NULL THEN RAISE EXCEPTION 'FAIL 8: no canonical audit event for team member add'; END IF;
   IF a.user_id <> 'b597c405-e0c4-421b-9092-820a444f2429'::uuid THEN
     RAISE EXCEPTION 'FAIL 8: wrong audit actor (%)', a.user_id;
@@ -235,7 +235,7 @@ BEGIN
     RAISE EXCEPTION 'FAIL 9: update did not return the existing success shape (%)', res;
   END IF;
   SELECT * INTO a FROM public.audit_logs
-   WHERE action = 'examination_team_member_updated' AND entity_id = mid;
+   WHERE action = 'examination_team_member_updated' AND entity_id = mid::text;
   IF a IS NULL THEN RAISE EXCEPTION 'FAIL 9: no canonical audit event for team member update'; END IF;
   IF a.user_id <> 'b597c405-e0c4-421b-9092-820a444f2429'::uuid
      OR a.entity_type <> 'examination_team_member' OR a.created_at IS NULL THEN
@@ -261,7 +261,7 @@ BEGIN
     RAISE EXCEPTION 'FAIL 10: membership was not ended';
   END IF;
   SELECT * INTO a FROM public.audit_logs
-   WHERE action = 'examination_team_member_ended' AND entity_id = mid;
+   WHERE action = 'examination_team_member_ended' AND entity_id = mid::text;
   IF a IS NULL THEN RAISE EXCEPTION 'FAIL 10: no canonical audit event for team member end'; END IF;
   IF a.user_id <> 'b597c405-e0c4-421b-9092-820a444f2429'::uuid
      OR a.entity_type <> 'examination_team_member' OR a.created_at IS NULL THEN
@@ -289,7 +289,7 @@ BEGIN
   PERFORM set_config('w1e2a.principle_id', pid::text, true);
 
   SELECT * INTO a FROM public.audit_logs
-   WHERE action = 'pfmi_principle_saved' AND entity_id = pid;
+   WHERE action = 'pfmi_principle_saved' AND entity_id = pid::text;
   IF a IS NULL THEN RAISE EXCEPTION 'FAIL 11: no canonical audit event for pfmi_save_principle'; END IF;
   IF a.user_id <> '4180b172-8435-4511-a152-ccfd1701cbbc'::uuid THEN
     RAISE EXCEPTION 'FAIL 11: wrong PFMI audit actor (%)', a.user_id;
