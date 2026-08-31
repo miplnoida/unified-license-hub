@@ -53,7 +53,7 @@ export default function AiUseCaseDetail() {
       <DashboardLayout>
         <div className="space-y-4 p-2">
           <p className="text-sm text-muted-foreground">This AI capability is not on the register.</p>
-          <Button asChild variant="outline"><Link to="/governance/ai/capabilities">Back to capabilities</Link></Button>
+          <Button asChild variant="outline"><Link to="/governance/ai/use-cases">Back to capabilities</Link></Button>
         </div>
       </DashboardLayout>
     );
@@ -63,7 +63,7 @@ export default function AiUseCaseDetail() {
     <DashboardLayout>
       <div className="space-y-6">
         <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link to="/governance/ai/capabilities"><ArrowLeft className="mr-1 h-4 w-4" /> All capabilities</Link>
+          <Link to="/governance/ai/use-cases"><ArrowLeft className="mr-1 h-4 w-4" /> All capabilities</Link>
         </Button>
 
         <PageHeader
