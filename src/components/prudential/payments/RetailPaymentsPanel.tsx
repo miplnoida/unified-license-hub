@@ -8,9 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, Plus } from 'lucide-react';
-import {
 import { CurrencySelect } from '@/components/shared/CurrencySelect';
+import {
   PAYMENT_TYPES,
+
   labelOf,
   usePaymentOperators,
   useRetailVolumes,
