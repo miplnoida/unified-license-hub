@@ -44,11 +44,13 @@ const Tile = ({ title, value, help, tone = 'default' }: {
 
 export default function AiGovernanceOverview() {
   const canApprove = useCan('ai_management', 'approve');
-  const { data: o, isLoading } = useAiGovernanceOverview();
-  const { data: exceptions = [] } = useAiGovernanceExceptions(100);
-  const { data: stops = [] } = useAiStopControls();
-  const { data: events = [] } = useGovernanceEvents(undefined, undefined, 20);
-  const { data: prohibited = [] } = useProhibitedActions();
+  const { data: o, isLoading, error: overviewError } = useAiGovernanceOverview();
+  const { data: exceptions = [], error: exceptionsError } = useAiGovernanceExceptions(100);
+  const { data: stops = [], error: stopsError } = useAiStopControls();
+  const { data: events = [], error: eventsError } = useGovernanceEvents(undefined, undefined, 20);
+  const { data: prohibited = [], error: prohibitedError } = useProhibitedActions();
+
+  const loadError = overviewError ?? exceptionsError ?? stopsError ?? eventsError ?? prohibitedError;
   const setStop = useAiStopControlSet();
 
   const [target, setTarget] = useState<{ scopeKey: string; scopeLabel: string; engage: boolean } | null>(null);
