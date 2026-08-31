@@ -230,7 +230,7 @@ serve(async (req) => {
         .limit(50);
 
       let processed = 0;
-      const smtpConfig = await loadSmtpConfig(supabase);
+      const emailConfig: EmailDeliveryConfig = await loadEmailDeliveryConfig(supabase);
 
       for (const notif of queued || []) {
         const { data: profile } = await supabase
@@ -242,13 +242,6 @@ serve(async (req) => {
         if (!profile) continue;
 
         if (notif.channel === "email") {
-          if (!smtpConfig) {
-            await supabase
-              .from("notifications")
-              .update({ delivery_status: "failed"} as any)
-              .eq("id", notif.id);
-            continue;
-          }
           if (!profile.email) {
             await supabase
               .from("notifications")
@@ -256,40 +249,45 @@ serve(async (req) => {
               .eq("id", notif.id);
             continue;
           }
-          const queueSmtpStarted = Date.now();
-          try {
-            await sendSmtpEmail(smtpConfig, profile.email, notif.title, notif.message);
+          const queueSendStarted = Date.now();
+          const queueResult = await sendEmailWithFallback(emailConfig, {
+            to: profile.email,
+            subject: notif.title,
+            text: notif.message,
+          });
+          if (queueResult.success) {
             await supabase
               .from("notifications")
               .update({ delivery_status: "delivered" } as any)
               .eq("id", notif.id);
             await logIntegration(supabase, {
               direction: "outbound",
-              integrationKey: "smtp.send-notification",
+              integrationKey: `${queueResult.provider}.send-notification`,
               status: "success",
               entityType: notif.entity_type ?? null,
               entityId: notif.entity_id ?? null,
-              requestSummary: `Queued email to ${profile.email}: ${notif.title}`,
-              durationMs: Date.now() - queueSmtpStarted,
+              requestSummary: `Queued email to ${maskEmail(profile.email)}: ${notif.title}`,
+              durationMs: Date.now() - queueSendStarted,
             });
             processed++;
-          } catch (e: any) {
-            const errMsg = e?.message || String(e);
-            console.error("SMTP delivery failed:", errMsg);
+          } else {
+            const errMsg = redact(queueResult.error || "email_delivery_failed");
+            console.error("Queued email delivery failed:", errMsg);
             await supabase
               .from("notifications")
               .update({ delivery_status: "failed"} as any)
               .eq("id", notif.id);
             await logIntegration(supabase, {
               direction: "outbound",
-              integrationKey: "smtp.send-notification",
+              integrationKey: "email.send-notification",
               status: "failure",
               entityType: notif.entity_type ?? null,
               entityId: notif.entity_id ?? null,
               error: errMsg,
-              durationMs: Date.now() - queueSmtpStarted,
+              durationMs: Date.now() - queueSendStarted,
             });
           }
+
         } else if (notif.channel === "sms") {
           // No SMS provider integration exists yet. Never record a successful
           // SMS delivery — fail loudly and audit the reason instead.
