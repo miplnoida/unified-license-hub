@@ -234,8 +234,13 @@ export const adminRoutes = (
     <Route path="/admin/returns/notifications/log" element={<M module="returns_management"><NotifLogPage /></M>} />
     <Route path="/admin/returns/schedule" element={<M module="returns_management"><ScheduleCalendarPage /></M>} />
     <Route path="/admin/returns/validations" element={<M module="returns_management"><ManageValidations /></M>} />
-    <Route path="/admin/returns/prudential/thresholds" element={<M module="returns_management"><PrudentialThresholds /></M>} />
-    <Route path="/admin/returns/prudential/ratios" element={<M module="returns_management"><PrudentialRatios /></M>} />
-    <Route path="/admin/returns/prudential/analytics" element={<M module="returns_management"><PrudentialAnalytics /></M>} />
+    {/* F8-W1D — Prudential configuration has ONE governance owner:
+        prudential_supervision. The legacy /admin/returns/... URLs are kept so
+        existing bookmarks resolve, but authority is the canonical Prudential
+        config permission (manage_config), not returns_management. */}
+    <Route path="/admin/returns/prudential/thresholds" element={<P><PermissionRoute module="prudential_supervision" action="manage_config"><PrudentialThresholds /></PermissionRoute></P>} />
+    <Route path="/admin/returns/prudential/ratios" element={<P><PermissionRoute module="prudential_supervision" action="manage_config"><PrudentialRatios /></PermissionRoute></P>} />
+    <Route path="/admin/returns/prudential/analytics" element={<P><PermissionRoute module="prudential_supervision" action="run_analytics"><PrudentialAnalytics /></PermissionRoute></P>} />
+
   </>
 );
