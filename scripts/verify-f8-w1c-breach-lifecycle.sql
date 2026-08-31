@@ -355,7 +355,7 @@ SET LOCAL "request.jwt.claims" = '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce",
 
 -- 16. acknowledgement leads to the existing remediation action path
 DO $$
-DECLARE r jsonb; act uuid; st text;
+DECLARE r public.prudential_actions; act uuid; st text;
 BEGIN
   r := public.prudential_action_issue(
         _entity_id := '00000000-0000-0000-0000-0000000f1c03',
@@ -366,8 +366,8 @@ BEGIN
         _due_date := CURRENT_DATE + 30,
         _source_type := 'return_breach',
         _source_id := '00000000-0000-0000-0000-0000000f1c10');
-  act := COALESCE((r->>'action_id')::uuid, (r->>'id')::uuid);
-  IF act IS NULL THEN RAISE EXCEPTION 'FAIL 16: breach-sourced action not issued: %', r; END IF;
+  act := r.id;
+  IF act IS NULL THEN RAISE EXCEPTION 'FAIL 16: breach-sourced action not issued'; END IF;
   SELECT status INTO st FROM public.prudential_actions WHERE id = act;
   IF st IS NULL THEN RAISE EXCEPTION 'FAIL 16: issued action not persisted'; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.prudential_actions
@@ -386,18 +386,20 @@ END $$;
 
 -- 17. action progresses through its valid lifecycle
 DO $$
-DECLARE act uuid := current_setting('w1c.action_id')::uuid; r jsonb; st text; n int;
+DECLARE act uuid := current_setting('w1c.action_id')::uuid;
+        r public.prudential_actions; st text; n int;
 BEGIN
   r := public.prudential_action_update(act, jsonb_build_object('status','in_progress'),
         'Entity engaged; capital restoration plan under execution.');
   SELECT status INTO st FROM public.prudential_actions WHERE id = act;
   IF st <> 'in_progress' THEN
-    RAISE EXCEPTION 'FAIL 17: action did not progress to in_progress (got %, rpc %)', st, r;
+    RAISE EXCEPTION 'FAIL 17: action did not progress to in_progress (got %)', st;
   END IF;
   SELECT count(*) INTO n FROM public.prudential_action_events WHERE action_id = act;
   IF n < 1 THEN RAISE EXCEPTION 'FAIL 17: action lifecycle is not event-logged'; END IF;
   RAISE NOTICE 'PASS 17: action progressed through its lifecycle with event-log evidence (% events)', n;
 END $$;
+
 
 -- 18. closure is correctly represented and audited
 DO $$
