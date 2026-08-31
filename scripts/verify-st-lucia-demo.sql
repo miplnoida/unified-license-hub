@@ -242,7 +242,99 @@ BEGIN
     RAISE EXCEPTION 'G21 FAIL: this is a production environment — demo data must not be present';
   END IF;
 
-  RAISE NOTICE 'DEMO_SLU_FSRA_2026 SMOKE: 26/26 GATES PASSED';
+
+  -- ===================================================================
+  -- LICENCE-VISIBILITY GATES (demo integrity remediation 2026-08-31)
+  -- GAP: licensees.status was being treated as proof of a licence.
+  -- public.entity_licenses is the ONLY authority.
+  -- ===================================================================
+
+  -- G22 every REGULATED demo entity holds exactly one current canonical licence
+  SELECT count(*) INTO n
+    FROM public.licensees l
+   WHERE l.id::text LIKE '5c1a%'
+     AND l.id <> '5c1a0010-0000-4000-8000-000000000010'
+     AND (SELECT count(*) FROM public.entity_licenses el
+           WHERE el.entity_id = l.id
+             AND (el.effective_to IS NULL OR el.effective_to > now())) <> 1;
+  IF n <> 0 THEN
+    RAISE EXCEPTION 'G22 FAIL: % regulated demo entities lack exactly one current canonical licence', n;
+  END IF;
+
+  -- G23 the non-financial group member holds NO licence (must not be presented as licensed)
+  SELECT count(*) INTO n
+    FROM public.entity_licenses el
+   WHERE el.entity_id = '5c1a0010-0000-4000-8000-000000000010'
+     AND (el.effective_to IS NULL OR el.effective_to > now());
+  IF n <> 0 THEN
+    RAISE EXCEPTION 'G23 FAIL: non-financial demo group member holds % licence(s)', n;
+  END IF;
+
+  -- G24 Piton Finance Services (the reported defect) resolves end to end
+  SELECT count(*) INTO n
+    FROM public.entity_licenses el
+    JOIN public.licenses li ON li.id = el.license_id
+   WHERE el.entity_id = '5c1a0009-0000-4000-8000-000000000009'
+     AND el.effective_to IS NULL
+     AND el.is_primary
+     AND li.status = 'active'
+     AND li.license_number = 'FSRA-SLU-2023-0009'
+     AND li.license_type IS NOT NULL
+     AND li.valid_until > now();
+  IF n <> 1 THEN
+    RAISE EXCEPTION 'G24 FAIL: Piton Finance Services canonical licence not resolvable (% rows)', n;
+  END IF;
+
+  -- G25 canonical attachment holder agrees with the licence holder (no cross-wiring)
+  SELECT count(*) INTO n
+    FROM public.entity_licenses el
+    JOIN public.licenses li ON li.id = el.license_id
+   WHERE el.entity_id::text LIKE '5c1a%'
+     AND li.holder_id IS DISTINCT FROM el.entity_id;
+  IF n <> 0 THEN
+    RAISE EXCEPTION 'G25 FAIL: % demo attachments disagree with licenses.holder_id', n;
+  END IF;
+
+  -- G26 exactly one current term per demo licence (append-only term mechanism intact)
+  SELECT count(*) INTO n
+    FROM public.licenses li
+   WHERE li.id::text LIKE '5c4000%'
+     AND (SELECT count(*) FROM public.license_terms t
+           WHERE t.license_id = li.id AND t.is_current) <> 1;
+  IF n <> 0 THEN
+    RAISE EXCEPTION 'G26 FAIL: % demo licences do not have exactly one current term', n;
+  END IF;
+
+  -- G27 no duplicate licence numbers anywhere (register uniqueness)
+  SELECT count(*) INTO n FROM (
+    SELECT license_number FROM public.licenses
+     WHERE license_number IS NOT NULL
+     GROUP BY license_number HAVING count(*) > 1
+  ) d;
+  IF n <> 0 THEN
+    RAISE EXCEPTION 'G27 FAIL: % duplicated licence numbers in the register', n;
+  END IF;
+
+  -- G28 no orphan canonical attachments for demo entities
+  SELECT count(*) INTO n
+    FROM public.entity_licenses el
+   WHERE el.entity_id::text LIKE '5c1a%'
+     AND NOT EXISTS (SELECT 1 FROM public.licenses li WHERE li.id = el.license_id);
+  IF n <> 0 THEN
+    RAISE EXCEPTION 'G28 FAIL: % orphan demo licence attachments', n;
+  END IF;
+
+  -- G29 the Entity 360 / directory DTO surfaces the licence for Piton Finance,
+  --     proving cross-screen consistency from the same canonical source.
+  SELECT count(*) INTO n
+    FROM jsonb_array_elements(
+           COALESCE(public.entity_registry_entity_dto('5c1a0009-0000-4000-8000-000000000009')->'licences','[]'::jsonb)) x
+   WHERE x->>'license_number' = 'FSRA-SLU-2023-0009';
+  IF n <> 1 THEN
+    RAISE EXCEPTION 'G29 FAIL: entity DTO does not surface the Piton licence (% rows)', n;
+  END IF;
+
+  RAISE NOTICE 'DEMO_SLU_FSRA_2026 SMOKE: 35/35 GATES PASSED (incl. G22-G29 licence visibility)';
 END $$;
 
 ROLLBACK;

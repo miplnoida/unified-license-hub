@@ -14,9 +14,25 @@ import { Building2, Search, Loader2, CheckCircle, ChevronLeft, ChevronRight, Bri
 import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
 import { useLicenseExpiryConfig } from '@/hooks/useLicenseExpiryConfig';
 
+/**
+ * CANONICAL LICENCE AUTHORITY
+ *
+ * `public.entity_licenses` is the ONLY authority for entity-to-licence
+ * relationships. `licensees.license_id` is deprecated and MUST NOT be read
+ * here: a row in `licensees` is an entity record, not proof of a regulatory
+ * licence, and `licensees.status` is not licence status.
+ *
+ * This screen therefore renders ONE ROW PER CANONICAL LICENCE ATTACHMENT, so
+ * an entity holding several licences appears once per licence. Entities with
+ * no canonical attachment are shown as "Not licensed" and never carry a
+ * licence status badge.
+ */
 interface LicenseeRow {
+  /** Stable row key — entity id plus licence id (multi-licence safe). */
+  rowKey: string;
   id: string;
   status: string;
+  licensed: boolean;
   sector_id: string | null;
   sub_sector_id: string | null;
   category_id: string | null;
@@ -26,6 +42,7 @@ interface LicenseeRow {
   licensee_name: string;
   contact_name: string;
   license_number: string;
+  license_type: string;
   sector_name: string;
   sub_sector_name: string;
   category_name: string;
@@ -33,6 +50,7 @@ interface LicenseeRow {
   application_id: string | null;
   valid_until: string | null;
 }
+
 
 function daysUntil(dateStr: string | null | undefined): number | null {
   if (!dateStr) return null;
@@ -69,15 +87,17 @@ export default function ManageLicensees() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const [licRes, secRes, subRes, catRes, licensesRes] = await Promise.all([
+      const [licRes, secRes, subRes, catRes, licensesRes, attachRes] = await Promise.all([
         supabase.from('licensees').select('*').order('created_at', { ascending: false }),
         supabase.from('sectors').select('id, name'),
         supabase.from('sub_sectors').select('id, name'),
         supabase.from('categories').select('id, name'),
-        supabase.from('licenses').select('id, application_id, license_number, status, valid_until'),
+        supabase.from('licenses').select('id, application_id, license_number, license_type, status, valid_until, holder_id'),
+        // CANONICAL authority for entity -> licence relationships.
+        supabase.from('entity_licenses').select('id, entity_id, license_id, effective_from, effective_to, is_primary'),
       ]);
 
-      const loadErrors = [licRes.error, secRes.error, subRes.error, catRes.error, licensesRes.error].filter(Boolean);
+      const loadErrors = [licRes.error, secRes.error, subRes.error, catRes.error, licensesRes.error, attachRes.error].filter(Boolean);
       if (loadErrors.length) {
         console.error('[ManageLicensees] Failed to load licensee list', loadErrors);
         setRows([]);
@@ -95,20 +115,30 @@ export default function ManageLicensees() {
       const cMap: LookupMap = {};
       (catRes.data || []).forEach(c => { cMap[c.id] = c.name; });
 
-      const licenseToApp: Record<string, string> = {};
-      const licenseToNumber: Record<string, string> = {};
-      const licenseToStatus: Record<string, string> = {};
-      const licenseToValidUntil: Record<string, string | null> = {};
-      (licensesRes.data || []).forEach((l: any) => {
-        if (l.application_id) licenseToApp[l.id] = l.application_id;
-        if (l.license_number) licenseToNumber[l.id] = l.license_number;
-        if (l.status) licenseToStatus[l.id] = l.status;
-        licenseToValidUntil[l.id] = l.valid_until ?? null;
+      interface LicenceRec {
+        id: string; application_id: string | null; license_number: string | null;
+        license_type: string | null; status: string | null; valid_until: string | null; holder_id: string | null;
+      }
+      const licenceById: Record<string, LicenceRec> = {};
+      (licensesRes.data || []).forEach((l: any) => { licenceById[l.id] = l as LicenceRec; });
+
+      // Current canonical attachments only, grouped per entity. Multiple
+      // licences per entity are fully supported: each becomes its own row.
+      const now = Date.now();
+      const attachmentsByEntity: Record<string, LicenceRec[]> = {};
+      (attachRes.data || []).forEach((a: any) => {
+        const licence = licenceById[a.license_id];
+        if (!licence) return; // orphan attachment — never presented
+        const to = a.effective_to ? new Date(a.effective_to).getTime() : null;
+        if (to !== null && to < now) return;
+        (attachmentsByEntity[a.entity_id] ||= []).push(licence);
       });
+      Object.values(attachmentsByEntity).forEach(list =>
+        list.sort((a, b) => (a.license_number || '').localeCompare(b.license_number || '')));
 
       const licensees = (licRes.data || []) as any[];
       const appIds = Array.from(new Set(
-        licensees.map(l => l.license_id ? licenseToApp[l.license_id] : null).filter(Boolean)
+        licensees.flatMap(l => (attachmentsByEntity[l.id] || []).map(x => x.application_id)).filter(Boolean)
       )) as string[];
 
       const appsMap: Record<string, any> = {};
@@ -141,8 +171,8 @@ export default function ManageLicensees() {
         (plRes.data || []).forEach((p: any) => { plMap[p.id] = p; });
       }
 
-      const enriched: LicenseeRow[] = licensees.map(l => {
-        const appId = l.license_id ? licenseToApp[l.license_id] : null;
+      const buildRow = (l: any, licence: LicenceRec | null): LicenseeRow => {
+        const appId = licence?.application_id ?? null;
         const app = appId ? appsMap[appId] : null;
         const reg = app?.applicant_id ? regMap[app.applicant_id] : null;
         const prof = app?.applicant_id ? profileMap[app.applicant_id] : null;
@@ -169,29 +199,36 @@ export default function ManageLicensees() {
         const subSectorId = l.sub_sector_id || data?.sub_sector_id || reg?.sub_sector_id;
         const categoryId = l.category_id || data?.category_id || reg?.category_id;
 
-        // License status (suspended/revoked/expired/active) is the source of truth
-        // for the licensee badge — the licensees.status row stays 'active' even
-        // after admins suspend/revoke the underlying license.
-        const effectiveStatus = (l.license_id && licenseToStatus[l.license_id]) || l.status;
+        // Licence status comes from licenses.status — NEVER licensees.status.
         return {
+          rowKey: licence ? `${l.id}:${licence.id}` : l.id,
           id: l.id,
-          status: effectiveStatus,
+          status: licence?.status || 'unlicensed',
+          licensed: !!licence,
           sector_id: l.sector_id,
           sub_sector_id: l.sub_sector_id,
           category_id: l.category_id,
-          license_id: l.license_id,
+          license_id: licence?.id ?? null,
           created_at: l.created_at,
           licensee_name: licenseeName,
           contact_name: contactName,
-          license_number: (l.license_id && licenseToNumber[l.license_id]) || '—',
+          license_number: licence?.license_number || '—',
+          license_type: licence?.license_type || '—',
           sector_name: (sectorId && sMap[sectorId]) || data?.sector_name || '—',
           sub_sector_name: (subSectorId && ssMap[subSectorId]) || data?.sub_sector_name || '—',
           category_name: (categoryId && cMap[categoryId]) || data?.category_name || '—',
           registered_at: reg?.created_at || app?.created_at || l.created_at,
           application_id: appId,
-          valid_until: (l.license_id && licenseToValidUntil[l.license_id]) || null,
+          valid_until: licence?.valid_until ?? null,
         };
+      };
+
+      const enriched: LicenseeRow[] = licensees.flatMap(l => {
+        const attachments = attachmentsByEntity[l.id] || [];
+        if (!attachments.length) return [buildRow(l, null)];
+        return attachments.map(licence => buildRow(l, licence));
       });
+
 
 
       setRows(enriched);
@@ -229,15 +266,22 @@ export default function ManageLicensees() {
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const activeCount = rows.filter(r => r.status === 'active').length;
+  // Licence-holder counts are derived from canonical attachments only.
+  const licensedRows = rows.filter(r => r.licensed);
+  const activeCount = licensedRows.filter(r => r.status === 'active').length;
+  const unlicensedCount = rows.length - licensedRows.length;
 
   const renderStatusCell = (row: LicenseeRow) => {
+    if (!row.licensed) {
+      return <Badge variant="outline" data-testid="status-unlicensed">Not licensed</Badge>;
+    }
     const grace = expiryConfig?.resolveFor({
       sector_id: row.sector_id,
       sub_sector_id: row.sub_sector_id,
       category_id: row.category_id,
     }).grace_period_days ?? 0;
     const days = daysUntil(row.valid_until);
+
     // Honor grace period: a license past valid_until but inside grace is still
     // "Active (Grace)", not "Expired". The shared LicenseStatusBadge resolves
     // this exactly like the rest of the app.
@@ -256,12 +300,13 @@ export default function ManageLicensees() {
       <div className="space-y-6">
         <PageHeader
           title="Licensee Entities"
-          description="Manage licensee organizations with registration and application details."
+          description="One row per canonical licence attachment. Entities without a licence in the canonical register are shown as Not licensed."
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard title="Total Licensees" value={rows.length} icon={<Briefcase className="h-6 w-6" />} />
-          <StatCard title="Active" value={activeCount} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <StatCard title="Licence Records" value={rows.length} icon={<Briefcase className="h-6 w-6" />} />
+          <StatCard title="Active Licences" value={activeCount} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
+          <StatCard title="Not Licensed" value={unlicensedCount} icon={<Briefcase className="h-6 w-6" />} />
           <StatCard title="Sectors" value={sectorList.length} icon={<Layers className="h-6 w-6" />} variant="primary" />
         </div>
 
@@ -315,7 +360,7 @@ export default function ManageLicensees() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Licensee Name</TableHead>
-                      <TableHead>License No.</TableHead>
+                      <TableHead>Licence No. / Type</TableHead>
                       <TableHead>Contact Name</TableHead>
                       <TableHead>Sector</TableHead>
                       <TableHead>Sub Sector</TableHead>
@@ -333,7 +378,7 @@ export default function ManageLicensees() {
                         </TableCell>
                       </TableRow>
                     ) : paged.map(row => (
-                      <TableRow key={row.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/entities/${row.id}`)}>
+                      <TableRow key={row.rowKey} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/entities/${row.id}`)}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -342,7 +387,12 @@ export default function ManageLicensees() {
                             <span className="font-medium text-foreground">{row.licensee_name}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm font-mono">{row.license_number}</TableCell>
+                        <TableCell className="text-sm font-mono" data-testid="licence-number">
+                          {row.license_number}
+                          {row.licensed && row.license_type !== '—' && (
+                            <div className="font-sans text-xs text-muted-foreground">{row.license_type}</div>
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm">{row.contact_name}</TableCell>
                         <TableCell className="text-sm">{row.sector_name}</TableCell>
                         <TableCell className="text-sm">{row.sub_sector_name}</TableCell>
