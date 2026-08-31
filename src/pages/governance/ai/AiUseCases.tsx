@@ -27,7 +27,7 @@ export default function AiUseCases() {
 
   const modelName = (id: string | null) => {
     const m = models.find((x) => x.id === id);
-    return m ? `${m.display_name}${m.model_version ? ` (${m.model_version})` : ''}` : 'Not bound';
+    return m ? `${m.governance_display_name}${m.governance_version_label ? ` (${m.governance_version_label})` : ''}` : 'Not bound';
   };
   const instructionName = (id: string | null) => {
     const i = instructions.find((x) => x.id === id);
