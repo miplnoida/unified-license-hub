@@ -454,7 +454,13 @@ export async function executeQuery(client: any, opts: RunOptions): Promise<RunRe
   // Resolve physical table/view from report_sources metadata. Fallback preserves
   // legacy behavior (users -> profiles) when metadata is missing.
   const meta = await loadSourceMeta(client, source);
-  const table = meta?.table_name || (source === 'users' ? 'profiles' : source);
+  // DCI-01: prudential breach reporting reads the canonical current-breach view
+  // so report totals match the Breach Inbox and supervisory dashboards.
+  const CANONICAL_RELATION: Record<string, string> = {
+    users: 'profiles',
+    return_threshold_breaches: 'v_prudential_current_breaches',
+  };
+  const table = meta?.table_name || CANONICAL_RELATION[source] || source;
   const effectiveLimit = Math.min(opts.limit ?? HARD_LIMIT, HARD_LIMIT);
 
   // Build a per-source filter map from metadata, falling back to hardcoded map.

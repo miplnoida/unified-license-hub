@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
       const entityReturnIds = (entityReturnRows ?? []).map((r: any) => r.id);
       let breachCount = 0;
       if (entityReturnIds.length > 0) {
-        const { count } = await supabase.from('return_threshold_breaches')
+        const { count } = await supabase.from('v_prudential_current_breaches')
           .select('id', { count: 'exact', head: true })
           .is('acknowledged_at', null)
           .in('return_id', entityReturnIds);

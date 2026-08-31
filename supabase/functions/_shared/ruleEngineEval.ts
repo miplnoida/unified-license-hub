@@ -233,7 +233,7 @@ export async function evaluateRule(supa: Any, rule: Any): Promise<Candidate[]> {
           cur.count++; counts.set(r.entity_id, cur);
         }
       } else if (eventType === 'threshold_breach') {
-        const { data, error } = await supa.from('return_threshold_breaches')
+        const { data, error } = await supa.from('v_prudential_current_breaches')
           .select('metric_key, detected_at, return_id')
           .gte('detected_at', since).limit(5000);
         if (error) throw new Error(error.message);

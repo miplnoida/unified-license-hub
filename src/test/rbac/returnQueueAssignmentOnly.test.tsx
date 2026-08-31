@@ -50,7 +50,9 @@ vi.mock('@/integrations/supabase/client', () => {
     if (table === 'return_configs') return chain(supabaseState.configs);
     return chain([]);
   };
-  return { supabase: { from: fromMock } };
+  // DCI-01: headline totals come from the canonical returns aggregate RPC.
+  return { supabase: { from: fromMock, rpc: async () => ({ data: {}, error: null }) } };
+
 });
 
 vi.mock('@/components/layout/DashboardLayout', () => ({

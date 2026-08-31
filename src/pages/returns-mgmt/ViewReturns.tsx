@@ -1,4 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
+import {
+  fetchCanonicalReturnsSummary,
+  type CanonicalReturnsSummary,
+} from '@/lib/returns/canonicalReturnsSummary';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -68,6 +72,11 @@ export default function ViewReturns() {
   const navigate = useNavigate();
   const adminBasePath = window.location.pathname.startsWith('/admin/returns/') ? '/admin/returns/queue' : '/returns-management';
   const [returns, setReturns] = useState<AdminReturnRow[]>([]);
+  // DCI-01: the headline totals on this legacy list are read from the canonical
+  // Returns aggregate (return_filings + v_return_filing_workflow_state) so they
+  // agree with the supervisory dashboards instead of being re-derived from the
+  // legacy rows rendered below.
+  const [canonicalSummary, setCanonicalSummary] = useState<CanonicalReturnsSummary | null>(null);
   const [dueSoonReturns, setDueSoonReturns] = useState<AdminReturnRow[]>([]);
   const [configs, setConfigs] = useState<Array<{ id: string; name: string }>>([]);
   const [licensees, setLicensees] = useState<Array<{ id: string; name: string }>>([]);
@@ -125,6 +134,8 @@ export default function ViewReturns() {
         }));
         setReturns(mapped);
       }
+      setCanonicalSummary(await fetchCanonicalReturnsSummary(null));
+      if (cancelled) return;
       if (!confRes.error) setConfigs(confRes.data || []);
       if (!licRes.error) setLicensees(licRes.data || []);
       setLoading(false);
@@ -216,9 +227,10 @@ export default function ViewReturns() {
   const { byEntityId: totalSlaByReturn } = useWorkflowTotalSla({ entityType: 'return', entityIds: pagedIds });
 
   const today = todayDateIso();
-  const accepted = processedReturns.filter(r => getAdminReturnDisplayStatus(r, today) === 'accepted').length;
-  const submitted = processedReturns.filter(r => getAdminReturnDisplayStatus(r, today) === 'submitted').length;
-  const overdue = processedReturns.filter(r => getAdminReturnDisplayStatus(r, today) === 'overdue').length;
+  const accepted = canonicalSummary?.accepted ?? 0;
+  const submitted = canonicalSummary?.pending_review ?? 0;
+  const overdue = canonicalSummary?.overdue ?? 0;
+  const totalSubmitted = canonicalSummary?.submitted ?? 0;
 
   return (
     <DashboardLayout>
@@ -234,7 +246,7 @@ export default function ViewReturns() {
         />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard title="Total Submitted" value={processedReturns.length} icon={<ClipboardList className="h-6 w-6" />} />
+          <StatCard title="Total Submitted" value={totalSubmitted} icon={<ClipboardList className="h-6 w-6" />} />
           <StatCard title="Accepted" value={accepted} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
           <StatCard title="Awaiting Review" value={submitted} icon={<Clock className="h-6 w-6" />} variant="warning" />
           <StatCard title="Overdue" value={overdue} icon={<AlertTriangle className="h-6 w-6" />} variant="danger" />

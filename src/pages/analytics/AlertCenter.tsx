@@ -79,7 +79,7 @@ export default function AlertCenter() {
       const [breaches, enforcement, complaints, risk, inspections, returns, fpMonitor] =
         await Promise.all([
           // Canonical breach columns: risk_level / detected_at / metric_key / value.
-          (supabase.from('return_threshold_breaches') as any)
+          (supabase.from('v_prudential_current_breaches') as any)
             .select('id, risk_level, detected_at, acknowledged_at, metric_key, value, threshold_value')
             .is('acknowledged_at', null)
             .order('detected_at', { ascending: false })

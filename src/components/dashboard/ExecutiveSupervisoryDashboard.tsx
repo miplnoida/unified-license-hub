@@ -6,6 +6,11 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchCanonicalReturnsSummary } from '@/lib/returns/canonicalReturnsSummary';
 import {
+  isOpenComplaint,
+  isOpenPrudentialAction,
+  isOpenPrudentialEscalation,
+} from '@/lib/supervision/canonicalStatusPredicates';
+import {
   Loader2,
   FileText,
   Award,
@@ -114,10 +119,14 @@ export function ExecutiveSupervisoryDashboard() {
         prudentialActions,
         prudentialEscalations,
         conductAlerts,
+        appQueueCounts,
+        complaintCounts,
       ] = await Promise.all([
         supabase.from('applications').select('id, status, created_at', { count: 'exact' }),
         supabase.from('licenses').select('id, status', { count: 'exact' }),
-        (supabase.from('return_threshold_breaches') as any).select(
+        // DCI-01: canonical breach surface — latest detection run per filing version,
+        // withdrawn filings excluded. Same source as the Breach Inbox.
+        (supabase.from('v_prudential_current_breaches') as any).select(
           'id, acknowledged_at, risk_level, detected_at',
         ),
         supabase.from('enforcement_actions').select('id, status, penalty_amount, penalty_paid_amount, created_at'),
@@ -133,6 +142,11 @@ export function ExecutiveSupervisoryDashboard() {
         (supabase.from('prudential_actions') as any).select('id, status', { count: 'exact' }),
         (supabase.from('prudential_escalations') as any).select('id, status', { count: 'exact' }),
         (supabase.from('conduct_alerts') as any).select('id, status', { count: 'exact' }),
+        // DCI-01: headline "open" totals come from the canonical server-side
+        // aggregates that the Applications work queue and Complaints module
+        // already use, so the same figure cannot differ between screens.
+        supabase.rpc('application_work_queue_counts' as any, {}),
+        supabase.rpc('complaints_dashboard_counts' as any, {}),
       ]);
 
       return {
@@ -150,6 +164,8 @@ export function ExecutiveSupervisoryDashboard() {
         prudentialActions: (prudentialActions.data || []) as any[],
         prudentialEscalations: (prudentialEscalations.data || []) as any[],
         conductAlerts: (conductAlerts.data || []) as any[],
+        appQueueCounts: (appQueueCounts.data || null) as any,
+        complaintCounts: (complaintCounts.data || null) as any,
       };
     },
     refetchInterval: 60_000,
@@ -157,9 +173,8 @@ export function ExecutiveSupervisoryDashboard() {
 
   const stats = useMemo(() => {
     if (!data) return null;
-    const openApps = data.apps.filter((a: any) =>
-      ['submitted', 'under_review', 'rfi_raised', 'assigned'].includes(a.status),
-    ).length;
+    // DCI-01: canonical open-application total (stage machine, drafts excluded).
+    const openApps = Number(data.appQueueCounts?.total_open ?? 0);
     const activeLicenses = data.licenses.filter((l: any) => l.status === 'active').length;
     const openBreaches = data.breaches.filter((b: any) => !b.acknowledged_at).length;
     const openEnforcement = data.enforcement.filter((e: any) =>
@@ -176,17 +191,18 @@ export function ExecutiveSupervisoryDashboard() {
     const upcomingInspections = data.inspections.filter(
       (i: any) => i.status === 'scheduled' && i.scheduled_date && new Date(i.scheduled_date) >= new Date(),
     ).length;
-    const openComplaints = data.complaints.filter((c: any) =>
-      ['open', 'investigating', 'pending'].includes(c.status),
-    ).length;
+    // DCI-01: canonical open-complaint total (anything not closed/resolved).
+    const openComplaints = Number(
+      data.complaintCounts?.open ?? data.complaints.filter((c: any) => isOpenComplaint(c.status)).length,
+    );
     const fpActive = data.fpInd.filter((f: any) => f.status === 'active').length;
     const criticalRisk = data.risk.filter((r: any) => r.band === 'critical').length;
     const highRisk = data.risk.filter((r: any) => r.band === 'high').length;
     const prudentialOpenActions = data.prudentialActions.filter((a: any) =>
-      ['open', 'overdue'].includes(a.status),
+      isOpenPrudentialAction(a.status),
     ).length;
     const prudentialOpenEscalations = data.prudentialEscalations.filter((e: any) =>
-      ['open', 'under_review'].includes(e.status),
+      isOpenPrudentialEscalation(e.status),
     ).length;
     const conductOpenAlerts = data.conductAlerts.filter((a: any) => a.status === 'open').length;
 
