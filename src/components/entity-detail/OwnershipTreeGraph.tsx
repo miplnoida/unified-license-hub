@@ -83,6 +83,7 @@ function nodeTone(n: Laid) {
 
 export function OwnershipTreeGraph({ root, rootLabel }: { root: TreeNode; rootLabel?: string }) {
   const [zoom, setZoom] = useState(1);
+  const navigate = useNavigate();
   const { laid, flat, width, height } = useMemo(() => layout(root), [root]);
 
   const links = useMemo(() => {
