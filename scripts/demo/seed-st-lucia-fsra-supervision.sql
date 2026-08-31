@@ -104,14 +104,14 @@ END $$;
 -- Actions tab never quotes a period whose ratios are not displayable.
 UPDATE public.prudential_actions
    SET source_id = '5c300011-0000-4000-8000-000000000011',
-       title = 'Liquidity remediation plan required (2025-Q3 liquidity ratio 14.5%)',
+       title = '[Superseded record retained on file] Liquidity remediation plan (2025-Q4 v1)',
        description = 'Superseded demonstration record — see PA-2026-0001.',
        status = 'completed', progress_percent = 100, review_status = 'accepted',
        action_reference = 'PA-2026-0001-R'
  WHERE id = '5c310001-0000-4000-8000-000000000001';
 UPDATE public.prudential_actions
    SET source_id = '5c300012-0000-4000-8000-000000000012',
-       title = 'Explanation of rising non-performing loans (2025-Q3 NPL ratio 5.8%)',
+       title = '[Superseded record retained on file] Non-performing loan explanation (2025-Q4 v1)',
        description = 'Superseded demonstration record — see PA-2026-0002.',
        status = 'completed', progress_percent = 100, review_status = 'accepted',
        action_reference = 'PA-2026-0002-R'
