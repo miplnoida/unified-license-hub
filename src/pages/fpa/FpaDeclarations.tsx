@@ -515,7 +515,7 @@ export default function FpaDeclarations() {
 
       return { rawToken, emailSent, recipientEmail: recipientEmail.trim() };
     },
-    onSuccess: ({ rawToken, emailSent, recipientEmail: toEmail }: { rawToken: string; emailSent: boolean; recipientEmail: string }) => {
+    onSuccess: async ({ rawToken, emailSent, recipientEmail: toEmail }: { rawToken: string; emailSent: boolean; recipientEmail: string }) => {
       if (toEmail && !emailSent) {
         toast.warning('Invitation created but email could not be sent — SMTP may not be configured. Share the portal link below manually.');
       } else {
