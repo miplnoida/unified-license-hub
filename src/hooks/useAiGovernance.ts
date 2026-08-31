@@ -130,7 +130,7 @@ export function useAiActivity(f: ActivityFilters = {}) {
   return useQuery({
     queryKey: ['ai-gov-activity', f],
     queryFn: async () => {
-      let q = sb.from('ai_governance_activity_v').select('*').order('occurred_at', { ascending: false });
+      let q = sb.from('ai_governance_activity_presentation_v').select('*').order('occurred_at', { ascending: false });
       if (f.from) q = q.gte('occurred_at', f.from);
       if (f.to) q = q.lte('occurred_at', f.to);
       if (f.useCaseCode) q = q.eq('use_case_code', f.useCaseCode);
@@ -217,7 +217,7 @@ export function useAiModels() {
   return useQuery({
     queryKey: ['ai-gov-models'],
     queryFn: async () => {
-      const { data, error } = await sb.from('ai_governance_models').select('*').order('display_name');
+      const { data, error } = await sb.from('ai_governance_models_presentation_v').select('*').order('governance_display_name');
       if (error) throw new Error(error.message);
       return (data ?? []) as ModelRow[];
     },
@@ -494,7 +494,7 @@ export function useConductAiInsight(id?: string | null) {
     queryKey: ['ai-gov-insight', id],
     enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await sb.from('conduct_ai_insights').select('*').eq('id', id).maybeSingle();
+      const { data, error } = await sb.from('conduct_ai_insights_presentation_v').select('*').eq('id', id).maybeSingle();
       if (error) throw new Error(error.message);
       return (data ?? null) as InsightDetail | null;
     },
@@ -534,7 +534,7 @@ export function useAiAttempt(id?: string | null) {
     queryKey: ['ai-gov-attempt', id],
     enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await sb.from('ai_governance_activity_attempts')
+      const { data, error } = await sb.from('ai_governance_attempts_presentation_v')
         .select('*').eq('id', id).maybeSingle();
       if (error) throw new Error(error.message);
       return (data ?? null) as AttemptDetail | null;
@@ -548,7 +548,7 @@ export function useAttemptsForInsight(insightId?: string | null) {
     queryKey: ['ai-gov-attempts-insight', insightId],
     enabled: !!insightId,
     queryFn: async () => {
-      const { data, error } = await sb.from('ai_governance_activity_attempts')
+      const { data, error } = await sb.from('ai_governance_attempts_presentation_v')
         .select('*').eq('conduct_ai_insight_id', insightId).order('requested_at', { ascending: true });
       if (error) throw new Error(error.message);
       return (data ?? []) as AttemptDetail[];
