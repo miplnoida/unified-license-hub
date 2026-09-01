@@ -23,7 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
 import { applicationDraftSave, applicationClassificationUpdate } from '@/lib/applicationGovernedOps';
 import { toast } from 'sonner';
-import { getApplicationStatusLabel, markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/lib/applicationStatus';
+import { getApplicationStatusLabel, isApplicationEditable, markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/lib/applicationStatus';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, FileText, Upload, Loader2,
   Building2, Layers, Tag, ClipboardList, Paperclip, Send, Clock, PlayCircle,
