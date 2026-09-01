@@ -24,10 +24,10 @@ interface SmtpConfig {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
 
   const __authzGate = await requireUserPermission(req, "notification_management", "test_send");
   if (!__authzGate.ok) return __authzGate.response;
-  }
 
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), {

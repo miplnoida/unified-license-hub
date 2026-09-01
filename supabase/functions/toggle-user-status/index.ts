@@ -9,10 +9,10 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
 
   const __authzGate = await requireUserPermission(req, "user_management", "edit");
   if (!__authzGate.ok) return __authzGate.response;
-  }
 
   try {
     const supabaseAdmin = createClient(

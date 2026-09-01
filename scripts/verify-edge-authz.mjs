@@ -30,13 +30,45 @@ const CLASSES = {
   public: ['markPublicFunction'],
 };
 const missing = [];
+const malformed = [];
 const summary = { user: 0, worker: 0, webhook: 0, machine: 0, public: 0 };
+
+function findOptionsBlock(source) {
+  const match = /if\s*\(\s*req\.method\s*===?\s*['"]OPTIONS['"]\s*\)\s*\{/.exec(source);
+  if (!match) return null;
+
+  const open = source.indexOf('{', match.index);
+  let depth = 0;
+  let quote = null;
+  let escaped = false;
+  for (let i = open; i < source.length; i++) {
+    const char = source[i];
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === quote) quote = null;
+      continue;
+    }
+    if (char === "'" || char === '"' || char === '`') {
+      quote = char;
+      continue;
+    }
+    if (char === '{') depth++;
+    if (char === '}' && --depth === 0) return source.slice(open, i + 1);
+  }
+  return null;
+}
 
 for (const name of readdirSync(ROOT)) {
   if (name.startsWith('_') || name === 'node_modules') continue;
   const idx = join(ROOT, name, 'index.ts');
   try { if (!statSync(idx).isFile()) continue; } catch { continue; }
   const src = readFileSync(idx, 'utf8');
+  const optionsBlock = findOptionsBlock(src);
+  if (optionsBlock) {
+    const gateMarkers = Object.values(CLASSES).flat().filter((marker) => marker !== 'markPublicFunction');
+    if (gateMarkers.some((marker) => optionsBlock.includes(`${marker}(`))) malformed.push(name);
+  }
   const kinds = Object.entries(CLASSES)
     .filter(([, markers]) => markers.some((m) => src.includes(m)))
     .map(([kind]) => kind);
@@ -51,6 +83,11 @@ console.log(
 if (missing.length) {
   console.error(`FAIL — ${missing.length} function(s) lack any authorization marker:`);
   for (const n of missing) console.error(`  - ${n}`);
+  process.exit(1);
+}
+if (malformed.length) {
+  console.error(`FAIL — ${malformed.length} function(s) place an authorization gate inside OPTIONS:`);
+  for (const n of malformed) console.error(`  - ${n}`);
   process.exit(1);
 }
 console.log('OK — every function is gated.');
