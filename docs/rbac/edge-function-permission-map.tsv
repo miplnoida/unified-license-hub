@@ -61,5 +61,5 @@ sign-license-certificate	user	license_management	manage_certificates	recordId	Of
 sla-escalation-sweep	worker	-	-	-	SLA escalation sweep.
 test-smtp-email	user	notification_management	test_send	-	Admin SMTP diagnostic.
 toggle-user-status	user	user_management	edit	licenseeId	Enable/disable licensee web user.
-verify-and-submit	user	licensing	submit	recordId	Final application submission.
+verify-and-submit	user	—	—	recordId	Authenticated final application submission; authority enforced by can_submit_application and the governed submission transaction.
 verify-registration-otp	public	-	-	-	Public OTP verify.

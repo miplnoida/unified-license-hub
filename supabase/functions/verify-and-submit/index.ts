@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { requireUserPermission } from "../_shared/authz.ts";
+import { requireAuthenticatedUser } from "../_shared/authz.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,7 +12,10 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const __authzGate = await requireUserPermission(req, "licensing", "submit");
+  // Applicants do not hold internal staff RBAC permissions. Authenticate the
+  // caller here, then enforce submission authority against the application
+  // through can_submit_application below and the governed submission RPC.
+  const __authzGate = await requireAuthenticatedUser(req);
   if (!__authzGate.ok) return __authzGate.response;
 
   try {
