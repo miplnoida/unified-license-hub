@@ -11,7 +11,7 @@ const DEFAULT_ALLOWED_PATTERNS: RegExp[] = [
   /^https:\/\/([a-z0-9-]+\.)*lovable\.app$/,
   /^https:\/\/([a-z0-9-]+\.)*lovableproject\.com$/,
   /^https:\/\/([a-z0-9-]+\.)*lovable\.dev$/,
-  /^https:\/\/boj\.skntreasury\.com$/,
+  /^https:\/\/([a-z0-9-]+\.)*mishainfotech\.com$/,
 ];
 
 function getEnvAllowedOrigins(): (string | RegExp)[] {
