@@ -76,6 +76,29 @@ const hasNonEmptyFormData = (data?: Record<string, any> | null) => (
   !!data && typeof data === 'object' && Object.keys(data).length > 0
 );
 
+/**
+ * Translate governed-server codes into plain language so raw codes such as
+ * APPLICATION_NOT_EDITABLE never reach the applicant.
+ */
+const friendlyApplicationError = (raw: unknown, fallback = 'Something went wrong. Please try again.') => {
+  const message = String((raw as { message?: string } | null)?.message ?? raw ?? '').trim();
+  if (!message) return fallback;
+  if (/APPLICATION_NOT_EDITABLE/i.test(message)) {
+    return 'This request is closed (withdrawn, decided or already submitted) and can no longer be edited. Please start a new request.';
+  }
+  if (/APPLICATION_EDIT_FORBIDDEN|APPLICATION_ACCESS_DENIED/i.test(message)) {
+    return 'You do not have permission to edit this request.';
+  }
+  if (/AUTH_REQUIRED/i.test(message)) {
+    return 'Your session has expired. Please sign in again and retry.';
+  }
+  if (/APPLICATION_NOT_FOUND/i.test(message)) {
+    return 'This request could not be found. Please start a new request.';
+  }
+  return message.replace(/^[A-Z0-9_]+:\s*/, '');
+};
+
+
 const WIZARD_STEPS: { key: WizardStep; label: string; icon: React.ReactNode }[] = [
   { key: 'selection', label: 'Select Category', icon: <Layers className="h-4 w-4" /> },
   { key: 'forms', label: 'Required Forms', icon: <ClipboardList className="h-4 w-4" /> },
