@@ -1828,6 +1828,17 @@ export default function NewApplication() {
           </Card>
         )}
 
+        {closedApplicationNotice && !hydratingDraft && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-foreground flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+            <span>
+              Your earlier request <span className="font-mono">{closedApplicationNotice.reference}</span> is{' '}
+              {getApplicationStatusLabel(closedApplicationNotice.status).toLowerCase()} and can no longer be edited.
+              Start a new request below — you can still view the earlier one from My Applications.
+            </span>
+          </div>
+        )}
+
         {/* Persistent banner: shown for the entire continue-draft session,
             not just on the selection step, and survives page reloads since
             it is keyed off the URL ?draft=… param. */}
