@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS public.registration_licensing_handoffs_registration_uk;
