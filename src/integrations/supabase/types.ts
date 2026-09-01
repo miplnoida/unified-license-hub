@@ -47213,6 +47213,10 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      application_reconcile_form_requirements: {
+        Args: { _application_id: string }
+        Returns: number
+      }
       application_record_action: {
         Args: {
           _action: string
