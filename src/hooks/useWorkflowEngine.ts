@@ -706,8 +706,21 @@ export function usePerformAction() {
           };
 
       const { data, error } = await supabase.functions.invoke(fnName, { body });
-      if (error) throw new Error(error.message || 'Action failed');
-      if ((data as any)?.error) throw new Error((data as any).error);
+      if (error) {
+        // Business refusals (e.g. licensing readiness) arrive as non-2xx with a
+        // structured JSON body; the SDK error message alone is not actionable.
+        let payload: any = null;
+        try {
+          payload = await (error as any)?.context?.json?.();
+        } catch {
+          payload = null;
+        }
+        throw new Error(describeWorkflowActionFailure(payload, error.message));
+      }
+      if ((data as any)?.error) {
+        throw new Error(describeWorkflowActionFailure(data, (data as any).error));
+      }
+
       await logAudit({
         action: `workflow_${params.action_type}`,
         entityType: 'workflow_instance',
