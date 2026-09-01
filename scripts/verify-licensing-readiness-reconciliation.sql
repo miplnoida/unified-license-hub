@@ -76,7 +76,7 @@ BEGIN
   IF v_app IS NULL THEN RAISE NOTICE 'G3 SKIP: no applications'; RETURN; END IF;
 
   SELECT v.id, v.template_id INTO v_version, v_template
-    FROM public.application_form_versions v
+    FROM public.form_versions v
     JOIN public.form_templates t ON t.id = v.template_id
    ORDER BY v.created_at LIMIT 1;
   IF v_version IS NULL THEN RAISE NOTICE 'G3 SKIP: no form versions'; RETURN; END IF;
