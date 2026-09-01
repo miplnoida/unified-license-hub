@@ -675,6 +675,9 @@ export default function NewApplication() {
   const hasHydratedRef = useRef(false);
   const hasUserInteractedRef = useRef(false);
   const [hydratingDraft, setHydratingDraft] = useState(false);
+  const [closedApplicationNotice, setClosedApplicationNotice] = useState<
+    { reference: string; status: string } | null
+  >(null);
   useEffect(() => {
     if (hasHydratedRef.current) return;
     if (!user) return;
@@ -699,9 +702,29 @@ export default function NewApplication() {
           .eq('id', targetDraftId)
           .maybeSingle();
 
-
+        // Withdrawn / rejected / approved / cancelled / already-submitted
+        // applications can never be edited again. Do NOT bind the wizard to
+        // them — otherwise every save goes back into the closed record and the
+        // server correctly refuses it (APPLICATION_NOT_EDITABLE). Start a
+        // clean application instead so the applicant can pick a new sector.
+        if (draft && !isApplicationEditable((draft as any).status)) {
+          const closedStatus = normalizeApplicationStatus((draft as any).status);
+          setClosedApplicationNotice({
+            reference: (draft as any).application_number || (draft as any).id,
+            status: closedStatus,
+          });
+          setCurrentStep('selection');
+          const params = new URLSearchParams(window.location.search);
+          params.delete('draft');
+          params.delete('step');
+          params.delete('mode');
+          const query = params.toString();
+          navigate(query ? `${location.pathname}?${query}` : location.pathname, { replace: true });
+          return;
+        }
 
         if (draft) {
+
           const d = ((draft as any).data || {}) as Record<string, any>;
           latestDraftDataRef.current = d;
           setApplicationId((draft as any).id);
