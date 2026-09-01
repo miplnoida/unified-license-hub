@@ -664,6 +664,27 @@ export function useStartWorkflow() {
  * Backward compat: callers that pass only `application_id` are treated as
  * application actions, preserving the original signature.
  */
+/**
+ * Turns a structured edge-function refusal into an actionable message.
+ * Readiness gates report per-gate states; we list the ones that are blocking.
+ */
+function describeWorkflowActionFailure(payload: any, fallback?: string): string {
+  const base: string =
+    payload?.error || fallback || 'Action failed';
+  const gates: any[] = Array.isArray(payload?.readiness?.gates)
+    ? payload.readiness.gates
+    : [];
+  const blocking = gates
+    .filter((g) => !['PASS', 'NOT_APPLICABLE'].includes(String(g?.state || '')))
+    .map((g) => {
+      const name = String(g?.gate || 'requirement').replace(/_/g, ' ');
+      const reason = g?.reason || g?.detail?.reason || String(g?.state || '');
+      return `${name}: ${reason}`;
+    });
+  if (blocking.length === 0) return base;
+  return `${base} — ${blocking.join('; ')}`;
+}
+
 export function usePerformAction() {
   const qc = useQueryClient();
   return useMutation({
@@ -706,8 +727,21 @@ export function usePerformAction() {
           };
 
       const { data, error } = await supabase.functions.invoke(fnName, { body });
-      if (error) throw new Error(error.message || 'Action failed');
-      if ((data as any)?.error) throw new Error((data as any).error);
+      if (error) {
+        // Business refusals (e.g. licensing readiness) arrive as non-2xx with a
+        // structured JSON body; the SDK error message alone is not actionable.
+        let payload: any = null;
+        try {
+          payload = await (error as any)?.context?.json?.();
+        } catch {
+          payload = null;
+        }
+        throw new Error(describeWorkflowActionFailure(payload, error.message));
+      }
+      if ((data as any)?.error) {
+        throw new Error(describeWorkflowActionFailure(data, (data as any).error));
+      }
+
       await logAudit({
         action: `workflow_${params.action_type}`,
         entityType: 'workflow_instance',
