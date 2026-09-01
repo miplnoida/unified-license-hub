@@ -35,4 +35,24 @@ describe('NewApplication — closed application must not bind the wizard', () =>
     expect(source).not.toContain("toast.error(error?.message || 'Failed to save draft')");
     expect(source).not.toContain("toast.error(error?.message || 'Failed to save form')");
   });
+
+  it('revalidates a stale payment-page session before invoking final submission', () => {
+    const handlerStart = source.indexOf('const handleFinalSubmit = async');
+    const invokeIndex = source.indexOf("supabase.functions.invoke('verify-and-submit'", handlerStart);
+    const statusCheckIndex = source.indexOf(".select('id, application_number, status')", handlerStart);
+    const staleGuardIndex = source.indexOf('!isApplicationEditable(currentApplication.status)', handlerStart);
+    const detachIndex = source.indexOf('setApplicationId(null)', staleGuardIndex);
+
+    expect(handlerStart).toBeGreaterThan(-1);
+    expect(statusCheckIndex).toBeGreaterThan(handlerStart);
+    expect(staleGuardIndex).toBeGreaterThan(statusCheckIndex);
+    expect(detachIndex).toBeGreaterThan(staleGuardIndex);
+    expect(invokeIndex).toBeGreaterThan(detachIndex);
+  });
+
+  it('extracts structured function errors before showing the fallback SDK message', () => {
+    expect(source).toContain('edgeFunctionErrorDetail');
+    expect(source).toContain('response.clone().json()');
+    expect(source).toContain("data.code ? `${data.code}: ${data.error}` : data.error");
+  });
 });

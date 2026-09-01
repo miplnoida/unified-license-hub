@@ -98,8 +98,11 @@ Deno.serve(async (req) => {
 
     if (app.status !== "draft" && app.status !== "in_progress" && !isResubmission) {
       return new Response(
-        JSON.stringify({ error: `Application is already ${app.status}, cannot submit` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: `This application is ${app.status} and is not open for submission. Please start a new application.`,
+          code: "APPLICATION_NOT_EDITABLE",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

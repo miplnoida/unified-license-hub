@@ -98,6 +98,20 @@ const friendlyApplicationError = (raw: unknown, fallback = 'Something went wrong
   return message.replace(/^[A-Z0-9_]+:\s*/, '');
 };
 
+const edgeFunctionErrorDetail = async (error: unknown) => {
+  const response = (error as { context?: Response } | null)?.context;
+  if (!(response instanceof Response)) return error;
+  try {
+    const payload = await response.clone().json() as { error?: string; code?: string };
+    if (payload.error || payload.code) {
+      return `${payload.code ? `${payload.code}: ` : ''}${payload.error || ''}`;
+    }
+  } catch {
+    // Fall back to the SDK error when the response is not JSON.
+  }
+  return error;
+};
+
 
 const WIZARD_STEPS: { key: WizardStep; label: string; icon: React.ReactNode }[] = [
   { key: 'selection', label: 'Select Category', icon: <Layers className="h-4 w-4" /> },
@@ -1693,20 +1707,63 @@ export default function NewApplication() {
     setSubmitting(true);
 
     try {
+      // Re-check immediately before submission. A wizard may have remained
+      // open while the underlying application was withdrawn or otherwise
+      // closed, so the load-time hydration guard alone is not sufficient.
+      const { data: currentApplication, error: statusError } = await supabase
+        .from('applications')
+        .select('id, application_number, status')
+        .eq('id', applicationId)
+        .maybeSingle();
+
+      if (statusError) throw statusError;
+
+      if (!currentApplication || !isApplicationEditable(currentApplication.status)) {
+        const closedStatus = normalizeApplicationStatus(currentApplication?.status || 'closed');
+        setClosedApplicationNotice({
+          reference: currentApplication?.application_number || applicationId,
+          status: closedStatus,
+        });
+        setApplicationId(null);
+        setAppStatus('draft');
+        setCurrentStep('selection');
+        setActiveFormTemplateId(null);
+        setSelectedSector('');
+        setSelectedSubSector('');
+        setSelectedCategory('');
+        setFormProgressMap({});
+        setHydratedDraftTemplates([]);
+        setPaymentStatus('pending');
+        setPaymentId(null);
+        setPaymentReceiptNumber(null);
+        setHasSuccessfulPaymentRecord(false);
+        setFeeAmount(0);
+        setFeeBreakdown([]);
+        latestDraftDataRef.current = {};
+
+        const params = new URLSearchParams(window.location.search);
+        params.delete('draft');
+        params.delete('step');
+        params.delete('mode');
+        const query = params.toString();
+        navigate(query ? `${location.pathname}?${query}` : location.pathname, { replace: true });
+        toast.error('This request is closed and cannot be submitted. Please start a new request.');
+        return;
+      }
+
       // Use server-side edge function for secure submission
       const { data, error } = await supabase.functions.invoke('verify-and-submit', {
         body: { application_id: applicationId, ack_text: ackText },
       });
 
       if (error) {
-        toast.error('Submission failed: ' + friendlyApplicationError(error, 'Server error'));
-        setSubmitting(false);
+        const detail = await edgeFunctionErrorDetail(error);
+        toast.error('Submission failed: ' + friendlyApplicationError(detail, 'Server error'));
         return;
       }
 
       if (data?.error) {
-        toast.error(friendlyApplicationError(data.error));
-        setSubmitting(false);
+        toast.error(friendlyApplicationError(data.code ? `${data.code}: ${data.error}` : data.error));
         return;
       }
 
