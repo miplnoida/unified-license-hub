@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
-import { useWorkflow, useWorkflowSteps, useWorkflowInstances, type WorkflowActionType } from '@/hooks/useWorkflowEngine';
+import { useWorkflow, useWorkflowSteps, useWorkflowInstances, describeWorkflowActionFailure, type WorkflowActionType } from '@/hooks/useWorkflowEngine';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
@@ -843,18 +843,18 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       const { data, error } = await supabase.functions.invoke(fnName, { body });
 
       if (error) {
-        let serverMsg = error.message || 'Action failed';
+        let serverPayload: any = null;
         try {
           const ctx = (error as any).context;
-          if (ctx && typeof ctx.json === 'function') {
-            const eb = await ctx.json();
-            if (eb?.error) serverMsg = eb.error;
-          }
+          if (ctx && typeof ctx.json === 'function') serverPayload = await ctx.json();
         } catch { /* ignore */ }
-        toast.error(serverMsg);
+        toast.error(describeWorkflowActionFailure(serverPayload, error.message), { duration: 12000 });
         return;
       }
-      if (data?.error) { toast.error(data.error); return; }
+      if (data?.error) {
+        toast.error(describeWorkflowActionFailure(data, data.error), { duration: 12000 });
+        return;
+      }
 
       if (entityType === 'application' && actionType === 'escalate') {
         const { error: rpcError } = await supabase.rpc('escalate_application', {
