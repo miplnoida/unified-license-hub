@@ -15,6 +15,16 @@ Deno.test("verify-and-submit: uses authentication plus record-level submission a
   assertEquals(source.includes('requireUserPermission(req, "licensing", "submit")'), false);
 });
 
+Deno.test("verify-and-submit: closed applications return a structured business response", async () => {
+  const source = await Deno.readTextFile(new URL("./index.ts", import.meta.url));
+  const closedGuard = source.slice(
+    source.indexOf('if (app.status !== "draft"'),
+    source.indexOf("// 1a. LICENCE ENTITLEMENT"),
+  );
+  assertStringIncludes(closedGuard, 'code: "APPLICATION_NOT_EDITABLE"');
+  assertStringIncludes(closedGuard, "status: 200");
+});
+
 Deno.test("verify-and-submit: rejects requests without an Authorization bearer", async () => {
   const req = new Request("http://localhost/verify-and-submit", {
     method: "POST",
