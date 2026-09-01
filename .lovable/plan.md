@@ -1,8 +1,8 @@
-# Fix "Submission failed: Edge Function returned a non-2xx status code" on final submission
+# Fix pre-license final-submission authorization regression
 
-## Why it broke now
+## Confirmed root cause
 
-The final-submission function `verify-and-submit` has its permission gate written **inside** the CORS preflight block, after that block's `return`:
+`verify-and-submit` has its `requireUserPermission(req, "licensing", "submit")` gate inside the CORS preflight block, after its unconditional return:
 
 ```text
 if (req.method === "OPTIONS") {
@@ -13,29 +13,29 @@ if (req.method === "OPTIONS") {
 }
 ```
 
-Two consequences, both confirmed by reading the file:
+Consequences confirmed from the current source:
 
 1. The gate never runs, so `__authzGate` is never defined — but the main body still uses it (`__authzGate.userId`, `__authzGate.email`). That throws a reference error on **every** real POST, which the outer `catch` converts into an HTTP 500. The client sees exactly "Edge Function returned a non-2xx status code".
-2. Because the gate is unreachable, the function also lost its `licensing.submit` authorization check.
+2. Because the gate is unreachable, normal requests also fail to enforce the intended `licensing.submit` permission at that location.
 
-This is a regression introduced when the centralized authorization markers were inserted — the marker landed one brace too deep. It worked earlier because previously the identity came from a call that actually executed.
+A structural scan of every `supabase/functions/*/index.ts` confirmed exactly seven malformed occurrences. In addition to `verify-and-submit`, they are `list-web-users`, `manage-web-user`, `toggle-user-status`, `test-smtp-email`, `process-queue`, and `rfi-near-due-sweep`. No correctly placed gate will be changed.
 
-The same misplacement exists in six more functions, so the fix is applied as a class, not a one-off:
-`list-web-users`, `manage-web-user`, `toggle-user-status`, `test-smtp-email`, `process-queue`, `rfi-near-due-sweep`.
+## Implementation
 
-## The fix
+Fix `verify-and-submit` first, then the six directly related occurrences:
 
-For each of the seven functions:
+- Move only the existing gate out of the `OPTIONS` block so it executes immediately after the preflight early-return and before protected logic.
+- Preserve the exact gates: `verify-and-submit` → `licensing.submit`; `list-web-users` → `user_management.view`; `manage-web-user` and `toggle-user-status` → `user_management.edit`; `test-smtp-email` → `notification_management.test_send`; `process-queue` and `rfi-near-due-sweep` → worker invocation.
+- Preserve CORS responses and all application validation, capability/membership checks, duplicate/re-application rules, payment, workflow, audit, notification, and frontend behavior.
+- Add or tighten a focused structural regression check so an authorization helper nested after an OPTIONS return cannot silently pass marker-only coverage again.
 
-- Move the gate (`requireUserPermission` / `requireWorkerInvocation`) out of the `OPTIONS` block so it runs immediately **after** the preflight early-return, matching the correct pattern already used by `audit-export`, `evaluate-application-sufficiency`, `test-resend-email`, etc.
-- Keep the preflight response, the gate's module/action pair, and every downstream check byte-for-byte identical. No business logic, workflow, notification or permission-value changes.
+No database schema or RLS changes are planned.
 
-Order of work: `verify-and-submit` first (the reported break), then the other six.
+## Verification and production proof
 
-## Verification
-
-- Deno authz tests for the touched functions (`verify-and-submit/authz_test.ts` and siblings): no-bearer → 401, no-permission → 403 must stay green.
-- `node scripts/verify-edge-authz.mjs` — every function keeps its authorization marker.
-- Direct call to `verify-and-submit` without a bearer token: expect a clean JSON 401, not a 500.
-- Re-run the pre-licensee final submission end to end and confirm the application moves to submitted with the workflow attached.
-- Typecheck + build.
+- Run relevant Edge Function authorization tests, including OPTIONS without authentication, no bearer → JSON 401, valid identity without `licensing.submit` → 403, and authorized identity reaching submission logic.
+- Run the repository-wide structural scan again and `node scripts/verify-edge-authz.mjs`.
+- Run project typecheck and build, then deploy the corrected affected functions.
+- Execute a pre-license application final submission end to end with an authorized applicant.
+- Verify persisted results, not only the UI message: submitted status, submission timestamp/metadata, configured workflow attachment, active first workflow step, exactly one workflow instance, preserved audit trail, and applicant-visible success state.
+- Report the exact files changed, retained gate for every function, all command/test results, and confirm that no unrelated business logic changed.
