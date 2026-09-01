@@ -719,7 +719,8 @@ export default function NewApplication() {
           params.delete('step');
           params.delete('mode');
           const query = params.toString();
-          navigate(query ? `${location.pathname}?${query}` : location.pathname, { replace: true });
+          const cleanPath = continueIdFromPath ? '/applications/new' : location.pathname;
+          navigate(query ? `${cleanPath}?${query}` : cleanPath, { replace: true });
           return;
         }
 
