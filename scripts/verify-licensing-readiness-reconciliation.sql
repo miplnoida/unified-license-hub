@@ -69,14 +69,26 @@ DECLARE
   v_app uuid;
   v_req uuid;
   v_status text;
+  v_version uuid;
+  v_template uuid;
 BEGIN
   SELECT id INTO v_app FROM public.applications ORDER BY created_at DESC LIMIT 1;
   IF v_app IS NULL THEN RAISE NOTICE 'G3 SKIP: no applications'; RETURN; END IF;
 
+  SELECT v.id, v.template_id INTO v_version, v_template
+    FROM public.form_versions v
+    JOIN public.form_templates t ON t.id = v.template_id
+   ORDER BY v.created_at LIMIT 1;
+  IF v_version IS NULL THEN RAISE NOTICE 'G3 SKIP: no form versions'; RETURN; END IF;
+
+  DELETE FROM public.application_form_requirements
+   WHERE application_id = v_app AND template_id = v_template;
+
   INSERT INTO public.application_form_requirements
-    (application_id, template_id, is_required, status, sequence)
-  SELECT v_app, gen_random_uuid(), true, 'PENDING', 9999
+    (application_id, template_id, form_version_id, is_required, status, sequence)
+  SELECT v_app, v_template, v_version, true, 'PENDING', 9999
   RETURNING id INTO v_req;
+
 
   PERFORM public.application_reconcile_form_requirements(v_app);
 
