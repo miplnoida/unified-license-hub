@@ -10,10 +10,10 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
 
   const __authzGate = await requireUserPermission(req, "licensing", "submit");
   if (!__authzGate.ok) return __authzGate.response;
-  }
 
   try {
     // Validate JWT from authorization header

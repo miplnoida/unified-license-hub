@@ -30,10 +30,10 @@ type Rfi = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
 
   const __workerGate = requireWorkerInvocation(req);
   if (!__workerGate.ok) return __workerGate.response;
-  }
 
   const startedAt = Date.now();
   const admin = createClient(
