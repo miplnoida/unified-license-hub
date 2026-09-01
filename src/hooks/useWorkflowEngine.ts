@@ -668,7 +668,7 @@ export function useStartWorkflow() {
  * Turns a structured edge-function refusal into an actionable message.
  * Readiness gates report per-gate states; we list the ones that are blocking.
  */
-function describeWorkflowActionFailure(payload: any, fallback?: string): string {
+export function describeWorkflowActionFailure(payload: any, fallback?: string): string {
   const base: string =
     payload?.error || fallback || 'Action failed';
   const gates: any[] = Array.isArray(payload?.readiness?.gates)
