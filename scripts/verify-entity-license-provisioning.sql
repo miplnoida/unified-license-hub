@@ -35,10 +35,8 @@ DECLARE
   v_pass            int := 0;
   v_fail            int := 0;
 
-  PROCEDURE_NOTE text;
-
-  -- local helper via nested block is not available; use inline asserts
 BEGIN
+
   SELECT id INTO v_user FROM auth.users ORDER BY created_at LIMIT 1;
   IF v_user IS NULL THEN
     RAISE EXCEPTION 'FIXTURE_UNAVAILABLE: no auth user present';
