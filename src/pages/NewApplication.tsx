@@ -1159,7 +1159,7 @@ export default function NewApplication() {
           regulatorId: payload.regulator_id,
         });
       } catch (error: any) {
-        toast.error('Failed to update draft: ' + (error?.message || 'Unknown error'));
+        toast.error('Failed to update draft: ' + friendlyApplicationError(error, 'Unknown error'));
         return null;
       }
       await syncServerFormApplicability(applicationId);
@@ -1391,7 +1391,7 @@ export default function NewApplication() {
         });
       } catch (error: any) {
         console.error('[NewApplication] handleFormSaveDraft failed:', error);
-        toast.error(error?.message || 'Failed to save draft');
+        toast.error(friendlyApplicationError(error, 'Failed to save draft'));
       } finally {
         setSaving(false);
       }
@@ -1477,7 +1477,7 @@ export default function NewApplication() {
         // invalidate when the user navigates away.
       } catch (error: any) {
         console.error('[NewApplication] handleFormSubmit failed:', error);
-        toast.error(error?.message || 'Failed to save form');
+        toast.error(friendlyApplicationError(error, 'Failed to save form'));
         setSaving(false);
         return;
       }
@@ -1699,13 +1699,13 @@ export default function NewApplication() {
       });
 
       if (error) {
-        toast.error('Submission failed: ' + (error.message || 'Server error'));
+        toast.error('Submission failed: ' + friendlyApplicationError(error, 'Server error'));
         setSubmitting(false);
         return;
       }
 
       if (data?.error) {
-        toast.error(data.error);
+        toast.error(friendlyApplicationError(data.error));
         setSubmitting(false);
         return;
       }
@@ -1720,7 +1720,7 @@ export default function NewApplication() {
       toast.success(data?.message || 'Application submitted successfully!');
       navigate(`/applications/${applicationId}?submitted=1`);
     } catch (err: any) {
-      toast.error('Submission failed: ' + (err.message || 'Unknown error'));
+      toast.error('Submission failed: ' + friendlyApplicationError(err, 'Unknown error'));
     } finally {
       setSubmitting(false);
     }
