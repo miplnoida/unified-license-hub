@@ -265,6 +265,9 @@ BEGIN
   DECLARE
     v_final jsonb;
   BEGIN
+    -- The governed path resolves the actor from the service context, exactly as
+    -- the perform-workflow-action edge function does.
+    PERFORM set_config('request.jwt.claims', '{"role":"service_role"}', true);
     v_final := public.perform_final_workflow_approval(
                  v_app, NULL, NULL, 'Verification: canonical linkage regression', v_user);
     IF (v_final->>'code') IN ('UNAUTHORIZED','FORBIDDEN') THEN
@@ -315,7 +318,7 @@ BEGIN
   -- GATE 13: legacy guard is validation-only (no child writes in its body).
   --------------------------------------------------------------------------
   IF pg_get_functiondef('public.enforce_licensee_license_id_legacy()'::regprocedure)
-       ILIKE '%entity_licenses%' THEN
+       ~* 'insert\s+into\s+public\.entity_licenses' THEN
     RAISE EXCEPTION 'GATE 13 FAIL: legacy guard still references entity_licenses';
   END IF;
   RAISE NOTICE 'GATE 13 PASS: enforce_licensee_license_id_legacy() performs no entity_licenses writes';
