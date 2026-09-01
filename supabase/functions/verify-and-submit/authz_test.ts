@@ -5,8 +5,15 @@
 // helper and confirm it produces the 401 Response when no bearer is present.
 // It complements the "requireUserPermission" wiring inside index.ts.
 
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { requireAuthenticatedUser } from "../_shared/authz.ts";
+
+Deno.test("verify-and-submit: uses authentication plus record-level submission authority", async () => {
+  const source = await Deno.readTextFile(new URL("./index.ts", import.meta.url));
+  assertStringIncludes(source, "const __authzGate = await requireAuthenticatedUser(req)");
+  assertStringIncludes(source, '"can_submit_application"');
+  assertEquals(source.includes('requireUserPermission(req, "licensing", "submit")'), false);
+});
 
 Deno.test("verify-and-submit: rejects requests without an Authorization bearer", async () => {
   const req = new Request("http://localhost/verify-and-submit", {
