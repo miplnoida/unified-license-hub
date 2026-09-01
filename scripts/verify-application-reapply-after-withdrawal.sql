@@ -16,13 +16,14 @@ DECLARE
 BEGIN
   -- 0. Structural contract ---------------------------------------------------
   IF EXISTS (
-    SELECT 1 FROM pg_constraint
-     WHERE conrelid = 'public.registration_licensing_handoffs'::regclass
-       AND contype = 'u'
-       AND pg_get_constraintdef(oid) = 'UNIQUE (registration_id)'
+    SELECT 1 FROM pg_indexes
+     WHERE schemaname = 'public'
+       AND tablename = 'registration_licensing_handoffs'
+       AND indexdef ILIKE '%UNIQUE INDEX%btree (registration_id)'
   ) THEN
     RAISE EXCEPTION 'GATE 1 FAILED: registration_licensing_handoffs still allows only one licence attempt per registration';
   END IF;
+
 
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
