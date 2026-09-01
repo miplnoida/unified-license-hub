@@ -23,7 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
 import { applicationDraftSave, applicationClassificationUpdate } from '@/lib/applicationGovernedOps';
 import { toast } from 'sonner';
-import { getApplicationStatusLabel, markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/lib/applicationStatus';
+import { getApplicationStatusLabel, isApplicationEditable, markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/lib/applicationStatus';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, FileText, Upload, Loader2,
   Building2, Layers, Tag, ClipboardList, Paperclip, Send, Clock, PlayCircle,
@@ -75,6 +75,29 @@ interface FormProgress {
 const hasNonEmptyFormData = (data?: Record<string, any> | null) => (
   !!data && typeof data === 'object' && Object.keys(data).length > 0
 );
+
+/**
+ * Translate governed-server codes into plain language so raw codes such as
+ * APPLICATION_NOT_EDITABLE never reach the applicant.
+ */
+const friendlyApplicationError = (raw: unknown, fallback = 'Something went wrong. Please try again.') => {
+  const message = String((raw as { message?: string } | null)?.message ?? raw ?? '').trim();
+  if (!message) return fallback;
+  if (/APPLICATION_NOT_EDITABLE/i.test(message)) {
+    return 'This request is closed (withdrawn, decided or already submitted) and can no longer be edited. Please start a new request.';
+  }
+  if (/APPLICATION_EDIT_FORBIDDEN|APPLICATION_ACCESS_DENIED/i.test(message)) {
+    return 'You do not have permission to edit this request.';
+  }
+  if (/AUTH_REQUIRED/i.test(message)) {
+    return 'Your session has expired. Please sign in again and retry.';
+  }
+  if (/APPLICATION_NOT_FOUND/i.test(message)) {
+    return 'This request could not be found. Please start a new request.';
+  }
+  return message.replace(/^[A-Z0-9_]+:\s*/, '');
+};
+
 
 const WIZARD_STEPS: { key: WizardStep; label: string; icon: React.ReactNode }[] = [
   { key: 'selection', label: 'Select Category', icon: <Layers className="h-4 w-4" /> },
@@ -675,6 +698,9 @@ export default function NewApplication() {
   const hasHydratedRef = useRef(false);
   const hasUserInteractedRef = useRef(false);
   const [hydratingDraft, setHydratingDraft] = useState(false);
+  const [closedApplicationNotice, setClosedApplicationNotice] = useState<
+    { reference: string; status: string } | null
+  >(null);
   useEffect(() => {
     if (hasHydratedRef.current) return;
     if (!user) return;
@@ -699,9 +725,30 @@ export default function NewApplication() {
           .eq('id', targetDraftId)
           .maybeSingle();
 
-
+        // Withdrawn / rejected / approved / cancelled / already-submitted
+        // applications can never be edited again. Do NOT bind the wizard to
+        // them — otherwise every save goes back into the closed record and the
+        // server correctly refuses it (APPLICATION_NOT_EDITABLE). Start a
+        // clean application instead so the applicant can pick a new sector.
+        if (draft && !isApplicationEditable((draft as any).status)) {
+          const closedStatus = normalizeApplicationStatus((draft as any).status);
+          setClosedApplicationNotice({
+            reference: (draft as any).application_number || (draft as any).id,
+            status: closedStatus,
+          });
+          setCurrentStep('selection');
+          const params = new URLSearchParams(window.location.search);
+          params.delete('draft');
+          params.delete('step');
+          params.delete('mode');
+          const query = params.toString();
+          const cleanPath = continueIdFromPath ? '/applications/new' : location.pathname;
+          navigate(query ? `${cleanPath}?${query}` : cleanPath, { replace: true });
+          return;
+        }
 
         if (draft) {
+
           const d = ((draft as any).data || {}) as Record<string, any>;
           latestDraftDataRef.current = d;
           setApplicationId((draft as any).id);
@@ -1112,7 +1159,7 @@ export default function NewApplication() {
           regulatorId: payload.regulator_id,
         });
       } catch (error: any) {
-        toast.error('Failed to update draft: ' + (error?.message || 'Unknown error'));
+        toast.error('Failed to update draft: ' + friendlyApplicationError(error, 'Unknown error'));
         return null;
       }
       await syncServerFormApplicability(applicationId);
@@ -1344,7 +1391,7 @@ export default function NewApplication() {
         });
       } catch (error: any) {
         console.error('[NewApplication] handleFormSaveDraft failed:', error);
-        toast.error(error?.message || 'Failed to save draft');
+        toast.error(friendlyApplicationError(error, 'Failed to save draft'));
       } finally {
         setSaving(false);
       }
@@ -1430,7 +1477,7 @@ export default function NewApplication() {
         // invalidate when the user navigates away.
       } catch (error: any) {
         console.error('[NewApplication] handleFormSubmit failed:', error);
-        toast.error(error?.message || 'Failed to save form');
+        toast.error(friendlyApplicationError(error, 'Failed to save form'));
         setSaving(false);
         return;
       }
@@ -1652,13 +1699,13 @@ export default function NewApplication() {
       });
 
       if (error) {
-        toast.error('Submission failed: ' + (error.message || 'Server error'));
+        toast.error('Submission failed: ' + friendlyApplicationError(error, 'Server error'));
         setSubmitting(false);
         return;
       }
 
       if (data?.error) {
-        toast.error(data.error);
+        toast.error(friendlyApplicationError(data.error));
         setSubmitting(false);
         return;
       }
@@ -1673,7 +1720,7 @@ export default function NewApplication() {
       toast.success(data?.message || 'Application submitted successfully!');
       navigate(`/applications/${applicationId}?submitted=1`);
     } catch (err: any) {
-      toast.error('Submission failed: ' + (err.message || 'Unknown error'));
+      toast.error('Submission failed: ' + friendlyApplicationError(err, 'Unknown error'));
     } finally {
       setSubmitting(false);
     }
@@ -1802,6 +1849,17 @@ export default function NewApplication() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {closedApplicationNotice && !hydratingDraft && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-foreground flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+            <span>
+              Your earlier request <span className="font-mono">{closedApplicationNotice.reference}</span> is{' '}
+              {getApplicationStatusLabel(closedApplicationNotice.status).toLowerCase()} and can no longer be edited.
+              Start a new request below — you can still view the earlier one from My Applications.
+            </span>
+          </div>
         )}
 
         {/* Persistent banner: shown for the entire continue-draft session,
