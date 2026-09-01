@@ -384,6 +384,20 @@ Deno.serve(async (req) => {
       );
     }
 
+    // 2a. Reconcile pinned form requirements with the applicant's submitted
+    //     form responses so the licensing readiness gate (`forms_documents`)
+    //     reflects what was actually filed. Non-fatal: readiness stays
+    //     fail-closed if this cannot run.
+    try {
+      await adminClient.rpc("application_reconcile_form_requirements" as never, {
+        _application_id: application_id,
+      } as never);
+    } catch (_e) {
+      // deliberately non-fatal
+    }
+
+
+
     // 2b. Resubmission after an information request: flag still-open RFIs as
     //     responded so the reviewer queue and the paused SLA clock resume
     //     without manual reconciliation. Non-fatal.
