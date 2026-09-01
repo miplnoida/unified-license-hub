@@ -34507,7 +34507,7 @@ export type Database = {
           {
             foreignKeyName: "registration_licensing_handoffs_registration_id_fkey"
             columns: ["registration_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "registrations"
             referencedColumns: ["id"]
           },
