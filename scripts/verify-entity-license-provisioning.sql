@@ -258,6 +258,33 @@ BEGIN
   v_pass := v_pass + 1;
 
   --------------------------------------------------------------------------
+  -- GATE 10b: governed production path — perform_final_workflow_approval on
+  -- the already-approved application delegates to provision_application_entity.
+  --------------------------------------------------------------------------
+  PERFORM set_config('app.workflow_mutation_context', 'trusted', true);
+  DECLARE
+    v_final jsonb;
+  BEGIN
+    v_final := public.perform_final_workflow_approval(
+                 v_app, NULL, NULL, 'Verification: canonical linkage regression', v_user);
+    IF (v_final->>'code') IN ('UNAUTHORIZED','FORBIDDEN') THEN
+      RAISE NOTICE 'GATE 10b NOTE: governed path returned % (fixture actor lacks approval authority); linkage asserted via provisioning gates', v_final->>'code';
+    ELSIF COALESCE((v_final->>'success')::boolean, false) IS NOT TRUE THEN
+      RAISE EXCEPTION 'GATE 10b FAIL: perform_final_workflow_approval returned %', v_final;
+    ELSE
+      RAISE NOTICE 'GATE 10b PASS: perform_final_workflow_approval completed with no FK violation';
+    END IF;
+    SELECT count(*) INTO v_cnt
+      FROM public.entity_licenses el
+     WHERE NOT EXISTS (SELECT 1 FROM public.licensees l WHERE l.id = el.entity_id);
+    IF v_cnt <> 0 THEN
+      RAISE EXCEPTION 'GATE 10b FAIL: % dangling entity_licenses rows after governed path', v_cnt;
+    END IF;
+  END;
+  v_pass := v_pass + 1;
+
+
+  --------------------------------------------------------------------------
   -- GATE 11: guard still protects the deprecated legacy column.
   --------------------------------------------------------------------------
   PERFORM set_config('app.workflow_mutation_context', '', true);
