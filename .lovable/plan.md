@@ -73,6 +73,30 @@ Enforced as explicit rules for the work: no existing column dropped, no upload c
 - Persona RLS checks: entity user cannot read regulator-internal or restricted documents; anonymous cannot read anything.
 - Regression run: existing registration submit, application submit, return submit and complaint suites, plus typecheck and build.
 
+Identity and integrity cases (each an explicit assertion):
+
+- Two files uploaded into one multi-file form field produce **two** logical documents, not one grouped document.
+- Adding a new version preserves the same `document_reference` and group id; only the version number advances.
+- Re-registering the same physical storage path (retry, double submit) does not create an accidental duplicate version — the checksum + path guard returns the existing version.
+- Entity association can move unresolved → resolved (application document later linked to a provisioned entity) without changing document identity, reference or version history.
+- When the original owner/uploader loses their portal relationship, the entity's document remains available to other authorised entity users.
+
+Access and classification cases:
+
+- A migrated document of unknown category defaults conservatively (`Other`, entity-level confidentiality, `not_publishable`) and never widens access relative to its source row.
+- `publication_eligibility = public_eligible` with `publication_status = not_requested` is **not** readable anonymously.
+- An archived or soft-deleted document disappears from ordinary listings but remains fully visible in version history and audit trail.
+- Changing category or type recalculates defaults only where no explicit override was recorded; overridden classification, retention or eligibility values are preserved.
+
+Scope and cross-entity cases:
+
+- Creating a relationship across two entities is rejected unless the actor has scope for both contexts.
+- A document belonging to an application for entity A cannot be attached to entity B.
+
+Dual-read case:
+
+- The existing `/documents` route continues to list legacy-only records (rows with no canonical document) throughout the dual-read period, with no duplicates against canonical rows.
+
 ## Out of scope this slice
 
 Publication approval workflow and public registry documents (Phase 8), legacy backfill of `documents` / `file_uploads` into canonical records (Phase 9), retention/hold operations and DMS reports (Phase 10), OCR/AI (Phase 11), and admin configuration screens for categories/types/retention — the tables are seeded by migration for now.
