@@ -95,6 +95,9 @@ BEGIN
   VALUES (_id, 'CERT_DIMENSION', _domain, _inh, _ctl, _res,
           'Fixture dimension rationale', 'STABLE');
 
+  -- Epic 2 certified that entity_risk_state has ONE governed writer; the fixture
+  -- adopts that writer context explicitly rather than bypassing the guard.
+  PERFORM set_config('app.supervisory_risk_state_writer', 'assessment_transition', true);
   INSERT INTO public.entity_risk_state(entity_id, domain_code, residual_rating, inherent_rating,
          control_rating, driving_assessment_id, effective_from, last_review_date,
          next_review_date, updated_by)
@@ -112,6 +115,7 @@ BEGIN
           CASE WHEN _res IN ('HIGH','SEVERE','MEDIUM_HIGH') THEN 'DETERIORATING' ELSE 'STABLE' END,
           'Certification fixture movement', 'ASSESSMENT_APPROVED',
           '0b522724-adcb-48bf-b21d-175339479616', now() - interval '20 days');
+  PERFORM set_config('app.supervisory_risk_state_writer', '', true);
   RETURN _id;
 END $$;
 
