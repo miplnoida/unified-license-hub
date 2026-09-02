@@ -11,7 +11,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useAmlWorkQueue } from '@/hooks/useAmlSupervision';
-import { RED, WORK_QUEUE_KIND_LABEL, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
+import {
+  RED,
+  WORK_QUEUE_KIND_LABEL,
+  fmtDate,
+  ratingTone,
+  resolveAmlWorkItemHref,
+  statusTone,
+  titleCase,
+} from '@/lib/amlLabels';
 
 export default function AmlWorkQueue() {
   const { data, isLoading, error } = useAmlWorkQueue(300);
@@ -148,7 +156,7 @@ export default function AmlWorkQueue() {
                           </TableCell>
                           <TableCell className="text-right">
                             <Button asChild size="sm" variant="outline">
-                              <Link to={r.href || '/supervision/aml'}>Open</Link>
+                              <Link to={resolveAmlWorkItemHref(r as any)}>Open</Link>
                             </Button>
                           </TableCell>
                         </TableRow>

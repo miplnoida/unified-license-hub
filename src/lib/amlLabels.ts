@@ -59,3 +59,42 @@ export const WORK_QUEUE_KIND_LABEL: Record<string, string> = {
   REASSESSMENT: 'Reassessment required',
   VALIDATION: 'Effectiveness validation',
 };
+
+/**
+ * Resolve a work-queue row to a route that exists in this application.
+ *
+ * The read model emits canonical domain paths; several of those have no
+ * dedicated detail screen yet, so the item is opened on its register with the
+ * record brought into focus instead of navigating to a dead URL.
+ */
+export function resolveAmlWorkItemHref(row: {
+  kind: string;
+  id: string;
+  href?: string | null;
+  entity_id?: string | null;
+}): string {
+  const kind = String(row.kind ?? '');
+
+  if (kind.startsWith('assessment_awaiting')) return `/supervision/aml/assessments/${row.id}`;
+  if (kind === 'assessment_overdue' || kind === 'reassessment_required') {
+    return '/supervision/aml/entities';
+  }
+  if (kind.startsWith('examination') || kind.startsWith('workpaper')) {
+    return `/supervision/aml/examinations?focus=${row.id}`;
+  }
+  if (
+    kind.startsWith('finding') ||
+    kind.startsWith('management_response') ||
+    kind.startsWith('remediation') ||
+    kind === 'validation_required'
+  ) {
+    return `/supervision/aml/findings?focus=${row.id}`;
+  }
+  if (kind === 'attention_awaiting_prioritisation') return '/supervision/aml?focus=attention';
+  if (kind === 'plan_awaiting_approval') return '/supervision/plans';
+  if (kind === 'enforcement_followup') return `/enforcement/${row.id}`;
+
+  const href = row.href ?? '';
+  if (href === '/supervision/aml/supervised-entities') return '/supervision/aml/entities';
+  return href || '/supervision/aml';
+}
