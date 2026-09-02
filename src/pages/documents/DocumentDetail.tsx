@@ -100,7 +100,7 @@ export default function DocumentDetail() {
     setBusy(true);
     const res = await fn();
     setBusy(false);
-    if (!res.success) { toast.error(describeDmsError(res.error)); return; }
+    if ('error' in res) { toast.error(describeDmsError(res.error)); return; }
     toast.success(label);
     refetch();
   };

@@ -107,7 +107,7 @@ export function useDmsRegister(filters: DmsRegisterFilters, pageIndex: number, p
         limit: pageSize,
         offset: pageIndex * pageSize,
       });
-      if (!res.success) throw new Error(res.error);
+      if ('error' in res) throw new Error(res.error);
       const supplement = await buildSupplement(res.data.rows);
       return { rows: res.data.rows, total: res.data.total, supplement };
     },
@@ -121,7 +121,7 @@ export function useDmsDocument(groupId: string | undefined) {
     enabled: !!groupId,
     queryFn: async () => {
       const res = await getDocument(groupId!);
-      if (!res.success) throw new Error(res.error);
+      if ('error' in res) throw new Error(res.error);
       return res.data;
     },
   });

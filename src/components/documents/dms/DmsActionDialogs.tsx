@@ -66,7 +66,7 @@ export function DocumentDetailsDialog({
       tags: tags.trim() ? tags.split(',').map((t) => t.trim()).filter(Boolean) : null,
     });
     setSaving(false);
-    if (!res.success) { toast.error(describeDmsError(res.error)); return; }
+    if ('error' in res) { toast.error(describeDmsError(res.error)); return; }
     toast.success('Document details updated');
     onOpenChange(false);
     onDone();
@@ -161,7 +161,7 @@ export function ClassifyDocumentDialog({
       retentionPolicyCode: unset(retention),
     });
     setSaving(false);
-    if (!res.success) { toast.error(describeDmsError(res.error)); return; }
+    if ('error' in res) { toast.error(describeDmsError(res.error)); return; }
     toast.success('Classification updated');
     onOpenChange(false);
     onDone();
@@ -273,7 +273,7 @@ export function DocumentDecisionDialog({
       ? await verifyDocument(groupId, decision as 'verified' | 'rejected' | 'pending', note || undefined)
       : await acceptDocument(groupId, decision as 'accepted' | 'conditionally_accepted' | 'rejected' | 'pending', note || undefined);
     setSaving(false);
-    if (!res.success) { toast.error(describeDmsError(res.error)); return; }
+    if ('error' in res) { toast.error(describeDmsError(res.error)); return; }
     toast.success(kind === 'verification' ? 'Verification recorded' : 'Acceptance decision recorded');
     onOpenChange(false);
     onDone();
@@ -334,7 +334,7 @@ export function LinkRecordDialog({ open, onOpenChange, groupId, onDone }: BasePr
       targetReference: reference.trim() || null,
     });
     setSaving(false);
-    if (!res.success) { toast.error(describeDmsError(res.error)); return; }
+    if ('error' in res) { toast.error(describeDmsError(res.error)); return; }
     toast.success('Document linked to the record');
     onOpenChange(false);
     onDone();
