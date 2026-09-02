@@ -38,6 +38,7 @@ import { EntityAmlPanel } from '@/components/entity-detail/EntityAmlPanel';
 import { E360_GROUPS, E360_SECTIONS } from '@/components/entity-detail/sectionCatalogue';
 import { EntityReportingCurrencyPanel } from '@/components/entity-detail/EntityReportingCurrencyPanel';
 import { OwnershipTreePanel } from '@/components/entity-detail/OwnershipTreePanel';
+import { SupervisoryTimelinePanel } from '@/components/entity-detail/SupervisoryTimelinePanel';
 import { SubjectAddressPanel } from '@/components/addresses/SubjectAddressPanel';
 import { useEntity360Overview, type E360SectionKey } from '@/hooks/useEntity360';
 
