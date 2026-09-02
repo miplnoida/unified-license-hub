@@ -48,7 +48,7 @@ BEGIN
   SELECT count(*) INTO n FROM public.permissions WHERE module = 'document_management';
   IF n < 20 THEN RAISE EXCEPTION 'G-06 FAIL: document_management permissions incomplete (%)', n; END IF;
   SELECT count(*) INTO n FROM public.permissions
-   WHERE module='document_management' AND action IN ('bulk_manage','edit_metadata','link_record');
+   WHERE module='document_management' AND name IN ('bulk_manage','edit_metadata','link_record');
   IF n <> 3 THEN RAISE EXCEPTION 'G-06 FAIL: reconciliation/link permissions missing'; END IF;
 
   -- G-07 no document group carries a fabricated entity id
