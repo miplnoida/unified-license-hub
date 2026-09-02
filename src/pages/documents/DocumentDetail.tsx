@@ -17,7 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import {
-  AlertTriangle, ArrowLeft, Archive, CheckCircle2, FileText, Gavel, Link2, Lock,
+  AlertTriangle, ArrowLeft, Archive, CheckCircle2, Gavel, Link2, Lock,
   Pencil, RotateCcw, ShieldCheck, Tags, Trash2,
 } from 'lucide-react';
 import { useDmsDocument } from '@/hooks/useDmsDocuments';

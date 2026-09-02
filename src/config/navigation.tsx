@@ -400,6 +400,12 @@ export const mainNavSections: NavSection[] = [
     ],
   },
   {
+    label: 'Documents',
+    items: [
+      { label: 'Document Register', href: '/documents/registry', icon: <FolderOpen className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'document_management' },
+    ],
+  },
+  {
     label: 'Analytics & Reports',
     items: [
       { label: 'Analytics', href: '/analytics', icon: <BarChart3 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'report_management' },

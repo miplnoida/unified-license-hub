@@ -26,7 +26,7 @@ import {
   presentVerification,
 } from '@/lib/presentation/dmsLabels';
 import { formatDateTime } from '@/lib/datetime';
-import { FileText, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 const ALL = 'all';
 
