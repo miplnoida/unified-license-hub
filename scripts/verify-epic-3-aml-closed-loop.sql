@@ -257,7 +257,7 @@ BEGIN
                     AND overridden_by IS NOT NULL AND overridden_at IS NOT NULL) THEN
     RAISE EXCEPTION 'FAIL H: override provenance incomplete'; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.compliance_audit_logs
-                  WHERE action = 'OVERRIDE' AND entity_type = 'supervisory_assessment_dimension') THEN
+                  WHERE action_type = 'OVERRIDE' AND object_type = 'supervisory_assessment_dimension') THEN
     RAISE EXCEPTION 'FAIL H: override was not written to the compliance audit trail'; END IF;
 
   RAISE NOTICE 'PASS C/D/E/F/G/H: governed AML assessment on the canonical envelope with separated calculated vs judged ratings and audited overrides';
