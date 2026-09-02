@@ -369,9 +369,15 @@ RESET ROLE;
 DO $$
 DECLARE sid uuid;
 BEGIN
-  INSERT INTO public.supervisory_signal(entity_id, domain_code, source_kind, severity, detected_at, summary)
-  VALUES ((SELECT v FROM e3 WHERE k='entity_a'), 'AML_CFT', 'MONITORING_BACKLOG', 'high', now(),
-          'Transaction monitoring alert backlog exceeded the supervisory tolerance.')
+  -- The canonical signal store demands FK-backed or externally referenced
+  -- provenance; an AML monitoring-backlog signal arrives from the entity's own
+  -- monitoring MI, so it is recorded as a governed external source.
+  INSERT INTO public.supervisory_signal(entity_id, domain_code, source_kind, severity, detected_at,
+      summary, detail, external_reference)
+  VALUES ((SELECT v FROM e3 WHERE k='entity_a'), 'AML_CFT', 'OTHER_GOVERNED_SOURCE', 'high', now(),
+          'Transaction monitoring alert backlog exceeded the supervisory tolerance.',
+          jsonb_build_object('aml_signal_kind','MONITORING_BACKLOG','open_alerts',1400,'aged_over_90_days_pct',62),
+          'AML-MI-2026-TM-BACKLOG-001')
   RETURNING id INTO sid;
   INSERT INTO e3(k,v) VALUES ('signal', sid);
 END $$;
