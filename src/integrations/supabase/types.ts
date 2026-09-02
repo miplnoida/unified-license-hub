@@ -44293,10 +44293,12 @@ export type Database = {
           factual_basis: string
           id: string
           lead_officer_id: string | null
+          legacy_plan_id: string | null
           next_review_date: string | null
           objective: string | null
           objective_ai_insight_id: string | null
           objective_source: string
+          origin_provenance: string
           outcome_summary: string | null
           period_label: string | null
           planning_period: string
@@ -44331,10 +44333,12 @@ export type Database = {
           factual_basis: string
           id?: string
           lead_officer_id?: string | null
+          legacy_plan_id?: string | null
           next_review_date?: string | null
           objective?: string | null
           objective_ai_insight_id?: string | null
           objective_source?: string
+          origin_provenance?: string
           outcome_summary?: string | null
           period_label?: string | null
           planning_period?: string
@@ -44369,10 +44373,12 @@ export type Database = {
           factual_basis?: string
           id?: string
           lead_officer_id?: string | null
+          legacy_plan_id?: string | null
           next_review_date?: string | null
           objective?: string | null
           objective_ai_insight_id?: string | null
           objective_source?: string
+          origin_provenance?: string
           outcome_summary?: string | null
           period_label?: string | null
           planning_period?: string
@@ -44426,6 +44432,20 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "regulatory_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_plan_legacy_plan_id_fkey"
+            columns: ["legacy_plan_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_supervisory_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_plan_legacy_plan_id_fkey"
+            columns: ["legacy_plan_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -44538,6 +44558,7 @@ export type Database = {
           due_date: string | null
           id: string
           item_type: string
+          legacy_action_id: string | null
           owner_id: string | null
           plan_id: string
           source: string
@@ -44556,6 +44577,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           item_type?: string
+          legacy_action_id?: string | null
           owner_id?: string | null
           plan_id: string
           source?: string
@@ -44574,6 +44596,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           item_type?: string
+          legacy_action_id?: string | null
           owner_id?: string | null
           plan_id?: string
           source?: string
@@ -44609,6 +44632,20 @@ export type Database = {
             columns: ["depends_on_item_id"]
             isOneToOne: false
             referencedRelation: "supervisory_plan_item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_plan_item_legacy_action_id_fkey"
+            columns: ["legacy_action_id"]
+            isOneToOne: false
+            referencedRelation: "legacy_supervisory_plan_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_plan_item_legacy_action_id_fkey"
+            columns: ["legacy_action_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_plan_actions"
             referencedColumns: ["id"]
           },
         ]
@@ -52902,10 +52939,12 @@ export type Database = {
           factual_basis: string
           id: string
           lead_officer_id: string | null
+          legacy_plan_id: string | null
           next_review_date: string | null
           objective: string | null
           objective_ai_insight_id: string | null
           objective_source: string
+          origin_provenance: string
           outcome_summary: string | null
           period_label: string | null
           planning_period: string
