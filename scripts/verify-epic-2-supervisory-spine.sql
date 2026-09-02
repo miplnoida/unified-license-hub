@@ -270,8 +270,8 @@ BEGIN
 
   ok := false;
   BEGIN
-    INSERT INTO public.supervisory_attention_origin(attention_id, origin_kind, assessment_id)
-    VALUES (bogus, 'SUPERVISORY_ASSESSMENT', NULL);
+    INSERT INTO public.supervisory_attention_origin(attention_id, origin_kind, external_reference)
+    VALUES (bogus, 'OTHER_GOVERNED_SOURCE', 'EPIC2-FK-NEGATIVE');
   EXCEPTION WHEN foreign_key_violation THEN ok := true; END;
   IF NOT ok THEN RAISE EXCEPTION 'FAIL 3c: attention origin accepted a nonexistent attention item'; END IF;
 
