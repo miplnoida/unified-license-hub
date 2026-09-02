@@ -1005,7 +1005,8 @@ BEGIN
     RAISE EXCEPTION 'FAIL Y: AML risk of record did not move to MODERATE'; END IF;
 
   SELECT * INTO mv FROM public.entity_risk_state_movement
-   WHERE entity_id = ea AND domain_code='AML_CFT' ORDER BY approved_at DESC LIMIT 1;
+   WHERE entity_id = ea AND domain_code='AML_CFT'
+     AND new_assessment_id = (SELECT v FROM e3 WHERE k='a2') LIMIT 1;
   IF mv.id IS NULL THEN RAISE EXCEPTION 'FAIL Y: no risk movement recorded'; END IF;
   IF upper(COALESCE(mv.previous_rating,'')) <> 'HIGH' OR upper(mv.new_rating) <> 'MODERATE' THEN
     RAISE EXCEPTION 'FAIL Y: movement does not record HIGH -> MODERATE (got % -> %)',
