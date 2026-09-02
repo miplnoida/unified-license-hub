@@ -49,16 +49,31 @@ export interface DmsDocumentRow {
   total_count: number | null;
 }
 
+export interface DmsCurrentFileSecurity {
+  file_upload_id: string | null;
+  version_id: string | null;
+  /** Authoritative governed scan verdict of the current file. */
+  scan_status: string;
+  is_quarantined: boolean;
+  scan_provider: string | null;
+  scanned_at: string | null;
+  /** Mirrors public.dms_version_scan_clean — the server's release rule. */
+  released: boolean;
+}
+
 export interface DmsDocumentDetail {
   document: Record<string, unknown>;
   category: Record<string, unknown> | null;
   type: Record<string, unknown> | null;
   retention_policy: Record<string, unknown> | null;
+  /** Null when the document has no current version/file yet. */
+  current_file: DmsCurrentFileSecurity | null;
   versions: Record<string, unknown>[];
   relationships: Record<string, unknown>[];
   holds: Record<string, unknown>[];
   audit: Record<string, unknown>[];
 }
+
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 

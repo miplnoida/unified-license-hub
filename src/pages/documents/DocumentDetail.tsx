@@ -27,7 +27,7 @@ import {
   ClassifyDocumentDialog, DocumentDecisionDialog, DocumentDetailsDialog, LinkRecordDialog,
 } from '@/components/documents/dms/DmsActionDialogs';
 import {
-  formatDocumentSize, isDisposalBlocked, isFileSafe, presentAcceptance, presentConfidentiality,
+  formatDocumentSize, isDisposalBlocked, isFileQuarantined, isFileReleased, presentAcceptance, presentConfidentiality,
   presentContextType, presentDocumentStatus, presentLegalHold, presentPublication, presentScan,
   presentVerification,
 } from '@/lib/presentation/dmsLabels';
@@ -90,11 +90,21 @@ export default function DocumentDetail() {
   }, [doc, versions]);
 
   const legalHold = s(doc, 'legal_hold_status') ?? 'none';
-  const scanStatus = s(currentVersion, 'status') === 'clean' ? 'clean' : (s(currentVersion, 'status') ?? 'unknown');
+  // Malware safety comes ONLY from the authoritative current-file scan record
+  // returned by dms_get_document — never from a version lifecycle status.
+  const currentFile = (data?.current_file ?? null) as unknown as Row | null;
+  const scanStatus = s(currentFile, 'scan_status') ?? 'unknown';
+  const fileReleased = currentFile
+    ? currentFile.released === true
+    : isFileReleased(currentFile as never);
+  const fileQuarantined = isFileQuarantined(currentFile as never);
   const holdBlocks = isDisposalBlocked(legalHold);
-  const fileSafe = isFileSafe(scanStatus);
   const isArchived = (s(doc, 'document_status') ?? 'available') === 'archived' || !!s(doc, 'archived_at');
   const isDeleted = doc?.is_deleted === true;
+  const notReleasedTitle = fileQuarantined
+    ? 'This file has been quarantined by the security scan and cannot be used.'
+    : 'The file must pass its security scan before this action is available.';
+
 
   const run = async (label: string, fn: () => Promise<{ success: true; data: string } | { success: false; error: string }>) => {
     setBusy(true);
@@ -159,37 +169,45 @@ export default function DocumentDetail() {
               <ArrowLeft className="mr-2 h-4 w-4" />Register
             </Button>
             {canEdit && !isDeleted && (
-              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+              <Button data-rbac="document_management.edit_metadata" variant="outline" size="sm" onClick={() => setEditOpen(true)}>
                 <Pencil className="mr-2 h-4 w-4" />Edit details
               </Button>
             )}
             {canClassify && !isDeleted && (
-              <Button variant="outline" size="sm" onClick={() => setClassifyOpen(true)}>
+              <Button data-rbac="document_management.classify" variant="outline" size="sm" onClick={() => setClassifyOpen(true)}>
                 <Tags className="mr-2 h-4 w-4" />Classify
               </Button>
             )}
             {canVerify && (
               <Button
-                variant="outline" size="sm" disabled={!fileSafe}
-                title={fileSafe ? undefined : 'The file must pass its security scan before it can be verified.'}
+                data-rbac="document_management.verify"
+                variant="outline" size="sm" disabled={!fileReleased || busy}
+                title={fileReleased ? undefined : notReleasedTitle}
                 onClick={() => setVerifyOpen(true)}
               >
                 <ShieldCheck className="mr-2 h-4 w-4" />Verify
               </Button>
             )}
             {canAccept && (
-              <Button variant="outline" size="sm" onClick={() => setAcceptOpen(true)}>
+              <Button
+                data-rbac="document_management.accept"
+                variant="outline" size="sm" disabled={!fileReleased || busy}
+                title={fileReleased ? undefined : notReleasedTitle}
+                onClick={() => setAcceptOpen(true)}
+              >
                 <CheckCircle2 className="mr-2 h-4 w-4" />Acceptance
               </Button>
             )}
+
             {canLink && !isDeleted && (
-              <Button variant="outline" size="sm" onClick={() => setLinkOpen(true)}>
+              <Button data-rbac="document_management.link_record" variant="outline" size="sm" onClick={() => setLinkOpen(true)}>
                 <Link2 className="mr-2 h-4 w-4" />Link record
               </Button>
             )}
             {isArchived
               ? canRestore && (
                 <Button
+                  data-rbac="document_management.restore"
                   variant="outline" size="sm" disabled={busy}
                   onClick={async () => {
                     const reason = await askReason('Restore this document?', 'Restore');
@@ -202,7 +220,9 @@ export default function DocumentDetail() {
               )
               : canArchive && (
                 <Button
-                  variant="outline" size="sm" disabled={busy}
+                  data-rbac="document_management.archive"
+                  variant="outline" size="sm" disabled={busy || holdBlocks}
+                  title={holdBlocks ? 'This document is under legal hold and cannot be archived for disposal.' : undefined}
                   onClick={async () => {
                     const reason = await askReason('Archive this document?', 'Archive');
                     if (reason === null) return;
@@ -212,8 +232,10 @@ export default function DocumentDetail() {
                   <Archive className="mr-2 h-4 w-4" />Archive
                 </Button>
               )}
+
             {canDelete && !isDeleted && (
               <Button
+                data-rbac="document_management.delete"
                 variant="destructive" size="sm" disabled={busy || holdBlocks}
                 title={holdBlocks ? 'This document is under legal hold and cannot be deleted.' : undefined}
                 onClick={async () => {
@@ -239,16 +261,18 @@ export default function DocumentDetail() {
           </AlertDescription>
         </Alert>
       )}
-      {!fileSafe && (
-        <Alert className="mb-4 border-amber-500/40 bg-amber-500/5">
+      {!fileReleased && (
+        <Alert className={`mb-4 ${fileQuarantined ? 'border-destructive/40 bg-destructive/5' : 'border-amber-500/40 bg-amber-500/5'}`}>
           <Lock className="h-4 w-4" />
           <AlertTitle>{presentScan(scanStatus).label}</AlertTitle>
           <AlertDescription>
-            The current file has not been confirmed safe. It cannot be verified or downloaded until its security scan
-            completes successfully.
+            {fileQuarantined
+              ? 'The current file has been quarantined by the security scan. It cannot be verified, accepted or downloaded, and the restriction is enforced by the server.'
+              : 'The current file has not yet been released by its security scan. Verification, acceptance and download stay unavailable until a trusted scan verdict clears it.'}
           </AlertDescription>
         </Alert>
       )}
+
       {isDeleted && (
         <Alert className="mb-4">
           <AlertTriangle className="h-4 w-4" />
@@ -297,8 +321,18 @@ export default function DocumentDetail() {
           <CardContent className="space-y-4">
             <Field label="Verification"><DmsBadge presented={presentVerification(s(doc, 'verification_status'))} /></Field>
             <Field label="Acceptance"><DmsBadge presented={presentAcceptance(s(doc, 'acceptance_status'))} /></Field>
-            <Field label="File safety"><DmsBadge presented={presentScan(scanStatus)} /></Field>
+            <Field label="File safety">
+              <div className="space-y-1">
+                <DmsBadge presented={presentScan(scanStatus)} />
+                <p className="text-[11px] text-muted-foreground">
+                  {fileReleased ? 'Released for use' : 'Not released for use'}
+                  {s(currentFile, 'scan_provider') ? ` · checked by ${s(currentFile, 'scan_provider')}` : ''}
+                  {s(currentFile, 'scanned_at') ? ` · ${dateText(currentFile, 'scanned_at')}` : ''}
+                </p>
+              </div>
+            </Field>
             <Field label="Legal hold"><DmsBadge presented={presentLegalHold(legalHold)} /></Field>
+
           </CardContent>
         </Card>
 
@@ -347,8 +381,10 @@ export default function DocumentDetail() {
               </ul>
             )}
             <p className="mt-3 text-[11px] text-muted-foreground">
-              Links are governed centrally; removing a link is not available in this release.
+              Links are governed centrally. Removing a link is an out-of-scope residual in this release: no governed
+              unlink operation exists yet, and relationships are never deleted from the browser.
             </p>
+
           </CardContent>
         </Card>
 
@@ -373,7 +409,22 @@ export default function DocumentDetail() {
                         {s(v, 'change_note') ? ` · ${s(v, 'change_note')}` : ''}
                       </p>
                     </div>
-                    <DmsBadge presented={presentScan(s(v, 'status') ?? 'unknown')} />
+                    {s(v, 'id') === s(doc, 'current_version_id') ? (
+                      <div className="flex shrink-0 items-center gap-2">
+                        <DmsBadge presented={presentScan(scanStatus)} />
+                        {!fileReleased && (
+                          <span className="text-[11px] text-muted-foreground" title={notReleasedTitle}>
+                            Download unavailable
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <Badge variant="outline" className="shrink-0">
+                        {humanize(s(v, 'version_status') ?? 'superseded')}
+                      </Badge>
+                    )}
+
+
                   </li>
                 ))}
               </ul>
