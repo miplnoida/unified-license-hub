@@ -193,6 +193,9 @@ export default function Entity360Detail() {
         <div className="min-w-0">
           {view === 'overview' && (
             <div className="space-y-4">
+              {/* EPIC 4 / W3: the canonical enterprise supervisory state leads the
+                  overview; the legacy domain panels are retained beneath it. */}
+              <EntitySupervisory360Panel entityId={entity.id} />
               <EntitySupervisoryStatePanel entityId={entity.id} />
               <EntityPrudentialStatePanel entityId={entity.id} />
               <Entity360OverviewPanel
