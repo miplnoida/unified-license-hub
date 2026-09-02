@@ -92,7 +92,7 @@ export default function DocumentDetail() {
   const legalHold = s(doc, 'legal_hold_status') ?? 'none';
   // Malware safety comes ONLY from the authoritative current-file scan record
   // returned by dms_get_document — never from a version lifecycle status.
-  const currentFile = (data?.current_file ?? null) as Row | null;
+  const currentFile = (data?.current_file ?? null) as unknown as Row | null;
   const scanStatus = s(currentFile, 'scan_status') ?? 'unknown';
   const fileReleased = currentFile
     ? currentFile.released === true
