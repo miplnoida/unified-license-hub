@@ -87,7 +87,7 @@ BEGIN
          'Certification fixture assessment for ' || _domain,
          current_date - 20, current_date + 160, true,
          '0b522724-adcb-48bf-b21d-175339479616', now() - interval '20 days',
-         'EPIC4_W3_CERTIFICATION')
+         'GOVERNED')
   RETURNING id INTO _id;
 
   INSERT INTO public.supervisory_assessment_dimension(assessment_id, dimension_code,
@@ -148,7 +148,7 @@ BEGIN
           'Fixture prudential finding', 'Observation', 'Remediate',
           'REMEDIATION_REQUIRED', 'ASSESSMENT', aid,
           '0b522724-adcb-48bf-b21d-175339479616', current_date + 20,
-          '0b522724-adcb-48bf-b21d-175339479616', now(), 'EPIC4_W3_CERTIFICATION')
+          '0b522724-adcb-48bf-b21d-175339479616', now(), 'GOVERNED')
   RETURNING id INTO fid;
   INSERT INTO public.supervisory_remediation_action(reference, finding_id, entity_id, domain_code,
          description, required_outcome, owner_id, target_date, status)
@@ -163,7 +163,7 @@ BEGIN
           'Fixture escalated finding', 'Observation', 'Remediate',
           'REMEDIATION_REQUIRED', 'ASSESSMENT', aid,
           '0b522724-adcb-48bf-b21d-175339479616', current_date - 10,
-          '0b522724-adcb-48bf-b21d-175339479616', now(), 'EPIC4_W3_CERTIFICATION')
+          '0b522724-adcb-48bf-b21d-175339479616', now(), 'GOVERNED')
   RETURNING id INTO fid;
   INSERT INTO public.enforcement_actions(entity_id, case_number, enforcement_type, date_opened,
          status, description, supervisory_finding_id, opened_by, stage, severity, source_kind)
