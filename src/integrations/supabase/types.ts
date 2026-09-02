@@ -51792,18 +51792,6 @@ export type Database = {
         }
         Returns: string
       }
-      dms_list_entity_documents: {
-        Args: {
-          _category_code?: string
-          _document_status?: string
-          _entity_id: string
-          _include_archived?: boolean
-          _limit?: number
-          _offset?: number
-          _search?: string
-        }
-        Returns: Record<string, unknown>[]
-      }
       dms_log: {
         Args: {
           _action: string
