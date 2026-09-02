@@ -51,6 +51,11 @@ BEGIN
   END LOOP;
 END $$;
 
+-- the certification persona is an internal supervisor for the run
+INSERT INTO public.user_roles(user_id, role)
+VALUES ('0b522724-adcb-48bf-b21d-175339479616', 'supervisor')
+ON CONFLICT (user_id, role) DO NOTHING;
+
 -- the certification persona supervises every fixture entity
 INSERT INTO public.entity_supervision_assignments(entity_id, lead_supervisor_user_id, status,
        assignment_reason)
