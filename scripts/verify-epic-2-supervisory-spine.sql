@@ -76,9 +76,9 @@ DECLARE lp bigint; la bigint; mp bigint; ma bigint; bad int;
 BEGIN
   SELECT count(*) INTO lp FROM public.legacy_supervisory_plans;
   SELECT count(*) INTO la FROM public.legacy_supervisory_plan_actions;
-  IF lp <> (SELECT n FROM epic2_before WHERE k='legacy_plans') OR lp <> 3 THEN
+  IF lp <> (SELECT b.n FROM epic2_before b WHERE b. k='legacy_plans') OR lp <> 3 THEN
     RAISE EXCEPTION 'FAIL 1: legacy supervisory plans changed (expected 3, found %)', lp; END IF;
-  IF la <> (SELECT n FROM epic2_before WHERE k='legacy_actions') OR la <> 12 THEN
+  IF la <> (SELECT b.n FROM epic2_before b WHERE b. k='legacy_actions') OR la <> 12 THEN
     RAISE EXCEPTION 'FAIL 1: legacy supervisory plan actions changed (expected 12, found %)', la; END IF;
 
   -- every legacy plan/action is represented exactly once in the canonical model
@@ -134,7 +134,7 @@ DO $$
 DECLARE n bigint; bad int;
 BEGIN
   SELECT count(*) INTO n FROM public.examinations;
-  IF n <> 14 OR n <> (SELECT n FROM epic2_before WHERE k='examinations') THEN
+  IF n <> 14 OR n <> (SELECT b.n FROM epic2_before b WHERE b. k='examinations') THEN
     RAISE EXCEPTION 'FAIL 2: examination count is % (expected 14)', n; END IF;
 
   SELECT count(*) INTO bad FROM (
@@ -163,13 +163,13 @@ BEGIN
   IF n <> 14 THEN RAISE EXCEPTION 'FAIL 2: LEGACY_UNKNOWN not explicit on all 14 historical rows (found %)', n; END IF;
 
   -- children untouched
-  IF (SELECT count(*) FROM public.examination_findings)   <> (SELECT n FROM epic2_before WHERE k='exam_findings')
-  OR (SELECT count(*) FROM public.examination_reports)    <> (SELECT n FROM epic2_before WHERE k='exam_reports')
-  OR (SELECT count(*) FROM public.examination_workpapers) <> (SELECT n FROM epic2_before WHERE k='exam_workpapers')
-  OR (SELECT count(*) FROM public.examination_events)     <> (SELECT n FROM epic2_before WHERE k='exam_events')
-  OR (SELECT count(*) FROM public.examination_scoping)    <> (SELECT n FROM epic2_before WHERE k='exam_scoping')
-  OR (SELECT count(*) FROM public.examination_team_members) <> (SELECT n FROM epic2_before WHERE k='exam_team')
-  OR (SELECT count(*) FROM public.examination_data_requests) <> (SELECT n FROM epic2_before WHERE k='exam_data_requests') THEN
+  IF (SELECT count(*) FROM public.examination_findings)   <> (SELECT b.n FROM epic2_before b WHERE b. k='exam_findings')
+  OR (SELECT count(*) FROM public.examination_reports)    <> (SELECT b.n FROM epic2_before b WHERE b. k='exam_reports')
+  OR (SELECT count(*) FROM public.examination_workpapers) <> (SELECT b.n FROM epic2_before b WHERE b. k='exam_workpapers')
+  OR (SELECT count(*) FROM public.examination_events)     <> (SELECT b.n FROM epic2_before b WHERE b. k='exam_events')
+  OR (SELECT count(*) FROM public.examination_scoping)    <> (SELECT b.n FROM epic2_before b WHERE b. k='exam_scoping')
+  OR (SELECT count(*) FROM public.examination_team_members) <> (SELECT b.n FROM epic2_before b WHERE b. k='exam_team')
+  OR (SELECT count(*) FROM public.examination_data_requests) <> (SELECT b.n FROM epic2_before b WHERE b. k='exam_data_requests') THEN
     RAISE EXCEPTION 'FAIL 2: examination child record counts changed'; END IF;
 
   SELECT count(*) INTO bad FROM public.examination_findings f
