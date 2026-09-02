@@ -4,60 +4,126 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertCircle, ArrowRight, Inbox } from 'lucide-react';
-import { formatDateTime } from '@/lib/datetime';
-import { useMyWorkQueue, type MyWorkItem } from '@/hooks/usePeopleAccess';
+import { formatDate } from '@/lib/datetime';
+import {
+  WORK_SCOPES,
+  WORK_SCOPE_LABELS,
+  useSupervisoryWorkQueue,
+  type SupervisoryWorkItem,
+  type WorkScope,
+} from '@/hooks/useSupervisoryWork';
 
 /**
- * My Work (Checkpoint F).
+ * My Work (EPIC 4).
  *
- * A read-only aggregation of live module records the signed-in person owns —
- * applications, complaints, investigation tasks, supervisory attention items,
- * interventions and provider submissions awaiting internal acceptance. Nothing
- * is copied into a generic work table; every row links straight back to the
- * owning module, which stays the source of truth.
+ * My Work is now a filter over the single canonical enterprise work model
+ * (`supervisory_work_item`), not a queue of its own. Scopes — My Work, My Team,
+ * Unassigned, Due Soon, Overdue, High Priority, Awaiting My Approval — are all
+ * served by the governed `supervisory_work_queue` read model, which derives
+ * every row from the authoritative record. Nothing is copied into a generic
+ * work table and no state is recomputed here; each row links straight back to
+ * the workspace that owns the decision.
  */
-const SOURCE_LABELS: Record<string, string> = {
-  application: 'Licensing application',
-  complaint: 'Complaint',
-  complaint_task: 'Investigation task',
-  conduct_attention: 'Supervisory attention',
-  conduct_intervention: 'Intervention',
-  provider_work_package: 'Provider work package',
+const DOMAIN_OPTIONS = [
+  { value: 'all', label: 'All domains' },
+  { value: 'PRUDENTIAL', label: 'Prudential' },
+  { value: 'AML_CFT', label: 'AML/CFT' },
+  { value: 'MARKET_CONDUCT', label: 'Market conduct' },
+  { value: 'OPERATIONAL_RESILIENCE', label: 'Operational resilience' },
+  { value: 'GOVERNANCE', label: 'Governance' },
+  { value: 'CROSS_DOMAIN', label: 'Cross-domain' },
+];
+
+const PRIORITY_TONE: Record<string, string> = {
+  CRITICAL: 'border-destructive/40 text-destructive',
+  HIGH: 'border-destructive/30 text-destructive',
+  MEDIUM: 'border-border text-foreground',
+  LOW: 'border-border text-muted-foreground',
+  ROUTINE: 'border-border text-muted-foreground',
 };
 
-const overdue = (item: MyWorkItem) => !!item.due_at && new Date(item.due_at).getTime() < Date.now();
+const stateLabel = (item: SupervisoryWorkItem) =>
+  item.work_state
+    .split('_')
+    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+    .join(' ');
 
 export default function MyWork() {
-  const { data, isLoading, error } = useMyWorkQueue(50);
-  const [filter, setFilter] = useState<string>('all');
+  const [scope, setScope] = useState<WorkScope>('MY_WORK');
+  const [domain, setDomain] = useState<string>('all');
+  const [workType, setWorkType] = useState<string>('all');
 
-  const items = data?.items || [];
-  const sources = useMemo(
-    () => Array.from(new Set(items.map((i) => i.source))),
-    [items],
-  );
-  const visible = useMemo(
-    () =>
-      (filter === 'all' ? items : items.filter((i) => i.source === filter))
-        .slice()
-        .sort((a, b) => {
-          if (!a.due_at) return 1;
-          if (!b.due_at) return -1;
-          return new Date(a.due_at).getTime() - new Date(b.due_at).getTime();
-        }),
-    [items, filter],
-  );
+  const { data, isLoading, error } = useSupervisoryWorkQueue({
+    scope,
+    domain: domain === 'all' ? null : domain,
+    workType: workType === 'all' ? null : workType,
+  });
+
+  const items = data?.items ?? [];
+  const counts = data?.counts ?? {};
+
+  const workTypeOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    items.forEach((item) => seen.set(item.work_type, item.work_type_label));
+    return Array.from(seen.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [items]);
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold">My Work</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Everything currently waiting on you, pulled live from the modules that own it. Open an item to
-          act on it in its own workspace.
+          One enterprise work list, derived live from the supervisory record that owns each decision.
+          Switch scope to see your team's work, unassigned work, what is due or overdue, and what is
+          waiting on your approval.
         </p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {WORK_SCOPES.map((s) => (
+          <Button
+            key={s}
+            size="sm"
+            variant={scope === s ? 'default' : 'outline'}
+            onClick={() => setScope(s)}
+          >
+            {WORK_SCOPE_LABELS[s]}
+            <Badge variant="secondary" className="ml-1.5">
+              {counts[s] ?? 0}
+            </Badge>
+          </Button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={domain} onValueChange={setDomain}>
+          <SelectTrigger className="w-[220px]">
+            <SelectValue placeholder="Domain" />
+          </SelectTrigger>
+          <SelectContent>
+            {DOMAIN_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={workType} onValueChange={setWorkType}>
+          <SelectTrigger className="w-[260px]">
+            <SelectValue placeholder="Work type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All work types</SelectItem>
+            {workTypeOptions.map(([code, label]) => (
+              <SelectItem key={code} value={code}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading && <Skeleton className="h-64 w-full" />}
@@ -71,96 +137,96 @@ export default function MyWork() {
       )}
 
       {data && (
-        <>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant={filter === 'all' ? 'default' : 'outline'}
-              onClick={() => setFilter('all')}
-            >
-              All <Badge variant="secondary" className="ml-1.5">{items.length}</Badge>
-            </Button>
-            {sources.map((s) => (
-              <Button
-                key={s}
-                size="sm"
-                variant={filter === s ? 'default' : 'outline'}
-                onClick={() => setFilter(s)}
-              >
-                {SOURCE_LABELS[s] || s}
-                <Badge variant="secondary" className="ml-1.5">{data.counts?.[s] ?? 0}</Badge>
-              </Button>
-            ))}
-          </div>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">
-                {visible.length} item{visible.length === 1 ? '' : 's'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              {visible.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 py-10 text-center">
-                  <Inbox className="h-8 w-8 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Nothing is assigned to you right now.
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Work</TableHead>
-                        <TableHead className="whitespace-nowrap">Type</TableHead>
-                        <TableHead className="whitespace-nowrap">Status</TableHead>
-                        <TableHead className="whitespace-nowrap">Priority</TableHead>
-                        <TableHead className="whitespace-nowrap">Due</TableHead>
-                        <TableHead className="w-16" />
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">
+              {WORK_SCOPE_LABELS[scope]} — {items.length} item{items.length === 1 ? '' : 's'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {items.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-10 text-center">
+                <Inbox className="h-8 w-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  No supervisory work matches this scope right now.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Work</TableHead>
+                      <TableHead className="whitespace-nowrap">Work type</TableHead>
+                      <TableHead className="whitespace-nowrap">Entity</TableHead>
+                      <TableHead className="whitespace-nowrap">Domain</TableHead>
+                      <TableHead className="whitespace-nowrap">State</TableHead>
+                      <TableHead className="whitespace-nowrap">Priority</TableHead>
+                      <TableHead className="whitespace-nowrap">Due</TableHead>
+                      <TableHead className="w-16" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {items.map((item) => (
+                      <TableRow key={item.work_key}>
+                        <TableCell className="min-w-[240px]">
+                          <span className="block font-medium">{item.title || 'Untitled'}</span>
+                          {item.reference && (
+                            <span className="block font-mono text-xs text-muted-foreground">
+                              {item.reference}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-sm">
+                          {item.work_type_label}
+                          {item.decision_point && (
+                            <Badge variant="outline" className="ml-1.5 text-[10px]">
+                              Decision
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-sm">
+                          {item.entity_id ? (
+                            <Link className="underline-offset-2 hover:underline" to={`/entities/${item.entity_id}`}>
+                              {item.entity_name || 'Entity'}
+                            </Link>
+                          ) : (
+                            '—'
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-xs font-mono">
+                          {item.domain_code || '—'}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-sm">{stateLabel(item)}</TableCell>
+                        <TableCell className="whitespace-nowrap text-sm">
+                          <Badge variant="outline" className={PRIORITY_TONE[item.priority] ?? ''}>
+                            {item.priority}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-sm">
+                          {item.due_date ? (
+                            <span className={item.is_overdue ? 'font-medium text-destructive' : undefined}>
+                              {formatDate(item.due_date)}
+                            </span>
+                          ) : (
+                            '—'
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Button asChild size="sm" variant="ghost">
+                            <Link to={item.route} aria-label="Open item">
+                              <ArrowRight className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {visible.map((item) => (
-                        <TableRow key={`${item.source}-${item.id}`}>
-                          <TableCell className="min-w-[220px]">
-                            <span className="block font-medium">{item.title || 'Untitled'}</span>
-                            {item.reference && (
-                              <span className="block font-mono text-xs text-muted-foreground">
-                                {item.reference}
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-sm">
-                            {SOURCE_LABELS[item.source] || item.source}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-sm">{item.status || '—'}</TableCell>
-                          <TableCell className="whitespace-nowrap text-sm">{item.priority || '—'}</TableCell>
-                          <TableCell className="whitespace-nowrap text-sm">
-                            {item.due_at ? (
-                              <span className={overdue(item) ? 'text-destructive font-medium' : undefined}>
-                                {formatDateTime(item.due_at)}
-                              </span>
-                            ) : (
-                              '—'
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Button asChild size="sm" variant="ghost">
-                              <Link to={item.route} aria-label="Open item">
-                                <ArrowRight className="h-4 w-4" />
-                              </Link>
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

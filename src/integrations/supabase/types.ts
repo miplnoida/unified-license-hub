@@ -46091,6 +46091,92 @@ export type Database = {
           },
         ]
       }
+      supervisory_work_assignment: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          assigned_team: string | null
+          assigned_to: string | null
+          created_at: string
+          note: string | null
+          source_id: string
+          source_object: string
+          updated_at: string
+          work_key: string
+          work_type: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          assigned_team?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          note?: string | null
+          source_id: string
+          source_object: string
+          updated_at?: string
+          work_key: string
+          work_type: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          assigned_team?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          note?: string | null
+          source_id?: string
+          source_object?: string
+          updated_at?: string
+          work_key?: string
+          work_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_work_assignment_work_type_fkey"
+            columns: ["work_type"]
+            isOneToOne: false
+            referencedRelation: "supervisory_work_type"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      supervisory_work_type: {
+        Row: {
+          canonical_object: string
+          code: string
+          created_at: string
+          decision_point: boolean
+          description: string | null
+          is_active: boolean
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          canonical_object: string
+          code: string
+          created_at?: string
+          decision_point?: boolean
+          description?: string | null
+          is_active?: boolean
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          canonical_object?: string
+          code?: string
+          created_at?: string
+          decision_point?: boolean
+          description?: string | null
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       support_ticket_attachments: {
         Row: {
           content_type: string | null
@@ -49498,6 +49584,78 @@ export type Database = {
           submitted_for_review_at?: string | null
           submitted_for_review_by?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      supervisory_timeline_event: {
+        Row: {
+          actor_id: string | null
+          detail: string | null
+          domain_code: string | null
+          entity_id: string | null
+          event_category: string | null
+          event_type: string | null
+          is_decision: boolean | null
+          occurred_at: string | null
+          rationale: string | null
+          reference: string | null
+          source_id: string | null
+          source_object: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
+      supervisory_work_item: {
+        Row: {
+          assignment_note: string | null
+          decision_point: boolean | null
+          domain_code: string | null
+          due_date: string | null
+          effective_owner_id: string | null
+          effective_team_id: string | null
+          entity_id: string | null
+          entity_name: string | null
+          is_due_soon: boolean | null
+          is_overdue: boolean | null
+          is_unassigned: boolean | null
+          maker_id: string | null
+          opened_at: string | null
+          overlay_assigned_team: string | null
+          overlay_assigned_to: string | null
+          priority: string | null
+          record_owner_id: string | null
+          record_team_id: string | null
+          reference: string | null
+          route: string | null
+          sort_order: number | null
+          source_id: string | null
+          source_object: string | null
+          source_status: string | null
+          title: string | null
+          work_key: string | null
+          work_state: string | null
+          work_type: string | null
+          work_type_label: string | null
+        }
+        Relationships: []
+      }
+      supervisory_work_item_source: {
+        Row: {
+          domain_code: string | null
+          due_date: string | null
+          entity_id: string | null
+          maker_id: string | null
+          opened_at: string | null
+          owner_id: string | null
+          raw_priority: string | null
+          reference: string | null
+          source_id: string | null
+          source_object: string | null
+          source_status: string | null
+          team_id: string | null
+          title: string | null
+          work_state: string | null
+          work_type: string | null
         }
         Relationships: []
       }
@@ -62866,8 +63024,38 @@ export type Database = {
         Args: { _actions: string[] }
         Returns: string
       }
+      supervisory_timeline: {
+        Args: {
+          _category?: string
+          _domain?: string
+          _entity_id?: string
+          _from?: string
+          _limit?: number
+          _to?: string
+        }
+        Returns: Json
+      }
       supervisory_trace: {
         Args: { _id: string; _scope: string }
+        Returns: Json
+      }
+      supervisory_work_item_assign: {
+        Args: {
+          _assigned_team?: string
+          _assigned_to?: string
+          _note?: string
+          _work_key: string
+        }
+        Returns: Json
+      }
+      supervisory_work_queue: {
+        Args: {
+          _domain?: string
+          _entity_id?: string
+          _limit?: number
+          _scope?: string
+          _work_type?: string
+        }
         Returns: Json
       }
       support_has_action: {
