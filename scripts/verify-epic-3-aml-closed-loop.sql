@@ -584,7 +584,7 @@ END $$;
 SET LOCAL "request.jwt.claims" = :'REVIEWER';
 DO $$
 BEGIN
-  PERFORM public.examination_signoff_workpaper((SELECT v FROM e3 WHERE k='wp'), 'REVIEWER',
+  PERFORM public.examination_signoff_workpaper((SELECT v FROM e3 WHERE k='wp'), 'reviewer',
     'Reviewed: testing is sufficient to support a HIGH finding.');
 END $$;
 
