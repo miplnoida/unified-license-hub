@@ -14995,6 +14995,75 @@ export type Database = {
           },
         ]
       }
+      document_categories: {
+        Row: {
+          code: string
+          created_at: string
+          default_confidentiality: string
+          default_publication_eligibility: string
+          default_retention_policy_id: string | null
+          description: string | null
+          domain: string | null
+          id: string
+          is_active: boolean
+          name: string
+          parent_id: string | null
+          requires_acceptance: boolean
+          requires_verification: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          default_confidentiality?: string
+          default_publication_eligibility?: string
+          default_retention_policy_id?: string | null
+          description?: string | null
+          domain?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          parent_id?: string | null
+          requires_acceptance?: boolean
+          requires_verification?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          default_confidentiality?: string
+          default_publication_eligibility?: string
+          default_retention_policy_id?: string | null
+          description?: string | null
+          domain?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          parent_id?: string | null
+          requires_acceptance?: boolean
+          requires_verification?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_categories_default_retention_policy_id_fkey"
+            columns: ["default_retention_policy_id"]
+            isOneToOne: false
+            referencedRelation: "document_retention_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "document_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_extractions: {
         Row: {
           created_at: string
@@ -15059,65 +15128,408 @@ export type Database = {
       }
       document_groups: {
         Row: {
+          acceptance_status: string | null
+          archived_at: string | null
+          archived_by: string | null
+          category_id: string | null
+          classification_overrides: Json
+          confidentiality_classification: string | null
           created_at: string
+          created_by: string | null
           current_version_id: string | null
           display_name: string | null
+          disposition_status: string
+          document_date: string | null
           document_label: string | null
+          document_reference: string | null
+          document_status: string | null
           document_type: string
+          document_type_id: string | null
+          effective_from: string | null
+          effective_until: string | null
           entity_id: string | null
           entity_type: string
+          expiry_date: string | null
           field_id: string | null
           form_id: string | null
           id: string
           is_deleted: boolean
+          legal_hold_status: string
+          license_id: string | null
           metadata: Json | null
           owner_id: string
+          owner_party_id: string | null
+          owner_type: string | null
+          primary_entity_id: string | null
+          publication_eligibility: string | null
+          publication_status: string | null
+          published_at: string | null
+          published_by: string | null
+          reporting_period_end: string | null
+          reporting_period_start: string | null
+          retention_policy_id: string | null
+          retention_start_date: string | null
+          retention_until: string | null
+          sector_id: string | null
+          source_module: string | null
+          source_record_id: string | null
+          source_record_type: string | null
+          source_reference: string | null
           status: string
           submission_id: string | null
+          tags: string[]
           updated_at: string
+          updated_by: string | null
+          verification_status: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
         }
         Insert: {
+          acceptance_status?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          category_id?: string | null
+          classification_overrides?: Json
+          confidentiality_classification?: string | null
           created_at?: string
+          created_by?: string | null
           current_version_id?: string | null
           display_name?: string | null
+          disposition_status?: string
+          document_date?: string | null
           document_label?: string | null
+          document_reference?: string | null
+          document_status?: string | null
           document_type: string
+          document_type_id?: string | null
+          effective_from?: string | null
+          effective_until?: string | null
           entity_id?: string | null
           entity_type: string
+          expiry_date?: string | null
           field_id?: string | null
           form_id?: string | null
           id?: string
           is_deleted?: boolean
+          legal_hold_status?: string
+          license_id?: string | null
           metadata?: Json | null
           owner_id: string
+          owner_party_id?: string | null
+          owner_type?: string | null
+          primary_entity_id?: string | null
+          publication_eligibility?: string | null
+          publication_status?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          reporting_period_end?: string | null
+          reporting_period_start?: string | null
+          retention_policy_id?: string | null
+          retention_start_date?: string | null
+          retention_until?: string | null
+          sector_id?: string | null
+          source_module?: string | null
+          source_record_id?: string | null
+          source_record_type?: string | null
+          source_reference?: string | null
           status?: string
           submission_id?: string | null
+          tags?: string[]
           updated_at?: string
+          updated_by?: string | null
+          verification_status?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
         }
         Update: {
+          acceptance_status?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
+          category_id?: string | null
+          classification_overrides?: Json
+          confidentiality_classification?: string | null
           created_at?: string
+          created_by?: string | null
           current_version_id?: string | null
           display_name?: string | null
+          disposition_status?: string
+          document_date?: string | null
           document_label?: string | null
+          document_reference?: string | null
+          document_status?: string | null
           document_type?: string
+          document_type_id?: string | null
+          effective_from?: string | null
+          effective_until?: string | null
           entity_id?: string | null
           entity_type?: string
+          expiry_date?: string | null
           field_id?: string | null
           form_id?: string | null
           id?: string
           is_deleted?: boolean
+          legal_hold_status?: string
+          license_id?: string | null
           metadata?: Json | null
           owner_id?: string
+          owner_party_id?: string | null
+          owner_type?: string | null
+          primary_entity_id?: string | null
+          publication_eligibility?: string | null
+          publication_status?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          reporting_period_end?: string | null
+          reporting_period_start?: string | null
+          retention_policy_id?: string | null
+          retention_start_date?: string | null
+          retention_until?: string | null
+          sector_id?: string | null
+          source_module?: string | null
+          source_record_id?: string | null
+          source_record_type?: string | null
+          source_reference?: string | null
           status?: string
           submission_id?: string | null
+          tags?: string[]
           updated_at?: string
+          updated_by?: string | null
+          verification_status?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "document_groups_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "document_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "document_groups_current_version_fk"
             columns: ["current_version_id"]
             isOneToOne: false
             referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_groups_document_type_id_fkey"
+            columns: ["document_type_id"]
+            isOneToOne: false
+            referencedRelation: "document_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_groups_retention_policy_id_fkey"
+            columns: ["retention_policy_id"]
+            isOneToOne: false
+            referencedRelation: "document_retention_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_holds: {
+        Row: {
+          created_at: string
+          document_group_id: string
+          id: string
+          placed_at: string
+          placed_by: string | null
+          reason: string
+          reference: string | null
+          released_at: string | null
+          released_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          document_group_id: string
+          id?: string
+          placed_at?: string
+          placed_by?: string | null
+          reason: string
+          reference?: string | null
+          released_at?: string | null
+          released_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          document_group_id?: string
+          id?: string
+          placed_at?: string
+          placed_by?: string | null
+          reason?: string
+          reference?: string | null
+          released_at?: string | null
+          released_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_holds_document_group_id_fkey"
+            columns: ["document_group_id"]
+            isOneToOne: false
+            referencedRelation: "document_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_relationships: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          document_group_id: string
+          id: string
+          is_primary: boolean
+          relationship_type: string
+          target_id: string
+          target_reference: string | null
+          target_type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          document_group_id: string
+          id?: string
+          is_primary?: boolean
+          relationship_type?: string
+          target_id: string
+          target_reference?: string | null
+          target_type: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          document_group_id?: string
+          id?: string
+          is_primary?: boolean
+          relationship_type?: string
+          target_id?: string
+          target_reference?: string | null
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_relationships_document_group_id_fkey"
+            columns: ["document_group_id"]
+            isOneToOne: false
+            referencedRelation: "document_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_retention_policies: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          disposition_action: string
+          id: string
+          is_active: boolean
+          name: string
+          retention_trigger: string
+          retention_years: number | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          disposition_action?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          retention_trigger?: string
+          retention_years?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          disposition_action?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          retention_trigger?: string
+          retention_years?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      document_types: {
+        Row: {
+          category_id: string
+          code: string
+          created_at: string
+          default_confidentiality: string | null
+          default_publication_eligibility: string | null
+          default_retention_policy_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          metadata_schema: Json
+          name: string
+          requires_acceptance: boolean | null
+          requires_verification: boolean | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          code: string
+          created_at?: string
+          default_confidentiality?: string | null
+          default_publication_eligibility?: string | null
+          default_retention_policy_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          metadata_schema?: Json
+          name: string
+          requires_acceptance?: boolean | null
+          requires_verification?: boolean | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          code?: string
+          created_at?: string
+          default_confidentiality?: string | null
+          default_publication_eligibility?: string | null
+          default_retention_policy_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          metadata_schema?: Json
+          name?: string
+          requires_acceptance?: boolean | null
+          requires_verification?: boolean | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_types_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "document_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_types_default_retention_policy_id_fkey"
+            columns: ["default_retention_policy_id"]
+            isOneToOne: false
+            referencedRelation: "document_retention_policies"
             referencedColumns: ["id"]
           },
         ]
@@ -15128,6 +15540,8 @@ export type Database = {
           change_note: string | null
           checksum: string | null
           created_at: string
+          effective_from: string | null
+          effective_until: string | null
           extension: string | null
           file_size: number | null
           file_upload_id: string
@@ -15140,14 +15554,18 @@ export type Database = {
           safe_file_name: string | null
           status: string
           storage_path: string | null
+          superseded_at: string | null
           uploaded_by: string
           version: number
+          version_status: string | null
         }
         Insert: {
           bucket?: string | null
           change_note?: string | null
           checksum?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_until?: string | null
           extension?: string | null
           file_size?: number | null
           file_upload_id: string
@@ -15160,14 +15578,18 @@ export type Database = {
           safe_file_name?: string | null
           status?: string
           storage_path?: string | null
+          superseded_at?: string | null
           uploaded_by: string
           version: number
+          version_status?: string | null
         }
         Update: {
           bucket?: string | null
           change_note?: string | null
           checksum?: string | null
           created_at?: string
+          effective_from?: string | null
+          effective_until?: string | null
           extension?: string | null
           file_size?: number | null
           file_upload_id?: string
@@ -15180,8 +15602,10 @@ export type Database = {
           safe_file_name?: string | null
           status?: string
           storage_path?: string | null
+          superseded_at?: string | null
           uploaded_by?: string
           version?: number
+          version_status?: string | null
         }
         Relationships: [
           {
@@ -51257,6 +51681,7 @@ export type Database = {
         Args: { _case_id: string; _reason?: string }
         Returns: Json
       }
+      dms_next_document_reference: { Args: never; Returns: string }
       do_tap:
         | { Args: never; Returns: string[] }
         | { Args: { "": string }; Returns: string[] }
