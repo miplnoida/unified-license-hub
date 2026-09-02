@@ -1104,8 +1104,8 @@ SET LOCAL "request.jwt.claims" = :'SUPERVISOR';
 DO $$
 DECLARE ok boolean := false;
 BEGIN
-  PERFORM public.supervisory_finding_lifecycle((SELECT v FROM e3 WHERE k='f2'), 'REMEDIATION_REQUIRED',
-    'Corrective action required for the critical beneficial ownership gap.');
+  -- f2 already sits in REMEDIATION_REQUIRED with an unresolved corrective action
+
   BEGIN
     PERFORM public.supervisory_finding_lifecycle((SELECT v FROM e3 WHERE k='f2'), 'CLOSED',
       'Attempting closure without a governed validation.');
