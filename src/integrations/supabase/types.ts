@@ -56183,6 +56183,10 @@ export type Database = {
         Returns: boolean
       }
       entity_resolve_identity: { Args: { _payload: Json }; Returns: Json }
+      entity_restricted_matter_present: {
+        Args: { _entity_id: string }
+        Returns: boolean
+      }
       entity_set_publication_policy: {
         Args: { _entity_id: string; _policy_key: string; _reason?: string }
         Returns: Json
@@ -56212,6 +56216,7 @@ export type Database = {
         Args: { _entity_id: string }
         Returns: Json
       }
+      entity_supervisory_360: { Args: { _entity_id: string }; Returns: Json }
       entity_ubo_resolve: {
         Args: {
           _as_of?: string

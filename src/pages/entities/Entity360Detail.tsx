@@ -39,6 +39,7 @@ import { E360_GROUPS, E360_SECTIONS } from '@/components/entity-detail/sectionCa
 import { EntityReportingCurrencyPanel } from '@/components/entity-detail/EntityReportingCurrencyPanel';
 import { OwnershipTreePanel } from '@/components/entity-detail/OwnershipTreePanel';
 import { SupervisoryTimelinePanel } from '@/components/entity-detail/SupervisoryTimelinePanel';
+import { EntitySupervisory360Panel } from '@/components/entity-detail/EntitySupervisory360Panel';
 import { SubjectAddressPanel } from '@/components/addresses/SubjectAddressPanel';
 import { useEntity360Overview, type E360SectionKey } from '@/hooks/useEntity360';
 
@@ -193,6 +194,9 @@ export default function Entity360Detail() {
         <div className="min-w-0">
           {view === 'overview' && (
             <div className="space-y-4">
+              {/* EPIC 4 / W3: the canonical enterprise supervisory state leads the
+                  overview; the legacy domain panels are retained beneath it. */}
+              <EntitySupervisory360Panel entityId={entity.id} />
               <EntitySupervisoryStatePanel entityId={entity.id} />
               <EntityPrudentialStatePanel entityId={entity.id} />
               <Entity360OverviewPanel
@@ -248,15 +252,18 @@ export default function Entity360Detail() {
                   asOf={asOf}
                 />
               )}
-              {/* EPIC 3 / Gate 10: canonical AML risk-of-record panel. */}
-              {activeSection.key === 'aml' && (
+              {/* EPIC 3 / Gate 10 + EPIC 4 / W3: the canonical AML panel is the only
+                  AML truth on this page. The legacy AML block has been retired, so no
+                  second AML view is rendered beneath it. */}
+              {activeSection.key === 'aml' ? (
                 <EntityAmlPanel entityId={entity.id} />
+              ) : (
+                <Entity360SectionView
+                  entityId={entity.id}
+                  section={activeSection.key}
+                  asOf={asOf}
+                />
               )}
-              <Entity360SectionView
-                entityId={entity.id}
-                section={activeSection.key}
-                asOf={asOf}
-              />
             </div>
           )}
         </div>
