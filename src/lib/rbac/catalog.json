@@ -46,12 +46,12 @@
   },
   {
     "module": "aml_supervision",
-    "name": "view_confidential",
+    "name": "view",
     "enforced": true
   },
   {
     "module": "aml_supervision",
-    "name": "view",
+    "name": "view_confidential",
     "enforced": true
   },
   {
@@ -116,12 +116,12 @@
   },
   {
     "module": "application_management",
-    "name": "view_all_entities",
+    "name": "view",
     "enforced": true
   },
   {
     "module": "application_management",
-    "name": "view",
+    "name": "view_all_entities",
     "enforced": true
   },
   {
@@ -146,12 +146,12 @@
   },
   {
     "module": "complaint_management",
-    "name": "approve_rfi",
+    "name": "approve",
     "enforced": true
   },
   {
     "module": "complaint_management",
-    "name": "approve",
+    "name": "approve_rfi",
     "enforced": true
   },
   {
@@ -236,12 +236,12 @@
   },
   {
     "module": "complaint_management",
-    "name": "view_status",
+    "name": "view",
     "enforced": true
   },
   {
     "module": "complaint_management",
-    "name": "view",
+    "name": "view_status",
     "enforced": true
   },
   {
@@ -291,6 +291,11 @@
   },
   {
     "module": "compliance_management",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "compliance_management",
     "name": "view_all_entities",
     "enforced": true
   },
@@ -301,112 +306,7 @@
   },
   {
     "module": "compliance_management",
-    "name": "view",
-    "enforced": true
-  },
-  {
-    "module": "compliance_management",
     "name": "workflow_action",
-    "enforced": true
-  },
-  {
-    "module": "coordination_cases",
-    "name": "approve",
-    "enforced": true
-  },
-  {
-    "module": "coordination_cases",
-    "name": "create",
-    "enforced": true
-  },
-  {
-    "module": "coordination_cases",
-    "name": "edit",
-    "enforced": true
-  },
-  {
-    "module": "coordination_cases",
-    "name": "override",
-    "enforced": true
-  },
-  {
-    "module": "coordination_cases",
-    "name": "view",
-    "enforced": true
-  },
-  {
-    "module": "coordination_escalations",
-    "name": "approve",
-    "enforced": true
-  },
-  {
-    "module": "coordination_escalations",
-    "name": "create",
-    "enforced": true
-  },
-  {
-    "module": "coordination_escalations",
-    "name": "edit",
-    "enforced": true
-  },
-  {
-    "module": "coordination_escalations",
-    "name": "override",
-    "enforced": true
-  },
-  {
-    "module": "coordination_escalations",
-    "name": "view",
-    "enforced": true
-  },
-  {
-    "module": "coordination_flags",
-    "name": "approve",
-    "enforced": true
-  },
-  {
-    "module": "coordination_flags",
-    "name": "create",
-    "enforced": true
-  },
-  {
-    "module": "coordination_flags",
-    "name": "edit",
-    "enforced": true
-  },
-  {
-    "module": "coordination_flags",
-    "name": "override",
-    "enforced": true
-  },
-  {
-    "module": "coordination_flags",
-    "name": "view",
-    "enforced": true
-  },
-  {
-    "module": "coordination_messages",
-    "name": "approve",
-    "enforced": true
-  },
-  {
-    "module": "coordination_messages",
-    "name": "create",
-    "enforced": true
-  },
-  {
-    "module": "coordination_messages",
-    "name": "edit",
-    "enforced": true
-  },
-  {
-    "module": "coordination_messages",
-    "name": "override",
-    "enforced": true
-  },
-  {
-    "module": "coordination_messages",
-    "name": "view",
     "enforced": true
   },
   {
@@ -435,6 +335,106 @@
     "enforced": true
   },
   {
+    "module": "coordination_cases",
+    "name": "approve",
+    "enforced": true
+  },
+  {
+    "module": "coordination_cases",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "coordination_cases",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "coordination_cases",
+    "name": "override",
+    "enforced": true
+  },
+  {
+    "module": "coordination_cases",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "coordination_escalations",
+    "name": "approve",
+    "enforced": true
+  },
+  {
+    "module": "coordination_escalations",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "coordination_escalations",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "coordination_escalations",
+    "name": "override",
+    "enforced": true
+  },
+  {
+    "module": "coordination_escalations",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "coordination_flags",
+    "name": "approve",
+    "enforced": true
+  },
+  {
+    "module": "coordination_flags",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "coordination_flags",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "coordination_flags",
+    "name": "override",
+    "enforced": true
+  },
+  {
+    "module": "coordination_flags",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "coordination_messages",
+    "name": "approve",
+    "enforced": true
+  },
+  {
+    "module": "coordination_messages",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "coordination_messages",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "coordination_messages",
+    "name": "override",
+    "enforced": true
+  },
+  {
+    "module": "coordination_messages",
+    "name": "view",
+    "enforced": true
+  },
+  {
     "module": "correspondence_management",
     "name": "approve",
     "enforced": true
@@ -452,6 +452,116 @@
   {
     "module": "correspondence_management",
     "name": "export",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "accept",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "archive",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "audit_view",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "bulk_manage",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "classify",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "create_version",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "delete",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "download",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "edit_metadata",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "link_record",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "manage_hold",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "manage_retention",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "publish_approve",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "publish_request",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "reject",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "restore",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "upload",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "verify",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "view_entity",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "view_internal",
+    "enforced": true
+  },
+  {
+    "module": "document_management",
+    "name": "view_restricted",
     "enforced": true
   },
   {
@@ -501,12 +611,12 @@
   },
   {
     "module": "enforcement_management",
-    "name": "view_all_entities",
+    "name": "view",
     "enforced": true
   },
   {
     "module": "enforcement_management",
-    "name": "view",
+    "name": "view_all_entities",
     "enforced": true
   },
   {
@@ -596,12 +706,12 @@
   },
   {
     "module": "entity_structure",
-    "name": "view_history",
+    "name": "view",
     "enforced": true
   },
   {
     "module": "entity_structure",
-    "name": "view",
+    "name": "view_history",
     "enforced": true
   },
   {
@@ -631,12 +741,12 @@
   },
   {
     "module": "escalation_management",
-    "name": "view_system_health",
+    "name": "view",
     "enforced": true
   },
   {
     "module": "escalation_management",
-    "name": "view",
+    "name": "view_system_health",
     "enforced": true
   },
   {
@@ -677,6 +787,96 @@
   {
     "module": "fee_management",
     "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "admin",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "approve",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "configure",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "create",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "delete",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "edit",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "execute",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "export",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "manage_config",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "override_committee",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "submit",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "update",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "upload_documents",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "view_all_entities",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "view_confidential",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "view_status",
+    "enforced": true
+  },
+  {
+    "module": "fit_and_proper",
+    "name": "workflow_action",
     "enforced": true
   },
   {
@@ -860,96 +1060,6 @@
     "enforced": true
   },
   {
-    "module": "fit_and_proper",
-    "name": "admin",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "approve",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "configure",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "create",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "delete",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "edit",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "execute",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "export",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "manage_config",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "override_committee",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "submit",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "update",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "upload_documents",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "view_all_entities",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "view_confidential",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "view_status",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "view",
-    "enforced": true
-  },
-  {
-    "module": "fit_and_proper",
-    "name": "workflow_action",
-    "enforced": true
-  },
-  {
     "module": "form_management",
     "name": "create",
     "enforced": true
@@ -1001,12 +1111,12 @@
   },
   {
     "module": "inspection_management",
-    "name": "view_all_entities",
+    "name": "view",
     "enforced": true
   },
   {
     "module": "inspection_management",
-    "name": "view",
+    "name": "view_all_entities",
     "enforced": true
   },
   {
@@ -1026,12 +1136,12 @@
   },
   {
     "module": "integration_management",
-    "name": "view_health",
+    "name": "view",
     "enforced": true
   },
   {
     "module": "integration_management",
-    "name": "view",
+    "name": "view_health",
     "enforced": true
   },
   {
@@ -1061,12 +1171,12 @@
   },
   {
     "module": "license_appeals",
-    "name": "view_all_entities",
+    "name": "view",
     "enforced": true
   },
   {
     "module": "license_appeals",
-    "name": "view",
+    "name": "view_all_entities",
     "enforced": true
   },
   {
@@ -1111,12 +1221,12 @@
   },
   {
     "module": "license_management",
-    "name": "view_all_entities",
+    "name": "view",
     "enforced": true
   },
   {
     "module": "license_management",
-    "name": "view",
+    "name": "view_all_entities",
     "enforced": true
   },
   {
@@ -1161,12 +1271,12 @@
   },
   {
     "module": "licensee_management",
-    "name": "view_all_entities",
+    "name": "view",
     "enforced": true
   },
   {
     "module": "licensee_management",
-    "name": "view",
+    "name": "view_all_entities",
     "enforced": true
   },
   {
@@ -1231,37 +1341,12 @@
   },
   {
     "module": "licensing",
-    "name": "view_status",
+    "name": "view",
     "enforced": true
   },
   {
     "module": "licensing",
-    "name": "view",
-    "enforced": true
-  },
-  {
-    "module": "market_conduct_investigation",
-    "name": "access_investigation_workspace",
-    "enforced": true
-  },
-  {
-    "module": "market_conduct_investigation",
-    "name": "conduct_interviews",
-    "enforced": true
-  },
-  {
-    "module": "market_conduct_investigation",
-    "name": "manage_evidence_repository",
-    "enforced": true
-  },
-  {
-    "module": "market_conduct_investigation",
-    "name": "prepare_investigation_report",
-    "enforced": true
-  },
-  {
-    "module": "market_conduct_investigation",
-    "name": "view",
+    "name": "view_status",
     "enforced": true
   },
   {
@@ -1311,6 +1396,31 @@
   },
   {
     "module": "market_conduct",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct_investigation",
+    "name": "access_investigation_workspace",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct_investigation",
+    "name": "conduct_interviews",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct_investigation",
+    "name": "manage_evidence_repository",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct_investigation",
+    "name": "prepare_investigation_report",
+    "enforced": true
+  },
+  {
+    "module": "market_conduct_investigation",
     "name": "view",
     "enforced": true
   },
@@ -1366,12 +1476,12 @@
   },
   {
     "module": "operational_resilience",
-    "name": "view_confidential",
+    "name": "view",
     "enforced": true
   },
   {
     "module": "operational_resilience",
-    "name": "view",
+    "name": "view_confidential",
     "enforced": true
   },
   {
@@ -1476,12 +1586,12 @@
   },
   {
     "module": "prudential_supervision",
-    "name": "view_all_entities",
+    "name": "view",
     "enforced": true
   },
   {
     "module": "prudential_supervision",
-    "name": "view",
+    "name": "view_all_entities",
     "enforced": true
   },
   {
@@ -1636,6 +1746,11 @@
   },
   {
     "module": "returns_management",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "returns_management",
     "name": "view_all_entities",
     "enforced": true
   },
@@ -1646,12 +1761,12 @@
   },
   {
     "module": "returns_management",
-    "name": "view",
+    "name": "workflow_action",
     "enforced": true
   },
   {
-    "module": "returns_management",
-    "name": "workflow_action",
+    "module": "role_management",
+    "name": "assign",
     "enforced": true
   },
   {
@@ -1662,11 +1777,6 @@
   {
     "module": "role_management",
     "name": "assign_role",
-    "enforced": true
-  },
-  {
-    "module": "role_management",
-    "name": "assign",
     "enforced": true
   },
   {
@@ -1701,17 +1811,17 @@
   },
   {
     "module": "role_management",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "role_management",
     "name": "view_catalog",
     "enforced": true
   },
   {
     "module": "role_management",
     "name": "view_coverage",
-    "enforced": true
-  },
-  {
-    "module": "role_management",
-    "name": "view",
     "enforced": true
   },
   {
@@ -1756,6 +1866,11 @@
   },
   {
     "module": "rule_engine",
+    "name": "view",
+    "enforced": true
+  },
+  {
+    "module": "rule_engine",
     "name": "view_alerts",
     "enforced": true
   },
@@ -1772,11 +1887,6 @@
   {
     "module": "rule_engine",
     "name": "view_versions",
-    "enforced": true
-  },
-  {
-    "module": "rule_engine",
-    "name": "view",
     "enforced": true
   },
   {
@@ -1876,12 +1986,12 @@
   },
   {
     "module": "workflow_management",
-    "name": "view_all",
+    "name": "view",
     "enforced": true
   },
   {
     "module": "workflow_management",
-    "name": "view",
+    "name": "view_all",
     "enforced": true
   },
   {

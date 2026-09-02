@@ -51,9 +51,10 @@ export default function DocumentRegister() {
   const rows = data?.rows ?? [];
   const supplement = data?.supplement ?? {};
   const sup = (id: string): DmsRowSupplement => supplement[id] ?? {
-    legalHoldStatus: 'none', scanStatus: 'unknown', isDeleted: false,
-    archivedAt: null, ownerName: null, entityName: null,
+    legalHoldStatus: 'none', scanStatus: 'unknown', isQuarantined: false, released: false,
+    isDeleted: false, archivedAt: null, ownerName: null, entityName: null,
   };
+
 
   const columns: Array<GridColumn<DmsDocumentRow>> = useMemo(() => [
     {

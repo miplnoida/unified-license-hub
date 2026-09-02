@@ -13,6 +13,8 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   getDocument, searchDocuments, type DmsDocumentDetail, type DmsDocumentRow,
 } from '@/services/dms';
+import { isFileQuarantined, isFileReleased } from '@/lib/presentation/dmsLabels';
+
 
 export interface DmsRegisterFilters {
   search?: string;
@@ -24,7 +26,11 @@ export interface DmsRegisterFilters {
 
 export interface DmsRowSupplement {
   legalHoldStatus: string;
+  /** Authoritative scan verdict of the current file (never a version status). */
   scanStatus: string;
+  isQuarantined: boolean;
+  /** True only when the file has passed security release (mirrors the server rule). */
+  released: boolean;
   isDeleted: boolean;
   archivedAt: string | null;
   ownerName: string | null;
@@ -38,9 +44,10 @@ export interface DmsRegisterResult {
 }
 
 const EMPTY_SUPPLEMENT: DmsRowSupplement = {
-  legalHoldStatus: 'none', scanStatus: 'unknown', isDeleted: false,
-  archivedAt: null, ownerName: null, entityName: null,
+  legalHoldStatus: 'none', scanStatus: 'unknown', isQuarantined: false, released: false,
+  isDeleted: false, archivedAt: null, ownerName: null, entityName: null,
 };
+
 
 async function buildSupplement(rows: DmsDocumentRow[]): Promise<Record<string, DmsRowSupplement>> {
   const out: Record<string, DmsRowSupplement> = {};
@@ -63,7 +70,7 @@ async function buildSupplement(rows: DmsDocumentRow[]): Promise<Record<string, D
 
     const [{ data: files }, { data: owners }, { data: entities }] = await Promise.all([
       fileIds.length
-        ? supabase.from('file_uploads').select('id, scan_status').in('id', fileIds)
+        ? supabase.from('file_uploads').select('id, scan_status, is_quarantined').in('id', fileIds)
         : Promise.resolve({ data: [] as any[] }),
       ownerIds.length
         ? supabase.from('profiles').select('id, email').in('id', ownerIds)
@@ -73,21 +80,25 @@ async function buildSupplement(rows: DmsDocumentRow[]): Promise<Record<string, D
         : Promise.resolve({ data: [] as any[] }),
     ]);
 
-    const scanByFile = new Map((files ?? []).map((f: any) => [f.id as string, f.scan_status as string]));
+    const fileById = new Map((files ?? []).map((f: any) => [f.id as string, f]));
     const ownerByid = new Map((owners ?? []).map((p: any) => [p.id as string, p.email as string]));
     const entityById = new Map((entities ?? []).map((e: any) => [e.id as string, e.name as string]));
 
     (groups ?? []).forEach((g: any) => {
       const fileId = g.current_version_id ? fileIdByVersion.get(g.current_version_id) : undefined;
+      const file = fileId ? fileById.get(fileId) : undefined;
       out[g.id] = {
         legalHoldStatus: g.legal_hold_status ?? 'none',
-        scanStatus: (fileId && scanByFile.get(fileId)) || 'unknown',
+        scanStatus: file?.scan_status || 'unknown',
+        isQuarantined: isFileQuarantined(file),
+        released: isFileReleased(file),
         isDeleted: !!g.is_deleted,
         archivedAt: g.archived_at ?? null,
         ownerName: ownerByid.get(g.owner_id) ?? null,
         entityName: g.primary_entity_id ? entityById.get(g.primary_entity_id) ?? null : null,
       };
     });
+
   } catch {
     // Supplement is best-effort presentation only — keep the conservative defaults.
   }

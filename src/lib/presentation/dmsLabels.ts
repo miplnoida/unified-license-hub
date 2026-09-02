@@ -117,6 +117,22 @@ export function isDisposalBlocked(legalHoldStatus?: string | null): boolean {
   return legalHoldStatus === 'on_hold';
 }
 
-export function isFileSafe(scanStatus?: string | null): boolean {
-  return scanStatus === 'clean';
+/**
+ * Malware safety is decided by the file's governed scan lifecycle, never by a
+ * document version's lifecycle status. Mirrors `public.dms_version_scan_clean`
+ * exactly so the UI can never offer an action the server would refuse; unknown
+ * or absent state is treated conservatively as NOT released.
+ */
+export function isFileReleased(file?: { scan_status?: string | null; is_quarantined?: boolean | null } | null): boolean {
+  if (!file) return false;
+  if (file.is_quarantined) return false;
+  return ['clean', 'released', 'not_required'].includes(String(file.scan_status ?? ''));
 }
+
+/** True when the file has been actively withheld (adverse verdict). */
+export function isFileQuarantined(file?: { scan_status?: string | null; is_quarantined?: boolean | null } | null): boolean {
+  if (!file) return false;
+  return !!file.is_quarantined
+    || ['infected', 'suspicious', 'quarantined'].includes(String(file.scan_status ?? ''));
+}
+
