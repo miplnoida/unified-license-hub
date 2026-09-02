@@ -8,6 +8,8 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { validateFile, ACCEPT_STRING, MAX_FILE_SIZE } from '@/lib/secureFileUpload';
+import { applyDocumentContext, type DmsContextInput } from '@/services/dms';
+
 
 export { ACCEPT_STRING, MAX_FILE_SIZE };
 
