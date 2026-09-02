@@ -790,7 +790,7 @@ BEGIN
     'All corporate customers with verified beneficial ownership.', NULL, 'MLRO', current_date - 1);
   INSERT INTO e3(k,v) VALUES ('ra2', aid);
   att := public.supervisory_remediation_escalate(aid,
-    'Corrective action is overdue with no evidence of progress.', 'HIGH', 'IMMEDIATE');
+    'Corrective action is overdue with no evidence of progress.', 'HIGH', 'URGENT');
   INSERT INTO e3(k,v) VALUES ('att2', att);
 END $$;
 
