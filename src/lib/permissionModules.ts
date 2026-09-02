@@ -39,6 +39,7 @@ export const KNOWN_PERMISSION_MODULES = [
   'market_conduct_investigation',
   'coordination',
   'prudential_supervision',
+  'aml_supervision',
   'admin_dashboard',
   'notification_management',
   'audit_management',
@@ -135,6 +136,7 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   // additive — it only makes path→module resolution consistent for the gate,
   // sidebar and search; entitlement stays enforced by RLS/RPC predicates.
   ['/entity/returns', 'returns_management'],
+  ['/supervision/aml', 'aml_supervision'],
   ['/supervision/early-warnings', 'prudential_supervision'],
   ['/supervision/breaches', 'prudential_supervision'],
   ['/supervision/plans', 'prudential_supervision'],
