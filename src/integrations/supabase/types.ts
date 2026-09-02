@@ -49587,6 +49587,24 @@ export type Database = {
         }
         Relationships: []
       }
+      supervisory_timeline_event: {
+        Row: {
+          actor_id: string | null
+          detail: string | null
+          domain_code: string | null
+          entity_id: string | null
+          event_category: string | null
+          event_type: string | null
+          is_decision: boolean | null
+          occurred_at: string | null
+          rationale: string | null
+          reference: string | null
+          source_id: string | null
+          source_object: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
       supervisory_work_item: {
         Row: {
           assignment_note: string | null
@@ -63005,6 +63023,17 @@ export type Database = {
       supervisory_spine_require: {
         Args: { _actions: string[] }
         Returns: string
+      }
+      supervisory_timeline: {
+        Args: {
+          _category?: string
+          _domain?: string
+          _entity_id?: string
+          _from?: string
+          _limit?: number
+          _to?: string
+        }
+        Returns: Json
       }
       supervisory_trace: {
         Args: { _id: string; _scope: string }
