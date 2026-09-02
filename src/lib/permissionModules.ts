@@ -52,6 +52,7 @@ export const KNOWN_PERMISSION_MODULES = [
   'onboarding',
   'regulatory_data_model',
   'integration_management',
+  'document_management',
 ] as const;
 
 
@@ -60,6 +61,8 @@ export const KNOWN_PERMISSION_MODULES = [
  * Order matters: more specific prefixes come first.
  */
 const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
+  // ─── Document management ───────────────────────────────────────────────
+  ['/documents/registry', 'document_management'],
   // ─── Rule engine ───────────────────────────────────────────────────────
   ['/admin/rule-engine', 'rule_engine'],
 

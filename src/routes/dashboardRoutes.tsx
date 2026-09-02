@@ -39,6 +39,8 @@ const ComplaintIntakeQueue = lazy(() => import('@/pages/complaints/IntakeQueue')
 const WorkflowList = lazy(() => import('@/pages/workflows/WorkflowList'));
 const DelegationRules = lazy(() => import('@/pages/delegation/DelegationRules'));
 const DocumentStore = lazy(() => import('@/pages/documents/DocumentStore'));
+const DocumentRegister = lazy(() => import('@/pages/documents/DocumentRegister'));
+const DocumentDetail = lazy(() => import('@/pages/documents/DocumentDetail'));
 const NotificationCenter = lazy(() => import('@/pages/notifications/NotificationCenter'));
 const AnalyticsDashboard = lazy(() => import('@/pages/analytics/AnalyticsDashboard'));
 const ReportsDashboard = lazy(() => import('@/pages/reports/ReportsDashboard'));
@@ -254,6 +256,8 @@ export const dashboardRoutes = (
     <Route path="/complaints/:id" element={<M module="complaint_management"><ComplaintDetail /></M>} />
     <Route path="/workflows" element={<M module="workflow_management"><WorkflowList /></M>} />
     <Route path="/delegation-rules" element={<M module="workflow_management"><DelegationRules /></M>} />
+    <Route path="/documents/registry" element={<ModuleRoute module="document_management"><DocumentRegister /></ModuleRoute>} />
+    <Route path="/documents/registry/:documentId" element={<ModuleRoute module="document_management"><DocumentDetail /></ModuleRoute>} />
     <Route path="/documents" element={<EP area="licensing" capability={["can_view_status", "can_upload_documents"]}><DocumentStore /></EP>} />
     <Route path="/notifications" element={<P><NotificationCenter /></P>} />
     <Route path="/analytics" element={<M module="report_management"><AnalyticsDashboard /></M>} />
