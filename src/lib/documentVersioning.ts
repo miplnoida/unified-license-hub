@@ -8,6 +8,8 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { validateFile, ACCEPT_STRING, MAX_FILE_SIZE } from '@/lib/secureFileUpload';
+import { applyDocumentContext, type DmsContextInput } from '@/services/dms';
+
 
 export { ACCEPT_STRING, MAX_FILE_SIZE };
 
@@ -119,7 +121,15 @@ export async function uploadVersionedDocument(args: {
   submissionId?: string;
   /** If supplied, force a new version on this group instead of find-or-create. */
   groupId?: string;
+  /**
+   * Optional canonical DMS context. When supplied, the registered document is
+   * classified and linked to its owning entity / source record through the
+   * governed `dms_apply_document_context` RPC. Failures here never fail the
+   * upload — the physical document is already safely registered.
+   */
+  dmsContext?: DmsContextInput;
 }): Promise<{ success: true; data: DocGroupRef } | { success: false; error: string }> {
+
   const validation = validateFile(args.file);
   if (!validation.valid) {
     return { success: false, error: validation.error || 'Invalid file' };
@@ -218,16 +228,32 @@ export async function uploadVersionedDocument(args: {
   }
 
   const row = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+  const groupId = (row as any).document_upload_id as string;
+
+  if (args.dmsContext) {
+    const ctx = await applyDocumentContext(groupId, {
+      sourceModule: args.dmsContext.sourceModule ?? args.entityType,
+      sourceRecordType: args.dmsContext.sourceRecordType ?? args.entityType,
+      sourceRecordId: args.dmsContext.sourceRecordId ?? args.entityId ?? null,
+      ...args.dmsContext,
+    });
+    if ('error' in ctx) {
+      console.warn('[dms] context application failed', groupId, ctx.error);
+    }
+
+  }
+
   return {
     success: true,
     data: {
-      groupId: (row as any).document_upload_id,
+      groupId,
       versionId: (row as any).document_version_id,
       version: (row as any).version_number,
       fileUploadId: (row as any).document_version_id, // back-compat: callers only need a stable id
     },
   };
 }
+
 
 
 // Back-compat shims (older callers and tests)
