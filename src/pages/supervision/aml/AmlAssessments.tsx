@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useAmlAssessments } from '@/hooks/useAmlSupervision';
+import { AmlNewAssessmentDialog } from '@/components/supervision/aml/AmlNewAssessmentDialog';
 import { EMERALD, NEUTRAL, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 export default function AmlAssessments() {
@@ -37,12 +38,15 @@ export default function AmlAssessments() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">AML/CFT Risk Assessments</h1>
-          <p className="text-sm text-muted-foreground">
-            Canonical supervisory assessments scoped to the AML/CFT domain, with methodology version,
-            rating outcome, maker–checker state and review period.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">AML/CFT Risk Assessments</h1>
+            <p className="text-sm text-muted-foreground">
+              Canonical supervisory assessments scoped to the AML/CFT domain, with methodology version,
+              rating outcome, maker–checker state and review period.
+            </p>
+          </div>
+          <AmlNewAssessmentDialog />
         </div>
 
         {error ? (
@@ -159,7 +163,7 @@ export default function AmlAssessments() {
 
         <p className="text-xs text-muted-foreground">
           Assessments are created, submitted, reviewed and approved through the governed supervisory
-          operations; this register is read-only. <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${NEUTRAL}`}>Domain: AML/CFT</span>
+          operations; ratings and decisions are recorded in the assessment workspace. <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${NEUTRAL}`}>Domain: AML/CFT</span>
         </p>
       </div>
     </DashboardLayout>

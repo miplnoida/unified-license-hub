@@ -10,10 +10,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useAmlFindings } from '@/hooks/useAmlSupervision';
+import { AmlFindingActions } from '@/components/supervision/aml/AmlFindingActions';
 import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 export default function AmlFindings() {
-  const { data, isLoading, error } = useAmlFindings();
+  const { data, isLoading, error, refetch } = useAmlFindings();
   const [params] = useSearchParams();
   const focus = params.get('focus');
   const [q, setQ] = useState('');
@@ -204,7 +205,10 @@ export default function AmlFindings() {
                           </ul>
                         )}
                       </div>
+
+                      <AmlFindingActions finding={f} onChanged={() => void refetch()} />
                     </div>
+
                   );
                 })}
               </div>

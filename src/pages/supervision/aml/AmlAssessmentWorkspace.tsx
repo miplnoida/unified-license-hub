@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowLeft } from 'lucide-react';
 import { useAmlAssessment } from '@/hooks/useAmlSupervision';
+import { AmlAssessmentActions } from '@/components/supervision/aml/AmlAssessmentActions';
 import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, statusTone, titleCase, trendTone } from '@/lib/amlLabels';
 
 const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
@@ -20,7 +21,7 @@ const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
 
 export default function AmlAssessmentWorkspace() {
   const { id } = useParams<{ id: string }>();
-  const { data, isLoading, error } = useAmlAssessment(id);
+  const { data, isLoading, error, refetch } = useAmlAssessment(id);
 
   if (isLoading) {
     return (
@@ -187,6 +188,18 @@ export default function AmlAssessmentWorkspace() {
             <Field label="Confidentiality" value={titleCase(h.confidentiality)} />
           </CardContent>
         </Card>
+
+        <AmlAssessmentActions
+          assessmentId={h.id}
+          entityId={h.entity_id}
+          entityName={h.entity_name}
+          status={h.status}
+          dimensions={dims}
+          attention={data.attention as any[]}
+          plans={data.plans as any[]}
+          onChanged={() => void refetch()}
+        />
+
 
         <Tabs defaultValue="inherent">
           <TabsList className="flex-wrap">
