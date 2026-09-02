@@ -950,63 +950,102 @@ export type Database = {
       }
       aml_assessments: {
         Row: {
+          aml_detail: Json
           approved_at: string | null
           approved_by: string | null
           assessment_date: string
+          assessment_type: string | null
+          confidence: string | null
           confidential_notes: string | null
           control_rating: string | null
           created_at: string
           created_by: string | null
+          data_quality: string | null
           entity_id: string
+          evidence_completeness: number | null
           id: string
           inherent_rating: string | null
           inspection_status: string | null
+          methodology_id: string | null
+          methodology_version: string | null
           next_review_date: string | null
+          period_end: string | null
+          period_start: string | null
+          prior_residual_rating: string | null
           reference: string
           residual_rating: string | null
           status: string
           summary: string | null
           supervisory_assessment_id: string | null
+          trend: string | null
+          trigger_detail: string | null
+          trigger_type: string | null
           updated_at: string
         }
         Insert: {
+          aml_detail?: Json
           approved_at?: string | null
           approved_by?: string | null
           assessment_date: string
+          assessment_type?: string | null
+          confidence?: string | null
           confidential_notes?: string | null
           control_rating?: string | null
           created_at?: string
           created_by?: string | null
+          data_quality?: string | null
           entity_id: string
+          evidence_completeness?: number | null
           id?: string
           inherent_rating?: string | null
           inspection_status?: string | null
+          methodology_id?: string | null
+          methodology_version?: string | null
           next_review_date?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          prior_residual_rating?: string | null
           reference: string
           residual_rating?: string | null
           status?: string
           summary?: string | null
           supervisory_assessment_id?: string | null
+          trend?: string | null
+          trigger_detail?: string | null
+          trigger_type?: string | null
           updated_at?: string
         }
         Update: {
+          aml_detail?: Json
           approved_at?: string | null
           approved_by?: string | null
           assessment_date?: string
+          assessment_type?: string | null
+          confidence?: string | null
           confidential_notes?: string | null
           control_rating?: string | null
           created_at?: string
           created_by?: string | null
+          data_quality?: string | null
           entity_id?: string
+          evidence_completeness?: number | null
           id?: string
           inherent_rating?: string | null
           inspection_status?: string | null
+          methodology_id?: string | null
+          methodology_version?: string | null
           next_review_date?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          prior_residual_rating?: string | null
           reference?: string
           residual_rating?: string | null
           status?: string
           summary?: string | null
           supervisory_assessment_id?: string | null
+          trend?: string | null
+          trigger_detail?: string | null
+          trigger_type?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1023,6 +1062,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_prudential_early_warnings"
             referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "aml_assessments_methodology_id_fkey"
+            columns: ["methodology_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "aml_assessments_supervisory_assessment_id_fkey"
@@ -1047,6 +1093,7 @@ export type Database = {
           remediation_status: string | null
           severity: string
           status: string
+          supervisory_finding_id: string | null
           title: string
           updated_at: string
         }
@@ -1063,6 +1110,7 @@ export type Database = {
           remediation_status?: string | null
           severity?: string
           status?: string
+          supervisory_finding_id?: string | null
           title: string
           updated_at?: string
         }
@@ -1079,6 +1127,7 @@ export type Database = {
           remediation_status?: string | null
           severity?: string
           status?: string
+          supervisory_finding_id?: string | null
           title?: string
           updated_at?: string
         }
@@ -1103,6 +1152,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_prudential_early_warnings"
             referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "aml_findings_supervisory_finding_id_fkey"
+            columns: ["supervisory_finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_finding"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -10236,6 +10292,7 @@ export type Database = {
           source_id: string
           source_type: string
           status: string
+          supervisory_finding_id: string | null
           title: string
           updated_at: string
         }
@@ -10267,6 +10324,7 @@ export type Database = {
           source_id: string
           source_type: string
           status?: string
+          supervisory_finding_id?: string | null
           title: string
           updated_at?: string
         }
@@ -10298,6 +10356,7 @@ export type Database = {
           source_id?: string
           source_type?: string
           status?: string
+          supervisory_finding_id?: string | null
           title?: string
           updated_at?: string
         }
@@ -10335,6 +10394,13 @@ export type Database = {
             columns: ["investigation_id"]
             isOneToOne: false
             referencedRelation: "v_conduct_investigation_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_findings_supervisory_finding_id_fkey"
+            columns: ["supervisory_finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_finding"
             referencedColumns: ["id"]
           },
         ]
@@ -14936,6 +15002,8 @@ export type Database = {
           referral_reason: string | null
           referred_at: string | null
           referred_by: string | null
+          remediation_action_id: string | null
+          remediation_bypass_reason: string | null
           representation_deadline: string | null
           representations_closed_at: string | null
           resolution_date: string | null
@@ -14957,6 +15025,8 @@ export type Database = {
           source_type: string | null
           stage: string
           status: string
+          supervisory_assessment_id: string | null
+          supervisory_finding_id: string | null
           updated_at: string
           withdrawal_reason: string | null
           withdrawn_at: string | null
@@ -15014,6 +15084,8 @@ export type Database = {
           referral_reason?: string | null
           referred_at?: string | null
           referred_by?: string | null
+          remediation_action_id?: string | null
+          remediation_bypass_reason?: string | null
           representation_deadline?: string | null
           representations_closed_at?: string | null
           resolution_date?: string | null
@@ -15035,6 +15107,8 @@ export type Database = {
           source_type?: string | null
           stage?: string
           status?: string
+          supervisory_assessment_id?: string | null
+          supervisory_finding_id?: string | null
           updated_at?: string
           withdrawal_reason?: string | null
           withdrawn_at?: string | null
@@ -15092,6 +15166,8 @@ export type Database = {
           referral_reason?: string | null
           referred_at?: string | null
           referred_by?: string | null
+          remediation_action_id?: string | null
+          remediation_bypass_reason?: string | null
           representation_deadline?: string | null
           representations_closed_at?: string | null
           resolution_date?: string | null
@@ -15113,6 +15189,8 @@ export type Database = {
           source_type?: string | null
           stage?: string
           status?: string
+          supervisory_assessment_id?: string | null
+          supervisory_finding_id?: string | null
           updated_at?: string
           withdrawal_reason?: string | null
           withdrawn_at?: string | null
@@ -15144,6 +15222,27 @@ export type Database = {
             columns: ["penalty_regulator_id"]
             isOneToOne: false
             referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enforcement_actions_remediation_action_id_fkey"
+            columns: ["remediation_action_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_remediation_action"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enforcement_actions_supervisory_assessment_id_fkey"
+            columns: ["supervisory_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enforcement_actions_supervisory_finding_id_fkey"
+            columns: ["supervisory_finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_finding"
             referencedColumns: ["id"]
           },
         ]
@@ -18366,6 +18465,107 @@ export type Database = {
           },
         ]
       }
+      entity_risk_state_movement: {
+        Row: {
+          approved_at: string
+          approved_by: string | null
+          created_at: string
+          domain_code: string
+          entity_id: string
+          examination_id: string | null
+          id: string
+          new_assessment_id: string
+          new_control: string | null
+          new_inherent: string | null
+          new_rating: string | null
+          previous_assessment_id: string | null
+          previous_control: string | null
+          previous_inherent: string | null
+          previous_rating: string | null
+          reason: string | null
+          remediation_action_ids: string[] | null
+          requirement_id: string | null
+          supporting_finding_ids: string[] | null
+          trend: string | null
+          trigger_kind: string | null
+        }
+        Insert: {
+          approved_at?: string
+          approved_by?: string | null
+          created_at?: string
+          domain_code: string
+          entity_id: string
+          examination_id?: string | null
+          id?: string
+          new_assessment_id: string
+          new_control?: string | null
+          new_inherent?: string | null
+          new_rating?: string | null
+          previous_assessment_id?: string | null
+          previous_control?: string | null
+          previous_inherent?: string | null
+          previous_rating?: string | null
+          reason?: string | null
+          remediation_action_ids?: string[] | null
+          requirement_id?: string | null
+          supporting_finding_ids?: string[] | null
+          trend?: string | null
+          trigger_kind?: string | null
+        }
+        Update: {
+          approved_at?: string
+          approved_by?: string | null
+          created_at?: string
+          domain_code?: string
+          entity_id?: string
+          examination_id?: string | null
+          id?: string
+          new_assessment_id?: string
+          new_control?: string | null
+          new_inherent?: string | null
+          new_rating?: string | null
+          previous_assessment_id?: string | null
+          previous_control?: string | null
+          previous_inherent?: string | null
+          previous_rating?: string | null
+          reason?: string | null
+          remediation_action_ids?: string[] | null
+          requirement_id?: string | null
+          supporting_finding_ids?: string[] | null
+          trend?: string | null
+          trigger_kind?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_risk_state_movement_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_risk_state_movement_new_assessment_id_fkey"
+            columns: ["new_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_risk_state_movement_previous_assessment_id_fkey"
+            columns: ["previous_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_risk_state_movement_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_reassessment_requirement"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entity_supervision_assignments: {
         Row: {
           alternate_supervisor_user_id: string | null
@@ -19327,6 +19527,7 @@ export type Database = {
           root_cause: string | null
           severity: string
           status: string
+          supervisory_finding_id: string | null
           target_date: string | null
           title: string
           updated_at: string
@@ -19349,6 +19550,7 @@ export type Database = {
           root_cause?: string | null
           severity?: string
           status?: string
+          supervisory_finding_id?: string | null
           target_date?: string | null
           title: string
           updated_at?: string
@@ -19371,6 +19573,7 @@ export type Database = {
           root_cause?: string | null
           severity?: string
           status?: string
+          supervisory_finding_id?: string | null
           target_date?: string | null
           title?: string
           updated_at?: string
@@ -19389,6 +19592,13 @@ export type Database = {
             columns: ["remediation_action_id"]
             isOneToOne: false
             referencedRelation: "prudential_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examination_findings_supervisory_finding_id_fkey"
+            columns: ["supervisory_finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_finding"
             referencedColumns: ["id"]
           },
           {
@@ -19558,6 +19768,115 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "examination_reports_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      examination_scope_area: {
+        Row: {
+          added_by: string | null
+          amendment_rationale: string | null
+          area_code: string
+          area_label: string | null
+          assessment_dimension_id: string | null
+          created_at: string
+          examination_id: string
+          id: string
+          source: string
+        }
+        Insert: {
+          added_by?: string | null
+          amendment_rationale?: string | null
+          area_code: string
+          area_label?: string | null
+          assessment_dimension_id?: string | null
+          created_at?: string
+          examination_id: string
+          id?: string
+          source?: string
+        }
+        Update: {
+          added_by?: string | null
+          amendment_rationale?: string | null
+          area_code?: string
+          area_label?: string | null
+          assessment_dimension_id?: string | null
+          created_at?: string
+          examination_id?: string
+          id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examination_scope_area_assessment_dimension_id_fkey"
+            columns: ["assessment_dimension_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_dimension"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examination_scope_area_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      examination_scope_dimension: {
+        Row: {
+          added_by: string | null
+          assessment_dimension_id: string
+          assessment_id: string | null
+          created_at: string
+          dimension_code: string | null
+          examination_id: string
+          id: string
+          rationale: string | null
+          residual_rating: string | null
+        }
+        Insert: {
+          added_by?: string | null
+          assessment_dimension_id: string
+          assessment_id?: string | null
+          created_at?: string
+          dimension_code?: string | null
+          examination_id: string
+          id?: string
+          rationale?: string | null
+          residual_rating?: string | null
+        }
+        Update: {
+          added_by?: string | null
+          assessment_dimension_id?: string
+          assessment_id?: string | null
+          created_at?: string
+          dimension_code?: string | null
+          examination_id?: string
+          id?: string
+          rationale?: string | null
+          residual_rating?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examination_scope_dimension_assessment_dimension_id_fkey"
+            columns: ["assessment_dimension_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_dimension"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examination_scope_dimension_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examination_scope_dimension_examination_id_fkey"
             columns: ["examination_id"]
             isOneToOne: false
             referencedRelation: "examinations"
@@ -24222,6 +24541,7 @@ export type Database = {
           recommended_action: string | null
           severity: string
           status: string
+          supervisory_finding_id: string | null
           updated_at: string
         }
         Insert: {
@@ -24239,6 +24559,7 @@ export type Database = {
           recommended_action?: string | null
           severity: string
           status?: string
+          supervisory_finding_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -24256,6 +24577,7 @@ export type Database = {
           recommended_action?: string | null
           severity?: string
           status?: string
+          supervisory_finding_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -24278,6 +24600,13 @@ export type Database = {
             columns: ["inspection_id"]
             isOneToOne: false
             referencedRelation: "inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_supervisory_finding_id_fkey"
+            columns: ["supervisory_finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_finding"
             referencedColumns: ["id"]
           },
         ]
@@ -43212,52 +43541,100 @@ export type Database = {
       supervisory_assessment_dimension: {
         Row: {
           assessment_id: string
+          calculated_control_rating: string | null
+          calculated_inherent_rating: string | null
+          calculated_residual_rating: string | null
+          calculated_score: number | null
+          confidence: string | null
           control_rating: string | null
           created_at: string
           created_by: string | null
+          data_quality: string | null
           dimension_code: string
           dimension_group: string
           evidence_refs: Json
+          exceptions: string | null
           id: string
           inherent_rating: string | null
+          is_applicable: boolean
+          is_overridden: boolean
           methodology_dimension_id: string | null
+          overridden_at: string | null
+          overridden_by: string | null
+          override_reason: string | null
+          proposed_examination_scope: boolean
           rationale: string | null
           residual_rating: string | null
           score: number | null
+          source_facts: string | null
+          supervisory_commentary: string | null
+          trend: string | null
           updated_at: string
           weight: number | null
         }
         Insert: {
           assessment_id: string
+          calculated_control_rating?: string | null
+          calculated_inherent_rating?: string | null
+          calculated_residual_rating?: string | null
+          calculated_score?: number | null
+          confidence?: string | null
           control_rating?: string | null
           created_at?: string
           created_by?: string | null
+          data_quality?: string | null
           dimension_code: string
           dimension_group?: string
           evidence_refs?: Json
+          exceptions?: string | null
           id?: string
           inherent_rating?: string | null
+          is_applicable?: boolean
+          is_overridden?: boolean
           methodology_dimension_id?: string | null
+          overridden_at?: string | null
+          overridden_by?: string | null
+          override_reason?: string | null
+          proposed_examination_scope?: boolean
           rationale?: string | null
           residual_rating?: string | null
           score?: number | null
+          source_facts?: string | null
+          supervisory_commentary?: string | null
+          trend?: string | null
           updated_at?: string
           weight?: number | null
         }
         Update: {
           assessment_id?: string
+          calculated_control_rating?: string | null
+          calculated_inherent_rating?: string | null
+          calculated_residual_rating?: string | null
+          calculated_score?: number | null
+          confidence?: string | null
           control_rating?: string | null
           created_at?: string
           created_by?: string | null
+          data_quality?: string | null
           dimension_code?: string
           dimension_group?: string
           evidence_refs?: Json
+          exceptions?: string | null
           id?: string
           inherent_rating?: string | null
+          is_applicable?: boolean
+          is_overridden?: boolean
           methodology_dimension_id?: string | null
+          overridden_at?: string | null
+          overridden_by?: string | null
+          override_reason?: string | null
+          proposed_examination_scope?: boolean
           rationale?: string | null
           residual_rating?: string | null
           score?: number | null
+          source_facts?: string | null
+          supervisory_commentary?: string | null
+          trend?: string | null
           updated_at?: string
           weight?: number | null
         }
@@ -43809,6 +44186,322 @@ export type Database = {
           },
         ]
       }
+      supervisory_finding: {
+        Row: {
+          assessment_dimension_id: string | null
+          assessment_id: string | null
+          attention_id: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closure_rationale: string | null
+          confidentiality: string
+          created_at: string
+          created_by: string | null
+          domain_code: string
+          due_date: string | null
+          entity_id: string
+          evidence_document_id: string | null
+          evidence_refs: Json
+          examination_id: string | null
+          finding_category: string | null
+          id: string
+          intervention_id: string | null
+          issued_at: string | null
+          issued_by: string | null
+          legacy_source_id: string | null
+          legacy_source_table: string | null
+          management_response: string | null
+          observation: string | null
+          origin_provenance: string
+          owner_id: string | null
+          plan_id: string | null
+          proposed_action: string | null
+          recommendation: string | null
+          reference: string
+          regulator_id: string | null
+          regulatory_criterion: string | null
+          required_action: string | null
+          response_at: string | null
+          response_attachments: Json
+          response_by: string | null
+          response_decision: string | null
+          response_decision_at: string | null
+          response_decision_by: string | null
+          response_state: string | null
+          response_target_date: string | null
+          responsible_person: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          risk_impact: string | null
+          root_cause: string | null
+          sector_id: string | null
+          severity: string
+          signal_id: string | null
+          source_kind: string
+          status: string
+          superseded_by_id: string | null
+          team_id: string | null
+          title: string
+          updated_at: string
+          validation_conclusion: string | null
+          workpaper_id: string | null
+        }
+        Insert: {
+          assessment_dimension_id?: string | null
+          assessment_id?: string | null
+          attention_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closure_rationale?: string | null
+          confidentiality?: string
+          created_at?: string
+          created_by?: string | null
+          domain_code: string
+          due_date?: string | null
+          entity_id: string
+          evidence_document_id?: string | null
+          evidence_refs?: Json
+          examination_id?: string | null
+          finding_category?: string | null
+          id?: string
+          intervention_id?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          legacy_source_id?: string | null
+          legacy_source_table?: string | null
+          management_response?: string | null
+          observation?: string | null
+          origin_provenance?: string
+          owner_id?: string | null
+          plan_id?: string | null
+          proposed_action?: string | null
+          recommendation?: string | null
+          reference: string
+          regulator_id?: string | null
+          regulatory_criterion?: string | null
+          required_action?: string | null
+          response_at?: string | null
+          response_attachments?: Json
+          response_by?: string | null
+          response_decision?: string | null
+          response_decision_at?: string | null
+          response_decision_by?: string | null
+          response_state?: string | null
+          response_target_date?: string | null
+          responsible_person?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_impact?: string | null
+          root_cause?: string | null
+          sector_id?: string | null
+          severity?: string
+          signal_id?: string | null
+          source_kind: string
+          status?: string
+          superseded_by_id?: string | null
+          team_id?: string | null
+          title: string
+          updated_at?: string
+          validation_conclusion?: string | null
+          workpaper_id?: string | null
+        }
+        Update: {
+          assessment_dimension_id?: string | null
+          assessment_id?: string | null
+          attention_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closure_rationale?: string | null
+          confidentiality?: string
+          created_at?: string
+          created_by?: string | null
+          domain_code?: string
+          due_date?: string | null
+          entity_id?: string
+          evidence_document_id?: string | null
+          evidence_refs?: Json
+          examination_id?: string | null
+          finding_category?: string | null
+          id?: string
+          intervention_id?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          legacy_source_id?: string | null
+          legacy_source_table?: string | null
+          management_response?: string | null
+          observation?: string | null
+          origin_provenance?: string
+          owner_id?: string | null
+          plan_id?: string | null
+          proposed_action?: string | null
+          recommendation?: string | null
+          reference?: string
+          regulator_id?: string | null
+          regulatory_criterion?: string | null
+          required_action?: string | null
+          response_at?: string | null
+          response_attachments?: Json
+          response_by?: string | null
+          response_decision?: string | null
+          response_decision_at?: string | null
+          response_decision_by?: string | null
+          response_state?: string | null
+          response_target_date?: string | null
+          responsible_person?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_impact?: string | null
+          root_cause?: string | null
+          sector_id?: string | null
+          severity?: string
+          signal_id?: string | null
+          source_kind?: string
+          status?: string
+          superseded_by_id?: string | null
+          team_id?: string | null
+          title?: string
+          updated_at?: string
+          validation_conclusion?: string | null
+          workpaper_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_finding_assessment_dimension_id_fkey"
+            columns: ["assessment_dimension_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_dimension"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_finding_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_finding_attention_id_fkey"
+            columns: ["attention_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_attention_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_finding_attention_id_fkey"
+            columns: ["attention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_attention"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_finding_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_finding_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_interventions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_finding_intervention_id_fkey"
+            columns: ["intervention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_intervention"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_finding_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_supervisory_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_finding_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_plan"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_finding_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_finding_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_signal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_finding_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_finding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_finding_workpaper_id_fkey"
+            columns: ["workpaper_id"]
+            isOneToOne: false
+            referencedRelation: "examination_workpapers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_finding_event: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          event_type: string
+          finding_id: string
+          from_status: string | null
+          id: string
+          rationale: string | null
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type: string
+          finding_id: string
+          from_status?: string | null
+          id?: string
+          rationale?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type?: string
+          finding_id?: string
+          from_status?: string | null
+          id?: string
+          rationale?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_finding_event_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_finding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supervisory_intervention: {
         Row: {
           activated_at: string | null
@@ -44174,6 +44867,14 @@ export type Database = {
       }
       supervisory_methodology: {
         Row: {
+          activated_at: string | null
+          applicable_entity_types: string[]
+          applicable_sector_ids: string[]
+          approval_required: boolean
+          approved_at: string | null
+          approved_by: string | null
+          assessment_frequency_months: number | null
+          calculation_guidance: string | null
           code: string
           created_at: string
           created_by: string | null
@@ -44183,13 +44884,29 @@ export type Database = {
           effective_to: string | null
           id: string
           name: string
+          next_review_rule: Json
+          override_threshold: string | null
           regulator_id: string | null
+          retired_at: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scoring_scale: Json
           sector_id: string | null
           status: string
+          supersedes_id: string | null
+          title: string | null
           updated_at: string
           version: string
         }
         Insert: {
+          activated_at?: string | null
+          applicable_entity_types?: string[]
+          applicable_sector_ids?: string[]
+          approval_required?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
+          assessment_frequency_months?: number | null
+          calculation_guidance?: string | null
           code: string
           created_at?: string
           created_by?: string | null
@@ -44199,13 +44916,29 @@ export type Database = {
           effective_to?: string | null
           id?: string
           name: string
+          next_review_rule?: Json
+          override_threshold?: string | null
           regulator_id?: string | null
+          retired_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scoring_scale?: Json
           sector_id?: string | null
           status?: string
+          supersedes_id?: string | null
+          title?: string | null
           updated_at?: string
           version: string
         }
         Update: {
+          activated_at?: string | null
+          applicable_entity_types?: string[]
+          applicable_sector_ids?: string[]
+          approval_required?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
+          assessment_frequency_months?: number | null
+          calculation_guidance?: string | null
           code?: string
           created_at?: string
           created_by?: string | null
@@ -44215,9 +44948,17 @@ export type Database = {
           effective_to?: string | null
           id?: string
           name?: string
+          next_review_rule?: Json
+          override_threshold?: string | null
           regulator_id?: string | null
+          retired_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scoring_scale?: Json
           sector_id?: string | null
           status?: string
+          supersedes_id?: string | null
+          title?: string | null
           updated_at?: string
           version?: string
         }
@@ -44229,19 +44970,32 @@ export type Database = {
             referencedRelation: "sectors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "supervisory_methodology_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology"
+            referencedColumns: ["id"]
+          },
         ]
       }
       supervisory_methodology_dimension: {
         Row: {
           active: boolean
           created_at: string
+          data_sources: Json
           description: string | null
           dimension_code: string
           dimension_group: string
+          dimension_kind: string | null
           evidence_required: boolean
+          evidence_requirements: string | null
           id: string
           label: string
+          mandatory_questions: Json
           methodology_id: string
+          min_evidence_count: number
+          scoring_guidance: string | null
           sort_order: number
           updated_at: string
           weight: number | null
@@ -44249,13 +45003,19 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          data_sources?: Json
           description?: string | null
           dimension_code: string
           dimension_group: string
+          dimension_kind?: string | null
           evidence_required?: boolean
+          evidence_requirements?: string | null
           id?: string
           label: string
+          mandatory_questions?: Json
           methodology_id: string
+          min_evidence_count?: number
+          scoring_guidance?: string | null
           sort_order?: number
           updated_at?: string
           weight?: number | null
@@ -44263,13 +45023,19 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          data_sources?: Json
           description?: string | null
           dimension_code?: string
           dimension_group?: string
+          dimension_kind?: string | null
           evidence_required?: boolean
+          evidence_requirements?: string | null
           id?: string
           label?: string
+          mandatory_questions?: Json
           methodology_id?: string
+          min_evidence_count?: number
+          scoring_guidance?: string | null
           sort_order?: number
           updated_at?: string
           weight?: number | null
@@ -44277,6 +45043,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "supervisory_methodology_dimension_methodology_id_fkey"
+            columns: ["methodology_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_methodology_event: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          event_type: string
+          from_status: string | null
+          id: string
+          methodology_id: string
+          rationale: string | null
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type: string
+          from_status?: string | null
+          id?: string
+          methodology_id: string
+          rationale?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          methodology_id?: string
+          rationale?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_methodology_event_methodology_id_fkey"
             columns: ["methodology_id"]
             isOneToOne: false
             referencedRelation: "supervisory_methodology"
@@ -44752,6 +45562,404 @@ export type Database = {
             columns: ["sector_id"]
             isOneToOne: false
             referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_rating_scale: {
+        Row: {
+          band: string
+          code: string
+          created_at: string
+          is_active: boolean
+          label: string
+          ordinal: number
+        }
+        Insert: {
+          band: string
+          code: string
+          created_at?: string
+          is_active?: boolean
+          label: string
+          ordinal: number
+        }
+        Update: {
+          band?: string
+          code?: string
+          created_at?: string
+          is_active?: boolean
+          label?: string
+          ordinal?: number
+        }
+        Relationships: []
+      }
+      supervisory_reassessment_requirement: {
+        Row: {
+          cancelled_reason: string | null
+          created_at: string
+          created_by: string | null
+          domain_code: string
+          due_date: string | null
+          enforcement_action_id: string | null
+          entity_id: string
+          examination_id: string | null
+          finding_id: string | null
+          fulfilled_assessment_id: string | null
+          fulfilled_at: string | null
+          id: string
+          owner_id: string | null
+          previous_assessment_id: string | null
+          remediation_action_id: string | null
+          requested_type: string
+          signal_id: string | null
+          status: string
+          team_id: string | null
+          trigger_kind: string
+          trigger_rationale: string
+          updated_at: string
+          validation_id: string | null
+        }
+        Insert: {
+          cancelled_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          domain_code: string
+          due_date?: string | null
+          enforcement_action_id?: string | null
+          entity_id: string
+          examination_id?: string | null
+          finding_id?: string | null
+          fulfilled_assessment_id?: string | null
+          fulfilled_at?: string | null
+          id?: string
+          owner_id?: string | null
+          previous_assessment_id?: string | null
+          remediation_action_id?: string | null
+          requested_type?: string
+          signal_id?: string | null
+          status?: string
+          team_id?: string | null
+          trigger_kind: string
+          trigger_rationale: string
+          updated_at?: string
+          validation_id?: string | null
+        }
+        Update: {
+          cancelled_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          domain_code?: string
+          due_date?: string | null
+          enforcement_action_id?: string | null
+          entity_id?: string
+          examination_id?: string | null
+          finding_id?: string | null
+          fulfilled_assessment_id?: string | null
+          fulfilled_at?: string | null
+          id?: string
+          owner_id?: string | null
+          previous_assessment_id?: string | null
+          remediation_action_id?: string | null
+          requested_type?: string
+          signal_id?: string | null
+          status?: string
+          team_id?: string | null
+          trigger_kind?: string
+          trigger_rationale?: string
+          updated_at?: string
+          validation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_reassessment_requireme_fulfilled_assessment_id_fkey"
+            columns: ["fulfilled_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_reassessment_requiremen_previous_assessment_id_fkey"
+            columns: ["previous_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_reassessment_requirement_enforcement_action_id_fkey"
+            columns: ["enforcement_action_id"]
+            isOneToOne: false
+            referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_reassessment_requirement_enforcement_action_id_fkey"
+            columns: ["enforcement_action_id"]
+            isOneToOne: false
+            referencedRelation: "v_enforcement_case_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_reassessment_requirement_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_reassessment_requirement_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_finding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_reassessment_requirement_remediation_action_id_fkey"
+            columns: ["remediation_action_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_remediation_action"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_reassessment_requirement_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_signal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_reassessment_requirement_validation_id_fkey"
+            columns: ["validation_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_remediation_validation"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_remediation_action: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          decision_at: string | null
+          decision_by: string | null
+          decision_rationale: string | null
+          description: string
+          domain_code: string
+          effectiveness: string | null
+          entity_id: string
+          entity_response: string | null
+          escalated_at: string | null
+          escalated_attention_id: string | null
+          escalation_reason: string | null
+          evidence: Json
+          finding_id: string
+          id: string
+          owner_id: string | null
+          reference: string
+          required_outcome: string | null
+          responsible_party: string | null
+          status: string
+          supervisor_decision: string | null
+          target_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          decision_at?: string | null
+          decision_by?: string | null
+          decision_rationale?: string | null
+          description: string
+          domain_code: string
+          effectiveness?: string | null
+          entity_id: string
+          entity_response?: string | null
+          escalated_at?: string | null
+          escalated_attention_id?: string | null
+          escalation_reason?: string | null
+          evidence?: Json
+          finding_id: string
+          id?: string
+          owner_id?: string | null
+          reference: string
+          required_outcome?: string | null
+          responsible_party?: string | null
+          status?: string
+          supervisor_decision?: string | null
+          target_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          decision_at?: string | null
+          decision_by?: string | null
+          decision_rationale?: string | null
+          description?: string
+          domain_code?: string
+          effectiveness?: string | null
+          entity_id?: string
+          entity_response?: string | null
+          escalated_at?: string | null
+          escalated_attention_id?: string | null
+          escalation_reason?: string | null
+          evidence?: Json
+          finding_id?: string
+          id?: string
+          owner_id?: string | null
+          reference?: string
+          required_outcome?: string | null
+          responsible_party?: string | null
+          status?: string
+          supervisor_decision?: string | null
+          target_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_remediation_action_escalated_attention_id_fkey"
+            columns: ["escalated_attention_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_attention_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_remediation_action_escalated_attention_id_fkey"
+            columns: ["escalated_attention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_attention"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_remediation_action_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_finding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_remediation_event: {
+        Row: {
+          action_id: string
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          event_type: string
+          from_status: string | null
+          id: string
+          rationale: string | null
+          to_status: string | null
+        }
+        Insert: {
+          action_id: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type: string
+          from_status?: string | null
+          id?: string
+          rationale?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          action_id?: string
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          rationale?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_remediation_event_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_remediation_action"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_remediation_validation: {
+        Row: {
+          action_id: string
+          conclusion: string
+          countersigned_at: string | null
+          countersigned_by: string | null
+          document_id: string | null
+          evidence_reviewed: string
+          finding_id: string
+          id: string
+          next_step: string | null
+          procedure_applied: string
+          rationale: string
+          validated_at: string
+          validated_by: string
+          workpaper_id: string | null
+        }
+        Insert: {
+          action_id: string
+          conclusion: string
+          countersigned_at?: string | null
+          countersigned_by?: string | null
+          document_id?: string | null
+          evidence_reviewed: string
+          finding_id: string
+          id?: string
+          next_step?: string | null
+          procedure_applied: string
+          rationale: string
+          validated_at?: string
+          validated_by: string
+          workpaper_id?: string | null
+        }
+        Update: {
+          action_id?: string
+          conclusion?: string
+          countersigned_at?: string | null
+          countersigned_by?: string | null
+          document_id?: string | null
+          evidence_reviewed?: string
+          finding_id?: string
+          id?: string
+          next_step?: string | null
+          procedure_applied?: string
+          rationale?: string
+          validated_at?: string
+          validated_by?: string
+          workpaper_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_remediation_validation_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_remediation_action"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_remediation_validation_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_finding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_remediation_validation_workpaper_id_fkey"
+            columns: ["workpaper_id"]
+            isOneToOne: false
+            referencedRelation: "examination_workpapers"
             referencedColumns: ["id"]
           },
         ]
@@ -49711,6 +50919,46 @@ export type Database = {
           _justification?: string
         }
         Returns: Json
+      }
+      aml_assessment_detail_save: {
+        Args: { _assessment_id: string; _payload?: Json }
+        Returns: string
+      }
+      aml_entity_panel: { Args: { _entity_id: string }; Returns: Json }
+      aml_overview_metrics: { Args: never; Returns: Json }
+      aml_portfolio: {
+        Args: { _limit?: number }
+        Returns: {
+          active_examinations: number
+          assessment_current: boolean
+          control_rating: string
+          critical_findings: number
+          entity_id: string
+          entity_name: string
+          high_risk_dimensions: string[]
+          inherent_rating: string
+          last_review_date: string
+          next_review_date: string
+          open_findings: number
+          overdue_remediation: number
+          reassessment_required: boolean
+          residual_rating: string
+          sector_name: string
+          trend: string
+        }[]
+      }
+      aml_work_queue: {
+        Args: { _limit?: number }
+        Returns: {
+          due_at: string
+          entity_id: string
+          href: string
+          id: string
+          kind: string
+          severity: string
+          status: string
+          title: string
+        }[]
       }
       app_actor_display_name: { Args: { _user_id: string }; Returns: string }
       app_applicant_org_name: { Args: { _user_id: string }; Returns: string }
@@ -55063,6 +56311,24 @@ export type Database = {
       }
       examination_report_signoff: {
         Args: { _notes?: string; _report_id: string; _role: string }
+        Returns: Json
+      }
+      examination_scope_area_amend: {
+        Args: {
+          _area_code: string
+          _area_label: string
+          _examination_id: string
+          _rationale: string
+        }
+        Returns: string
+      }
+      examination_scope_from_assessment: {
+        Args: {
+          _dimension_ids: string[]
+          _examination_id: string
+          _include_areas?: boolean
+          _rationale?: string
+        }
         Returns: Json
       }
       examination_signoff_workpaper: {
@@ -61235,15 +62501,28 @@ export type Database = {
       supervisory_assessment_dimension_upsert: {
         Args: {
           _assessment_id: string
+          _calculated_control_rating?: string
+          _calculated_inherent_rating?: string
+          _calculated_residual_rating?: string
+          _calculated_score?: number
+          _confidence?: string
           _control_rating?: string
+          _data_quality?: string
           _dimension_code: string
           _dimension_group?: string
           _evidence_refs?: Json
+          _exceptions?: string
           _inherent_rating?: string
+          _is_applicable?: boolean
           _methodology_dimension_id?: string
+          _override_reason?: string
+          _proposed_examination_scope?: boolean
           _rationale?: string
           _residual_rating?: string
           _score?: number
+          _source_facts?: string
+          _supervisory_commentary?: string
+          _trend?: string
           _weight?: number
         }
         Returns: Json
@@ -61327,6 +62606,35 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_finding_can_read: {
+        Args: { _f: Database["public"]["Tables"]["supervisory_finding"]["Row"] }
+        Returns: boolean
+      }
+      supervisory_finding_create: { Args: { _payload: Json }; Returns: string }
+      supervisory_finding_lifecycle: {
+        Args: { _finding_id: string; _rationale?: string; _to_status: string }
+        Returns: Json
+      }
+      supervisory_finding_reference: {
+        Args: { _domain: string }
+        Returns: string
+      }
+      supervisory_finding_response: {
+        Args: {
+          _attachments?: Json
+          _finding_id: string
+          _management_response: string
+          _proposed_action?: string
+          _response_state: string
+          _responsible_person?: string
+          _target_date?: string
+        }
+        Returns: string
+      }
+      supervisory_finding_update: {
+        Args: { _finding_id: string; _patch: Json; _rationale?: string }
+        Returns: string
+      }
       supervisory_intervention_decide: {
         Args: {
           _decision: string
@@ -61360,6 +62668,34 @@ export type Database = {
           _title: string
         }
         Returns: Json
+      }
+      supervisory_methodology_dimension_save: {
+        Args: { _methodology_id: string; _payload: Json }
+        Returns: string
+      }
+      supervisory_methodology_lifecycle: {
+        Args: {
+          _methodology_id: string
+          _rationale?: string
+          _to_status: string
+        }
+        Returns: Json
+      }
+      supervisory_methodology_new_version: {
+        Args: {
+          _methodology_id: string
+          _new_version: string
+          _rationale: string
+        }
+        Returns: string
+      }
+      supervisory_methodology_resolve: {
+        Args: { _as_of?: string; _domain_code: string; _sector_id?: string }
+        Returns: string
+      }
+      supervisory_methodology_save: {
+        Args: { _methodology_id?: string; _payload: Json }
+        Returns: string
       }
       supervisory_plan_action_create: {
         Args: {
@@ -61436,6 +62772,86 @@ export type Database = {
           _title: string
         }
         Returns: Json
+      }
+      supervisory_rating_valid:
+        | { Args: { _rating: string }; Returns: boolean }
+        | { Args: { _domain_code?: string; _rating: string }; Returns: boolean }
+      supervisory_reassessment_require: {
+        Args: {
+          _domain_code: string
+          _due_date?: string
+          _enforcement_action_id?: string
+          _entity_id: string
+          _examination_id?: string
+          _finding_id?: string
+          _owner_id?: string
+          _previous_assessment_id?: string
+          _remediation_action_id?: string
+          _requested_type?: string
+          _signal_id?: string
+          _trigger_kind: string
+          _trigger_rationale: string
+          _validation_id?: string
+        }
+        Returns: string
+      }
+      supervisory_remediation_escalate: {
+        Args: {
+          _action_id: string
+          _materiality?: string
+          _reason: string
+          _urgency?: string
+        }
+        Returns: string
+      }
+      supervisory_remediation_open: {
+        Args: {
+          _description: string
+          _finding_id: string
+          _owner_id?: string
+          _required_outcome?: string
+          _responsible_party?: string
+          _target_date?: string
+        }
+        Returns: string
+      }
+      supervisory_remediation_transition: {
+        Args: {
+          _action_id: string
+          _entity_response?: string
+          _evidence?: Json
+          _rationale?: string
+          _to_status: string
+        }
+        Returns: Json
+      }
+      supervisory_remediation_validate: {
+        Args: {
+          _action_id: string
+          _conclusion: string
+          _document_id?: string
+          _evidence_reviewed: string
+          _next_step?: string
+          _procedure_applied: string
+          _rationale: string
+          _workpaper_id?: string
+        }
+        Returns: Json
+      }
+      supervisory_signal_record: {
+        Args: {
+          _detail?: Json
+          _domain_code: string
+          _entity_id: string
+          _examination_id?: string
+          _external_reference?: string
+          _period_end?: string
+          _period_start?: string
+          _severity?: string
+          _source_kind: string
+          _summary: string
+        }
+        Returns: string
       }
       supervisory_spine_require: {
         Args: { _actions: string[] }
