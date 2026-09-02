@@ -537,6 +537,34 @@ export async function handler(req: Request): Promise<Response> {
       .single();
     if (insErr) return json(req, 200, { error: insErr.message });
 
+    // Canonical registration in the central document register. The certificate
+    // becomes one logical document per licence (new issues are new versions of
+    // the same document), classified publication-eligible but NOT published and
+    // never anonymously accessible. Registration failure never fails issuance.
+    try {
+      const { data: linked } = await admin
+        .from("entity_licenses")
+        .select("entity_id")
+        .eq("license_id", license.id)
+        .is("effective_to", null)
+        .maybeSingle();
+      const { error: dmsErr } = await admin.rpc("dms_register_certificate", {
+        _license_id: license.id,
+        _entity_id: linked?.entity_id ?? null,
+        _bucket: "license-certificates",
+        _storage_path: filePath,
+        _file_name: `${license.license_number}-v${nextVersion}.pdf`,
+        _file_size: pdf.byteLength ?? pdf.length ?? 0,
+        _mime_type: "application/pdf",
+        _version: nextVersion,
+        _license_number: license.license_number,
+      });
+      if (dmsErr) console.error("dms_register_certificate failed:", dmsErr.message);
+    } catch (e) {
+      console.error("dms_register_certificate threw:", e instanceof Error ? e.message : e);
+    }
+
+
     return json(req, 200, { success: true, certificate: certRow });
   } catch (err) {
     console.error("generate-license-certificate error:", err);

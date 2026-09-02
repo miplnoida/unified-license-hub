@@ -199,6 +199,20 @@ function ExternalPortalOrModule({
   return <EP area={area} capability={capability}>{children}</EP>;
 }
 
+/**
+ * `/documents` resolves to the canonical Document Register for internal staff
+ * (governed by the `document_management` module) and keeps the existing
+ * external-portal document screen for licensee/applicant users. Legacy records
+ * remain readable — nothing is removed.
+ */
+function DocumentsHome() {
+  const { user } = useAuth();
+  if (user && INTERNAL_ROLES.includes(user.role)) {
+    return <M module="document_management"><DocumentRegister /></M>;
+  }
+  return <EP area="licensing" capability={["can_view_status", "can_upload_documents"]}><DocumentStore /></EP>;
+}
+
 export const dashboardRoutes = (
   <>
     <Route path="/dashboard" element={<P><Dashboard /></P>} />
@@ -258,7 +272,11 @@ export const dashboardRoutes = (
     <Route path="/delegation-rules" element={<M module="workflow_management"><DelegationRules /></M>} />
     <Route path="/documents/registry" element={<ModuleRoute module="document_management"><DocumentRegister /></ModuleRoute>} />
     <Route path="/documents/registry/:documentId" element={<ModuleRoute module="document_management"><DocumentDetail /></ModuleRoute>} />
-    <Route path="/documents" element={<EP area="licensing" capability={["can_view_status", "can_upload_documents"]}><DocumentStore /></EP>} />
+    {/* Canonical entry point: internal staff get the governed Document Register;
+        external portal users keep their existing document self-service screen.
+        The legacy technical store stays reachable at an explicit URL. */}
+    <Route path="/documents" element={<DocumentsHome />} />
+    <Route path="/documents/legacy-store" element={<EP area="licensing" capability={["can_view_status", "can_upload_documents"]}><DocumentStore /></EP>} />
     <Route path="/notifications" element={<P><NotificationCenter /></P>} />
     <Route path="/analytics" element={<M module="report_management"><AnalyticsDashboard /></M>} />
     <Route path="/analytics/ai-insights" element={<M module="report_management"><AiInsightsHub /></M>} />

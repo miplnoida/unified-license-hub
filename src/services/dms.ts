@@ -45,6 +45,11 @@ export interface DmsDocumentRow {
   mime_type: string | null;
   bucket: string | null;
   storage_path: string | null;
+  document_date: string | null;
+  /** pending | applied | failed | retry_required | not_applicable */
+  canonical_context_status: string | null;
+  /** taxonomy_default | explicit_override | legacy_conservative | system_registered */
+  classification_source: string | null;
   updated_at: string | null;
   total_count: number | null;
 }
@@ -91,6 +96,12 @@ export interface DmsSearchParams {
   includeArchived?: boolean;
   limit?: number;
   offset?: number;
+  typeCode?: string | null;
+  sourceModule?: string | null;
+  confidentiality?: string | null;
+  verificationStatus?: string | null;
+  acceptanceStatus?: string | null;
+  contextStatus?: string | null;
 }
 
 export async function searchDocuments(
@@ -104,6 +115,12 @@ export async function searchDocuments(
     _include_archived: params.includeArchived ?? false,
     _limit: params.limit ?? 50,
     _offset: params.offset ?? 0,
+    _type_code: params.typeCode ?? null,
+    _source_module: params.sourceModule ?? null,
+    _confidentiality: params.confidentiality ?? null,
+    _verification_status: params.verificationStatus ?? null,
+    _acceptance_status: params.acceptanceStatus ?? null,
+    _context_status: params.contextStatus ?? null,
   });
   if ('error' in res) return { success: false, error: res.error };
   const rows = Array.isArray(res.data) ? res.data : [];
@@ -121,6 +138,62 @@ export async function listEntityDocuments(
 export async function getDocument(groupId: string) {
   return rpc<DmsDocumentDetail>('dms_get_document', { _group_id: groupId });
 }
+
+export interface DmsSourceContextInput {
+  sourceModule?: string | null;
+  sourceRecordType?: string | null;
+  sourceRecordId?: string | null;
+  sourceReference?: string | null;
+  categoryCode?: string | null;
+  typeCode?: string | null;
+}
+
+export interface DmsSourceContextResult {
+  group_id: string;
+  context_status: string;
+  resolved_entity_id: string | null;
+}
+
+/**
+ * Governed registration of a freshly uploaded document's canonical source
+ * context. The server resolves the owning regulated entity itself — the client
+ * never supplies an entity id — and records `canonical_context_status` so an
+ * unresolved document is observable and recoverable rather than silently lost.
+ * Idempotent: never creates a second document or version.
+ */
+export async function registerSourceContext(groupId: string, ctx: DmsSourceContextInput) {
+  const res = await rpc<DmsSourceContextResult[] | DmsSourceContextResult>(
+    'dms_register_source_context',
+    {
+      _group_id: groupId,
+      _source_module: ctx.sourceModule ?? null,
+      _source_record_type: ctx.sourceRecordType ?? null,
+      _source_record_id: ctx.sourceRecordId ?? null,
+      _source_reference: ctx.sourceReference ?? null,
+      _category_code: ctx.categoryCode ?? null,
+      _type_code: ctx.typeCode ?? null,
+    },
+  );
+  if ('error' in res) return res;
+  const row = Array.isArray(res.data) ? res.data[0] : res.data;
+  return { success: true as const, data: row };
+}
+
+/** Link an existing (unresolved) document to its owning entity — same document, same reference. */
+export async function resolveDocumentEntity(groupId: string, entityId: string) {
+  return rpc<string>('dms_resolve_entity', { _group_id: groupId, _entity_id: entityId });
+}
+
+/** Retry canonical context registration for documents left pending/failed. */
+export async function reconcileDocumentContext(limit = 100) {
+  const res = await rpc<Array<{ examined: number; resolved: number; still_pending: number }>>(
+    'dms_reconcile_context', { _limit: limit },
+  );
+  if ('error' in res) return res;
+  const row = Array.isArray(res.data) ? res.data[0] : (res.data as any);
+  return { success: true as const, data: row as { examined: number; resolved: number; still_pending: number } };
+}
+
 
 export interface DmsContextInput {
   categoryCode?: string | null;

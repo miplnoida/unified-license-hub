@@ -15131,9 +15131,14 @@ export type Database = {
           acceptance_status: string | null
           archived_at: string | null
           archived_by: string | null
+          canonical_context_status: string
           category_id: string | null
           classification_overrides: Json
+          classification_source: string
           confidentiality_classification: string | null
+          context_attempts: number
+          context_failure_reason: string | null
+          context_last_attempt_at: string | null
           created_at: string
           created_by: string | null
           current_version_id: string | null
@@ -15188,9 +15193,14 @@ export type Database = {
           acceptance_status?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          canonical_context_status?: string
           category_id?: string | null
           classification_overrides?: Json
+          classification_source?: string
           confidentiality_classification?: string | null
+          context_attempts?: number
+          context_failure_reason?: string | null
+          context_last_attempt_at?: string | null
           created_at?: string
           created_by?: string | null
           current_version_id?: string | null
@@ -15245,9 +15255,14 @@ export type Database = {
           acceptance_status?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          canonical_context_status?: string
           category_id?: string | null
           classification_overrides?: Json
+          classification_source?: string
           confidentiality_classification?: string | null
+          context_attempts?: number
+          context_failure_reason?: string | null
+          context_last_attempt_at?: string | null
           created_at?: string
           created_by?: string | null
           current_version_id?: string | null
@@ -15319,6 +15334,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "document_types"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_groups_primary_entity_fkey"
+            columns: ["primary_entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_groups_primary_entity_fkey"
+            columns: ["primary_entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
           {
             foreignKeyName: "document_groups_retention_policy_id_fkey"
@@ -51708,9 +51737,14 @@ export type Database = {
           acceptance_status: string | null
           archived_at: string | null
           archived_by: string | null
+          canonical_context_status: string
           category_id: string | null
           classification_overrides: Json
+          classification_source: string
           confidentiality_classification: string | null
+          context_attempts: number
+          context_failure_reason: string | null
+          context_last_attempt_at: string | null
           created_at: string
           created_by: string | null
           current_version_id: string | null
@@ -51802,28 +51836,83 @@ export type Database = {
         Returns: undefined
       }
       dms_next_document_reference: { Args: never; Returns: string }
+      dms_reconcile_context: {
+        Args: { _limit?: number }
+        Returns: {
+          examined: number
+          resolved: number
+          still_pending: number
+        }[]
+      }
+      dms_register_certificate: {
+        Args: {
+          _bucket: string
+          _entity_id: string
+          _file_name: string
+          _file_size: number
+          _license_id: string
+          _license_number?: string
+          _mime_type?: string
+          _storage_path: string
+          _version?: number
+        }
+        Returns: string
+      }
+      dms_register_source_context: {
+        Args: {
+          _category_code?: string
+          _group_id: string
+          _source_module?: string
+          _source_record_id?: string
+          _source_record_type?: string
+          _source_reference?: string
+          _type_code?: string
+        }
+        Returns: {
+          context_status: string
+          group_id: string
+          resolved_entity_id: string
+        }[]
+      }
+      dms_resolve_entity: {
+        Args: { _entity_id: string; _group_id: string }
+        Returns: string
+      }
+      dms_resolve_source_entity: {
+        Args: { _source_record_id: string; _source_record_type: string }
+        Returns: string
+      }
       dms_restore: {
         Args: { _group_id: string; _reason?: string }
         Returns: string
       }
       dms_search_documents: {
         Args: {
+          _acceptance_status?: string
           _category_code?: string
+          _confidentiality?: string
+          _context_status?: string
           _document_status?: string
           _entity_id?: string
           _include_archived?: boolean
           _limit?: number
           _offset?: number
           _search?: string
+          _source_module?: string
+          _type_code?: string
+          _verification_status?: string
         }
         Returns: {
           acceptance_status: string
           bucket: string
+          canonical_context_status: string
           category_code: string
           category_name: string
+          classification_source: string
           confidentiality_classification: string
           current_version: number
           display_name: string
+          document_date: string
           document_reference: string
           document_status: string
           document_type: string

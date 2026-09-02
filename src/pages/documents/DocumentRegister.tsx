@@ -19,14 +19,16 @@ import { EnterpriseDataGrid } from '@/components/data-grid/EnterpriseDataGrid';
 import { emptyGridState, type GridColumn, type GridState } from '@/components/data-grid/types';
 import { DmsBadge } from '@/components/documents/dms/DmsBadges';
 import { useDmsRegister, useDmsTaxonomy, type DmsRowSupplement } from '@/hooks/useDmsDocuments';
-import type { DmsDocumentRow } from '@/services/dms';
+import { useCan } from '@/hooks/useCan';
+import { reconcileDocumentContext, type DmsDocumentRow } from '@/services/dms';
 import {
   DOCUMENT_STATUS_OPTIONS, formatDocumentSize, presentAcceptance, presentConfidentiality,
   presentContextType, presentDocumentStatus, presentLegalHold, presentPublication, presentScan,
   presentVerification,
 } from '@/lib/presentation/dmsLabels';
 import { formatDateTime } from '@/lib/datetime';
-import { Search } from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 
 const ALL = 'all';
 
@@ -37,17 +39,22 @@ export default function DocumentRegister() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState(ALL);
   const [status, setStatus] = useState(ALL);
+  const [contextStatus, setContextStatus] = useState(ALL);
   const [includeArchived, setIncludeArchived] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
+  const canReconcile = useCan('document_management', 'bulk_manage');
 
   const { data: taxonomy } = useDmsTaxonomy();
   const filters = useMemo(() => ({
     search: search || undefined,
     categoryCode: category === ALL ? undefined : category,
     documentStatus: status === ALL ? undefined : status,
+    contextStatus: contextStatus === ALL ? undefined : contextStatus,
     includeArchived,
-  }), [search, category, status, includeArchived]);
+  }), [search, category, status, contextStatus, includeArchived]);
 
   const { data, isLoading, error, refetch } = useDmsRegister(filters, grid.pageIndex, grid.pageSize);
+
   const rows = data?.rows ?? [];
   const supplement = data?.supplement ?? {};
   const sup = (id: string): DmsRowSupplement => supplement[id] ?? {
@@ -199,6 +206,19 @@ export default function DocumentRegister() {
             </SelectContent>
           </Select>
         </div>
+        <div className="space-y-1.5">
+          <Label>Filing completeness</Label>
+          <Select value={contextStatus} onValueChange={(v) => { setContextStatus(v); setGrid({ ...grid, pageIndex: 0 }); }}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>All documents</SelectItem>
+              <SelectItem value="applied">Filed against an entity</SelectItem>
+              <SelectItem value="retry_required">Awaiting entity resolution</SelectItem>
+              <SelectItem value="pending">Filing not yet recorded</SelectItem>
+              <SelectItem value="failed">Filing failed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="flex items-end gap-2 pb-1">
           <Switch
             id="dms-archived"
@@ -207,7 +227,33 @@ export default function DocumentRegister() {
           />
           <Label htmlFor="dms-archived" className="cursor-pointer">Include archived and deleted</Label>
         </div>
+        {canReconcile && (
+          <div className="flex items-end pb-1">
+            <Button
+              variant="outline"
+              data-rbac="document_management.bulk_manage"
+              disabled={reconciling}
+              onClick={async () => {
+                setReconciling(true);
+                const res = await reconcileDocumentContext(200);
+                setReconciling(false);
+                if ('error' in res) {
+                  toast.error(`Could not complete filing retry: ${res.error}`);
+                  return;
+                }
+                toast.success(
+                  `Retried ${res.data?.examined ?? 0} document(s): ${res.data?.resolved ?? 0} filed, ${res.data?.still_pending ?? 0} still awaiting resolution.`,
+                );
+                refetch();
+              }}
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${reconciling ? 'animate-spin' : ''}`} />
+              Retry entity filing
+            </Button>
+          </div>
+        )}
       </div>
+
 
       <EnterpriseDataGrid
         gridId="dms-document-register"
