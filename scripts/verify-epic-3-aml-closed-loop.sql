@@ -75,6 +75,16 @@ VALUES ((SELECT v FROM e3 WHERE k='entity_a'),
         'b597c405-e0c4-421b-9092-820a444f2429',
         'active', 'Epic 3 certification: examiner/reviewer scope fixture.');
 
+-- Transaction-scoped Head of AML/CFT fixture: methodology change control is a
+-- head-of-function right (aml_supervision.manage_config), so the certification
+-- checker persona also carries the aml_head role for gate B only.
+INSERT INTO public.sec_user_roles(user_id, role_id, status, assigned_by)
+SELECT '0b522724-adcb-48bf-b21d-175339479616', r.id, 'active',
+       '0b522724-adcb-48bf-b21d-175339479616'
+  FROM public.sec_roles r WHERE r.key = 'aml_head'
+ON CONFLICT DO NOTHING;
+
+
 -- =====================================================================
 -- GATE A — AML methodology exists, is configurable and versioned
 -- =====================================================================
