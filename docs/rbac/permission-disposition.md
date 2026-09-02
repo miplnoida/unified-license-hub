@@ -11,11 +11,11 @@ is granted to any role, role template or user, so none of them widens access.
 | Disposition | Count | Meaning |
 | --- | --- | --- |
 | legacy-alias | 0 | Kept so historic database access rules resolve. |
-| reserved-granular | 127 | Live module, finer-grained action reserved for later split-out. |
+| reserved-granular | 139 | Live module, finer-grained action reserved for later split-out. |
 | future-module | 42 | Module catalogued ahead of its surface being built. |
 | manual | 0 | Reviewed case-by-case (see rationale). |
 
-Total orphans: **169**
+Total orphans: **181**
 
 | Permission | Disposition | Rationale |
 | --- | --- | --- |
@@ -72,6 +72,18 @@ Total orphans: **169**
 | `coordination.admin` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `coordination.create` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `coordination.delete` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `document_management.audit_view` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `document_management.create_version` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `document_management.download` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `document_management.manage_hold` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `document_management.manage_retention` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `document_management.publish_approve` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `document_management.publish_request` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `document_management.reject` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `document_management.upload` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `document_management.view_entity` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `document_management.view_internal` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `document_management.view_restricted` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `enforcement_management.close` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `enforcement_management.delete` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `enforcement_management.edit` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |

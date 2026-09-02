@@ -8,7 +8,8 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { validateFile, ACCEPT_STRING, MAX_FILE_SIZE } from '@/lib/secureFileUpload';
-import { applyDocumentContext, type DmsContextInput } from '@/services/dms';
+import { registerSourceContext, type DmsSourceContextInput } from '@/services/dms';
+import { deriveDmsContext } from '@/lib/dmsContext';
 
 
 export { ACCEPT_STRING, MAX_FILE_SIZE };
@@ -127,7 +128,7 @@ export async function uploadVersionedDocument(args: {
    * governed `dms_apply_document_context` RPC. Failures here never fail the
    * upload — the physical document is already safely registered.
    */
-  dmsContext?: DmsContextInput;
+  dmsContext?: DmsSourceContextInput;
 }): Promise<{ success: true; data: DocGroupRef } | { success: false; error: string }> {
 
   const validation = validateFile(args.file);
@@ -230,18 +231,31 @@ export async function uploadVersionedDocument(args: {
   const row = Array.isArray(rpcData) ? rpcData[0] : rpcData;
   const groupId = (row as any).document_upload_id as string;
 
-  if (args.dmsContext) {
-    const ctx = await applyDocumentContext(groupId, {
-      sourceModule: args.dmsContext.sourceModule ?? args.entityType,
-      sourceRecordType: args.dmsContext.sourceRecordType ?? args.entityType,
-      sourceRecordId: args.dmsContext.sourceRecordId ?? args.entityId ?? null,
-      ...args.dmsContext,
-    });
+  // Canonical DMS registration. Always attempted: the register is the single
+  // source of truth for logical documents, and each upload is one logical
+  // document (two files in one multi-file field remain two documents).
+  // The entity is resolved server-side; a failure here leaves the document with
+  // canonical_context_status 'pending' so it is picked up by reconciliation —
+  // it never fails the upload and never fabricates an owning entity.
+  const derived = deriveDmsContext({
+    entityType: args.entityType,
+    entityId: args.entityId ?? null,
+    submissionId: args.submissionId ?? null,
+    categoryCode: args.dmsContext?.categoryCode ?? null,
+    typeCode: args.dmsContext?.typeCode ?? null,
+    sourceReference: args.dmsContext?.sourceReference ?? null,
+  });
+  const ctxInput = derived || args.dmsContext ? {
+    ...(derived ?? {}),
+    ...(args.dmsContext ?? {}),
+  } : null;
+  if (ctxInput) {
+    const ctx = await registerSourceContext(groupId, ctxInput);
     if ('error' in ctx) {
-      console.warn('[dms] context application failed', groupId, ctx.error);
+      console.warn('[dms] canonical context registration deferred', groupId, ctx.error);
     }
-
   }
+
 
   return {
     success: true,

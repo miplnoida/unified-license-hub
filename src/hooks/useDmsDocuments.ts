@@ -22,6 +22,13 @@ export interface DmsRegisterFilters {
   documentStatus?: string;
   includeArchived?: boolean;
   entityId?: string;
+  typeCode?: string;
+  sourceModule?: string;
+  confidentiality?: string;
+  verificationStatus?: string;
+  acceptanceStatus?: string;
+  /** pending / retry_required documents whose canonical context is incomplete. */
+  contextStatus?: string;
 }
 
 export interface DmsRowSupplement {
@@ -115,6 +122,12 @@ export function useDmsRegister(filters: DmsRegisterFilters, pageIndex: number, p
         documentStatus: filters.documentStatus || null,
         includeArchived: !!filters.includeArchived,
         entityId: filters.entityId || null,
+        typeCode: filters.typeCode || null,
+        sourceModule: filters.sourceModule || null,
+        confidentiality: filters.confidentiality || null,
+        verificationStatus: filters.verificationStatus || null,
+        acceptanceStatus: filters.acceptanceStatus || null,
+        contextStatus: filters.contextStatus || null,
         limit: pageSize,
         offset: pageIndex * pageSize,
       });
