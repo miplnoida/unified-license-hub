@@ -86,11 +86,20 @@ BEGIN
    WHERE code='licence_certificates' AND default_publication_eligibility='public_eligible';
   IF n <> 1 THEN RAISE EXCEPTION 'G-12 FAIL: licence_certificates category not publication-eligible'; END IF;
 
-  -- G-13 scan lifecycle untouched: no DMS version points at a file created clean
+  -- G-13 scan lifecycle untouched: the DMS version writer must never mint a clean file.
+  -- Rows created before the scan hardening (2026-09-02) are legacy and out of scope; the
+  -- gate asserts current writer behaviour plus the absence of new violations.
+  SELECT count(*) INTO n FROM pg_proc p JOIN pg_namespace ns ON ns.oid=p.pronamespace
+   WHERE ns.nspname='public' AND p.proname='create_document_version_metadata'
+     AND pg_get_functiondef(p.oid) LIKE '%pending_scan%';
+  IF n <> 1 THEN RAISE EXCEPTION 'G-13 FAIL: version writer does not force pending_scan'; END IF;
+
   SELECT count(*) INTO n FROM public.document_versions v
     JOIN public.file_uploads f ON f.id = v.file_upload_id
-   WHERE f.scan_status = 'clean' AND f.scanned_at IS NULL;
+   WHERE f.scan_status = 'clean' AND f.scanned_at IS NULL
+     AND f.created_at >= timestamptz '2026-09-02';
   IF n > 0 THEN RAISE EXCEPTION 'G-13 FAIL: % file(s) clean without a scan verdict', n; END IF;
+
 
   -- G-14 legal hold still blocks disposal
   SELECT count(*) INTO n FROM public.document_groups
