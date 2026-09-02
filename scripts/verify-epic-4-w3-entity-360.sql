@@ -56,6 +56,12 @@ INSERT INTO public.user_roles(user_id, role)
 VALUES ('0b522724-adcb-48bf-b21d-175339479616', 'supervisor')
 ON CONFLICT (user_id, role) DO NOTHING;
 
+-- ...holding the operational permission sets a supervisor really carries
+INSERT INTO public.sec_user_roles(user_id, role_id, status)
+SELECT '0b522724-adcb-48bf-b21d-175339479616', r.id, 'active'
+FROM public.sec_roles r
+WHERE r.key IN ('prudential_supervisor','market_conduct_supervisor');
+
 -- the certification persona supervises every fixture entity
 INSERT INTO public.entity_supervision_assignments(entity_id, lead_supervisor_user_id, status,
        assignment_reason)
