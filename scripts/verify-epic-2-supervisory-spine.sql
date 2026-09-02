@@ -464,29 +464,66 @@ BEGIN
   INSERT INTO epic2_ctx(k,v) VALUES ('pru_attention', att);
   PERFORM public.supervisory_attention_confirm_priority(att, 'HIGH',
     'Human confirmation: capital trajectory warrants a targeted onsite engagement this cycle.');
+END $$;
 
+-- maker: the analyst prepares and submits the plan
+SET LOCAL "request.jwt.claims" = '{"sub":"ef43e80a-e17e-4f26-aa91-bcf0d99e3d89","role":"authenticated"}';
+
+DO $$
+DECLARE r jsonb; plan uuid;
+BEGIN
   r := public.supervisory_plan_open('Coral Harbour capital supervision plan', 'PRUDENTIAL',
         'Confirmed high-priority capital adequacy attention arising from the approved prudential assessment.',
-        'Restore capital headroom through targeted supervisory engagement.', att, ARRAY[aid]);
+        'Restore capital headroom through targeted supervisory engagement.',
+        (SELECT v FROM epic2_ctx WHERE k='pru_attention'),
+        ARRAY[(SELECT v FROM epic2_ctx WHERE k='pru_assessment')]);
   plan := (r->>'id')::uuid;
   INSERT INTO epic2_ctx(k,v) VALUES ('pru_plan', plan);
   PERFORM public.supervisory_plan_lifecycle(plan, 'SUBMITTED', 'Submitted for supervisory approval.');
+END $$;
+
+-- checker: a different officer approves and activates the plan
+SET LOCAL "request.jwt.claims" = '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
+
+DO $$
+DECLARE plan uuid := (SELECT v FROM epic2_ctx WHERE k='pru_plan');
+BEGIN
   PERFORM public.supervisory_plan_lifecycle(plan, 'APPROVED', 'Approved by the prudential supervisor.');
   PERFORM public.supervisory_plan_lifecycle(plan, 'ACTIVE', 'Activated for the current supervisory cycle.');
+END $$;
 
-  r := public.supervisory_intervention_open(plan, 'TARGETED_EXAMINATION',
+-- maker: the analyst proposes the intervention
+SET LOCAL "request.jwt.claims" = '{"sub":"ef43e80a-e17e-4f26-aa91-bcf0d99e3d89","role":"authenticated"}';
+
+DO $$
+DECLARE r jsonb; iv uuid;
+BEGIN
+  r := public.supervisory_intervention_open((SELECT v FROM epic2_ctx WHERE k='pru_plan'),
+        'TARGETED_EXAMINATION',
         'Targeted capital examination', 'Plan-authorised targeted examination of capital management.',
-        'PRUDENTIAL', (SELECT v FROM epic2_ctx WHERE k='entity_a'), att);
+        'PRUDENTIAL', (SELECT v FROM epic2_ctx WHERE k='entity_a'),
+        (SELECT v FROM epic2_ctx WHERE k='pru_attention'));
   iv := (r->>'id')::uuid;
   INSERT INTO epic2_ctx(k,v) VALUES ('pru_intervention', iv);
-  PERFORM public.supervisory_intervention_decide(iv, 'APPROVE',
+END $$;
+
+-- checker: a different officer decides the intervention and opens the examination
+SET LOCAL "request.jwt.claims" = '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
+
+DO $$
+DECLARE r jsonb; iv uuid := (SELECT v FROM epic2_ctx WHERE k='pru_intervention'); ex uuid;
+BEGIN
+  PERFORM public.supervisory_intervention_decide(iv, 'ENDORSED',
     'Approved: proceed with the targeted capital examination.');
+  PERFORM public.supervisory_intervention_decide(iv, 'ACTIVE', 'Intervention activated for execution.');
 
   r := public.supervisory_examination_open(iv, 'Targeted capital examination', 'TARGETED_ONSITE',
-        'PRUDENTIAL', (SELECT v FROM epic2_ctx WHERE k='entity_a'), ARRAY[aid]);
+        'PRUDENTIAL', (SELECT v FROM epic2_ctx WHERE k='entity_a'),
+        ARRAY[(SELECT v FROM epic2_ctx WHERE k='pru_assessment')]);
   ex := (r->>'id')::uuid;
   INSERT INTO epic2_ctx(k,v) VALUES ('pru_examination', ex);
 END $$;
+
 
 RESET ROLE;
 
@@ -523,7 +560,11 @@ BEGIN
                     AND residual_rating='high') THEN
     RAISE EXCEPTION 'FAIL A: approved assessment did not become the authoritative risk state'; END IF;
   t := public.supervisory_trace('examination', ex);
-  IF t IS NULL OR t->'assessments' IS NULL THEN
+  IF t IS NULL
+     OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(t->'origins','[]'::jsonb)) o
+                     WHERE (o->>'assessment_id')::uuid = aid)
+     OR (t->'intervention'->>'id')::uuid <> iv
+     OR (t->'plan'->>'id')::uuid <> pl THEN
     RAISE EXCEPTION 'FAIL A: trace read model does not resolve the examination chain'; END IF;
   RAISE NOTICE 'PASS A: prudential assessment -> attention -> priority -> plan -> intervention -> examination -> trace';
 END $$;
@@ -532,10 +573,10 @@ END $$;
 -- SCENARIO B — AML/CFT BACKBONE (controlled fixture, rolled back)
 -- =====================================================================
 SET LOCAL ROLE authenticated;
-SET LOCAL "request.jwt.claims" = '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
+SET LOCAL "request.jwt.claims" = '{"sub":"ef43e80a-e17e-4f26-aa91-bcf0d99e3d89","role":"authenticated"}';
 
 DO $$
-DECLARE r jsonb; aid uuid; att uuid; pl uuid; iv uuid; ex uuid; dom uuid;
+DECLARE r jsonb; aid uuid;
 BEGIN
   r := public.supervisory_assessment_create(
         (SELECT v FROM epic2_ctx WHERE k='entity_a'), 'AML_CFT', 'RISK_BASED',
@@ -548,20 +589,32 @@ BEGIN
     'high', NULL, 'high', 0.2, 4, 'Significant non-resident customer base.');
   PERFORM public.supervisory_assessment_dimension_upsert(aid, 'TRANSACTION_MONITORING', 'CONTROL_EFFECTIVENESS',
     NULL, 'weak', 'high', 0.2, 4, 'Monitoring thresholds untuned since implementation.');
-
-  -- domain extension row (AML) linked through the FK-backed envelope
-  INSERT INTO public.aml_assessments(entity_id, supervisory_assessment_id)
-  VALUES ((SELECT v FROM epic2_ctx WHERE k='entity_a'), aid)
-  RETURNING id INTO dom;
-  INSERT INTO epic2_ctx(k,v) VALUES ('aml_domain_record', dom);
-
   PERFORM public.supervisory_assessment_transition(aid, 'submitted', 'Submitted for AML review.');
 END $$;
 
-SET LOCAL "request.jwt.claims" = '{"sub":"43fe7d54-e67e-4422-b032-f4f2ec767a28","role":"authenticated"}';
+-- The AML domain-extension row is written outside the persona session on purpose:
+-- aml_assessments.aml_assess_write (pre-dating Epic 2, migration 20260820113315)
+-- requires has_permission(uid,'aml_supervision','edit'), and no such permission
+-- exists in the catalogue (only aml_supervision.view / .approve), so no non-super-admin
+-- user can write the table. Recorded as PRE_EXISTING; the FK-backed envelope linkage
+-- itself is still asserted below.
+RESET ROLE;
+DO $$
+DECLARE dom uuid;
+BEGIN
+  INSERT INTO public.aml_assessments(entity_id, supervisory_assessment_id, reference, assessment_date)
+  VALUES ((SELECT v FROM epic2_ctx WHERE k='entity_a'), (SELECT v FROM epic2_ctx WHERE k='aml_assessment'),
+          'EPIC2-AML-FIXTURE-1', current_date)
+  RETURNING id INTO dom;
+  INSERT INTO epic2_ctx(k,v) VALUES ('aml_domain_record', dom);
+END $$;
+
+SET LOCAL ROLE authenticated;
+-- maker
+SET LOCAL "request.jwt.claims" = '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
 
 DO $$
-DECLARE aid uuid := (SELECT v FROM epic2_ctx WHERE k='aml_assessment'); r jsonb; att uuid; pl uuid; iv uuid; ex uuid;
+DECLARE aid uuid := (SELECT v FROM epic2_ctx WHERE k='aml_assessment'); r jsonb; att uuid; pl uuid;
 BEGIN
   PERFORM public.supervisory_assessment_transition(aid, 'approved',
     'Approved: AML/CFT residual risk confirmed high on customer and monitoring dimensions.', 'high');
@@ -570,28 +623,68 @@ BEGIN
         'Approved AML/CFT assessment records weak transaction monitoring against high inherent customer risk.',
         'AML_RISK', ARRAY[(SELECT v FROM epic2_ctx WHERE k='entity_a')], aid);
   att := (r->>'id')::uuid;
+  INSERT INTO epic2_ctx(k,v) VALUES ('aml_attention', att);
   PERFORM public.supervisory_attention_confirm_priority(att, 'IMMEDIATE',
     'Human confirmation: monitoring weakness requires an immediate AML engagement.');
 
+END $$;
+
+-- maker prepares and submits the AML plan
+SET LOCAL "request.jwt.claims" = '{"sub":"ef43e80a-e17e-4f26-aa91-bcf0d99e3d89","role":"authenticated"}';
+
+DO $$
+DECLARE r jsonb; pl uuid;
+BEGIN
   r := public.supervisory_plan_open('AML/CFT supervisory plan', 'AML_CFT',
         'Confirmed immediate AML/CFT attention arising from the approved risk-based assessment.',
-        'Remediate transaction monitoring and EDD coverage.', att, ARRAY[aid]);
+        'Remediate transaction monitoring and EDD coverage.',
+        (SELECT v FROM epic2_ctx WHERE k='aml_attention'),
+        ARRAY[(SELECT v FROM epic2_ctx WHERE k='aml_assessment')]);
   pl := (r->>'id')::uuid;
+  INSERT INTO epic2_ctx(k,v) VALUES ('aml_plan', pl);
   PERFORM public.supervisory_plan_lifecycle(pl, 'SUBMITTED', 'Submitted for AML supervisory approval.');
+END $$;
+
+-- checker
+SET LOCAL "request.jwt.claims" = '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
+
+DO $$
+DECLARE pl uuid := (SELECT v FROM epic2_ctx WHERE k='aml_plan');
+BEGIN
   PERFORM public.supervisory_plan_lifecycle(pl, 'APPROVED', 'Approved by the AML supervisor.');
   PERFORM public.supervisory_plan_lifecycle(pl, 'ACTIVE', 'Activated for the AML cycle.');
+END $$;
 
-  r := public.supervisory_intervention_open(pl, 'ONSITE_EXAMINATION', 'AML/CFT onsite examination',
+-- maker proposes the intervention
+SET LOCAL "request.jwt.claims" = '{"sub":"ef43e80a-e17e-4f26-aa91-bcf0d99e3d89","role":"authenticated"}';
+
+DO $$
+DECLARE r jsonb; iv uuid;
+BEGIN
+  r := public.supervisory_intervention_open((SELECT v FROM epic2_ctx WHERE k='aml_plan'),
+        'ONSITE_EXAMINATION', 'AML/CFT onsite examination',
         'Plan-authorised AML/CFT onsite examination of monitoring and EDD.', 'AML_CFT',
-        (SELECT v FROM epic2_ctx WHERE k='entity_a'), att);
+        (SELECT v FROM epic2_ctx WHERE k='entity_a'), (SELECT v FROM epic2_ctx WHERE k='aml_attention'));
   iv := (r->>'id')::uuid;
-  PERFORM public.supervisory_intervention_decide(iv, 'APPROVE', 'Approved: proceed with the AML onsite examination.');
+  INSERT INTO epic2_ctx(k,v) VALUES ('aml_intervention', iv);
+END $$;
+
+-- checker decides and opens the AML-domain examination
+SET LOCAL "request.jwt.claims" = '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
+
+DO $$
+DECLARE r jsonb; iv uuid := (SELECT v FROM epic2_ctx WHERE k='aml_intervention'); ex uuid;
+BEGIN
+  PERFORM public.supervisory_intervention_decide(iv, 'ENDORSED', 'Approved: proceed with the AML onsite examination.');
+  PERFORM public.supervisory_intervention_decide(iv, 'ACTIVE', 'Intervention activated for execution.');
 
   r := public.supervisory_examination_open(iv, 'AML/CFT onsite examination', 'FULL_SCOPE_ONSITE',
-        'AML_CFT', (SELECT v FROM epic2_ctx WHERE k='entity_a'), ARRAY[aid]);
+        'AML_CFT', (SELECT v FROM epic2_ctx WHERE k='entity_a'),
+        ARRAY[(SELECT v FROM epic2_ctx WHERE k='aml_assessment')]);
   ex := (r->>'id')::uuid;
   INSERT INTO epic2_ctx(k,v) VALUES ('aml_examination', ex);
 END $$;
+
 
 RESET ROLE;
 
@@ -616,6 +709,29 @@ BEGIN
   RAISE NOTICE 'PASS B: AML/CFT assessment -> extension -> attention -> priority -> plan -> intervention -> AML_CFT examination -> trace';
 END $$;
 
+-- Conduct persona supervisory scope fixture (rolled back with the transaction).
+RESET ROLE;
+INSERT INTO public.entity_supervision_assignments(entity_id, lead_supervisor_user_id,
+        alternate_supervisor_user_id, status, assignment_reason)
+VALUES ((SELECT v FROM epic2_ctx WHERE k='entity_a'),
+        '87a7ada9-9ef8-49ac-a810-4eb04fecf1ac', '4510ad1c-039f-40f3-877c-9d82f310a8f2',
+        'active', 'Epic 2 certification: conduct maker/checker scope fixture.');
+
+-- Canonical conduct signal fixture (written outside a persona session: the signal
+-- ingestion surface is not part of Epic 2 scope; the FK-backed origin is asserted below).
+RESET ROLE;
+DO $$
+DECLARE sid uuid;
+BEGIN
+  INSERT INTO public.supervisory_signal(entity_id, domain_code, source_kind, severity, detected_at, summary,
+                                        conduct_signal_id)
+  VALUES ((SELECT v FROM epic2_ctx WHERE k='entity_a'), 'MARKET_CONDUCT', 'CONDUCT_SIGNAL', 'high', now(),
+          'Recurring mis-selling signals identified through conduct surveillance.',
+          (SELECT id FROM public.conduct_signals ORDER BY created_at LIMIT 1))
+  RETURNING id INTO sid;
+  INSERT INTO epic2_ctx(k,v) VALUES ('mc_signal', sid);
+END $$;
+
 -- =====================================================================
 -- SCENARIO C — MARKET CONDUCT (old workflow still functional)
 -- =====================================================================
@@ -627,7 +743,8 @@ DECLARE r jsonb; att uuid;
 BEGIN
   r := public.supervisory_attention_open('Conduct complaint cluster', 'MARKET_CONDUCT',
         'Recurring mis-selling signals identified through conduct surveillance for this entity.',
-        'CONDUCT_SIGNAL', ARRAY[(SELECT v FROM epic2_ctx WHERE k='entity_a')]);
+        'CONDUCT_SIGNAL', ARRAY[(SELECT v FROM epic2_ctx WHERE k='entity_a')],
+        NULL, NULL, (SELECT v FROM epic2_ctx WHERE k='mc_signal'));
   att := (r->>'id')::uuid;
   INSERT INTO epic2_ctx(k,v) VALUES ('mc_attention', att);
 END $$;
@@ -635,28 +752,63 @@ END $$;
 SET LOCAL "request.jwt.claims" = '{"sub":"4510ad1c-039f-40f3-877c-9d82f310a8f2","role":"authenticated"}';
 
 DO $$
-DECLARE att uuid := (SELECT v FROM epic2_ctx WHERE k='mc_attention'); r jsonb; pl uuid; iv uuid; ex uuid;
 BEGIN
-  PERFORM public.supervisory_attention_confirm_priority(att, 'HIGH',
+  PERFORM public.supervisory_attention_confirm_priority((SELECT v FROM epic2_ctx WHERE k='mc_attention'), 'HIGH',
     'Human confirmation: cluster indicates a systemic sales-practice concern.');
+END $$;
+
+-- maker prepares and submits the conduct plan
+SET LOCAL "request.jwt.claims" = '{"sub":"87a7ada9-9ef8-49ac-a810-4eb04fecf1ac","role":"authenticated"}';
+
+DO $$
+DECLARE r jsonb; pl uuid;
+BEGIN
   r := public.supervisory_plan_open('Conduct sales practice review plan', 'MARKET_CONDUCT',
         'Confirmed high-priority conduct attention arising from a recurring mis-selling signal cluster.',
-        'Assess sales practices and remediate customer harm.', att);
+        'Assess sales practices and remediate customer harm.',
+        (SELECT v FROM epic2_ctx WHERE k='mc_attention'));
   pl := (r->>'id')::uuid;
+  INSERT INTO epic2_ctx(k,v) VALUES ('mc_plan', pl);
   PERFORM public.supervisory_plan_lifecycle(pl, 'SUBMITTED', 'Submitted for conduct supervisory approval.');
+END $$;
+
+-- checker approves and activates
+SET LOCAL "request.jwt.claims" = '{"sub":"4510ad1c-039f-40f3-877c-9d82f310a8f2","role":"authenticated"}';
+
+DO $$
+DECLARE pl uuid := (SELECT v FROM epic2_ctx WHERE k='mc_plan');
+BEGIN
   PERFORM public.supervisory_plan_lifecycle(pl, 'APPROVED', 'Approved by the conduct supervisor.');
   PERFORM public.supervisory_plan_lifecycle(pl, 'ACTIVE', 'Activated for the conduct cycle.');
-  r := public.supervisory_intervention_open(pl, 'THEMATIC_REVIEW', 'Sales practice thematic review',
+END $$;
+
+-- maker proposes the intervention
+SET LOCAL "request.jwt.claims" = '{"sub":"87a7ada9-9ef8-49ac-a810-4eb04fecf1ac","role":"authenticated"}';
+
+DO $$
+DECLARE r jsonb; iv uuid;
+BEGIN
+  r := public.supervisory_intervention_open((SELECT v FROM epic2_ctx WHERE k='mc_plan'),
+        'THEMATIC_REVIEW', 'Sales practice thematic review',
         'Plan-authorised thematic review of sales practices following the confirmed conduct attention.',
-        'MARKET_CONDUCT', (SELECT v FROM epic2_ctx WHERE k='entity_a'), att);
+        'MARKET_CONDUCT', (SELECT v FROM epic2_ctx WHERE k='entity_a'),
+        (SELECT v FROM epic2_ctx WHERE k='mc_attention'));
   iv := (r->>'id')::uuid;
-  PERFORM public.supervisory_intervention_decide(iv, 'APPROVE', 'Approved: proceed with the thematic review.');
+  INSERT INTO epic2_ctx(k,v) VALUES ('mc_intervention', iv);
+END $$;
+
+-- checker decides and opens the offsite review engagement
+SET LOCAL "request.jwt.claims" = '{"sub":"4510ad1c-039f-40f3-877c-9d82f310a8f2","role":"authenticated"}';
+
+DO $$
+DECLARE r jsonb; iv uuid := (SELECT v FROM epic2_ctx WHERE k='mc_intervention'); ex uuid;
+BEGIN
+  PERFORM public.supervisory_intervention_decide(iv, 'ENDORSED', 'Approved: proceed with the thematic review.');
+  PERFORM public.supervisory_intervention_decide(iv, 'ACTIVE', 'Intervention activated for execution.');
   r := public.supervisory_examination_open(iv, 'Sales practice offsite review', 'OFFSITE_REVIEW',
         'MARKET_CONDUCT', (SELECT v FROM epic2_ctx WHERE k='entity_a'));
   ex := (r->>'id')::uuid;
   INSERT INTO epic2_ctx(k,v) VALUES ('mc_examination', ex);
-  INSERT INTO epic2_ctx(k,v) VALUES ('mc_intervention', iv);
-  INSERT INTO epic2_ctx(k,v) VALUES ('mc_plan', pl);
 END $$;
 
 RESET ROLE;
@@ -687,10 +839,11 @@ END $$;
 -- SCENARIO D — CROSS-DOMAIN JOINT EXAMINATION
 -- =====================================================================
 SET LOCAL ROLE authenticated;
-SET LOCAL "request.jwt.claims" = '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
+-- maker raises the cross-domain attention and prepares the joint plan
+SET LOCAL "request.jwt.claims" = '{"sub":"ef43e80a-e17e-4f26-aa91-bcf0d99e3d89","role":"authenticated"}';
 
 DO $$
-DECLARE r jsonb; att uuid; pl uuid; iv uuid; ex uuid;
+DECLARE r jsonb; att uuid; pl uuid;
   pru uuid := (SELECT v FROM epic2_ctx WHERE k='pru_assessment');
   aml uuid := (SELECT v FROM epic2_ctx WHERE k='aml_assessment');
 BEGIN
@@ -698,26 +851,73 @@ BEGIN
         'Approved prudential and AML/CFT assessments both record high residual risk for the same entity.',
         'SUPERVISORY_ASSESSMENT', ARRAY[(SELECT v FROM epic2_ctx WHERE k='entity_a')], pru);
   att := (r->>'id')::uuid;
-  PERFORM public.supervisory_attention_confirm_priority(att, 'IMMEDIATE',
-    'Human confirmation: combined prudential and AML deterioration justifies a joint engagement.');
+  INSERT INTO epic2_ctx(k,v) VALUES ('joint_attention', att);
+END $$;
+
+-- checker confirms the supervisory priority
+SET LOCAL "request.jwt.claims" = '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
+
+DO $$
+BEGIN
+  PERFORM public.supervisory_attention_confirm_priority((SELECT v FROM epic2_ctx WHERE k='joint_attention'),
+    'IMMEDIATE', 'Human confirmation: combined prudential and AML deterioration justifies a joint engagement.');
+END $$;
+
+-- maker prepares and submits the joint plan
+SET LOCAL "request.jwt.claims" = '{"sub":"ef43e80a-e17e-4f26-aa91-bcf0d99e3d89","role":"authenticated"}';
+
+DO $$
+DECLARE r jsonb; pl uuid;
+BEGIN
   r := public.supervisory_plan_open('Joint supervisory plan', 'CROSS_DOMAIN',
         'Confirmed cross-domain attention arising from two approved assessments for the same entity.',
         'Run a single joint engagement covering capital and AML control weaknesses.',
-        att, ARRAY[pru, aml]);
+        (SELECT v FROM epic2_ctx WHERE k='joint_attention'),
+        ARRAY[(SELECT v FROM epic2_ctx WHERE k='pru_assessment'),
+              (SELECT v FROM epic2_ctx WHERE k='aml_assessment')]);
   pl := (r->>'id')::uuid;
+  INSERT INTO epic2_ctx(k,v) VALUES ('joint_plan', pl);
   PERFORM public.supervisory_plan_lifecycle(pl, 'SUBMITTED', 'Submitted for joint approval.');
+END $$;
+
+-- checker approves and activates the joint plan
+SET LOCAL "request.jwt.claims" = '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
+
+DO $$
+DECLARE pl uuid := (SELECT v FROM epic2_ctx WHERE k='joint_plan');
+BEGIN
   PERFORM public.supervisory_plan_lifecycle(pl, 'APPROVED', 'Approved as a joint engagement.');
   PERFORM public.supervisory_plan_lifecycle(pl, 'ACTIVE', 'Activated as a joint engagement.');
-  r := public.supervisory_intervention_open(pl, 'FULL_SCOPE_EXAMINATION', 'Joint prudential/AML examination',
+END $$;
+
+-- maker proposes the joint intervention
+SET LOCAL "request.jwt.claims" = '{"sub":"ef43e80a-e17e-4f26-aa91-bcf0d99e3d89","role":"authenticated"}';
+
+DO $$
+DECLARE r jsonb; iv uuid;
+BEGIN
+  r := public.supervisory_intervention_open((SELECT v FROM epic2_ctx WHERE k='joint_plan'),
+        'FULL_SCOPE_EXAMINATION', 'Joint prudential/AML examination',
         'Plan-authorised joint examination covering both domains under one engagement.', 'CROSS_DOMAIN',
-        (SELECT v FROM epic2_ctx WHERE k='entity_a'), att);
+        (SELECT v FROM epic2_ctx WHERE k='entity_a'), (SELECT v FROM epic2_ctx WHERE k='joint_attention'));
   iv := (r->>'id')::uuid;
-  PERFORM public.supervisory_intervention_decide(iv, 'APPROVE', 'Approved: single joint examination.');
+  INSERT INTO epic2_ctx(k,v) VALUES ('joint_intervention', iv);
+END $$;
+
+-- checker decides and opens the single joint engagement
+SET LOCAL "request.jwt.claims" = '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
+
+DO $$
+DECLARE r jsonb; iv uuid := (SELECT v FROM epic2_ctx WHERE k='joint_intervention'); ex uuid;
+BEGIN
+  PERFORM public.supervisory_intervention_decide(iv, 'ENDORSED', 'Approved: single joint examination.');
+  PERFORM public.supervisory_intervention_decide(iv, 'ACTIVE', 'Intervention activated for execution.');
   r := public.supervisory_examination_open(iv, 'Joint prudential/AML examination', 'JOINT_EXAMINATION',
-        'CROSS_DOMAIN', (SELECT v FROM epic2_ctx WHERE k='entity_a'), ARRAY[pru, aml]);
+        'CROSS_DOMAIN', (SELECT v FROM epic2_ctx WHERE k='entity_a'),
+        ARRAY[(SELECT v FROM epic2_ctx WHERE k='pru_assessment'),
+              (SELECT v FROM epic2_ctx WHERE k='aml_assessment')]);
   ex := (r->>'id')::uuid;
   INSERT INTO epic2_ctx(k,v) VALUES ('joint_examination', ex);
-  INSERT INTO epic2_ctx(k,v) VALUES ('joint_plan', pl);
 END $$;
 
 RESET ROLE;
@@ -735,7 +935,9 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.examinations WHERE id=ex AND engagement_type='JOINT_EXAMINATION'
                    AND domain_code='CROSS_DOMAIN') THEN
     RAISE EXCEPTION 'FAIL D: joint engagement type/domain not recorded'; END IF;
-  IF (public.supervisory_trace('examination', ex)->'assessments') IS NULL THEN
+  IF (public.supervisory_trace('examination', ex)->'origins') IS NULL
+     OR (public.supervisory_trace('examination', ex)->'plan') IS NULL
+     OR (public.supervisory_trace('examination', ex)->'intervention') IS NULL THEN
     RAISE EXCEPTION 'FAIL D: cross-domain trace does not resolve'; END IF;
   RAISE NOTICE 'PASS D: two approved assessments drive ONE joint examination through physical authoritative links';
 END $$;
@@ -793,7 +995,7 @@ DO $$
 DECLARE ok boolean := false; r jsonb; aid uuid;
 BEGIN
   r := public.supervisory_assessment_create((SELECT v FROM epic2_ctx WHERE k='entity_a'),
-        'PRUDENTIAL', 'EVENT_DRIVEN', NULL, NULL, NULL, 'EVENT',
+        'PRUDENTIAL', 'RISK_BASED', NULL, NULL, NULL, 'EVENT_DRIVEN',
         NULL, 'Maker-checker negative test fixture.');
   aid := (r->>'id')::uuid;
   PERFORM public.supervisory_assessment_transition(aid, 'submitted', 'Submitted by the preparer.');

@@ -659,6 +659,18 @@ Internal tasks:
 - Q-F: Confirm AML dimension list and rating scale (the FATF-aligned set proposed
   in §14.1) before Epic 3 begins.
 
+**Resolutions taken in Epic 2 (implemented and certified)**
+
+| Q | Resolution | Evidence |
+| --- | --- | --- |
+| Q-A | `entity_risk_state` is the only judged risk of record and has exactly one governed writer (approved supervisory assessment transition). `entity_risk_scores` is demoted to a computed input signal and never drives supervisory action. | PASS 4, `scripts/verify-epic-2-supervisory-spine.sql` |
+| Q-B | Offsite review is an **engagement type** of the single canonical activity engine (`examinations.engagement_type = 'OFFSITE_REVIEW'`) with a reduced stage subset — not a distinct activity object. One stage engine serves all engagement types. | PASS 5, Scenario C |
+| Q-C | Deferred to Epic 4 as originally scoped; no escalation convergence performed in Epic 2. | out of Epic 2 scope |
+| Q-D | `conduct_investigations` remains a **domain extension** of the canonical activity for now; the decision is revisited in Epic 4 rather than pre-empted. | Scenario C (legacy conduct reads intact) |
+| Q-E | No Governance domain assessment added in Epic 2; F&P plus examination coverage carries until Epic 4. | Epic 2 domain set: PRUDENTIAL, AML_CFT, MARKET_CONDUCT, CROSS_DOMAIN |
+| Q-F | AML dimensions and rating scale implemented as proposed in §14.1 (inherent risk and control effectiveness dimensions with residual rating), proven end-to-end. | PASS B, Scenario B |
+
+
 ---
 
 ## 17. Recommended acceptance criteria for Epic 1
