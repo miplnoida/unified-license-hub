@@ -90,7 +90,7 @@ export async function searchDocuments(
     _limit: params.limit ?? 50,
     _offset: params.offset ?? 0,
   });
-  if (!res.success) return res;
+  if (!res.success) return { success: false, error: res.error };
   const rows = Array.isArray(res.data) ? res.data : [];
   return { success: true, data: { rows, total: Number(rows[0]?.total_count ?? 0) } };
 }
