@@ -51681,7 +51681,208 @@ export type Database = {
         Args: { _case_id: string; _reason?: string }
         Returns: Json
       }
+      dms_accept: {
+        Args: { _decision: string; _group_id: string; _note?: string }
+        Returns: string
+      }
+      dms_apply_document_context: {
+        Args: {
+          _category_code?: string
+          _group_id: string
+          _primary_entity_id?: string
+          _source_module?: string
+          _source_record_id?: string
+          _source_record_type?: string
+          _source_reference?: string
+          _type_code?: string
+        }
+        Returns: string
+      }
+      dms_archive: {
+        Args: { _group_id: string; _reason?: string }
+        Returns: string
+      }
+      dms_assert_can_manage: {
+        Args: { _action: string; _group_id: string }
+        Returns: {
+          acceptance_status: string | null
+          archived_at: string | null
+          archived_by: string | null
+          category_id: string | null
+          classification_overrides: Json
+          confidentiality_classification: string | null
+          created_at: string
+          created_by: string | null
+          current_version_id: string | null
+          display_name: string | null
+          disposition_status: string
+          document_date: string | null
+          document_label: string | null
+          document_reference: string | null
+          document_status: string | null
+          document_type: string
+          document_type_id: string | null
+          effective_from: string | null
+          effective_until: string | null
+          entity_id: string | null
+          entity_type: string
+          expiry_date: string | null
+          field_id: string | null
+          form_id: string | null
+          id: string
+          is_deleted: boolean
+          legal_hold_status: string
+          license_id: string | null
+          metadata: Json | null
+          owner_id: string
+          owner_party_id: string | null
+          owner_type: string | null
+          primary_entity_id: string | null
+          publication_eligibility: string | null
+          publication_status: string | null
+          published_at: string | null
+          published_by: string | null
+          reporting_period_end: string | null
+          reporting_period_start: string | null
+          retention_policy_id: string | null
+          retention_start_date: string | null
+          retention_until: string | null
+          sector_id: string | null
+          source_module: string | null
+          source_record_id: string | null
+          source_record_type: string | null
+          source_reference: string | null
+          status: string
+          submission_id: string | null
+          tags: string[]
+          updated_at: string
+          updated_by: string | null
+          verification_status: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "document_groups"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      dms_can_view_document: { Args: { _group_id: string }; Returns: boolean }
+      dms_classify: {
+        Args: {
+          _category_code?: string
+          _confidentiality?: string
+          _group_id: string
+          _publication_eligibility?: string
+          _retention_policy_code?: string
+          _type_code?: string
+        }
+        Returns: string
+      }
+      dms_get_document: { Args: { _group_id: string }; Returns: Json }
+      dms_has: { Args: { _action: string }; Returns: boolean }
+      dms_link_record: {
+        Args: {
+          _group_id: string
+          _relationship_type?: string
+          _target_id: string
+          _target_reference?: string
+          _target_type: string
+        }
+        Returns: string
+      }
+      dms_list_entity_documents: {
+        Args: {
+          _category_code?: string
+          _document_status?: string
+          _entity_id: string
+          _include_archived?: boolean
+          _limit?: number
+          _offset?: number
+          _search?: string
+        }
+        Returns: Record<string, unknown>[]
+      }
+      dms_log: {
+        Args: {
+          _action: string
+          _details: Json
+          _group_id: string
+          _version_id: string
+        }
+        Returns: undefined
+      }
       dms_next_document_reference: { Args: never; Returns: string }
+      dms_restore: {
+        Args: { _group_id: string; _reason?: string }
+        Returns: string
+      }
+      dms_search_documents: {
+        Args: {
+          _category_code?: string
+          _document_status?: string
+          _entity_id?: string
+          _include_archived?: boolean
+          _limit?: number
+          _offset?: number
+          _search?: string
+        }
+        Returns: {
+          acceptance_status: string
+          bucket: string
+          category_code: string
+          category_name: string
+          confidentiality_classification: string
+          current_version: number
+          display_name: string
+          document_reference: string
+          document_status: string
+          document_type: string
+          file_name: string
+          file_size: number
+          id: string
+          mime_type: string
+          primary_entity_id: string
+          publication_eligibility: string
+          publication_status: string
+          source_module: string
+          source_record_id: string
+          source_record_type: string
+          storage_path: string
+          total_count: number
+          type_code: string
+          updated_at: string
+          verification_status: string
+        }[]
+      }
+      dms_soft_delete: {
+        Args: { _group_id: string; _reason?: string }
+        Returns: string
+      }
+      dms_update_metadata: {
+        Args: {
+          _display_name?: string
+          _document_date?: string
+          _effective_from?: string
+          _effective_until?: string
+          _expiry_date?: string
+          _group_id: string
+          _metadata?: Json
+          _reporting_period_end?: string
+          _reporting_period_start?: string
+          _tags?: string[]
+        }
+        Returns: string
+      }
+      dms_verify: {
+        Args: { _decision: string; _group_id: string; _note?: string }
+        Returns: string
+      }
+      dms_version_scan_clean: {
+        Args: { _version_id: string }
+        Returns: boolean
+      }
       do_tap:
         | { Args: never; Returns: string[] }
         | { Args: { "": string }; Returns: string[] }
