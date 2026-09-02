@@ -119,7 +119,15 @@ export async function uploadVersionedDocument(args: {
   submissionId?: string;
   /** If supplied, force a new version on this group instead of find-or-create. */
   groupId?: string;
+  /**
+   * Optional canonical DMS context. When supplied, the registered document is
+   * classified and linked to its owning entity / source record through the
+   * governed `dms_apply_document_context` RPC. Failures here never fail the
+   * upload — the physical document is already safely registered.
+   */
+  dmsContext?: DmsContextInput;
 }): Promise<{ success: true; data: DocGroupRef } | { success: false; error: string }> {
+
   const validation = validateFile(args.file);
   if (!validation.valid) {
     return { success: false, error: validation.error || 'Invalid file' };
