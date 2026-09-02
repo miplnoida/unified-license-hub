@@ -966,7 +966,7 @@ BEGIN
   r := public.supervisory_assessment_create(
         (SELECT v FROM e3 WHERE k='entity_a'), 'AML_CFT', 'FOLLOW_UP',
         current_date - 180, current_date, (SELECT v FROM e3 WHERE k='aml_meth'),
-        'REMEDIATION_COMPLETED', NULL,
+        'REASSESSMENT', NULL,
         'Follow-up AML/CFT assessment after validated remediation of transaction monitoring.',
         NULL, (SELECT v FROM e3 WHERE k='a1'));
   aid := (r->>'id')::uuid;
