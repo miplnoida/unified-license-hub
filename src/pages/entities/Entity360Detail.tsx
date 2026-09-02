@@ -34,6 +34,7 @@ import { OnboardingActivityPanel } from '@/components/entity/OnboardingActivityP
 import { ScreenHelpLink } from '@/components/help/ScreenHelpLink';
 import { Entity360SectionView } from '@/components/entity-detail/Entity360SectionView';
 import { Entity360TimelinePanel } from '@/components/entity-detail/Entity360TimelinePanel';
+import { EntityAmlPanel } from '@/components/entity-detail/EntityAmlPanel';
 import { E360_GROUPS, E360_SECTIONS } from '@/components/entity-detail/sectionCatalogue';
 import { EntityReportingCurrencyPanel } from '@/components/entity-detail/EntityReportingCurrencyPanel';
 import { OwnershipTreePanel } from '@/components/entity-detail/OwnershipTreePanel';
@@ -238,6 +239,10 @@ export default function Entity360Detail() {
                   entityName={entity.name ?? null}
                   asOf={asOf}
                 />
+              )}
+              {/* EPIC 3 / Gate 10: canonical AML risk-of-record panel. */}
+              {activeSection.key === 'aml' && (
+                <EntityAmlPanel entityId={entity.id} />
               )}
               <Entity360SectionView
                 entityId={entity.id}

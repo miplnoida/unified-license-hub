@@ -213,7 +213,7 @@ export default function AmlFindings() {
         </Card>
 
         <p className="text-xs text-muted-foreground">
-          <Badge variant="outline" className={NEUTRAL}>Domain: AML/CFT</Badge> Findings and remediation are
+          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${NEUTRAL}`}>Domain: AML/CFT</span> Findings and remediation are
           filtered views of the canonical supervisory finding and remediation models — no AML-private store.
         </p>
       </div>

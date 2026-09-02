@@ -159,7 +159,7 @@ export default function AmlAssessments() {
 
         <p className="text-xs text-muted-foreground">
           Assessments are created, submitted, reviewed and approved through the governed supervisory
-          operations; this register is read-only. <Badge variant="outline" className={NEUTRAL}>Domain: AML/CFT</Badge>
+          operations; this register is read-only. <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${NEUTRAL}`}>Domain: AML/CFT</span>
         </p>
       </div>
     </DashboardLayout>

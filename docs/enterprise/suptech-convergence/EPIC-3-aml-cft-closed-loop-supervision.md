@@ -134,39 +134,84 @@ full cross-domain escalation convergence remains Epic 4.
 `aml_entity_panel()` — all SECURITY INVOKER over canonical records; no alternate
 AML risk state.
 
-## L. Regression evidence so far
+## L. AML/CFT workspace UI (Gates 1-2, 10)
+
+Seven canonical AML screens, all served exclusively by the read models above and
+all read-only with respect to risk state:
+
+| Screen | Route |
+| --- | --- |
+| AML Overview | `/supervision/aml` |
+| AML Work Queue | `/supervision/aml/work-queue` |
+| AML Supervised Entities | `/supervision/aml/entities` |
+| AML Risk Assessments | `/supervision/aml/assessments` |
+| AML Risk Heatmap | `/supervision/aml/heatmap` |
+| AML Examinations | `/supervision/aml/examinations` |
+| AML Findings & Remediation | `/supervision/aml/findings` |
+
+Entity 360 now carries a canonical AML panel
+(`src/components/entity-detail/EntityAmlPanel.tsx`) rendered on the `aml`
+section, served solely by `aml_entity_panel()`: residual / inherent / control
+ratings, prior rating, approved trend, review dates, last approved assessment,
+high-risk dimensions, active examination, open and critical findings, overdue
+remediation, reassessment requirement, active enforcement and the derived next
+supervisory action — every value read from canonical state, none recomputed in
+the browser, each block drilling through to the canonical record. The legacy
+`entity360_section` AML block is retained beneath it as a read-only historical
+view (residual, see §N).
+
+Preview smoke evidence (authenticated internal persona, Vite preview): all seven
+routes render with no access denial, no blank state and no page errors; the
+Entity 360 AML panel renders and resolves its canonical empty state on an entity
+with no AML record. Two invalid DOM-nesting warnings raised on the assessments
+and findings registers were fixed.
+
+## M. Regression evidence
 
 | Suite | Result |
 | --- | --- |
-| `scripts/verify-epic-2-supervisory-spine.sql` | **17/17 PASS** (re-run after all Epic 3 migrations) |
-| Anon SECURITY DEFINER boundary | back to the pre-existing 10 (no new anon exposure) |
+| `scripts/verify-epic-3-aml-closed-loop.sql` | **ALL GATES A-Z PASS** |
+| `scripts/verify-epic-2-supervisory-spine.sql` | **ALL DB GATES PASS** (re-run after every Epic 3 migration) |
+| `scripts/verify-f0c-certification.sql` | **34 TESTED_PASS / 0 TESTED_FAIL** |
+| `scripts/verify-dms-phase4-closure.sql` | **15/15 PASS** |
+| Anon SECURITY DEFINER boundary | 7 allowlisted routines only; no new anon exposure |
+| Typecheck / build | clean |
 
-One EPIC3_REGRESSION was found and fixed during the wave: the new canonical
-rating scale initially rejected the Epic 2 prudential/control vocabulary. The
-scale is now enforced for AML/CFT only, and control-effectiveness values were
-added. No Epic 3 regression remains open.
+Two EPIC3_REGRESSIONs were found and fixed inside the wave:
 
-## M. Outstanding Epic 3 work (before a PASS verdict)
+1. the new canonical rating scale initially rejected the Epic 2
+   prudential/control vocabulary — the scale is now enforced for AML/CFT only and
+   control-effectiveness values were added;
+2. the four AML notification trigger functions (`aml_assessment_notify`,
+   `aml_finding_notify`, `aml_reassessment_notify`, `aml_remediation_notify`)
+   were executable by `authenticated`, breaking F0-C gate D-06 — `EXECUTE` is now
+   revoked from `PUBLIC`/`anon`/`authenticated` and granted to `service_role`
+   only. D-06 passes again.
 
-1. `scripts/verify-epic-3-aml-closed-loop.sql` — gates A–Z with real
-   certification personas and transaction-scoped fixtures for 10 AML entities
-   plus one CROSS_DOMAIN joint examination.
-2. AML/CFT UI workspace (Overview, Work Queue, Supervised Entities, Assessments,
-   Risk Heatmap, Examinations, Findings & Remediation) over the read models, and
-   the Entity 360 AML panel.
-3. Remaining notification triggers beyond reassessment-required.
-4. Full regression sweep (prudential, examinations, conduct, enforcement,
-   Entity 360, notifications, DMS/evidence, RLS/RBAC, typecheck, build).
+No Epic 3 regression remains open.
 
-## N. Epic 4 items (unchanged)
+## N. Documented residuals (non-blocking)
+
+1. `entity360_section` still reads the legacy `aml_assessments` /
+   `aml_findings` tables for its historical AML block; the canonical panel is the
+   authoritative surface above it. Legacy read removal is Epic 4 clean-up.
+2. No persistent AML demonstration population: all certification fixtures are
+   transaction-scoped and rolled back, so the workspace and Entity 360 panel show
+   canonical empty states until demo seeding is requested.
+
+## O. Epic 4 items (unchanged)
 
 Cross-domain escalation convergence, `conduct_investigations` decision, global
 supervisory dashboard redesign, whole-platform 20+ entity certification, final
 legacy deletion.
 
-## O. Verdict
+## P. Verdict
 
-**NOT CERTIFIED.** The AML/CFT backend spine, canonical finding and remediation
-contracts, and the closed reassessment loop are implemented with Epic 2 intact at
-17/17, but the Epic 3 end-to-end certification and the AML workspace UI are still
-outstanding.
+**EPIC 3 — CERTIFIED.** The AML/CFT methodology and its change control, the
+governed assessment envelope with separated calculated and judged ratings,
+attention → priority → plan → intervention → examination convergence, the
+canonical finding → response → remediation → validation loop, governed
+enforcement referral, the closed reassessment loop with audited risk movement,
+the RBAC/anon/maker-checker/entity-scope boundary, the AML workspace UI and the
+Entity 360 canonical AML panel all pass certification, with Epic 2, F0-C and DMS
+regressions green.
