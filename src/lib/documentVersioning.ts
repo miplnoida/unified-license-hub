@@ -237,9 +237,10 @@ export async function uploadVersionedDocument(args: {
       sourceRecordId: args.dmsContext.sourceRecordId ?? args.entityId ?? null,
       ...args.dmsContext,
     });
-    if (!ctx.success) {
+    if ('error' in ctx) {
       console.warn('[dms] context application failed', groupId, ctx.error);
     }
+
   }
 
   return {
