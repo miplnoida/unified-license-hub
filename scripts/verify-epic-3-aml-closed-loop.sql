@@ -529,10 +529,7 @@ SET LOCAL "request.jwt.claims" = :'EXAMINER';
 DO $$
 DECLARE ex uuid := (SELECT v FROM e3 WHERE k='ex'); dr uuid; wp uuid;
 BEGIN
-  -- canonical examination controller: scoping memo + lead examiner before fieldwork
   PERFORM public.examination_transition_stage(ex, 'scoping', 'Scoping the targeted AML examination.');
-  PERFORM public.examination_team_member_add(ex, 'd1016d5f-cde5-46dd-a552-0f2f87abc193',
-    'lead_examiner', 10, 'AML/CFT transaction monitoring', false);
   INSERT INTO public.examination_scoping(examination_id, objectives, risk_focus_areas, legal_basis,
       methodology, budget_days, prepared_by, prepared_at, assessment_dimension_id)
   VALUES (ex, 'Assess transaction monitoring tuning and STR/SAR governance.',
@@ -545,7 +542,9 @@ END $$;
 SET LOCAL "request.jwt.claims" = :'REVIEWER';
 DO $$
 BEGIN
-  -- the scoping memo is approved by someone other than its preparer
+  -- team administration and scoping approval are reserved to the examination supervisor
+  PERFORM public.examination_team_member_add((SELECT v FROM e3 WHERE k='ex'),
+    'd1016d5f-cde5-46dd-a552-0f2f87abc193', 'lead_examiner', 10, 'AML/CFT transaction monitoring', false);
   UPDATE public.examination_scoping
      SET approved_by = auth.uid(), approved_at = now(),
          approval_notes = 'Scope agrees with the HIGH residual dimensions of the approved assessment.'
