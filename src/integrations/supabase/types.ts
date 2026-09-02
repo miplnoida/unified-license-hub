@@ -50931,16 +50931,25 @@ export type Database = {
         Returns: {
           active_examinations: number
           assessment_current: boolean
+          assigned_officer_id: string
+          assigned_officer_name: string
+          assigned_team_id: string
           control_rating: string
           critical_findings: number
           entity_id: string
           entity_name: string
           high_risk_dimensions: string[]
           inherent_rating: string
+          last_assessment_id: string
+          last_assessment_reference: string
+          last_assessment_status: string
           last_review_date: string
+          licence_reference: string
+          methodology_version: string
           next_review_date: string
           open_findings: number
           overdue_remediation: number
+          prior_rating: string
           reassessment_required: boolean
           residual_rating: string
           sector_name: string
