@@ -226,16 +226,31 @@ export async function uploadVersionedDocument(args: {
   }
 
   const row = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+  const groupId = (row as any).document_upload_id as string;
+
+  if (args.dmsContext) {
+    const ctx = await applyDocumentContext(groupId, {
+      sourceModule: args.dmsContext.sourceModule ?? args.entityType,
+      sourceRecordType: args.dmsContext.sourceRecordType ?? args.entityType,
+      sourceRecordId: args.dmsContext.sourceRecordId ?? args.entityId ?? null,
+      ...args.dmsContext,
+    });
+    if (!ctx.success) {
+      console.warn('[dms] context application failed', groupId, ctx.error);
+    }
+  }
+
   return {
     success: true,
     data: {
-      groupId: (row as any).document_upload_id,
+      groupId,
       versionId: (row as any).document_version_id,
       version: (row as any).version_number,
       fileUploadId: (row as any).document_version_id, // back-compat: callers only need a stable id
     },
   };
 }
+
 
 
 // Back-compat shims (older callers and tests)
