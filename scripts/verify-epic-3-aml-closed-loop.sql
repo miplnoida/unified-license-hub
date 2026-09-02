@@ -529,7 +529,36 @@ SET LOCAL "request.jwt.claims" = :'EXAMINER';
 DO $$
 DECLARE ex uuid := (SELECT v FROM e3 WHERE k='ex'); dr uuid; wp uuid;
 BEGIN
-  PERFORM public.examination_transition_stage(ex, 'FIELDWORK', 'Fieldwork commenced for the targeted AML examination.');
+  -- canonical examination controller: scoping memo + lead examiner before fieldwork
+  PERFORM public.examination_transition_stage(ex, 'scoping', 'Scoping the targeted AML examination.');
+  PERFORM public.examination_team_member_add(ex, 'd1016d5f-cde5-46dd-a552-0f2f87abc193',
+    'lead_examiner', 10, 'AML/CFT transaction monitoring', false);
+  INSERT INTO public.examination_scoping(examination_id, objectives, risk_focus_areas, legal_basis,
+      methodology, budget_days, prepared_by, prepared_at, assessment_dimension_id)
+  VALUES (ex, 'Assess transaction monitoring tuning and STR/SAR governance.',
+      ARRAY['TRANSACTION_MONITORING','STR_SAR_GOVERNANCE'],
+      'AML/CFT Regulations — supervisory examination powers',
+      'Risk-based sample testing derived from the approved AML/CFT assessment.', 10,
+      auth.uid(), now(), (SELECT v FROM e3 WHERE k='dim_tm'));
+END $$;
+
+SET LOCAL "request.jwt.claims" = :'REVIEWER';
+DO $$
+BEGIN
+  -- the scoping memo is approved by someone other than its preparer
+  UPDATE public.examination_scoping
+     SET approved_by = auth.uid(), approved_at = now(),
+         approval_notes = 'Scope agrees with the HIGH residual dimensions of the approved assessment.'
+   WHERE examination_id = (SELECT v FROM e3 WHERE k='ex');
+END $$;
+
+SET LOCAL "request.jwt.claims" = :'EXAMINER';
+DO $$
+DECLARE ex uuid := (SELECT v FROM e3 WHERE k='ex'); dr uuid; wp uuid;
+BEGIN
+  PERFORM public.examination_transition_stage(ex, 'pre_exam_request', 'Pre-examination information request issued.');
+  PERFORM public.examination_transition_stage(ex, 'fieldwork', 'Fieldwork commenced for the targeted AML examination.');
+
 
   INSERT INTO public.examination_data_requests(examination_id, item_no, title, description, due_date, status, requested_by)
   VALUES (ex, 1, 'Transaction monitoring tuning evidence',
