@@ -62,6 +62,15 @@ const BreachInbox = lazy(() => import('@/pages/supervision/BreachInbox'));
 const SupervisoryPlansDashboard = lazy(() => import('@/pages/supervision/SupervisoryPlansDashboard'));
 const SupervisoryTeamPerformance = lazy(() => import('@/pages/supervision/TeamPerformance'));
 const RiskHeatmap = lazy(() => import('@/pages/supervision/RiskHeatmap'));
+// Epic 3 — AML/CFT supervision workspace (canonical spine, AML_CFT domain).
+const AmlOverview = lazy(() => import('@/pages/supervision/aml/AmlOverview'));
+const AmlWorkQueue = lazy(() => import('@/pages/supervision/aml/AmlWorkQueue'));
+const AmlSupervisedEntities = lazy(() => import('@/pages/supervision/aml/AmlSupervisedEntities'));
+const AmlAssessments = lazy(() => import('@/pages/supervision/aml/AmlAssessments'));
+const AmlAssessmentWorkspace = lazy(() => import('@/pages/supervision/aml/AmlAssessmentWorkspace'));
+const AmlRiskHeatmap = lazy(() => import('@/pages/supervision/aml/AmlRiskHeatmap'));
+const AmlExaminations = lazy(() => import('@/pages/supervision/aml/AmlExaminations'));
+const AmlFindings = lazy(() => import('@/pages/supervision/aml/AmlFindings'));
 const ExecutiveDashboard = lazy(() => import('@/pages/analytics/ExecutiveDashboard'));
 const AlertCenter = lazy(() => import('@/pages/analytics/AlertCenter'));
 const ComplaintBulkIntake = lazy(() => import('@/pages/complaints/BulkIntake'));
@@ -365,6 +374,16 @@ export const dashboardRoutes = (
     <Route path="/conduct/investigations/:id" element={<M module="market_conduct"><InvestigationDetail /></M>} />
 
     <Route path="/complaints/internal/new" element={<M module="complaint_management"><NewInternalComplaint /></M>} />
+
+    {/* Epic 3 — AML/CFT supervision workspace */}
+    <Route path="/supervision/aml" element={<M module="aml_supervision"><AmlOverview /></M>} />
+    <Route path="/supervision/aml/work-queue" element={<M module="aml_supervision"><AmlWorkQueue /></M>} />
+    <Route path="/supervision/aml/entities" element={<M module="aml_supervision"><AmlSupervisedEntities /></M>} />
+    <Route path="/supervision/aml/assessments" element={<M module="aml_supervision"><AmlAssessments /></M>} />
+    <Route path="/supervision/aml/assessments/:id" element={<M module="aml_supervision"><AmlAssessmentWorkspace /></M>} />
+    <Route path="/supervision/aml/heatmap" element={<M module="aml_supervision"><AmlRiskHeatmap /></M>} />
+    <Route path="/supervision/aml/examinations" element={<M module="aml_supervision"><AmlExaminations /></M>} />
+    <Route path="/supervision/aml/findings" element={<M module="aml_supervision"><AmlFindings /></M>} />
 
     <Route path="/prudential" element={<Navigate to="/prudential/dashboard" replace />} />
     <Route path="/prudential/dashboard" element={<M module="prudential_supervision"><PrudentialDashboard /></M>} />

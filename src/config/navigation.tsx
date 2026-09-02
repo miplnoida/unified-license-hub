@@ -355,6 +355,23 @@ export const mainNavSections: NavSection[] = [
   },
 
   {
+    // Epic 3 — AML/CFT supervision workspace. Every surface reads the canonical
+    // supervisory spine filtered to the AML_CFT domain; no AML-private stores.
+    label: 'AML/CFT Supervision',
+    items: [
+      { label: 'AML/CFT Overview', href: '/supervision/aml', icon: <LayoutDashboard className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
+      { label: 'AML/CFT Work Queue', href: '/supervision/aml/work-queue', icon: <ClipboardList className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
+      { label: 'Supervised Entities', href: '/supervision/aml/entities', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
+      { label: 'Risk Assessments', href: '/supervision/aml/assessments', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
+      { label: 'Risk Heatmap', href: '/supervision/aml/heatmap', icon: <FileBarChart className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
+      { label: 'Examinations', href: '/supervision/aml/examinations', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
+      { label: 'Findings & Remediation', href: '/supervision/aml/findings', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
+    ],
+  },
+
+
+
+  {
     label: 'Workflows',
     items: [
       { label: 'Approval Workflows', href: '/workflows', icon: <GitBranch className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'workflow_management' },

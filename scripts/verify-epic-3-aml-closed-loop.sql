@@ -809,32 +809,125 @@ BEGIN
   RAISE NOTICE 'PASS X: overdue remediation raises governed attention with FK linkage and never auto-enforces';
 END $$;
 
--- enforcement, when a human decides it, preserves finding/remediation provenance
+-- enforcement, when a human with enforcement authority decides it, is created only
+-- through the governed referral operation and preserves canonical provenance
 SET LOCAL ROLE authenticated;
-SET LOCAL "request.jwt.claims" = :'ENFSUPER';
-RESET ROLE;
+
+-- negative: AML supervision authority alone cannot open an enforcement case
+SET LOCAL "request.jwt.claims" = :'SUPERVISOR';
 DO $$
-DECLARE eid uuid;
+DECLARE ok boolean := false;
 BEGIN
-  INSERT INTO public.enforcement_actions(entity_id, action_type, status, severity,
-      supervisory_finding_id, remediation_action_id, supervisory_assessment_id,
-      remediation_bypass_reason, description)
-  VALUES ((SELECT v FROM e3 WHERE k='entity_a'), 'directive', 'open', 'high',
-      (SELECT v FROM e3 WHERE k='f2'), (SELECT v FROM e3 WHERE k='ra2'), (SELECT v FROM e3 WHERE k='a1'),
-      'Remediation stage bypassed: critical beneficial ownership gap with no credible plan.',
-      'Epic 3 certification: enforcement provenance fixture.')
-  RETURNING id INTO eid;
+  BEGIN
+    PERFORM public.enforcement_referral_create(jsonb_build_object(
+      'source_kind','SUPERVISORY_FINDING', 'source_id', (SELECT v FROM e3 WHERE k='f2'),
+      'referral_reason','AML supervisor attempting to open enforcement without enforcement authority.'));
+  EXCEPTION WHEN insufficient_privilege THEN ok := true;
+  END;
+  IF NOT ok THEN
+    RAISE EXCEPTION 'FAIL X2: AML supervision authority was accepted as enforcement referral authority'; END IF;
+  RAISE NOTICE 'PASS X2a: enforcement referral requires real enforcement authority';
+END $$;
+
+-- a critical finding with no corrective action at all, for the bypass rule
+SET LOCAL "request.jwt.claims" = :'OFFICER';
+DO $$
+DECLARE fid uuid;
+BEGIN
+  fid := public.supervisory_finding_create(jsonb_build_object(
+    'entity_id', (SELECT v FROM e3 WHERE k='entity_a'), 'domain_code','AML_CFT', 'severity','CRITICAL',
+    'finding_category','SANCTIONS', 'title','Sanctions screening disabled for cross-border payments',
+    'observation','Sanctions screening was switched off for cross-border payment flows for four months.',
+    'required_action','Restore sanctions screening and retrospectively screen all affected payments.',
+    'examination_id', (SELECT v FROM e3 WHERE k='ex'),
+    'assessment_id', (SELECT v FROM e3 WHERE k='a1'),
+    'due_date', (current_date + 10)::text));
+  INSERT INTO e3(k,v) VALUES ('f3', fid);
+END $$;
+
+SET LOCAL "request.jwt.claims" = :'SUPERVISOR';
+DO $$
+DECLARE fid uuid := (SELECT v FROM e3 WHERE k='f3');
+BEGIN
+  PERFORM public.supervisory_finding_lifecycle(fid, 'REVIEW', 'Reviewed ahead of issue.');
+  PERFORM public.supervisory_finding_lifecycle(fid, 'ISSUED', 'Issued: sanctions screening disabled.');
+END $$;
+
+SET LOCAL "request.jwt.claims" = :'ENFOFFICER';
+DO $$
+DECLARE eid uuid; ok boolean := false;
+BEGIN
+  -- negative: a client-supplied entity cannot override the canonical finding's entity
+  BEGIN
+    PERFORM public.enforcement_referral_create(jsonb_build_object(
+      'source_kind','SUPERVISORY_FINDING', 'source_id', (SELECT v FROM e3 WHERE k='f2'),
+      'entity_id', (SELECT v FROM e3 WHERE k='entity_b'),
+      'referral_reason','Attempting to attach an unrelated regulated entity to this referral.'));
+  EXCEPTION WHEN others THEN ok := true;
+  END;
+  IF NOT ok THEN
+    RAISE EXCEPTION 'FAIL X2: a client-supplied entity overrode the canonical finding entity'; END IF;
+
+  -- route 1: failed corrective action -> governed referral, remediation linked, no bypass
+  eid := public.enforcement_referral_create(jsonb_build_object(
+    'source_kind','SUPERVISORY_FINDING', 'source_id', (SELECT v FROM e3 WHERE k='f2'),
+    'enforcement_type','directive', 'legal_basis','AML/CFT Regulations, requirement to remediate',
+    'referral_reason','Corrective action for the beneficial ownership gap is overdue with no evidence of progress.'));
   INSERT INTO e3(k,v) VALUES ('enf', eid);
 
+  -- route 2: serious finding referred without any corrective action requires a bypass basis
+  ok := false;
+  BEGIN
+    PERFORM public.enforcement_referral_create(jsonb_build_object(
+      'source_kind','SUPERVISORY_FINDING', 'source_id', (SELECT v FROM e3 WHERE k='f3'),
+      'referral_reason','Immediate enforcement without remediation and without a stated basis.'));
+  EXCEPTION WHEN others THEN ok := true;
+  END;
+  IF NOT ok THEN
+    RAISE EXCEPTION 'FAIL X2: a finding was referred with no corrective action and no bypass rationale'; END IF;
+
+  eid := public.enforcement_referral_create(jsonb_build_object(
+    'source_kind','SUPERVISORY_FINDING', 'source_id', (SELECT v FROM e3 WHERE k='f3'),
+    'enforcement_type','directive',
+    'referral_reason','Sanctions screening was disabled; the seriousness warrants immediate enforcement.',
+    'remediation_bypass_reason','Remediation stage bypassed: sanctions screening failure is too serious to remediate first.'));
+  INSERT INTO e3(k,v) VALUES ('enf2', eid);
+END $$;
+
+RESET ROLE;
+DO $$
+DECLARE eid uuid := (SELECT v FROM e3 WHERE k='enf'); e2 uuid := (SELECT v FROM e3 WHERE k='enf2');
+BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.enforcement_actions ea
                   JOIN public.supervisory_finding f ON f.id = ea.supervisory_finding_id
                   JOIN public.supervisory_remediation_action ra ON ra.id = ea.remediation_action_id
                   JOIN public.supervisory_assessment sa ON sa.id = ea.supervisory_assessment_id
                  WHERE ea.id = eid AND f.domain_code = 'AML_CFT'
-                   AND f.examination_id IS NOT NULL AND ea.remediation_bypass_reason IS NOT NULL) THEN
-    RAISE EXCEPTION 'FAIL X: enforcement provenance chain back to assessment/examination is broken'; END IF;
-  RAISE NOTICE 'PASS X2: human enforcement decision preserves finding -> remediation -> assessment -> examination provenance and the bypass reason';
+                   AND f.id = (SELECT v FROM e3 WHERE k='f2')
+                   AND ra.id = (SELECT v FROM e3 WHERE k='ra2')
+                   AND sa.id = (SELECT v FROM e3 WHERE k='a1')
+                   AND f.examination_id = (SELECT v FROM e3 WHERE k='ex')
+                   AND ea.entity_id = (SELECT v FROM e3 WHERE k='entity_a')
+                   AND ea.source_kind = 'SUPERVISORY_FINDING'
+                   AND ea.source_id = f.id
+                   AND ea.remediation_bypass_reason IS NULL
+                   AND ea.stage = 'REFERRAL') THEN
+    RAISE EXCEPTION 'FAIL X2: enforcement provenance chain back to remediation/assessment/examination is broken'; END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM public.enforcement_actions ea
+                 WHERE ea.id = e2 AND ea.supervisory_finding_id = (SELECT v FROM e3 WHERE k='f3')
+                   AND ea.remediation_action_id IS NULL
+                   AND ea.remediation_bypass_reason IS NOT NULL) THEN
+    RAISE EXCEPTION 'FAIL X2: the bypassed-remediation enforcement route did not record its basis'; END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM public.enforcement_case_events
+                  WHERE case_id = eid AND event_type = 'REFERRAL_RECEIVED'
+                    AND (detail->>'supervisory_finding_id')::uuid = (SELECT v FROM e3 WHERE k='f2')) THEN
+    RAISE EXCEPTION 'FAIL X2: the governed referral was not recorded in the enforcement case history'; END IF;
+
+  RAISE NOTICE 'PASS X2: governed enforcement referral preserves finding -> remediation -> assessment -> examination provenance, derives the entity canonically and governs the remediation bypass';
 END $$;
+
 
 -- =====================================================================
 -- GATE Y — reassessment requirement -> follow-up assessment -> approval
@@ -873,7 +966,7 @@ BEGIN
   r := public.supervisory_assessment_create(
         (SELECT v FROM e3 WHERE k='entity_a'), 'AML_CFT', 'FOLLOW_UP',
         current_date - 180, current_date, (SELECT v FROM e3 WHERE k='aml_meth'),
-        'REMEDIATION_COMPLETED', NULL,
+        'REASSESSMENT', NULL,
         'Follow-up AML/CFT assessment after validated remediation of transaction monitoring.',
         NULL, (SELECT v FROM e3 WHERE k='a1'));
   aid := (r->>'id')::uuid;
@@ -912,7 +1005,8 @@ BEGIN
     RAISE EXCEPTION 'FAIL Y: AML risk of record did not move to MODERATE'; END IF;
 
   SELECT * INTO mv FROM public.entity_risk_state_movement
-   WHERE entity_id = ea AND domain_code='AML_CFT' ORDER BY approved_at DESC LIMIT 1;
+   WHERE entity_id = ea AND domain_code='AML_CFT'
+     AND new_assessment_id = (SELECT v FROM e3 WHERE k='a2') LIMIT 1;
   IF mv.id IS NULL THEN RAISE EXCEPTION 'FAIL Y: no risk movement recorded'; END IF;
   IF upper(COALESCE(mv.previous_rating,'')) <> 'HIGH' OR upper(mv.new_rating) <> 'MODERATE' THEN
     RAISE EXCEPTION 'FAIL Y: movement does not record HIGH -> MODERATE (got % -> %)',
@@ -1010,8 +1104,8 @@ SET LOCAL "request.jwt.claims" = :'SUPERVISOR';
 DO $$
 DECLARE ok boolean := false;
 BEGIN
-  PERFORM public.supervisory_finding_lifecycle((SELECT v FROM e3 WHERE k='f2'), 'REMEDIATION_REQUIRED',
-    'Corrective action required for the critical beneficial ownership gap.');
+  -- f2 already sits in REMEDIATION_REQUIRED with an unresolved corrective action
+
   BEGIN
     PERFORM public.supervisory_finding_lifecycle((SELECT v FROM e3 WHERE k='f2'), 'CLOSED',
       'Attempting closure without a governed validation.');
