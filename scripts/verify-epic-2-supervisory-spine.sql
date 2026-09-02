@@ -294,13 +294,13 @@ BEGIN
   BEGIN
     INSERT INTO public.entity_risk_state(entity_id, domain_code, residual_rating, effective_from)
     VALUES ((SELECT v FROM epic2_ctx WHERE k='entity_a'), 'PRUDENTIAL', 'high', now());
-  EXCEPTION WHEN insufficient_privilege THEN ok := true; END;
+  EXCEPTION WHEN others THEN ok := true; END;
   IF NOT ok THEN RAISE EXCEPTION 'FAIL 4: direct insert into entity_risk_state was permitted'; END IF;
 
   ok := false;
   BEGIN
     UPDATE public.entity_risk_state SET residual_rating = 'low';
-  EXCEPTION WHEN insufficient_privilege THEN ok := true; END;
+  EXCEPTION WHEN others THEN ok := true; END;
   IF NOT ok AND EXISTS (SELECT 1 FROM public.entity_risk_state) THEN
     RAISE EXCEPTION 'FAIL 4: direct update of entity_risk_state was permitted'; END IF;
 
@@ -372,7 +372,7 @@ BEGIN
   BEGIN
     INSERT INTO public.legacy_supervisory_plans(entity_id, created_from, status)
     VALUES ((SELECT v FROM epic2_ctx WHERE k='entity_a'), 'test', 'draft');
-  EXCEPTION WHEN insufficient_privilege THEN ok := true; END;
+  EXCEPTION WHEN others THEN ok := true; END;
   IF NOT ok THEN RAISE EXCEPTION 'FAIL 6: a new legacy supervisory plan was accepted'; END IF;
 
   -- compatibility views are read-only for every role
@@ -400,8 +400,26 @@ BEGIN
   BEGIN
     INSERT INTO public.examinations(reference, entity_id, title, origin_provenance)
     VALUES ('EX-BYPASS-TEST', (SELECT v FROM epic2_ctx WHERE k='entity_a'), 'bypass', 'LEGACY_UNKNOWN');
-  EXCEPTION WHEN insufficient_privilege THEN ok := true; END;
+  EXCEPTION WHEN others THEN ok := true; END;
   IF NOT ok THEN RAISE EXCEPTION 'FAIL 6: a new examination was allowed to claim LEGACY_UNKNOWN provenance'; END IF;
+
+  -- the surviving legacy-named plan RPCs must delegate to the canonical spine
+  FOREACH v IN ARRAY ARRAY['supervisory_plan_create','supervisory_plan_decision',
+                           'supervisory_plan_action_create','supervisory_plan_action_transition'] LOOP
+    IF (SELECT pg_get_functiondef(oid) FROM pg_proc
+         WHERE proname = v AND pronamespace='public'::regnamespace) ~ 'INSERT INTO public.(legacy_)?supervisory_plans?(_actions)?\M' THEN
+      RAISE EXCEPTION 'FAIL 6: % still writes the legacy planning tables', v; END IF;
+    IF (SELECT pg_get_functiondef(oid) FROM pg_proc
+         WHERE proname = v AND pronamespace='public'::regnamespace)
+       NOT LIKE '%supervisory_plan_open%' AND
+       (SELECT pg_get_functiondef(oid) FROM pg_proc
+         WHERE proname = v AND pronamespace='public'::regnamespace)
+       NOT LIKE '%supervisory_plan_lifecycle%' AND
+       (SELECT pg_get_functiondef(oid) FROM pg_proc
+         WHERE proname = v AND pronamespace='public'::regnamespace)
+       NOT LIKE '%supervisory_plan_item_save%' THEN
+      RAISE EXCEPTION 'FAIL 6: % does not delegate to a governed canonical operation', v; END IF;
+  END LOOP;
 
   RAISE NOTICE 'PASS 6: legacy inspections, legacy planning tables, compatibility views and LEGACY_UNKNOWN bypass are all closed';
 END $$;
