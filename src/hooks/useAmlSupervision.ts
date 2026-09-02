@@ -46,14 +46,11 @@ export type AmlWorkQueueRow = {
   kind: string;
   id: string;
   entity_id: string | null;
-  entity_name: string | null;
   title: string | null;
   status: string | null;
   severity: string | null;
-  due_date: string | null;
-  owner_id: string | null;
-  reference: string | null;
-  [key: string]: unknown;
+  due_at: string | null;
+  href: string | null;
 };
 
 export function useAmlOverview() {
