@@ -162,7 +162,7 @@ export function useAmlAssessment(assessmentId?: string) {
             .order('created_at', { ascending: false }),
           sb
             .from('examinations')
-            .select('id, reference, title, stage, status, planned_start, planned_end')
+            .select('id, reference, title, stage, examination_type, fieldwork_start, fieldwork_end')
             .eq('domain_code', 'AML_CFT')
             .eq('entity_id', header.entity_id)
             .order('created_at', { ascending: false })
@@ -195,7 +195,7 @@ export function useAmlAssessment(assessmentId?: string) {
       }
 
       const { data: history } = await sb
-        .from('supervisory_assessment_transition_log')
+        .from('supervisory_assessment_event')
         .select('*')
         .eq('assessment_id', assessmentId)
         .order('created_at', { ascending: true });
@@ -221,11 +221,12 @@ export function useAmlExaminations() {
       const { data, error } = await sb
         .from('examinations')
         .select(
-          'id, reference, title, entity_id, engagement_type, stage, status, planned_start, planned_end, ' +
-            'lead_examiner_id, opened_at, closed_at, intervention_id',
+          'id, reference, title, entity_id, engagement_type, examination_type, stage, risk_rating, ' +
+            'fieldwork_start, fieldwork_end, lead_examiner_id, closed_at, intervention_id, ' +
+            'reassessment_required, created_at',
         )
         .eq('domain_code', 'AML_CFT')
-        .order('opened_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
         .limit(300);
       if (error) throw error;
       const names = await nameMap((data ?? []).map((r: any) => r.entity_id));
