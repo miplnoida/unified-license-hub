@@ -82,7 +82,7 @@ BEGIN
          origin_provenance)
   VALUES (_ref, _entity, _domain, 'PERIODIC', _meth,
          (SELECT version FROM public.supervisory_methodology WHERE id = _meth),
-         current_date - 180, current_date - 30, 'SCHEDULED',
+         current_date - 180, current_date - 30, 'PERIODIC',
          '0b522724-adcb-48bf-b21d-175339479616', 'approved', _res, _inh, _ctl,
          'Certification fixture assessment for ' || _domain,
          current_date - 20, current_date + 160, true,
@@ -153,7 +153,7 @@ BEGIN
   INSERT INTO public.supervisory_remediation_action(reference, finding_id, entity_id, domain_code,
          description, required_outcome, owner_id, target_date, status)
   VALUES ('CERT-W3-E-R1', fid, e, 'PRUDENTIAL', 'Fixture remediation', 'Outcome',
-          '0b522724-adcb-48bf-b21d-175339479616', current_date - 5, 'IN_PROGRESS');
+          '0b522724-adcb-48bf-b21d-175339479616', current_date - 5, 'IMPLEMENTING');
   -- F: enforcement in train, linked to a canonical finding
   aid := pg_temp.w3_assess(f,'PRUDENTIAL',mp,'HIGH','HIGH','WEAK','CERT-W3-F-PRU');
   INSERT INTO public.supervisory_finding(reference, entity_id, domain_code, finding_category,
@@ -169,12 +169,12 @@ BEGIN
          status, description, supervisory_finding_id, opened_by, stage, severity, source_kind)
   VALUES (f, 'CERT-W3-F-E1', 'directive', current_date - 3, 'open',
           'Fixture enforcement', fid, '0b522724-adcb-48bf-b21d-175339479616',
-          'NOTICE', 'HIGH', 'SUPERVISORY_FINDING');
+          'NOTICE', 'high', 'SUPERVISORY_FINDING');
   -- G: reassessment required
   aid := pg_temp.w3_assess(g,'AML_CFT',ma,'MEDIUM','MEDIUM','MEDIUM','CERT-W3-G-AML');
   INSERT INTO public.supervisory_reassessment_requirement(entity_id, domain_code, trigger_kind,
          trigger_rationale, requested_type, previous_assessment_id, due_date, owner_id, status)
-  VALUES (g, 'AML_CFT', 'FINDING_SEVERITY', 'Fixture reassessment trigger', 'TARGETED',
+  VALUES (g, 'AML_CFT', 'MATERIAL_FINDING', 'Fixture reassessment trigger after material finding', 'TARGETED',
           aid, current_date + 30, '0b522724-adcb-48bf-b21d-175339479616', 'REQUIRED');
   -- H: approved assessment, nothing open
   PERFORM pg_temp.w3_assess(h,'PRUDENTIAL',mp,'LOW','LOW','STRONG','CERT-W3-H-PRU');
