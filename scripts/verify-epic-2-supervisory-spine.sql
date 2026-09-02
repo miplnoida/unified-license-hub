@@ -64,9 +64,9 @@ INSERT INTO epic2_ctx(k, v) VALUES
                           WHERE entity_id = '5855bf85-9fde-4cf8-a082-7ea904d46184'
                           ORDER BY created_at LIMIT 1)),
   ('camels_methodology', (SELECT id FROM public.supervisory_methodology
-                           WHERE domain_code = 'PRUDENTIAL' AND is_current LIMIT 1)),
+                           WHERE domain_code = 'PRUDENTIAL' AND status = 'ACTIVE' LIMIT 1)),
   ('aml_methodology',    (SELECT id FROM public.supervisory_methodology
-                           WHERE domain_code = 'AML_CFT' AND is_current LIMIT 1));
+                           WHERE domain_code = 'AML_CFT' AND status = 'ACTIVE' LIMIT 1));
 
 -- =====================================================================
 -- GATE 1 — LEGACY PLAN POPULATION PRESERVED AND CONVERGED (3 plans / 12 actions)
@@ -203,7 +203,7 @@ DECLARE missing text := '';
     ARRAY['supervisory_plan_item','legacy_action_id','legacy_supervisory_plan_actions'],
     ARRAY['supervisory_intervention','plan_id','supervisory_plan'],
     ARRAY['supervisory_intervention','attention_id','supervisory_attention'],
-    ARRAY['supervisory_intervention','canonical_examination_id','examinations'],
+    ARRAY['supervisory_intervention','examination_id','examinations'],
     ARRAY['examinations','plan_id','supervisory_plan'],
     ARRAY['examinations','intervention_id','supervisory_intervention'],
     ARRAY['examinations','methodology_id','supervisory_methodology'],
@@ -238,8 +238,8 @@ BEGIN
   SELECT count(*) INTO n FROM pg_constraint c
     JOIN pg_class t ON t.oid = c.conrelid
    WHERE c.contype='f' AND t.relname='supervisory_intervention'
-     AND pg_get_constraintdef(c.oid) ~ 'canonical_';
-  IF n < 1 THEN
+     AND pg_get_constraintdef(c.oid) ~ '(examination_id|thematic_review_id|investigation_id)';
+  IF n < 3 THEN
     RAISE EXCEPTION 'FAIL 3b: intervention -> canonical activity is not FK-backed'; END IF;
   -- the legacy weak pattern may survive only as display metadata
   IF EXISTS (
@@ -651,7 +651,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.examinations WHERE id=ex AND domain_code='MARKET_CONDUCT'
                    AND engagement_type='OFFSITE_REVIEW' AND intervention_id=iv AND plan_id=pl) THEN
     RAISE EXCEPTION 'FAIL C: conduct offsite review is not bound to its plan/intervention'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.supervisory_intervention WHERE id=iv AND canonical_examination_id=ex) THEN
+  IF NOT EXISTS (SELECT 1 FROM public.supervisory_intervention WHERE id=iv AND examination_id=ex) THEN
     RAISE EXCEPTION 'FAIL C: intervention -> canonical activity link is not physical'; END IF;
   -- the pre-existing conduct surface still reads through the compatibility views
   SELECT count(*) INTO n FROM public.conduct_attention_items WHERE id=(SELECT v FROM epic2_ctx WHERE k='mc_attention');
@@ -795,7 +795,7 @@ BEGIN
   -- arbitrary intervention -> nonexistent activity must be rejected
   BEGIN
     PERFORM public.supervisory_intervention_link_activity(
-      (SELECT v FROM epic2_ctx WHERE k='mc_intervention'), 'EXAMINATION',
+      (SELECT v FROM epic2_ctx WHERE k='mc_intervention'), 'examination',
       '00000000-0000-4000-8000-00000000beef');
   EXCEPTION WHEN others THEN ok := true; END;
   IF NOT ok THEN RAISE EXCEPTION 'FAIL E3: intervention was linked to a nonexistent canonical activity'; END IF;
@@ -806,7 +806,7 @@ BEGIN
   IF n > 0 AND NOT public.has_permission(auth.uid(),'aml_supervision','view')
      AND NOT public.is_super_admin(auth.uid())
      AND (SELECT confidentiality FROM public.supervisory_assessment
-           WHERE id=(SELECT v FROM epic2_ctx WHERE k='aml_assessment')) <> 'standard' THEN
+           WHERE id=(SELECT v FROM epic2_ctx WHERE k='aml_assessment')) <> 'STANDARD' THEN
     RAISE EXCEPTION 'FAIL E3: confidential AML assessment readable without AML authority';
   END IF;
   RAISE NOTICE 'PASS E3: arbitrary activity linkage rejected; AML confidentiality boundary holds';
