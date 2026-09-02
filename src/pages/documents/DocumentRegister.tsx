@@ -159,7 +159,6 @@ export default function DocumentRegister() {
       <PageHeader
         title="Document Register"
         description="Every canonical regulatory document, its classification, its assurance status and the record it belongs to."
-        icon={<FileText className="h-6 w-6" />}
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

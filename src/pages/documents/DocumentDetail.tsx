@@ -153,7 +153,6 @@ export default function DocumentDetail() {
       <PageHeader
         title={title}
         description={`${s(doc, 'document_reference') ?? 'Not referenced'} · ${category ? s(category, 'name') : 'Unclassified'}`}
-        icon={<FileText className="h-6 w-6" />}
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => navigate('/documents/registry')}>
