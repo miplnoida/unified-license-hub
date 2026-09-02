@@ -267,27 +267,32 @@ export default function LicensingAuditTab({ entityId, onOpenSupervisoryTab }: Pr
     if (!user?.id || !latestProfile || !latestDetermination) return;
     setCreatingPlan(true);
     try {
-      const { data: plan, error: planErr } = await supabase.from('supervisory_plans' as any).insert({
-        entity_id: entityId,
-        risk_rating_id: latestRiskRatingId,
-        created_from: 'audit',
-        status: 'draft',
-        notes: `Auto-generated from Licensing Audit determination ${latestDetermination.id} (tier: ${latestProfile.tier}, score: ${latestProfile.profile_score}).`,
-        created_by: user.id,
-      }).select('id').single();
+      // Epic 2: planning is created only through the governed canonical spine.
+      const factualBasis = `Auto-generated from Licensing Audit determination ${latestDetermination.id} (risk tier: ${latestProfile.tier}, profile score: ${latestProfile.profile_score}).`;
+      const { data: plan, error: planErr } = await (supabase.rpc as any)('supervisory_plan_open', {
+        _title: `Initial supervisory plan — ${latestProfile.tier.toUpperCase()} risk tier`,
+        _domain_code: 'CROSS_DOMAIN',
+        _factual_basis: factualBasis,
+        _objective: 'Establish the baseline supervisory cycle following the licensing audit determination.',
+        _entity_ids: [entityId],
+        _planning_period: 'ad_hoc',
+        _priority: latestProfile.tier === 'critical' || latestProfile.tier === 'high' ? 'HIGH' : 'PLANNED',
+      });
       if (planErr) throw planErr;
-      const planId = (plan as any).id;
-      const actions = actionTemplateForTier(latestProfile.tier).map((a) => ({
-        plan_id: planId,
-        title: a.title,
-        description: a.description,
-        owner_role: a.owner_role,
-        due_date: a.due_date,
-        status: 'open',
-        source: 'audit',
-      }));
-      const { error: actErr } = await supabase.from('supervisory_plan_actions' as any).insert(actions);
-      if (actErr) throw actErr;
+      const planId = (plan as any)?.id as string;
+      const actions = actionTemplateForTier(latestProfile.tier);
+      for (const a of actions) {
+        const { error: actErr } = await (supabase.rpc as any)('supervisory_plan_item_save', {
+          _plan_id: planId,
+          _title: a.title,
+          _item_type: 'MILESTONE',
+          _detail: `${a.description}\n[indicative owner role] ${a.owner_role}`,
+          _due_date: a.due_date,
+          _source: 'LICENSING_AUDIT',
+        });
+        if (actErr) throw actErr;
+      }
+
 
       await logAction('licensee.audit.plan_auto_created', 'supervisory_plan', planId, {
         after: {
