@@ -478,7 +478,8 @@ BEGIN
   r := public.supervisory_examination_open(iv, 'Targeted AML/CFT examination', 'TARGETED_ONSITE',
         'AML_CFT', (SELECT v FROM e3 WHERE k='entity_a'),
         ARRAY[(SELECT v FROM e3 WHERE k='a1')],
-        ARRAY[(SELECT v FROM e3 WHERE k='dim_tm'), (SELECT v FROM e3 WHERE k='dim_str')]);
+        ARRAY[(SELECT v FROM e3 WHERE k='dim_tm'), (SELECT v FROM e3 WHERE k='dim_str')],
+        NULL, NULL, 'd1016d5f-cde5-46dd-a552-0f2f87abc193');
   ex := (r->>'id')::uuid;
   INSERT INTO e3(k,v) VALUES ('ex', ex);
 END $$;
