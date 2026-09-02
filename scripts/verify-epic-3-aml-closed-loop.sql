@@ -407,10 +407,15 @@ DO $$
 DECLARE att uuid := (SELECT v FROM e3 WHERE k='att');
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.supervisory_attention
-                  WHERE id = att AND domain_code = 'AML_CFT' AND assessment_id = (SELECT v FROM e3 WHERE k='a1')
-                    AND assessment_dimension_id = (SELECT v FROM e3 WHERE k='dim_tm')
-                    AND signal_id = (SELECT v FROM e3 WHERE k='signal')) THEN
-    RAISE EXCEPTION 'FAIL L/M: attention lacks FK-backed assessment/dimension/signal provenance'; END IF;
+                  WHERE id = att AND domain_code = 'AML_CFT') THEN
+    RAISE EXCEPTION 'FAIL L/M: AML attention was not created on the canonical relation'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.supervisory_attention_origin
+                  WHERE attention_id = att AND assessment_id = (SELECT v FROM e3 WHERE k='a1')
+                    AND assessment_dimension_id = (SELECT v FROM e3 WHERE k='dim_tm')) THEN
+    RAISE EXCEPTION 'FAIL L/M: attention lacks FK-backed assessment/dimension provenance'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.supervisory_attention_origin
+                  WHERE attention_id = att AND signal_id = (SELECT v FROM e3 WHERE k='signal')) THEN
+    RAISE EXCEPTION 'FAIL L/M: attention lacks FK-backed signal provenance'; END IF;
   IF EXISTS (SELECT 1 FROM public.entity_risk_state_movement
               WHERE entity_id = (SELECT v FROM e3 WHERE k='entity_a')
                 AND domain_code = 'AML_CFT' AND requirement_id IS NOT NULL
