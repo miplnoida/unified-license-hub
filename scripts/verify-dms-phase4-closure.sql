@@ -78,7 +78,7 @@ BEGIN
   SELECT count(*) INTO n FROM public.document_groups
    WHERE publication_status <> 'not_requested';
   IF n > 0 THEN RAISE EXCEPTION 'G-11 FAIL: % group(s) beyond not_requested publication', n; END IF;
-  SELECT count(*) INTO n FROM public.document_groups WHERE confidentiality = 'public';
+  SELECT count(*) INTO n FROM public.document_groups WHERE confidentiality_classification = 'public';
   IF n > 0 THEN RAISE EXCEPTION 'G-11 FAIL: % group(s) classified public', n; END IF;
 
   -- G-12 certificate registration produces private, publication-eligible, unpublished docs
