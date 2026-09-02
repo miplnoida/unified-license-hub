@@ -81,7 +81,11 @@ export function useAmlWorkQueue(limit = 200) {
     queryFn: async () => {
       const { data, error } = await sb.rpc('aml_work_queue', { _limit: limit });
       if (error) throw error;
-      return (data ?? []) as AmlWorkQueueRow[];
+      const names = await nameMap((data ?? []).map((r: any) => r.entity_id));
+      return (data ?? []).map((r: any) => ({
+        ...r,
+        entity_name: names.get(r.entity_id) ?? null,
+      })) as (AmlWorkQueueRow & { entity_name: string | null })[];
     },
   });
 }
