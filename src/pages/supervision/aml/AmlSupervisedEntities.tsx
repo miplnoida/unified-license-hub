@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useAmlPortfolio } from '@/hooks/useAmlSupervision';
+import { AmlNewAssessmentDialog } from '@/components/supervision/aml/AmlNewAssessmentDialog';
 import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, statusTone, titleCase, trendTone } from '@/lib/amlLabels';
 
 export default function AmlSupervisedEntities() {
@@ -44,13 +45,17 @@ export default function AmlSupervisedEntities() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">AML/CFT Supervised Entities</h1>
-          <p className="text-sm text-muted-foreground">
-            Risk-based portfolio view: current residual rating with its inherent and control drivers,
-            rating movement, review currency and open closed-loop workload per entity.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">AML/CFT Supervised Entities</h1>
+            <p className="text-sm text-muted-foreground">
+              Risk-based portfolio view: current residual rating with its inherent and control drivers,
+              rating movement, review currency and open closed-loop workload per entity.
+            </p>
+          </div>
+          <AmlNewAssessmentDialog />
         </div>
+
 
         {error ? (
           <Alert variant="destructive">
@@ -175,16 +180,25 @@ export default function AmlSupervisedEntities() {
                           <div className="text-muted-foreground">{r.active_examinations ?? 0} examinations</div>
                         </TableCell>
                         <TableCell className="text-right">
-                          {r.last_assessment_id ? (
-                            <Button asChild size="sm" variant="outline">
-                              <Link to={`/supervision/aml/assessments/${r.last_assessment_id}`}>Assessment</Link>
-                            </Button>
-                          ) : (
-                            <Badge variant="outline" className={NEUTRAL}>
-                              No assessment
-                            </Badge>
-                          )}
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            {r.last_assessment_id ? (
+                              <Button asChild size="sm" variant="outline">
+                                <Link to={`/supervision/aml/assessments/${r.last_assessment_id}`}>Assessment</Link>
+                              </Button>
+                            ) : (
+                              <Badge variant="outline" className={NEUTRAL}>
+                                No assessment
+                              </Badge>
+                            )}
+                            <AmlNewAssessmentDialog
+                              entityId={r.entity_id}
+                              label={r.last_assessment_id ? 'New assessment' : 'Start assessment'}
+                              size="sm"
+                              variant="outline"
+                            />
+                          </div>
                         </TableCell>
+
                       </TableRow>
                     ))}
                   </TableBody>
