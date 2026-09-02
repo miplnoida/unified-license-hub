@@ -19888,6 +19888,13 @@ export type Database = {
             referencedRelation: "supervisory_plan"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "examinations_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_plans"
+            referencedColumns: ["id"]
+          },
         ]
       }
       executive_dashboard_snapshots: {
@@ -25342,13 +25349,6 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "legacy_supervisory_plans"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "supervisory_plan_actions_plan_id_fkey"
-            columns: ["plan_id"]
-            isOneToOne: false
-            referencedRelation: "supervisory_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -44023,6 +44023,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conduct_interventions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_plans"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "conduct_interventions_priority_score_id_fkey"
             columns: ["priority_score_id"]
             isOneToOne: false
@@ -44441,13 +44448,6 @@ export type Database = {
             referencedRelation: "legacy_supervisory_plans"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "supervisory_plan_legacy_plan_id_fkey"
-            columns: ["legacy_plan_id"]
-            isOneToOne: false
-            referencedRelation: "supervisory_plans"
-            referencedColumns: ["id"]
-          },
         ]
       }
       supervisory_plan_assessment: {
@@ -44492,6 +44492,13 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "supervisory_plan"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_plan_assessment_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -44543,6 +44550,13 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "supervisory_plan"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_plan_events_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -44621,10 +44635,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conduct_plan_milestones_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_plans"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "supervisory_plan_item_depends_on_item_id_fkey"
             columns: ["depends_on_item_id"]
             isOneToOne: false
             referencedRelation: "conduct_plan_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_plan_item_depends_on_item_id_fkey"
+            columns: ["depends_on_item_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_plan_actions"
             referencedColumns: ["id"]
           },
           {
@@ -44639,13 +44667,6 @@ export type Database = {
             columns: ["legacy_action_id"]
             isOneToOne: false
             referencedRelation: "legacy_supervisory_plan_actions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "supervisory_plan_item_legacy_action_id_fkey"
-            columns: ["legacy_action_id"]
-            isOneToOne: false
-            referencedRelation: "supervisory_plan_actions"
             referencedColumns: ["id"]
           },
         ]
@@ -47318,6 +47339,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conduct_interventions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_plans"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "conduct_interventions_priority_score_id_fkey"
             columns: ["priority_score_id"]
             isOneToOne: false
@@ -47382,6 +47410,13 @@ export type Database = {
             referencedRelation: "supervisory_plan"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "conduct_plan_events_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_plans"
+            referencedColumns: ["id"]
+          },
         ]
       }
       conduct_plan_milestones: {
@@ -47437,6 +47472,13 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "supervisory_plan"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_plan_milestones_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -48141,16 +48183,16 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           due_date?: string | null
-          extension_reason?: string | null
+          extension_reason?: never
           id?: string | null
-          owner_role?: string | null
+          owner_role?: never
           plan_id?: string | null
-          previous_due_date?: string | null
-          reassigned_at?: string | null
-          reassigned_by?: string | null
-          reassigned_from?: string | null
-          source?: string | null
-          status?: string | null
+          previous_due_date?: never
+          reassigned_at?: never
+          reassigned_by?: never
+          reassigned_from?: never
+          source?: never
+          status?: never
           title?: string | null
           updated_at?: string | null
         }
@@ -48160,29 +48202,36 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           due_date?: string | null
-          extension_reason?: string | null
+          extension_reason?: never
           id?: string | null
-          owner_role?: string | null
+          owner_role?: never
           plan_id?: string | null
-          previous_due_date?: string | null
-          reassigned_at?: string | null
-          reassigned_by?: string | null
-          reassigned_from?: string | null
-          source?: string | null
-          status?: string | null
+          previous_due_date?: never
+          reassigned_at?: never
+          reassigned_by?: never
+          reassigned_from?: never
+          source?: never
+          status?: never
           title?: string | null
           updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "supervisory_plan_actions_plan_id_fkey"
+            foreignKeyName: "conduct_plan_milestones_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
-            referencedRelation: "legacy_supervisory_plans"
+            referencedRelation: "conduct_supervisory_plans"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "supervisory_plan_actions_plan_id_fkey"
+            foreignKeyName: "conduct_plan_milestones_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_plan"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_plan_milestones_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "supervisory_plans"
@@ -48209,76 +48258,40 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          approval_status?: string | null
+          approval_status?: never
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string | null
           created_by?: string | null
-          created_from?: string | null
-          entity_id?: string | null
+          created_from?: never
+          entity_id?: never
           id?: string | null
-          license_id?: string | null
+          license_id?: never
           notes?: string | null
-          risk_rating_id?: string | null
-          status?: string | null
+          risk_rating_id?: never
+          status?: never
           submitted_for_review_at?: string | null
           submitted_for_review_by?: string | null
           updated_at?: string | null
         }
         Update: {
-          approval_status?: string | null
+          approval_status?: never
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string | null
           created_by?: string | null
-          created_from?: string | null
-          entity_id?: string | null
+          created_from?: never
+          entity_id?: never
           id?: string | null
-          license_id?: string | null
+          license_id?: never
           notes?: string | null
-          risk_rating_id?: string | null
-          status?: string | null
+          risk_rating_id?: never
+          status?: never
           submitted_for_review_at?: string | null
           submitted_for_review_by?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "supervisory_plans_entity_id_fkey"
-            columns: ["entity_id"]
-            isOneToOne: false
-            referencedRelation: "licensees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "supervisory_plans_entity_id_fkey"
-            columns: ["entity_id"]
-            isOneToOne: false
-            referencedRelation: "v_prudential_early_warnings"
-            referencedColumns: ["licensee_id"]
-          },
-          {
-            foreignKeyName: "supervisory_plans_license_id_fkey"
-            columns: ["license_id"]
-            isOneToOne: false
-            referencedRelation: "licenses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "supervisory_plans_license_id_fkey"
-            columns: ["license_id"]
-            isOneToOne: false
-            referencedRelation: "report_view_licenses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "supervisory_plans_risk_rating_id_fkey"
-            columns: ["risk_rating_id"]
-            isOneToOne: false
-            referencedRelation: "risk_ratings"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       tap_funky: {
         Row: {
@@ -61357,31 +61370,7 @@ export type Database = {
           _source?: string
           _title: string
         }
-        Returns: {
-          completed_at: string | null
-          completed_by: string | null
-          created_at: string
-          description: string | null
-          due_date: string
-          extension_reason: string | null
-          id: string
-          owner_role: string | null
-          plan_id: string
-          previous_due_date: string | null
-          reassigned_at: string | null
-          reassigned_by: string | null
-          reassigned_from: string | null
-          source: string
-          status: string
-          title: string
-          updated_at: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "legacy_supervisory_plan_actions"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+        Returns: Json
       }
       supervisory_plan_action_transition: {
         Args: {
@@ -61391,31 +61380,7 @@ export type Database = {
           _reason?: string
           _to_status: string
         }
-        Returns: {
-          completed_at: string | null
-          completed_by: string | null
-          created_at: string
-          description: string | null
-          due_date: string
-          extension_reason: string | null
-          id: string
-          owner_role: string | null
-          plan_id: string
-          previous_due_date: string | null
-          reassigned_at: string | null
-          reassigned_by: string | null
-          reassigned_from: string | null
-          source: string
-          status: string
-          title: string
-          updated_at: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "legacy_supervisory_plan_actions"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+        Returns: Json
       }
       supervisory_plan_create: {
         Args: {
@@ -61425,55 +61390,11 @@ export type Database = {
           _notes?: string
           _risk_rating_id?: string
         }
-        Returns: {
-          approval_status: string
-          approved_at: string | null
-          approved_by: string | null
-          created_at: string
-          created_by: string | null
-          created_from: string
-          entity_id: string
-          id: string
-          license_id: string | null
-          notes: string | null
-          risk_rating_id: string | null
-          status: string
-          submitted_for_review_at: string | null
-          submitted_for_review_by: string | null
-          updated_at: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "legacy_supervisory_plans"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+        Returns: Json
       }
       supervisory_plan_decision: {
         Args: { _decision: string; _plan_id: string; _reason?: string }
-        Returns: {
-          approval_status: string
-          approved_at: string | null
-          approved_by: string | null
-          created_at: string
-          created_by: string | null
-          created_from: string
-          entity_id: string
-          id: string
-          license_id: string | null
-          notes: string | null
-          risk_rating_id: string | null
-          status: string
-          submitted_for_review_at: string | null
-          submitted_for_review_by: string | null
-          updated_at: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "legacy_supervisory_plans"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+        Returns: Json
       }
       supervisory_plan_item_save: {
         Args: {
