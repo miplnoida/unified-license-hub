@@ -1,7 +1,7 @@
 {
   "generatedFrom": "src/lib/rbac/catalog.json",
   "counts": {
-    "reserved-granular": 127,
+    "reserved-granular": 139,
     "future-module": 42
   },
   "rows": [
@@ -320,6 +320,78 @@
     {
       "module": "coordination",
       "action": "delete",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "document_management",
+      "action": "audit_view",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "document_management",
+      "action": "create_version",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "document_management",
+      "action": "download",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "document_management",
+      "action": "manage_hold",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "document_management",
+      "action": "manage_retention",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "document_management",
+      "action": "publish_approve",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "document_management",
+      "action": "publish_request",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "document_management",
+      "action": "reject",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "document_management",
+      "action": "upload",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "document_management",
+      "action": "view_entity",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "document_management",
+      "action": "view_internal",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "document_management",
+      "action": "view_restricted",
       "disposition": "reserved-granular",
       "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
     },
@@ -1018,84 +1090,6 @@
       "action": "delete",
       "disposition": "reserved-granular",
       "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
-    },
-    {
-      "module": "document_management",
-      "action": "bulk_manage",
-      "disposition": "planned",
-      "rationale": "DMS foundation permission reserved for later blueprint phases (versioning, publication, holds/retention, entity portal surfaces); enforced server-side, no UI reference yet."
-    },
-    {
-      "module": "document_management",
-      "action": "create_version",
-      "disposition": "planned",
-      "rationale": "DMS foundation permission reserved for later blueprint phases (versioning, publication, holds/retention, entity portal surfaces); enforced server-side, no UI reference yet."
-    },
-    {
-      "module": "document_management",
-      "action": "download",
-      "disposition": "planned",
-      "rationale": "DMS foundation permission reserved for later blueprint phases (versioning, publication, holds/retention, entity portal surfaces); enforced server-side, no UI reference yet."
-    },
-    {
-      "module": "document_management",
-      "action": "manage_hold",
-      "disposition": "planned",
-      "rationale": "DMS foundation permission reserved for later blueprint phases (versioning, publication, holds/retention, entity portal surfaces); enforced server-side, no UI reference yet."
-    },
-    {
-      "module": "document_management",
-      "action": "manage_retention",
-      "disposition": "planned",
-      "rationale": "DMS foundation permission reserved for later blueprint phases (versioning, publication, holds/retention, entity portal surfaces); enforced server-side, no UI reference yet."
-    },
-    {
-      "module": "document_management",
-      "action": "publish_approve",
-      "disposition": "planned",
-      "rationale": "DMS foundation permission reserved for later blueprint phases (versioning, publication, holds/retention, entity portal surfaces); enforced server-side, no UI reference yet."
-    },
-    {
-      "module": "document_management",
-      "action": "publish_request",
-      "disposition": "planned",
-      "rationale": "DMS foundation permission reserved for later blueprint phases (versioning, publication, holds/retention, entity portal surfaces); enforced server-side, no UI reference yet."
-    },
-    {
-      "module": "document_management",
-      "action": "reject",
-      "disposition": "planned",
-      "rationale": "DMS foundation permission reserved for later blueprint phases (versioning, publication, holds/retention, entity portal surfaces); enforced server-side, no UI reference yet."
-    },
-    {
-      "module": "document_management",
-      "action": "upload",
-      "disposition": "planned",
-      "rationale": "DMS foundation permission reserved for later blueprint phases (versioning, publication, holds/retention, entity portal surfaces); enforced server-side, no UI reference yet."
-    },
-    {
-      "module": "document_management",
-      "action": "view_entity",
-      "disposition": "planned",
-      "rationale": "DMS foundation permission reserved for later blueprint phases (versioning, publication, holds/retention, entity portal surfaces); enforced server-side, no UI reference yet."
-    },
-    {
-      "module": "document_management",
-      "action": "view_internal",
-      "disposition": "planned",
-      "rationale": "DMS foundation permission reserved for later blueprint phases (versioning, publication, holds/retention, entity portal surfaces); enforced server-side, no UI reference yet."
-    },
-    {
-      "module": "document_management",
-      "action": "view_restricted",
-      "disposition": "planned",
-      "rationale": "DMS foundation permission reserved for later blueprint phases (versioning, publication, holds/retention, entity portal surfaces); enforced server-side, no UI reference yet."
-    },
-    {
-      "module": "document_management",
-      "action": "audit_view",
-      "disposition": "planned",
-      "rationale": "Document audit-history permission enforced server-side by the governed DMS layer; dedicated audit surface arrives in a later blueprint phase."
     }
   ]
 }
