@@ -202,7 +202,14 @@ export default function Entity360Detail() {
             </div>
           )}
 
-          {view === 'timeline' && <Entity360TimelinePanel entityId={entity.id} />}
+          {/* EPIC 4 / W2: canonical enterprise supervisory timeline first, with the
+              historical activity feed retained beneath it. */}
+          {view === 'timeline' && (
+            <div className="space-y-4">
+              <SupervisoryTimelinePanel entityId={entity.id} />
+              <Entity360TimelinePanel entityId={entity.id} />
+            </div>
+          )}
 
           {view === 'onboarding' && <OnboardingActivityPanel entityId={entity.id} />}
 
