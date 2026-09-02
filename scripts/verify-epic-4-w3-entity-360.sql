@@ -416,8 +416,11 @@ BEGIN
   BEGIN
     PERFORM public.entity_supervisory_360((SELECT v FROM w3 WHERE k='entity_a'));
     RAISE EXCEPTION 'W3-17 FAIL: a licensee user was able to read the supervisory read model';
-  EXCEPTION WHEN insufficient_privilege THEN
-    RAISE NOTICE 'W3-17 PASS: external user denied';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM NOT ILIKE '%internal only%' AND SQLERRM NOT ILIKE '%not authorised%' THEN
+      RAISE;
+    END IF;
+    RAISE NOTICE 'W3-17 PASS: external user denied (%)', SQLERRM;
   END;
 END $$;
 RESET ROLE;
