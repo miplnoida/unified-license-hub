@@ -251,15 +251,18 @@ export default function Entity360Detail() {
                   asOf={asOf}
                 />
               )}
-              {/* EPIC 3 / Gate 10: canonical AML risk-of-record panel. */}
-              {activeSection.key === 'aml' && (
+              {/* EPIC 3 / Gate 10 + EPIC 4 / W3: the canonical AML panel is the only
+                  AML truth on this page. The legacy AML block has been retired, so no
+                  second AML view is rendered beneath it. */}
+              {activeSection.key === 'aml' ? (
                 <EntityAmlPanel entityId={entity.id} />
+              ) : (
+                <Entity360SectionView
+                  entityId={entity.id}
+                  section={activeSection.key}
+                  asOf={asOf}
+                />
               )}
-              <Entity360SectionView
-                entityId={entity.id}
-                section={activeSection.key}
-                asOf={asOf}
-              />
             </div>
           )}
         </div>
