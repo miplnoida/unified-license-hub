@@ -380,7 +380,7 @@ BEGIN
                            'conduct_interventions','conduct_supervisory_plans'] LOOP
     ok := false;
     BEGIN
-      EXECUTE format('UPDATE public.%I SET id = id', v);
+      EXECUTE format('INSERT INTO public.%I (id) VALUES (gen_random_uuid())', v);
     EXCEPTION WHEN insufficient_privilege THEN ok := true;
               WHEN others THEN ok := true; END;
     IF NOT ok THEN RAISE EXCEPTION 'FAIL 6: compatibility view % is still writable', v; END IF;
