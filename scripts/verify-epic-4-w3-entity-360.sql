@@ -184,7 +184,7 @@ BEGIN
          status, description, supervisory_finding_id, opened_by, stage, severity, source_kind)
   VALUES (f, 'CERT-W3-F-E1', 'directive', current_date - 3, 'open',
           'Fixture enforcement', fid, '0b522724-adcb-48bf-b21d-175339479616',
-          'NOTICE', 'high', 'SUPERVISORY_FINDING');
+          'REFERRAL', 'high', 'SUPERVISORY_FINDING');
   -- G: reassessment required
   aid := pg_temp.w3_assess(g,'AML_CFT',ma,'MEDIUM','MEDIUM','MEDIUM','CERT-W3-G-AML');
   INSERT INTO public.supervisory_reassessment_requirement(entity_id, domain_code, trigger_kind,
