@@ -143,7 +143,7 @@ export function useAmlAssessment(assessmentId?: string) {
       if (error) throw error;
       if (!header) return null;
 
-      const [{ data: dims }, { data: methodology }, { data: findings }, { data: exams }, { data: attention }] =
+      const [{ data: dims }, { data: methodology }, { data: findings }, { data: originRows }, { data: attention }] =
         await Promise.all([
           sb
             .from('supervisory_assessment_dimension')
