@@ -43536,13 +43536,96 @@ export type Database = {
           },
         ]
       }
+      supervisory_assessment_calculation: {
+        Row: {
+          as_of: string | null
+          assessment_id: string
+          calculated_at: string
+          config_id: string | null
+          config_version: number | null
+          control_band: string | null
+          control_score: number | null
+          inherent_band: string | null
+          inherent_score: number | null
+          methodology_id: string | null
+          methodology_version: string | null
+          recommendation_policy: string | null
+          recommended_rating: string | null
+          residual_rating: string | null
+          status: string
+          trace: Json
+        }
+        Insert: {
+          as_of?: string | null
+          assessment_id: string
+          calculated_at?: string
+          config_id?: string | null
+          config_version?: number | null
+          control_band?: string | null
+          control_score?: number | null
+          inherent_band?: string | null
+          inherent_score?: number | null
+          methodology_id?: string | null
+          methodology_version?: string | null
+          recommendation_policy?: string | null
+          recommended_rating?: string | null
+          residual_rating?: string | null
+          status: string
+          trace?: Json
+        }
+        Update: {
+          as_of?: string | null
+          assessment_id?: string
+          calculated_at?: string
+          config_id?: string | null
+          config_version?: number | null
+          control_band?: string | null
+          control_score?: number | null
+          inherent_band?: string | null
+          inherent_score?: number | null
+          methodology_id?: string | null
+          methodology_version?: string | null
+          recommendation_policy?: string | null
+          recommended_rating?: string | null
+          residual_rating?: string | null
+          status?: string
+          trace?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_calculation_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: true
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_calculation_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_calculation_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_calculation_methodology_id_fkey"
+            columns: ["methodology_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supervisory_assessment_dimension: {
         Row: {
           assessment_id: string
+          calculated_at: string | null
           calculated_control_rating: string | null
           calculated_inherent_rating: string | null
           calculated_residual_rating: string | null
           calculated_score: number | null
+          calculation_config_id: string | null
+          calculation_status: string | null
+          calculation_trace: Json | null
           confidence: string | null
           control_rating: string | null
           created_at: string
@@ -43572,10 +43655,14 @@ export type Database = {
         }
         Insert: {
           assessment_id: string
+          calculated_at?: string | null
           calculated_control_rating?: string | null
           calculated_inherent_rating?: string | null
           calculated_residual_rating?: string | null
           calculated_score?: number | null
+          calculation_config_id?: string | null
+          calculation_status?: string | null
+          calculation_trace?: Json | null
           confidence?: string | null
           control_rating?: string | null
           created_at?: string
@@ -43605,10 +43692,14 @@ export type Database = {
         }
         Update: {
           assessment_id?: string
+          calculated_at?: string | null
           calculated_control_rating?: string | null
           calculated_inherent_rating?: string | null
           calculated_residual_rating?: string | null
           calculated_score?: number | null
+          calculation_config_id?: string | null
+          calculation_status?: string | null
+          calculation_trace?: Json | null
           confidence?: string | null
           control_rating?: string | null
           created_at?: string
@@ -43642,6 +43733,13 @@ export type Database = {
             columns: ["assessment_id"]
             isOneToOne: false
             referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_dimension_calculation_config_id_fkey"
+            columns: ["calculation_config_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_calculation_config"
             referencedColumns: ["id"]
           },
           {
@@ -63317,6 +63415,10 @@ export type Database = {
         Args: { _entity_id: string; _module: string; _record_id: string }
         Returns: string
       }
+      supervisory_assessment_calculate: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_assessment_create: {
         Args: {
           _assessment_type?: string
@@ -63441,6 +63543,22 @@ export type Database = {
           _rationale: string
         }
         Returns: Json
+      }
+      supervisory_calc_band_of: {
+        Args: { _config_id: string; _kind: string; _score: number }
+        Returns: string
+      }
+      supervisory_calc_compute: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_calc_config_for: {
+        Args: { _assessment_id: string }
+        Returns: string
+      }
+      supervisory_calc_round: {
+        Args: { _decimals: number; _mode: string; _v: number }
+        Returns: number
       }
       supervisory_calculation_bands_set: {
         Args: { _band_kind: string; _config_id: string; _rows: Json }
