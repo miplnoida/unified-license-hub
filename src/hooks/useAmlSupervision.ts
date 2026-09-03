@@ -143,7 +143,7 @@ export function useAmlAssessment(assessmentId?: string) {
       if (error) throw error;
       if (!header) return null;
 
-      const [{ data: dims }, { data: methodology }, { data: findings }, { data: exams }, { data: attention }] =
+      const [{ data: dims }, { data: methodology }, { data: findings }, { data: originRows }, { data: attention }] =
         await Promise.all([
           sb
             .from('supervisory_assessment_dimension')
@@ -161,13 +161,12 @@ export function useAmlAssessment(assessmentId?: string) {
             .select('id, reference, title, severity, status, due_date, examination_id')
             .eq('assessment_id', assessmentId)
             .order('created_at', { ascending: false }),
+          // Exact provenance: examinations that record THIS assessment as their
+          // origin. Never inferred from "same entity + AML domain".
           sb
-            .from('examinations')
-            .select('id, reference, title, stage, examination_type, fieldwork_start, fieldwork_end')
-            .eq('domain_code', 'AML_CFT')
-            .eq('entity_id', header.entity_id)
-            .order('created_at', { ascending: false })
-            .limit(20),
+            .from('examination_origin')
+            .select('examination_id, assessment_id, assessment_dimension_id, origin_role, note')
+            .eq('assessment_id', assessmentId),
           sb
             .from('supervisory_attention_origin')
             .select('attention_id, assessment_dimension_id, signal_id')
@@ -195,6 +194,54 @@ export function useAmlAssessment(assessmentId?: string) {
         plans = pl ?? [];
       }
 
+      const planIds = plans.map((p: any) => p.id);
+      const dimById = new Map<string, any>((dims ?? []).map((d: any) => [d.id, d]));
+
+      /* Interventions belonging to the plans this assessment drove. */
+      let interventions: any[] = [];
+      if (planIds.length) {
+        const { data: iv } = await sb
+          .from('supervisory_intervention')
+          .select(
+            'id, reference, title, intervention_type, status, plan_id, attention_id, examination_id, planned_start, planned_end, basis, expected_outcome, decision_rationale',
+          )
+          .in('plan_id', planIds)
+          .order('created_at', { ascending: false });
+        interventions = iv ?? [];
+      }
+
+      /* Examinations that record THIS assessment as their exact origin. */
+      const origins = (originRows ?? []) as any[];
+      const examIds = Array.from(new Set(origins.map((o) => o.examination_id).filter(Boolean))) as string[];
+      let examinations: any[] = [];
+      if (examIds.length) {
+        const [{ data: ex }, { data: scope }] = await Promise.all([
+          sb
+            .from('examinations')
+            .select(
+              'id, reference, title, stage, engagement_type, examination_type, risk_rating, fieldwork_start, fieldwork_end, lead_examiner_id, intervention_id, plan_id, closed_at',
+            )
+            .in('id', examIds)
+            .order('created_at', { ascending: false }),
+          sb
+            .from('examination_scope_dimension')
+            .select('examination_id, assessment_id, assessment_dimension_id, dimension_code, residual_rating')
+            .in('examination_id', examIds),
+        ]);
+        examinations = (ex ?? []).map((e: any) => {
+          const own = origins.filter((o) => o.examination_id === e.id);
+          return {
+            ...e,
+            origin_roles: Array.from(new Set(own.map((o) => o.origin_role))),
+            is_driving_assessment: own.some((o) => o.origin_role === 'DRIVING_ASSESSMENT'),
+            risk_focus_dimensions: own
+              .filter((o) => o.origin_role === 'RISK_FOCUS' && o.assessment_dimension_id)
+              .map((o) => dimById.get(o.assessment_dimension_id)?.dimension_code ?? '—'),
+            scope_dimensions: (scope ?? []).filter((s: any) => s.examination_id === e.id),
+          };
+        });
+      }
+
       const { data: history } = await sb
         .from('supervisory_assessment_event')
         .select('*')
@@ -206,7 +253,8 @@ export function useAmlAssessment(assessmentId?: string) {
         dimensions: dims ?? [],
         methodology: methodology ?? null,
         findings: findings ?? [],
-        examinations: exams ?? [],
+        examinations,
+        interventions,
         attention: attentionRows,
         plans,
         history: history ?? [],

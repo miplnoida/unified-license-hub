@@ -664,14 +664,12 @@ export function useAmlExaminationScopeFromAssessment() {
   return useMutation({
     mutationFn: (input: {
       examinationId: string;
-      assessmentId: string;
       dimensionIds: string[];
       rationale: string;
       includeAreas?: boolean;
     }) =>
       rpc('examination_scope_from_assessment', {
         _examination_id: input.examinationId,
-        _assessment_id: input.assessmentId,
         _dimension_ids: input.dimensionIds,
         _rationale: input.rationale,
         _include_areas: input.includeAreas ?? true,

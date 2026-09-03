@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowLeft } from 'lucide-react';
 import { useAmlAssessment } from '@/hooks/useAmlSupervision';
 import { AmlAssessmentGovernance } from '@/components/supervision/aml/AmlAssessmentGovernance';
+import { AmlSupervisoryActivity } from '@/components/supervision/aml/AmlSupervisoryActivity';
 import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, statusTone, titleCase, trendTone } from '@/lib/amlLabels';
 
 
@@ -297,54 +298,18 @@ export default function AmlAssessmentWorkspace() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Supervisory plans</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {(data.plans as any[]).length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No supervisory plan has been created from this assessment yet.</p>
-                ) : (
-                  (data.plans as any[]).map((p) => (
-                    <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm">
-                      <span className="font-medium">{p.title}</span>
-                      <span className="flex items-center gap-2">
-                        <Badge variant="outline" className={ratingTone(p.priority)}>{titleCase(p.priority)}</Badge>
-                        <Badge variant="outline" className={statusTone(p.status)}>{titleCase(p.status)}</Badge>
-                        <span className="font-mono text-xs text-muted-foreground">{p.reference}</span>
-                      </span>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Examinations on this entity</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {(data.examinations as any[]).length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No AML/CFT examination has been opened for this entity.</p>
-                ) : (
-                  (data.examinations as any[]).map((e) => (
-                    <Link
-                      key={e.id}
-                      to={`/supervision/aml/examinations?focus=${e.id}`}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm hover:bg-muted/50"
-                    >
-                      <span className="font-medium">{e.title || e.reference}</span>
-                      <span className="flex items-center gap-2">
-                        <Badge variant="outline" className={statusTone(e.stage)}>{titleCase(e.stage)}</Badge>
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {fmtDate(e.fieldwork_start)} → {fmtDate(e.fieldwork_end)}
-                        </span>
-                      </span>
-                    </Link>
-                  ))
-                )}
-              </CardContent>
-            </Card>
+            <AmlSupervisoryActivity
+              assessmentId={id as string}
+              assessmentStatus={data.header.status}
+              entityId={data.header.entity_id}
+              entityName={data.header.entity_name}
+              dimensions={data.dimensions as any[]}
+              attention={data.attention as any[]}
+              plans={data.plans as any[]}
+              interventions={(data as any).interventions ?? []}
+              examinations={data.examinations as any[]}
+              onChanged={() => refetch()}
+            />
           </TabsContent>
 
           <TabsContent value="findings" className="mt-4">
