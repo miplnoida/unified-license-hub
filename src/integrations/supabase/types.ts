@@ -44269,6 +44269,57 @@ export type Database = {
           },
         ]
       }
+      supervisory_domain_perimeter: {
+        Row: {
+          basis: string
+          created_at: string
+          determined_at: string
+          determined_by: string | null
+          domain_code: string
+          entity_id: string
+          id: string
+          is_applicable: boolean
+          updated_at: string
+        }
+        Insert: {
+          basis: string
+          created_at?: string
+          determined_at?: string
+          determined_by?: string | null
+          domain_code: string
+          entity_id: string
+          id?: string
+          is_applicable?: boolean
+          updated_at?: string
+        }
+        Update: {
+          basis?: string
+          created_at?: string
+          determined_at?: string
+          determined_by?: string | null
+          domain_code?: string
+          entity_id?: string
+          id?: string
+          is_applicable?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_domain_perimeter_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_domain_perimeter_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
       supervisory_finding: {
         Row: {
           assessment_dimension_id: string | null
@@ -63064,6 +63115,19 @@ export type Database = {
       supervisory_domain_actions: {
         Args: { _domain_code: string; _intent: string }
         Returns: string[]
+      }
+      supervisory_domain_applicable: {
+        Args: { _domain_code: string; _entity_id: string }
+        Returns: boolean
+      }
+      supervisory_domain_perimeter_set: {
+        Args: {
+          _basis: string
+          _domain_code: string
+          _entity_id: string
+          _is_applicable: boolean
+        }
+        Returns: string
       }
       supervisory_domain_valid: { Args: { _domain: string }; Returns: boolean }
       supervisory_entity_scope_check: {
