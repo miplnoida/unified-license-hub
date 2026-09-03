@@ -762,21 +762,24 @@ BEGIN
   FOR r IN
     WITH cand AS (
       -- AML HIGH, AML de-escalated, prudential, conduct, multi-domain
-      SELECT rs.entity_id, rs.domain_code FROM public.entity_risk_state rs
-       WHERE rs.domain_code = 'AML_CFT' AND upper(rs.residual_rating) = 'HIGH' LIMIT 1
+      (SELECT rs.entity_id, rs.domain_code FROM public.entity_risk_state rs
+        WHERE rs.domain_code = 'AML_CFT' AND upper(rs.residual_rating) = 'HIGH' LIMIT 1)
       UNION ALL
-      SELECT rs.entity_id, rs.domain_code FROM public.entity_risk_state rs
-       WHERE rs.domain_code = 'AML_CFT' AND upper(rs.residual_rating) = 'MODERATE' LIMIT 1
+      (SELECT rs.entity_id, rs.domain_code FROM public.entity_risk_state rs
+        WHERE rs.domain_code = 'AML_CFT' AND upper(rs.residual_rating) = 'MODERATE' LIMIT 1)
       UNION ALL
-      SELECT rs.entity_id, rs.domain_code FROM public.entity_risk_state rs
-       WHERE rs.domain_code = 'PRUDENTIAL' LIMIT 1
+      (SELECT rs.entity_id, rs.domain_code FROM public.entity_risk_state rs
+        WHERE rs.domain_code = 'AML_CFT' AND upper(rs.residual_rating) = 'LOW' LIMIT 1)
       UNION ALL
-      SELECT rs.entity_id, rs.domain_code FROM public.entity_risk_state rs
-       WHERE rs.domain_code = 'MARKET_CONDUCT' LIMIT 1
+      (SELECT rs.entity_id, rs.domain_code FROM public.entity_risk_state rs
+        WHERE rs.domain_code = 'PRUDENTIAL' LIMIT 1)
       UNION ALL
-      SELECT rs.entity_id, rs.domain_code FROM public.entity_risk_state rs
-       WHERE rs.entity_id IN (SELECT entity_id FROM public.entity_risk_state
-                               GROUP BY entity_id HAVING count(DISTINCT domain_code) > 1) LIMIT 2
+      (SELECT rs.entity_id, rs.domain_code FROM public.entity_risk_state rs
+        WHERE rs.domain_code = 'MARKET_CONDUCT' LIMIT 1)
+      UNION ALL
+      (SELECT rs.entity_id, rs.domain_code FROM public.entity_risk_state rs
+        WHERE rs.entity_id IN (SELECT entity_id FROM public.entity_risk_state
+                                GROUP BY entity_id HAVING count(DISTINCT domain_code) > 1) LIMIT 2)
     ) SELECT DISTINCT entity_id, domain_code FROM cand
   LOOP
     SELECT x INTO row_j FROM jsonb_array_elements(pf -> 'rows') x
