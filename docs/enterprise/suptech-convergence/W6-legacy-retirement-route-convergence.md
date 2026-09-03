@@ -59,7 +59,9 @@ DATA: `inspections` = 0 rows, `inspection_findings` = 0 rows.
 - `sup_team_performance` re-sourced onto the canonical work model (workload facts only, `capacity_methodology = NONE_APPROVED`).
 - Route convergence: canonical `/supervision/examinations/:id`; `/prudential/examinations/:id` is a documented redirect alias; SLA return links use the canonical filing route.
 
-## 8. Browser certification (real evidence, `/tmp/browser/w6/result.json`)
+## 8. Initial browser certification — pre-W6-A6 (historical pre-fix evidence)
+
+> This section preserves the original browser certification run that exposed two authorization blockers. Both blockers were subsequently resolved by W6-A6 (see §11). The table below is kept as historical defect history; the final, post-fix browser result is in §11.4.
 
 Routes probed per persona: `/my-work`, `/supervision/portfolio`, `/entities/:id`, `/supervision/examinations/:id`, `/supervision/findings/:id`, `/supervision/team-performance`, `/prudential/payment-systems`, legacy `/prudential/examinations/:id`, `/inspections`, `/inspections/schedule`, `/inspections/:id`, `/supervision/examination-schedule`.
 
