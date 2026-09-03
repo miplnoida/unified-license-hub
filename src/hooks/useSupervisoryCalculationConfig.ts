@@ -71,7 +71,7 @@ export interface CalculationConfig {
   rounding_mode: string | null;
   rounding_decimals: number | null;
   inherent_direction: string | null;
-  recommendation_policy: string | null;
+  recommendation_policy: RecommendationPolicy | null;
   recommendation_threshold: string | null;
   override_threshold: string | null;
   notes: string | null;
@@ -380,7 +380,7 @@ export interface AssessmentCalculation {
   control_band: string | null;
   residual_rating: string | null;
   recommended_rating: string | null;
-  recommendation_policy: string | null;
+  recommendation_policy: RecommendationPolicy | null;
   trace: Record<string, unknown> | null;
   calculated_at: string | null;
 }
