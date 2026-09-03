@@ -712,8 +712,11 @@ SET LOCAL "request.jwt.claims" = :'REVIEWER';
 DO $$
 DECLARE f public.supervisory_finding;
 BEGIN
-  PERFORM public.supervisory_finding_lifecycle((SELECT v FROM a6 WHERE k='finding'), 'VALIDATION',
-    'All corrective actions validated; closure review under way.');
+  IF (SELECT status FROM public.supervisory_finding WHERE id = (SELECT v FROM a6 WHERE k='finding'))
+     <> 'VALIDATION' THEN
+    PERFORM public.supervisory_finding_lifecycle((SELECT v FROM a6 WHERE k='finding'), 'VALIDATION',
+      'All corrective actions validated; closure review under way.');
+  END IF;
   PERFORM public.supervisory_finding_lifecycle((SELECT v FROM a6 WHERE k='finding'), 'CLOSED',
     'Closed: the control weakness is remediated and the residual exposure is accepted.');
   SELECT * INTO f FROM public.supervisory_finding WHERE id = (SELECT v FROM a6 WHERE k='finding');
