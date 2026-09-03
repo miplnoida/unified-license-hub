@@ -279,7 +279,11 @@ export function computeAssessmentReadiness(
     evidenceOutstanding,
     dataQualityOutstanding,
     overrideRationaleOutstanding,
+    questionsTotal: mandatoryQuestions.length,
+    questionsAnswered: Math.max(0, mandatoryQuestions.length - questionGaps.length),
+    questionGaps,
     checks,
+
     ready: checks.every((c) => c.satisfied) && dimensions.length > 0,
   };
 }
