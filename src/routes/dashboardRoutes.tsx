@@ -185,6 +185,7 @@ const PersonIdentityQueue = lazy(() => import('@/pages/persons/PersonIdentityQue
 const Address360Detail = lazy(() => import('@/pages/intelligence/Address360Detail'));
 const RelationshipIntelligenceSearch = lazy(() => import('@/pages/intelligence/RelationshipIntelligenceSearch'));
 const Entity360Redirect = lazy(() => import('@/routes/Entity360Redirect'));
+const LegacyExaminationRedirect = lazy(() => import('@/routes/LegacyExaminationRedirect'));
 const EntityResolutionQueue = lazy(() => import('@/pages/licensing/EntityResolutionQueue'));
 const EntityResolutionDetail = lazy(() => import('@/pages/licensing/EntityResolutionDetail'));
 const EntityMemberships = lazy(() => import('@/pages/admin/EntityMemberships'));
