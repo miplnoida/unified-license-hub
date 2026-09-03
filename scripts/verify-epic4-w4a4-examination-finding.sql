@@ -401,7 +401,7 @@ BEGIN
      OR f.examination_id <> (SELECT v FROM w4 WHERE k='ex') OR f.workpaper_id <> wp
      OR f.assessment_dimension_id <> (SELECT v FROM w4 WHERE k='dim_in') THEN
     RAISE EXCEPTION 'FAIL 14: stored finding provenance does not match its fieldwork origin'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.examination_history
+  IF NOT EXISTS (SELECT 1 FROM public.examination_events
                   WHERE examination_id = (SELECT v FROM w4 WHERE k='ex')
                     AND event_type = 'supervisory_finding_created') THEN
     RAISE EXCEPTION 'FAIL 14: finding origination was not recorded on the examination'; END IF;
