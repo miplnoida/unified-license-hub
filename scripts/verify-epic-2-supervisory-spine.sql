@@ -595,6 +595,34 @@ BEGIN
     'high', NULL, 'high', 0.2, 4, 'Significant non-resident customer base.');
   PERFORM public.supervisory_assessment_dimension_upsert(aid, 'TRANSACTION_MONITORING', 'CONTROL_EFFECTIVENESS',
     NULL, 'weak', 'high', 0.2, 4, 'Monitoring thresholds untuned since implementation.');
+END $$;
+
+-- The mandatory AML methodology questions are answered by an officer holding
+-- aml_supervision.edit (W4 governed working-file completeness) before submission.
+RESET ROLE;
+UPDATE public.licensees SET regulator_officer_id = 'b8eaf680-fe66-4d49-b816-1c087f511235'
+ WHERE id = (SELECT v FROM epic2_ctx WHERE k='entity_a');
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = '{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}';
+DO $$
+DECLARE aid uuid := (SELECT v FROM epic2_ctx WHERE k='aml_assessment'); qr record;
+BEGIN
+  FOR qr IN
+    SELECT q.id FROM public.supervisory_methodology_question q
+      JOIN public.supervisory_methodology_dimension d ON d.id = q.methodology_dimension_id
+     WHERE q.methodology_id = (SELECT v FROM epic2_ctx WHERE k='aml_methodology')
+       AND q.active AND q.mandatory AND d.active
+  LOOP
+    PERFORM public.supervisory_assessment_question_upsert(aid, qr.id, 'YES',
+      'Tested during the Epic 2 certification fixture and evidenced in the workpaper file.',
+      '[{"kind":"workpaper","ref":"EPIC2-CERT-Q"}]'::jsonb);
+  END LOOP;
+END $$;
+
+SET LOCAL "request.jwt.claims" = '{"sub":"ef43e80a-e17e-4f26-aa91-bcf0d99e3d89","role":"authenticated"}';
+DO $$
+DECLARE aid uuid := (SELECT v FROM epic2_ctx WHERE k='aml_assessment');
+BEGIN
   PERFORM public.supervisory_assessment_transition(aid, 'submitted', 'Submitted for AML review.');
 END $$;
 

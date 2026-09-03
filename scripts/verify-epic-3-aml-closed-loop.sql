@@ -207,6 +207,22 @@ BEGIN
   IF (d->>'is_overridden')::boolean IS NOT TRUE THEN
     RAISE EXCEPTION 'FAIL H: override not recorded'; END IF;
 
+  -- Mandatory methodology questions must be answered before submission
+  -- (governed working-file completeness, W4).
+  DECLARE qr record;
+  BEGIN
+    FOR qr IN
+      SELECT q.id FROM public.supervisory_methodology_question q
+        JOIN public.supervisory_methodology_dimension d ON d.id = q.methodology_dimension_id
+       WHERE q.methodology_id = (SELECT v FROM e3 WHERE k='aml_meth')
+         AND q.active AND q.mandatory AND d.active
+    LOOP
+      PERFORM public.supervisory_assessment_question_upsert(aid, qr.id, 'YES',
+        'Tested during the certification walkthrough and evidenced in the workpaper file.',
+        '[{"kind":"workpaper","ref":"EPIC3-CERT-Q"}]'::jsonb);
+    END LOOP;
+  END;
+
   PERFORM public.supervisory_assessment_transition(aid, 'submitted',
     'Submitted for AML/CFT supervisory review.');
 END $$;
