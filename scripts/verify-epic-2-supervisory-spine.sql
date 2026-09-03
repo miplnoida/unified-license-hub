@@ -1094,9 +1094,11 @@ END $$;
 DO $$
 DECLARE n bigint;
 BEGIN
+  -- Pre-run population (14 historical + any governed examinations opened since)
+  -- plus exactly the 4 transaction-scoped certification fixtures.
   SELECT count(*) INTO n FROM public.examinations;
-  IF n <> 14 + 4 THEN
-    RAISE EXCEPTION 'FAIL FINAL: expected 14 historical + 4 certification examinations, found %', n; END IF;
+  IF n <> (SELECT b.n FROM epic2_before b WHERE b.k = 'examinations') + 4 THEN
+    RAISE EXCEPTION 'FAIL FINAL: expected the pre-run population + 4 certification examinations, found %', n; END IF;
   SELECT count(*) INTO n FROM public.legacy_supervisory_plans;
   IF n <> 3 THEN RAISE EXCEPTION 'FAIL FINAL: legacy plan count drifted (%)', n; END IF;
   SELECT count(*) INTO n FROM public.inspections;
