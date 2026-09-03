@@ -188,9 +188,9 @@ BEGIN
           'W1E2B_TEST_RATIO', 'high', 'open');
 
   INSERT INTO public.examinations
-    (id, reference, entity_id, sector_id, title, examination_type, stage, lead_examiner_id, created_by)
+    (id, reference, entity_id, sector_id, title, examination_type, stage, lead_examiner_id, created_by, origin_provenance)
   VALUES (v_exam, 'EXM-W1E2B-0001', v_ent, v_sec, 'W1E2B Onsite Examination',
-          'full_scope', 'planned', v_lead, v_lead);
+          'full_scope', 'planned', v_lead, v_lead, 'GOVERNED');
 END $$;
 
 SET LOCAL ROLE authenticated;
