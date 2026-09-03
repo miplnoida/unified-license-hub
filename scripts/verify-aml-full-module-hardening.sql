@@ -75,10 +75,22 @@ BEGIN
   FROM public.supervisory_assessment_dimension d
   JOIN public.supervisory_assessment a ON a.id = d.assessment_id
   WHERE a.domain_code = 'AML_CFT' AND upper(a.status) = 'APPROVED'
+    AND d.calculated_residual_rating IS NOT NULL
     AND d.residual_rating IS DISTINCT FROM d.calculated_residual_rating
     AND coalesce(btrim(d.override_reason), '') = '';
   PERFORM pg_temp.gate('AMLH-08', 'calculated vs judged rating', n = 0,
-    format('approved AML dimensions overridden without rationale = %s', n));
+    format('approved AML dimensions overridden without a recorded reason = %s', n));
+
+  -- AMLH-09 calculated rating recorded: an approved AML dimension must carry the
+  -- methodology-calculated residual rating alongside the judged one, otherwise
+  -- override discipline cannot be evidenced at all.
+  SELECT count(*) INTO n
+  FROM public.supervisory_assessment_dimension d
+  JOIN public.supervisory_assessment a ON a.id = d.assessment_id
+  WHERE a.domain_code = 'AML_CFT' AND upper(a.status) = 'APPROVED'
+    AND d.calculated_residual_rating IS NULL;
+  PERFORM pg_temp.gate('AMLH-09', 'calculated rating recorded', n = 0,
+    format('approved AML dimensions with no calculated residual rating = %s', n));
 
   -- AMLH-10 maker/checker: no approved AML assessment was approved by its maker.
   SELECT count(*) INTO n
