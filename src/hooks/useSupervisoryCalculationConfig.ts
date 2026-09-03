@@ -47,6 +47,14 @@ export function supervisoryDomainModule(domainCode?: string | null): string | nu
   }
 }
 
+/**
+ * Overall recommendation policies implemented by the engine.
+ * `HIGHEST_DIMENSION` takes the worst (highest ordinal) residual dimension; it
+ * is deliberately not called "material" because no governed notion of dimension
+ * materiality exists.
+ */
+export type RecommendationPolicy = 'WEIGHTED_SCORE' | 'HIGHEST_DIMENSION' | 'WEIGHTED_WITH_THRESHOLD';
+
 export interface CalculationConfig {
   id: string;
   methodology_id: string;
