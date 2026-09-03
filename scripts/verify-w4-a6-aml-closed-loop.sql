@@ -758,7 +758,7 @@ DECLARE res jsonb; aid uuid;
 BEGIN
   res := public.supervisory_assessment_create(
     (SELECT v FROM a6 WHERE k='ent'), 'AML_CFT', 'FOLLOW_UP',
-    (current_date - 180), current_date, NULL, 'REMEDIATION_COMPLETED', NULL,
+    (current_date - 180), current_date, NULL, 'FOLLOW_UP', NULL,
     'Follow-up AML/CFT assessment after validated remediation of the monitoring finding.',
     NULL, (SELECT v FROM a6 WHERE k='assessment'));
   aid := (res->>'id')::uuid;
