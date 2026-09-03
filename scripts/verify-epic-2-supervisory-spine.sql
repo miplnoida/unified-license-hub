@@ -133,9 +133,11 @@ END $$;
 DO $$
 DECLARE n bigint; bad int;
 BEGIN
-  SELECT count(*) INTO n FROM public.examinations;
-  IF n <> 14 OR n <> (SELECT b.n FROM epic2_before b WHERE b. k='examinations') THEN
-    RAISE EXCEPTION 'FAIL 2: examination count is % (expected 14)', n; END IF;
+  -- Historical (pre-spine) population only. Governed examinations opened after
+  -- the spine landed are legitimate new supervisory work, not migration drift.
+  SELECT count(*) INTO n FROM public.examinations WHERE origin_provenance = 'LEGACY_UNKNOWN';
+  IF n <> 14 THEN
+    RAISE EXCEPTION 'FAIL 2: historical examination count is % (expected 14)', n; END IF;
 
   SELECT count(*) INTO bad FROM (
     SELECT id FROM epic2_exam_before EXCEPT SELECT id FROM public.examinations) x;
@@ -152,7 +154,8 @@ BEGIN
   -- deterministic classification, no invented plan/assessment provenance
   SELECT count(*) INTO bad FROM public.examinations WHERE domain_code IS NULL;
   IF bad > 0 THEN RAISE EXCEPTION 'FAIL 2: % examinations have no domain classification', bad; END IF;
-  SELECT count(*) INTO bad FROM public.examinations WHERE domain_code <> 'PRUDENTIAL';
+  SELECT count(*) INTO bad FROM public.examinations
+   WHERE origin_provenance = 'LEGACY_UNKNOWN' AND domain_code <> 'PRUDENTIAL';
   IF bad > 0 THEN RAISE EXCEPTION 'FAIL 2: % examinations classified outside the deterministic PRUDENTIAL backfill', bad; END IF;
   SELECT count(*) INTO bad FROM public.examinations
    WHERE origin_provenance = 'LEGACY_UNKNOWN'
