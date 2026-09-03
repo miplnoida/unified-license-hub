@@ -247,7 +247,21 @@ export function computeAssessmentReadiness(
         ? `${overrideRationaleOutstanding.length} override rationale${overrideRationaleOutstanding.length === 1 ? '' : 's'} missing: ${list(overrideRationaleOutstanding)}`
         : 'Complete',
     },
+    {
+      key: 'questions',
+      label: 'Mandatory supervisory questions answered',
+      satisfied: questionGaps.length === 0,
+      detail: questionGaps.length
+        ? `${questionGaps.length} outstanding: ${list(
+            questionGaps.map((g) => `${g.dimensionCode} ${g.questionCode} (${QUESTION_GAP_REASON[g.reason]})`),
+            3,
+          )}`
+        : mandatoryQuestions.length
+          ? `All ${mandatoryQuestions.length} questions answered`
+          : 'No mandatory questions configured',
+    },
   ];
+
 
   return {
     totalDimensions: dimensions.length,
