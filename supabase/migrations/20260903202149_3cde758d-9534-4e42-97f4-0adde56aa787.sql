@@ -1,0 +1,2 @@
+UPDATE public.sec_navigation_items SET icon_key = 'TriangleAlert' WHERE key = 'nav_sup_aml_findings';
+UPDATE public.sec_navigation_items SET icon_key = 'FileChartColumn' WHERE key = 'nav_sup_aml_heatmap';
