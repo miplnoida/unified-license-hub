@@ -1,6 +1,7 @@
 # EPIC 4 / W5 — Enterprise dashboard, portfolio & sector supervision convergence
 
-Status: **IN PROGRESS** (census complete, read models implemented, certification pending)
+Status: **CERTIFIED** — 2026-09-03 (census complete, read models implemented, 18/18 gates PASS).
+Final verdict: [docs/supervision/epic-4-w5-a3b-final-verdict.md](../../supervision/epic-4-w5-a3b-final-verdict.md).
 
 Baseline: Epic 2 certified, Epic 3 certified, W3 certified, W4 (P0, A1–A6) certified,
 AML demonstration dataset certified. W1 (`supervisory_work_item` / `supervisory_work_queue`)
