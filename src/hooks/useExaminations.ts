@@ -62,8 +62,20 @@ export function examinationErrorMessage(err: any): string {
   if (raw.includes('report_approver_must_differ_from_preparer')) return 'A report cannot be approved by the person who prepared it.';
   if (raw.includes('remediation_already_linked')) return 'This finding already has a remediation action.';
   if (raw.includes('workpaper_not_prepared')) return 'Sign off as preparer before review.';
+  if (raw.includes('workpaper_conclusion_required')) return 'Record the conclusion before submitting the workpaper for review.';
+  if (raw.includes('workpaper_locked_after_review')) return 'A reviewed workpaper can no longer be edited.';
+  if (raw.includes('workpaper_already_reviewed')) return 'This workpaper has already been reviewed.';
+  if (raw.includes('workpaper_not_in_review')) return 'Only a workpaper awaiting review can be returned for revision.';
+  if (raw.includes('review_notes_required')) return 'Explain what must be revised before returning the workpaper.';
+  if (raw.includes('scope_dimension_not_in_examination')) return 'That risk area is not within this examination’s scope.';
+  if (raw.includes('scope_entity_mismatch')) return 'That risk area belongs to a different entity.';
+  if (raw.includes('provenance_mismatch')) return raw.replace(/^.*provenance_mismatch:\s*/, 'Source record mismatch: ');
+  if (raw.includes('request_already_issued')) return 'This request has already been issued to the entity.';
+  if (raw.includes('request_not_issued')) return 'Issue the request to the entity before recording a response.';
+  if (raw.includes('governed finding requires an authoritative origin')) return 'A finding must be raised from a workpaper, examination, assessment or risk area.';
   if (raw.includes('invalid_stage_transition')) return 'That stage change is not allowed from the current stage.';
-  if (raw.includes('not_authorised')) return 'You do not have permission to perform this action.';
+  if (raw.includes('not_authorised') || raw.includes('not_authorized')) return 'You do not have permission to perform this action.';
+
   return raw || 'Action failed';
 }
 
@@ -313,21 +325,160 @@ export function useTeamMutations(examinationId?: string) {
 }
 
 
+// ─── Examination scope (risk dimensions carried into fieldwork) ───
+export interface ExaminationScopeDimension {
+  id: string;
+  examination_id: string;
+  assessment_id: string | null;
+  assessment_dimension_id: string;
+  dimension_code: string;
+  residual_rating: string | null;
+  rationale: string | null;
+}
+
+export function useExaminationScopeDimensions(examinationId?: string) {
+  return useQuery({
+    queryKey: ['examination-scope-dimensions', examinationId],
+    queryFn: async (): Promise<ExaminationScopeDimension[]> => {
+      const { data, error } = await sb
+        .from('examination_scope_dimension')
+        .select('id, examination_id, assessment_id, assessment_dimension_id, dimension_code, residual_rating, rationale')
+        .eq('examination_id', examinationId)
+        .order('dimension_code');
+      if (error) throw error;
+      return (data ?? []) as ExaminationScopeDimension[];
+    },
+    enabled: !!examinationId,
+  });
+}
+
+/** Shared mutation wrapper for the governed examination execution operations. */
+function useGovernedExaminationOp<TVars>(
+  fn: (v: TVars) => Promise<{ data: any; error: any }>,
+  examinationId: string | undefined,
+  keys: string[],
+  successMessage: string,
+) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: TVars) => {
+      const { data, error } = await fn(v);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      keys.forEach(k => qc.invalidateQueries({ queryKey: [k, examinationId] }));
+      qc.invalidateQueries({ queryKey: ['examination-events', examinationId] });
+      toast.success(successMessage);
+    },
+    onError: (e: any) => toast.error(examinationErrorMessage(e)),
+  });
+}
+
 // Data requests
 export function useDataRequests(examinationId?: string) {
   return useQuery(childQuery('examination_data_requests', 'examination-data-requests', examinationId, 'item_no'));
 }
+
+export interface DataRequestInput {
+  id?: string;
+  title?: string;
+  description?: string | null;
+  data_format?: string | null;
+  due_date?: string | null;
+  requested_from?: string | null;
+  priority?: string | null;
+  assessment_dimension_id?: string | null;
+  outstanding_items?: string | null;
+}
+
 export function useDataRequestMutations(examinationId?: string) {
-  return useChildMutations('examination_data_requests', ['examination-data-requests'], examinationId);
+  const qc = useQueryClient();
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['examination-data-requests', examinationId] });
+    qc.invalidateQueries({ queryKey: ['examination-events', examinationId] });
+  };
+  const save = useGovernedExaminationOp<DataRequestInput>(
+    v => sb.rpc('examination_data_request_save', { _payload: { ...v, examination_id: examinationId } }),
+    examinationId, ['examination-data-requests'], 'Information request saved',
+  );
+  const issue = useGovernedExaminationOp<{ id: string }>(
+    v => sb.rpc('examination_data_request_issue', { _request_id: v.id }),
+    examinationId, ['examination-data-requests'], 'Request issued to the entity',
+  );
+  const receive = useGovernedExaminationOp<{
+    id: string; entity_response?: string | null; outstanding_items?: string | null; fully_received?: boolean;
+  }>(
+    v => sb.rpc('examination_data_request_receive', {
+      _request_id: v.id,
+      _entity_response: v.entity_response ?? null,
+      _outstanding_items: v.outstanding_items ?? null,
+      _fully_received: v.fully_received !== false,
+    }),
+    examinationId, ['examination-data-requests'], 'Response recorded',
+  );
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await sb.from('examination_data_requests').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { invalidate(); toast.success('Removed'); },
+    onError: (e: any) => toast.error(examinationErrorMessage(e)),
+  });
+  return { save, issue, receive, remove };
 }
 
 // Workpapers
 export function useWorkpapers(examinationId?: string) {
   return useQuery(childQuery('examination_workpapers', 'examination-workpapers', examinationId));
 }
-export function useWorkpaperMutations(examinationId?: string) {
-  return useChildMutations('examination_workpapers', ['examination-workpapers'], examinationId);
+
+export interface WorkpaperInput {
+  id?: string;
+  area?: string;
+  objective?: string | null;
+  procedure_performed?: string | null;
+  population_description?: string | null;
+  population_size?: string | number | null;
+  sampling_method?: string | null;
+  sample_size?: string | number | null;
+  evidence_reference?: string | null;
+  exceptions_count?: string | number | null;
+  material_exceptions_count?: string | number | null;
+  analysis?: string | null;
+  conclusion?: string | null;
+  control_assessment?: string | null;
+  assessment_dimension_id?: string | null;
 }
+
+export function useWorkpaperMutations(examinationId?: string) {
+  const qc = useQueryClient();
+  const save = useGovernedExaminationOp<WorkpaperInput>(
+    v => sb.rpc('examination_workpaper_save', { _payload: { ...v, examination_id: examinationId } }),
+    examinationId, ['examination-workpapers'], 'Workpaper saved',
+  );
+  const submitReview = useGovernedExaminationOp<{ id: string }>(
+    v => sb.rpc('examination_workpaper_submit_review', { _workpaper_id: v.id }),
+    examinationId, ['examination-workpapers'], 'Workpaper submitted for review',
+  );
+  const returnForRevision = useGovernedExaminationOp<{ id: string; notes: string }>(
+    v => sb.rpc('examination_workpaper_return', { _workpaper_id: v.id, _notes: v.notes }),
+    examinationId, ['examination-workpapers'], 'Workpaper returned for revision',
+  );
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await sb.from('examination_workpapers').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['examination-workpapers', examinationId] });
+      toast.success('Removed');
+    },
+    onError: (e: any) => toast.error(examinationErrorMessage(e)),
+  });
+  return { save, submitReview, returnForRevision, remove };
+}
+
 export function useSignoffWorkpaper(examinationId?: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -452,5 +603,54 @@ export function useExaminationEvents(examinationId?: string) {
       return (data ?? []) as any[];
     },
     enabled: !!examinationId,
+  });
+}
+
+/**
+ * Raises a canonical supervisory finding from examination fieldwork.
+ *
+ * The caller supplies only supervisory content. Provenance (examination,
+ * workpaper, risk dimension, assessment) is passed through from the record the
+ * officer is working in and re-validated server side; the plan, intervention
+ * and attention links are derived from the examination itself.
+ */
+export function useRaiseExaminationFinding(examinationId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: {
+      entity_id: string;
+      domain_code: string;
+      title: string;
+      observation: string;
+      finding_category: string;
+      severity: string;
+      root_cause?: string | null;
+      risk_impact?: string | null;
+      regulatory_criterion?: string | null;
+      required_action?: string | null;
+      recommendation?: string | null;
+      due_date?: string | null;
+      workpaper_id?: string | null;
+      assessment_dimension_id?: string | null;
+    }): Promise<string> => {
+      const { data, error } = await sb.rpc('supervisory_finding_create', {
+        _payload: {
+          ...v,
+          source_kind: 'EXAMINATION',
+          examination_id: examinationId,
+          confidentiality: 'RESTRICTED',
+        },
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => {
+      ['examination-findings', 'examination-workpapers', 'examination-events'].forEach(k =>
+        qc.invalidateQueries({ queryKey: [k, examinationId] }));
+      qc.invalidateQueries({ queryKey: ['aml'] });
+      qc.invalidateQueries({ queryKey: ['supervisory-findings'] });
+      toast.success('Supervisory finding raised');
+    },
+    onError: (e: any) => toast.error(examinationErrorMessage(e)),
   });
 }
