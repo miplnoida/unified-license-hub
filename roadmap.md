@@ -13,7 +13,7 @@
   - [x] W4-A3 Examination scoping from approved AML dimensions (`examination_scope_from_assessment`, `EXAMINER_AMENDED` rationale) + exact `examination_origin` provenance on the assessment workspace (no entity+domain inference) — IMPLEMENTED, not yet certified
   - [x] W4-A4 AML RFI / workpaper / finding creation from the canonical workspace (`supervisory_finding_create` full provenance) — CERTIFIED (13/13 reconciliation gates R1–R13; closure now blocked while any corrective action is outstanding)
   - [x] W4-A5 Canonical finding workspace `/supervision/findings/:id` (domain-derived authorization, multi corrective action with exact `remediation_action_id`, officer-recorded management response with receipt provenance, closure readiness from every action, independent validation, escalation, enforcement referral, reassessment requirement, merged history) — IMPLEMENTED, not yet certified
-  - [ ] W4-A6 Closed-loop certification scenario + 20-case AML demo dataset + persona browser E2E + final regression verdict
+  - [x] W4-A6 AML/CFT closed-loop certification (25/25 gates) — CERTIFIED (docs/enterprise/suptech-convergence/EPIC-4-aml-operational-ux-closure.md)
 - [ ] W5 Global dashboard, executive view, portfolio/sector supervision, read-model re-sourcing
 - [ ] W6 Legacy retirement census + route convergence + enterprise next action + team capacity
 - [ ] W7 Certification: 20+ entity dataset, `scripts/verify-epic-4-enterprise-convergence.sql`, personas, Playwright, reconciliation, performance, security, regression matrix
