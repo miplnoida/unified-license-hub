@@ -183,6 +183,21 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   { pattern: '/supervision/thematic-reviews/new', label: 'New review', parent: '/supervision/thematic-reviews' },
   { pattern: '/supervision/thematic-reviews/:id', resolver: 'thematicReview', param: 'id', parent: '/supervision/thematic-reviews' },
   { pattern: '/supervision/thematic-closure-approvals', label: 'Closure approvals', parent: '/supervision/thematic-reviews' },
+
+  // ------------------------------------------------------------- AML/CFT
+  { pattern: '/supervision/aml', label: 'AML/CFT supervision', parent: '/dashboard' },
+  { pattern: '/supervision/aml/work-queue', label: 'Work queue', parent: '/supervision/aml' },
+  { pattern: '/supervision/aml/entities', label: 'Entities', parent: '/supervision/aml' },
+  { pattern: '/supervision/aml/assessments', label: 'Assessments', parent: '/supervision/aml' },
+  { pattern: '/supervision/aml/assessments/:id', label: 'Assessment case', parent: '/supervision/aml/assessments' },
+  { pattern: '/supervision/aml/examinations', label: 'Examinations', parent: '/supervision/aml' },
+  { pattern: '/supervision/aml/findings', label: 'Findings', parent: '/supervision/aml' },
+  { pattern: '/supervision/aml/heatmap', label: 'Risk heatmap', parent: '/supervision/aml' },
+
+  // ----------------------------------------------------------- documents
+  { pattern: '/documents/registry', label: 'Document registry', parent: '/dashboard' },
+  { pattern: '/documents/registry/:documentId', label: 'Document', parent: '/documents/registry' },
+  { pattern: '/documents/legacy-store', label: 'Legacy document store', parent: '/documents/registry' },
   { pattern: '/inspections', label: 'Inspections', parent: '/prudential' },
   { pattern: '/inspections/schedule', label: 'Schedule', parent: '/inspections' },
   { pattern: '/inspections/:id', label: 'Inspection', parent: '/inspections' },
