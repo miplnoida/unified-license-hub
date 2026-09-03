@@ -141,6 +141,10 @@ export default function AmlFindings() {
                               <Link to={`/supervision/aml/assessments/${f.assessment_id}`}>Assessment</Link>
                             </Button>
                           ) : null}
+                          <Button asChild size="sm">
+                            <Link to={`/supervision/findings/${f.id}`}>Open finding</Link>
+                          </Button>
+
                         </div>
                       </div>
 

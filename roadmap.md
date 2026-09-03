@@ -12,7 +12,7 @@
   - [x] W4-A2 Plan → intervention (`supervisory_intervention_open`) and intervention → examination (`supervisory_examination_open`) UI flows
   - [x] W4-A3 Examination scoping from approved AML dimensions (`examination_scope_from_assessment`, `EXAMINER_AMENDED` rationale) + exact `examination_origin` provenance on the assessment workspace (no entity+domain inference) — IMPLEMENTED, not yet certified
   - [ ] W4-A4 AML RFI / workpaper / finding creation from the canonical workspace (`supervisory_finding_create` full provenance)
-  - [ ] W4-A5 Canonical finding workspace `/supervision/findings/:id` (multi corrective action, exact `remediation_action_id`, closure readiness, validation, escalation, enforcement referral, reassessment)
+  - [x] W4-A5 Canonical finding workspace `/supervision/findings/:id` (domain-derived authorization, multi corrective action with exact `remediation_action_id`, officer-recorded management response with receipt provenance, closure readiness from every action, independent validation, escalation, enforcement referral, reassessment requirement, merged history) — IMPLEMENTED, not yet certified
   - [ ] W4-A6 Closed-loop certification scenario + 20-case AML demo dataset + persona browser E2E + final regression verdict
 - [ ] W5 Global dashboard, executive view, portfolio/sector supervision, read-model re-sourcing
 - [ ] W6 Legacy retirement census + route convergence + enterprise next action + team capacity

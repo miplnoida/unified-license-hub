@@ -5,6 +5,8 @@ import { ModuleRoute } from '@/components/auth/RouteGuards';
 import { PortalRoute } from '@/components/auth/PortalRoute';
 import type { PermissionModule } from '@/lib/permissionModules';
 import { ExaminationDomainRoute } from '@/routes/ExaminationDomainRoute';
+import { FindingDomainRoute } from '@/routes/FindingDomainRoute';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { INTERNAL_ROLES } from '@/types/platform';
 import type { PortalArea, PortalCapability } from '@/lib/portalAccess';
@@ -72,6 +74,9 @@ const AmlAssessmentWorkspace = lazy(() => import('@/pages/supervision/aml/AmlAss
 const AmlRiskHeatmap = lazy(() => import('@/pages/supervision/aml/AmlRiskHeatmap'));
 const AmlExaminations = lazy(() => import('@/pages/supervision/aml/AmlExaminations'));
 const AmlFindings = lazy(() => import('@/pages/supervision/aml/AmlFindings'));
+// Canonical, domain-neutral finding workspace shared by every supervisory domain.
+const FindingWorkspace = lazy(() => import('@/pages/supervision/FindingWorkspace'));
+
 const ExecutiveDashboard = lazy(() => import('@/pages/analytics/ExecutiveDashboard'));
 const AlertCenter = lazy(() => import('@/pages/analytics/AlertCenter'));
 const ComplaintBulkIntake = lazy(() => import('@/pages/complaints/BulkIntake'));
@@ -393,6 +398,14 @@ export const dashboardRoutes = (
       path="/supervision/examinations/:id"
       element={<ExaminationDomainRoute><ExaminationWorkspace /></ExaminationDomainRoute>}
     />
+
+    {/* Canonical enterprise finding workspace — one screen for every domain;
+        authorization derives from the finding's own supervisory domain. */}
+    <Route
+      path="/supervision/findings/:id"
+      element={<FindingDomainRoute><FindingWorkspace /></FindingDomainRoute>}
+    />
+
 
     <Route path="/prudential" element={<Navigate to="/prudential/dashboard" replace />} />
     <Route path="/prudential/dashboard" element={<M module="prudential_supervision"><PrudentialDashboard /></M>} />
