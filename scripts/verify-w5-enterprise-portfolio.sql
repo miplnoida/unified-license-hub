@@ -798,14 +798,51 @@ BEGIN
         r.domain_code, r.entity_id;
     END IF;
 
-    FOREACH k IN ARRAY ARRAY['residual_rating','open_findings','critical_findings',
+    -- ratings must match exactly
+    IF COALESCE(dpf ->> 'residual_rating','∅') IS DISTINCT FROM COALESCE(d360 ->> 'residual_rating','∅')
+       OR COALESCE(dpf ->> 'inherent_rating','∅') IS DISTINCT FROM COALESCE(d360 ->> 'inherent_rating','∅')
+       OR COALESCE(dpf ->> 'control_rating','∅') IS DISTINCT FROM COALESCE(d360 ->> 'control_rating','∅') THEN
+      RAISE EXCEPTION 'FAIL W5-13: entity % domain % rating disagrees (portfolio %, 360 %)',
+        r.entity_id, r.domain_code, dpf ->> 'residual_rating', d360 ->> 'residual_rating';
+    END IF;
+
+    -- state fields: the portfolio carries counts/flags, Entity 360 carries the
+    -- underlying records; both must report the same presence and cardinality
+    FOREACH k IN ARRAY ARRAY['open_findings','critical_findings','high_findings',
                              'overdue_remediation','validation_pending','open_attention',
                              'active_examination','active_intervention','current_plan',
                              'reassessment_required','active_enforcement','assessment_overdue'] LOOP
-      IF COALESCE(dpf ->> k, '∅') IS DISTINCT FROM COALESCE(d360 ->> k, '∅') THEN
-        RAISE EXCEPTION 'FAIL W5-13: entity % domain % field % disagrees (portfolio %, 360 %)',
-          r.entity_id, r.domain_code, k, dpf ->> k, d360 ->> k;
-      END IF;
+      DECLARE
+        vpf jsonb := dpf -> k;
+        v3  jsonb := d360 -> k;
+        cpf int;
+        c3  int;
+      BEGIN
+        cpf := CASE jsonb_typeof(vpf)
+                 WHEN 'number'  THEN (vpf #>> '{}')::int
+                 WHEN 'boolean' THEN CASE WHEN (vpf #>> '{}')::boolean THEN 1 ELSE 0 END
+                 WHEN 'array'   THEN jsonb_array_length(vpf)
+                 WHEN 'object'  THEN 1
+                 WHEN 'string'  THEN 1
+                 ELSE 0 END;
+        c3  := CASE jsonb_typeof(v3)
+                 WHEN 'number'  THEN (v3 #>> '{}')::int
+                 WHEN 'boolean' THEN CASE WHEN (v3 #>> '{}')::boolean THEN 1 ELSE 0 END
+                 WHEN 'array'   THEN jsonb_array_length(v3)
+                 WHEN 'object'  THEN 1
+                 WHEN 'string'  THEN 1
+                 ELSE 0 END;
+        -- counts must agree exactly where both are countable, otherwise presence must agree
+        IF (jsonb_typeof(vpf) IN ('number','array') AND jsonb_typeof(v3) IN ('number','array')) THEN
+          IF cpf <> c3 THEN
+            RAISE EXCEPTION 'FAIL W5-13: entity % domain % field % cardinality disagrees (portfolio %, 360 %)',
+              r.entity_id, r.domain_code, k, cpf, c3;
+          END IF;
+        ELSIF (cpf > 0) <> (c3 > 0) THEN
+          RAISE EXCEPTION 'FAIL W5-13: entity % domain % field % presence disagrees (portfolio %, 360 %)',
+            r.entity_id, r.domain_code, k, vpf, v3;
+        END IF;
+      END;
     END LOOP;
     n := n + 1;
   END LOOP;
