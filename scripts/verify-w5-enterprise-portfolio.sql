@@ -443,7 +443,7 @@ BEGIN
    ORDER BY count(*) DESC LIMIT 1;
 
   IF eid IS NOT NULL THEN
-    pf := public.supervisory_portfolio(_entity_id_filter => NULL, _limit => 1000);
+    pf := public.supervisory_portfolio(_limit => 1000);
     SELECT (x ->> 'overdue_remediation')::int INTO pf_overdue
       FROM jsonb_array_elements(pf -> 'rows') x WHERE (x ->> 'entity_id')::uuid = eid;
     SELECT count(*) INTO canon_overdue FROM public.supervisory_remediation_action r
