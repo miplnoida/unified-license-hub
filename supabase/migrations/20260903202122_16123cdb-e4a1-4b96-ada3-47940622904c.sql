@@ -1,0 +1,1 @@
+UPDATE public.sec_navigation_items SET icon_key = 'SlidersHorizontal' WHERE key = 'nav_cfg_sup_calculation';
