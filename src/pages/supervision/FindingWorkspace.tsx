@@ -62,7 +62,7 @@ export default function FindingWorkspace() {
 
   const domainModule = moduleForSupervisoryDomain(model?.finding?.domain_code ?? null);
   const canManage = useCan(domainModule, 'edit');
-  const canRefer = useCan('enforcement', 'create') || useCan(domainModule, 'approve');
+  const canRefer = useCan('enforcement_management', 'refer') || useCan(domainModule, 'approve');
 
   const respond = useRecordFindingResponse(id);
   const openRemediation = useOpenRemediation(id);

@@ -483,7 +483,7 @@ export function ExecutiveSupervisoryDashboard() {
             {canExport && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={exporting}>
+                  <Button data-rbac="report_management.export" variant="outline" size="sm" disabled={exporting}>
                     <Download className="mr-2 h-4 w-4" /> Export briefing
                   </Button>
                 </DropdownMenuTrigger>

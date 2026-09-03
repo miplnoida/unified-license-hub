@@ -122,26 +122,65 @@ export interface SupEntitySupervisoryState {
   };
 }
 
+/**
+ * EPIC 4 / W6 — team workload is derived from the canonical enterprise work
+ * model (`supervisory_work_item`). Workload facts only: no utilisation or
+ * capacity percentage is published because no approved capacity denominator
+ * exists (`capacity_methodology = 'NONE_APPROVED'`).
+ */
 export interface SupTeamPerformanceOfficer {
   officer_id: string | null;
   officer_name: string | null;
   department: string | null;
+  team_id: string | null;
+  team_name: string | null;
   open_items: number;
+  high_priority_items: number;
   overdue_items: number;
   due_soon_items: number;
-  completed_in_period: number;
-  by_domain: Partial<Record<SupDomain, number>>;
+  awaiting_decision_items: number;
+  examination_items: number;
+  finding_remediation_items: number;
+  earliest_due_date: string | null;
+  by_domain: Record<string, number>;
+}
+
+export interface SupTeamWorkloadTeam {
+  team_id: string | null;
+  team_name: string | null;
+  officers: number;
+  open_items: number;
+  high_priority_items: number;
+  overdue_items: number;
+  due_soon_items: number;
+  awaiting_decision_items: number;
+}
+
+export interface SupTeamWorkloadCounts {
+  items: number;
+  high_priority_items: number;
+  overdue_items: number;
+  due_soon_items: number;
+  awaiting_decision_items: number;
+  by_domain: Record<string, number>;
 }
 
 export interface SupTeamPerformance {
-  domains: Partial<Record<'prudential' | 'conduct' | 'licensing', boolean>>;
+  generated_at: string;
+  source: 'supervisory_work_item';
+  capacity_methodology: 'NONE_APPROVED' | string;
   period: { from: string; to: string };
   officers: SupTeamPerformanceOfficer[];
-  unassigned: {
-    breaches_awaiting_acknowledgement: number;
-    complaints_unassigned_team: number;
-    filings_unassigned: number;
-  };
+  teams: SupTeamWorkloadTeam[];
+  unassigned: SupTeamWorkloadCounts | null;
+  totals: {
+    open_items: number;
+    high_priority_items: number;
+    overdue_items: number;
+    due_soon_items: number;
+    awaiting_decision_items: number;
+    unassigned_items: number;
+  } | null;
 }
 
 /* ------------------------------------------------------------------ hooks */

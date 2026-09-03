@@ -1,3 +1,4 @@
+import { objectRoute } from '@/lib/routes/objectRoutes';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -43,7 +44,7 @@ export function EntityExaminationsTab({ entityId }: { entityId: string }) {
                   <TableCell className="text-right tabular-nums">{r.findings_count ?? 0}</TableCell>
                   <TableCell className="text-right">
                     <Button asChild size="sm" variant="ghost">
-                      <Link to={`/prudential/examinations/${r.id}`}><ExternalLink className="h-4 w-4" /></Link>
+                      <Link to={objectRoute.examination(r.id)}><ExternalLink className="h-4 w-4" /></Link>
                     </Button>
                   </TableCell>
                 </TableRow>

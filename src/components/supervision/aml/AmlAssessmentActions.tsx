@@ -139,6 +139,7 @@ export function AmlAssessmentActions({
           {editable ? (
             canSubmit ? (
               <Button
+                data-rbac="aml_supervision.submit"
                 size="sm"
                 onClick={() => setDialog('submit')}
                 disabled={!readiness.ready}
@@ -147,7 +148,7 @@ export function AmlAssessmentActions({
                 Submit for supervisory review
               </Button>
             ) : (
-              <Button size="sm" variant="outline" disabled>
+              <Button data-rbac="aml_supervision.submit" size="sm" variant="outline" disabled>
                 <Lock className="mr-1.5 h-3.5 w-3.5" />
                 Submission requires the AML/CFT submit capability
               </Button>
@@ -167,7 +168,7 @@ export function AmlAssessmentActions({
 
           {st === 'reviewed' && canApprove ? (
             <>
-              <Button size="sm" onClick={() => setDialog('approve')}>
+              <Button data-rbac="aml_supervision.approve" size="sm" onClick={() => setDialog('approve')}>
                 Approve assessment
               </Button>
               <Button size="sm" variant="outline" onClick={() => setDialog('return')}>

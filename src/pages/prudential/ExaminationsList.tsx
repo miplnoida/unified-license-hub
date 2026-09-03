@@ -1,3 +1,4 @@
+import { objectRoute } from '@/lib/routes/objectRoutes';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -78,7 +79,7 @@ export default function ExaminationsList() {
     };
     const created = await create.mutateAsync(payload);
     setOpen(false);
-    if (created?.id) window.location.href = `/prudential/examinations/${created.id}`;
+    if (created?.id) window.location.href = objectRoute.examination(created.id);
   };
 
   return (
@@ -211,7 +212,7 @@ export default function ExaminationsList() {
                     {filtered.map(r => (
                       <TableRow key={r.id} className="hover:bg-muted/30">
                         <TableCell className="font-mono text-xs">
-                          <Link className="text-primary hover:underline" to={`/prudential/examinations/${r.id}`}>{r.reference}</Link>
+                          <Link className="text-primary hover:underline" to={objectRoute.examination(r.id)}>{r.reference}</Link>
                         </TableCell>
                         <TableCell>{r.licensee?.name || '—'}</TableCell>
                         <TableCell className="max-w-[240px] truncate">{r.title}</TableCell>

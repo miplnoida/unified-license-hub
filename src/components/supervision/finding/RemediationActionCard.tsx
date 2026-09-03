@@ -247,7 +247,7 @@ export function RemediationActionCard({ action, model, canManage, canRefer }: Pr
               </Button>
             ) : null}
             {residualOutstanding ? (
-              <Button size="sm" onClick={() => setDialog('residual')}>
+              <Button data-rbac="supervisory_spine.edit" size="sm" onClick={() => setDialog('residual')}>
                 <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />Accept residual deficiency on {action.reference}
               </Button>
             ) : null}

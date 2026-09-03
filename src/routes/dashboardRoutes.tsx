@@ -185,6 +185,7 @@ const PersonIdentityQueue = lazy(() => import('@/pages/persons/PersonIdentityQue
 const Address360Detail = lazy(() => import('@/pages/intelligence/Address360Detail'));
 const RelationshipIntelligenceSearch = lazy(() => import('@/pages/intelligence/RelationshipIntelligenceSearch'));
 const Entity360Redirect = lazy(() => import('@/routes/Entity360Redirect'));
+const LegacyExaminationRedirect = lazy(() => import('@/routes/LegacyExaminationRedirect'));
 const EntityResolutionQueue = lazy(() => import('@/pages/licensing/EntityResolutionQueue'));
 const EntityResolutionDetail = lazy(() => import('@/pages/licensing/EntityResolutionDetail'));
 const EntityMemberships = lazy(() => import('@/pages/admin/EntityMemberships'));
@@ -443,7 +444,7 @@ export const dashboardRoutes = (
     <Route path="/prudential/actions" element={<M module="prudential_supervision"><ActionsList /></M>} />
     <Route path="/prudential/escalations" element={<M module="prudential_supervision"><EscalationsList /></M>} />
     <Route path="/prudential/examinations" element={<M module="prudential_supervision"><ExaminationsList /></M>} />
-    <Route path="/prudential/examinations/:id" element={<M module="prudential_supervision"><ExaminationWorkspace /></M>} />
+    <Route path="/prudential/examinations/:id" element={<LegacyExaminationRedirect />} />
     <Route path="/prudential/payment-systems" element={<M module="prudential_supervision"><PaymentSystemsOversight /></M>} />
     <Route path="/prudential/payment-systems/:operatorId" element={<M module="prudential_supervision"><PaymentOperatorProfile /></M>} />
     <Route path="/prudential/pfmi-assessments/:assessmentId" element={<M module="prudential_supervision"><PfmiAssessmentWizard /></M>} />
