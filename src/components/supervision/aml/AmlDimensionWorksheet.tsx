@@ -29,20 +29,27 @@ import {
   RATING_OPTIONS,
   TREND_OPTIONS,
 } from '@/components/supervision/aml/AmlActionDialog';
+import { AmlDimensionQuestions } from '@/components/supervision/aml/AmlDimensionQuestions';
 import { AmlEvidenceLinker, type AmlEvidenceRef } from '@/components/supervision/aml/AmlEvidenceLinker';
 import {
   amlErrorMessage,
   useAmlMethodologyDimensions,
+  useAmlMethodologyQuestions,
+  useAmlQuestionResponses,
   useSaveAmlDimension,
   type AmlMethodologyDimension,
+  type AmlMethodologyQuestion,
+  type AmlQuestionResponse,
 } from '@/hooks/useAmlLifecycle';
 import {
+  computeQuestionGaps,
   evidenceCount,
   isAssessed,
   isOverride,
   matchRecorded,
   type RecordedDimension,
 } from '@/lib/amlAssessmentReadiness';
+
 import { AMBER, EMERALD, NEUTRAL, ratingTone, titleCase } from '@/lib/amlLabels';
 
 interface Props {
