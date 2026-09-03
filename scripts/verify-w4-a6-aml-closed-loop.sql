@@ -708,7 +708,7 @@ END $$;
 -- ---------------------------------------------------------------------------
 -- A6-22 — the finding closes only when every corrective action is resolved
 -- ---------------------------------------------------------------------------
-SET LOCAL "request.jwt.claims" = :'REVIEWER';
+SET LOCAL "request.jwt.claims" = :'SUPERVISOR2';
 DO $$
 DECLARE f public.supervisory_finding;
 BEGIN
