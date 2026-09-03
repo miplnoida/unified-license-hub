@@ -185,12 +185,22 @@ non-internal identity still projects to `applicant`.
 
 Result: **24/24 PASS**.
 
-### 11.4 Browser evidence (re-certification)
+### 11.4 Final browser result (post-W6-A6 re-certification)
 
-| Identity | `/dashboard` | `/supervision/portfolio` | `/supervision/team-performance` | Sidebar |
-| --- | --- | --- | --- | --- |
-| Executive Management | internal shell (My Work, Supervision, Insights & Reporting, Executive Dashboard) | renders | renders | Portfolio & Team Performance present |
-| Returns Officer (non-supervisory internal) | internal returns shell | **Access Denied** | **Access Denied** | neither entry present |
+| Identity | Surface | Expected | Actual |
+| --- | --- | --- | --- |
+| Executive Management | `/dashboard` | internal shell | internal shell — **PASS** |
+| Executive Management | `/supervision/portfolio` | render | renders — **PASS** |
+| Executive Management | `/supervision/team-performance` | render | renders — **PASS** |
+| Returns Officer (non-supervisory internal) | `/supervision/portfolio` | Access Denied | Access Denied — **PASS** |
+| Returns Officer (non-supervisory internal) | `/supervision/team-performance` | Access Denied | Access Denied — **PASS** |
+| Returns Officer (non-supervisory internal) | Sidebar entries | absent | neither Portfolio nor Team Performance present — **PASS** |
 
 No console or runtime errors beyond the two pre-login `401`s from the anonymous
 bootstrap requests (present on the certified baseline).
+
+---
+
+## 12. FINAL VERDICT
+
+**W6 — CERTIFIED**
