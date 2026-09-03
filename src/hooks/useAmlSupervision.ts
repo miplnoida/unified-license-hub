@@ -135,10 +135,14 @@ export function useAmlAssessment(assessmentId?: string) {
     queryKey: ['aml', 'assessment', assessmentId],
     enabled: !!assessmentId,
     queryFn: async () => {
+      // The AML workspace may only resolve AML/CFT assessments. Supplying the
+      // UUID of a prudential or market-conduct assessment must not open it here
+      // (the backend scope stays authoritative on top of this filter).
       const { data: header, error } = await sb
         .from('supervisory_assessment')
         .select('*')
         .eq('id', assessmentId)
+        .eq('domain_code', 'AML_CFT')
         .maybeSingle();
       if (error) throw error;
       if (!header) return null;
@@ -306,7 +310,13 @@ export function useAmlExaminations() {
             .in('examination_id', ids),
           sb.from('examination_data_requests').select('examination_id, status, due_date').in('examination_id', ids),
           sb.from('examination_workpapers').select('examination_id, status').in('examination_id', ids),
-          sb.from('examination_findings').select('examination_id, status, severity').in('examination_id', ids),
+          // Canonical findings only. `examination_findings` is historical
+          // pre-spine data and must never drive current AML counters.
+          sb
+            .from('supervisory_finding')
+            .select('examination_id, status, severity')
+            .eq('domain_code', 'AML_CFT')
+            .in('examination_id', ids),
           sb.from('examination_team_members').select('examination_id, user_id, ended_at').in('examination_id', ids),
           sb
             .from('supervisory_plan')
@@ -403,7 +413,12 @@ export function useAmlExaminations() {
             (w: any) => String(w.status ?? '').toLowerCase() !== 'reviewed',
           ).length,
           findings_total: fnds.length,
-          findings_open: fnds.filter((f: any) => String(f.status ?? '').toLowerCase() !== 'closed').length,
+          findings_open: fnds.filter(
+            (f: any) => !['closed', 'withdrawn', 'superseded'].includes(String(f.status ?? '').toLowerCase()),
+          ).length,
+          findings_critical: fnds.filter((f: any) =>
+            ['critical', 'high'].includes(String(f.severity ?? '').toLowerCase()),
+          ).length,
           team_size: members.length,
         };
       });

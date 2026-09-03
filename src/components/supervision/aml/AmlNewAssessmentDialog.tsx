@@ -26,6 +26,7 @@ import { AlertTriangle } from 'lucide-react';
 import { AmlActionDialog } from '@/components/supervision/aml/AmlActionDialog';
 import { useCreateAmlAssessment, useResolvedAmlMethodology } from '@/hooks/useAmlLifecycle';
 import { useAmlPortfolio } from '@/hooks/useAmlSupervision';
+import { useCan } from '@/hooks/useCan';
 import { BLUE, fmtDate } from '@/lib/amlLabels';
 
 const isoDaysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
@@ -43,6 +44,9 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
   const [chosenEntity, setChosenEntity] = useState<string>('');
   const navigate = useNavigate();
   const create = useCreateAmlAssessment();
+  // Authority to initiate an assessment is a governed capability, not a screen
+  // affordance. The server re-checks it; this only stops offering the control.
+  const canCreate = useCan('aml_supervision', 'create');
   const { data: portfolio } = useAmlPortfolio(300);
 
   const targetEntity = entityId ?? chosenEntity;
@@ -69,6 +73,8 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
     }
     setPickerOpen(true);
   };
+
+  if (!canCreate) return null;
 
   return (
     <>
@@ -179,7 +185,9 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
             options: [
               { value: 'PERIODIC', label: 'Periodic cycle' },
               { value: 'REASSESSMENT', label: 'Reassessment requirement' },
-              { value: 'EVENT', label: 'Event or intelligence' },
+              { value: 'EVENT_DRIVEN', label: 'Event or intelligence' },
+              { value: 'FOLLOW_UP', label: 'Follow-up of prior assessment' },
+              { value: 'THEMATIC', label: 'Thematic review' },
             ],
           },
           { name: 'period_start', label: 'Review period from', kind: 'date', required: true, defaultValue: isoDaysAgo(365) },
