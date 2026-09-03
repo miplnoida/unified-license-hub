@@ -203,7 +203,7 @@ export function sourceRouteFor({ module, scope, recordId }: RouteInput): {
         : { route: `/prudential/analysis/${id}`, label: 'Open entity profile' };
     case 'examination':
       return id
-        ? { route: `/prudential/examinations/${id}`, label: 'Open examination' }
+        ? { route: `/supervision/examinations/${id}`, label: 'Open examination' }
         : { route: '/prudential/examinations', label: 'Open examinations' };
     case 'complaints':
       return id

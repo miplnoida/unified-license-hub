@@ -53,7 +53,11 @@ export const objectRoute = {
   },
   complaint: (complaintId: string) => `/complaints/${id(complaintId)}`,
   investigation: (investigationId: string) => `/conduct/investigations/${id(investigationId)}`,
-  examination: (examinationId: string) => `/prudential/examinations/${id(examinationId)}`,
+  /**
+   * Canonical enterprise examination workspace (EPIC 4 / W6). The legacy
+   * `/prudential/examinations/:id` path remains only as a redirect alias.
+   */
+  examination: (examinationId: string) => `/supervision/examinations/${id(examinationId)}`,
   enforcement: (enforcementId: string) => `/enforcement/${id(enforcementId)}`,
   correspondence: (threadId: string) => `/correspondence/${id(threadId)}`,
   prudentialAssessment: (assessmentId: string) => `/prudential/assessments/${id(assessmentId)}`,
