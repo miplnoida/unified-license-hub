@@ -324,7 +324,7 @@ export default function AmlAssessmentWorkspace() {
                   (data.findings as any[]).map((f) => (
                     <Link
                       key={f.id}
-                      to={`/supervision/aml/findings?focus=${f.id}`}
+                      to={`/supervision/findings/${f.id}`}
                       className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm hover:bg-muted/50"
                     >
                       <span className="font-medium">{f.title}</span>
