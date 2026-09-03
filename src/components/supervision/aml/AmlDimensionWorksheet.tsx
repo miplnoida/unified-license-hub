@@ -329,18 +329,15 @@ function DimensionRow({
             </div>
           ) : null}
 
-          {questions.length ? (
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Mandatory questions
-              </div>
-              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
-                {questions.map((q, i) => (
-                  <li key={i}>{q}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+          <AmlDimensionQuestions
+            assessmentId={assessmentId}
+            entityId={entityId}
+            questions={dimensionQuestions}
+            responses={questionResponses}
+            editable={editable}
+            onChanged={onChanged}
+          />
+
 
           <div className="grid gap-3 sm:grid-cols-2">
             {sources.length ? (
