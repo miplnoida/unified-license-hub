@@ -62805,6 +62805,10 @@ export type Database = {
         Returns: boolean
       }
       sup_dashboard_summary: { Args: never; Returns: Json }
+      sup_domain_readable: {
+        Args: { _domain_code: string; _uid: string }
+        Returns: boolean
+      }
       sup_entity_supervisory_state: {
         Args: { _entity_id: string }
         Returns: Json
@@ -63329,6 +63333,25 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_portfolio: {
+        Args: {
+          _assessment_overdue_only?: boolean
+          _concern_only?: boolean
+          _domain?: string
+          _limit?: number
+          _multi_domain_only?: boolean
+          _offset?: number
+          _overdue_remediation_only?: boolean
+          _priority?: string
+          _rating?: string
+          _reassessment_due_only?: boolean
+          _search?: string
+          _sector_id?: string
+          _team_id?: string
+          _unassessed_only?: boolean
+        }
+        Returns: Json
+      }
       supervisory_rating_valid:
         | { Args: { _rating: string }; Returns: boolean }
         | { Args: { _domain_code?: string; _rating: string }; Returns: boolean }
@@ -63405,6 +63428,7 @@ export type Database = {
         }
         Returns: string
       }
+      supervisory_sector_overview: { Args: { _domain?: string }; Returns: Json }
       supervisory_signal_record: {
         Args: {
           _detail?: Json
