@@ -393,10 +393,13 @@ BEGIN
   END LOOP;
 
   -- and still readable (dual-read compatibility preserved)
+  -- Dual-read compatibility: the 3 legacy plans / 12 legacy actions must remain
+  -- readable through the views (GATE 1 proves the 1:1 mapping of those ids).
+  -- Governed plans opened after the spine landed also surface here by design.
   SELECT count(*) INTO n FROM public.supervisory_plans;
-  IF n <> 3 THEN RAISE EXCEPTION 'FAIL 6: legacy plan compatibility read broke (%)', n; END IF;
+  IF n < 3 THEN RAISE EXCEPTION 'FAIL 6: legacy plan compatibility read broke (%)', n; END IF;
   SELECT count(*) INTO n FROM public.supervisory_plan_actions;
-  IF n <> 12 THEN RAISE EXCEPTION 'FAIL 6: legacy action compatibility read broke (%)', n; END IF;
+  IF n < 12 THEN RAISE EXCEPTION 'FAIL 6: legacy action compatibility read broke (%)', n; END IF;
 
   -- LEGACY_UNKNOWN cannot be used as a bypass for new work
   ok := false;
