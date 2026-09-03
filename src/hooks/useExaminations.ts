@@ -566,6 +566,58 @@ export function useExaminationFindings(examinationId?: string) {
 export function useFindingMutations(examinationId?: string) {
   return useChildMutations('examination_findings', ['examination-findings'], examinationId);
 }
+
+/**
+ * Canonical supervisory findings raised from this examination.
+ *
+ * `supervisory_finding` is the single finding register for every supervisory
+ * domain. The examination workspace reads it directly (RLS and confidentiality
+ * still apply) and never keeps its own copy: `examination_findings` remains
+ * only as the historical compatibility store for pre-spine records.
+ */
+export interface CanonicalExaminationFinding {
+  id: string;
+  reference: string | null;
+  title: string;
+  finding_category: string | null;
+  severity: string | null;
+  status: string;
+  response_state: string | null;
+  confidentiality: string | null;
+  due_date: string | null;
+  observation: string | null;
+  required_action: string | null;
+  workpaper_id: string | null;
+  assessment_dimension_id: string | null;
+  created_at: string;
+  remediation: Array<{ id: string; reference: string | null; status: string; target_date: string | null }>;
+}
+
+export function useExaminationCanonicalFindings(examinationId?: string) {
+  return useQuery<CanonicalExaminationFinding[]>({
+    queryKey: ['examination-canonical-findings', examinationId],
+    enabled: !!examinationId,
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from('supervisory_finding')
+        .select('id, reference, title, finding_category, severity, status, response_state, confidentiality, '
+          + 'due_date, observation, required_action, workpaper_id, assessment_dimension_id, created_at')
+        .eq('examination_id', examinationId)
+        .order('created_at');
+      if (error) throw error;
+      const rows = (data ?? []) as any[];
+      if (!rows.length) return [];
+      const { data: actions } = await sb
+        .from('supervisory_remediation_action')
+        .select('id, reference, finding_id, status, target_date')
+        .in('finding_id', rows.map(r => r.id));
+      return rows.map(r => ({
+        ...r,
+        remediation: (actions ?? []).filter((a: any) => a.finding_id === r.id),
+      })) as CanonicalExaminationFinding[];
+    },
+  });
+}
 export function useCreateRemediationAction(examinationId?: string) {
   const qc = useQueryClient();
   return useMutation({
