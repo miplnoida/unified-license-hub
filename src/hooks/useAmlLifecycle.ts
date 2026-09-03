@@ -22,7 +22,10 @@ export function amlErrorMessage(error: unknown): string {
   if (/authoritative origin/i.test(raw))
     return 'A finding must originate from an approved assessment, examination or workpaper.';
   if (/internal only/i.test(raw)) return 'This information is restricted to supervisory users.';
+  if (/mandatory_questions_incomplete/i.test(raw))
+    return `Mandatory supervisory questions are outstanding, so this assessment cannot be submitted. ${raw.replace(/^.*mandatory_questions_incomplete:\s*/i, '')}`;
   return raw;
+
 }
 
 function useInvalidateAml() {
