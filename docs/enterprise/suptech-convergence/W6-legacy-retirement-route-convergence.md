@@ -1,12 +1,15 @@
 # EPIC 4 / W6 — Legacy retirement, route convergence, inspection convergence
 
-Verdict: **W6 — NOT CERTIFIED** (2 authorization blockers found by browser certification; all other gates green).
+Verdict: **W6 — CERTIFIED**
 
-## 1. W1 / W2 certification
+## 1. Certification summary
 
-- **W1 canonical work model** — CERTIFIED. `supervisory_work_item` carries 8 work scopes, unique `work_key`, every item routable; My Work is a filter over it (gates W6-09, W6-11).
-- **W2 supervisory timeline** — CERTIFIED. One read model with full provenance (155 events on the reference entity, gate W6-12).
-- Evidence: `scripts/verify-w6-legacy-route-convergence.sql` W6-01 … W6-16 → **16/16 PASS**.
+- `scripts/verify-w6-legacy-route-convergence.sql` W6-01 … W6-24 → **24/24 PASS**.
+- RBAC action coverage → **2171/2171** protected (100.0%).
+- Unit / integration suites (`src/test`) → **1324/1324** PASS (149 files).
+- Breadcrumb route coverage → **360/360**.
+- Typecheck / build → clean.
+- Browser authorization blockers → closed (see §8 historical evidence and §11 final browser result).
 
 ## 2. Legacy census (14 objects)
 
