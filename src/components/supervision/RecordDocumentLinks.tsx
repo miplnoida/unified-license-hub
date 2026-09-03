@@ -48,13 +48,16 @@ function useRecordDocumentLinks(targetType: string, targetId?: string) {
         .from('document_groups')
         .select('id, display_name, document_reference')
         .in('id', rows.map(r => r.document_group_id));
-      const byId = new Map((groups ?? []).map((g: any) => [g.id, g]));
+      const byId = new Map<string, { display_name: string | null; document_reference: string | null }>(
+        ((groups ?? []) as any[]).map((g: any) => [g.id as string, g]),
+      );
       return rows.map(r => ({
         id: r.id,
         document_group_id: r.document_group_id,
         display_name: byId.get(r.document_group_id)?.display_name ?? null,
         document_reference: byId.get(r.document_group_id)?.document_reference ?? null,
       }));
+
     },
   });
 }
