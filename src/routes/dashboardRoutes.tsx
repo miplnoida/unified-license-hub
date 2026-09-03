@@ -3,13 +3,13 @@ import { lazyWithRetry as lazy } from '@/lib/lazyWithRetry';
 import { P } from '@/routes/routeHelpers';
 import { LegacyInspectionRegisterRedirect, LegacyInspectionScheduleRedirect } from '@/routes/LegacyInspectionRedirect';
 import { ModuleRoute } from '@/components/auth/RouteGuards';
+import { SupervisoryEnterpriseRoute } from '@/routes/SupervisoryEnterpriseRoute';
 import { PortalRoute } from '@/components/auth/PortalRoute';
 import type { PermissionModule } from '@/lib/permissionModules';
 import { ExaminationDomainRoute } from '@/routes/ExaminationDomainRoute';
 import { FindingDomainRoute } from '@/routes/FindingDomainRoute';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { INTERNAL_ROLES } from '@/types/platform';
 import type { PortalArea, PortalCapability } from '@/lib/portalAccess';
 
@@ -201,22 +201,17 @@ function M({ module, children, allowedRoles }: { module: PermissionModule; child
 }
 
 /**
- * EPIC 4 / W5 — the Enterprise Supervisory Portfolio is cross-domain, so any
- * officer authorised for at least one supervisory domain may open it. The
- * governed read models (`supervisory_portfolio`, `supervisory_sector_overview`)
- * then return only the domains that officer may see.
+ * EPIC 4 / W6 — the Enterprise Supervisory Portfolio and Team Performance are
+ * cross-domain surfaces. Their authority is stated explicitly in
+ * `SupervisoryEnterpriseRoute` (enterprise `supervisory_spine.view` OR one
+ * genuine domain supervisory view). There is NO default-module fallback: an
+ * officer with no supervisory authority is denied instead of being evaluated
+ * against `prudential_supervision`.
  */
-const SUPERVISORY_PORTFOLIO_MODULES: PermissionModule[] = [
-  'prudential_supervision', 'aml_supervision', 'market_conduct', 'fit_and_proper',
-];
-
-function SupervisoryPortfolioGate() {
-  const { hasModuleAccess, isBypassRole } = useUserDynamicPermissions();
-  const resolved = isBypassRole
-    ? 'prudential_supervision'
-    : (SUPERVISORY_PORTFOLIO_MODULES.find((m) => hasModuleAccess(m)) ?? 'prudential_supervision');
-  return <M module={resolved}><SupervisoryPortfolio /></M>;
+function SE({ children }: { children: React.ReactNode }) {
+  return <P><SupervisoryEnterpriseRoute>{children}</SupervisoryEnterpriseRoute></P>;
 }
+
 
 function EP({ area, capability, children }: { area: PortalArea; capability: PortalCapability | PortalCapability[]; children: React.ReactNode }) {
   return <P><PortalRoute area={area} capability={capability}>{children}</PortalRoute></P>;
@@ -344,8 +339,8 @@ export const dashboardRoutes = (
     <Route path="/inspections/:id" element={<M module="inspection_management"><LegacyInspectionRecordNotice /></M>} />
     <Route path="/supervision/examination-schedule" element={<M module="prudential_supervision"><ExaminationSchedule /></M>} />
     <Route path="/supervision/plans" element={<M module="prudential_supervision"><SupervisoryPlansDashboard /></M>} />
-    <Route path="/supervision/team-performance" element={<M module="prudential_supervision"><SupervisoryTeamPerformance /></M>} />
-    <Route path="/supervision/portfolio" element={<SupervisoryPortfolioGate />} />
+    <Route path="/supervision/team-performance" element={<SE><SupervisoryTeamPerformance /></SE>} />
+    <Route path="/supervision/portfolio" element={<SE><SupervisoryPortfolio /></SE>} />
     <Route path="/supervision/risk" element={<M module="prudential_supervision"><RiskHeatmap /></M>} />
     <Route path="/executive" element={<M module="report_management"><ExecutiveDashboard /></M>} />
     <Route path="/alerts" element={<M module="returns_management"><AlertCenter /></M>} />

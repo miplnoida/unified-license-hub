@@ -6,8 +6,20 @@ type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type PreLicenseUserRow = Database['public']['Tables']['pre_license_users']['Row'];
 
 /**
- * Resolve the highest-priority role for a user from user_roles table.
- * Returns 'applicant' as safe default on failure or no rows.
+ * Resolve the highest-priority legacy `app_role` for a user from `user_roles`.
+ *
+ * EPIC 4 / W6 — `app_role` is now only an AUDIENCE PROJECTION (which shell and
+ * which legacy role-gated screens apply); real authority comes from the
+ * canonical `sec_*` catalogue via `sec_get_user_context()`. Canonical internal
+ * personas (e.g. Executive Management) may legitimately have no legacy
+ * `user_roles` row, and defaulting those identities to `applicant` served them
+ * the EXTERNAL licensee shell. So when no legacy row exists we consult the
+ * canonical context and project an internal audience with the LEAST-PRIVILEGED
+ * internal role (`analyst`) — permissions are still resolved from the canonical
+ * context, never from this projection. No user is special-cased.
+ *
+ * Returns 'applicant' as safe default on failure or when the identity is not
+ * canonically internal.
  */
 export async function resolveUserRole(userId: string): Promise<AppRole> {
   const { data, error } = await supabase
@@ -21,6 +33,8 @@ export async function resolveUserRole(userId: string): Promise<AppRole> {
   }
 
   if (!data || data.length === 0) {
+    const canonical = await resolveCanonicalAudienceRole();
+    if (canonical) return canonical;
     console.warn('[Auth] No role found for user, defaulting to applicant');
     return 'applicant';
   }
@@ -31,6 +45,26 @@ export async function resolveUserRole(userId: string): Promise<AppRole> {
   }
   return 'applicant';
 }
+
+/**
+ * Canonical audience fallback: ask the database security context whether the
+ * signed-in identity is an INTERNAL persona. Returns the least-privileged
+ * internal `app_role` projection, or null when the identity is not internal
+ * (or the context is unavailable).
+ */
+async function resolveCanonicalAudienceRole(): Promise<AppRole | null> {
+  try {
+    const { data, error } = await (supabase.rpc as any)('sec_get_user_context');
+    if (error) return null;
+    const roles = (data?.roles ?? []) as Array<{ role_type?: string | null }>;
+    if (!roles.length) return null;
+    const isInternal = roles.some((r) => String(r.role_type || '').toLowerCase() === 'internal');
+    return isInternal ? 'analyst' : null;
+  } catch {
+    return null;
+  }
+}
+
 
 /**
  * Resolve any active inbound delegation for the given user. Returns the
