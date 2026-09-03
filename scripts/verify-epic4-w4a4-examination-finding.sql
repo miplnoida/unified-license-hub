@@ -7,6 +7,15 @@
 -- destructive assertions run inside a rolled-back transaction.
 
 \set ON_ERROR_STOP on
+\set QUIET 1
+\pset pager off
+SET row_security = on;
+
+-- certification personas (public.cert_certification_users) — never seeded here
+\set EXAMINER '{"sub":"d1016d5f-cde5-46dd-a552-0f2f87abc193","role":"authenticated"}'
+\set REVIEWER '{"sub":"b597c405-e0c4-421b-9092-820a444f2429","role":"authenticated"}'
+\set OUTSIDER '{"sub":"411dd06d-648b-4f32-82cc-897902c0c0b6","role":"authenticated"}'
+
 BEGIN;
 
 -- 1. canonical execution fields exist on the canonical examination objects
@@ -192,4 +201,213 @@ BEGIN
   RAISE NOTICE 'PASS 10: fieldwork and finding origination are recorded on the examination and in the audit trail';
 END $$;
 
+-- =====================================================================
+-- FUNCTIONAL GATES 11-14 — the governed fieldwork loop with real personas
+-- =====================================================================
+CREATE TEMP TABLE w4(k text PRIMARY KEY, v uuid) ON COMMIT DROP;
+GRANT ALL ON w4 TO authenticated;
+
+-- fixture: an approved AML/CFT assessment, two dimensions (one in examination
+-- scope, one deliberately outside it) and an AML examination in fieldwork.
+DO $$
+DECLARE ent uuid := '5855bf85-9fde-4cf8-a082-7ea904d46184';
+        aid uuid; d_in uuid; d_out uuid; ex uuid; ex2 uuid;
+BEGIN
+  INSERT INTO public.supervisory_assessment(reference, entity_id, domain_code, status, approved_at, approved_by)
+  VALUES ('W4A4-ASMT-1', ent, 'AML_CFT', 'approved', now(), 'b597c405-e0c4-421b-9092-820a444f2429')
+  RETURNING id INTO aid;
+
+  INSERT INTO public.supervisory_assessment_dimension(assessment_id, dimension_code, dimension_group)
+  VALUES (aid, 'TRANSACTION_MONITORING', 'CONTROL_EFFECTIVENESS') RETURNING id INTO d_in;
+  INSERT INTO public.supervisory_assessment_dimension(assessment_id, dimension_code, dimension_group)
+  VALUES (aid, 'GEOGRAPHIC_RISK', 'INHERENT_RISK') RETURNING id INTO d_out;
+
+  INSERT INTO public.examinations(reference, entity_id, title, examination_type, stage,
+      domain_code, origin_provenance, lead_examiner_id)
+  VALUES ('W4A4-EXM-1', ent, 'Targeted AML/CFT examination', 'targeted_onsite', 'fieldwork',
+      'AML_CFT', 'GOVERNED', 'd1016d5f-cde5-46dd-a552-0f2f87abc193')
+  RETURNING id INTO ex;
+  INSERT INTO public.examinations(reference, entity_id, title, examination_type, stage,
+      domain_code, origin_provenance, lead_examiner_id)
+  VALUES ('W4A4-EXM-2', ent, 'Unrelated AML/CFT examination', 'targeted_onsite', 'fieldwork',
+      'AML_CFT', 'GOVERNED', 'd1016d5f-cde5-46dd-a552-0f2f87abc193')
+  RETURNING id INTO ex2;
+
+  INSERT INTO public.examination_origin(examination_id, assessment_id, assessment_dimension_id)
+  VALUES (ex, aid, d_in);
+  INSERT INTO public.examination_scope_dimension(examination_id, assessment_id, assessment_dimension_id, dimension_code)
+  VALUES (ex, aid, d_in, 'TRANSACTION_MONITORING');
+
+  INSERT INTO public.entity_supervision_assignments(entity_id, lead_supervisor_user_id,
+      alternate_supervisor_user_id, status, assignment_reason)
+  VALUES (ent, 'd1016d5f-cde5-46dd-a552-0f2f87abc193', 'b597c405-e0c4-421b-9092-820a444f2429',
+      'active', 'W4-A4 certification');
+
+  INSERT INTO w4(k,v) VALUES ('ent',ent),('asmt',aid),('dim_in',d_in),('dim_out',d_out),
+    ('ex',ex),('ex2',ex2);
+END $$;
+
+-- 11. information requests are governed: draft -> issued -> partially/fully received
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = :'EXAMINER';
+DO $$
+DECLARE dr uuid; st text; ref text; ok boolean := false;
+BEGIN
+  dr := public.examination_data_request_save(jsonb_build_object(
+        'examination_id', (SELECT v FROM w4 WHERE k='ex'),
+        'title','Alert decision population',
+        'description','All monitoring alerts raised in the review period with decision records.',
+        'requested_from','Money Laundering Reporting Officer',
+        'priority','HIGH',
+        'assessment_dimension_id', (SELECT v FROM w4 WHERE k='dim_in')));
+  INSERT INTO w4(k,v) VALUES ('dr', dr);
+  SELECT status, reference INTO st, ref FROM public.examination_data_requests WHERE id = dr;
+  IF st <> 'draft' THEN RAISE EXCEPTION 'FAIL 11: new request is not a draft (%)', st; END IF;
+  IF ref IS NULL OR ref NOT LIKE '%-RFI-%' THEN
+    RAISE EXCEPTION 'FAIL 11: request reference was not generated (%)', ref; END IF;
+
+  BEGIN
+    PERFORM public.examination_data_request_receive(dr, 'Provided', NULL, true);
+  EXCEPTION WHEN OTHERS THEN ok := (SQLERRM LIKE '%request_not_issued%');
+  END;
+  IF NOT ok THEN RAISE EXCEPTION 'FAIL 11: a response was recorded against an unissued request'; END IF;
+
+  PERFORM public.examination_data_request_issue(dr);
+  PERFORM public.examination_data_request_receive(dr, 'Partial population provided.',
+    'Alert decisions for March are outstanding.', false);
+  SELECT status INTO st FROM public.examination_data_requests WHERE id = dr;
+  IF st <> 'partially_received' THEN
+    RAISE EXCEPTION 'FAIL 11: partial response did not set partially_received (%)', st; END IF;
+  PERFORM public.examination_data_request_receive(dr, 'Full population provided.', NULL, true);
+  SELECT status INTO st FROM public.examination_data_requests WHERE id = dr;
+  IF st <> 'received' THEN RAISE EXCEPTION 'FAIL 11: full response did not set received (%)', st; END IF;
+
+  ok := false;
+  BEGIN
+    PERFORM public.examination_data_request_save(jsonb_build_object(
+      'examination_id', (SELECT v FROM w4 WHERE k='ex'), 'title','Out of scope request',
+      'assessment_dimension_id', (SELECT v FROM w4 WHERE k='dim_out')));
+  EXCEPTION WHEN OTHERS THEN ok := (SQLERRM LIKE '%scope_dimension_not_in_examination%');
+  END;
+  IF NOT ok THEN RAISE EXCEPTION 'FAIL 11: a request was tied to a dimension outside examination scope'; END IF;
+  RAISE NOTICE 'PASS 11: information requests follow the governed issue/response lifecycle within scope';
+END $$;
+
+-- 12. workpapers require a conclusion for review and lock after review
+DO $$
+DECLARE wp uuid; st text; ok boolean := false;
+BEGIN
+  wp := public.examination_workpaper_save(jsonb_build_object(
+        'examination_id', (SELECT v FROM w4 WHERE k='ex'),
+        'area','Transaction monitoring',
+        'objective','Assess whether alerts are investigated and decisions documented.',
+        'population_description','All alerts in the review period',
+        'population_size','240','sampling_method','RISK_BASED','sample_size','20',
+        'exceptions_count','9','material_exceptions_count','4',
+        'analysis','Nine sampled alerts had no documented decision.',
+        'assessment_dimension_id', (SELECT v FROM w4 WHERE k='dim_in')));
+  INSERT INTO w4(k,v) VALUES ('wp', wp);
+  SELECT status INTO st FROM public.examination_workpapers WHERE id = wp;
+  IF st <> 'draft' THEN RAISE EXCEPTION 'FAIL 12: new workpaper is not a draft (%)', st; END IF;
+
+  BEGIN PERFORM public.examination_workpaper_submit_review(wp);
+  EXCEPTION WHEN OTHERS THEN ok := (SQLERRM LIKE '%conclusion_required%');
+  END;
+  IF NOT ok THEN RAISE EXCEPTION 'FAIL 12: a workpaper without a conclusion was submitted for review'; END IF;
+
+  PERFORM public.examination_workpaper_save(jsonb_build_object('id', wp,
+    'conclusion','Monitoring is not effective: decisions are undocumented.',
+    'control_assessment','INEFFECTIVE'));
+  PERFORM public.examination_workpaper_submit_review(wp);
+  SELECT status INTO st FROM public.examination_workpapers WHERE id = wp;
+  IF st <> 'in_review' THEN RAISE EXCEPTION 'FAIL 12: submission did not set in_review (%)', st; END IF;
+  RAISE NOTICE 'PASS 12: workpapers require a documented conclusion before independent review';
+END $$;
+
+-- 13. an independent reviewer returns work for revision; the examiner cannot review it
+DO $$
+DECLARE wp uuid := (SELECT v FROM w4 WHERE k='wp'); st text; ok boolean := false;
+BEGIN
+  BEGIN PERFORM public.examination_workpaper_return(wp, NULL);
+  EXCEPTION WHEN OTHERS THEN ok := true; END;
+  IF NOT ok THEN RAISE EXCEPTION 'FAIL 13: work was returned without review notes'; END IF;
+END $$;
+
+SET LOCAL "request.jwt.claims" = :'REVIEWER';
+DO $$
+DECLARE wp uuid := (SELECT v FROM w4 WHERE k='wp'); st text;
+BEGIN
+  PERFORM public.examination_workpaper_return(wp, 'Extend the sample before concluding.');
+  SELECT status INTO st FROM public.examination_workpapers WHERE id = wp;
+  IF st <> 'draft' THEN RAISE EXCEPTION 'FAIL 13: returned work did not reopen as draft (%)', st; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.examination_workpapers
+                  WHERE id = wp AND returned_by IS NOT NULL AND returned_at IS NOT NULL
+                    AND review_notes IS NOT NULL) THEN
+    RAISE EXCEPTION 'FAIL 13: return provenance was not recorded'; END IF;
+  RAISE NOTICE 'PASS 13: review outcomes are recorded with reviewer provenance and reopen the work';
+END $$;
+
+-- 14. findings can only be raised from this examination's own validated fieldwork
+SET LOCAL "request.jwt.claims" = :'EXAMINER';
+DO $$
+DECLARE wp uuid := (SELECT v FROM w4 WHERE k='wp'); fid uuid; ok boolean;
+        f public.supervisory_finding;
+BEGIN
+  ok := false;
+  BEGIN
+    PERFORM public.supervisory_finding_create(jsonb_build_object(
+      'entity_id', (SELECT v FROM w4 WHERE k='ent'), 'domain_code','AML_CFT', 'severity','HIGH',
+      'title','Finding from an unrelated examination',
+      'examination_id', (SELECT v FROM w4 WHERE k='ex2'), 'workpaper_id', wp));
+  EXCEPTION WHEN OTHERS THEN ok := true;
+  END;
+  IF NOT ok THEN RAISE EXCEPTION 'FAIL 14: a workpaper from another examination was accepted as origin'; END IF;
+
+  ok := false;
+  BEGIN
+    PERFORM public.supervisory_finding_create(jsonb_build_object(
+      'entity_id', (SELECT v FROM w4 WHERE k='ent'), 'domain_code','AML_CFT', 'severity','HIGH',
+      'title','Finding on an out-of-scope dimension',
+      'examination_id', (SELECT v FROM w4 WHERE k='ex'), 'workpaper_id', wp,
+      'assessment_dimension_id', (SELECT v FROM w4 WHERE k='dim_out')));
+  EXCEPTION WHEN OTHERS THEN ok := true;
+  END;
+  IF NOT ok THEN RAISE EXCEPTION 'FAIL 14: a finding was raised on a dimension outside examination scope'; END IF;
+
+  fid := public.supervisory_finding_create(jsonb_build_object(
+    'entity_id', (SELECT v FROM w4 WHERE k='ent'), 'domain_code','AML_CFT', 'severity','HIGH',
+    'finding_category','TRANSACTION_MONITORING',
+    'title','Alert decisions are not documented',
+    'observation','Nine of twenty sampled alerts had no documented decision.',
+    'required_action','Document all alert decisions and clear the backlog.',
+    'examination_id', (SELECT v FROM w4 WHERE k='ex'), 'workpaper_id', wp,
+    'assessment_id', (SELECT v FROM w4 WHERE k='asmt'),
+    'assessment_dimension_id', (SELECT v FROM w4 WHERE k='dim_in')));
+  SELECT * INTO f FROM public.supervisory_finding WHERE id = fid;
+  IF f.entity_id <> (SELECT v FROM w4 WHERE k='ent') OR f.domain_code <> 'AML_CFT'
+     OR f.examination_id <> (SELECT v FROM w4 WHERE k='ex') OR f.workpaper_id <> wp
+     OR f.assessment_dimension_id <> (SELECT v FROM w4 WHERE k='dim_in') THEN
+    RAISE EXCEPTION 'FAIL 14: stored finding provenance does not match its fieldwork origin'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.examination_history
+                  WHERE examination_id = (SELECT v FROM w4 WHERE k='ex')
+                    AND event_type = 'supervisory_finding_created') THEN
+    RAISE EXCEPTION 'FAIL 14: finding origination was not recorded on the examination'; END IF;
+  RAISE NOTICE 'PASS 14: findings originate only from this examination''s validated, in-scope fieldwork';
+END $$;
+
+-- 15. an officer without AML supervision authority cannot execute fieldwork
+SET LOCAL "request.jwt.claims" = :'OUTSIDER';
+DO $$
+DECLARE ok boolean := false;
+BEGIN
+  BEGIN
+    PERFORM public.examination_workpaper_save(jsonb_build_object(
+      'examination_id', (SELECT v FROM w4 WHERE k='ex'), 'area','Unauthorised'));
+  EXCEPTION WHEN OTHERS THEN ok := true;
+  END;
+  IF NOT ok THEN RAISE EXCEPTION 'FAIL 15: an unauthorised officer executed examination fieldwork'; END IF;
+  RAISE NOTICE 'PASS 15: examination execution is denied without AML/CFT supervision authority';
+END $$;
+
+RESET ROLE;
 ROLLBACK;
