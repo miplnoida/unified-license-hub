@@ -1,0 +1,1 @@
+ALTER VIEW public.supervisory_work_item SET (security_invoker = true);
