@@ -176,9 +176,12 @@ export function AmlDimensionWorksheet({ assessmentId, entityId, methodologyId, r
                     assessmentId={assessmentId}
                     entityId={entityId}
                     editable={editable}
+                    dimensionQuestions={questionsByDimension.get(d.id) ?? []}
+                    questionResponses={responses}
                     onChanged={onChanged}
                   />
                 ))}
+
               </Accordion>
             </CardContent>
           </Card>
