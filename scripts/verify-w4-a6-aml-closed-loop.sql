@@ -655,9 +655,9 @@ END $$;
 -- A6-20 — escalation is a supervisory decision and never triggers enforcement by itself
 -- ---------------------------------------------------------------------------
 DO $$
-DECLARE res jsonb; n int;
+DECLARE n int;
 BEGIN
-  res := public.supervisory_remediation_escalate((SELECT v FROM a6 WHERE k='ra3'),
+  PERFORM public.supervisory_remediation_escalate((SELECT v FROM a6 WHERE k='ra3'),
     'Two high-risk corridor scenarios remain uncalibrated after a full remediation cycle.',
     'high', 'high');
   SELECT count(*) INTO n FROM public.enforcement_actions
