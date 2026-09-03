@@ -81,6 +81,8 @@ export const navigationSnapshot: NavSnapshotItem[] = [
   { key: "nav_cfg_prudential_operations", parentKey: "nav_adm_cfg_returns_prud", label: "Prudential Engine Operations", href: "/admin/prudential/operations", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_cfg_ret_configuration_hub", parentKey: "nav_adm_cfg_returns_prud", label: "Returns Configuration Hub", href: "/returns/configuration", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_cfg_ret_return_config", parentKey: "nav_adm_cfg_returns_prud", label: "Return Configuration", href: "/admin/return-config", itemType: "link", audience: "internal", showInSidebar: false },
+  { key: "nav_cfg_sup_calculation", parentKey: "nav_adm_cfg_supervision", label: "Calculation Configuration", href: "/admin/supervisory-calculation", itemType: "link", audience: "internal", showInSidebar: false },
+  { key: "nav_cfg_sup_calculation_approvals", parentKey: "nav_adm_cfg_supervision", label: "Calculation Approvals", href: "/admin/supervisory-calculation/approvals", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_cfg_sup_fp_committees", parentKey: "nav_adm_cfg_supervision", label: "F&P Committees", href: "/admin/fp-committees", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_cfg_sup_fp_screening", parentKey: "nav_adm_cfg_supervision", label: "F&P Screening Configs", href: "/admin/fp-screening-configs", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_cfg_sup_fp_sector_rules", parentKey: "nav_adm_cfg_supervision", label: "F&P Sector Rules", href: "/admin/fp-sector-rules", itemType: "link", audience: "internal", showInSidebar: false },

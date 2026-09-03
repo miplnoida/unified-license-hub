@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.supervisory_assessment_methodology_freeze() FROM PUBLIC, anon, authenticated;

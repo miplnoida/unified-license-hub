@@ -164,6 +164,10 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/analytics', 'report_management'],
   ['/executive', 'report_management'],
 
+  // ─── Supervisory methodology calculation governance ───────────────────
+  ['/admin/supervisory-calculation/approvals', 'aml_supervision'],
+  ['/admin/supervisory-calculation', 'aml_supervision'],
+
   // ─── Fit & Proper (specific admin sub-modules first) ───────────────────
   ['/admin/fp-screening-configs', 'fit_and_proper_screening'],
   ['/admin/fp-sector-rules', 'fit_and_proper_screening'],
