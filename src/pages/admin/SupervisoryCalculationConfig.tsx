@@ -45,7 +45,10 @@ const EVIDENCE_HANDLING = ['FLAG_ONLY', 'NOT_CALCULABLE', 'CAP_AT_MIDPOINT'];
 const CRITICAL_HANDLING = ['NONE'];
 const ROUNDING = ['HALF_UP', 'HALF_DOWN', 'FLOOR', 'CEILING', 'NONE'];
 const DIRECTION = ['DIRECT', 'INVERTED'];
-const POLICIES = ['WEIGHTED_SCORE', 'HIGHEST_MATERIAL_DIMENSION', 'WEIGHTED_WITH_THRESHOLD'];
+// HIGHEST_DIMENSION is named for what the engine actually does: it takes the
+// worst (highest ordinal) residual dimension. There is no governed notion of
+// dimension materiality, so the option is not called "material".
+const POLICIES = ['WEIGHTED_SCORE', 'HIGHEST_DIMENSION', 'WEIGHTED_WITH_THRESHOLD'];
 const DATE_RULES = ['EXECUTION_DATE', 'ASSESSMENT_DATE', 'PERIOD_END', 'TRIGGER_DATE', 'EXPLICIT_AS_OF'];
 
 

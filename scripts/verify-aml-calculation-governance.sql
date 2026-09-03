@@ -292,6 +292,165 @@ BEGIN
     format('%s history rows retained, update refused=%s', n, ok));
 END $$;
 
+-- ------------------------------------------------ authorization boundary gates
+-- CALCG-15..CALCG-20 impersonate real sessions (request.jwt.claims) to prove the
+-- authorization model, not merely its source text. Nothing is authored.
+DO $$
+DECLARE _aJan uuid; _aPrud uuid; _ent uuid; _m uuid;
+        _sa uuid; _amlEdit uuid; _prudCfg uuid;
+        r jsonb; ok boolean; ok2 boolean; ok3 boolean; s text; e text; e2 text;
+BEGIN
+  SELECT fx INTO _m FROM calcg_fx WHERE k='methodology';
+  SELECT fx INTO _aJan FROM calcg_fx WHERE k='aJan';
+  SELECT entity_id INTO _ent FROM public.supervisory_assessment WHERE id = _aJan;
+
+  -- a fixture assessment that belongs to a DIFFERENT supervisory domain
+  INSERT INTO public.supervisory_assessment(reference, entity_id, domain_code, methodology_id,
+    methodology_version, period_start, period_end, assessment_date, status)
+  VALUES ('ZZ-CALCG-PRUD',_ent,'PRUDENTIAL',_m,'1','2026-07-01','2026-09-30','2026-10-05','draft')
+  RETURNING id INTO _aPrud;
+
+  SELECT id INTO _sa FROM auth.users WHERE public.is_super_admin(id) LIMIT 1;
+  SELECT id INTO _amlEdit FROM auth.users
+   WHERE NOT public.is_super_admin(id)
+     AND public.has_permission(id,'aml_supervision','edit')
+     AND NOT public.has_permission(id,'prudential_supervision','record_camels_assessment')
+     AND NOT public.has_permission(id,'prudential_supervision','manage_config') LIMIT 1;
+  SELECT id INTO _prudCfg FROM auth.users
+   WHERE NOT public.is_super_admin(id)
+     AND public.has_permission(id,'prudential_supervision','manage_config')
+     AND NOT public.has_permission(id,'aml_supervision','manage_config') LIMIT 1;
+
+  -- CALCG-15 a permission held in domain A never authorises calculation in domain B
+  ok := false; e := NULL;
+  IF _amlEdit IS NOT NULL THEN
+    PERFORM set_config('request.jwt.claims', json_build_object('sub',_amlEdit,'role','authenticated')::text, true);
+    BEGIN
+      PERFORM public.supervisory_assessment_calculate(_aPrud);
+    EXCEPTION WHEN OTHERS THEN e := SQLERRM; ok := (SQLSTATE = '42501');
+    END;
+    PERFORM set_config('request.jwt.claims','',true);
+  END IF;
+  PERFORM pg_temp.gate('CALCG-15','cross-domain assessment calculation denied',
+    _amlEdit IS NOT NULL AND ok,
+    format('AML-only officer calculating a PRUDENTIAL assessment: %s', COALESCE(e,'no denial')));
+
+  -- CALCG-16 the governed wrapper still succeeds for an authorised session, and
+  -- resolves the required authority from the assessment's own domain
+  ok := false; e := NULL;
+  IF _sa IS NOT NULL THEN
+    PERFORM set_config('request.jwt.claims', json_build_object('sub',_sa,'role','authenticated')::text, true);
+    BEGIN
+      r := public.supervisory_assessment_calculate(_aJan);
+      ok := (r->>'status') IS NOT NULL;
+    EXCEPTION WHEN OTHERS THEN e := SQLERRM;
+    END;
+    PERFORM set_config('request.jwt.claims','',true);
+  END IF;
+  SELECT prosrc INTO s FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+   WHERE n.nspname='public' AND p.proname='supervisory_assessment_calculate';
+  PERFORM pg_temp.gate('CALCG-16','domain-authorised calculation succeeds, authority derived from the assessment',
+    ok AND s LIKE '%supervisory_domain_module(_a.domain_code)%'
+       AND s LIKE '%supervisory_domain_actions(_a.domain_code%'
+       AND s LIKE '%supervisory_entity_scope_check%'
+       AND s NOT LIKE '%market_conduct.run_conduct_analytics%',
+    format('status=%s error=%s; no cross-domain OR-list retained', COALESCE(r->>'status','-'), COALESCE(e,'none')));
+
+  -- CALCG-17 the internal engine primitives are not callable by anon/authenticated
+  SELECT string_agg(f || '=' ||
+           CASE WHEN has_function_privilege('authenticated', f, 'EXECUTE') THEN 'authenticated'
+                WHEN has_function_privilege('anon', f, 'EXECUTE') THEN 'anon'
+                ELSE 'internal' END, ', ')
+    INTO s
+    FROM unnest(ARRAY['public.supervisory_calc_compute(uuid)',
+                      'public.supervisory_calc_compute_core(uuid)',
+                      'public.supervisory_calc_materialise(uuid,text,uuid)',
+                      'public.supervisory_calc_config_for(uuid)',
+                      'public.supervisory_calc_as_of_for(uuid)',
+                      'public.supervisory_calc_band_of(uuid,text,numeric)',
+                      'public.supervisory_calculation_config_validate_core(uuid)',
+                      'public.supervisory_calculation_config_score_problems(uuid)']) f;
+  PERFORM pg_temp.gate('CALCG-17','internal calculation primitives are not directly executable',
+    s NOT LIKE '%=authenticated%' AND s NOT LIKE '%=anon%'
+    AND has_function_privilege('authenticated','public.supervisory_assessment_calculate(uuid)','EXECUTE')
+    AND NOT has_function_privilege('anon','public.supervisory_assessment_calculate(uuid)','EXECUTE'),
+    s);
+
+  -- CALCG-18 governed recalculation is coupled to exactly the supplied domain
+  ok := false; ok2 := false; ok3 := false; e := NULL; e2 := NULL;
+  IF _prudCfg IS NOT NULL THEN
+    PERFORM set_config('request.jwt.claims', json_build_object('sub',_prudCfg,'role','authenticated')::text, true);
+    BEGIN
+      PERFORM public.supervisory_calculation_recalculate('AML_CFT','cross-domain attack matrix probe', NULL, NULL, true);
+    EXCEPTION WHEN OTHERS THEN e := SQLERRM; ok := (SQLSTATE = '42501');
+    END;
+    PERFORM set_config('request.jwt.claims','',true);
+  END IF;
+  IF _amlEdit IS NOT NULL THEN
+    PERFORM set_config('request.jwt.claims', json_build_object('sub',_amlEdit,'role','authenticated')::text, true);
+    BEGIN
+      PERFORM public.supervisory_calculation_recalculate('PRUDENTIAL','cross-domain attack matrix probe', NULL, NULL, true);
+    EXCEPTION WHEN OTHERS THEN e2 := SQLERRM; ok2 := (SQLSTATE = '42501');
+    END;
+    PERFORM set_config('request.jwt.claims','',true);
+  END IF;
+  BEGIN
+    PERFORM public.supervisory_calculation_recalculate('ZZ_NOT_A_DOMAIN','unknown domain probe text', NULL, NULL, true);
+  EXCEPTION WHEN OTHERS THEN ok3 := (SQLERRM LIKE '%unknown_domain%');
+  END;
+  PERFORM pg_temp.gate('CALCG-18','cross-domain governed recalculation denied, unknown domain refused',
+    _prudCfg IS NOT NULL AND ok AND _amlEdit IS NOT NULL AND ok2 AND ok3,
+    format('PRUDENTIAL cfg -> AML_CFT: %s | AML officer -> PRUDENTIAL: %s | unknown domain refused: %s',
+      COALESCE(e,'no denial'), COALESCE(e2,'no denial'), ok3));
+
+  -- CALCG-19 a domain-authorised recalculation still succeeds (dry run, nothing written)
+  ok := false; e := NULL;
+  IF _sa IS NOT NULL THEN
+    PERFORM set_config('request.jwt.claims', json_build_object('sub',_sa,'role','authenticated')::text, true);
+    BEGIN
+      r := public.supervisory_calculation_recalculate('AML_CFT','verifier dry-run recalculation probe', NULL, _ent, true);
+      ok := (r->>'dry_run')::boolean AND r->>'module' = 'aml_supervision';
+    EXCEPTION WHEN OTHERS THEN e := SQLERRM;
+    END;
+    PERFORM set_config('request.jwt.claims','',true);
+  END IF;
+  SELECT prosrc INTO s FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+   WHERE n.nspname='public' AND p.proname='supervisory_calculation_recalculate';
+  PERFORM pg_temp.gate('CALCG-19','domain-authorised governed recalculation succeeds',
+    ok AND s LIKE '%supervisory_domain_module(_domain_code)%'
+       AND s LIKE '%_module || ''.manage_config''%'
+       AND s NOT LIKE '%''prudential_supervision.manage_config''%',
+    format('module=%s considered=%s error=%s', COALESCE(r->>'module','-'),
+      COALESCE(r->>'considered','-'), COALESCE(e,'none')));
+
+  -- CALCG-20 the recommendation-policy label matches the implemented semantics
+  ok := false;
+  BEGIN
+    UPDATE public.supervisory_calculation_config
+       SET recommendation_policy = 'HIGHEST_MATERIAL_DIMENSION'
+     WHERE id = (SELECT fx FROM calcg_fx WHERE k='v2');
+  EXCEPTION WHEN check_violation THEN ok := true;
+  END;
+  UPDATE public.supervisory_calculation_config
+     SET recommendation_policy = 'HIGHEST_DIMENSION'
+   WHERE id = (SELECT fx FROM calcg_fx WHERE k='v2');
+  SELECT string_agg(p.proname, ',') INTO s
+    FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+   WHERE n.nspname='public' AND p.proname LIKE 'supervisory_calc%'
+     AND p.prosrc LIKE '%MATERIAL%';
+  PERFORM pg_temp.gate('CALCG-20','recommendation-policy label matches implemented semantics',
+    ok AND s IS NULL
+    AND pg_get_constraintdef((SELECT oid FROM pg_constraint
+        WHERE conname='supervisory_calculation_config_policy_chk')) LIKE '%HIGHEST_DIMENSION%'
+    AND pg_get_constraintdef((SELECT oid FROM pg_constraint
+        WHERE conname='supervisory_calculation_config_policy_chk')) NOT LIKE '%MATERIAL%',
+    format('MATERIAL name refused=%s; engine functions still mentioning materiality: %s',
+      ok, COALESCE(s,'none')));
+  UPDATE public.supervisory_calculation_config
+     SET recommendation_policy = 'WEIGHTED_SCORE'
+   WHERE id = (SELECT fx FROM calcg_fx WHERE k='v2');
+END $$;
+
 SELECT id, result, name, detail FROM calcg_gate ORDER BY id;
 SELECT count(*) FILTER (WHERE result='PASS') AS pass,
        count(*) FILTER (WHERE result='FAIL') AS fail FROM calcg_gate;
