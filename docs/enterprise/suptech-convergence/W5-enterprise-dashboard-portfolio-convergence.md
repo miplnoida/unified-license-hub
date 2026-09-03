@@ -103,3 +103,84 @@ decision points) — every figure attributed to its canonical source object.
 `scripts/verify-w5-enterprise-portfolio.sql` — gates W5-01 … W5-18 (perimeter
 denominators, rating provenance, cross-domain concern, RBAC domain isolation,
 reconciliation against Entity 360 and the work queue, PFMI coverage, performance).
+
+---
+
+## 4. Final certification evidence (W5-A3B, 2026-09-03)
+
+Cross-reference: [docs/supervision/epic-4-w5-a3b-final-verdict.md](../../supervision/epic-4-w5-a3b-final-verdict.md).
+
+### 4.1 Gates
+
+`scripts/verify-w5-enterprise-portfolio.sql` — **18/18 PASS** (W5-01 … W5-18), including
+perimeter denominators, rating provenance, cross-domain concern, RBAC domain isolation,
+reconciliation against Entity 360 and the work queue, PFMI coverage and performance.
+
+W5-18 legacy census: all seven legacy supervisory sources (`inspections`,
+`entity_risk_scores`, `prudential_actions`, `prudential_escalations`,
+`prudential_dashboard_metrics`, `prudential_dashboard_portfolio`,
+`prudential_sector_risk_distribution`) are non-participating in enterprise KPIs.
+
+### 4.2 Performance (W5-17, budget 4000 ms)
+
+| Surface | Latency | Budget |
+|---|---|---|
+| Enterprise / executive dashboard | 131 ms | 4000 ms |
+| Portfolio — entity grain | 1533 ms | 4000 ms |
+| Portfolio — sector grain | 510 ms | 4000 ms |
+| Multi-domain entity | 1501 ms | 4000 ms |
+| Entity 360 | 30 ms | 4000 ms |
+
+Every surface answers in one governed round trip.
+
+### 4.3 Defects found and closed in this wave
+
+| Defect | Root cause | Fix |
+|---|---|---|
+| Licensee-portal users could read supervisory truth (W3-17) | `sup_read_guard()` fell back to a permission check for internal officers holding only granular business permissions; licensee portal roles legitimately hold `returns_management.view` / `license_management.view`, so `licensee_primary` accounts were classified as internal | The permission fallback now applies only to accounts that are not external portal identities (no mapped regulated entity, and none of `applicant` / `pre_licensee` / `licensee_primary` / `licensee_secondary`). Role-based internal staff unaffected. Pre-existing defect, not a W5 regression, but it invalidated the internal-only guarantee behind every W5 read model. |
+| Intervention case file failed to open | The `conduct_interventions` compatibility view was missing spine columns (`domain_code`, `examination_id`, `thematic_review_id`, `investigation_id`) selected by `conduct_intervention_case()` | View realigned to the spine projection |
+| That view silently lost row level security | Replacing the view dropped `security_invoker = true`, which every sibling `conduct_*` view carries | `ALTER VIEW public.conduct_interventions SET (security_invoker = true)` restored |
+| Portfolio latency | `public.supervisory_portfolio` used correlated per-entity subqueries | Rewritten as set-based CTE aggregation |
+
+### 4.4 Regression matrix
+
+| Suite | Result |
+|---|---|
+| `verify-w5-enterprise-portfolio.sql` | 18 PASS |
+| `verify-epic-4-w3-entity-360.sql` | PASS (incl. W3-17 external denial) |
+| `verify-epic-2-supervisory-spine.sql` | 18 PASS |
+| `verify-epic-3-aml-closed-loop.sql` | 22 PASS |
+| `verify-w4-a6-aml-closed-loop.sql` | 25 PASS |
+| `verify-epic4-w4a4-examination-finding.sql` | 16 PASS |
+| `verify-epic4-w4a4-reconciliation.sql` | 14 PASS |
+| `verify-epic4-w4a5-residual-response.sql` | 15 PASS |
+| `verify-w4-question-governance.sql` | 8 PASS |
+| `verify-aml-demo-dataset.sql` | 18 PASS |
+| `verify-f8-w2a-payment-incidents.sql` | 19 PASS |
+| `verify-f8-w2b-pfmi-assessment.sql` | 25 PASS |
+| `verify-f8-w3a-stress-events.sql` | 21 PASS |
+| `verify-f8-w1d-prudential-config-governance.sql` | 9 PASS |
+| DMS Phase 4 / audit contract | PASS |
+
+### 4.5 Build and security posture
+
+* Typecheck + build: clean, `build OK`.
+* Security linter: 1591 issues / 6 types — **identical to the pre-wave baseline**, no new findings.
+
+### 4.6 Browser evidence
+
+Executed personas: **internal supervisor only** (the single persona run in this wave).
+No other persona browser run was executed, so no further matrix rows are recorded.
+
+| Persona | Route | Result |
+|---|---|---|
+| Internal supervisor | `/supervision/portfolio` | renders, no console errors |
+| Internal supervisor | `/conduct/interventions/:id` | renders full case file (SI-2026-00231, decision trail, canonical examination link) |
+| Internal supervisor | `/entities/:entityId` (Entity 360) | renders, no console errors |
+| Internal supervisor | `/supervision/aml/work-queue` | renders, no console errors |
+
+External / licensee isolation was certified at the database layer (W3-17 external denial gate), not via a browser run.
+
+### 4.7 Verdict
+
+**EPIC 4 — W5 ENTERPRISE DASHBOARD, PORTFOLIO & SECTOR SUPERVISION CONVERGENCE: CERTIFIED.**

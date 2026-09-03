@@ -62,3 +62,9 @@ Every surface answers in one governed round trip.
 **EPIC 4 — W5 ENTERPRISE PORTFOLIO CONVERGENCE: CERTIFIED.**
 
 No enterprise supervisory KPI depends on legacy supervisory truth (W5-18 census: all seven legacy sources non-participating).
+
+## 6. Related records
+
+- Convergence record: [docs/enterprise/suptech-convergence/W5-enterprise-dashboard-portfolio-convergence.md](../enterprise/suptech-convergence/W5-enterprise-dashboard-portfolio-convergence.md)
+- Roadmap: `roadmap.md` — EPIC 4 / W5 marked CERTIFIED
+- Browser evidence executed for the internal supervisor persona only (see section 4).
