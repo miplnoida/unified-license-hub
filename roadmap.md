@@ -9,8 +9,8 @@
 - [ ] W4 Escalation convergence (Q-C), conduct investigation decision (Q-D), Governance/F&P feed (Q-E)
   - [x] W4 P0 supervisory question governance: single question catalogue, domain-specific edit authority, assessment-following response RLS, split gap RPC — CERTIFIED (docs/epic4/W4_question_governance.md)
   - [x] W4-A1 Canonical examination route `/supervision/examinations/:id` (domain-derived authorization) + AML examination register enrichment (provenance, risk focus, team, RFIs, workpapers, findings, next action)
-  - [ ] W4-A2 Plan → intervention (`supervisory_intervention_open`) and intervention → examination (`supervisory_examination_open`) UI flows
-  - [ ] W4-A3 Examination scoping from approved AML dimensions (`examination_scope_from_assessment`, `EXAMINER_AMENDED` rationale)
+  - [x] W4-A2 Plan → intervention (`supervisory_intervention_open`) and intervention → examination (`supervisory_examination_open`) UI flows
+  - [x] W4-A3 Examination scoping from approved AML dimensions (`examination_scope_from_assessment`, `EXAMINER_AMENDED` rationale) + exact `examination_origin` provenance on the assessment workspace (no entity+domain inference) — IMPLEMENTED, not yet certified
   - [ ] W4-A4 AML RFI / workpaper / finding creation from the canonical workspace (`supervisory_finding_create` full provenance)
   - [ ] W4-A5 Canonical finding workspace `/supervision/findings/:id` (multi corrective action, exact `remediation_action_id`, closure readiness, validation, escalation, enforcement referral, reassessment)
   - [ ] W4-A6 Closed-loop certification scenario + 20-case AML demo dataset + persona browser E2E + final regression verdict
