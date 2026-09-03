@@ -43699,6 +43699,91 @@ export type Database = {
           },
         ]
       }
+      supervisory_assessment_question_response: {
+        Row: {
+          assessment_dimension_id: string | null
+          assessment_id: string
+          dimension_code: string
+          evidence_refs: Json
+          id: string
+          methodology_dimension_id: string
+          methodology_id: string
+          methodology_question_id: string
+          methodology_version: string | null
+          observation: string | null
+          question_code: string
+          question_text: string
+          question_version: number
+          recorded_at: string
+          recorded_by: string | null
+          response: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          assessment_dimension_id?: string | null
+          assessment_id: string
+          dimension_code: string
+          evidence_refs?: Json
+          id?: string
+          methodology_dimension_id: string
+          methodology_id: string
+          methodology_question_id: string
+          methodology_version?: string | null
+          observation?: string | null
+          question_code: string
+          question_text: string
+          question_version?: number
+          recorded_at?: string
+          recorded_by?: string | null
+          response: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          assessment_dimension_id?: string | null
+          assessment_id?: string
+          dimension_code?: string
+          evidence_refs?: Json
+          id?: string
+          methodology_dimension_id?: string
+          methodology_id?: string
+          methodology_question_id?: string
+          methodology_version?: string | null
+          observation?: string | null
+          question_code?: string
+          question_text?: string
+          question_version?: number
+          recorded_at?: string
+          recorded_by?: string | null
+          response?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_question_re_assessment_dimension_id_fkey"
+            columns: ["assessment_dimension_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_dimension"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_question_re_methodology_question_id_fkey"
+            columns: ["methodology_question_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_question"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_question_response_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supervisory_assessment_signal: {
         Row: {
           assessment_id: string
@@ -45087,6 +45172,84 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "supervisory_methodology_event_methodology_id_fkey"
+            columns: ["methodology_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_methodology_question: {
+        Row: {
+          active: boolean
+          allow_not_applicable: boolean
+          created_at: string
+          guidance: string | null
+          id: string
+          mandatory: boolean
+          methodology_dimension_id: string
+          methodology_id: string
+          min_evidence_count: number
+          na_requires_rationale: boolean
+          prompt: string
+          question_code: string
+          question_version: number
+          requires_evidence: boolean
+          requires_observation: boolean
+          response_options: string[]
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          allow_not_applicable?: boolean
+          created_at?: string
+          guidance?: string | null
+          id?: string
+          mandatory?: boolean
+          methodology_dimension_id: string
+          methodology_id: string
+          min_evidence_count?: number
+          na_requires_rationale?: boolean
+          prompt: string
+          question_code: string
+          question_version?: number
+          requires_evidence?: boolean
+          requires_observation?: boolean
+          response_options?: string[]
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          allow_not_applicable?: boolean
+          created_at?: string
+          guidance?: string | null
+          id?: string
+          mandatory?: boolean
+          methodology_dimension_id?: string
+          methodology_id?: string
+          min_evidence_count?: number
+          na_requires_rationale?: boolean
+          prompt?: string
+          question_code?: string
+          question_version?: number
+          requires_evidence?: boolean
+          requires_observation?: boolean
+          response_options?: string[]
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_methodology_question_methodology_dimension_id_fkey"
+            columns: ["methodology_dimension_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_dimension"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_methodology_question_methodology_id_fkey"
             columns: ["methodology_id"]
             isOneToOne: false
             referencedRelation: "supervisory_methodology"
@@ -57984,6 +58147,7 @@ export type Database = {
         Returns: Json
       }
       issue_worker_token: { Args: { _purpose: string }; Returns: string }
+      jsonb_array_len_safe: { Args: { _v: Json }; Returns: number }
       jsonb_changed_fields: {
         Args: { _after: Json; _before: Json }
         Returns: string[]
@@ -62704,6 +62868,20 @@ export type Database = {
           _assessment_id: string
           _domain_table: string
           _record_id: string
+        }
+        Returns: Json
+      }
+      supervisory_assessment_question_gaps: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_question_upsert: {
+        Args: {
+          _assessment_id: string
+          _evidence_refs?: Json
+          _observation?: string
+          _question_id: string
+          _response: string
         }
         Returns: Json
       }
