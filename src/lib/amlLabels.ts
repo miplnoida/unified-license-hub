@@ -82,14 +82,15 @@ export function resolveAmlWorkItemHref(row: {
   if (kind.startsWith('examination') || kind.startsWith('workpaper')) {
     return `/supervision/aml/examinations?focus=${row.id}`;
   }
-  if (
-    kind.startsWith('finding') ||
-    kind.startsWith('management_response') ||
-    kind.startsWith('remediation') ||
-    kind === 'validation_required'
-  ) {
+  // Findings, management responses, remediation and validation all resolve to
+  // the canonical, domain-neutral finding workspace.
+  if (kind.startsWith('finding') || kind.startsWith('management_response')) {
+    return `/supervision/findings/${row.id}`;
+  }
+  if (kind.startsWith('remediation') || kind === 'validation_required') {
     return `/supervision/aml/findings?focus=${row.id}`;
   }
+
   if (kind === 'attention_awaiting_prioritisation') return '/supervision/aml?focus=attention';
   if (kind === 'plan_awaiting_approval') return '/supervision/plans';
   if (kind === 'enforcement_followup') return `/enforcement/${row.id}`;
