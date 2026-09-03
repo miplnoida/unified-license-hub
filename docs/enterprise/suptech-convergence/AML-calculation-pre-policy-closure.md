@@ -11,7 +11,7 @@ seeded, approved or activated in this wave.
 
 | Priority | Item | Closure |
 | --- | --- | --- |
-| P0 | Administration UI/server option contract | Withdrawn options removed from the screens; `AGGREGATION = UNWEIGHTED_MEAN, WORST_RESPONSE`, `CRITICAL_HANDLING = NONE`, `POLICIES = WEIGHTED_SCORE, HIGHEST_MATERIAL_DIMENSION, WEIGHTED_WITH_THRESHOLD` — matching what the server accepts (CALCG-10, CALCG-11) |
+| P0 | Administration UI/server option contract | Withdrawn options removed from the screens; `AGGREGATION = UNWEIGHTED_MEAN, WORST_RESPONSE`, `CRITICAL_HANDLING = NONE`, `POLICIES = WEIGHTED_SCORE, HIGHEST_DIMENSION, WEIGHTED_WITH_THRESHOLD` — matching what the server accepts (CALCG-10, CALCG-11) |
 | P0 | No visual policy defaults | Every policy select opens on “Not decided”; band edges, minimum answered questions and rounding decimals open empty, and undecided parameters are omitted from the save payload rather than substituted |
 | P0 | Effective-date fallback copy | The false “falls back to the execution date” copy is replaced: with no recorded rule, no assessment in the domain can be calculated |
 | P0 | Persisted calculation status | `supervisory_assessment_calculation.status` and `supervisory_assessment_dimension.calculation_status` are CHECK-constrained to CALCULATED / NOT_CALCULABLE / NO_CONFIGURATION / NO_EFFECTIVE_DATE_RULE / CONFIGURATION_INCOMPLETE, surfaced through `calculationStatusLabel()` |
@@ -50,3 +50,36 @@ AMLH-09 and CALC-05 / CALC-06 / CALC-09 / CALC-11 stay open until a supervisory
 owner authors an AML/CFT effective-date rule and a complete calculation
 configuration in the Administration screens and a second person approves and
 activates it. That decision is deliberately not taken here.
+
+## Final authorization & semantics closure
+
+| Defect | Closure |
+| --- | --- |
+| Assessment calculation authorised through a cross-domain OR-list | `supervisory_assessment_calculate` now derives `domain_code` from the assessment being calculated, resolves the required actions through `supervisory_domain_module` / `supervisory_domain_actions(domain,'edit')` plus `<module>.manage_config`, refuses unmapped domains and retains `supervisory_entity_scope_check` (CALCG-15, CALCG-16) |
+| Governed recalculation accepted either domain's `manage_config` | `supervisory_calculation_recalculate` requires `<module>.manage_config` for exactly the supplied domain and refuses unknown domains (CALCG-18, CALCG-19) |
+| Engine primitives directly callable by signed-in users | `supervisory_calc_compute`, `supervisory_calc_compute_core`, `supervisory_calc_config_for`, `supervisory_calc_as_of_for`, `supervisory_calc_band_of`, `supervisory_calculation_config_validate_core`, `supervisory_calculation_config_score_problems` are revoked from `PUBLIC`, `anon` and `authenticated`; they are reachable only from the governed `SECURITY DEFINER` operations (CALCG-17) |
+| `HIGHEST_MATERIAL_DIMENSION` claimed a materiality that the algorithm never represented | Renamed to `HIGHEST_DIMENSION` (worst residual dimension) in the CHECK constraint, engine, validator, Administration option list, approval view, trace and TypeScript types. No compatibility alias: the old value is refused (CALCG-20) |
+
+Authorization model, before and after:
+
+```text
+before  authenticated -> supervisory_assessment_calculate
+                         requires ANY OF supervisory_spine.edit|create,
+                           prudential_supervision.record_camels_assessment,
+                           aml_supervision.create|edit|approve|manage_config,
+                           market_conduct.run_conduct_analytics
+                      -> supervisory_calc_compute        (executable directly)
+                      -> supervisory_calc_materialise    (internal)
+
+after   authenticated -> supervisory_assessment_calculate
+                         domain_code := assessment.domain_code
+                         module      := supervisory_domain_module(domain_code)   (NULL => refused)
+                         requires supervisory_domain_actions(domain_code,'edit')
+                                  OR <module>.manage_config
+                         entity scope enforced
+                      -> supervisory_calc_compute        (internal only)
+                      -> supervisory_calc_materialise    (internal only)
+```
+
+No AML/CFT effective-date rule, response score, band, matrix cell, aggregation
+policy or configuration activation was authored in this wave.
