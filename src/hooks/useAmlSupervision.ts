@@ -195,7 +195,7 @@ export function useAmlAssessment(assessmentId?: string) {
       }
 
       const planIds = plans.map((p: any) => p.id);
-      const dimById = new Map((dims ?? []).map((d: any) => [d.id, d]));
+      const dimById = new Map<string, any>((dims ?? []).map((d: any) => [d.id, d]));
 
       /* Interventions belonging to the plans this assessment drove. */
       let interventions: any[] = [];
