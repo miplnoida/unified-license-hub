@@ -8,6 +8,7 @@ import { ExaminationDomainRoute } from '@/routes/ExaminationDomainRoute';
 import { FindingDomainRoute } from '@/routes/FindingDomainRoute';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { INTERNAL_ROLES } from '@/types/platform';
 import type { PortalArea, PortalCapability } from '@/lib/portalAccess';
 
@@ -65,6 +66,7 @@ const BreachInbox = lazy(() => import('@/pages/supervision/BreachInbox'));
 const SupervisoryPlansDashboard = lazy(() => import('@/pages/supervision/SupervisoryPlansDashboard'));
 const SupervisoryTeamPerformance = lazy(() => import('@/pages/supervision/TeamPerformance'));
 const RiskHeatmap = lazy(() => import('@/pages/supervision/RiskHeatmap'));
+const SupervisoryPortfolio = lazy(() => import('@/pages/supervision/SupervisoryPortfolio'));
 // Epic 3 — AML/CFT supervision workspace (canonical spine, AML_CFT domain).
 const AmlOverview = lazy(() => import('@/pages/supervision/aml/AmlOverview'));
 const AmlWorkQueue = lazy(() => import('@/pages/supervision/aml/AmlWorkQueue'));
@@ -338,6 +340,7 @@ export const dashboardRoutes = (
     <Route path="/inspections/:id" element={<M module="inspection_management"><InspectionDetail /></M>} />
     <Route path="/supervision/plans" element={<M module="prudential_supervision"><SupervisoryPlansDashboard /></M>} />
     <Route path="/supervision/team-performance" element={<M module="prudential_supervision"><SupervisoryTeamPerformance /></M>} />
+    <Route path="/supervision/portfolio" element={<SupervisoryPortfolioGate />} />
     <Route path="/supervision/risk" element={<M module="prudential_supervision"><RiskHeatmap /></M>} />
     <Route path="/executive" element={<M module="report_management"><ExecutiveDashboard /></M>} />
     <Route path="/alerts" element={<M module="returns_management"><AlertCenter /></M>} />
