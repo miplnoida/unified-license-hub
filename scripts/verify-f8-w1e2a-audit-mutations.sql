@@ -107,9 +107,9 @@ BEGIN
 
   -- examination with the authorised persona as lead examiner (case-team authority)
   INSERT INTO public.examinations
-    (id, reference, entity_id, sector_id, title, examination_type, stage, lead_examiner_id, created_by)
+    (id, reference, entity_id, sector_id, title, examination_type, stage, lead_examiner_id, created_by, origin_provenance)
   VALUES (v_exam, 'EXM-W1E2A-0001', v_entA, v_sec, 'W1E2A Onsite Examination',
-          'full_scope', 'planned', v_lead, v_lead);
+          'full_scope', 'planned', v_lead, v_lead, 'GOVERNED');
 
   -- PFMI assessment in an editable state
   INSERT INTO public.payment_system_operators (id, reference, operator_name, operator_type, entity_id)
