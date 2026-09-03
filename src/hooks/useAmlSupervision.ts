@@ -328,6 +328,7 @@ export function useAmlExaminations() {
         return {
           ...r,
           entity_name: names.get(r.entity_id) ?? null,
+          lead_examiner_name: r.lead_examiner_id ? examinerById.get(r.lead_examiner_id) ?? null : null,
           driving_assessment_id: driving?.assessment_id ?? null,
           driving_assessment_reference: (drivingAssessment as any)?.reference ?? null,
           driving_assessment_rating: (drivingAssessment as any)?.residual_rating ?? null,
