@@ -1,23 +1,26 @@
 /**
  * Governed AML/CFT assessment actions.
  *
- * Renders only the actions the current lifecycle state permits and executes
- * them through the canonical supervisory operations. The database remains the
- * authority on who may act: maker/checker separation, supervisory scope and
+ * Renders only the actions the current lifecycle state AND the officer's
+ * `aml_supervision` capabilities permit — capabilities, never role names, so a
+ * regulator can re-map who does what without a code change. The database
+ * remains the authority: maker/checker separation, supervisory scope and
  * rationale/evidence discipline are enforced there, and a refusal is shown to
  * the officer verbatim.
+ *
+ * Ratings themselves are not captured here. They are recorded in the working
+ * file against the configured methodology dimensions, so this panel governs
+ * only the movement of the assessment through its lifecycle.
  */
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CheckCircle2, Lock, XCircle } from 'lucide-react';
 import {
   AmlActionDialog,
-  CONTROL_OPTIONS,
-  GRADE_OPTIONS,
   RATING_OPTIONS,
-  TREND_OPTIONS,
-  type AmlField,
 } from '@/components/supervision/aml/AmlActionDialog';
 import {
   useAmlPlanLifecycle,
@@ -25,12 +28,12 @@ import {
   useOpenAmlAttention,
   useOpenAmlPlan,
   useRequireAmlReassessment,
-  useSaveAmlDimension,
   useTransitionAmlAssessment,
 } from '@/hooks/useAmlLifecycle';
+import { useCan } from '@/hooks/useCan';
+import type { AssessmentReadiness } from '@/lib/amlAssessmentReadiness';
 
 type DialogKind =
-  | 'dimension'
   | 'submit'
   | 'review'
   | 'return'
@@ -50,8 +53,10 @@ interface Props {
   dimensions: any[];
   attention: any[];
   plans: any[];
+  readiness: AssessmentReadiness;
   onChanged: () => void;
 }
+
 
 const today = () => new Date().toISOString().slice(0, 10);
 const plusDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
@@ -64,19 +69,25 @@ export function AmlAssessmentActions({
   dimensions,
   attention,
   plans,
+  readiness,
   onChanged,
 }: Props) {
   const [dialog, setDialog] = useState<DialogKind>(null);
   const [planTarget, setPlanTarget] = useState<{ id: string; toStatus: string } | null>(null);
   const [attentionTarget, setAttentionTarget] = useState<string | null>(null);
 
-  const saveDimension = useSaveAmlDimension();
   const transition = useTransitionAmlAssessment();
   const openAttention = useOpenAmlAttention();
   const confirmPriority = useConfirmAmlAttentionPriority();
   const openPlan = useOpenAmlPlan();
   const planLifecycle = useAmlPlanLifecycle();
   const requireReassessment = useRequireAmlReassessment();
+
+  /* Capability-based gating. The database re-checks each of these. */
+  const canSubmit = useCan('aml_supervision', 'submit');
+  const canReview = useCan('aml_supervision', 'review');
+  const canApprove = useCan('aml_supervision', 'approve');
+  const canCreate = useCan('aml_supervision', 'create');
 
   const st = (status ?? '').toLowerCase();
   const editable = st === 'draft' || st === 'returned_for_revision';
@@ -92,80 +103,58 @@ export function AmlAssessmentActions({
     onChanged();
   };
 
-  const dimensionFields: AmlField[] = [
-    {
-      name: 'dimension_code',
-      label: 'Risk or control area',
-      kind: 'text',
-      required: true,
-      placeholder: 'TRANSACTION_MONITORING',
-      helper: 'Use the methodology dimension code, for example CUSTOMER_RISK or CDD_KYC.',
-    },
-    {
-      name: 'dimension_group',
-      label: 'Dimension group',
-      kind: 'select',
-      required: true,
-      defaultValue: 'INHERENT_RISK',
-      options: [
-        { value: 'INHERENT_RISK', label: 'Inherent risk' },
-        { value: 'CONTROL_EFFECTIVENESS', label: 'Control effectiveness' },
-      ],
-    },
-    { name: 'inherent_rating', label: 'Inherent rating', kind: 'select', options: RATING_OPTIONS },
-    { name: 'control_rating', label: 'Control rating', kind: 'select', options: CONTROL_OPTIONS },
-    {
-      name: 'residual_rating',
-      label: 'Residual rating (judged)',
-      kind: 'select',
-      required: true,
-      options: RATING_OPTIONS,
-    },
-    { name: 'weight', label: 'Weight', kind: 'number', placeholder: '0.20' },
-    { name: 'rationale', label: 'Supervisory rationale', kind: 'textarea', required: true },
-    {
-      name: 'source_facts',
-      label: 'Source facts tested',
-      kind: 'textarea',
-      helper: 'The observed facts that support the rating.',
-    },
-    {
-      name: 'evidence_ref',
-      label: 'Evidence reference',
-      kind: 'text',
-      placeholder: 'AML-STAT-RETURN-Q4',
-      helper: 'Return, workpaper or document reference held on file.',
-    },
-    { name: 'trend', label: 'Trend', kind: 'select', defaultValue: 'STABLE', options: TREND_OPTIONS },
-    { name: 'confidence', label: 'Confidence', kind: 'select', defaultValue: 'MEDIUM', options: GRADE_OPTIONS },
-    { name: 'data_quality', label: 'Data quality', kind: 'select', defaultValue: 'MEDIUM', options: GRADE_OPTIONS },
-    {
-      name: 'override_reason',
-      label: 'Override rationale',
-      kind: 'textarea',
-      helper: 'Required only where the judged rating departs from the calculated rating.',
-    },
-  ];
-
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Supervisory actions</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {editable ? (
+          <div className="rounded-md border p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium">Submission readiness</span>
+              <span className="font-mono text-xs text-muted-foreground">
+                {readiness.assessedDimensions} / {readiness.totalDimensions} dimensions assessed
+              </span>
+            </div>
+            <ul className="mt-2 space-y-1">
+              {readiness.checks.map((c) => (
+                <li key={c.key} className="flex items-start gap-2 text-sm">
+                  {c.satisfied ? (
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                  ) : (
+                    <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                  )}
+                  <span>
+                    {c.label}
+                    <span className="ml-1 text-xs text-muted-foreground">— {c.detail}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap gap-2">
           {editable ? (
-            <>
-              <Button size="sm" onClick={() => setDialog('dimension')}>
-                Record risk or control rating
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setDialog('submit')} disabled={dimensions.length === 0}>
+            canSubmit ? (
+              <Button
+                size="sm"
+                onClick={() => setDialog('submit')}
+                disabled={!readiness.ready}
+                title={readiness.ready ? undefined : 'Complete the working file before submitting.'}
+              >
                 Submit for supervisory review
               </Button>
-            </>
+            ) : (
+              <Button size="sm" variant="outline" disabled>
+                <Lock className="mr-1.5 h-3.5 w-3.5" />
+                Submission requires the AML/CFT submit capability
+              </Button>
+            )
           ) : null}
 
-          {st === 'submitted' ? (
+          {st === 'submitted' && canReview ? (
             <>
               <Button size="sm" onClick={() => setDialog('review')}>
                 Mark reviewed
@@ -176,7 +165,7 @@ export function AmlAssessmentActions({
             </>
           ) : null}
 
-          {st === 'reviewed' ? (
+          {st === 'reviewed' && canApprove ? (
             <>
               <Button size="sm" onClick={() => setDialog('approve')}>
                 Approve assessment
@@ -187,7 +176,7 @@ export function AmlAssessmentActions({
             </>
           ) : null}
 
-          {st === 'approved' ? (
+          {st === 'approved' && canCreate ? (
             <>
               <Button size="sm" onClick={() => setDialog('attention')}>
                 Raise supervisory attention
@@ -198,40 +187,56 @@ export function AmlAssessmentActions({
             </>
           ) : null}
 
-          {unconfirmedAttention.map((a) => (
-            <Button
-              key={`p-${a.id}`}
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setAttentionTarget(a.id);
-                setDialog('priority');
-              }}
-            >
-              Confirm priority — {a.reference}
-            </Button>
-          ))}
+          {(st === 'submitted' && !canReview) || (st === 'reviewed' && !canApprove) ? (
+            <Alert>
+              <Lock className="h-4 w-4" />
+              <AlertDescription>
+                This assessment is awaiting a decision from an officer holding the AML/CFT{' '}
+                {st === 'submitted' ? 'review' : 'approval'} capability.
+              </AlertDescription>
+            </Alert>
+          ) : null}
 
-          {confirmedAttention
-            .filter((a) => !plans.some((p) => p.attention_id === a.id))
-            .map((a) => (
-              <Button
-                key={`pl-${a.id}`}
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setAttentionTarget(a.id);
-                  setDialog('plan');
-                }}
-              >
-                Create supervisory plan — {a.reference}
-              </Button>
-            ))}
+          {canCreate
+            ? unconfirmedAttention.map((a) => (
+                <Button
+                  key={`p-${a.id}`}
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setAttentionTarget(a.id);
+                    setDialog('priority');
+                  }}
+                >
+                  Confirm priority — {a.reference}
+                </Button>
+              ))
+            : null}
+
+          {canCreate
+            ? confirmedAttention
+                .filter((a) => !plans.some((p) => p.attention_id === a.id))
+                .map((a) => (
+                  <Button
+                    key={`pl-${a.id}`}
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setAttentionTarget(a.id);
+                      setDialog('plan');
+                    }}
+                  >
+                    Create supervisory plan — {a.reference}
+                  </Button>
+                ))
+            : null}
 
           {plans.map((p) => {
             const s = String(p.status ?? '').toUpperCase();
             const next = s === 'DRAFT' ? 'SUBMITTED' : s === 'SUBMITTED' ? 'APPROVED' : s === 'APPROVED' ? 'ACTIVE' : null;
             if (!next) return null;
+            const permitted = next === 'SUBMITTED' ? canSubmit : next === 'APPROVED' ? canApprove : canCreate;
+            if (!permitted) return null;
             return (
               <Button
                 key={`pls-${p.id}`}
@@ -251,41 +256,12 @@ export function AmlAssessmentActions({
         <p className="text-xs text-muted-foreground">
           Actions available to you depend on the lifecycle state and on maker/checker separation: the officer who
           records the ratings cannot approve them, and the assessment must be approved before it can drive attention,
-          a plan or an examination.
+          a plan or an examination. Ratings are recorded in the working file against the methodology's own dimensions.
         </p>
       </CardContent>
 
       {/* --------------------------------------------------------- dialogs -- */}
-      <AmlActionDialog
-        open={dialog === 'dimension'}
-        onOpenChange={(o) => (o ? null : close())}
-        title="Record a risk or control rating"
-        description="Ratings are recorded against the AML/CFT methodology with the rationale and evidence that support them."
-        fields={dimensionFields}
-        submitLabel="Save rating"
-        onSubmit={async (v) =>
-          saveDimension.mutateAsync({
-            assessmentId,
-            dimensionCode: v.dimension_code.trim().toUpperCase().replace(/\s+/g, '_'),
-            dimensionGroup: v.dimension_group,
-            inherentRating: v.inherent_rating || null,
-            controlRating: v.control_rating || null,
-            residualRating: v.residual_rating,
-            weight: v.weight ? Number(v.weight) : null,
-            rationale: v.rationale,
-            sourceFacts: v.source_facts || null,
-            evidenceRefs: v.evidence_ref ? [{ kind: 'document', ref: v.evidence_ref }] : null,
-            trend: v.trend || null,
-            confidence: v.confidence || null,
-            dataQuality: v.data_quality || null,
-            calculatedInherentRating: v.inherent_rating || null,
-            calculatedControlRating: v.control_rating || null,
-            calculatedResidualRating: v.residual_rating || null,
-            overrideReason: v.override_reason || null,
-          })
-        }
-        onDone={() => done('Rating recorded on the assessment.')}
-      />
+
 
       <AmlActionDialog
         open={dialog === 'submit'}
