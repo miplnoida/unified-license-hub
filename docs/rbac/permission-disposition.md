@@ -11,18 +11,21 @@ is granted to any role, role template or user, so none of them widens access.
 | Disposition | Count | Meaning |
 | --- | --- | --- |
 | legacy-alias | 0 | Kept so historic database access rules resolve. |
-| reserved-granular | 139 | Live module, finer-grained action reserved for later split-out. |
+| reserved-granular | 152 | Live module, finer-grained action reserved for later split-out. |
 | future-module | 42 | Module catalogued ahead of its surface being built. |
 | manual | 0 | Reviewed case-by-case (see rationale). |
 
-Total orphans: **181**
+Total orphans: **194**
 
 | Permission | Disposition | Rationale |
 | --- | --- | --- |
 | `ai_management.create` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `ai_management.execute` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
-| `aml_supervision.approve` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `aml_supervision.assign` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `aml_supervision.edit` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `aml_supervision.finding_manage` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `aml_supervision.manage_config` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `aml_supervision.remediation_manage` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `application_management.delete` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `application_management.manage_config` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `application_management.reject` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
@@ -195,6 +198,16 @@ Total orphans: **181**
 | `rule_engine.view_executions` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `rule_engine.view_tasks` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `rule_engine.view_versions` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `supervisory_spine.approve` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `supervisory_spine.assign` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `supervisory_spine.cancel` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `supervisory_spine.close` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `supervisory_spine.create` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `supervisory_spine.edit` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `supervisory_spine.review` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `supervisory_spine.submit` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `supervisory_spine.view` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
+| `supervisory_spine.workflow_action` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `support_management.resolve` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `support_management.respond` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `support_management.update` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |

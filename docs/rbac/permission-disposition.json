@@ -1,7 +1,7 @@
 {
   "generatedFrom": "src/lib/rbac/catalog.json",
   "counts": {
-    "reserved-granular": 139,
+    "reserved-granular": 152,
     "future-module": 42
   },
   "rows": [
@@ -19,13 +19,31 @@
     },
     {
       "module": "aml_supervision",
-      "action": "approve",
+      "action": "assign",
       "disposition": "reserved-granular",
       "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
     },
     {
       "module": "aml_supervision",
       "action": "edit",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "aml_supervision",
+      "action": "finding_manage",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "aml_supervision",
+      "action": "manage_config",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "aml_supervision",
+      "action": "remediation_manage",
       "disposition": "reserved-granular",
       "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
     },
@@ -1058,6 +1076,66 @@
     {
       "module": "rule_engine",
       "action": "view_versions",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "supervisory_spine",
+      "action": "approve",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "supervisory_spine",
+      "action": "assign",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "supervisory_spine",
+      "action": "cancel",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "supervisory_spine",
+      "action": "close",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "supervisory_spine",
+      "action": "create",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "supervisory_spine",
+      "action": "edit",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "supervisory_spine",
+      "action": "review",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "supervisory_spine",
+      "action": "submit",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "supervisory_spine",
+      "action": "view",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "supervisory_spine",
+      "action": "workflow_action",
       "disposition": "reserved-granular",
       "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
     },
