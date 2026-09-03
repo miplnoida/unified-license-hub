@@ -24,10 +24,12 @@ import {
 } from 'lucide-react';
 import { AmlEvidenceLinker, type AmlEvidenceRef } from '@/components/supervision/aml/AmlEvidenceLinker';
 import {
-  remediationTiming, useEnforcementReferral, useEscalateRemediation, useRequireReassessment,
-  useTransitionRemediation, useValidateRemediation, type RemediationAction, type SupervisoryFindingModel,
+  remediationTiming, useAcceptResidualDeficiency, useEnforcementReferral, useEscalateRemediation,
+  useRequireReassessment, useTransitionRemediation, useValidateRemediation,
+  type RemediationAction, type SupervisoryFindingModel,
 } from '@/hooks/useSupervisoryFinding';
 import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, statusTone, titleCase } from '@/lib/amlLabels';
+
 
 /** Mirrors the governed transition table in `supervisory_remediation_transition`. */
 const NEXT_STATUSES: Record<string, string[]> = {
@@ -84,8 +86,11 @@ export function RemediationActionCard({ action, model, canManage, canRefer }: Pr
   const escalate = useEscalateRemediation(findingId);
   const refer = useEnforcementReferral(findingId);
   const reassess = useRequireReassessment(findingId);
+  const acceptResidual = useAcceptResidualDeficiency(findingId);
 
-  const [dialog, setDialog] = useState<null | 'transition' | 'validate' | 'escalate' | 'refer' | 'reassess'>(null);
+  const [dialog, setDialog] = useState<
+    null | 'transition' | 'validate' | 'escalate' | 'refer' | 'reassess' | 'residual'
+  >(null);
   const [toStatus, setToStatus] = useState('');
   const [rationale, setRationale] = useState('');
   const [entityResponse, setEntityResponse] = useState('');
@@ -100,10 +105,15 @@ export function RemediationActionCard({ action, model, canManage, canRefer }: Pr
   const [legalBasis, setLegalBasis] = useState('');
   const [requestedType, setRequestedType] = useState('FOLLOW_UP');
   const [dueDate, setDueDate] = useState('');
+  const [remainingDeficiency, setRemainingDeficiency] = useState('');
+  const [followUpRequirement, setFollowUpRequirement] = useState('');
+  const [residualMateriality, setResidualMateriality] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM');
+  const [nextReviewDate, setNextReviewDate] = useState('');
 
   const reset = () => {
     setDialog(null); setToStatus(''); setRationale(''); setEntityResponse(''); setEvidence([]);
     setEvidenceReviewed(''); setProcedureApplied(''); setNextStep(''); setLegalBasis(''); setDueDate('');
+    setRemainingDeficiency(''); setFollowUpRequirement(''); setNextReviewDate('');
   };
 
   const run = async (label: string, fn: () => Promise<unknown>) => {
@@ -120,8 +130,15 @@ export function RemediationActionCard({ action, model, canManage, canRefer }: Pr
     !action.escalated_attention_id
     && (timing.state === 'overdue' || ['INEFFECTIVE', 'PARTIALLY_EFFECTIVE', 'REOPENED'].includes(status));
 
+  /** The governed residual acceptance for THIS corrective action, if one exists. */
+  const residual = model.residualAcceptances.find((r) => r.action_id === action.id) ?? null;
+  const residualOutstanding = status === 'PARTIALLY_EFFECTIVE' && !residual;
+
   const lastValidation = action.validations[action.validations.length - 1];
-  const options = NEXT_STATUSES[status] ?? [];
+
+  // A partially effective action cannot be closed until the residual weakness is accepted.
+  const options = (NEXT_STATUSES[status] ?? []).filter((s) => !(s === 'CLOSED' && residualOutstanding));
+
 
   return (
     <Card className="border-l-4" style={{ borderLeftColor: status === 'EFFECTIVE' ? 'hsl(var(--primary))' : undefined }}>
@@ -198,8 +215,27 @@ export function RemediationActionCard({ action, model, canManage, canRefer }: Pr
           </ul>
         ) : null}
 
+        {residual ? (
+          <div className={`rounded-md border p-2 text-xs ${AMBER}`}>
+            <span className="font-semibold">
+              Residual deficiency accepted {fmtDate(residual.accepted_at)} · {titleCase(residual.residual_materiality)} materiality
+              {residual.accepted_by_name ? ` · ${residual.accepted_by_name}` : ''}
+            </span>
+            <div className="mt-0.5">Remaining: {residual.remaining_deficiency}</div>
+            <div>Follow-up: {residual.follow_up_requirement}</div>
+            {residual.next_review_date ? <div>Next review {fmtDate(residual.next_review_date)}</div> : null}
+          </div>
+        ) : residualOutstanding ? (
+          <div className={`rounded-md border p-2 text-xs ${AMBER}`}>
+            <span className="font-semibold">Partially effective — a residual decision is outstanding. </span>
+            {action.reference} cannot be closed, and neither can the finding, until the remaining deficiency is either
+            remediated further or formally accepted with a follow-up supervisory requirement.
+          </div>
+        ) : null}
+
         {canManage ? (
           <div className="flex flex-wrap gap-2 border-t pt-3">
+
             {options.length > 0 ? (
               <Button size="sm" variant="outline" onClick={() => { setToStatus(options[0]); setDialog('transition'); }}>
                 <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" />Progress {action.reference}
@@ -210,6 +246,12 @@ export function RemediationActionCard({ action, model, canManage, canRefer }: Pr
                 <FileCheck2 className="mr-1.5 h-3.5 w-3.5" />Validate {action.reference}
               </Button>
             ) : null}
+            {residualOutstanding ? (
+              <Button size="sm" onClick={() => setDialog('residual')}>
+                <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />Accept residual deficiency on {action.reference}
+              </Button>
+            ) : null}
+
             {escalationAvailable ? (
               <Button size="sm" variant="outline" onClick={() => setDialog('escalate')}>
                 <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />Escalate {action.reference}
@@ -499,6 +541,71 @@ export function RemediationActionCard({ action, model, canManage, canRefer }: Pr
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* ------------------------------------------- residual acceptance --- */}
+        <Dialog open={dialog === 'residual'} onOpenChange={(o) => (o ? null : reset())}>
+          <DialogContent className="max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Accept the residual deficiency on {action.reference}</DialogTitle>
+              <DialogDescription>
+                A partially effective outcome is not a resolved matter. Accepting the residual weakness is an explicit
+                supervisory decision that names what remains outstanding and what the regulator will do about it. The
+                officer who concluded the validation cannot also accept the residual risk.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <Label>Remaining deficiency (minimum 20 characters)</Label>
+                <Textarea rows={3} value={remainingDeficiency} onChange={(e) => setRemainingDeficiency(e.target.value)} />
+              </div>
+              <div>
+                <Label>Follow-up supervisory requirement (minimum 20 characters)</Label>
+                <Textarea rows={3} value={followUpRequirement} onChange={(e) => setFollowUpRequirement(e.target.value)} />
+              </div>
+              <div>
+                <Label>Acceptance rationale (minimum 20 characters)</Label>
+                <Textarea rows={3} value={rationale} onChange={(e) => setRationale(e.target.value)} />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>Residual materiality</Label>
+                  <Select value={residualMateriality} onValueChange={(v) => setResidualMateriality(v as typeof residualMateriality)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(['LOW', 'MEDIUM', 'HIGH'] as const).map((v) => (
+                        <SelectItem key={v} value={v}>{titleCase(v)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Next review date</Label>
+                  <Input type="date" value={nextReviewDate} onChange={(e) => setNextReviewDate(e.target.value)} />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={reset}>Cancel</Button>
+              <Button
+                disabled={
+                  remainingDeficiency.trim().length < 20 || followUpRequirement.trim().length < 20
+                  || rationale.trim().length < 20 || acceptResidual.isPending
+                }
+                onClick={() => run('Residual acceptance', () => acceptResidual.mutateAsync({
+                  actionId: action.id,
+                  remainingDeficiency,
+                  followUpRequirement,
+                  rationale,
+                  residualMateriality,
+                  nextReviewDate: nextReviewDate || null,
+                }))}
+              >
+                Record residual acceptance
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
 
         {status === 'EFFECTIVE' ? (
           <p className={`rounded-md border p-2 text-xs ${NEUTRAL}`}>

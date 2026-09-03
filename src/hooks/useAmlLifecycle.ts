@@ -255,112 +255,12 @@ export function useAmlPlanLifecycle() {
   });
 }
 
-/* ------------------------------------------------------ findings ---------- */
+/* ------------------------------------------------------ findings ----------
+ * Finding issue, management response, corrective action lifecycle and
+ * validation are decided in the canonical finding workspace
+ * (`/supervision/findings/:id`) through `useSupervisoryFinding`. AML/CFT keeps
+ * no parallel copy of those operations. */
 
-export interface AmlFindingResponseInput {
-  findingId: string;
-  responseState: 'ACCEPTED' | 'PARTIALLY_ACCEPTED' | 'DISPUTED';
-  managementResponse: string;
-  proposedAction?: string | null;
-  responsiblePerson?: string | null;
-  targetDate?: string | null;
-}
-
-export function useRecordAmlFindingResponse() {
-  const invalidate = useInvalidateAml();
-  return useMutation({
-    mutationFn: (input: AmlFindingResponseInput) =>
-      rpc('supervisory_finding_response', {
-        _finding_id: input.findingId,
-        _response_state: input.responseState,
-        _management_response: input.managementResponse,
-        _proposed_action: input.proposedAction ?? null,
-        _responsible_person: input.responsiblePerson ?? null,
-        _target_date: input.targetDate ?? null,
-      }),
-    onSuccess: invalidate,
-  });
-}
-
-export function useAmlFindingLifecycle() {
-  const invalidate = useInvalidateAml();
-  return useMutation({
-    mutationFn: (input: { findingId: string; toStatus: string; rationale: string }) =>
-      rpc('supervisory_finding_lifecycle', {
-        _finding_id: input.findingId,
-        _to_status: input.toStatus,
-        _rationale: input.rationale,
-      }),
-    onSuccess: invalidate,
-  });
-}
-
-/* --------------------------------------------------- remediation ---------- */
-
-export function useOpenAmlRemediation() {
-  const invalidate = useInvalidateAml();
-  return useMutation({
-    mutationFn: (input: {
-      findingId: string;
-      description: string;
-      requiredOutcome?: string | null;
-      responsibleParty?: string | null;
-      targetDate?: string | null;
-    }) =>
-      rpc('supervisory_remediation_open', {
-        _finding_id: input.findingId,
-        _description: input.description,
-        _required_outcome: input.requiredOutcome ?? null,
-        _responsible_party: input.responsibleParty ?? null,
-        _target_date: input.targetDate ?? null,
-      }),
-    onSuccess: invalidate,
-  });
-}
-
-export function useTransitionAmlRemediation() {
-  const invalidate = useInvalidateAml();
-  return useMutation({
-    mutationFn: (input: {
-      actionId: string;
-      toStatus: string;
-      rationale: string;
-      entityResponse?: string | null;
-      evidence?: { kind: string; ref: string }[] | null;
-    }) =>
-      rpc('supervisory_remediation_transition', {
-        _action_id: input.actionId,
-        _to_status: input.toStatus,
-        _rationale: input.rationale,
-        _entity_response: input.entityResponse ?? null,
-        _evidence: input.evidence?.length ? input.evidence : null,
-      }),
-    onSuccess: invalidate,
-  });
-}
-
-export function useValidateAmlRemediation() {
-  const invalidate = useInvalidateAml();
-  return useMutation({
-    mutationFn: (input: {
-      actionId: string;
-      conclusion: 'EFFECTIVE' | 'PARTIALLY_EFFECTIVE' | 'INEFFECTIVE';
-      evidenceReviewed: string;
-      procedureApplied: string;
-      rationale: string;
-      nextStep?: string | null;
-    }) =>
-      rpc('supervisory_remediation_validate', {
-        _action_id: input.actionId,
-        _conclusion: input.conclusion,
-        _evidence_reviewed: input.evidenceReviewed,
-        _procedure_applied: input.procedureApplied,
-        _rationale: input.rationale,
-        _next_step: input.nextStep ?? null,
-      }),
-    onSuccess: invalidate,
-  });
-}
 
 /* -------------------------------------------------- reassessment ---------- */
 

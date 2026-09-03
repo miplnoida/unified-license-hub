@@ -10,7 +10,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useAmlFindings } from '@/hooks/useAmlSupervision';
-import { AmlFindingActions } from '@/components/supervision/aml/AmlFindingActions';
 import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 export default function AmlFindings() {
@@ -210,7 +209,10 @@ export default function AmlFindings() {
                         )}
                       </div>
 
-                      <AmlFindingActions finding={f} onChanged={() => void refetch()} />
+                      <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
+                        Findings are decided in the canonical finding workspace, where provenance, corrective actions,
+                        residual acceptance and closure readiness are governed together. Open the finding to act on it.
+                      </p>
                     </div>
 
                   );

@@ -478,7 +478,7 @@ BEGIN
   PERFORM public.supervisory_finding_response(fid, 'PARTIALLY_ACCEPTED',
     'The licensee accepts the monitoring weakness and disputes the backlog volume.',
     'Remediate documentation standards and retrain analysts.', 'MLRO',
-    (current_date + 60), NULL);
+    (current_date + 60), NULL, 'MLRO, by signed letter', current_date, 'LETTER');
 
   a1 := public.supervisory_remediation_open(fid, 'RA-001 Document all outstanding alert decisions',
         'Every alert decision is documented and reviewable', NULL, 'MLRO', current_date + 30);

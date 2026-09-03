@@ -102,6 +102,20 @@ export interface ReassessmentRequirement {
   created_at: string;
 }
 
+export interface ResidualAcceptance {
+  id: string;
+  action_id: string;
+  finding_id: string;
+  remaining_deficiency: string;
+  residual_materiality: string;
+  follow_up_requirement: string;
+  next_review_date: string | null;
+  rationale: string;
+  accepted_by: string | null;
+  accepted_at: string;
+  accepted_by_name?: string | null;
+}
+
 export interface SupervisoryFindingModel {
   finding: Record<string, any>;
   entityName: string | null;
@@ -110,7 +124,9 @@ export interface SupervisoryFindingModel {
   remediation: RemediationAction[];
   events: SupervisoryEvent[];
   reassessments: ReassessmentRequirement[];
+  residualAcceptances: ResidualAcceptance[];
 }
+
 
 async function namesFor(ids: (string | null | undefined)[]): Promise<Map<string, string>> {
   const list = [...new Set(ids.filter(Boolean))] as string[];
@@ -138,6 +154,7 @@ export function useSupervisoryFinding(id?: string) {
         { data: actions },
         { data: fEvents },
         { data: reassess },
+        { data: residual },
         { data: workpaper },
         { data: examination },
       ] = await Promise.all([
@@ -145,6 +162,7 @@ export function useSupervisoryFinding(id?: string) {
         sb.from('supervisory_remediation_action').select('*').eq('finding_id', id).order('created_at'),
         sb.from('supervisory_finding_event').select('*').eq('finding_id', id).order('created_at'),
         sb.from('supervisory_reassessment_requirement').select('*').eq('finding_id', id).order('created_at'),
+        sb.from('supervisory_residual_acceptance').select('*').eq('finding_id', id).order('accepted_at'),
         finding.workpaper_id
           ? sb.from('examination_workpapers').select('id, reference, area, conclusion').eq('id', finding.workpaper_id).maybeSingle()
           : Promise.resolve({ data: null }),
@@ -153,6 +171,7 @@ export function useSupervisoryFinding(id?: string) {
               .eq('id', finding.examination_id).maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
+
 
       const interventionId = finding.intervention_id ?? examination?.intervention_id ?? null;
       const [{ data: intervention }, { data: assessment }, { data: dimension }] = await Promise.all([
@@ -195,11 +214,14 @@ export function useSupervisoryFinding(id?: string) {
 
       const people = await namesFor([
         finding.owner_id,
+        finding.response_recorded_by,
         ...actionRows.map((a) => a.owner_id),
         ...((validations ?? []) as any[]).map((v) => v.validated_by),
+        ...((residual ?? []) as any[]).map((r) => r.accepted_by),
         ...((fEvents ?? []) as any[]).map((e) => e.actor_id),
         ...((rEvents ?? []) as any[]).map((e) => e.actor_id),
       ]);
+
 
       const remediation: RemediationAction[] = actionRows.map((a) => ({
         ...a,
@@ -239,6 +261,11 @@ export function useSupervisoryFinding(id?: string) {
         remediation,
         events,
         reassessments: (reassess ?? []) as ReassessmentRequirement[],
+        residualAcceptances: ((residual ?? []) as any[]).map((r) => ({
+          ...r,
+          accepted_by_name: r.accepted_by ? people.get(r.accepted_by) ?? null : null,
+        })) as ResidualAcceptance[],
+
       };
     },
   });
@@ -279,13 +306,15 @@ export interface RecordResponseInput {
   proposedAction?: string | null;
   responsiblePerson?: string | null;
   targetDate?: string | null;
-  /** Officer-recorded external response provenance — never claimed as the entity's own submission. */
-  receipt?: {
-    recorded_externally: boolean;
-    received_from?: string | null;
-    received_date?: string | null;
-    channel?: string | null;
-  } | null;
+  /**
+   * Officer-recorded external receipt. The database derives the authoritative
+   * `response_source` from who is acting, so this is never a claim that the
+   * entity itself answered in the platform — it is how the letter, email or
+   * meeting note reached the regulator.
+   */
+  receivedFrom?: string | null;
+  receivedDate?: string | null;
+  channel?: string | null;
   documents?: Record<string, unknown>[] | null;
 }
 
@@ -298,14 +327,41 @@ export function useRecordFindingResponse(findingId?: string) {
       _proposed_action: i.proposedAction ?? null,
       _responsible_person: i.responsiblePerson ?? null,
       _target_date: i.targetDate ?? null,
-      _attachments: {
-        receipt: i.receipt ?? { recorded_externally: false },
-        documents: i.documents ?? [],
-      },
+      _attachments: { documents: i.documents ?? [] },
+      _received_from: i.receivedFrom ?? null,
+      _received_date: i.receivedDate ?? null,
+      _channel: i.channel ?? null,
     }),
     findingId,
   );
 }
+
+/**
+ * Governed acceptance of a residual deficiency. A partially effective
+ * corrective action is either remediated further or its residual weakness is
+ * formally accepted with a follow-up requirement — it is never quietly closed.
+ */
+export function useAcceptResidualDeficiency(findingId?: string) {
+  return useFindingMutation<{
+    actionId: string;
+    remainingDeficiency: string;
+    residualMateriality: 'LOW' | 'MEDIUM' | 'HIGH';
+    followUpRequirement: string;
+    rationale: string;
+    nextReviewDate?: string | null;
+  }>(
+    (i) => rpc('supervisory_residual_acceptance_record', {
+      _action_id: i.actionId,
+      _remaining_deficiency: i.remainingDeficiency,
+      _residual_materiality: i.residualMateriality,
+      _follow_up_requirement: i.followUpRequirement,
+      _rationale: i.rationale,
+      _next_review_date: i.nextReviewDate ?? null,
+    }),
+    findingId,
+  );
+}
+
 
 export function useOpenRemediation(findingId?: string) {
   return useFindingMutation<{
@@ -465,10 +521,14 @@ export function closureReadiness(model?: SupervisoryFindingModel): {
     label: 'Finding issued to the entity',
     detail: f.issued_at ? undefined : 'The finding has not been issued yet.',
   });
+  const source = String(f.response_source ?? '').toUpperCase();
   checks.push({
     ok: !!f.response_at,
     label: 'Management response received',
-    detail: f.response_at ? `Response state ${f.response_state ?? '—'}` : 'No management response has been recorded.',
+    detail: f.response_at
+      ? `Response state ${f.response_state ?? '—'}${
+        source === 'OFFICER_RECORDED' ? ' · officer-recorded from an external receipt' : source === 'ENTITY_SUBMITTED' ? ' · submitted by the entity' : ''}`
+      : 'No management response has been recorded.',
   });
   checks.push({
     ok: model.remediation.length > 0,
@@ -476,17 +536,26 @@ export function closureReadiness(model?: SupervisoryFindingModel): {
     detail: model.remediation.length ? `${model.remediation.length} corrective action(s)` : 'No corrective action exists.',
   });
 
+  /** A partial outcome is resolved only where the residual weakness was formally accepted. */
+  const acceptedActionIds = new Set(model.residualAcceptances.map((r) => r.action_id));
+
   model.remediation.forEach((a) => {
     const s = (a.status ?? '').toUpperCase();
-    const done = ['EFFECTIVE', 'CLOSED'].includes(s);
+    const accepted = acceptedActionIds.has(a.id);
+    const done = ['EFFECTIVE', 'CLOSED'].includes(s) || (s === 'PARTIALLY_EFFECTIVE' && accepted);
     checks.push({
       ok: done,
-      label: `${a.reference} ${done ? 'validated effective' : `is ${s.replace(/_/g, ' ').toLowerCase()}`}`,
+      label: `${a.reference} ${
+        s === 'PARTIALLY_EFFECTIVE' && accepted ? 'partially effective — residual deficiency accepted'
+          : done ? 'validated effective' : `is ${s.replace(/_/g, ' ').toLowerCase()}`}`,
       detail: done ? undefined
-        : a.validations.length ? `Last validation: ${a.validations[a.validations.length - 1].conclusion}`
-          : 'Awaiting governed independent validation.',
+        : s === 'PARTIALLY_EFFECTIVE'
+          ? `${a.reference} was validated only partially effective. Accept the residual deficiency with a follow-up requirement, or require further remediation.`
+          : a.validations.length ? `Last validation: ${a.validations[a.validations.length - 1].conclusion}`
+            : 'Awaiting governed independent validation.',
     });
   });
+
 
   const anyValidation = model.remediation.some((a) => a.validations.length > 0);
   if (['REMEDIATION_REQUIRED', 'VALIDATION', 'REOPENED'].includes(status)) {
@@ -511,12 +580,18 @@ export function findingNextAction(model?: SupervisoryFindingModel): string {
   if (status === 'REVIEW') return 'Issue the finding to the entity';
   if (status === 'ISSUED') return 'Await or record the management response';
   if (status === 'MANAGEMENT_RESPONSE' && !model.remediation.length) return 'Raise the required corrective actions';
+  const acceptedActionIds = new Set(model.residualAcceptances.map((r) => r.action_id));
+  const residual = model.remediation.find(
+    (a) => (a.status ?? '').toUpperCase() === 'PARTIALLY_EFFECTIVE' && !acceptedActionIds.has(a.id),
+  );
+  if (residual) return `Residual deficiency decision required on ${residual.reference}`;
   const escalate = model.remediation.find(
     (a) => !a.escalated_attention_id
       && (remediationTiming(a).state === 'overdue'
-        || ['INEFFECTIVE', 'PARTIALLY_EFFECTIVE'].includes((a.status ?? '').toUpperCase())),
+        || ['INEFFECTIVE'].includes((a.status ?? '').toUpperCase())),
   );
   if (escalate) return `Escalation decision required on ${escalate.reference}`;
+
   const validate = model.remediation.find((a) => (a.status ?? '').toUpperCase() === 'VALIDATION');
   if (validate) return `Validate ${validate.reference}`;
   const awaiting = model.remediation.find((a) => OPEN_REMEDIATION_STATUSES.includes((a.status ?? '').toUpperCase()));

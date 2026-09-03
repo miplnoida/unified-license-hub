@@ -243,7 +243,12 @@ export default function FindingWorkspace() {
                     }>
                       {titleCase(f.response_state)}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">Received {fmtDate(f.response_at)}</span>
+                    <Badge variant="outline" className={NEUTRAL}>
+                      {f.response_source === 'OFFICER_RECORDED' ? 'Officer-recorded' : 'Entity submission'}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      Received {fmtDate(f.response_received_date ?? f.response_at)}
+                    </span>
                   </div>
                   <Field label="Entity response">{f.management_response}</Field>
                   <Field label="Proposed action">{f.proposed_action ?? '—'}</Field>
@@ -251,16 +256,21 @@ export default function FindingWorkspace() {
                     <Field label="Responsible person">{f.responsible_person ?? '—'}</Field>
                     <Field label="Committed target date">{fmtDate(f.response_target_date)}</Field>
                   </div>
-                  {(f.response_attachments as any)?.receipt?.recorded_externally ? (
+                  {f.response_source === 'OFFICER_RECORDED' ? (
                     <p className={`rounded-md border p-2 text-xs ${NEUTRAL}`}>
-                      Recorded by a supervisor on behalf of the entity —{' '}
-                      received from {(f.response_attachments as any).receipt.received_from || 'unstated'} via{' '}
-                      {titleCase((f.response_attachments as any).receipt.channel)} on{' '}
-                      {fmtDate((f.response_attachments as any).receipt.received_date)}. This is not an entity submission.
+                      Transcribed by a supervisory officer from a response received outside the platform — from{' '}
+                      {f.response_received_from || 'an unstated correspondent'} via {titleCase(f.response_channel)} on{' '}
+                      {fmtDate(f.response_received_date)}, recorded {fmtDate(f.response_recorded_at)}. This is not an
+                      entity submission in the platform.
                     </p>
-                  ) : null}
+                  ) : (
+                    <p className={`rounded-md border p-2 text-xs ${NEUTRAL}`}>
+                      Submitted by the entity itself through the portal on {fmtDate(f.response_at)}.
+                    </p>
+                  )}
                 </>
               ) : (
+
                 <p className="text-sm text-muted-foreground">
                   No management response has been recorded. Remediation cannot be treated as agreed until the entity's
                   position is on record.
@@ -414,7 +424,7 @@ export default function FindingWorkspace() {
             </div>
             <div className="grid gap-3 rounded-md border p-3 sm:grid-cols-3">
               <div className="sm:col-span-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Receipt provenance
+                Receipt provenance — required for an officer-recorded response
               </div>
               <div>
                 <Label className="text-xs">Received from</Label>
@@ -429,7 +439,7 @@ export default function FindingWorkspace() {
                 <Select value={channel} onValueChange={setChannel}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {['EMAIL', 'LETTER', 'MEETING', 'PORTAL', 'OTHER'].map((c) => (
+                    {['EMAIL', 'LETTER', 'MEETING', 'TELEPHONE', 'OTHER'].map((c) => (
                       <SelectItem key={c} value={c}>{titleCase(c)}</SelectItem>
                     ))}
                   </SelectContent>
@@ -440,7 +450,10 @@ export default function FindingWorkspace() {
           <DialogFooter>
             <Button variant="ghost" onClick={reset}>Cancel</Button>
             <Button
-              disabled={managementResponse.trim().length < 10 || respond.isPending}
+              disabled={
+                managementResponse.trim().length < 10 || receivedFrom.trim().length < 3
+                || !receivedDate || respond.isPending
+              }
               onClick={async () => {
                 try {
                   await respond.mutateAsync({
@@ -448,12 +461,9 @@ export default function FindingWorkspace() {
                     proposedAction: proposedAction || null,
                     responsiblePerson: responsiblePerson || null,
                     targetDate: targetDate || null,
-                    receipt: {
-                      recorded_externally: true,
-                      received_from: receivedFrom || null,
-                      received_date: receivedDate || null,
-                      channel,
-                    },
+                    receivedFrom: receivedFrom || null,
+                    receivedDate: receivedDate || null,
+                    channel,
                   });
                   toast.success('Management response recorded');
                   reset();
@@ -465,6 +475,7 @@ export default function FindingWorkspace() {
               Record response
             </Button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
 
