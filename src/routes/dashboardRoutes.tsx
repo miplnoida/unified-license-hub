@@ -4,6 +4,7 @@ import { P } from '@/routes/routeHelpers';
 import { ModuleRoute } from '@/components/auth/RouteGuards';
 import { PortalRoute } from '@/components/auth/PortalRoute';
 import type { PermissionModule } from '@/lib/permissionModules';
+import { ExaminationDomainRoute } from '@/routes/ExaminationDomainRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { INTERNAL_ROLES } from '@/types/platform';
 import type { PortalArea, PortalCapability } from '@/lib/portalAccess';
