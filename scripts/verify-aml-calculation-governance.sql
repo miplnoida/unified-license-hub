@@ -49,6 +49,9 @@ BEGIN
   INSERT INTO public.supervisory_methodology_question(methodology_id, methodology_dimension_id,
     question_code, prompt, response_options, min_evidence_count)
   VALUES (_m,_dimC,'FXQ2','Control question',ARRAY['YES','NO'],2) RETURNING id INTO _q2;
+  INSERT INTO public.supervisory_methodology_question(methodology_id, methodology_dimension_id,
+    question_code, prompt, response_options, min_evidence_count)
+  VALUES (_m,_dimI,'FXQ1B','Second inherent question',ARRAY['YES','NO'],0);
 
   -- two configuration versions: v1 [2026-01-01, 2026-07-01), v2 [2026-07-01, open)
   INSERT INTO public.supervisory_calculation_config(methodology_id, config_version, status,
@@ -219,7 +222,7 @@ BEGIN
   INSERT INTO public.supervisory_assessment_question_response(assessment_id, methodology_id,
     methodology_dimension_id, methodology_question_id, dimension_code, question_code, question_text, response)
   SELECT _aAug, methodology_id, (SELECT fx FROM calcg_fx WHERE k='dimI'),
-         (SELECT id FROM public.supervisory_methodology_question WHERE methodology_id = _m AND question_code='FXQ1'),
+         (SELECT id FROM public.supervisory_methodology_question WHERE methodology_id = _m AND question_code='FXQ1B'),
          'FX_INH','FXQ1B','Second inherent question','YES'
     FROM public.supervisory_assessment WHERE id = _aAug;
   r := public.supervisory_calc_compute(_aAug);   -- UNWEIGHTED_MEAN => 50
