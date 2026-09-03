@@ -106,12 +106,12 @@ BEGIN
   -- assessment's own methodology version and was in force on the resolved
   -- as-of date given the approved effective-date rule.
   SELECT count(*) INTO n FROM public.supervisory_assessment_calculation c
-    JOIN public.supervisory_assessment a ON a.id = c.assessment_id
+    JOIN public.supervisory_assessment asmt ON asmt.id = c.assessment_id
     LEFT JOIN public.supervisory_calculation_config cc ON cc.id = c.config_id
    WHERE c.status = 'CALCULATED'
      AND (cc.id IS NULL
-          OR cc.methodology_id <> a.methodology_id
-          OR c.methodology_version IS DISTINCT FROM a.methodology_version
+          OR cc.methodology_id <> asmt.methodology_id
+          OR c.methodology_version IS DISTINCT FROM asmt.methodology_version
           OR (cc.effective_from IS NOT NULL AND c.as_of < cc.effective_from)
           OR (cc.effective_to IS NOT NULL AND c.as_of > cc.effective_to));
   PERFORM pg_temp.gate('CALC-07','configuration/version temporal consistency', n = 0,
