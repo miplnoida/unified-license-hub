@@ -161,13 +161,12 @@ export function useAmlAssessment(assessmentId?: string) {
             .select('id, reference, title, severity, status, due_date, examination_id')
             .eq('assessment_id', assessmentId)
             .order('created_at', { ascending: false }),
+          // Exact provenance: examinations that record THIS assessment as their
+          // origin. Never inferred from "same entity + AML domain".
           sb
-            .from('examinations')
-            .select('id, reference, title, stage, examination_type, fieldwork_start, fieldwork_end')
-            .eq('domain_code', 'AML_CFT')
-            .eq('entity_id', header.entity_id)
-            .order('created_at', { ascending: false })
-            .limit(20),
+            .from('examination_origin')
+            .select('examination_id, assessment_id, assessment_dimension_id, origin_role, note')
+            .eq('assessment_id', assessmentId),
           sb
             .from('supervisory_attention_origin')
             .select('attention_id, assessment_dimension_id, signal_id')
