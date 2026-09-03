@@ -78,6 +78,20 @@ export interface ReadinessCheck {
   detail: string;
 }
 
+export interface QuestionGap {
+  dimensionCode: string;
+  questionCode: string;
+  questionText: string;
+  reason: 'unanswered' | 'observation_missing' | 'na_rationale_missing' | 'evidence_missing';
+}
+
+export const QUESTION_GAP_REASON: Record<QuestionGap['reason'], string> = {
+  unanswered: 'no response recorded',
+  observation_missing: 'supervisory observation required',
+  na_rationale_missing: 'Not Applicable requires a supervisory explanation',
+  evidence_missing: 'governed evidence required',
+};
+
 export interface AssessmentReadiness {
   totalDimensions: number;
   assessedDimensions: number;
@@ -89,16 +103,80 @@ export interface AssessmentReadiness {
   evidenceOutstanding: string[];
   dataQualityOutstanding: string[];
   overrideRationaleOutstanding: string[];
+  questionsTotal: number;
+  questionsAnswered: number;
+  questionGaps: QuestionGap[];
   checks: ReadinessCheck[];
   ready: boolean;
 }
 
 const label = (d: AmlMethodologyDimension) => d.label || d.dimension_code;
 
+/**
+ * Which mandatory methodology questions are still outstanding?
+ *
+ * This mirrors `supervisory_assessment_question_gaps` in the database exactly.
+ * The database remains authoritative — it re-checks and refuses submission —
+ * but the officer must be able to see precisely what is missing beforehand.
+ */
+export function computeQuestionGaps(
+  questions: MethodologyQuestionLike[],
+  responses: QuestionResponseLike[],
+  dimensions: AmlMethodologyDimension[] = [],
+): QuestionGap[] {
+  const byQuestion = new Map(responses.map((r) => [r.methodology_question_id, r]));
+  const dimCode = new Map(dimensions.map((d) => [d.id, d.dimension_code]));
+  const gaps: QuestionGap[] = [];
+
+  questions
+    .filter((q) => q.mandatory !== false)
+    .forEach((q) => {
+      const r = byQuestion.get(q.id);
+      const code = dimCode.get(q.methodology_dimension_id) ?? q.methodology_dimension_id;
+      const push = (reason: QuestionGap['reason']) =>
+        gaps.push({ dimensionCode: code, questionCode: q.question_code, questionText: q.prompt, reason });
+
+      if (!r) return push('unanswered');
+      const observation = String(r.observation ?? '').trim();
+      if (r.response === 'NOT_APPLICABLE') {
+        if (q.na_requires_rationale !== false && observation.length < 10) push('na_rationale_missing');
+        return;
+      }
+      if (q.requires_observation !== false && observation.length < 10) return push('observation_missing');
+      if (q.requires_evidence && evidenceCount(r.evidence_refs) < Math.max(1, q.min_evidence_count ?? 1)) {
+        push('evidence_missing');
+      }
+    });
+
+  return gaps;
+}
+
+export interface MethodologyQuestionLike {
+  id: string;
+  methodology_dimension_id: string;
+  question_code: string;
+  prompt: string;
+  mandatory?: boolean;
+  requires_observation?: boolean;
+  requires_evidence?: boolean;
+  min_evidence_count?: number;
+  na_requires_rationale?: boolean;
+}
+
+export interface QuestionResponseLike {
+  methodology_question_id: string;
+  response: string;
+  observation: string | null;
+  evidence_refs: unknown;
+}
+
 export function computeAssessmentReadiness(
   dimensions: AmlMethodologyDimension[],
   recorded: RecordedDimension[],
+  questions: MethodologyQuestionLike[] = [],
+  responses: QuestionResponseLike[] = [],
 ): AssessmentReadiness {
+
   const inherentOutstanding: string[] = [];
   const controlOutstanding: string[] = [];
   const rationaleOutstanding: string[] = [];
