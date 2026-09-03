@@ -285,6 +285,16 @@ export function useAmlExaminations() {
       const planById = new Map((plans?.data ?? []).map((p: any) => [p.id, p]));
       const interventionById = new Map((interventions?.data ?? []).map((i: any) => [i.id, i]));
 
+      const examinerIds = Array.from(new Set(rows.map((r) => r.lead_examiner_id).filter(Boolean))) as string[];
+      const examinerById = new Map<string, string>(
+        examinerIds.length
+          ? (((await sb.from('profiles').select('id, full_name').in('id', examinerIds)).data ?? []) as any[]).map(
+              (p) => [p.id, p.full_name ?? ''],
+            )
+          : [],
+      );
+
+
       const today = new Date().toISOString().slice(0, 10);
       const group = <T,>(list: T[] | null | undefined, key: (r: T) => string) => {
         const m = new Map<string, T[]>();
