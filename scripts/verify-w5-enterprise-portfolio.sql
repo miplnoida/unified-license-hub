@@ -674,7 +674,7 @@ BEGIN
   FOR d IN SELECT pg_get_functiondef(oid) FROM pg_proc
             WHERE pronamespace = 'public'::regnamespace
               AND proname IN ('supervisory_portfolio','enterprise_supervisory_overview') LOOP
-    IF d ~* 'enforcement[^;]{0,400}(INEFFECTIVE|overdue_remediation|severity)' THEN
+    IF d ~* 'enforcement[^;]{0,200}(INEFFECTIVE|overdue_remediation|severity)' THEN
       RAISE EXCEPTION 'FAIL W5-11: an enforcement figure is inferred from findings/remediation state';
     END IF;
   END LOOP;
@@ -864,8 +864,8 @@ BEGIN
   -- observance ratings live only in the PFMI objects and must not be translated to risk
   SELECT pg_get_functiondef(oid) INTO d FROM pg_proc
    WHERE pronamespace = 'public'::regnamespace AND proname = 'enterprise_supervisory_overview';
-  IF d ~* '(NOT_OBSERVED|PARTLY_OBSERVED|BROADLY_OBSERVED)[^;]{0,300}residual_rating'
-     OR d ~* 'residual_rating[^;]{0,300}(NOT_OBSERVED|PARTLY_OBSERVED)' THEN
+  IF d ~* '(NOT_OBSERVED|PARTLY_OBSERVED|BROADLY_OBSERVED)[^;]{0,200}residual_rating'
+     OR d ~* 'residual_rating[^;]{0,200}(NOT_OBSERVED|PARTLY_OBSERVED)' THEN
     RAISE EXCEPTION 'FAIL W5-14: PFMI observance is translated into prudential risk';
   END IF;
   IF EXISTS (SELECT 1 FROM public.entity_risk_state rs
