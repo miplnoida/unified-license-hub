@@ -194,6 +194,24 @@ function M({ module, children, allowedRoles }: { module: PermissionModule; child
   return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
 }
 
+/**
+ * EPIC 4 / W5 — the Enterprise Supervisory Portfolio is cross-domain, so any
+ * officer authorised for at least one supervisory domain may open it. The
+ * governed read models (`supervisory_portfolio`, `supervisory_sector_overview`)
+ * then return only the domains that officer may see.
+ */
+const SUPERVISORY_PORTFOLIO_MODULES: PermissionModule[] = [
+  'prudential_supervision', 'aml_supervision', 'market_conduct', 'fit_and_proper',
+];
+
+function SupervisoryPortfolioGate() {
+  const { hasModuleAccess, isBypassRole } = useUserDynamicPermissions();
+  const resolved = isBypassRole
+    ? 'prudential_supervision'
+    : (SUPERVISORY_PORTFOLIO_MODULES.find((m) => hasModuleAccess(m)) ?? 'prudential_supervision');
+  return <M module={resolved}><SupervisoryPortfolio /></M>;
+}
+
 function EP({ area, capability, children }: { area: PortalArea; capability: PortalCapability | PortalCapability[]; children: React.ReactNode }) {
   return <P><PortalRoute area={area} capability={capability}>{children}</PortalRoute></P>;
 }
