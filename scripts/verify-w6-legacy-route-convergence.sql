@@ -468,4 +468,167 @@ BEGIN
   RAISE NOTICE 'PASS W6-16: every generated destination is a canonical route';
 END $$;
 
+-- =====================================================================
+-- W6 AUTHORIZATION CLOSURE GATES (W6-17 .. W6-24)
+-- Enterprise supervisory surfaces must have ONE stated authority that is
+-- identical in the route registry, the navigation tree and the backend
+-- read model. No default-module fallback, no navigation leak.
+-- =====================================================================
+
+-- W6-17 — the enterprise supervisory permission exists in the catalogue
+DO $$
+DECLARE n int;
+BEGIN
+  SELECT count(*) INTO n FROM public.sec_permissions p
+    JOIN public.sec_modules m ON m.id = p.module_id
+   WHERE m.key = 'supervisory_spine' AND p.key = 'view';
+  IF n <> 1 THEN
+    RAISE EXCEPTION 'FAIL W6-17: supervisory_spine.view missing from the permission catalogue';
+  END IF;
+  RAISE NOTICE 'PASS W6-17: supervisory_spine.view present in the catalogue';
+END $$;
+
+-- W6-18 — both enterprise supervisory ROUTES are registered and gated
+DO $$
+DECLARE bad text := '';
+BEGIN
+  SELECT string_agg(x.path, ', ') INTO bad
+    FROM (VALUES ('/supervision/portfolio'), ('/supervision/team-performance')) AS x(path)
+   WHERE NOT EXISTS (
+     SELECT 1 FROM public.sec_routes r
+       JOIN public.sec_permissions p ON p.id = r.required_permission_id
+       JOIN public.sec_modules m ON m.id = p.module_id
+      WHERE r.path_pattern = x.path AND r.is_active
+        AND r.audience = 'internal' AND r.is_protected
+        AND m.key = 'supervisory_spine' AND p.key = 'view');
+  IF bad IS NOT NULL THEN
+    RAISE EXCEPTION 'FAIL W6-18: enterprise supervisory route(s) not registered/gated on supervisory_spine.view: %', bad;
+  END IF;
+  RAISE NOTICE 'PASS W6-18: both enterprise supervisory routes gated on supervisory_spine.view';
+END $$;
+
+-- W6-19 — no NAVIGATION LEAK: every enterprise supervisory nav entry carries
+-- the same required permission as its route (the portfolio entry previously
+-- carried none and rendered for every internal identity)
+DO $$
+DECLARE bad text := '';
+BEGIN
+  SELECT string_agg(n.key, ', ') INTO bad
+    FROM public.sec_navigation_items n
+    LEFT JOIN public.sec_permissions p ON p.id = n.required_permission_id
+    LEFT JOIN public.sec_modules m ON m.id = p.module_id
+   WHERE n.key IN ('nav_sup_portfolio', 'nav_supervision_team_performance')
+     AND (m.key IS DISTINCT FROM 'supervisory_spine' OR p.key IS DISTINCT FROM 'view');
+  IF bad IS NOT NULL THEN
+    RAISE EXCEPTION 'FAIL W6-19: navigation entry(ies) not gated on supervisory_spine.view: %', bad;
+  END IF;
+  RAISE NOTICE 'PASS W6-19: enterprise supervisory navigation matches route authority';
+END $$;
+
+-- W6-20 — backend parity: the team-performance read model requires supervisory
+-- authority, NOT generic reporting / staff-directory / admin-dashboard access
+DO $$
+DECLARE def text;
+BEGIN
+  SELECT pg_get_functiondef(p.oid) INTO def
+    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'public' AND p.proname = 'sup_team_performance';
+  IF def IS NULL THEN
+    RAISE EXCEPTION 'FAIL W6-20: public.sup_team_performance missing';
+  END IF;
+  IF position('''supervisory_spine''' in def) = 0 THEN
+    RAISE EXCEPTION 'FAIL W6-20: sup_team_performance does not require supervisory_spine.view';
+  END IF;
+  IF position('''report_management''' in def) > 0
+     OR position('''employee_management''' in def) > 0
+     OR position('''admin_dashboard''' in def) > 0 THEN
+    RAISE EXCEPTION 'FAIL W6-20: sup_team_performance still accepts non-supervisory authority';
+  END IF;
+  RAISE NOTICE 'PASS W6-20: sup_team_performance guard matches the route authority';
+END $$;
+
+-- W6-21 — Executive Management holds enterprise supervisory READ authority on
+-- BOTH the template of record and the live role (governed, not user-level)
+DO $$
+DECLARE tpl int; live int;
+BEGIN
+  SELECT count(*) INTO tpl
+    FROM public.sec_role_template_permissions rtp
+    JOIN public.sec_role_templates t ON t.id = rtp.template_id
+    JOIN public.sec_permissions p ON p.id = rtp.permission_id
+    JOIN public.sec_modules m ON m.id = p.module_id
+   WHERE t.key = 'executive_management' AND m.key = 'supervisory_spine' AND p.key = 'view';
+  SELECT count(*) INTO live
+    FROM public.sec_role_permissions rp
+    JOIN public.sec_roles r ON r.id = rp.role_id
+    JOIN public.sec_permissions p ON p.id = rp.permission_id
+    JOIN public.sec_modules m ON m.id = p.module_id
+   WHERE r.key = 'executive_management' AND m.key = 'supervisory_spine' AND p.key = 'view';
+  IF tpl < 1 OR live < 1 THEN
+    RAISE EXCEPTION 'FAIL W6-21: executive_management missing supervisory_spine.view (template=%, live=%)', tpl, live;
+  END IF;
+  RAISE NOTICE 'PASS W6-21: executive_management holds supervisory_spine.view on template and live role';
+END $$;
+
+-- W6-22 — NEGATIVE parity: a non-supervisory internal persona (Returns
+-- Officer) must be refused the enterprise supervisory surfaces by the SAME
+-- predicate the frontend guard uses. No widening to make screens green.
+DO $$
+DECLARE uid uuid; allowed boolean;
+BEGIN
+  SELECT ur.user_id INTO uid
+    FROM public.sec_user_roles ur
+    JOIN public.sec_roles r ON r.id = ur.role_id
+   WHERE r.key = 'returns_officer'
+   LIMIT 1;
+  IF uid IS NULL THEN
+    RAISE NOTICE 'SKIP W6-22: no returns_officer identity assigned in this environment';
+    RETURN;
+  END IF;
+  allowed := public.is_super_admin(uid)
+    OR public.has_permission(uid, 'supervisory_spine', 'view')
+    OR public.has_permission(uid, 'prudential_supervision', 'view')
+    OR public.has_permission(uid, 'aml_supervision', 'view')
+    OR public.has_permission(uid, 'market_conduct', 'view')
+    OR public.has_permission(uid, 'fit_and_proper', 'view');
+  IF allowed THEN
+    RAISE EXCEPTION 'FAIL W6-22: returns_officer is authorised for enterprise supervisory surfaces';
+  END IF;
+  RAISE NOTICE 'PASS W6-22: returns_officer refused on the enterprise supervisory surfaces';
+END $$;
+
+-- W6-23 — enterprise supervisory authority is READ-ONLY for Executive
+-- Management: no mutating supervisory_spine action may be granted to it
+DO $$
+DECLARE bad text := '';
+BEGIN
+  SELECT string_agg(p.key, ', ') INTO bad
+    FROM public.sec_role_permissions rp
+    JOIN public.sec_roles r ON r.id = rp.role_id
+    JOIN public.sec_permissions p ON p.id = rp.permission_id
+    JOIN public.sec_modules m ON m.id = p.module_id
+   WHERE r.key = 'executive_management' AND m.key = 'supervisory_spine'
+     AND p.key NOT IN ('view', 'view_all', 'export');
+  IF bad IS NOT NULL THEN
+    RAISE EXCEPTION 'FAIL W6-23: executive_management holds mutating supervisory_spine action(s): %', bad;
+  END IF;
+  RAISE NOTICE 'PASS W6-23: executive_management supervisory authority is read-only';
+END $$;
+
+-- W6-24 — no supervisory route may be left ungated in the registry
+DO $$
+DECLARE bad text := '';
+BEGIN
+  SELECT string_agg(r.path_pattern, ', ') INTO bad
+    FROM public.sec_routes r
+   WHERE r.is_active
+     AND r.path_pattern LIKE '/supervision/%'
+     AND r.is_protected
+     AND r.required_permission_id IS NULL;
+  IF bad IS NOT NULL THEN
+    RAISE EXCEPTION 'FAIL W6-24: protected supervision route(s) without a required permission: %', bad;
+  END IF;
+  RAISE NOTICE 'PASS W6-24: every protected /supervision/* route carries a required permission';
+END $$;
+
 ROLLBACK;

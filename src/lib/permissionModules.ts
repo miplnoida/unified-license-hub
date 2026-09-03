@@ -40,6 +40,9 @@ export const KNOWN_PERMISSION_MODULES = [
   'coordination',
   'prudential_supervision',
   'aml_supervision',
+  // Enterprise (cross-domain) supervisory read authority — the stated authority
+  // for /supervision/portfolio and /supervision/team-performance.
+  'supervisory_spine',
   'admin_dashboard',
   'notification_management',
   'audit_management',
@@ -228,7 +231,9 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/preview', 'form_management'],
 
   // ─── Supervision & AI governance ───────────────────────────────────────
-  ['/supervision/team-performance', 'prudential_supervision'],
+  ['/supervision/portfolio', 'supervisory_spine'],
+  ['/supervision/team-performance', 'supervisory_spine'],
+  ['/supervision/examination-schedule', 'prudential_supervision'],
   ['/supervision/thematic-closure-approvals', 'market_conduct'],
   ['/governance/ai', 'ai_management'],
   // NOTE: no generic ['/admin', 'settings'] catch-all. Unknown /admin/* paths
