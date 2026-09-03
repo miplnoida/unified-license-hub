@@ -203,8 +203,13 @@ export function computeAssessmentReadiness(
     }
   });
 
+  const mandatoryQuestions = questions.filter((q) => q.mandatory !== false);
+  const questionGaps = computeQuestionGaps(questions, responses, dimensions);
+
   const list = (items: string[], max = 4) =>
     items.length <= max ? items.join(', ') : `${items.slice(0, max).join(', ')} +${items.length - max} more`;
+
+
 
   const checks: ReadinessCheck[] = [
     {
