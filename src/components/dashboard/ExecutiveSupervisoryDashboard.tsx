@@ -81,6 +81,7 @@ import {
 } from '@/lib/dashboard/executiveBriefingPdf';
 import { ConductExecutivePanel } from '@/components/dashboard/executive/ConductExecutivePanel';
 import { SystemicRiskHeatmap, TwinPeaksExecutivePanel } from '@/components/dashboard/executive/SystemicRiskPanels';
+import { EnterpriseSupervisoryPosition } from '@/components/dashboard/executive/EnterpriseSupervisoryPosition';
 
 const BAND_COLOR: Record<string, string> = {
   low: '#10b981',
@@ -500,6 +501,9 @@ export function ExecutiveSupervisoryDashboard() {
 
       {/* 2. Authoritative KPI cards */}
       {kpiSection}
+
+      {/* 2b. Enterprise supervisory position (canonical supervisory spine) */}
+      <EnterpriseSupervisoryPosition windowDays={windowDays} />
 
       {/* 3. Portfolio charts and deterministic supervisory attention */}
       {chartsSection}
