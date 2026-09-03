@@ -5,6 +5,8 @@ import { ModuleRoute } from '@/components/auth/RouteGuards';
 import { PortalRoute } from '@/components/auth/PortalRoute';
 import type { PermissionModule } from '@/lib/permissionModules';
 import { ExaminationDomainRoute } from '@/routes/ExaminationDomainRoute';
+import { FindingDomainRoute } from '@/routes/FindingDomainRoute';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { INTERNAL_ROLES } from '@/types/platform';
 import type { PortalArea, PortalCapability } from '@/lib/portalAccess';
@@ -393,6 +395,14 @@ export const dashboardRoutes = (
       path="/supervision/examinations/:id"
       element={<ExaminationDomainRoute><ExaminationWorkspace /></ExaminationDomainRoute>}
     />
+
+    {/* Canonical enterprise finding workspace — one screen for every domain;
+        authorization derives from the finding's own supervisory domain. */}
+    <Route
+      path="/supervision/findings/:id"
+      element={<FindingDomainRoute><FindingWorkspace /></FindingDomainRoute>}
+    />
+
 
     <Route path="/prudential" element={<Navigate to="/prudential/dashboard" replace />} />
     <Route path="/prudential/dashboard" element={<M module="prudential_supervision"><PrudentialDashboard /></M>} />
