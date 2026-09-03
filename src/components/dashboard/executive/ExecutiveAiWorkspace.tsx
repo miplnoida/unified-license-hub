@@ -492,6 +492,7 @@ export function ExecutiveAiWorkspace({
                         />
                         <div className="flex gap-2">
                           <Button
+                            data-rbac="ai_management.approve"
                             size="sm"
                             disabled={review.isPending || rationale.trim().length < 10 || !editedSummary.trim()}
                             onClick={() => review.mutate({ decision: 'modified_accepted' })}
@@ -506,6 +507,7 @@ export function ExecutiveAiWorkspace({
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         <Button
+                          data-rbac="ai_management.approve"
                           size="sm"
                           variant="outline"
                           disabled={review.isPending || isStale}
@@ -514,6 +516,7 @@ export function ExecutiveAiWorkspace({
                           <Check className="mr-1.5 h-3.5 w-3.5" /> Accept
                         </Button>
                         <Button
+                          data-rbac="ai_management.approve"
                           size="sm"
                           variant="outline"
                           disabled={isStale}
@@ -525,6 +528,7 @@ export function ExecutiveAiWorkspace({
                           <Pencil className="mr-1.5 h-3.5 w-3.5" /> Modify and accept
                         </Button>
                         <Button
+                          data-rbac="ai_management.approve"
                           size="sm"
                           variant="outline"
                           disabled={review.isPending}
