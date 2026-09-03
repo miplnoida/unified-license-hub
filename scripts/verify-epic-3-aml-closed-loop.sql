@@ -768,8 +768,8 @@ BEGIN
                     AND validated_by IS NOT NULL AND evidence_reviewed IS NOT NULL
                     AND procedure_applied IS NOT NULL AND workpaper_id IS NOT NULL) THEN
     RAISE EXCEPTION 'FAIL W: validation record incomplete'; END IF;
-  IF (SELECT count(*) FROM public.aml_findings) <> 0 THEN
-    RAISE EXCEPTION 'FAIL S: the duplicate AML finding table was written to'; END IF;
+  IF to_regclass('public.aml_findings') IS NOT NULL THEN
+    RAISE EXCEPTION 'FAIL S: the duplicate AML finding table still exists'; END IF;
   RAISE NOTICE 'PASS S/T/U/V/W: one canonical finding with full provenance -> response -> remediation -> governed validation (EFFECTIVE)';
 END $$;
 
