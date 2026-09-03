@@ -1055,10 +1055,12 @@ const STATE_BADGE: Record<string, 'default' | 'secondary' | 'destructive' | 'out
  * been dispatched by the sweep.
  */
 const ENTITY_ROUTE: Record<string, (id: string) => string> = {
-  application: id => `/applications/${id}`,
-  pre_application: id => `/applications/${id}`,
-  complaint: id => `/complaints/${id}`,
-  return: id => `/returns-management/${id}`,
+  application: id => objectRoute.application(id),
+  pre_application: id => objectRoute.application(id),
+  complaint: id => objectRoute.complaint(id),
+  // SLA rows may hold either a canonical or a legacy filing id; the
+  // compatibility route resolves the id domain server-side.
+  return: id => objectRoute.returnFilingFromLegacy(id),
 };
 
 function StageMonitorTab() {
