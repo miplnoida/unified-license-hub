@@ -22,7 +22,10 @@ export function amlErrorMessage(error: unknown): string {
   if (/authoritative origin/i.test(raw))
     return 'A finding must originate from an approved assessment, examination or workpaper.';
   if (/internal only/i.test(raw)) return 'This information is restricted to supervisory users.';
+  if (/mandatory_questions_incomplete/i.test(raw))
+    return `Mandatory supervisory questions are outstanding, so this assessment cannot be submitted. ${raw.replace(/^.*mandatory_questions_incomplete:\s*/i, '')}`;
   return raw;
+
 }
 
 function useInvalidateAml() {
@@ -471,6 +474,110 @@ export function useAmlMethodologyDimensions(methodologyId?: string | null) {
     },
   });
 }
+
+/* ------------------------------- mandatory supervisory questions --------- */
+
+export interface AmlMethodologyQuestion {
+  id: string;
+  methodology_id: string;
+  methodology_dimension_id: string;
+  question_code: string;
+  prompt: string;
+  guidance: string | null;
+  response_options: string[] | null;
+  mandatory: boolean;
+  requires_observation: boolean;
+  requires_evidence: boolean;
+  min_evidence_count: number;
+  allow_not_applicable: boolean;
+  na_requires_rationale: boolean;
+  question_version: number;
+  sort_order: number;
+}
+
+export interface AmlQuestionResponse {
+  id: string;
+  assessment_id: string;
+  methodology_question_id: string;
+  methodology_dimension_id: string;
+  dimension_code: string;
+  question_code: string;
+  question_text: string;
+  question_version: number;
+  response: string;
+  observation: string | null;
+  evidence_refs: unknown;
+  recorded_by: string | null;
+  recorded_at: string;
+  updated_by: string | null;
+  updated_at: string;
+}
+
+/**
+ * The mandatory supervisory questions configured on a methodology version.
+ *
+ * Questions are never hardcoded in the client: they belong to the methodology
+ * version attached to the assessment, and carry their own stable code and
+ * version so a historical assessment can always be read back against the exact
+ * wording that was effective when it was worked.
+ */
+export function useAmlMethodologyQuestions(methodologyId?: string | null) {
+  return useQuery({
+    queryKey: ['aml', 'methodology-questions', methodologyId ?? null],
+    enabled: !!methodologyId,
+    queryFn: async (): Promise<AmlMethodologyQuestion[]> => {
+      const { data, error } = await sb
+        .from('supervisory_methodology_question')
+        .select('*')
+        .eq('methodology_id', methodologyId)
+        .eq('active', true)
+        .order('sort_order', { ascending: true })
+        .order('question_code', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as AmlMethodologyQuestion[];
+    },
+  });
+}
+
+/** The governed question responses already recorded on an assessment. */
+export function useAmlQuestionResponses(assessmentId?: string | null) {
+  return useQuery({
+    queryKey: ['aml', 'question-responses', assessmentId ?? null],
+    enabled: !!assessmentId,
+    queryFn: async (): Promise<AmlQuestionResponse[]> => {
+      const { data, error } = await sb
+        .from('supervisory_assessment_question_response')
+        .select('*')
+        .eq('assessment_id', assessmentId);
+      if (error) throw error;
+      return (data ?? []) as AmlQuestionResponse[];
+    },
+  });
+}
+
+/** Records a response against one configured methodology question. */
+export function useSaveAmlQuestionResponse() {
+  const invalidate = useInvalidateAml();
+  return useMutation({
+    mutationFn: (input: {
+      assessmentId: string;
+      questionId: string;
+      response: string;
+      observation?: string | null;
+      evidenceRefs?: unknown[] | null;
+    }) =>
+      rpc('supervisory_assessment_question_upsert', {
+        _assessment_id: input.assessmentId,
+        _question_id: input.questionId,
+        _response: input.response,
+        _observation: input.observation ?? null,
+        _evidence_refs: input.evidenceRefs ?? null,
+      }),
+    onSuccess: invalidate,
+  });
+}
+
+
 
 /* --------------------------------------- intervention → examination ------- */
 

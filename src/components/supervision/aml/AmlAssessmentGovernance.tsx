@@ -6,10 +6,15 @@
  * outstanding.
  */
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAmlMethodologyDimensions } from '@/hooks/useAmlLifecycle';
+import {
+  useAmlMethodologyDimensions,
+  useAmlMethodologyQuestions,
+  useAmlQuestionResponses,
+} from '@/hooks/useAmlLifecycle';
 import { AmlAssessmentActions } from '@/components/supervision/aml/AmlAssessmentActions';
 import { AmlDimensionWorksheet } from '@/components/supervision/aml/AmlDimensionWorksheet';
 import { computeAssessmentReadiness, type RecordedDimension } from '@/lib/amlAssessmentReadiness';
+
 
 interface Props {
   assessmentId: string;
@@ -38,9 +43,17 @@ export function AmlAssessmentGovernance({
   view,
 }: Props) {
   const { data: catalogue } = useAmlMethodologyDimensions(methodologyId);
-  const readiness = computeAssessmentReadiness(catalogue ?? [], dimensions);
+  const { data: questions } = useAmlMethodologyQuestions(methodologyId);
+  const { data: responses } = useAmlQuestionResponses(assessmentId);
+  const readiness = computeAssessmentReadiness(
+    catalogue ?? [],
+    dimensions,
+    questions ?? [],
+    responses ?? [],
+  );
   const st = (status ?? '').toLowerCase();
   const editable = st === 'draft' || st === 'returned_for_revision';
+
 
   if (view === 'worksheet') {
     return (
