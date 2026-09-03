@@ -669,8 +669,10 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
--- A6-21 — a residual deficiency must be accepted before a partial action closes
+-- A6-21 — a residual deficiency must be accepted before a partial action
+--          closes, and not by the officer who concluded the validation
 -- ---------------------------------------------------------------------------
+SET LOCAL "request.jwt.claims" = :'REVIEWER';
 DO $$
 DECLARE rid uuid; ra public.supervisory_residual_acceptance;
 BEGIN
@@ -691,7 +693,7 @@ BEGIN
     RAISE EXCEPTION 'FAIL A6-21: the residual acceptance is not attributed or graded'; END IF;
 
   PERFORM public.supervisory_remediation_transition((SELECT v FROM a6 WHERE k='ra1'),
-    'CLOSED', 'Closed: validated as effective.');
+    'CLOSED', 'Closed: validated as effective.');  -- closure by an internal officer
   PERFORM public.supervisory_remediation_transition((SELECT v FROM a6 WHERE k='ra2'),
     'CLOSED', 'Closed: validated as effective.');
   PERFORM public.supervisory_remediation_transition((SELECT v FROM a6 WHERE k='ra3'),
