@@ -333,6 +333,7 @@ export const mainNavSections: NavSection[] = [
     // then engine/config surfaces which are admin-only operations.
     label: 'Prudential Supervision',
     items: [
+      { label: 'Supervisory Portfolio', href: '/supervision/portfolio', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Prudential Work', href: '/prudential/work', icon: <ClipboardList className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Prudential Dashboard', href: '/prudential/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Supervised Entities', href: '/prudential/entities', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
@@ -359,6 +360,7 @@ export const mainNavSections: NavSection[] = [
     // supervisory spine filtered to the AML_CFT domain; no AML-private stores.
     label: 'AML/CFT Supervision',
     items: [
+      { label: 'Supervisory Portfolio', href: '/supervision/portfolio', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
       { label: 'AML/CFT Overview', href: '/supervision/aml', icon: <LayoutDashboard className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
       { label: 'AML/CFT Work Queue', href: '/supervision/aml/work-queue', icon: <ClipboardList className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
       { label: 'Supervised Entities', href: '/supervision/aml/entities', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
