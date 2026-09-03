@@ -1,12 +1,15 @@
 # EPIC 4 / W6 — Legacy retirement, route convergence, inspection convergence
 
-Verdict: **W6 — NOT CERTIFIED** (2 authorization blockers found by browser certification; all other gates green).
+Verdict: **W6 — CERTIFIED**
 
-## 1. W1 / W2 certification
+## 1. Certification summary
 
-- **W1 canonical work model** — CERTIFIED. `supervisory_work_item` carries 8 work scopes, unique `work_key`, every item routable; My Work is a filter over it (gates W6-09, W6-11).
-- **W2 supervisory timeline** — CERTIFIED. One read model with full provenance (155 events on the reference entity, gate W6-12).
-- Evidence: `scripts/verify-w6-legacy-route-convergence.sql` W6-01 … W6-16 → **16/16 PASS**.
+- `scripts/verify-w6-legacy-route-convergence.sql` W6-01 … W6-24 → **24/24 PASS**.
+- RBAC action coverage → **2171/2171** protected (100.0%).
+- Unit / integration suites (`src/test`) → **1324/1324** PASS (149 files).
+- Breadcrumb route coverage → **360/360**.
+- Typecheck / build → clean.
+- Browser authorization blockers → closed (see §8 historical evidence and §11 final browser result).
 
 ## 2. Legacy census (14 objects)
 
@@ -56,7 +59,9 @@ DATA: `inspections` = 0 rows, `inspection_findings` = 0 rows.
 - `sup_team_performance` re-sourced onto the canonical work model (workload facts only, `capacity_methodology = NONE_APPROVED`).
 - Route convergence: canonical `/supervision/examinations/:id`; `/prudential/examinations/:id` is a documented redirect alias; SLA return links use the canonical filing route.
 
-## 8. Browser certification (real evidence, `/tmp/browser/w6/result.json`)
+## 8. Initial browser certification — pre-W6-A6 (historical pre-fix evidence)
+
+> This section preserves the original browser certification run that exposed two authorization blockers. Both blockers were subsequently resolved by W6-A6 (see §11). The table below is kept as historical defect history; the final, post-fix browser result is in §11.4.
 
 Routes probed per persona: `/my-work`, `/supervision/portfolio`, `/entities/:id`, `/supervision/examinations/:id`, `/supervision/findings/:id`, `/supervision/team-performance`, `/prudential/payment-systems`, legacy `/prudential/examinations/:id`, `/inspections`, `/inspections/schedule`, `/inspections/:id`, `/supervision/examination-schedule`.
 
@@ -180,12 +185,22 @@ non-internal identity still projects to `applicant`.
 
 Result: **24/24 PASS**.
 
-### 11.4 Browser evidence (re-certification)
+### 11.4 Final browser result (post-W6-A6 re-certification)
 
-| Identity | `/dashboard` | `/supervision/portfolio` | `/supervision/team-performance` | Sidebar |
-| --- | --- | --- | --- | --- |
-| Executive Management | internal shell (My Work, Supervision, Insights & Reporting, Executive Dashboard) | renders | renders | Portfolio & Team Performance present |
-| Returns Officer (non-supervisory internal) | internal returns shell | **Access Denied** | **Access Denied** | neither entry present |
+| Identity | Surface | Expected | Actual |
+| --- | --- | --- | --- |
+| Executive Management | `/dashboard` | internal shell | internal shell — **PASS** |
+| Executive Management | `/supervision/portfolio` | render | renders — **PASS** |
+| Executive Management | `/supervision/team-performance` | render | renders — **PASS** |
+| Returns Officer (non-supervisory internal) | `/supervision/portfolio` | Access Denied | Access Denied — **PASS** |
+| Returns Officer (non-supervisory internal) | `/supervision/team-performance` | Access Denied | Access Denied — **PASS** |
+| Returns Officer (non-supervisory internal) | Sidebar entries | absent | neither Portfolio nor Team Performance present — **PASS** |
 
 No console or runtime errors beyond the two pre-login `401`s from the anonymous
 bootstrap requests (present on the certified baseline).
+
+---
+
+## 12. FINAL VERDICT
+
+**W6 — CERTIFIED**
