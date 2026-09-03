@@ -240,7 +240,6 @@ function DimensionRow({
   const requiredEvidence = dimension.evidence_required ? Math.max(1, dimension.min_evidence_count ?? 1) : 0;
   const evidenceShort = !notApplicable && requiredEvidence > 0 && evidence.length < requiredEvidence;
   const done = isAssessed(dimension, row);
-  const questions = asList(dimension.mandatory_questions);
   const sources = asList(dimension.data_sources);
 
   const submit = async () => {
