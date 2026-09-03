@@ -62,6 +62,22 @@ BEGIN
      OR d NOT LIKE '%supervisory_domain_perimeter%' THEN
     RAISE EXCEPTION 'FAIL W5-01: enterprise overview is not sourced from the canonical spine';
   END IF;
+  -- every supervisory record carries a canonical domain code, so unfiltered
+  -- reconciliation below is equivalent to the read models' domain filter
+  IF EXISTS (
+    SELECT 1 FROM public.supervisory_finding f
+     WHERE COALESCE(f.domain_code,'CROSS_DOMAIN') NOT IN
+       ('PRUDENTIAL','AML_CFT','MARKET_CONDUCT','OPERATIONAL_RESILIENCE','GOVERNANCE','CROSS_DOMAIN'))
+     OR EXISTS (
+    SELECT 1 FROM public.supervisory_attention t
+     WHERE COALESCE(t.domain_code,'CROSS_DOMAIN') NOT IN
+       ('PRUDENTIAL','AML_CFT','MARKET_CONDUCT','OPERATIONAL_RESILIENCE','GOVERNANCE','CROSS_DOMAIN'))
+     OR EXISTS (
+    SELECT 1 FROM public.supervisory_remediation_action r
+     WHERE COALESCE(r.domain_code,'CROSS_DOMAIN') NOT IN
+       ('PRUDENTIAL','AML_CFT','MARKET_CONDUCT','OPERATIONAL_RESILIENCE','GOVERNANCE','CROSS_DOMAIN')) THEN
+    RAISE EXCEPTION 'FAIL W5-01: a supervisory record carries a non-canonical domain code';
+  END IF;
   RAISE NOTICE 'PASS W5-01: enterprise supervisory read models source only canonical spine objects';
 END $$;
 
@@ -263,11 +279,15 @@ BEGIN
       row_j ->> 'highest_residual_rating';
   END IF;
 
-  -- multi-domain concern is a count of domains, not a blended rating
-  IF (row_j ->> 'concern_domains')::int IS DISTINCT FROM
+  -- multi-domain concern is the set of concerned domains, not a blended rating
+  IF jsonb_array_length(row_j -> 'concern_domains') IS DISTINCT FROM
      (SELECT count(*) FROM jsonb_array_elements(row_j -> 'domains') d
        WHERE (d ->> 'is_concern')::boolean) THEN
-    RAISE EXCEPTION 'FAIL W5-04: concern_domains does not equal the per-domain concern count';
+    RAISE EXCEPTION 'FAIL W5-04: concern_domains does not match the per-domain concern set';
+  END IF;
+  IF COALESCE((row_j ->> 'multi_domain_concern')::boolean,false)
+     <> (jsonb_array_length(row_j -> 'concern_domains') > 1) THEN
+    RAISE EXCEPTION 'FAIL W5-04: multi_domain_concern disagrees with the concerned domain set';
   END IF;
 
   RESET ROLE;
@@ -289,12 +309,13 @@ BEGIN
   SELECT count(*) INTO total_licensees FROM public.licensees;
 
   FOR r IN SELECT x FROM jsonb_array_elements(so -> 'rows') x LOOP
+    IF (r ->> 'sector_id') IS NULL THEN
+      CONTINUE;
+    END IF;
     SELECT count(*) INTO expected FROM public.licensees l
-     WHERE l.sector_id::text = COALESCE(r ->> 'sector_id', l.sector_id::text)
-       AND (r ->> 'sector_id') IS NOT NULL
-       AND l.sector_id = (r ->> 'sector_id')::uuid
+     WHERE l.sector_id = (r ->> 'sector_id')::uuid
        AND public.supervisory_domain_applicable(l.id, r ->> 'domain_code');
-    IF (r ->> 'sector_id') IS NOT NULL AND (r ->> 'in_perimeter')::int <> expected THEN
+    IF (r ->> 'in_perimeter')::int <> expected THEN
       RAISE EXCEPTION 'FAIL W5-05: sector % domain % perimeter denominator % <> canonical %',
         r ->> 'sector_name', r ->> 'domain_code', r ->> 'in_perimeter', expected;
     END IF;
@@ -639,7 +660,7 @@ BEGIN
   -- enforcement must never be inferred; portfolio active_enforcement is record-based
   SELECT count(*) INTO leaked FROM jsonb_array_elements(
       public.supervisory_portfolio(_limit => 1000) -> 'rows') x
-   WHERE COALESCE((x ->> 'active_enforcement')::boolean,false)
+   WHERE COALESCE((x ->> 'active_enforcement')::int,0) > 0
      AND NOT EXISTS (SELECT 1 FROM public.enforcement_actions ea
                       WHERE ea.entity_id = (x ->> 'entity_id')::uuid AND ea.closed_at IS NULL);
   IF leaked > 0 THEN
@@ -844,8 +865,10 @@ BEGIN
     RAISE EXCEPTION 'FAIL W5-14: PFMI observance is translated into prudential risk';
   END IF;
   IF EXISTS (SELECT 1 FROM public.entity_risk_state rs
-              WHERE upper(COALESCE(rs.rating_basis,'')) LIKE '%OBSERV%') THEN
-    RAISE EXCEPTION 'FAIL W5-14: a prudential risk state is derived from PFMI observance';
+              WHERE rs.driving_assessment_id IS NOT NULL
+                AND NOT EXISTS (SELECT 1 FROM public.supervisory_assessment a
+                                 WHERE a.id = rs.driving_assessment_id)) THEN
+    RAISE EXCEPTION 'FAIL W5-14: a risk state is driven by a non-supervisory assessment (PFMI translation)';
   END IF;
 
   RESET ROLE;
