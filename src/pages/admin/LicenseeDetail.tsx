@@ -20,7 +20,8 @@ const EnforcementTab = lazy(() => import('@/components/entity-detail/Enforcement
 const RiskRatingsTab = lazy(() => import('@/components/entity-detail/RiskRatingsTab'));
 const WebUsersTab = lazy(() => import('@/components/entity-detail/WebUsersTab'));
 const ReturnsTab = lazy(() => import('@/components/entity-detail/ReturnsTab'));
-const InspectionsTab = lazy(() => import('@/components/entity-detail/InspectionsTab'));
+// EPIC 4 / W6 — inspection convergence: Entity 360 shows canonical examinations.
+const InspectionsTab = lazy(() => import('@/components/prudential/examination/EntityExaminationsTab').then(m => ({ default: m.EntityExaminationsTab })));
 const ReinsuranceTab = lazy(() => import('@/components/entity-detail/ReinsuranceTab'));
 const SupervisoryPlanTab = lazy(() => import('@/components/entity-detail/SupervisoryPlanTab'));
 const ProductsChannelsTab = lazy(() => import('@/components/entity-detail/ProductsChannelsTab'));

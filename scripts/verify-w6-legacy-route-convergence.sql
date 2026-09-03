@@ -41,8 +41,12 @@ DECLARE
 BEGIN
   FOR r IN
     SELECT * FROM (VALUES
-      ('inspections','DEAD_RETIRABLE'),
-      ('inspection_findings','DEAD_RETIRABLE'),
+      -- RETIRED_EMPTY: zero rows, zero code readers/writers, zero DB writer
+      -- functions, all write privileges revoked. DEAD_RETIRABLE (physical DROP)
+      -- is deferred and is proved by W6-05, never by row_count = 0 alone.
+      ('inspections','RETIRED_EMPTY'),
+      ('inspection_findings','RETIRED_EMPTY'),
+
       ('entity_risk_scores','HISTORICAL'),
       ('prudential_actions','LEGACY_STILL_READ'),
       ('prudential_escalations','LEGACY_STILL_READ'),
@@ -122,22 +126,57 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------
--- W6-05 — examinations are canonical; the inspections path is dead
+-- W6-05 — examinations are canonical; the inspection store is RETIRED_EMPTY.
+-- Retirement is NOT proved by row_count = 0. It requires, in the database:
+--   (a) zero current rows,
+--   (b) zero writer functions (no DB function inserts/updates the tables),
+--   (c) zero write privileges for anon / authenticated / service_role,
+--   (d) canonical replacement populated (examinations + supervisory_finding).
+-- Code-side proof (zero readers, zero writers, no route dependency other than
+-- documented compatibility routes) is enforced by the repo census in
+-- docs/enterprise/suptech-convergence/W6-legacy-retirement-route-convergence.md.
 -- ---------------------------------------------------------------------
 DO $$
-DECLARE exams int; insp int; insp_find int;
+DECLARE
+  exams int; insp int; insp_find int; canon_find int;
+  db_writers text; write_privs text;
 BEGIN
   SELECT count(*) INTO exams FROM public.examinations;
   SELECT count(*) INTO insp FROM public.inspections;
   SELECT count(*) INTO insp_find FROM public.inspection_findings;
+  SELECT count(*) INTO canon_find FROM public.supervisory_finding;
+
   IF exams = 0 THEN RAISE EXCEPTION 'FAIL W6-05: canonical examinations empty'; END IF;
+  IF canon_find = 0 THEN RAISE EXCEPTION 'FAIL W6-05: canonical supervisory_finding empty'; END IF;
   IF insp > 0 OR insp_find > 0 THEN
     RAISE EXCEPTION 'FAIL W6-05: legacy inspection records present (inspections=%, findings=%)', insp, insp_find;
   END IF;
-  RAISE NOTICE 'PASS W6-05: examinations canonical (%); inspections/inspection_findings hold zero rows (retirable)', exams;
+
+  -- (b) no database function may write either legacy table
+  SELECT string_agg(p.proname, ', ') INTO db_writers
+  FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND pg_get_functiondef(p.oid) ~* '(insert\s+into|update)\s+(public\.)?inspections?(_findings)?\M';
+  IF db_writers IS NOT NULL THEN
+    RAISE EXCEPTION 'FAIL W6-05: DB writer functions still target the legacy inspection store: %', db_writers;
+  END IF;
+
+  -- (c) no write privilege remains on either legacy table
+  SELECT string_agg(format('%s:%s:%s', table_name, grantee, privilege_type), ', ')
+    INTO write_privs
+  FROM information_schema.role_table_grants
+  WHERE table_schema = 'public'
+    AND table_name IN ('inspections','inspection_findings')
+    AND privilege_type IN ('INSERT','UPDATE','DELETE','TRUNCATE')
+    AND grantee IN ('anon','authenticated','service_role');
+  IF write_privs IS NOT NULL THEN
+    RAISE EXCEPTION 'FAIL W6-05: write privileges still granted on the legacy inspection store: %', write_privs;
+  END IF;
+
+  RAISE NOTICE 'PASS W6-05: examinations canonical (%), supervisory_finding canonical (%); inspections/inspection_findings RETIRED_EMPTY (0 rows, 0 DB writers, 0 write grants); physical DROP deferred', exams, canon_find;
 END $$;
 
--- ---------------------------------------------------------------------
+
 -- W6-06 — every stored/generated route is canonical
 -- ---------------------------------------------------------------------
 DO $$

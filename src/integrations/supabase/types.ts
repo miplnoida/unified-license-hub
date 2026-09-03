@@ -58044,34 +58044,6 @@ export type Database = {
         }[]
       }
       in_todo: { Args: never; Returns: boolean }
-      inspection_create: { Args: { _payload: Json }; Returns: Json }
-      inspection_finding_escalate: {
-        Args: {
-          _enforcement_type: string
-          _entity_id: string
-          _finding_id: string
-          _rationale: string
-        }
-        Returns: Json
-      }
-      inspection_finding_save: {
-        Args: {
-          _category: string
-          _description: string
-          _finding_id?: string
-          _follow_up_due?: string
-          _follow_up_owner?: string
-          _inspection_id: string
-          _recommended_action?: string
-          _severity: string
-          _status?: string
-        }
-        Returns: Json
-      }
-      inspection_lifecycle_save: {
-        Args: { _inspection_id: string; _patch: Json; _rationale?: string }
-        Returns: Json
-      }
       integration_alert_rule_save: { Args: { _payload: Json }; Returns: string }
       integration_alert_sweep: { Args: never; Returns: Json }
       integration_connection_dependencies: {

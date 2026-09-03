@@ -237,12 +237,12 @@ export function RemediationActionCard({ action, model, canManage, canRefer }: Pr
           <div className="flex flex-wrap gap-2 border-t pt-3">
 
             {options.length > 0 ? (
-              <Button size="sm" variant="outline" onClick={() => { setToStatus(options[0]); setDialog('transition'); }}>
+              <Button data-rbac="supervisory_spine.edit" size="sm" variant="outline" onClick={() => { setToStatus(options[0]); setDialog('transition'); }}>
                 <ArrowUpRight className="mr-1.5 h-3.5 w-3.5" />Progress {action.reference}
               </Button>
             ) : null}
             {status === 'VALIDATION' ? (
-              <Button size="sm" onClick={() => setDialog('validate')}>
+              <Button data-rbac="supervisory_spine.edit" size="sm" onClick={() => setDialog('validate')}>
                 <FileCheck2 className="mr-1.5 h-3.5 w-3.5" />Validate {action.reference}
               </Button>
             ) : null}
@@ -253,16 +253,16 @@ export function RemediationActionCard({ action, model, canManage, canRefer }: Pr
             ) : null}
 
             {escalationAvailable ? (
-              <Button size="sm" variant="outline" onClick={() => setDialog('escalate')}>
+              <Button data-rbac="supervisory_spine.workflow_action" size="sm" variant="outline" onClick={() => setDialog('escalate')}>
                 <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />Escalate {action.reference}
               </Button>
             ) : null}
             {canRefer ? (
-              <Button size="sm" variant="outline" onClick={() => setDialog('refer')}>
+              <Button data-rbac="enforcement_management.refer" size="sm" variant="outline" onClick={() => setDialog('refer')}>
                 <Gavel className="mr-1.5 h-3.5 w-3.5" />Refer to enforcement
               </Button>
             ) : null}
-            <Button size="sm" variant="ghost" onClick={() => setDialog('reassess')}>
+            <Button data-rbac="supervisory_spine.edit" size="sm" variant="ghost" onClick={() => setDialog('reassess')}>
               <RefreshCw className="mr-1.5 h-3.5 w-3.5" />Require reassessment from {action.reference}
             </Button>
           </div>
@@ -304,7 +304,7 @@ export function RemediationActionCard({ action, model, canManage, canRefer }: Pr
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={reset}>Cancel</Button>
-              <Button
+              <Button data-rbac="supervisory_spine.edit"
                 disabled={!toStatus || rationale.trim().length < 5 || transition.isPending}
                 onClick={() => run('State change', () => transition.mutateAsync({
                   actionId: action.id, toStatus, rationale,
@@ -365,7 +365,7 @@ export function RemediationActionCard({ action, model, canManage, canRefer }: Pr
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={reset}>Cancel</Button>
-              <Button
+              <Button data-rbac="supervisory_spine.edit"
                 disabled={
                   evidenceReviewed.trim().length < 5 || procedureApplied.trim().length < 5
                   || rationale.trim().length < 10 || validate.isPending
@@ -436,7 +436,7 @@ export function RemediationActionCard({ action, model, canManage, canRefer }: Pr
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={reset}>Cancel</Button>
-              <Button
+              <Button data-rbac="supervisory_spine.workflow_action"
                 disabled={rationale.trim().length < 20 || escalate.isPending}
                 onClick={() => run('Escalation', () => escalate.mutateAsync({
                   actionId: action.id,
@@ -472,7 +472,7 @@ export function RemediationActionCard({ action, model, canManage, canRefer }: Pr
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={reset}>Cancel</Button>
-              <Button
+              <Button data-rbac="enforcement_management.refer"
                 disabled={rationale.trim().length < 20 || refer.isPending}
                 onClick={() => run('Enforcement referral', () => refer.mutateAsync({
                   sourceKind: 'SUPERVISORY_REMEDIATION',
@@ -521,7 +521,7 @@ export function RemediationActionCard({ action, model, canManage, canRefer }: Pr
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={reset}>Cancel</Button>
-              <Button
+              <Button data-rbac="supervisory_spine.edit"
                 disabled={rationale.trim().length < 10 || reassess.isPending}
                 onClick={() => run('Reassessment requirement', () => reassess.mutateAsync({
                   entityId: action.entity_id,
@@ -586,7 +586,7 @@ export function RemediationActionCard({ action, model, canManage, canRefer }: Pr
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={reset}>Cancel</Button>
-              <Button
+              <Button data-rbac="supervisory_spine.edit"
                 disabled={
                   remainingDeficiency.trim().length < 20 || followUpRequirement.trim().length < 20
                   || rationale.trim().length < 20 || acceptResidual.isPending

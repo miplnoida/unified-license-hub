@@ -238,9 +238,11 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         head(supabase.from('payments').select('*', { count: 'exact', head: true }).in('status', ['paid', 'completed', 'verified'])),
         head(supabase.from('payments').select('*', { count: 'exact', head: true }).in('status', ['failed', 'rejected'])),
 
-        head(entityEq(supabase.from('inspections').select('*', { count: 'exact', head: true }).in('status', ['scheduled', 'planned']), 'entity_id')),
-        head(entityEq(supabase.from('inspections').select('*', { count: 'exact', head: true }).eq('status', 'completed'), 'entity_id')),
-        head(entityEq(supabase.from('inspections').select('*', { count: 'exact', head: true }).in('status', ['scheduled', 'planned']).lt('date_conducted', todayIso()), 'entity_id')),
+        // EPIC 4 / W6: inspection metrics are sourced from the canonical
+        // examination engine (legacy `inspections` retired, zero rows).
+        head(entityEq((supabase.from('examinations') as any).select('*', { count: 'exact', head: true }).in('stage', ['planned', 'scoping']), 'entity_id')),
+        head(entityEq((supabase.from('examinations') as any).select('*', { count: 'exact', head: true }).eq('stage', 'closed'), 'entity_id')),
+        head(entityEq((supabase.from('examinations') as any).select('*', { count: 'exact', head: true }).in('stage', ['planned', 'scoping']).lt('fieldwork_start', todayIso()), 'entity_id')),
 
         head(entityEq(supabase.from('enforcement_actions').select('*', { count: 'exact', head: true }).in('status', ['open', 'investigation', 'pending']), 'entity_id')),
         head(entityEq(supabase.from('enforcement_actions').select('*', { count: 'exact', head: true }).gte('date_opened', daysAgo(30).slice(0, 10)), 'entity_id')),

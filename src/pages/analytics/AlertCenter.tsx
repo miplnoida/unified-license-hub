@@ -101,11 +101,12 @@ export default function AlertCenter() {
             .eq('is_current', true)
             .in('band', ['high', 'critical'])
             .limit(200),
-          supabase
-            .from('inspections')
-            .select('id, inspection_type, status, scheduled_date, created_at')
-            .eq('status', 'scheduled')
-            .lt('scheduled_date', new Date().toISOString())
+          // EPIC 4 / W6: overdue supervisory activity comes from the canonical
+          // examination engine (legacy `inspections` retired).
+          (supabase.from('examinations') as any)
+            .select('id, reference, examination_type, stage, fieldwork_start')
+            .in('stage', ['planned', 'scoping'])
+            .lt('fieldwork_start', new Date().toISOString().slice(0, 10))
             .limit(200),
           // EPR-01: overdue returns come from the canonical workflow-state view.
           supabase
@@ -175,16 +176,16 @@ export default function AlertCenter() {
 
       (inspections.data || []).forEach((i: any) => {
         const daysOver = Math.floor(
-          (now - new Date(i.scheduled_date).getTime()) / (1000 * 60 * 60 * 24),
+          (now - new Date(i.fieldwork_start).getTime()) / (1000 * 60 * 60 * 24),
         );
         items.push({
-          id: `insp-${i.id}`,
+          id: `exam-${i.id}`,
           source: 'inspection',
-          title: `Overdue inspection (${i.inspection_type || 'general'})`,
-          detail: `${daysOver} day(s) overdue`,
+          title: `Overdue examination fieldwork (${i.examination_type || 'general'})`,
+          detail: `${i.reference ?? ''} ${daysOver} day(s) overdue`.trim(),
           severity: daysOver > 14 ? 'critical' : daysOver > 7 ? 'high' : 'medium',
-          created_at: i.scheduled_date,
-          href: `/inspections/${i.id}`,
+          created_at: i.fieldwork_start,
+          href: `/supervision/examinations/${i.id}`,
         });
       });
 

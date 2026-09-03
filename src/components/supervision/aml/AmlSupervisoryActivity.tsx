@@ -211,7 +211,7 @@ export function AmlSupervisoryActivity({
 
                           <div className="mt-2 flex flex-wrap gap-2">
                             {ivStatus === 'PROPOSED' && canApprove ? (
-                              <Button
+                              <Button data-rbac="aml_supervision.approve"
                                 size="sm"
                                 variant="outline"
                                 onClick={() => {
@@ -224,7 +224,7 @@ export function AmlSupervisoryActivity({
                             ) : null}
 
                             {needsExam && ['ENDORSED', 'ACTIVE'].includes(ivStatus) && canExamine ? (
-                              <Button
+                              <Button data-rbac="aml_supervision.examine"
                                 size="sm"
                                 onClick={() => {
                                   setInterventionTarget(iv);
@@ -236,7 +236,7 @@ export function AmlSupervisoryActivity({
                             ) : null}
 
                             {needsExam && !canExamine ? (
-                              <Button size="sm" variant="outline" disabled>
+                              <Button data-rbac="aml_supervision.examine" size="sm" variant="outline" disabled>
                                 <Lock className="mr-1.5 h-3.5 w-3.5" />
                                 Requires the AML/CFT examine capability
                               </Button>
@@ -250,7 +250,7 @@ export function AmlSupervisoryActivity({
                                   </Link>
                                 </Button>
                                 {canExamine ? (
-                                  <Button size="sm" variant="outline" onClick={() => setScopeTarget(exam)}>
+                                  <Button data-rbac="aml_supervision.examine" size="sm" variant="outline" onClick={() => setScopeTarget(exam)}>
                                     Set scope from assessment
                                   </Button>
                                 ) : null}
