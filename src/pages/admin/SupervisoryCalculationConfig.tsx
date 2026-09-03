@@ -553,7 +553,7 @@ export default function SupervisoryCalculationConfig() {
                   <Label htmlFor="calc-rationale">Rationale for submission (at least 10 characters)</Label>
                   <Textarea id="calc-rationale" rows={2} value={rationale} onChange={(e) => setRationale(e.target.value)} />
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={runValidate} disabled={validate.isPending}>
+                    <Button data-rbac="aml_supervision.manage_config" variant="outline" onClick={runValidate} disabled={validate.isPending}>
                       <ShieldCheck className="h-4 w-4 mr-2" />Check completeness
                     </Button>
                     <Button data-rbac="aml_supervision.manage_config" onClick={submitForApproval}

@@ -101,7 +101,7 @@ export default function SupervisoryCalculationApprovals() {
                       <TableCell>{c.effective_from ?? '—'}</TableCell>
                       <TableCell>{c.submitted_at ? new Date(c.submitted_at).toLocaleString() : '—'}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => { setOpenId(c.id); setProblems(null); }}>Review</Button>
+                        <Button data-rbac="aml_supervision.manage_config" variant="outline" size="sm" onClick={() => { setOpenId(c.id); setProblems(null); }}>Review</Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -215,7 +215,7 @@ export default function SupervisoryCalculationApprovals() {
                 <Label htmlFor="approval-rationale">Decision rationale (at least 10 characters)</Label>
                 <Textarea id="approval-rationale" rows={2} value={rationale} onChange={(e) => setRationale(e.target.value)} />
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={check} disabled={validate.isPending}>Check completeness</Button>
+                  <Button data-rbac="aml_supervision.manage_config" variant="outline" onClick={check} disabled={validate.isPending}>Check completeness</Button>
                   {selected.status === 'REVIEW' && (
                     <>
                       <Button data-rbac="aml_supervision.manage_config" onClick={() => act('APPROVED')}
