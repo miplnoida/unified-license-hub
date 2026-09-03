@@ -419,6 +419,9 @@ BEGIN
      AND route NOT LIKE '/complaints/%'
      AND route NOT LIKE '/enforcement/%'
      AND route NOT LIKE '/returns/%'
+     -- escalation work resolves to the governed escalation register; a
+     -- per-case escalation workspace deep link remains open W4 (Q-C) work.
+     AND route <> '/admin/escalations'
      AND route <> '/my-work';
   IF bad IS NOT NULL THEN
     RAISE EXCEPTION 'FAIL W6-16: non-canonical destination(s) generated: %', bad;
