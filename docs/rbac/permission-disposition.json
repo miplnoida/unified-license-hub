@@ -1,7 +1,7 @@
 {
   "generatedFrom": "src/lib/rbac/catalog.json",
   "counts": {
-    "reserved-granular": 152,
+    "reserved-granular": 151,
     "future-module": 42
   },
   "rows": [
@@ -20,12 +20,6 @@
     {
       "module": "aml_supervision",
       "action": "assign",
-      "disposition": "reserved-granular",
-      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
-    },
-    {
-      "module": "aml_supervision",
-      "action": "edit",
       "disposition": "reserved-granular",
       "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
     },

@@ -192,3 +192,13 @@ SELECT count(*) FILTER (WHERE result = 'PASS') AS pass,
 FROM aml_gate;
 
 ROLLBACK;
+
+-- ---------------------------------------------------------------------------
+-- Calculation governance and integrity gates are part of this suite. They run
+-- as their own read-only, self-rolling-back transactions so that this file
+-- remains a single entry point:
+--   CALCG-01..CALCG-14  calculation governance (no silent defaults, provenance)
+--   CALC-01..CALC-11    calculation integrity (server as the only producer)
+-- ---------------------------------------------------------------------------
+\i scripts/verify-aml-calculation-governance.sql
+\i scripts/verify-aml-calculation-integrity.sql

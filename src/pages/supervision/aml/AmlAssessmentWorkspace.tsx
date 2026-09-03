@@ -10,6 +10,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowLeft } from 'lucide-react';
 import { useAmlAssessment } from '@/hooks/useAmlSupervision';
 import { AmlAssessmentGovernance } from '@/components/supervision/aml/AmlAssessmentGovernance';
+import { AmlAssessmentCalculation } from '@/components/supervision/aml/AmlAssessmentCalculation';
+
 import { AmlSupervisoryActivity } from '@/components/supervision/aml/AmlSupervisoryActivity';
 import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, statusTone, titleCase, trendTone } from '@/lib/amlLabels';
 
@@ -211,10 +213,16 @@ export default function AmlAssessmentWorkspace() {
             <TabsTrigger value="inherent">Inherent risk ({inherent.length})</TabsTrigger>
             <TabsTrigger value="control">Control effectiveness ({control.length})</TabsTrigger>
             {other.length > 0 ? <TabsTrigger value="other">Other dimensions ({other.length})</TabsTrigger> : null}
+            <TabsTrigger value="calculation">Calculation</TabsTrigger>
             <TabsTrigger value="provenance">Attention, plan & examination</TabsTrigger>
             <TabsTrigger value="findings">Findings ({(data.findings as any[]).length})</TabsTrigger>
             <TabsTrigger value="history">Approval history</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="calculation" className="mt-4">
+            <AmlAssessmentCalculation assessmentId={h.id} />
+          </TabsContent>
+
 
           <TabsContent value="worksheet" className="mt-4">
             <AmlAssessmentGovernance

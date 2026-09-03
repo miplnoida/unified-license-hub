@@ -25,23 +25,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { AlertTriangle, CheckCircle2, Plus, Save, ShieldCheck } from 'lucide-react';
+import { useCan } from '@/hooks/useCan';
 import {
   useCalcMethodologies, useCalculationConfigs, useCalculationConfigDetail,
   useMethodologyResponseOptions, useUpsertCalculationConfig, useSetResponseScores,
   useSetBands, useSetMatrix, useCalculationConfigLifecycle, useValidateCalculationConfig,
   useDomainCalculationRules, useSetDomainCalculationRule,
-  riskScaleCodes, controlScaleCodes, calcErrorMessage,
+  riskScaleCodes, controlScaleCodes, calcErrorMessage, supervisoryDomainModule,
   type CalculationConfig, type ResponseScoreRow, type BandRow, type MatrixCell,
 } from '@/hooks/useSupervisoryCalculationConfig';
 
-const AGGREGATION = ['UNWEIGHTED_MEAN', 'WEIGHTED_MEAN', 'WORST_RESPONSE'];
+
+// Option lists mirror the server contract exactly (see the CHECK constraints on
+// supervisory_calculation_config). An option with no distinct implemented
+// semantics is deliberately absent rather than offered and ignored.
+const AGGREGATION = ['UNWEIGHTED_MEAN', 'WORST_RESPONSE'];
 const NA_HANDLING = ['EXCLUDE', 'INCLUDE_AS_ZERO', 'INCLUDE_AS_FULL'];
 const EVIDENCE_HANDLING = ['FLAG_ONLY', 'NOT_CALCULABLE', 'CAP_AT_MIDPOINT'];
-const CRITICAL_HANDLING = ['NONE', 'FLOOR_DIMENSION', 'FLOOR_ASSESSMENT'];
+const CRITICAL_HANDLING = ['NONE'];
 const ROUNDING = ['HALF_UP', 'HALF_DOWN', 'FLOOR', 'CEILING', 'NONE'];
 const DIRECTION = ['DIRECT', 'INVERTED'];
-const POLICIES = ['WEIGHTED_SCORE', 'HIGHEST_MATERIAL_DIMENSION', 'WEIGHTED_WITH_CRITICAL_FLOOR', 'WORST_OF_N', 'WEIGHTED_WITH_THRESHOLD'];
+const POLICIES = ['WEIGHTED_SCORE', 'HIGHEST_MATERIAL_DIMENSION', 'WEIGHTED_WITH_THRESHOLD'];
 const DATE_RULES = ['EXECUTION_DATE', 'ASSESSMENT_DATE', 'PERIOD_END', 'TRIGGER_DATE', 'EXPLICIT_AS_OF'];
+
 
 function statusTone(status: string): 'default' | 'secondary' | 'outline' | 'destructive' {
   if (status === 'ACTIVE') return 'default';
@@ -70,9 +76,15 @@ export default function SupervisoryCalculationConfig() {
 
   const methodology = methodologies.find((m) => m.id === methodologyId) ?? null;
   const config: CalculationConfig | null = configs.find((c) => c.id === configId) ?? null;
-  const isDraft = config?.status === 'DRAFT';
   const risk = useMemo(() => riskScaleCodes(methodology), [methodology]);
   const control = useMemo(() => controlScaleCodes(methodology), [methodology]);
+
+  // Authority is derived from the methodology's own supervisory domain — the
+  // server enforces the same rule on every write path.
+  const configModule = supervisoryDomainModule(methodology?.domain_code);
+  const mayManage = useCan(configModule ?? 'aml_supervision', 'manage_config');
+  const isDraft = config?.status === 'DRAFT';
+  const canEdit = !!isDraft && !!configModule && mayManage;
 
   // ------------------------------------------------------------------ state --
   const [params, setParams] = useState<Partial<CalculationConfig>>({});
@@ -82,9 +94,16 @@ export default function SupervisoryCalculationConfig() {
   const [cells, setCells] = useState<MatrixCell[]>([]);
   const [rationale, setRationale] = useState('');
   const [problems, setProblems] = useState<string[] | null>(null);
-  const [ruleDomain, setRuleDomain] = useState('AML_CFT');
+  const [ruleDomain, setRuleDomain] = useState('');
   const [ruleValue, setRuleValue] = useState('');
   const [ruleRationale, setRuleRationale] = useState('');
+
+  const ruleDomainModule = supervisoryDomainModule(ruleDomain);
+  const mayManageRuleDomain = useCan(ruleDomainModule ?? 'aml_supervision', 'manage_config');
+  const domainCodes = useMemo(
+    () => [...new Set(methodologies.map((m) => m.domain_code).filter(Boolean))].sort(),
+    [methodologies],
+  );
 
   useEffect(() => {
     if (config) setParams(config);
@@ -97,22 +116,22 @@ export default function SupervisoryCalculationConfig() {
         const existing = detail.responses.find((r) => r.response_code === code);
         return existing ?? {
           response_code: code, score: null, meaning: null,
-          excluded_from_denominator: false, requires_observation: false,
-          requires_evidence: false, requires_rationale: false,
-          is_critical_floor: false, sort_order: responseOptions.indexOf(code),
+          excluded_from_denominator: false, sort_order: responseOptions.indexOf(code),
         };
       }),
     );
     setInherentBands(risk.map((code, i) => {
       const b = detail.bands.find((x) => x.band_kind === 'INHERENT' && x.band_code === code);
-      return { band_code: code, min_score: b?.min_score ?? 0, max_score: b?.max_score ?? 0, sort_order: i };
+      return { band_code: code, min_score: b?.min_score ?? null, max_score: b?.max_score ?? null, sort_order: i };
     }));
     setControlBands(control.map((code, i) => {
       const b = detail.bands.find((x) => x.band_kind === 'CONTROL' && x.band_code === code);
-      return { band_code: code, min_score: b?.min_score ?? 0, max_score: b?.max_score ?? 0, sort_order: i };
+      return { band_code: code, min_score: b?.min_score ?? null, max_score: b?.max_score ?? null, sort_order: i };
     }));
     setCells(detail.matrix);
   }, [detail, responseOptions, risk, control]);
+
+
 
   const cellFor = (inh: string, ctl: string) =>
     cells.find((c) => c.inherent_band === inh && c.control_band === ctl)?.residual_rating ?? '';
@@ -138,30 +157,29 @@ export default function SupervisoryCalculationConfig() {
 
   const saveParams = async () => {
     if (!config) return;
+    // Undecided parameters are omitted, never sent as a substitute value: the
+    // server keeps them undecided and refuses submission while they are.
+    const decided: Record<string, unknown> = {
+      effective_to: params.effective_to ?? '',
+      recommendation_threshold: params.recommendation_threshold ?? '',
+      override_threshold: params.override_threshold ?? '',
+      notes: params.notes ?? '',
+    };
+    ([
+      'effective_from', 'aggregation_method', 'min_answered_questions',
+      'na_denominator_handling', 'evidence_insufficiency_handling',
+      'critical_question_handling', 'rounding_mode', 'rounding_decimals',
+      'inherent_direction', 'recommendation_policy',
+    ] as const).forEach((k) => {
+      const v = params[k];
+      if (v !== null && v !== undefined && v !== '') decided[k] = v;
+    });
     try {
-      await upsert.mutateAsync({
-        methodologyId: config.methodology_id,
-        configId: config.id,
-        payload: {
-          effective_from: params.effective_from ?? null,
-          effective_to: params.effective_to ?? '',
-          aggregation_method: params.aggregation_method,
-          min_answered_questions: params.min_answered_questions,
-          na_denominator_handling: params.na_denominator_handling,
-          evidence_insufficiency_handling: params.evidence_insufficiency_handling,
-          critical_question_handling: params.critical_question_handling,
-          rounding_mode: params.rounding_mode,
-          rounding_decimals: params.rounding_decimals,
-          inherent_direction: params.inherent_direction,
-          recommendation_policy: params.recommendation_policy,
-          recommendation_threshold: params.recommendation_threshold ?? '',
-          override_threshold: params.override_threshold ?? '',
-          notes: params.notes ?? '',
-        },
-      });
+      await upsert.mutateAsync({ methodologyId: config.methodology_id, configId: config.id, payload: decided });
       toast.success('Calculation parameters saved.');
     } catch (e) { fail(e); }
   };
+
 
   const saveScores = async () => {
     if (!config) return;
@@ -261,7 +279,9 @@ export default function SupervisoryCalculationConfig() {
                 <CardTitle className="text-base">Configuration versions</CardTitle>
                 <CardDescription>Only one version can be active per methodology; superseded versions remain as evidence.</CardDescription>
               </div>
-              <Button data-rbac="aml_supervision.manage_config" onClick={createDraft} disabled={upsert.isPending}>
+              <Button data-rbac="aml_supervision.manage_config" onClick={createDraft}
+                disabled={upsert.isPending || !configModule || !mayManage}>
+
                 <Plus className="h-4 w-4 mr-2" />New draft version
               </Button>
             </CardHeader>
@@ -337,6 +357,9 @@ export default function SupervisoryCalculationConfig() {
                 </TabsList>
 
                 <TabsContent value="parameters" className="space-y-4 pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Nothing below is pre-selected. Every parameter is a supervisory decision and the configuration cannot be submitted while any of them is undecided.
+                  </p>
                   <div className="grid gap-4 md:grid-cols-3">
                     <div className="space-y-2">
                       <Label>Effective from</Label>
@@ -344,14 +367,15 @@ export default function SupervisoryCalculationConfig() {
                         onChange={(e) => setParams((p) => ({ ...p, effective_from: e.target.value }))} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Effective to (optional)</Label>
+                      <Label>Effective to (exclusive, optional)</Label>
                       <Input type="date" disabled={!isDraft} value={params.effective_to ?? ''}
-                        onChange={(e) => setParams((p) => ({ ...p, effective_to: e.target.value }))} />
+                        onChange={(e) => setParams((p) => ({ ...p, effective_to: e.target.value === '' ? null : e.target.value }))} />
                     </div>
                     <div className="space-y-2">
                       <Label>Minimum answered questions</Label>
-                      <Input type="number" min={0} disabled={!isDraft} value={params.min_answered_questions ?? 1}
-                        onChange={(e) => setParams((p) => ({ ...p, min_answered_questions: Number(e.target.value) }))} />
+                      <Input type="number" min={0} disabled={!isDraft} placeholder="not decided"
+                        value={params.min_answered_questions ?? ''}
+                        onChange={(e) => setParams((p) => ({ ...p, min_answered_questions: e.target.value === '' ? null : Number(e.target.value) }))} />
                     </div>
                     {([
                       ['aggregation_method', 'Dimension aggregation', AGGREGATION],
@@ -365,10 +389,11 @@ export default function SupervisoryCalculationConfig() {
                       <div className="space-y-2" key={field}>
                         <Label>{label}</Label>
                         <Select disabled={!isDraft}
-                          value={String(params[field] ?? options[0])}
-                          onValueChange={(v) => setParams((p) => ({ ...p, [field]: v }))}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          value={params[field] == null ? 'none' : String(params[field])}
+                          onValueChange={(v) => setParams((p) => ({ ...p, [field]: v === 'none' ? null : v }))}>
+                          <SelectTrigger><SelectValue placeholder="Not decided" /></SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="none">Not decided</SelectItem>
                             {options.map((o) => <SelectItem key={o} value={o}>{o.replace(/_/g, ' ').toLowerCase()}</SelectItem>)}
                           </SelectContent>
                         </Select>
@@ -376,8 +401,9 @@ export default function SupervisoryCalculationConfig() {
                     ))}
                     <div className="space-y-2">
                       <Label>Rounding decimals</Label>
-                      <Input type="number" min={0} max={4} disabled={!isDraft} value={params.rounding_decimals ?? 1}
-                        onChange={(e) => setParams((p) => ({ ...p, rounding_decimals: Number(e.target.value) }))} />
+                      <Input type="number" min={0} max={4} disabled={!isDraft} placeholder="not decided"
+                        value={params.rounding_decimals ?? ''}
+                        onChange={(e) => setParams((p) => ({ ...p, rounding_decimals: e.target.value === '' ? null : Number(e.target.value) }))} />
                     </div>
                     <div className="space-y-2">
                       <Label>Recommendation threshold rating</Label>
@@ -408,23 +434,23 @@ export default function SupervisoryCalculationConfig() {
                       onChange={(e) => setParams((p) => ({ ...p, notes: e.target.value }))} />
                   </div>
                   {isDraft && (
-                    <Button data-rbac="aml_supervision.manage_config" onClick={saveParams} disabled={upsert.isPending}>
+                    <Button data-rbac="aml_supervision.manage_config" onClick={saveParams} disabled={upsert.isPending || !canEdit}>
                       <Save className="h-4 w-4 mr-2" />Save parameters
                     </Button>
                   )}
                 </TabsContent>
 
+
                 <TabsContent value="responses" className="space-y-4 pt-4">
                   <p className="text-sm text-muted-foreground">
                     Every response option the methodology's questions permit must be scored, or explicitly excluded from the denominator.
+                    Evidence requirements come from the methodology's own questions, not from the score row.
                   </p>
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Response</TableHead><TableHead>Score (0–100)</TableHead>
-                        <TableHead>Excluded</TableHead><TableHead>Needs observation</TableHead>
-                        <TableHead>Needs evidence</TableHead><TableHead>Needs rationale</TableHead>
-                        <TableHead>Critical floor</TableHead>
+                        <TableHead>Excluded from the denominator</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -436,18 +462,16 @@ export default function SupervisoryCalculationConfig() {
                               value={row.score ?? ''}
                               onChange={(e) => setScoresState((prev) => prev.map((r, j) => j === i ? { ...r, score: e.target.value === '' ? null : Number(e.target.value) } : r))} />
                           </TableCell>
-                          {(['excluded_from_denominator', 'requires_observation', 'requires_evidence', 'requires_rationale', 'is_critical_floor'] as const).map((flag) => (
-                            <TableCell key={flag}>
-                              <Checkbox disabled={!isDraft} checked={row[flag]}
-                                onCheckedChange={(v) => setScoresState((prev) => prev.map((r, j) => j === i ? { ...r, [flag]: v === true } : r))} />
-                            </TableCell>
-                          ))}
+                          <TableCell>
+                            <Checkbox disabled={!isDraft} checked={row.excluded_from_denominator}
+                              onCheckedChange={(v) => setScoresState((prev) => prev.map((r, j) => j === i ? { ...r, excluded_from_denominator: v === true } : r))} />
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                   {isDraft && (
-                    <Button data-rbac="aml_supervision.manage_config" onClick={saveScores} disabled={setScores.isPending}>
+                    <Button data-rbac="aml_supervision.manage_config" onClick={saveScores} disabled={setScores.isPending || !canEdit}>
                       <Save className="h-4 w-4 mr-2" />Save response scoring
                     </Button>
                   )}
@@ -458,10 +482,13 @@ export default function SupervisoryCalculationConfig() {
                      ['CONTROL', 'Control effectiveness bands', controlBands, setControlBands]] as const).map(([kind, title, rows, setRows]) => (
                     <div key={kind} className="space-y-3">
                       <h3 className="text-sm font-semibold">{title}</h3>
-                      <p className="text-xs text-muted-foreground">Bands must be contiguous, non-overlapping and cover 0 to 100.</p>
+                      <p className="text-xs text-muted-foreground">
+                        Each band covers scores from its lower edge up to — but excluding — its upper edge; the last band closes at 100.
+                        Bands must be contiguous, non-overlapping and start at 0. No edge is pre-filled.
+                      </p>
                       <Table>
                         <TableHeader>
-                          <TableRow><TableHead>Rating</TableHead><TableHead>From</TableHead><TableHead>To</TableHead></TableRow>
+                          <TableRow><TableHead>Rating</TableHead><TableHead>From (inclusive)</TableHead><TableHead>To (exclusive)</TableHead></TableRow>
                         </TableHeader>
                         <TableBody>
                           {rows.length === 0 && (
@@ -472,8 +499,9 @@ export default function SupervisoryCalculationConfig() {
                               <TableCell className="font-mono">{b.band_code}</TableCell>
                               {(['min_score', 'max_score'] as const).map((f) => (
                                 <TableCell key={f}>
-                                  <Input type="number" min={0} max={100} className="w-24" disabled={!isDraft} value={b[f]}
-                                    onChange={(e) => setRows((prev) => prev.map((r, j) => j === i ? { ...r, [f]: Number(e.target.value) } : r))} />
+                                  <Input type="number" min={0} max={100} className="w-24" disabled={!isDraft}
+                                    placeholder="not decided" value={b[f] ?? ''}
+                                    onChange={(e) => setRows((prev) => prev.map((r, j) => j === i ? { ...r, [f]: e.target.value === '' ? null : Number(e.target.value) } : r))} />
                                 </TableCell>
                               ))}
                             </TableRow>
@@ -481,13 +509,14 @@ export default function SupervisoryCalculationConfig() {
                         </TableBody>
                       </Table>
                       {isDraft && rows.length > 0 && (
-                        <Button data-rbac="aml_supervision.manage_config" variant="outline" onClick={() => saveBands(kind)} disabled={setBands.isPending}>
+                        <Button data-rbac="aml_supervision.manage_config" variant="outline" onClick={() => saveBands(kind)} disabled={setBands.isPending || !canEdit}>
                           <Save className="h-4 w-4 mr-2" />Save {kind.toLowerCase()} bands
                         </Button>
                       )}
                     </div>
                   ))}
                 </TabsContent>
+
 
                 <TabsContent value="matrix" className="space-y-4 pt-4">
                   <p className="text-sm text-muted-foreground">
@@ -523,10 +552,11 @@ export default function SupervisoryCalculationConfig() {
                     </Table>
                   </div>
                   {isDraft && risk.length > 0 && control.length > 0 && (
-                    <Button data-rbac="aml_supervision.manage_config" onClick={saveMatrix} disabled={setMatrix.isPending}>
+                    <Button data-rbac="aml_supervision.manage_config" onClick={saveMatrix} disabled={setMatrix.isPending || !canEdit}>
                       <Save className="h-4 w-4 mr-2" />Save residual matrix
                     </Button>
                   )}
+
                 </TabsContent>
 
                 <TabsContent value="history" className="pt-4">
@@ -553,16 +583,17 @@ export default function SupervisoryCalculationConfig() {
                   <Label htmlFor="calc-rationale">Rationale for submission (at least 10 characters)</Label>
                   <Textarea id="calc-rationale" rows={2} value={rationale} onChange={(e) => setRationale(e.target.value)} />
                   <div className="flex gap-2">
-                    <Button data-rbac="aml_supervision.manage_config" variant="outline" onClick={runValidate} disabled={validate.isPending}>
+                    <Button data-rbac="aml_supervision.manage_config" variant="outline" onClick={runValidate} disabled={validate.isPending || !canEdit}>
                       <ShieldCheck className="h-4 w-4 mr-2" />Check completeness
                     </Button>
                     <Button data-rbac="aml_supervision.manage_config" onClick={submitForApproval}
-                      disabled={lifecycle.isPending || rationale.trim().length < 10}>
+                      disabled={lifecycle.isPending || !canEdit || rationale.trim().length < 10}>
                       Submit for approval
                     </Button>
                   </div>
                 </div>
               )}
+
             </CardContent>
           </Card>
         )}
@@ -581,7 +612,9 @@ export default function SupervisoryCalculationConfig() {
               </TableHeader>
               <TableBody>
                 {domainRules.length === 0 && (
-                  <TableRow><TableCell colSpan={4} className="text-muted-foreground">No effective-date rule has been recorded; resolution falls back to the execution date.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={4} className="text-muted-foreground">
+                    No effective-date rule has been recorded. Until one is, no assessment in that domain can be calculated — there is no fallback date.
+                  </TableCell></TableRow>
                 )}
                 {domainRules.map((r) => (
                   <TableRow key={r.domain_code}>
@@ -596,7 +629,13 @@ export default function SupervisoryCalculationConfig() {
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label>Domain</Label>
-                <Input value={ruleDomain} onChange={(e) => setRuleDomain(e.target.value.toUpperCase())} />
+                <Select value={ruleDomain || 'none'} onValueChange={(v) => setRuleDomain(v === 'none' ? '' : v)}>
+                  <SelectTrigger><SelectValue placeholder="Select a domain" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Select a domain</SelectItem>
+                    {domainCodes.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Rule</Label>
@@ -613,10 +652,15 @@ export default function SupervisoryCalculationConfig() {
                 <Input value={ruleRationale} onChange={(e) => setRuleRationale(e.target.value)} />
               </div>
             </div>
+            {ruleDomain && !ruleDomainModule && (
+              <p className="text-sm text-destructive">This domain has no configuration module, so no one can record a rule for it.</p>
+            )}
             <Button data-rbac="aml_supervision.manage_config" onClick={saveDomainRule}
-              disabled={setDomainRule.isPending || !ruleValue || ruleRationale.trim().length < 10}>
+              disabled={setDomainRule.isPending || !ruleDomain || !ruleValue || !ruleDomainModule
+                        || !mayManageRuleDomain || ruleRationale.trim().length < 10}>
               <Save className="h-4 w-4 mr-2" />Record effective-date rule
             </Button>
+
           </CardContent>
         </Card>
       </div>

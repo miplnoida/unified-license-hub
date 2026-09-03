@@ -155,14 +155,13 @@ export default function SupervisoryCalculationApprovals() {
                 <div>
                   <h3 className="text-sm font-semibold mb-2">Response scoring</h3>
                   <Table>
-                    <TableHeader><TableRow><TableHead>Response</TableHead><TableHead>Score</TableHead><TableHead>Excluded</TableHead><TableHead>Critical</TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead>Response</TableHead><TableHead>Score</TableHead><TableHead>Excluded from the denominator</TableHead></TableRow></TableHeader>
                     <TableBody>
                       {(detail?.responses ?? []).map((r) => (
                         <TableRow key={r.response_code}>
                           <TableCell className="font-mono">{r.response_code}</TableCell>
                           <TableCell>{r.score ?? '—'}</TableCell>
                           <TableCell>{r.excluded_from_denominator ? 'yes' : 'no'}</TableCell>
-                          <TableCell>{r.is_critical_floor ? 'yes' : 'no'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -171,13 +170,14 @@ export default function SupervisoryCalculationApprovals() {
                 <div>
                   <h3 className="text-sm font-semibold mb-2">Bands</h3>
                   <Table>
-                    <TableHeader><TableRow><TableHead>Kind</TableHead><TableHead>Rating</TableHead><TableHead>Range</TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead>Kind</TableHead><TableHead>Rating</TableHead><TableHead>Range (from inclusive, to exclusive)</TableHead></TableRow></TableHeader>
                     <TableBody>
                       {(detail?.bands ?? []).map((b) => (
                         <TableRow key={`${b.band_kind}-${b.band_code}`}>
                           <TableCell>{b.band_kind}</TableCell>
                           <TableCell className="font-mono">{b.band_code}</TableCell>
-                          <TableCell>{b.min_score}–{b.max_score}</TableCell>
+                          <TableCell>{b.min_score ?? '—'} → {b.max_score ?? '—'}</TableCell>
+
                         </TableRow>
                       ))}
                     </TableBody>

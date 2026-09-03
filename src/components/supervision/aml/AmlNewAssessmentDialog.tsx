@@ -27,6 +27,8 @@ import { AmlActionDialog } from '@/components/supervision/aml/AmlActionDialog';
 import { useCreateAmlAssessment, useResolvedAmlMethodology } from '@/hooks/useAmlLifecycle';
 import { useAmlPortfolio } from '@/hooks/useAmlSupervision';
 import { useCan } from '@/hooks/useCan';
+import { useCalculationReadiness } from '@/hooks/useSupervisoryCalculationConfig';
+
 import { BLUE, fmtDate } from '@/lib/amlLabels';
 
 const isoDaysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
@@ -52,6 +54,8 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
   const targetEntity = entityId ?? chosenEntity;
   const { data: resolved, isLoading: resolving } = useResolvedAmlMethodology(targetEntity || null);
   const methodology = resolved?.methodology ?? null;
+  const readiness = useCalculationReadiness('AML_CFT', methodology?.id ?? undefined);
+
 
   const entityOptions = useMemo(
     () =>
@@ -135,6 +139,25 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
               </Alert>
             )
           ) : null}
+
+          {/* Calculation readiness is stated plainly: the assessment may still be
+              created, but the platform does not pretend a calculated
+              recommendation will exist. */}
+          {methodology && !readiness.isLoading && readiness.data && !readiness.data.ready ? (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="space-y-1">
+                <p className="text-sm">
+                  No methodology calculation will be produced for this assessment; ratings will be supervisory
+                  judgement only.
+                </p>
+                <ul className="list-disc pl-5 text-xs text-muted-foreground">
+                  {readiness.data.reasons.map((r) => <li key={r}>{r}</li>)}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setPickerOpen(false)}>

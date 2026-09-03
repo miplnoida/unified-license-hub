@@ -44666,11 +44666,7 @@ export type Database = {
           created_at: string
           excluded_from_denominator: boolean
           id: string
-          is_critical_floor: boolean
           meaning: string | null
-          requires_evidence: boolean
-          requires_observation: boolean
-          requires_rationale: boolean
           response_code: string
           score: number | null
           sort_order: number
@@ -44681,11 +44677,7 @@ export type Database = {
           created_at?: string
           excluded_from_denominator?: boolean
           id?: string
-          is_critical_floor?: boolean
           meaning?: string | null
-          requires_evidence?: boolean
-          requires_observation?: boolean
-          requires_rationale?: boolean
           response_code: string
           score?: number | null
           sort_order?: number
@@ -44696,11 +44688,7 @@ export type Database = {
           created_at?: string
           excluded_from_denominator?: boolean
           id?: string
-          is_critical_floor?: boolean
           meaning?: string | null
-          requires_evidence?: boolean
-          requires_observation?: boolean
-          requires_rationale?: boolean
           response_code?: string
           score?: number | null
           sort_order?: number
@@ -63625,6 +63613,10 @@ export type Database = {
         Args: { _assessment_id: string }
         Returns: Json
       }
+      supervisory_calc_compute_core: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_calc_config_for: {
         Args: { _assessment_id: string }
         Returns: string
@@ -63649,11 +63641,19 @@ export type Database = {
         Args: { _config_id: string; _rationale: string; _to_status: string }
         Returns: string
       }
+      supervisory_calculation_config_score_problems: {
+        Args: { _config_id: string }
+        Returns: string[]
+      }
       supervisory_calculation_config_upsert: {
         Args: { _config_id?: string; _methodology_id: string; _payload: Json }
         Returns: string
       }
       supervisory_calculation_config_validate: {
+        Args: { _config_id: string }
+        Returns: Json
+      }
+      supervisory_calculation_config_validate_core: {
         Args: { _config_id: string }
         Returns: Json
       }
@@ -63689,6 +63689,10 @@ export type Database = {
           _effective_date_rule: string
           _rationale: string
         }
+        Returns: string
+      }
+      supervisory_domain_module: {
+        Args: { _domain_code: string }
         Returns: string
       }
       supervisory_domain_perimeter_set: {
