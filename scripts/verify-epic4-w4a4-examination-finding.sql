@@ -339,12 +339,25 @@ DECLARE wp uuid := (SELECT v FROM w4 WHERE k='wp'); st text;
 BEGIN
   PERFORM public.examination_workpaper_return(wp, 'Extend the sample before concluding.');
   SELECT status INTO st FROM public.examination_workpapers WHERE id = wp;
-  IF st <> 'draft' THEN RAISE EXCEPTION 'FAIL 13: returned work did not reopen as draft (%)', st; END IF;
+  IF st <> 'returned' THEN RAISE EXCEPTION 'FAIL 13: returned work is not in the returned state (%)', st; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.examination_workpapers
                   WHERE id = wp AND returned_by IS NOT NULL AND returned_at IS NOT NULL
                     AND review_notes IS NOT NULL) THEN
     RAISE EXCEPTION 'FAIL 13: return provenance was not recorded'; END IF;
   RAISE NOTICE 'PASS 13: review outcomes are recorded with reviewer provenance and reopen the work';
+END $$;
+
+SET LOCAL "request.jwt.claims" = :'EXAMINER';
+DO $$
+DECLARE wp uuid := (SELECT v FROM w4 WHERE k='wp'); st text;
+BEGIN
+  PERFORM public.examination_workpaper_save(jsonb_build_object('id', wp,
+    'sample_size','40', 'analysis','Extended sample: 15 of 40 alerts had no documented decision.'));
+  PERFORM public.examination_workpaper_submit_review(wp);
+  SELECT status INTO st FROM public.examination_workpapers WHERE id = wp;
+  IF st <> 'in_review' THEN
+    RAISE EXCEPTION 'FAIL 13: revised work could not be resubmitted for review (%)', st; END IF;
+  RAISE NOTICE 'PASS 13b: returned work can be revised by the preparer and resubmitted';
 END $$;
 
 -- 14. findings can only be raised from this examination's own validated fieldwork
