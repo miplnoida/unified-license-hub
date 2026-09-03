@@ -19349,6 +19349,7 @@ export type Database = {
       }
       examination_data_requests: {
         Row: {
+          assessment_dimension_id: string | null
           created_at: string
           data_format: string | null
           description: string | null
@@ -19359,13 +19360,18 @@ export type Database = {
           id: string
           issued_at: string | null
           item_no: number | null
+          outstanding_items: string | null
+          priority: string
           received_at: string | null
+          reference: string | null
           requested_by: string | null
+          requested_from: string | null
           status: string
           title: string
           updated_at: string
         }
         Insert: {
+          assessment_dimension_id?: string | null
           created_at?: string
           data_format?: string | null
           description?: string | null
@@ -19376,13 +19382,18 @@ export type Database = {
           id?: string
           issued_at?: string | null
           item_no?: number | null
+          outstanding_items?: string | null
+          priority?: string
           received_at?: string | null
+          reference?: string | null
           requested_by?: string | null
+          requested_from?: string | null
           status?: string
           title: string
           updated_at?: string
         }
         Update: {
+          assessment_dimension_id?: string | null
           created_at?: string
           data_format?: string | null
           description?: string | null
@@ -19393,13 +19404,24 @@ export type Database = {
           id?: string
           issued_at?: string | null
           item_no?: number | null
+          outstanding_items?: string | null
+          priority?: string
           received_at?: string | null
+          reference?: string | null
           requested_by?: string | null
+          requested_from?: string | null
           status?: string
           title?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "examination_data_requests_assessment_dimension_id_fkey"
+            columns: ["assessment_dimension_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_dimension"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "examination_data_requests_examination_id_fkey"
             columns: ["examination_id"]
@@ -20011,60 +20033,119 @@ export type Database = {
       }
       examination_workpapers: {
         Row: {
+          analysis: string | null
           area: string
+          assessment_dimension_id: string | null
+          assessment_id: string | null
           conclusion: string | null
+          control_assessment: string | null
           created_at: string
           evidence_reference: string | null
           examination_id: string
+          exceptions_count: number | null
           file_upload_id: string | null
           id: string
+          material_exceptions_count: number | null
+          objective: string | null
+          population_description: string | null
+          population_size: number | null
           prepared_at: string | null
           prepared_by: string | null
           procedure_performed: string | null
           reference: string | null
+          returned_at: string | null
+          returned_by: string | null
           review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          sample_size: number | null
+          sampling_method: string | null
           status: string
+          submitted_at: string | null
+          submitted_by: string | null
           updated_at: string
         }
         Insert: {
+          analysis?: string | null
           area: string
+          assessment_dimension_id?: string | null
+          assessment_id?: string | null
           conclusion?: string | null
+          control_assessment?: string | null
           created_at?: string
           evidence_reference?: string | null
           examination_id: string
+          exceptions_count?: number | null
           file_upload_id?: string | null
           id?: string
+          material_exceptions_count?: number | null
+          objective?: string | null
+          population_description?: string | null
+          population_size?: number | null
           prepared_at?: string | null
           prepared_by?: string | null
           procedure_performed?: string | null
           reference?: string | null
+          returned_at?: string | null
+          returned_by?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          sample_size?: number | null
+          sampling_method?: string | null
           status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
           updated_at?: string
         }
         Update: {
+          analysis?: string | null
           area?: string
+          assessment_dimension_id?: string | null
+          assessment_id?: string | null
           conclusion?: string | null
+          control_assessment?: string | null
           created_at?: string
           evidence_reference?: string | null
           examination_id?: string
+          exceptions_count?: number | null
           file_upload_id?: string | null
           id?: string
+          material_exceptions_count?: number | null
+          objective?: string | null
+          population_description?: string | null
+          population_size?: number | null
           prepared_at?: string | null
           prepared_by?: string | null
           procedure_performed?: string | null
           reference?: string | null
+          returned_at?: string | null
+          returned_by?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          sample_size?: number | null
+          sampling_method?: string | null
           status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "examination_workpapers_assessment_dimension_id_fkey"
+            columns: ["assessment_dimension_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_dimension"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examination_workpapers_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "examination_workpapers_examination_id_fkey"
             columns: ["examination_id"]
@@ -56629,6 +56710,27 @@ export type Database = {
         }
         Returns: Json
       }
+      examination_data_request_issue: {
+        Args: { _request_id: string }
+        Returns: Json
+      }
+      examination_data_request_receive: {
+        Args: {
+          _entity_response?: string
+          _fully_received?: boolean
+          _outstanding_items?: string
+          _request_id: string
+        }
+        Returns: Json
+      }
+      examination_data_request_save: {
+        Args: { _payload: Json }
+        Returns: string
+      }
+      examination_execution_require: {
+        Args: { _action: string; _examination_id: string }
+        Returns: string
+      }
       examination_has_issued_report: {
         Args: { _examination_id: string }
         Returns: boolean
@@ -56703,6 +56805,15 @@ export type Database = {
       }
       examination_update: {
         Args: { _examination_id: string; _patch: Json; _rationale?: string }
+        Returns: Json
+      }
+      examination_workpaper_return: {
+        Args: { _notes: string; _workpaper_id: string }
+        Returns: Json
+      }
+      examination_workpaper_save: { Args: { _payload: Json }; Returns: string }
+      examination_workpaper_submit_review: {
+        Args: { _workpaper_id: string }
         Returns: Json
       }
       execute_complaint_workflow_action: {
