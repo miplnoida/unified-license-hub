@@ -11,18 +11,17 @@ is granted to any role, role template or user, so none of them widens access.
 | Disposition | Count | Meaning |
 | --- | --- | --- |
 | legacy-alias | 0 | Kept so historic database access rules resolve. |
-| reserved-granular | 152 | Live module, finer-grained action reserved for later split-out. |
+| reserved-granular | 151 | Live module, finer-grained action reserved for later split-out. |
 | future-module | 42 | Module catalogued ahead of its surface being built. |
 | manual | 0 | Reviewed case-by-case (see rationale). |
 
-Total orphans: **194**
+Total orphans: **193**
 
 | Permission | Disposition | Rationale |
 | --- | --- | --- |
 | `ai_management.create` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `ai_management.execute` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `aml_supervision.assign` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
-| `aml_supervision.edit` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `aml_supervision.finding_manage` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `aml_supervision.manage_config` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
 | `aml_supervision.remediation_manage` | reserved-granular | Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today. |
