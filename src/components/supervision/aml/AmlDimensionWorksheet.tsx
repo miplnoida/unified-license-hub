@@ -197,6 +197,8 @@ function DimensionRow({
   assessmentId,
   entityId,
   editable,
+  dimensionQuestions,
+  questionResponses,
   onChanged,
 }: {
   dimension: AmlMethodologyDimension;
@@ -204,8 +206,11 @@ function DimensionRow({
   assessmentId: string;
   entityId: string;
   editable: boolean;
+  dimensionQuestions: AmlMethodologyQuestion[];
+  questionResponses: AmlQuestionResponse[];
   onChanged: () => void;
 }) {
+
   const save = useSaveAmlDimension();
   const isControl = dimension.dimension_group === 'CONTROL_EFFECTIVENESS';
   const calculated = isControl ? row?.calculated_control_rating : row?.calculated_inherent_rating;
