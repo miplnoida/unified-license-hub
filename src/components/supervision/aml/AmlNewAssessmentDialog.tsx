@@ -2,16 +2,31 @@
  * Start a new AML/CFT risk assessment for a supervised entity.
  *
  * The entity list is the supervised portfolio the officer can already see, so
- * no entity is ever invented here; the assessment itself is created by the
- * governed supervisory operation on the active AML/CFT methodology.
+ * no entity is ever invented here. The methodology version is resolved by the
+ * database from domain, sector and effective date — never "the latest active
+ * one" — and creation is blocked outright when no version applies.
  */
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertTriangle } from 'lucide-react';
 import { AmlActionDialog } from '@/components/supervision/aml/AmlActionDialog';
-import { useCreateAmlAssessment } from '@/hooks/useAmlLifecycle';
+import { useCreateAmlAssessment, useResolvedAmlMethodology } from '@/hooks/useAmlLifecycle';
 import { useAmlPortfolio } from '@/hooks/useAmlSupervision';
+import { BLUE, fmtDate } from '@/lib/amlLabels';
 
 const isoDaysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
 
@@ -24,9 +39,15 @@ interface Props {
 
 export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessment', size = 'default', variant = 'default' }: Props) {
   const [open, setOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [chosenEntity, setChosenEntity] = useState<string>('');
   const navigate = useNavigate();
   const create = useCreateAmlAssessment();
   const { data: portfolio } = useAmlPortfolio(300);
+
+  const targetEntity = entityId ?? chosenEntity;
+  const { data: resolved, isLoading: resolving } = useResolvedAmlMethodology(targetEntity || null);
+  const methodology = resolved?.methodology ?? null;
 
   const entityOptions = useMemo(
     () =>
@@ -37,32 +58,106 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
   );
 
   const prior = useMemo(
-    () => (portfolio ?? []).find((r) => r.entity_id === entityId)?.last_assessment_id ?? null,
-    [portfolio, entityId],
+    () => (portfolio ?? []).find((r) => r.entity_id === targetEntity)?.last_assessment_id ?? null,
+    [portfolio, targetEntity],
   );
+
+  const startFlow = () => {
+    if (entityId) {
+      setOpen(true);
+      return;
+    }
+    setPickerOpen(true);
+  };
 
   return (
     <>
-      <Button size={size} variant={variant} onClick={() => setOpen(true)}>
+      <Button size={size} variant={variant} onClick={startFlow}>
         {label}
       </Button>
+
+      {/* Entity is chosen first so the methodology can be resolved before the
+          working file is created — the officer never picks a version. */}
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Select the supervised entity</DialogTitle>
+            <DialogDescription>
+              The applicable AML/CFT methodology version is resolved from the entity's sector and the effective date.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="aml-entity-pick">Supervised entity</Label>
+            <Select value={chosenEntity} onValueChange={setChosenEntity}>
+              <SelectTrigger id="aml-entity-pick">
+                <SelectValue placeholder="Select an entity…" />
+              </SelectTrigger>
+              <SelectContent>
+                {entityOptions.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {chosenEntity ? (
+            resolving ? (
+              <p className="text-sm text-muted-foreground">Resolving the applicable methodology…</p>
+            ) : methodology ? (
+              <Alert>
+                <AlertDescription className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className={BLUE}>
+                      {methodology.code} v{methodology.version}
+                    </Badge>
+                    <span className="text-sm">{methodology.name}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Status {methodology.status} · effective from {fmtDate(methodology.effective_from)}
+                  </p>
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  No AML/CFT methodology is applicable to this entity on this date. A methodology owner must publish an
+                  applicable active version before an assessment can be created.
+                </AlertDescription>
+              </Alert>
+            )
+          ) : null}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPickerOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!chosenEntity || !methodology || resolving}
+              onClick={() => {
+                setPickerOpen(false);
+                setOpen(true);
+              }}
+            >
+              Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AmlActionDialog
         open={open}
         onOpenChange={setOpen}
         title="Start an AML/CFT risk assessment"
-        description="The assessment is created in draft against the active AML/CFT methodology, ready for its risk and control ratings."
+        description={
+          methodology
+            ? `The assessment is created in draft on ${methodology.code} v${methodology.version}, ready for its risk and control ratings.`
+            : 'The assessment is created in draft against the applicable AML/CFT methodology.'
+        }
+
         fields={[
-          ...(entityId
-            ? []
-            : [
-                {
-                  name: 'entity_id',
-                  label: 'Supervised entity',
-                  kind: 'select' as const,
-                  required: true,
-                  options: entityOptions,
-                },
-              ]),
           {
             name: 'assessment_type',
             label: 'Assessment type',
@@ -93,8 +188,14 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
         ]}
         submitLabel="Create assessment"
         onSubmit={async (v) => {
+          if (!methodology) {
+            throw new Error(
+              'No AML/CFT methodology is applicable to this entity on this date. A methodology owner must publish an applicable active version before an assessment can be created.',
+            );
+          }
           const result: any = await create.mutateAsync({
-            entityId: entityId ?? v.entity_id,
+            entityId: targetEntity,
+            methodologyId: methodology.id,
             assessmentType: v.assessment_type,
             triggerType: v.trigger_type,
             periodStart: v.period_start || null,
@@ -107,6 +208,7 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
           if (id) navigate(`/supervision/aml/assessments/${id}`);
           return result;
         }}
+
       />
     </>
   );

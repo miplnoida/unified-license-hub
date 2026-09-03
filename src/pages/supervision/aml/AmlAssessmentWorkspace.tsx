@@ -9,8 +9,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowLeft } from 'lucide-react';
 import { useAmlAssessment } from '@/hooks/useAmlSupervision';
-import { AmlAssessmentActions } from '@/components/supervision/aml/AmlAssessmentActions';
+import { AmlAssessmentGovernance } from '@/components/supervision/aml/AmlAssessmentGovernance';
 import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, statusTone, titleCase, trendTone } from '@/lib/amlLabels';
+
+
 
 const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div>
@@ -189,20 +191,22 @@ export default function AmlAssessmentWorkspace() {
           </CardContent>
         </Card>
 
-        <AmlAssessmentActions
+        <AmlAssessmentGovernance
+          view="actions"
           assessmentId={h.id}
           entityId={h.entity_id}
           entityName={h.entity_name}
           status={h.status}
+          methodologyId={h.methodology_id ?? (data.methodology as any)?.id ?? null}
           dimensions={dims}
           attention={data.attention as any[]}
           plans={data.plans as any[]}
           onChanged={() => void refetch()}
         />
 
-
-        <Tabs defaultValue="inherent">
+        <Tabs defaultValue="worksheet">
           <TabsList className="flex-wrap">
+            <TabsTrigger value="worksheet">Working file</TabsTrigger>
             <TabsTrigger value="inherent">Inherent risk ({inherent.length})</TabsTrigger>
             <TabsTrigger value="control">Control effectiveness ({control.length})</TabsTrigger>
             {other.length > 0 ? <TabsTrigger value="other">Other dimensions ({other.length})</TabsTrigger> : null}
@@ -210,6 +214,22 @@ export default function AmlAssessmentWorkspace() {
             <TabsTrigger value="findings">Findings ({(data.findings as any[]).length})</TabsTrigger>
             <TabsTrigger value="history">Approval history</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="worksheet" className="mt-4">
+            <AmlAssessmentGovernance
+              view="worksheet"
+              assessmentId={h.id}
+              entityId={h.entity_id}
+              entityName={h.entity_name}
+              status={h.status}
+              methodologyId={h.methodology_id ?? (data.methodology as any)?.id ?? null}
+              dimensions={dims}
+              attention={data.attention as any[]}
+              plans={data.plans as any[]}
+              onChanged={() => void refetch()}
+            />
+          </TabsContent>
+
 
           <TabsContent value="inherent" className="mt-4">
             <Card>
