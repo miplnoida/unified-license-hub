@@ -823,7 +823,7 @@ BEGIN
     SELECT 'examination_data_requests', (SELECT v FROM a6 WHERE k='rfi1')
   LOOP
     IF NOT EXISTS (SELECT 1 FROM public.compliance_audit_logs
-                    WHERE object_type = t AND (i IS NULL OR object_id = i)) THEN
+                    WHERE object_type = t AND (i IS NULL OR object_id::text = i::text)) THEN
       missing := missing || t || ' ';
     END IF;
   END LOOP;
