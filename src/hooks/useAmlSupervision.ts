@@ -215,23 +215,150 @@ export function useAmlAssessment(assessmentId?: string) {
   });
 }
 
+/**
+ * AML/CFT examination register.
+ *
+ * Reads the canonical `examinations` store filtered to the AML/CFT domain and
+ * joins the canonical provenance (`examination_origin` — exact
+ * DRIVING_ASSESSMENT / RISK_FOCUS rows), the canonical scope dimensions and
+ * the canonical work stores (data requests, workpapers, findings, team) so the
+ * register can show real supervisory state instead of a bare stage label.
+ * Provenance is never inferred from "same entity + AML domain".
+ */
 export function useAmlExaminations() {
   return useQuery({
-    queryKey: ['aml', 'examinations'],
+    queryKey: ['aml', 'examinations', 'register'],
     queryFn: async () => {
       const { data, error } = await sb
         .from('examinations')
         .select(
           'id, reference, title, entity_id, engagement_type, examination_type, stage, risk_rating, ' +
-            'fieldwork_start, fieldwork_end, lead_examiner_id, closed_at, intervention_id, ' +
+            'fieldwork_start, fieldwork_end, period_under_review_start, period_under_review_end, ' +
+            'lead_examiner_id, closed_at, intervention_id, plan_id, trigger_type, ' +
             'reassessment_required, created_at',
         )
         .eq('domain_code', 'AML_CFT')
         .order('created_at', { ascending: false })
         .limit(300);
       if (error) throw error;
-      const names = await nameMap((data ?? []).map((r: any) => r.entity_id));
-      return (data ?? []).map((r: any) => ({ ...r, entity_name: names.get(r.entity_id) ?? null }));
+      const rows = (data ?? []) as any[];
+      const ids = rows.map((r) => r.id);
+      if (!ids.length) return [];
+
+      const [names, origins, scope, requests, workpapers, findings, team, plans, interventions] =
+        await Promise.all([
+          nameMap(rows.map((r) => r.entity_id)),
+          sb
+            .from('examination_origin')
+            .select('examination_id, assessment_id, assessment_dimension_id, attention_id, origin_role')
+            .in('examination_id', ids),
+          sb
+            .from('examination_scope_dimension')
+            .select('examination_id, dimension_code, residual_rating')
+            .in('examination_id', ids),
+          sb.from('examination_data_requests').select('examination_id, status, due_date').in('examination_id', ids),
+          sb.from('examination_workpapers').select('examination_id, status').in('examination_id', ids),
+          sb.from('examination_findings').select('examination_id, status, severity').in('examination_id', ids),
+          sb.from('examination_team_members').select('examination_id, user_id, ended_at').in('examination_id', ids),
+          sb
+            .from('supervisory_plan')
+            .select('id, reference, status')
+            .in('id', Array.from(new Set(rows.map((r) => r.plan_id).filter(Boolean)))),
+          sb
+            .from('supervisory_intervention')
+            .select('id, reference, intervention_type, status')
+            .in('id', Array.from(new Set(rows.map((r) => r.intervention_id).filter(Boolean)))),
+        ]);
+
+      const assessmentIds = Array.from(
+        new Set((origins.data ?? []).map((o: any) => o.assessment_id).filter(Boolean)),
+      ) as string[];
+      const assessments = assessmentIds.length
+        ? (
+            await sb
+              .from('supervisory_assessment')
+              .select('id, reference, residual_rating, status')
+              .in('id', assessmentIds)
+          ).data ?? []
+        : [];
+      const assessmentById = new Map(assessments.map((a: any) => [a.id, a]));
+      const planById = new Map((plans?.data ?? []).map((p: any) => [p.id, p]));
+      const interventionById = new Map((interventions?.data ?? []).map((i: any) => [i.id, i]));
+
+      const examinerIds = Array.from(new Set(rows.map((r) => r.lead_examiner_id).filter(Boolean))) as string[];
+      const examinerById = new Map<string, string>(
+        examinerIds.length
+          ? (((await sb.from('profiles').select('id, full_name').in('id', examinerIds)).data ?? []) as any[]).map(
+              (p) => [p.id, p.full_name ?? ''],
+            )
+          : [],
+      );
+
+
+      const today = new Date().toISOString().slice(0, 10);
+      const group = <T,>(list: T[] | null | undefined, key: (r: T) => string) => {
+        const m = new Map<string, T[]>();
+        (list ?? []).forEach((r) => {
+          const k = key(r);
+          m.set(k, [...(m.get(k) ?? []), r]);
+        });
+        return m;
+      };
+
+      const originByExam = group<any>(origins.data, (r) => r.examination_id);
+      const scopeByExam = group<any>(scope.data, (r) => r.examination_id);
+      const requestByExam = group<any>(requests.data, (r) => r.examination_id);
+      const workpaperByExam = group<any>(workpapers.data, (r) => r.examination_id);
+      const findingByExam = group<any>(findings.data, (r) => r.examination_id);
+      const teamByExam = group<any>(team.data, (r) => r.examination_id);
+
+      return rows.map((r) => {
+        const exOrigins = originByExam.get(r.id) ?? [];
+        const driving = exOrigins.find((o: any) => o.origin_role === 'DRIVING_ASSESSMENT') ?? null;
+        const riskFocus = exOrigins.filter((o: any) => o.origin_role === 'RISK_FOCUS');
+        const scopeRows = scopeByExam.get(r.id) ?? [];
+        const rfis = requestByExam.get(r.id) ?? [];
+        const wps = workpaperByExam.get(r.id) ?? [];
+        const fnds = findingByExam.get(r.id) ?? [];
+        const members = (teamByExam.get(r.id) ?? []).filter((m: any) => !m.ended_at);
+        const drivingAssessment = driving?.assessment_id
+          ? assessmentById.get(driving.assessment_id) ?? null
+          : null;
+
+        return {
+          ...r,
+          entity_name: names.get(r.entity_id) ?? null,
+          lead_examiner_name: r.lead_examiner_id ? examinerById.get(r.lead_examiner_id) ?? null : null,
+          driving_assessment_id: driving?.assessment_id ?? null,
+          driving_assessment_reference: (drivingAssessment as any)?.reference ?? null,
+          driving_assessment_rating: (drivingAssessment as any)?.residual_rating ?? null,
+          risk_focus_dimension_count: riskFocus.length,
+          attention_id: exOrigins.find((o: any) => o.attention_id)?.attention_id ?? null,
+          plan_reference: (planById.get(r.plan_id) as any)?.reference ?? null,
+          plan_status: (planById.get(r.plan_id) as any)?.status ?? null,
+          intervention_reference: (interventionById.get(r.intervention_id) as any)?.reference ?? null,
+          intervention_type: (interventionById.get(r.intervention_id) as any)?.intervention_type ?? null,
+          scope_dimensions: scopeRows.map((s: any) => ({
+            dimension_code: s.dimension_code,
+            residual_rating: s.residual_rating,
+          })),
+          open_rfis: rfis.filter((d: any) => !['received', 'closed'].includes(String(d.status ?? '').toLowerCase()))
+            .length,
+          overdue_rfis: rfis.filter(
+            (d: any) =>
+              d.due_date &&
+              d.due_date < today &&
+              !['received', 'closed'].includes(String(d.status ?? '').toLowerCase()),
+          ).length,
+          workpapers_total: wps.length,
+          workpapers_outstanding: wps.filter(
+            (w: any) => String(w.status ?? '').toLowerCase() !== 'reviewed',
+          ).length,
+          findings_total: fnds.length,
+          findings_open: fnds.filter((f: any) => String(f.status ?? '').toLowerCase() !== 'closed').length,
+          team_size: members.length,
+        };
+      });
     },
   });
 }

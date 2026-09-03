@@ -4,6 +4,7 @@ import { P } from '@/routes/routeHelpers';
 import { ModuleRoute } from '@/components/auth/RouteGuards';
 import { PortalRoute } from '@/components/auth/PortalRoute';
 import type { PermissionModule } from '@/lib/permissionModules';
+import { ExaminationDomainRoute } from '@/routes/ExaminationDomainRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { INTERNAL_ROLES } from '@/types/platform';
 import type { PortalArea, PortalCapability } from '@/lib/portalAccess';
@@ -384,6 +385,14 @@ export const dashboardRoutes = (
     <Route path="/supervision/aml/heatmap" element={<M module="aml_supervision"><AmlRiskHeatmap /></M>} />
     <Route path="/supervision/aml/examinations" element={<M module="aml_supervision"><AmlExaminations /></M>} />
     <Route path="/supervision/aml/findings" element={<M module="aml_supervision"><AmlFindings /></M>} />
+
+    {/* Canonical enterprise examination workspace — authorization derives from
+        the examination's real supervisory domain (AML/CFT, prudential, conduct).
+        The prudential path below remains an alias. */}
+    <Route
+      path="/supervision/examinations/:id"
+      element={<ExaminationDomainRoute><ExaminationWorkspace /></ExaminationDomainRoute>}
+    />
 
     <Route path="/prudential" element={<Navigate to="/prudential/dashboard" replace />} />
     <Route path="/prudential/dashboard" element={<M module="prudential_supervision"><PrudentialDashboard /></M>} />

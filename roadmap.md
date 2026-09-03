@@ -8,6 +8,12 @@
 - [x] W3 Final Entity 360 (cross-domain) + retire legacy `entity360_section` AML block — CERTIFIED (docs/epic4/W3_entity_360_certification.md)
 - [ ] W4 Escalation convergence (Q-C), conduct investigation decision (Q-D), Governance/F&P feed (Q-E)
   - [x] W4 P0 supervisory question governance: single question catalogue, domain-specific edit authority, assessment-following response RLS, split gap RPC — CERTIFIED (docs/epic4/W4_question_governance.md)
+  - [x] W4-A1 Canonical examination route `/supervision/examinations/:id` (domain-derived authorization) + AML examination register enrichment (provenance, risk focus, team, RFIs, workpapers, findings, next action)
+  - [ ] W4-A2 Plan → intervention (`supervisory_intervention_open`) and intervention → examination (`supervisory_examination_open`) UI flows
+  - [ ] W4-A3 Examination scoping from approved AML dimensions (`examination_scope_from_assessment`, `EXAMINER_AMENDED` rationale)
+  - [ ] W4-A4 AML RFI / workpaper / finding creation from the canonical workspace (`supervisory_finding_create` full provenance)
+  - [ ] W4-A5 Canonical finding workspace `/supervision/findings/:id` (multi corrective action, exact `remediation_action_id`, closure readiness, validation, escalation, enforcement referral, reassessment)
+  - [ ] W4-A6 Closed-loop certification scenario + 20-case AML demo dataset + persona browser E2E + final regression verdict
 - [ ] W5 Global dashboard, executive view, portfolio/sector supervision, read-model re-sourcing
 - [ ] W6 Legacy retirement census + route convergence + enterprise next action + team capacity
 - [ ] W7 Certification: 20+ entity dataset, `scripts/verify-epic-4-enterprise-convergence.sql`, personas, Playwright, reconciliation, performance, security, regression matrix
