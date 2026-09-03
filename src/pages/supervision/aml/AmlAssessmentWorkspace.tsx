@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowLeft } from 'lucide-react';
 import { useAmlAssessment } from '@/hooks/useAmlSupervision';
 import { AmlAssessmentGovernance } from '@/components/supervision/aml/AmlAssessmentGovernance';
+import { AmlSupervisoryActivity } from '@/components/supervision/aml/AmlSupervisoryActivity';
 import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, statusTone, titleCase, trendTone } from '@/lib/amlLabels';
 
 
