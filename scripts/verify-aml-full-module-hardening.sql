@@ -62,11 +62,10 @@ BEGIN
 
   -- AMLH-05 assessment domain isolation: references never cross a domain.
   SELECT count(*) INTO n
-  FROM public.supervisory_assessment_dimension d
-  JOIN public.supervisory_assessment a ON a.id = d.assessment_id
+  FROM public.supervisory_assessment a
+  JOIN public.supervisory_assessment o ON o.id = a.supersedes_id
   WHERE a.domain_code = 'AML_CFT'
-    AND EXISTS (SELECT 1 FROM public.supervisory_assessment o
-                WHERE o.id = a.supersedes_assessment_id AND o.domain_code <> 'AML_CFT');
+    AND (o.domain_code <> 'AML_CFT' OR o.entity_id <> a.entity_id);
   PERFORM pg_temp.gate('AMLH-05', 'assessment domain isolation', n = 0,
     format('AML assessments superseding a non-AML assessment = %s', n));
 
@@ -77,7 +76,7 @@ BEGIN
   JOIN public.supervisory_assessment a ON a.id = d.assessment_id
   WHERE a.domain_code = 'AML_CFT' AND a.status = 'APPROVED'
     AND d.residual_rating IS DISTINCT FROM d.calculated_residual_rating
-    AND coalesce(btrim(d.override_rationale), '') = '';
+    AND coalesce(btrim(d.override_reason), '') = '';
   PERFORM pg_temp.gate('AMLH-08', 'calculated vs judged rating', n = 0,
     format('approved AML dimensions overridden without rationale = %s', n));
 
@@ -85,7 +84,8 @@ BEGIN
   SELECT count(*) INTO n
   FROM public.supervisory_assessment
   WHERE domain_code = 'AML_CFT' AND status = 'APPROVED'
-    AND approved_by IS NOT NULL AND approved_by = owner_id;
+    AND approved_by IS NOT NULL
+    AND (approved_by = owner_id OR approved_by = submitted_by);
   PERFORM pg_temp.gate('AMLH-10', 'maker/checker', n = 0,
     format('self-approved AML assessments = %s', n));
 
@@ -93,19 +93,21 @@ BEGIN
   -- from an APPROVED AML assessment.
   SELECT count(*) INTO n
   FROM public.entity_risk_state s
-  LEFT JOIN public.supervisory_assessment a ON a.id = s.source_assessment_id
+  LEFT JOIN public.supervisory_assessment a ON a.id = s.driving_assessment_id
   WHERE s.domain_code = 'AML_CFT'
-    AND (a.id IS NULL OR a.status <> 'APPROVED' OR a.domain_code <> 'AML_CFT');
+    AND (a.id IS NULL OR a.status <> 'APPROVED' OR a.domain_code <> 'AML_CFT'
+         OR a.entity_id <> s.entity_id);
   PERFORM pg_temp.gate('AMLH-11', 'risk-authority single writer', n = 0,
     format('AML risk states not sourced from an approved AML assessment = %s', n));
 
   -- AMLH-13 attention provenance: every AML attention names an AML assessment.
   SELECT count(*) INTO n
   FROM public.supervisory_attention t
-  LEFT JOIN public.supervisory_assessment a ON a.id = t.assessment_id
+  LEFT JOIN public.supervisory_assessment a ON a.id = t.source_id
   WHERE t.domain_code = 'AML_CFT'
-    AND t.assessment_id IS NOT NULL
-    AND (a.id IS NULL OR a.domain_code <> 'AML_CFT' OR a.entity_id <> t.entity_id);
+    AND t.source_type = 'ASSESSMENT'
+    AND (a.id IS NULL OR a.domain_code <> 'AML_CFT'
+         OR NOT (t.entity_ids @> ARRAY[a.entity_id]));
   PERFORM pg_temp.gate('AMLH-13', 'attention provenance', n = 0,
     format('AML attentions with broken or cross-entity assessment provenance = %s', n));
 
@@ -124,8 +126,7 @@ BEGIN
   FROM public.examination_findings f
   JOIN public.examinations e ON e.id = f.examination_id
   WHERE e.domain_code = 'AML_CFT'
-    AND NOT EXISTS (SELECT 1 FROM public.supervisory_finding sf
-                    WHERE sf.examination_id = e.id AND sf.domain_code = 'AML_CFT');
+    AND f.supervisory_finding_id IS NULL;
   PERFORM pg_temp.gate('AMLH-19', 'canonical findings only', n = 0,
     format('AML examinations whose findings exist only historically = %s', n));
 
@@ -133,8 +134,9 @@ BEGIN
   -- finding, and the finding is an AML finding.
   SELECT count(*) INTO n
   FROM public.supervisory_remediation_action ra
-  JOIN public.supervisory_finding f ON f.id = ra.finding_id
-  WHERE f.domain_code = 'AML_CFT' AND ra.finding_id IS NULL;
+  LEFT JOIN public.supervisory_finding f ON f.id = ra.finding_id
+  WHERE ra.domain_code = 'AML_CFT'
+    AND (f.id IS NULL OR f.domain_code <> 'AML_CFT' OR f.entity_id <> ra.entity_id);
   PERFORM pg_temp.gate('AMLH-20', 'multi-remediation identity', n = 0,
     format('AML remediation actions without an exact finding id = %s', n));
 
@@ -162,10 +164,11 @@ BEGIN
 
   -- AMLH-32 no stale routes: no AML work item points at a retired route.
   SELECT count(*) INTO n
-  FROM public.supervisory_intervention_activity
-  WHERE coalesce(route, '') LIKE '/prudential/examinations/%';
+  FROM public.supervisory_work_item
+  WHERE domain_code = 'AML_CFT'
+    AND coalesce(route, '') LIKE '/prudential/%';
   PERFORM pg_temp.gate('AMLH-32', 'no stale routes', n = 0,
-    format('linked activities on retired prudential examination route = %s', n));
+    format('AML work items pointing at a retired prudential route = %s', n));
 END $$;
 
 SELECT id, name, result, detail FROM aml_gate ORDER BY id;
