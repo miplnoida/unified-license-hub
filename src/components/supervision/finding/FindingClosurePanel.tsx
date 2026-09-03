@@ -139,7 +139,7 @@ export function FindingClosurePanel({ model, canManage }: { model: SupervisoryFi
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setTarget(null)}>Cancel</Button>
-              <Button disabled={rationale.trim().length < 10 || lifecycle.isPending} onClick={submit}>Record decision</Button>
+              <Button data-rbac="supervisory_spine.edit" disabled={rationale.trim().length < 10 || lifecycle.isPending} onClick={submit}>Record decision</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

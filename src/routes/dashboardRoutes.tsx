@@ -1,6 +1,7 @@
 import { Navigate, Route } from 'react-router-dom';
 import { lazyWithRetry as lazy } from '@/lib/lazyWithRetry';
 import { P } from '@/routes/routeHelpers';
+import { LegacyInspectionRegisterRedirect, LegacyInspectionScheduleRedirect } from '@/routes/LegacyInspectionRedirect';
 import { ModuleRoute } from '@/components/auth/RouteGuards';
 import { PortalRoute } from '@/components/auth/PortalRoute';
 import type { PermissionModule } from '@/lib/permissionModules';
@@ -103,9 +104,11 @@ const ApiKeys = lazy(() => import('@/pages/admin/ApiKeys'));
 const AuditExport = lazy(() => import('@/pages/admin/AuditExport'));
 const SecurityEvents = lazy(() => import('@/pages/admin/SecurityEvents'));
 const SlaManager = lazy(() => import('@/pages/admin/SlaManager'));
-const InspectionsList = lazy(() => import('@/pages/inspections/InspectionsList'));
-const InspectionsCalendar = lazy(() => import('@/pages/inspections/InspectionsCalendar'));
-const InspectionDetail = lazy(() => import('@/pages/inspections/InspectionDetail'));
+// EPIC 4 / W6 — inspection convergence: the legacy inspection case pages were
+// retired; `/inspections*` are compatibility routes onto the canonical
+// examination engine.
+const ExaminationSchedule = lazy(() => import('@/pages/supervision/ExaminationSchedule'));
+const LegacyInspectionRecordNotice = lazy(() => import('@/routes/LegacyInspectionRedirect'));
 const ConductDashboard = lazy(() => import('@/pages/conduct/ConductDashboard'));
 const ConductAlerts = lazy(() => import('@/pages/conduct/ConductAlerts'));
 const ConductActions = lazy(() => import('@/pages/conduct/ConductActions'));
@@ -336,9 +339,10 @@ export const dashboardRoutes = (
     <Route path="/enforcement/:id" element={<M module="enforcement_management"><EnforcementWorkspace /></M>} />
     <Route path="/billing/penalties" element={<M module="fee_management"><Penalties /></M>} />
     <Route path="/supervision/breaches" element={<M module="prudential_supervision"><BreachInbox /></M>} />
-    <Route path="/inspections" element={<M module="inspection_management"><InspectionsList /></M>} />
-    <Route path="/inspections/schedule" element={<M module="inspection_management"><InspectionsCalendar /></M>} />
-    <Route path="/inspections/:id" element={<M module="inspection_management"><InspectionDetail /></M>} />
+    <Route path="/inspections" element={<LegacyInspectionRegisterRedirect />} />
+    <Route path="/inspections/schedule" element={<LegacyInspectionScheduleRedirect />} />
+    <Route path="/inspections/:id" element={<M module="inspection_management"><LegacyInspectionRecordNotice /></M>} />
+    <Route path="/supervision/examination-schedule" element={<M module="prudential_supervision"><ExaminationSchedule /></M>} />
     <Route path="/supervision/plans" element={<M module="prudential_supervision"><SupervisoryPlansDashboard /></M>} />
     <Route path="/supervision/team-performance" element={<M module="prudential_supervision"><SupervisoryTeamPerformance /></M>} />
     <Route path="/supervision/portfolio" element={<SupervisoryPortfolioGate />} />

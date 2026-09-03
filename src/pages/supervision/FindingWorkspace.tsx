@@ -229,7 +229,7 @@ export default function FindingWorkspace() {
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base">Management response</CardTitle>
               {canManage && !['CLOSED', 'WITHDRAWN', 'SUPERSEDED'].includes(status) ? (
-                <Button size="sm" variant="outline" onClick={() => setDialog('response')}>
+                <Button data-rbac={`${domainModule}.edit`} size="sm" variant="outline" onClick={() => setDialog('response')}>
                   <ClipboardList className="mr-1.5 h-3.5 w-3.5" />Record response
                 </Button>
               ) : null}
@@ -288,7 +288,7 @@ export default function FindingWorkspace() {
               and escalation history, and each is decided on its own merits.
             </p>
             {canManage && !['CLOSED', 'WITHDRAWN', 'SUPERSEDED'].includes(status) ? (
-              <Button size="sm" onClick={() => setDialog('remediation')}>
+              <Button data-rbac={`${domainModule}.edit`} size="sm" onClick={() => setDialog('remediation')}>
                 <Plus className="mr-1.5 h-3.5 w-3.5" />Add corrective action
               </Button>
             ) : null}
@@ -449,7 +449,7 @@ export default function FindingWorkspace() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={reset}>Cancel</Button>
-            <Button
+            <Button data-rbac={`${domainModule}.edit`}
               disabled={
                 managementResponse.trim().length < 10 || receivedFrom.trim().length < 3
                 || !receivedDate || respond.isPending
@@ -510,7 +510,7 @@ export default function FindingWorkspace() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={reset}>Cancel</Button>
-            <Button
+            <Button data-rbac={`${domainModule}.edit`}
               disabled={description.trim().length < 10 || openRemediation.isPending}
               onClick={async () => {
                 try {

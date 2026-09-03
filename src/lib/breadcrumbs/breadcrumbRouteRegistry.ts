@@ -198,9 +198,13 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   { pattern: '/documents/registry', label: 'Document registry', parent: '/dashboard' },
   { pattern: '/documents/registry/:documentId', label: 'Document', parent: '/documents/registry' },
   { pattern: '/documents/legacy-store', label: 'Legacy document store', parent: '/documents/registry' },
-  { pattern: '/inspections', label: 'Inspections', parent: '/prudential' },
+  // EPIC 4 / W6 — inspection convergence: `/inspections*` are compatibility
+  // routes onto the canonical examination engine.
+  { pattern: '/inspections', label: 'Inspections (retired)', parent: '/prudential' },
   { pattern: '/inspections/schedule', label: 'Schedule', parent: '/inspections' },
-  { pattern: '/inspections/:id', label: 'Inspection', parent: '/inspections' },
+  { pattern: '/inspections/:id', label: 'Retired inspection record', parent: '/inspections' },
+  { pattern: '/supervision/examination-schedule', label: 'Activity schedule', parent: '/prudential/examinations' },
+
 
   // ---------------------------------------------------------- market conduct
   { pattern: '/conduct', label: 'Market conduct', parent: '/dashboard' },

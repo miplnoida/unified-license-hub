@@ -1,9 +1,9 @@
 # RBAC Action Coverage Audit
 
-_Generated: 2026-08-28T15:13:55.716Z_
+_Generated: 2026-09-03T15:03:55.119Z_
 
-**Total action sites scanned:** 2045
-**Protected:** 2045
+**Total action sites scanned:** 2186
+**Protected:** 2186
 **Coverage:** 100%
 
 Any row with **Protected = No** must be wrapped in `<PermissionGate module="..." action="...">` or replaced with `<GuardedButton module="..." action="...">` — or, if intentionally public (login, cancel, close, back, …), added to the allow-list in `scripts/rbac-audit.ts`.
@@ -12,37 +12,41 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 
 | Category | Total | Protected | Coverage |
 |---|---:|---:|---:|
-| Action | 1248 | 1248 | 100% |
+| Action | 1341 | 1341 | 100% |
 | Create | 224 | 224 | 100% |
-| View | 137 | 137 | 100% |
+| View | 149 | 149 | 100% |
 | Save | 114 | 114 | 100% |
-| Edit | 44 | 44 | 100% |
+| Edit | 49 | 49 | 100% |
+| Approve | 37 | 37 | 100% |
 | Close | 37 | 37 | 100% |
-| Export | 30 | 30 | 100% |
-| Submit | 28 | 28 | 100% |
-| Approve | 25 | 25 | 100% |
+| Submit | 32 | 32 | 100% |
+| Export | 31 | 31 | 100% |
+| Reject | 21 | 21 | 100% |
+| Delete | 19 | 19 | 100% |
 | Download | 19 | 19 | 100% |
-| Delete | 18 | 18 | 100% |
-| Workflow | 15 | 15 | 100% |
+| Workflow | 17 | 17 | 100% |
 | Assign | 14 | 14 | 100% |
-| Reject | 14 | 14 | 100% |
-| Issue | 13 | 13 | 100% |
+| Issue | 14 | 14 | 100% |
+| Upload | 12 | 12 | 100% |
 | Import | 11 | 11 | 100% |
 | Reopen | 11 | 11 | 100% |
-| Upload | 11 | 11 | 100% |
 | Report | 10 | 10 | 100% |
-| Print | 7 | 7 | 100% |
-| Configure | 5 | 5 | 100% |
+| Print | 8 | 8 | 100% |
+| Configure | 4 | 4 | 100% |
 | Email | 3 | 3 | 100% |
+| Archive | 3 | 3 | 100% |
 | Publish | 3 | 3 | 100% |
-| Archive | 2 | 2 | 100% |
 | Status Change | 1 | 1 | 100% |
 | Bulk | 1 | 1 | 100% |
+| Restore | 1 | 1 | 100% |
 
 ## Detail
 
 | Page | Button | Permission | Protected | File | Line |
 |---|---|---|---|---|---:|
+| components/addresses/SubjectAddressPanel | {showHistory ? 'Current only' : `Include $ historical`} | entity_structure.view_history | Yes | src/components/addresses/SubjectAddressPanel.tsx | 91 |
+| components/addresses/SubjectAddressPanel | onApprove(u.id)} > Approve | entity_structure.approve | Yes | src/components/addresses/SubjectAddressPanel.tsx | 145 |
+| components/addresses/SubjectAddressPanel | onEnd(u.id)} > End usage | entity_structure.apply | Yes | src/components/addresses/SubjectAddressPanel.tsx | 158 |
 | components/admin/classification/AuthorizationSchemesTab | setStatusReq( )}> Enable | settings.edit | Yes | src/components/admin/classification/AuthorizationSchemesTab.tsx | 96 |
 | components/admin/classification/AuthorizationSchemesTab | setStatusReq( )}> Disable | settings.edit | Yes | src/components/admin/classification/AuthorizationSchemesTab.tsx | 102 |
 | components/admin/classification/AuthorizationSchemesTab | setStatusReq( )}> Retire | settings.edit | Yes | src/components/admin/classification/AuthorizationSchemesTab.tsx | 108 |
@@ -174,7 +178,6 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/ai/AiReportDetailDrawer | Try again | — | Yes | src/components/ai/AiReportDetailDrawer.tsx | 239 |
 | components/ai/AiReportDetailDrawer | Try again | — | Yes | src/components/ai/AiReportDetailDrawer.tsx | 355 |
 | components/ai/SupervisoryAiPanel | Copy | — | Yes | src/components/ai/SupervisoryAiPanel.tsx | 267 |
-| components/analytics/DashboardInsightsCard | Refresh | — | Yes | src/components/analytics/DashboardInsightsCard.tsx | 74 |
 | components/appeals/AppealActionsDialog | Acknowledge appeal | license_appeals.edit | Yes | src/components/appeals/AppealActionsDialog.tsx | 180 |
 | components/appeals/AppealActionsDialog | Consider appeal | license_appeals.edit | Yes | src/components/appeals/AppealActionsDialog.tsx | 245 |
 | components/appeals/AppealActionsDialog | decide('dismissed')} disabled= > Decline appeal | license_appeals.decide | Yes | src/components/appeals/AppealActionsDialog.tsx | 255 |
@@ -226,8 +229,8 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/applications/DecisionDocumentPreview | Download PDF | application_management.view | Yes | src/components/applications/DecisionDocumentPreview.tsx | 571 |
 | components/applications/DecisionDocumentPreview | Record decision letter | application_management.approve | Yes | src/components/applications/DecisionDocumentPreview.tsx | 613 |
 | components/applications/DecisionDocumentPreview | Record certificate | application_management.approve | Yes | src/components/applications/DecisionDocumentPreview.tsx | 619 |
-| components/applications/FeeComponentsPanel | Add Fee | application_management.create | Yes | src/components/applications/FeeComponentsPanel.tsx | 146 |
-| components/applications/FeeComponentsPanel | Cancel | — | Yes | src/components/applications/FeeComponentsPanel.tsx | 183 |
+| components/applications/FeeComponentsPanel | Add Fee | fee_management.edit | Yes | src/components/applications/FeeComponentsPanel.tsx | 204 |
+| components/applications/FeeComponentsPanel | Cancel | — | Yes | src/components/applications/FeeComponentsPanel.tsx | 249 |
 | components/applications/LegalComplianceNotesSection | Save Legal Note | application_management.edit | Yes | src/components/applications/LegalComplianceNotesSection.tsx | 208 |
 | components/applications/LegalReferralPanel | setOpen(true)}> Refer for review | application_management.workflow_action | Yes | src/components/applications/LegalReferralPanel.tsx | 166 |
 | components/applications/LegalReferralPanel | transition(r, 'in_review')}> Accept review | application_management.approve | Yes | src/components/applications/LegalReferralPanel.tsx | 221 |
@@ -241,14 +244,14 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/applications/LicenseConditionsPanel | Add condition | application_management.edit | Yes | src/components/applications/LicenseConditionsPanel.tsx | 120 |
 | components/applications/LicenseConditionsPanel | Cancel | application_management.edit | Yes | src/components/applications/LicenseConditionsPanel.tsx | 160 |
 | components/applications/LicenseConditionsPanel | Add | application_management.edit | Yes | src/components/applications/LicenseConditionsPanel.tsx | 161 |
-| components/applications/LicenseePaymentPanel | Download invoice | — | Yes | src/components/applications/LicenseePaymentPanel.tsx | 256 |
-| components/applications/LicenseePaymentPanel | Paid Offline | application_management.edit | Yes | src/components/applications/LicenseePaymentPanel.tsx | 349 |
-| components/applications/PaymentVerificationDialog | Download invoice | application_management.edit | Yes | src/components/applications/PaymentVerificationDialog.tsx | 370 |
-| components/applications/PaymentVerificationDialog | Reject payment | application_management.edit | Yes | src/components/applications/PaymentVerificationDialog.tsx | 379 |
-| components/applications/PaymentVerificationDialog | Verify & issue invoice | application_management.edit | Yes | src/components/applications/PaymentVerificationDialog.tsx | 383 |
-| components/applications/PaymentVerificationDialog | Cancel | application_management.edit | Yes | src/components/applications/PaymentVerificationDialog.tsx | 390 |
-| components/applications/PaymentVerificationDialog | Received & Verify | application_management.edit | Yes | src/components/applications/PaymentVerificationDialog.tsx | 394 |
-| components/applications/PaymentVerificationDialog | Close | — | Yes | src/components/applications/PaymentVerificationDialog.tsx | 400 |
+| components/applications/LicenseePaymentPanel | Download invoice | — | Yes | src/components/applications/LicenseePaymentPanel.tsx | 324 |
+| components/applications/LicenseePaymentPanel | Paid Offline | application_management.edit | Yes | src/components/applications/LicenseePaymentPanel.tsx | 407 |
+| components/applications/PaymentVerificationDialog | Download invoice | application_management.edit | Yes | src/components/applications/PaymentVerificationDialog.tsx | 371 |
+| components/applications/PaymentVerificationDialog | Reject payment | application_management.edit | Yes | src/components/applications/PaymentVerificationDialog.tsx | 380 |
+| components/applications/PaymentVerificationDialog | Verify & issue invoice | application_management.edit | Yes | src/components/applications/PaymentVerificationDialog.tsx | 384 |
+| components/applications/PaymentVerificationDialog | Cancel | application_management.edit | Yes | src/components/applications/PaymentVerificationDialog.tsx | 391 |
+| components/applications/PaymentVerificationDialog | Received & Verify | application_management.edit | Yes | src/components/applications/PaymentVerificationDialog.tsx | 395 |
+| components/applications/PaymentVerificationDialog | Close | — | Yes | src/components/applications/PaymentVerificationDialog.tsx | 401 |
 | components/applications/RaiseRfiDialog | Add all | application_management.edit | Yes | src/components/applications/RaiseRfiDialog.tsx | 305 |
 | components/applications/RaiseRfiDialog | Add item | application_management.edit | Yes | src/components/applications/RaiseRfiDialog.tsx | 351 |
 | components/applications/RaiseRfiDialog | Cancel | application_management.edit | Yes | src/components/applications/RaiseRfiDialog.tsx | 417 |
@@ -322,8 +325,8 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/complaints/ComplaintAcknowledgement | Close | complaint_management.view | Yes | src/components/complaints/ComplaintAcknowledgement.tsx | 308 |
 | components/complaints/ComplaintAcknowledgement | Print / Save as PDF | complaint_management.view | Yes | src/components/complaints/ComplaintAcknowledgement.tsx | 311 |
 | components/complaints/ComplaintCurrentStepPanel | Open | — | Yes | src/components/complaints/ComplaintCurrentStepPanel.tsx | 215 |
-| components/complaints/ComplaintEntityCard | Change linked entity | complaint_management.edit | Yes | src/components/complaints/ComplaintEntityCard.tsx | 233 |
-| components/complaints/ComplaintEntityCard | Link a licensed entity instead | complaint_management.edit | Yes | src/components/complaints/ComplaintEntityCard.tsx | 260 |
+| components/complaints/ComplaintEntityCard | Change linked entity | complaint_management.edit | Yes | src/components/complaints/ComplaintEntityCard.tsx | 242 |
+| components/complaints/ComplaintEntityCard | Link a licensed entity instead | complaint_management.edit | Yes | src/components/complaints/ComplaintEntityCard.tsx | 269 |
 | components/complaints/ComplaintEvidenceRow | Reprint acknowledgement | complaint_management.edit | Yes | src/components/complaints/ComplaintEvidenceRow.tsx | 71 |
 | components/complaints/ComplaintEvidenceRow | Retry auto-triage | complaint_management.edit | Yes | src/components/complaints/ComplaintEvidenceRow.tsx | 72 |
 | components/complaints/ComplaintEvidenceRow | Open full detail & history | — | Yes | src/components/complaints/ComplaintEvidenceRow.tsx | 73 |
@@ -505,7 +508,7 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/conduct/surveillance/SignalDetailDrawer | Add evidence record | market_conduct.edit | Yes | src/components/conduct/surveillance/SignalDetailDrawer.tsx | 279 |
 | components/conduct/three-sixty/advisory/AdvisoryCard | Check freshness | — | Yes | src/components/conduct/three-sixty/advisory/AdvisoryCard.tsx | 232 |
 | components/conduct/three-sixty/advisory/AdvisoryCard | Decision history ( ) | — | Yes | src/components/conduct/three-sixty/advisory/AdvisoryCard.tsx | 245 |
-| components/conduct/three-sixty/advisory/AdvisoryProvenance | Technical provenance | — | Yes | src/components/conduct/three-sixty/advisory/AdvisoryProvenance.tsx | 47 |
+| components/conduct/three-sixty/advisory/AdvisoryProvenance | Technical provenance | — | Yes | src/components/conduct/three-sixty/advisory/AdvisoryProvenance.tsx | 48 |
 | components/conduct/three-sixty/advisory/AdvisoryReviewDialog | Cancel | market_conduct.manage_complaints | Yes | src/components/conduct/three-sixty/advisory/AdvisoryReviewDialog.tsx | 126 |
 | components/conduct/three-sixty/advisory/AdvisoryReviewDialog | Record decision | market_conduct.manage_complaints | Yes | src/components/conduct/three-sixty/advisory/AdvisoryReviewDialog.tsx | 127 |
 | components/coordination/EscalationsTab | Raise Escalation | coordination.update | Yes | src/components/coordination/EscalationsTab.tsx | 137 |
@@ -548,29 +551,37 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/correspondence/ThreadList | Clear | — | Yes | src/components/correspondence/ThreadList.tsx | 138 |
 | components/dashboard/applicant/ActionRequiredList | Continue | — | Yes | src/components/dashboard/applicant/ActionRequiredList.tsx | 84 |
 | components/dashboard/applicant/RequiredFormsList | New | application_management.edit | Yes | src/components/dashboard/applicant/RequiredFormsList.tsx | 67 |
-| components/dashboard/ApplicantDashboard | New application | application_management.create | Yes | src/components/dashboard/ApplicantDashboard.tsx | 124 |
+| components/dashboard/ApplicantDashboard | New application | application_management.create | Yes | src/components/dashboard/ApplicantDashboard.tsx | 125 |
 | components/dashboard/ApplicationCard | View Details | application_management.edit | Yes | src/components/dashboard/ApplicationCard.tsx | 72 |
 | components/dashboard/ApplicationCard | Review | application_management.edit | Yes | src/components/dashboard/ApplicationCard.tsx | 77 |
 | components/dashboard/cards/LicenseStatusList | Continue Renewal | license_management.edit | Yes | src/components/dashboard/cards/LicenseStatusList.tsx | 162 |
 | components/dashboard/cards/LicenseStatusList | Renew | license_management.edit | Yes | src/components/dashboard/cards/LicenseStatusList.tsx | 168 |
-| components/dashboard/ExecutiveSupervisoryDashboard | Breach Inbox | prudential_supervision.view | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 466 |
-| components/dashboard/ExecutiveSupervisoryDashboard | Enforcement Queue | prudential_supervision.view | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 469 |
-| components/dashboard/ExecutiveSupervisoryDashboard | Risk Heatmap | prudential_supervision.view | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 472 |
-| components/dashboard/ExecutiveSupervisoryDashboard | Supervisory Plans | prudential_supervision.view | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 475 |
-| components/dashboard/ExecutiveSupervisoryDashboard | Inspections | prudential_supervision.view | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 478 |
-| components/dashboard/ExecutiveSupervisoryDashboard | Prudential Actions | prudential_supervision.view | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 481 |
-| components/dashboard/ExecutiveSupervisoryDashboard | Conduct Alerts | prudential_supervision.view | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 484 |
-| components/dashboard/ExecutiveSupervisoryDashboard | Complaints Analytics | prudential_supervision.view | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 487 |
-| components/dashboard/ExecutiveSupervisoryDashboard | AI Insights Hub | report_management.view | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 490 |
-| components/dashboard/LicenseeDashboard | Continue Renewal | license_management.edit | Yes | src/components/dashboard/LicenseeDashboard.tsx | 185 |
-| components/dashboard/LicenseeDashboard | Renew | license_management.edit | Yes | src/components/dashboard/LicenseeDashboard.tsx | 191 |
+| components/dashboard/executive/ExecutiveAiWorkspace | Save and accept with changes | ai_management.approve | Yes | src/components/dashboard/executive/ExecutiveAiWorkspace.tsx | 494 |
+| components/dashboard/executive/ExecutiveAiWorkspace | Cancel | ai_management.approve | Yes | src/components/dashboard/executive/ExecutiveAiWorkspace.tsx | 502 |
+| components/dashboard/executive/ExecutiveAiWorkspace | Accept | ai_management.approve | Yes | src/components/dashboard/executive/ExecutiveAiWorkspace.tsx | 509 |
+| components/dashboard/executive/ExecutiveAiWorkspace | Modify and accept | ai_management.approve | Yes | src/components/dashboard/executive/ExecutiveAiWorkspace.tsx | 518 |
+| components/dashboard/executive/ExecutiveAiWorkspace | Reject | ai_management.approve | Yes | src/components/dashboard/executive/ExecutiveAiWorkspace.tsx | 530 |
+| components/dashboard/executive/ExecutiveAiWorkspace | Helpful | report_management.view | Yes | src/components/dashboard/executive/ExecutiveAiWorkspace.tsx | 554 |
+| components/dashboard/executive/ExecutiveAiWorkspace | Not helpful | report_management.view | Yes | src/components/dashboard/executive/ExecutiveAiWorkspace.tsx | 557 |
+| components/dashboard/ExecutiveSupervisoryDashboard | AI Insights Hub | report_management.view | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 376 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Exit presentation mode | — | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 405 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Previous section | — | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 421 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Next section | — | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 427 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Refresh | report_management.export | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 477 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Presentation mode | report_management.export | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 480 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Export briefing | report_management.export | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 486 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Facts only | — | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 492 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Draft AI-assisted briefing | — | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 493 |
+| components/dashboard/ExecutiveSupervisoryDashboard | Approved executive pack | — | Yes | src/components/dashboard/ExecutiveSupervisoryDashboard.tsx | 494 |
+| components/dashboard/LicenseeDashboard | Continue Renewal | license_management.edit | Yes | src/components/dashboard/LicenseeDashboard.tsx | 186 |
+| components/dashboard/LicenseeDashboard | Renew | license_management.edit | Yes | src/components/dashboard/LicenseeDashboard.tsx | 192 |
 | components/dashboard/LicenseExpiryBanner | Renew License | application_management.edit | Yes | src/components/dashboard/LicenseExpiryBanner.tsx | 50 |
 | components/dashboard/ReturnCard | Final Submit | returns_management.edit | Yes | src/components/dashboard/ReturnCard.tsx | 106 |
 | components/dashboard/ReturnCard | Save Draft | returns_management.edit | Yes | src/components/dashboard/ReturnCard.tsx | 115 |
-| components/dashboard/widgets/index | Start Application | application_management.edit | Yes | src/components/dashboard/widgets/index.tsx | 246 |
-| components/dashboard/widgets/index | View All | — | Yes | src/components/dashboard/widgets/index.tsx | 288 |
-| components/dashboard/widgets/index | View All | — | Yes | src/components/dashboard/widgets/index.tsx | 359 |
-| components/dashboard/widgets/index | Continue | — | Yes | src/components/dashboard/widgets/index.tsx | 391 |
+| components/dashboard/widgets/index | Start Application | application_management.edit | Yes | src/components/dashboard/widgets/index.tsx | 247 |
+| components/dashboard/widgets/index | View All | — | Yes | src/components/dashboard/widgets/index.tsx | 289 |
+| components/dashboard/widgets/index | View All | — | Yes | src/components/dashboard/widgets/index.tsx | 360 |
+| components/dashboard/widgets/index | Continue | — | Yes | src/components/dashboard/widgets/index.tsx | 392 |
 | components/data-grid/EnterpriseDataGrid | Refresh | — | Yes | src/components/data-grid/EnterpriseDataGrid.tsx | 162 |
 | components/data-grid/EnterpriseDataGrid | Columns | report_management.export | Yes | src/components/data-grid/EnterpriseDataGrid.tsx | 170 |
 | components/data-grid/EnterpriseDataGrid | Export | report_management.export | Yes | src/components/data-grid/EnterpriseDataGrid.tsx | 197 |
@@ -579,6 +590,10 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/data-grid/EnterpriseDataGrid | Next | — | Yes | src/components/data-grid/EnterpriseDataGrid.tsx | 411 |
 | components/data-grid/GridFilterBar | Filters {activeCount > 0 && } | report_management.create | Yes | src/components/data-grid/GridFilterBar.tsx | 65 |
 | components/data-grid/GridFilterBar | Reset | — | Yes | src/components/data-grid/GridFilterBar.tsx | 75 |
+| components/documents/dms/DmsActionDialogs | Cancel | — | Yes | src/components/documents/dms/DmsActionDialogs.tsx | 114 |
+| components/documents/dms/DmsActionDialogs | Cancel | — | Yes | src/components/documents/dms/DmsActionDialogs.tsx | 235 |
+| components/documents/dms/DmsActionDialogs | Cancel | — | Yes | src/components/documents/dms/DmsActionDialogs.tsx | 309 |
+| components/documents/dms/DmsActionDialogs | Cancel | — | Yes | src/components/documents/dms/DmsActionDialogs.tsx | 372 |
 | components/documents/DocumentExtractionPanel | Extract | settings.edit | Yes | src/components/documents/DocumentExtractionPanel.tsx | 80 |
 | components/documents/DocumentUpload | {uploading ? ( Uploading file ... ) : ( Upload file )} | settings.edit | Yes | src/components/documents/DocumentUpload.tsx | 112 |
 | components/documents/versioned/DocumentGroupList | Download | settings.view | Yes | src/components/documents/versioned/DocumentGroupList.tsx | 121 |
@@ -594,14 +609,24 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/entity-detail/Entity360Header | Public register | — | Yes | src/components/entity-detail/Entity360Header.tsx | 75 |
 | components/entity-detail/Entity360Header | Return to current state | — | Yes | src/components/entity-detail/Entity360Header.tsx | 148 |
 | components/entity-detail/Entity360TimelinePanel | Show all domains | — | Yes | src/components/entity-detail/Entity360TimelinePanel.tsx | 54 |
+| components/entity-detail/EntityReportingCurrencyPanel | Set override | licensee_management.edit | Yes | src/components/entity-detail/EntityReportingCurrencyPanel.tsx | 190 |
+| components/entity-detail/EntityReportingCurrencyPanel | Cancel | — | Yes | src/components/entity-detail/EntityReportingCurrencyPanel.tsx | 229 |
+| components/entity-detail/EntityReportingCurrencyPanel | GuardedButton | licensee_management.edit | Yes | src/components/entity-detail/EntityReportingCurrencyPanel.tsx | 230 |
+| components/entity-detail/EntityReportingCurrencyPanel | supersede(activeProfile)}> Supersede current override | licensee_management.edit | Yes | src/components/entity-detail/EntityReportingCurrencyPanel.tsx | 295 |
+| components/entity-detail/EntityReportingCurrencyPanel | decide(p, 'APPROVE')} disabled= >Accept proposal | licensee_management.edit | Yes | src/components/entity-detail/EntityReportingCurrencyPanel.tsx | 332 |
+| components/entity-detail/EntityReportingCurrencyPanel | decide(p, 'REJECT')} disabled= >Decline proposal | licensee_management.edit | Yes | src/components/entity-detail/EntityReportingCurrencyPanel.tsx | 334 |
+| components/entity-detail/EntityReportingCurrencyPanel | withdraw(p)} disabled= >Withdraw | licensee_management.edit | Yes | src/components/entity-detail/EntityReportingCurrencyPanel.tsx | 342 |
+| components/entity-detail/EntitySupervisory360Panel | Open record | — | Yes | src/components/entity-detail/EntitySupervisory360Panel.tsx | 64 |
 | components/entity-detail/InspectionsTab | Add | licensee_management.edit | Yes | src/components/entity-detail/InspectionsTab.tsx | 63 |
 | components/entity-detail/InspectionsTab | Cancel | licensee_management.edit | Yes | src/components/entity-detail/InspectionsTab.tsx | 99 |
 | components/entity-detail/InspectionsTab | Save | licensee_management.edit | Yes | src/components/entity-detail/InspectionsTab.tsx | 99 |
 | components/entity-detail/LicensesTab | View | — | Yes | src/components/entity-detail/LicensesTab.tsx | 95 |
-| components/entity-detail/LicensingAuditTab | Issue determination | license_management.approve | Yes | src/components/entity-detail/LicensingAuditTab.tsx | 400 |
-| components/entity-detail/LicensingAuditTab | Generate risk profile | licensee_management.edit | Yes | src/components/entity-detail/LicensingAuditTab.tsx | 460 |
-| components/entity-detail/LicensingAuditTab | Auto-create initial plan | licensee_management.edit | Yes | src/components/entity-detail/LicensingAuditTab.tsx | 488 |
-| components/entity-detail/LicensingAuditTab | Open Supervisory Plan | — | Yes | src/components/entity-detail/LicensingAuditTab.tsx | 493 |
+| components/entity-detail/LicensingAuditTab | Issue determination | license_management.approve | Yes | src/components/entity-detail/LicensingAuditTab.tsx | 405 |
+| components/entity-detail/LicensingAuditTab | Generate risk profile | licensee_management.edit | Yes | src/components/entity-detail/LicensingAuditTab.tsx | 465 |
+| components/entity-detail/LicensingAuditTab | Auto-create initial plan | licensee_management.edit | Yes | src/components/entity-detail/LicensingAuditTab.tsx | 493 |
+| components/entity-detail/LicensingAuditTab | Open Supervisory Plan | — | Yes | src/components/entity-detail/LicensingAuditTab.tsx | 498 |
+| components/entity-detail/OwnershipTreePanel | Diagram | — | Yes | src/components/entity-detail/OwnershipTreePanel.tsx | 175 |
+| components/entity-detail/OwnershipTreePanel | List | — | Yes | src/components/entity-detail/OwnershipTreePanel.tsx | 181 |
 | components/entity-detail/PrimaryUserCard | Cancel | licensee_management.edit | Yes | src/components/entity-detail/PrimaryUserCard.tsx | 196 |
 | components/entity-detail/PrimaryUserCard | Assign as Primary User | licensee_management.edit | Yes | src/components/entity-detail/PrimaryUserCard.tsx | 197 |
 | components/entity-detail/ProductsChannelsTab | Add product | licensee_management.edit | Yes | src/components/entity-detail/ProductsChannelsTab.tsx | 87 |
@@ -611,12 +636,9 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/entity-detail/RegisterIdentifierDialog | Add identifier | licensee_management.create | Yes | src/components/entity-detail/RegisterIdentifierDialog.tsx | 189 |
 | components/entity-detail/RegisterIdentifierDialog | Cancel | — | Yes | src/components/entity-detail/RegisterIdentifierDialog.tsx | 285 |
 | components/entity-detail/RegisterIdentifierDialog | Register | — | Yes | src/components/entity-detail/RegisterIdentifierDialog.tsx | 288 |
-| components/entity-detail/ReinsuranceTab | Add | licensee_management.edit | Yes | src/components/entity-detail/ReinsuranceTab.tsx | 57 |
-| components/entity-detail/ReinsuranceTab | Cancel | licensee_management.edit | Yes | src/components/entity-detail/ReinsuranceTab.tsx | 102 |
-| components/entity-detail/ReinsuranceTab | Save | licensee_management.edit | Yes | src/components/entity-detail/ReinsuranceTab.tsx | 102 |
-| components/entity-detail/RelationshipsTab | Add | licensee_management.edit | Yes | src/components/entity-detail/RelationshipsTab.tsx | 102 |
-| components/entity-detail/RelationshipsTab | Cancel | licensee_management.edit | Yes | src/components/entity-detail/RelationshipsTab.tsx | 174 |
-| components/entity-detail/RelationshipsTab | Save | licensee_management.edit | Yes | src/components/entity-detail/RelationshipsTab.tsx | 175 |
+| components/entity-detail/ReinsuranceTab | Add | licensee_management.edit | Yes | src/components/entity-detail/ReinsuranceTab.tsx | 58 |
+| components/entity-detail/ReinsuranceTab | Cancel | licensee_management.edit | Yes | src/components/entity-detail/ReinsuranceTab.tsx | 103 |
+| components/entity-detail/ReinsuranceTab | Save | licensee_management.edit | Yes | src/components/entity-detail/ReinsuranceTab.tsx | 103 |
 | components/entity-detail/RiskRatingsTab | New Assessment | licensee_management.edit | Yes | src/components/entity-detail/RiskRatingsTab.tsx | 83 |
 | components/entity-detail/RiskRatingsTab | Cancel | licensee_management.edit | Yes | src/components/entity-detail/RiskRatingsTab.tsx | 116 |
 | components/entity-detail/RiskRatingsTab | Save | licensee_management.edit | Yes | src/components/entity-detail/RiskRatingsTab.tsx | 116 |
@@ -625,6 +647,8 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/entity-detail/SupervisoryPlanTab | Cancel | prudential_supervision.edit | Yes | src/components/entity-detail/SupervisoryPlanTab.tsx | 192 |
 | components/entity-detail/SupervisoryPlanTab | Add | prudential_supervision.edit | Yes | src/components/entity-detail/SupervisoryPlanTab.tsx | 193 |
 | components/entity-detail/SupervisoryPlanTab | Mark complete | prudential_supervision.edit | Yes | src/components/entity-detail/SupervisoryPlanTab.tsx | 238 |
+| components/entity-detail/SupervisoryTimelinePanel | All activity | — | Yes | src/components/entity-detail/SupervisoryTimelinePanel.tsx | 36 |
+| components/entity-detail/SupervisoryTimelinePanel | ( ) | — | Yes | src/components/entity-detail/SupervisoryTimelinePanel.tsx | 44 |
 | components/entity-detail/VerifyIdentifierDialog | Verify | licensee_management.edit | Yes | src/components/entity-detail/VerifyIdentifierDialog.tsx | 141 |
 | components/entity-detail/VerifyIdentifierDialog | setMode('reject')}> Reject | licensee_management.edit | Yes | src/components/entity-detail/VerifyIdentifierDialog.tsx | 144 |
 | components/entity-detail/VerifyIdentifierDialog | Cancel | licensee_management.edit | Yes | src/components/entity-detail/VerifyIdentifierDialog.tsx | 182 |
@@ -642,6 +666,14 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/escalations/EscalationDetailDrawer | Escalate tier | complaint_management.edit | Yes | src/components/escalations/EscalationDetailDrawer.tsx | 95 |
 | components/escalations/EscalationDetailDrawer | Resolve | complaint_management.edit | Yes | src/components/escalations/EscalationDetailDrawer.tsx | 118 |
 | components/escalations/EscalationDetailDrawer | resolve.mutate( )}> Resolve &amp; close | complaint_management.edit | Yes | src/components/escalations/EscalationDetailDrawer.tsx | 122 |
+| components/fees/FeeOperationsPanel | Refresh | — | Yes | src/components/fees/FeeOperationsPanel.tsx | 98 |
+| components/fees/FeeOperationsPanel | Approve | fee_management.edit | Yes | src/components/fees/FeeOperationsPanel.tsx | 136 |
+| components/fees/FeeOperationsPanel | Reject | fee_management.edit | Yes | src/components/fees/FeeOperationsPanel.tsx | 140 |
+| components/fees/FeeOperationsPanel | Approve | fee_management.edit | Yes | src/components/fees/FeeOperationsPanel.tsx | 191 |
+| components/fees/FeeOperationsPanel | Reject | fee_management.edit | Yes | src/components/fees/FeeOperationsPanel.tsx | 194 |
+| components/fees/FeeOperationsPanel | Execute | fee_management.edit | Yes | src/components/fees/FeeOperationsPanel.tsx | 200 |
+| components/fees/FeeOperationsPanel | Ingest statement | fee_management.edit | Yes | src/components/fees/FeeOperationsPanel.tsx | 239 |
+| components/fees/FeeOperationsPanel | Resolve | fee_management.edit | Yes | src/components/fees/FeeOperationsPanel.tsx | 287 |
 | components/fit-and-proper/AssignCommitteeCard | Assign | fit_and_proper.edit | Yes | src/components/fit-and-proper/AssignCommitteeCard.tsx | 89 |
 | components/fit-and-proper/FpAppealsPanel | File appeal | fit_and_proper.edit | Yes | src/components/fit-and-proper/FpAppealsPanel.tsx | 225 |
 | components/fit-and-proper/FpAppealsPanel | Assign | fit_and_proper.edit | Yes | src/components/fit-and-proper/FpAppealsPanel.tsx | 264 |
@@ -726,6 +758,7 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/fpa/AutoScreeningRulesTab | Edit | fit_and_proper_screening.edit | Yes | src/components/fpa/AutoScreeningRulesTab.tsx | 545 |
 | components/governance/ai/LifecycleActions | Cancel | ai_management.edit | Yes | src/components/governance/ai/LifecycleActions.tsx | 123 |
 | components/governance/ai/LifecycleActions | Record status change | ai_management.edit | Yes | src/components/governance/ai/LifecycleActions.tsx | 124 |
+| components/governance/ReasonDialog | Cancel | — | Yes | src/components/governance/ReasonDialog.tsx | 97 |
 | components/landing/AlreadyRegulatedSection | View Licensee Services | — | Yes | src/components/landing/AlreadyRegulatedSection.tsx | 52 |
 | components/landing/AlreadyRegulatedSection | Need access to an existing entity? | — | Yes | src/components/landing/AlreadyRegulatedSection.tsx | 55 |
 | components/landing/HeroSection | Register Now | — | Yes | src/components/landing/HeroSection.tsx | 24 |
@@ -751,11 +784,11 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/licenses/LicenseDecisionAppealsPanel | Lodge | license_management.edit | Yes | src/components/licenses/LicenseDecisionAppealsPanel.tsx | 151 |
 | components/licenses/LicenseDecisionAppealsPanel | Cancel | license_management.edit | Yes | src/components/licenses/LicenseDecisionAppealsPanel.tsx | 181 |
 | components/licenses/LicenseDecisionAppealsPanel | Record determination | license_management.edit | Yes | src/components/licenses/LicenseDecisionAppealsPanel.tsx | 182 |
-| components/licenses/LicenseFeeLedgerPanel | Record payment | license_management.edit | Yes | src/components/licenses/LicenseFeeLedgerPanel.tsx | 137 |
-| components/licenses/LicenseFeeLedgerPanel | Verify | license_management.edit | Yes | src/components/licenses/LicenseFeeLedgerPanel.tsx | 142 |
-| components/licenses/LicenseFeeLedgerPanel | setTarget( )}>Waive | license_management.edit | Yes | src/components/licenses/LicenseFeeLedgerPanel.tsx | 145 |
-| components/licenses/LicenseFeeLedgerPanel | Cancel | — | Yes | src/components/licenses/LicenseFeeLedgerPanel.tsx | 179 |
-| components/licenses/LicenseFeeLedgerPanel | Confirm | — | Yes | src/components/licenses/LicenseFeeLedgerPanel.tsx | 180 |
+| components/licenses/LicenseFeeLedgerPanel | Record payment | license_management.edit | Yes | src/components/licenses/LicenseFeeLedgerPanel.tsx | 138 |
+| components/licenses/LicenseFeeLedgerPanel | Verify | license_management.edit | Yes | src/components/licenses/LicenseFeeLedgerPanel.tsx | 143 |
+| components/licenses/LicenseFeeLedgerPanel | setTarget( )}>Waive | license_management.edit | Yes | src/components/licenses/LicenseFeeLedgerPanel.tsx | 146 |
+| components/licenses/LicenseFeeLedgerPanel | Cancel | — | Yes | src/components/licenses/LicenseFeeLedgerPanel.tsx | 180 |
+| components/licenses/LicenseFeeLedgerPanel | Confirm | — | Yes | src/components/licenses/LicenseFeeLedgerPanel.tsx | 181 |
 | components/licenses/LicenseRelatedCasesPanel | Open | — | Yes | src/components/licenses/LicenseRelatedCasesPanel.tsx | 138 |
 | components/licenses/LicenseRelatedCasesPanel | Open | — | Yes | src/components/licenses/LicenseRelatedCasesPanel.tsx | 173 |
 | components/licenses/LicenseRelatedCasesPanel | Open correspondence workspace | — | Yes | src/components/licenses/LicenseRelatedCasesPanel.tsx | 179 |
@@ -791,25 +824,42 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/notifications/NotificationPreferenceMatrix | Save Changes | notification_management.dispatch | Yes | src/components/notifications/NotificationPreferenceMatrix.tsx | 290 |
 | components/notifications/TemplatePreviewDialog | Close | notification_management.test_send | Yes | src/components/notifications/TemplatePreviewDialog.tsx | 131 |
 | components/notifications/TemplatePreviewDialog | Send test to me | notification_management.test_send | Yes | src/components/notifications/TemplatePreviewDialog.tsx | 132 |
-| components/payments/OfflinePaymentDialog | Cancel | fee_management.edit | Yes | src/components/payments/OfflinePaymentDialog.tsx | 192 |
-| components/payments/OfflinePaymentDialog | Submit for verification | fee_management.edit | Yes | src/components/payments/OfflinePaymentDialog.tsx | 193 |
-| components/payments/OfflinePaymentDialog | Done | — | Yes | src/components/payments/OfflinePaymentDialog.tsx | 207 |
+| components/payments/ApplicationFinancePanel | Refresh | — | Yes | src/components/payments/ApplicationFinancePanel.tsx | 135 |
+| components/payments/ApplicationFinancePanel | Reverse payment | fee_management.edit | Yes | src/components/payments/ApplicationFinancePanel.tsx | 274 |
+| components/payments/ApplicationFinancePanel | Approve | fee_management.edit | Yes | src/components/payments/ApplicationFinancePanel.tsx | 320 |
+| components/payments/ApplicationFinancePanel | Reject | fee_management.edit | Yes | src/components/payments/ApplicationFinancePanel.tsx | 330 |
+| components/payments/ApplicationFinancePanel | Submit request | fee_management.edit | Yes | src/components/payments/ApplicationFinancePanel.tsx | 366 |
+| components/payments/ApplicationFinancePanel | Approve | fee_management.edit | Yes | src/components/payments/ApplicationFinancePanel.tsx | 408 |
+| components/payments/ApplicationFinancePanel | Reject | fee_management.edit | Yes | src/components/payments/ApplicationFinancePanel.tsx | 415 |
+| components/payments/ApplicationFinancePanel | Execute | fee_management.edit | Yes | src/components/payments/ApplicationFinancePanel.tsx | 425 |
+| components/payments/ApplicationFinancePanel | Submit refund request | fee_management.edit | Yes | src/components/payments/ApplicationFinancePanel.tsx | 453 |
+| components/payments/ApplicationFinancePanel | Resolve | fee_management.edit | Yes | src/components/payments/ApplicationFinancePanel.tsx | 519 |
+| components/payments/OfflinePaymentDialog | Cancel | fee_management.edit | Yes | src/components/payments/OfflinePaymentDialog.tsx | 244 |
+| components/payments/OfflinePaymentDialog | Submit for verification | fee_management.edit | Yes | src/components/payments/OfflinePaymentDialog.tsx | 245 |
+| components/payments/OfflinePaymentDialog | Done | — | Yes | src/components/payments/OfflinePaymentDialog.tsx | 264 |
 | components/payments/PaymentAttachments | Upload Proof | fee_management.edit | Yes | src/components/payments/PaymentAttachments.tsx | 144 |
 | components/payments/PaymentRemarksThread | Add Remark | fee_management.create | Yes | src/components/payments/PaymentRemarksThread.tsx | 150 |
 | components/payments/PaymentRemarksThread | Cancel | fee_management.edit | Yes | src/components/payments/PaymentRemarksThread.tsx | 193 |
 | components/payments/PaymentRemarksThread | Save | fee_management.edit | Yes | src/components/payments/PaymentRemarksThread.tsx | 196 |
+| components/prudential/CreateFinancialGroupWizard | Edit | — | Yes | src/components/prudential/CreateFinancialGroupWizard.tsx | 243 |
+| components/prudential/CreateFinancialGroupWizard | Add member | — | Yes | src/components/prudential/CreateFinancialGroupWizard.tsx | 255 |
+| components/prudential/CreateFinancialGroupWizard | Cancel | — | Yes | src/components/prudential/CreateFinancialGroupWizard.tsx | 277 |
+| components/prudential/CreateFinancialGroupWizard | Back | prudential_supervision.create | Yes | src/components/prudential/CreateFinancialGroupWizard.tsx | 336 |
+| components/prudential/CreateFinancialGroupWizard | Cancel | prudential_supervision.create | Yes | src/components/prudential/CreateFinancialGroupWizard.tsx | 339 |
+| components/prudential/CreateFinancialGroupWizard | Next | prudential_supervision.create | Yes | src/components/prudential/CreateFinancialGroupWizard.tsx | 341 |
 | components/prudential/CreatePrudentialActionDialog | Cancel | — | Yes | src/components/prudential/CreatePrudentialActionDialog.tsx | 106 |
 | components/prudential/CreatePrudentialEscalationDialog | Cancel | — | Yes | src/components/prudential/CreatePrudentialEscalationDialog.tsx | 79 |
 | components/prudential/EwiPanel | Review | prudential_supervision.workflow_action | Yes | src/components/prudential/EwiPanel.tsx | 149 |
-| components/prudential/examination/DataRequestsPanel | Add request | prudential_supervision.edit | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 103 |
-| components/prudential/examination/DataRequestsPanel | ( ) | — | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 127 |
-| components/prudential/examination/DataRequestsPanel | Send request | prudential_supervision.workflow_action | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 169 |
-| components/prudential/examination/DataRequestsPanel | Confirm received | prudential_supervision.edit | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 175 |
-| components/prudential/examination/DataRequestsPanel | Mark as received | prudential_supervision.edit | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 179 |
-| components/prudential/examination/DataRequestsPanel | Add request | prudential_supervision.edit | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 198 |
-| components/prudential/examination/DataRequestsPanel | Add request | prudential_supervision.edit | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 232 |
-| components/prudential/examination/DataRequestsPanel | Cancel | — | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 235 |
-| components/prudential/examination/EntityExaminationsTab | New examination | prudential_supervision.edit | Yes | src/components/prudential/examination/EntityExaminationsTab.tsx | 16 |
+| components/prudential/examination/DataRequestsPanel | Add request | prudential_supervision.edit | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 150 |
+| components/prudential/examination/DataRequestsPanel | ( ) | — | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 174 |
+| components/prudential/examination/DataRequestsPanel | Send request | prudential_supervision.workflow_action | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 240 |
+| components/prudential/examination/DataRequestsPanel | Fully received | prudential_supervision.edit | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 248 |
+| components/prudential/examination/DataRequestsPanel | Partially received | prudential_supervision.edit | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 252 |
+| components/prudential/examination/DataRequestsPanel | Record response | prudential_supervision.edit | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 258 |
+| components/prudential/examination/DataRequestsPanel | Add request | prudential_supervision.edit | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 279 |
+| components/prudential/examination/DataRequestsPanel | Add request | prudential_supervision.edit | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 337 |
+| components/prudential/examination/DataRequestsPanel | Cancel | — | Yes | src/components/prudential/examination/DataRequestsPanel.tsx | 341 |
+| components/prudential/examination/EntityExaminationsTab | New examination | prudential_supervision.edit | Yes | src/components/prudential/examination/EntityExaminationsTab.tsx | 17 |
 | components/prudential/examination/ExaminationResolveBanner | Return to current step | — | Yes | src/components/prudential/examination/ExaminationResolveBanner.tsx | 29 |
 | components/prudential/examination/ExaminationStageActions | Save | prudential_supervision.edit | Yes | src/components/prudential/examination/ExaminationStageActions.tsx | 80 |
 | components/prudential/examination/ExaminationStageActions | Resolve | prudential_supervision.edit | Yes | src/components/prudential/examination/ExaminationStageActions.tsx | 146 |
@@ -817,14 +867,13 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/prudential/examination/ExaminationStageActions | Save | prudential_supervision.edit | Yes | src/components/prudential/examination/ExaminationStageActions.tsx | 183 |
 | components/prudential/examination/ExaminationStageActions | More actions | prudential_supervision.workflow_action | Yes | src/components/prudential/examination/ExaminationStageActions.tsx | 192 |
 | components/prudential/examination/ExaminationStageActions | Cancel examination | prudential_supervision.workflow_action | Yes | src/components/prudential/examination/ExaminationStageActions.tsx | 197 |
-| components/prudential/examination/FindingsPanel | Add finding | prudential_supervision.edit | Yes | src/components/prudential/examination/FindingsPanel.tsx | 160 |
-| components/prudential/examination/FindingsPanel | Create corrective action | prudential_supervision.workflow_action | Yes | src/components/prudential/examination/FindingsPanel.tsx | 213 |
-| components/prudential/examination/FindingsPanel | Close finding | prudential_supervision.workflow_action | Yes | src/components/prudential/examination/FindingsPanel.tsx | 219 |
-| components/prudential/examination/FindingsPanel | Add finding | prudential_supervision.edit | Yes | src/components/prudential/examination/FindingsPanel.tsx | 232 |
-| components/prudential/examination/FindingsPanel | Add finding | prudential_supervision.edit | Yes | src/components/prudential/examination/FindingsPanel.tsx | 290 |
-| components/prudential/examination/FindingsPanel | Cancel | — | Yes | src/components/prudential/examination/FindingsPanel.tsx | 293 |
+| components/prudential/examination/FindingsPanel | Create supervisory finding | prudential_supervision.edit | Yes | src/components/prudential/examination/FindingsPanel.tsx | 187 |
+| components/prudential/examination/FindingsPanel | Open finding workspace | — | Yes | src/components/prudential/examination/FindingsPanel.tsx | 255 |
+| components/prudential/examination/FindingsPanel | Create corrective action | prudential_supervision.workflow_action | Yes | src/components/prudential/examination/FindingsPanel.tsx | 304 |
+| components/prudential/examination/FindingsPanel | Close finding | prudential_supervision.workflow_action | Yes | src/components/prudential/examination/FindingsPanel.tsx | 310 |
 | components/prudential/examination/NextActionCard | Resolve | prudential_supervision.edit | Yes | src/components/prudential/examination/NextActionCard.tsx | 75 |
 | components/prudential/examination/NextActionCard | Go to | — | Yes | src/components/prudential/examination/NextActionCard.tsx | 89 |
+| components/prudential/examination/RaiseFindingDialog | Cancel | — | Yes | src/components/prudential/examination/RaiseFindingDialog.tsx | 187 |
 | components/prudential/examination/ReportsPanel | Prepare report | prudential_supervision.edit | Yes | src/components/prudential/examination/ReportsPanel.tsx | 101 |
 | components/prudential/examination/ReportsPanel | Send for review | prudential_supervision.workflow_action | Yes | src/components/prudential/examination/ReportsPanel.tsx | 148 |
 | components/prudential/examination/ReportsPanel | Approve report | prudential_supervision.workflow_action | Yes | src/components/prudential/examination/ReportsPanel.tsx | 153 |
@@ -840,15 +889,20 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/prudential/examination/TeamPanel | Additional details (optional) | — | Yes | src/components/prudential/examination/TeamPanel.tsx | 202 |
 | components/prudential/examination/TeamPanel | Add to team | prudential_supervision.edit | Yes | src/components/prudential/examination/TeamPanel.tsx | 233 |
 | components/prudential/examination/TeamPanel | Cancel | — | Yes | src/components/prudential/examination/TeamPanel.tsx | 236 |
-| components/prudential/examination/WorkpapersPanel | Add workpaper | prudential_supervision.edit | Yes | src/components/prudential/examination/WorkpapersPanel.tsx | 69 |
-| components/prudential/examination/WorkpapersPanel | Sign off as preparer | prudential_supervision.edit | Yes | src/components/prudential/examination/WorkpapersPanel.tsx | 97 |
-| components/prudential/examination/WorkpapersPanel | Sign off as reviewer | prudential_supervision.workflow_action | Yes | src/components/prudential/examination/WorkpapersPanel.tsx | 103 |
-| components/prudential/examination/WorkpapersPanel | Add workpaper | prudential_supervision.edit | Yes | src/components/prudential/examination/WorkpapersPanel.tsx | 117 |
-| components/prudential/examination/WorkpapersPanel | Add workpaper | prudential_supervision.edit | Yes | src/components/prudential/examination/WorkpapersPanel.tsx | 149 |
-| components/prudential/examination/WorkpapersPanel | Cancel | — | Yes | src/components/prudential/examination/WorkpapersPanel.tsx | 152 |
+| components/prudential/examination/WorkpapersPanel | Add workpaper | prudential_supervision.edit | Yes | src/components/prudential/examination/WorkpapersPanel.tsx | 153 |
+| components/prudential/examination/WorkpapersPanel | Edit | prudential_supervision.edit | Yes | src/components/prudential/examination/WorkpapersPanel.tsx | 229 |
+| components/prudential/examination/WorkpapersPanel | Submit for review | prudential_supervision.edit | Yes | src/components/prudential/examination/WorkpapersPanel.tsx | 233 |
+| components/prudential/examination/WorkpapersPanel | Sign off as preparer | prudential_supervision.edit | Yes | src/components/prudential/examination/WorkpapersPanel.tsx | 239 |
+| components/prudential/examination/WorkpapersPanel | Sign off as reviewer | prudential_supervision.workflow_action | Yes | src/components/prudential/examination/WorkpapersPanel.tsx | 247 |
+| components/prudential/examination/WorkpapersPanel | Confirm return | prudential_supervision.workflow_action | Yes | src/components/prudential/examination/WorkpapersPanel.tsx | 253 |
+| components/prudential/examination/WorkpapersPanel | Return for revision | prudential_supervision.workflow_action | Yes | src/components/prudential/examination/WorkpapersPanel.tsx | 262 |
+| components/prudential/examination/WorkpapersPanel | Raise finding | prudential_supervision.edit | Yes | src/components/prudential/examination/WorkpapersPanel.tsx | 270 |
+| components/prudential/examination/WorkpapersPanel | Add workpaper | prudential_supervision.edit | Yes | src/components/prudential/examination/WorkpapersPanel.tsx | 287 |
+| components/prudential/examination/WorkpapersPanel | Cancel | — | Yes | src/components/prudential/examination/WorkpapersPanel.tsx | 382 |
 | components/prudential/FormulaBuilder | Add | prudential_supervision.create | Yes | src/components/prudential/FormulaBuilder.tsx | 372 |
 | components/prudential/GroupEwiPanel | Acknowledge | prudential_supervision.edit | Yes | src/components/prudential/GroupEwiPanel.tsx | 62 |
-| components/prudential/GroupStructureTree | Edit | prudential_supervision.edit | Yes | src/components/prudential/GroupStructureTree.tsx | 62 |
+| components/prudential/GroupStructureTree | Edit | prudential_supervision.edit | Yes | src/components/prudential/GroupStructureTree.tsx | 73 |
+| components/prudential/MethodologyRulesEditor | Add rule | — | Yes | src/components/prudential/MethodologyRulesEditor.tsx | 89 |
 | components/prudential/payments/IncidentsPanel | Save | prudential_supervision.edit | Yes | src/components/prudential/payments/IncidentsPanel.tsx | 118 |
 | components/prudential/payments/IncidentsPanel | Record incident | prudential_supervision.create | Yes | src/components/prudential/payments/IncidentsPanel.tsx | 139 |
 | components/prudential/payments/IncidentsPanel | Resolve | prudential_supervision.edit | Yes | src/components/prudential/payments/IncidentsPanel.tsx | 193 |
@@ -858,8 +912,8 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/prudential/payments/OperatorTable | Add operator | prudential_supervision.create | Yes | src/components/prudential/payments/OperatorTable.tsx | 74 |
 | components/prudential/payments/OperatorTable | Edit | prudential_supervision.edit | Yes | src/components/prudential/payments/OperatorTable.tsx | 133 |
 | components/prudential/payments/OperatorTable | Start PFMI assessment | prudential_supervision.create | Yes | src/components/prudential/payments/OperatorTable.tsx | 135 |
-| components/prudential/payments/RetailPaymentsPanel | Record period figures | prudential_supervision.create | Yes | src/components/prudential/payments/RetailPaymentsPanel.tsx | 81 |
-| components/prudential/payments/RetailPaymentsPanel | Cancel | — | Yes | src/components/prudential/payments/RetailPaymentsPanel.tsx | 178 |
+| components/prudential/payments/RetailPaymentsPanel | Record period figures | prudential_supervision.create | Yes | src/components/prudential/payments/RetailPaymentsPanel.tsx | 94 |
+| components/prudential/payments/RetailPaymentsPanel | Cancel | — | Yes | src/components/prudential/payments/RetailPaymentsPanel.tsx | 191 |
 | components/prudential/PrudentialActionDrawer | Open source | — | Yes | src/components/prudential/PrudentialActionDrawer.tsx | 69 |
 | components/prudential/PrudentialActionDrawer | Accept | prudential_supervision.workflow_action | Yes | src/components/prudential/PrudentialActionDrawer.tsx | 104 |
 | components/prudential/PrudentialActionDrawer | Reject | prudential_supervision.workflow_action | Yes | src/components/prudential/PrudentialActionDrawer.tsx | 113 |
@@ -874,9 +928,9 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/registration-builder/FormPreview | Previous | — | Yes | src/components/registration-builder/FormPreview.tsx | 102 |
 | components/registration-builder/FormPreview | Next | — | Yes | src/components/registration-builder/FormPreview.tsx | 105 |
 | components/registration-builder/FormPreview | Verify Email | — | Yes | src/components/registration-builder/FormPreview.tsx | 238 |
-| components/registration-builder/FullRegistrationPreview | Send Code | form_management.edit | Yes | src/components/registration-builder/FullRegistrationPreview.tsx | 143 |
-| components/registration-builder/FullRegistrationPreview | Previous | — | Yes | src/components/registration-builder/FullRegistrationPreview.tsx | 265 |
-| components/registration-builder/FullRegistrationPreview | Next | — | Yes | src/components/registration-builder/FullRegistrationPreview.tsx | 271 |
+| components/registration-builder/FullRegistrationPreview | Send Code | form_management.edit | Yes | src/components/registration-builder/FullRegistrationPreview.tsx | 144 |
+| components/registration-builder/FullRegistrationPreview | Previous | — | Yes | src/components/registration-builder/FullRegistrationPreview.tsx | 266 |
+| components/registration-builder/FullRegistrationPreview | Next | — | Yes | src/components/registration-builder/FullRegistrationPreview.tsx | 272 |
 | components/registration-builder/RegistrationFormBuilderEditor | Preview | form_management.view | Yes | src/components/registration-builder/RegistrationFormBuilderEditor.tsx | 106 |
 | components/registration-builder/RegistrationFormBuilderEditor | Add Step | form_management.edit | Yes | src/components/registration-builder/RegistrationFormBuilderEditor.tsx | 109 |
 | components/registration-builder/RegistrationFormBuilderEditor | Add First Step | form_management.edit | Yes | src/components/registration-builder/RegistrationFormBuilderEditor.tsx | 119 |
@@ -885,13 +939,27 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/registration/DocumentsStep | Download | registration_management.view | Yes | src/components/registration/DocumentsStep.tsx | 268 |
 | components/registration/DocumentsStep | Replace | registration_management.edit | Yes | src/components/registration/DocumentsStep.tsx | 269 |
 | components/registration/DocumentsStep | Remove | registration_management.edit | Yes | src/components/registration/DocumentsStep.tsx | 270 |
-| components/registration/EmailVerificationSection | Send Verification Code | registration_management.create | Yes | src/components/registration/EmailVerificationSection.tsx | 137 |
-| components/registration/EmailVerificationSection | {cooldown > 0 ? `Resend in $ s` : 'Resend Code'} | registration_management.create | Yes | src/components/registration/EmailVerificationSection.tsx | 161 |
+| components/registration/EmailVerificationSection | Send Verification Code | registration_management.create | Yes | src/components/registration/EmailVerificationSection.tsx | 140 |
+| components/registration/EmailVerificationSection | {cooldown > 0 ? `Resend in $ s` : 'Resend Code'} | registration_management.create | Yes | src/components/registration/EmailVerificationSection.tsx | 164 |
 | components/registration/PendingAuthorityScreen | Check status | — | Yes | src/components/registration/PendingAuthorityScreen.tsx | 53 |
-| components/registration/RegistrationStepRenderer | Remove | registration_management.edit | Yes | src/components/registration/RegistrationStepRenderer.tsx | 172 |
-| components/registration/RegistrationStepRenderer | + Add another | — | Yes | src/components/registration/RegistrationStepRenderer.tsx | 195 |
-| components/registration/RegistrationStepRenderer | Remove | registration_management.edit | Yes | src/components/registration/RegistrationStepRenderer.tsx | 881 |
-| components/registration/RegistrationStepRenderer | {uploading ? ( Uploading... ) : ( )} | registration_management.create | Yes | src/components/registration/RegistrationStepRenderer.tsx | 900 |
+| components/registration/RegistrationStepRenderer | Remove | registration_management.edit | Yes | src/components/registration/RegistrationStepRenderer.tsx | 180 |
+| components/registration/RegistrationStepRenderer | + Add another | — | Yes | src/components/registration/RegistrationStepRenderer.tsx | 203 |
+| components/registration/RegistrationStepRenderer | Remove | registration_management.edit | Yes | src/components/registration/RegistrationStepRenderer.tsx | 897 |
+| components/registration/RegistrationStepRenderer | {uploading ? ( Uploading... ) : ( )} | registration_management.create | Yes | src/components/registration/RegistrationStepRenderer.tsx | 916 |
+| components/returns/FilingLifecyclePanel | setRfiOpen(true)} disabled= >Raise information request | returns_management.workflow_action | Yes | src/components/returns/FilingLifecyclePanel.tsx | 214 |
+| components/returns/FilingLifecyclePanel | setExtOpen(true)} disabled= >Request extension | returns_management.submit | Yes | src/components/returns/FilingLifecyclePanel.tsx | 251 |
+| components/returns/FilingLifecyclePanel | decideExt(x, 'GRANT')}>Grant | returns_management.workflow_action | Yes | src/components/returns/FilingLifecyclePanel.tsx | 284 |
+| components/returns/FilingLifecyclePanel | decideExt(x, 'REFUSE')}>Refuse | returns_management.workflow_action | Yes | src/components/returns/FilingLifecyclePanel.tsx | 286 |
+| components/returns/FilingLifecyclePanel | Request amendment | returns_management.submit | Yes | src/components/returns/FilingLifecyclePanel.tsx | 311 |
+| components/returns/FilingLifecyclePanel | decideAmend(r, 'APPROVE')}>Approve amendment | returns_management.workflow_action | Yes | src/components/returns/FilingLifecyclePanel.tsx | 332 |
+| components/returns/FilingLifecyclePanel | decideAmend(r, 'REFUSE')}>Refuse amendment | returns_management.workflow_action | Yes | src/components/returns/FilingLifecyclePanel.tsx | 334 |
+| components/returns/FilingLifecyclePanel | fileRef.current?.click()}> Upload evidence | returns_management.submit | Yes | src/components/returns/FilingLifecyclePanel.tsx | 357 |
+| components/returns/FilingLifecyclePanel | Open | — | Yes | src/components/returns/FilingLifecyclePanel.tsx | 386 |
+| components/returns/FilingLifecyclePanel | withdrawEvi(e)}>Withdraw | returns_management.submit | Yes | src/components/returns/FilingLifecyclePanel.tsx | 390 |
+| components/returns/FilingLifecyclePanel | Cancel | — | Yes | src/components/returns/FilingLifecyclePanel.tsx | 417 |
+| components/returns/FilingLifecyclePanel | Issue request | returns_management.workflow_action | Yes | src/components/returns/FilingLifecyclePanel.tsx | 418 |
+| components/returns/FilingLifecyclePanel | Cancel | — | Yes | src/components/returns/FilingLifecyclePanel.tsx | 446 |
+| components/returns/FilingLifecyclePanel | Submit request | returns_management.submit | Yes | src/components/returns/FilingLifecyclePanel.tsx | 447 |
 | components/returns/NotificationDispatchDetailDrawer | Technical details | — | Yes | src/components/returns/NotificationDispatchDetailDrawer.tsx | 198 |
 | components/returns/NotificationDispatchDetailDrawer | Payload | — | Yes | src/components/returns/NotificationDispatchDetailDrawer.tsx | 234 |
 | components/returns/NotificationDispatchDetailDrawer | Copy | — | Yes | src/components/returns/NotificationDispatchDetailDrawer.tsx | 238 |
@@ -918,6 +986,49 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/shared/DataTableShell | Export | report_management.export | Yes | src/components/shared/DataTableShell.tsx | 92 |
 | components/shared/ErrorBoundary | Try again | — | Yes | src/components/shared/ErrorBoundary.tsx | 76 |
 | components/shared/ErrorBoundary | Reload page | — | Yes | src/components/shared/ErrorBoundary.tsx | 79 |
+| components/supervision/aml/AmlActionDialog | Cancel | — | Yes | src/components/supervision/aml/AmlActionDialog.tsx | 155 |
+| components/supervision/aml/AmlAssessmentActions | Submit for supervisory review | aml_supervision.submit | Yes | src/components/supervision/aml/AmlAssessmentActions.tsx | 141 |
+| components/supervision/aml/AmlAssessmentActions | Submission requires the AML/CFT submit capability | aml_supervision.submit | Yes | src/components/supervision/aml/AmlAssessmentActions.tsx | 151 |
+| components/supervision/aml/AmlAssessmentActions | Mark reviewed | aml_supervision.review | Yes | src/components/supervision/aml/AmlAssessmentActions.tsx | 160 |
+| components/supervision/aml/AmlAssessmentActions | Return for revision | aml_supervision.review | Yes | src/components/supervision/aml/AmlAssessmentActions.tsx | 163 |
+| components/supervision/aml/AmlAssessmentActions | Approve assessment | aml_supervision.approve | Yes | src/components/supervision/aml/AmlAssessmentActions.tsx | 171 |
+| components/supervision/aml/AmlAssessmentActions | Return for revision | aml_supervision.approve | Yes | src/components/supervision/aml/AmlAssessmentActions.tsx | 174 |
+| components/supervision/aml/AmlAssessmentActions | Raise supervisory attention | aml_supervision.create | Yes | src/components/supervision/aml/AmlAssessmentActions.tsx | 182 |
+| components/supervision/aml/AmlAssessmentActions | Require reassessment | aml_supervision.create | Yes | src/components/supervision/aml/AmlAssessmentActions.tsx | 185 |
+| components/supervision/aml/AmlAssessmentActions | Confirm priority — | aml_supervision.create | Yes | src/components/supervision/aml/AmlAssessmentActions.tsx | 203 |
+| components/supervision/aml/AmlAssessmentActions | Create supervisory plan — | aml_supervision.create | Yes | src/components/supervision/aml/AmlAssessmentActions.tsx | 221 |
+| components/supervision/aml/AmlAssessmentActions | — | — | Yes | src/components/supervision/aml/AmlAssessmentActions.tsx | 242 |
+| components/supervision/aml/AmlEvidenceLinker | Link document | — | Yes | src/components/supervision/aml/AmlEvidenceLinker.tsx | 83 |
+| components/supervision/aml/AmlNewAssessmentDialog | Cancel | — | Yes | src/components/supervision/aml/AmlNewAssessmentDialog.tsx | 134 |
+| components/supervision/aml/AmlNewAssessmentDialog | Continue | — | Yes | src/components/supervision/aml/AmlNewAssessmentDialog.tsx | 137 |
+| components/supervision/aml/AmlSupervisoryActivity | Open supervisory intervention | — | Yes | src/components/supervision/aml/AmlSupervisoryActivity.tsx | 171 |
+| components/supervision/aml/AmlSupervisoryActivity | Record endorsement decision | aml_supervision.approve | Yes | src/components/supervision/aml/AmlSupervisoryActivity.tsx | 214 |
+| components/supervision/aml/AmlSupervisoryActivity | Create examination | aml_supervision.examine | Yes | src/components/supervision/aml/AmlSupervisoryActivity.tsx | 227 |
+| components/supervision/aml/AmlSupervisoryActivity | Requires the AML/CFT examine capability | aml_supervision.examine | Yes | src/components/supervision/aml/AmlSupervisoryActivity.tsx | 239 |
+| components/supervision/aml/AmlSupervisoryActivity | Open examination workspace | aml_supervision.examine | Yes | src/components/supervision/aml/AmlSupervisoryActivity.tsx | 247 |
+| components/supervision/aml/AmlSupervisoryActivity | Set scope from assessment | aml_supervision.examine | Yes | src/components/supervision/aml/AmlSupervisoryActivity.tsx | 253 |
+| components/supervision/aml/AmlSupervisoryActivity | Cancel | — | Yes | src/components/supervision/aml/AmlSupervisoryActivity.tsx | 651 |
+| components/supervision/finding/FindingClosurePanel | Cancel | supervisory_spine.edit | Yes | src/components/supervision/finding/FindingClosurePanel.tsx | 141 |
+| components/supervision/finding/FindingClosurePanel | Record decision | supervisory_spine.edit | Yes | src/components/supervision/finding/FindingClosurePanel.tsx | 142 |
+| components/supervision/finding/RemediationActionCard | Progress | supervisory_spine.edit | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 240 |
+| components/supervision/finding/RemediationActionCard | Validate | supervisory_spine.edit | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 245 |
+| components/supervision/finding/RemediationActionCard | Accept residual deficiency on | supervisory_spine.edit | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 250 |
+| components/supervision/finding/RemediationActionCard | Escalate | supervisory_spine.workflow_action | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 256 |
+| components/supervision/finding/RemediationActionCard | Refer to enforcement | enforcement_management.refer | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 261 |
+| components/supervision/finding/RemediationActionCard | Require reassessment from | supervisory_spine.edit | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 265 |
+| components/supervision/finding/RemediationActionCard | Cancel | supervisory_spine.edit | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 306 |
+| components/supervision/finding/RemediationActionCard | Record | supervisory_spine.edit | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 307 |
+| components/supervision/finding/RemediationActionCard | Cancel | supervisory_spine.edit | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 367 |
+| components/supervision/finding/RemediationActionCard | Record validation | supervisory_spine.edit | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 368 |
+| components/supervision/finding/RemediationActionCard | Cancel | supervisory_spine.workflow_action | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 438 |
+| components/supervision/finding/RemediationActionCard | Escalate | supervisory_spine.workflow_action | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 439 |
+| components/supervision/finding/RemediationActionCard | Cancel | enforcement_management.refer | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 474 |
+| components/supervision/finding/RemediationActionCard | Refer to enforcement | enforcement_management.refer | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 475 |
+| components/supervision/finding/RemediationActionCard | Cancel | supervisory_spine.edit | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 523 |
+| components/supervision/finding/RemediationActionCard | Require reassessment | supervisory_spine.edit | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 524 |
+| components/supervision/finding/RemediationActionCard | Cancel | supervisory_spine.edit | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 588 |
+| components/supervision/finding/RemediationActionCard | Record residual acceptance | supervisory_spine.edit | Yes | src/components/supervision/finding/RemediationActionCard.tsx | 589 |
+| components/supervision/RecordDocumentLinks | Link document | — | Yes | src/components/supervision/RecordDocumentLinks.tsx | 110 |
 | components/supervision/ThematicClosurePanel | New version | prudential_supervision.create | Yes | src/components/supervision/ThematicClosurePanel.tsx | 181 |
 | components/supervision/ThematicClosurePanel | Print / PDF | prudential_supervision.view | Yes | src/components/supervision/ThematicClosurePanel.tsx | 184 |
 | components/supervision/ThematicClosurePanel | Prefill from findings & actions | prudential_supervision.edit | Yes | src/components/supervision/ThematicClosurePanel.tsx | 213 |
@@ -1024,9 +1135,9 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/admin/EntityMemberships | act(() => approve.mutateAsync(m.id), 'Membership approved.')}> Approve | licensee_management.edit | Yes | src/pages/admin/EntityMemberships.tsx | 144 |
 | pages/admin/EntityMemberships | { const reason = await askReason('Reject membership request'); if (reason) act(( | licensee_management.edit | Yes | src/pages/admin/EntityMemberships.tsx | 150 |
 | pages/admin/EntityMemberships | { const reason = await askReason('Revoke membership'); if (reason) act(() => rev | licensee_management.edit | Yes | src/pages/admin/EntityMemberships.tsx | 159 |
-| pages/admin/FeeManagement | Add Fee | fee_management.create | Yes | src/pages/admin/FeeManagement.tsx | 519 |
-| pages/admin/FeeManagement | Add Rule | fee_management.create | Yes | src/pages/admin/FeeManagement.tsx | 786 |
-| pages/admin/FeeManagement | Add Fee Type | fee_management.create | Yes | src/pages/admin/FeeManagement.tsx | 937 |
+| pages/admin/FeeManagement | Add Fee | fee_management.create | Yes | src/pages/admin/FeeManagement.tsx | 533 |
+| pages/admin/FeeManagement | Add Rule | fee_management.create | Yes | src/pages/admin/FeeManagement.tsx | 805 |
+| pages/admin/FeeManagement | Add Fee Type | fee_management.create | Yes | src/pages/admin/FeeManagement.tsx | 956 |
 | pages/admin/FormBuilder | Preview | — | Yes | src/pages/admin/FormBuilder.tsx | 662 |
 | pages/admin/FormManagement | Import from Excel | form_management.create | Yes | src/pages/admin/FormManagement.tsx | 378 |
 | pages/admin/FormManagement | Add Form | form_management.create | Yes | src/pages/admin/FormManagement.tsx | 393 |
@@ -1071,8 +1182,8 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/admin/LicenseAppealPanels | New panel | license_appeals.create | Yes | src/pages/admin/LicenseAppealPanels.tsx | 231 |
 | pages/admin/LicenseAppealPanels | Cancel | license_appeals.edit | Yes | src/pages/admin/LicenseAppealPanels.tsx | 351 |
 | pages/admin/LicenseAppealPanels | Save | license_appeals.edit | Yes | src/pages/admin/LicenseAppealPanels.tsx | 352 |
-| pages/admin/LicenseeDetail | Back to Licensees | — | Yes | src/pages/admin/LicenseeDetail.tsx | 164 |
-| pages/admin/ManageLicensees | View | — | Yes | src/pages/admin/ManageLicensees.tsx | 353 |
+| pages/admin/LicenseeDetail | Back to Licensees | — | Yes | src/pages/admin/LicenseeDetail.tsx | 163 |
+| pages/admin/ManageLicensees | View | — | Yes | src/pages/admin/ManageLicensees.tsx | 403 |
 | pages/admin/ManageWebUsers | Add Web User | user_management.create | Yes | src/pages/admin/ManageWebUsers.tsx | 210 |
 | pages/admin/ManageWebUsers | Cancel | — | Yes | src/pages/admin/ManageWebUsers.tsx | 256 |
 | pages/admin/MasterConfiguration | Sample Excel | settings.edit | Yes | src/pages/admin/MasterConfiguration.tsx | 256 |
@@ -1115,8 +1226,8 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/admin/PostLicensingApplications | New Application | form_management.create | Yes | src/pages/admin/PostLicensingApplications.tsx | 114 |
 | pages/admin/PostLicensingApplications | Cancel | form_management.edit | Yes | src/pages/admin/PostLicensingApplications.tsx | 154 |
 | pages/admin/PostLicensingApplications | Update | form_management.edit | Yes | src/pages/admin/PostLicensingApplications.tsx | 155 |
-| pages/admin/PpocManagement | Add Mapping | user_management.create | Yes | src/pages/admin/PpocManagement.tsx | 337 |
-| pages/admin/PpocManagement | Cancel | — | Yes | src/pages/admin/PpocManagement.tsx | 487 |
+| pages/admin/PpocManagement | Add Mapping | user_management.create | Yes | src/pages/admin/PpocManagement.tsx | 338 |
+| pages/admin/PpocManagement | Cancel | — | Yes | src/pages/admin/PpocManagement.tsx | 488 |
 | pages/admin/PreLicenseForms | Add Pre-License Form | form_management.create | Yes | src/pages/admin/PreLicenseForms.tsx | 131 |
 | pages/admin/PrudentialEngineOperations | {busy ? 'Running…' : `Run $ `} | — | Yes | src/pages/admin/PrudentialEngineOperations.tsx | 75 |
 | pages/admin/RegistrationFormBuilder | Create Configuration | form_management.create | Yes | src/pages/admin/RegistrationFormBuilder.tsx | 466 |
@@ -1133,8 +1244,8 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/admin/returns/CutoffConfigPage | Add Cutoff | returns_management.create | Yes | src/pages/admin/returns/CutoffConfigPage.tsx | 50 |
 | pages/admin/returns/DueDatesPage | Preview | returns_management.edit | Yes | src/pages/admin/returns/DueDatesPage.tsx | 132 |
 | pages/admin/returns/DueDatesPage | {generating ? 'Generating...' : `Generate $ Due Dates`} | returns_management.edit | Yes | src/pages/admin/returns/DueDatesPage.tsx | 133 |
-| pages/admin/returns/LateFeesPage | Add Fee Structure | returns_management.create | Yes | src/pages/admin/returns/LateFeesPage.tsx | 56 |
-| pages/admin/returns/LateFeesPage | Add | returns_management.edit | Yes | src/pages/admin/returns/LateFeesPage.tsx | 166 |
+| pages/admin/returns/LateFeesPage | Add Fee Structure | returns_management.create | Yes | src/pages/admin/returns/LateFeesPage.tsx | 58 |
+| pages/admin/returns/LateFeesPage | Add | returns_management.edit | Yes | src/pages/admin/returns/LateFeesPage.tsx | 168 |
 | pages/admin/returns/ReturnConfigsPage | Add Configuration | returns_management.create | Yes | src/pages/admin/returns/ReturnConfigsPage.tsx | 65 |
 | pages/admin/returns/ReturnConfigsPage | Cancel | — | Yes | src/pages/admin/returns/ReturnConfigsPage.tsx | 249 |
 | pages/admin/returns/ReturnTypesPage | Add Return Type | returns_management.create | Yes | src/pages/admin/returns/ReturnTypesPage.tsx | 46 |
@@ -1163,12 +1274,12 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/admin/RuleOverrides | View full entity timeline | — | Yes | src/pages/admin/RuleOverrides.tsx | 256 |
 | pages/admin/SecurityEvents | Refresh | audit_management.export | Yes | src/pages/admin/SecurityEvents.tsx | 172 |
 | pages/admin/SecurityEvents | Export CSV | audit_management.export | Yes | src/pages/admin/SecurityEvents.tsx | 176 |
-| pages/admin/SlaManager | Workflow Designer | workflow_management.view | Yes | src/pages/admin/SlaManager.tsx | 121 |
-| pages/admin/SlaManager | Add SLA | workflow_management.edit | Yes | src/pages/admin/SlaManager.tsx | 336 |
-| pages/admin/SlaManager | Import CSV | settings.edit | Yes | src/pages/admin/SlaManager.tsx | 758 |
-| pages/admin/SlaManager | Save Calendar | workflow_management.edit | Yes | src/pages/admin/SlaManager.tsx | 787 |
-| pages/admin/SlaManager | Open DASH-OPS | — | Yes | src/pages/admin/SlaManager.tsx | 993 |
-| pages/admin/SlaManager | Refresh | — | Yes | src/pages/admin/SlaManager.tsx | 1179 |
+| pages/admin/SlaManager | Workflow Designer | workflow_management.view | Yes | src/pages/admin/SlaManager.tsx | 122 |
+| pages/admin/SlaManager | Add SLA | workflow_management.edit | Yes | src/pages/admin/SlaManager.tsx | 337 |
+| pages/admin/SlaManager | Import CSV | settings.edit | Yes | src/pages/admin/SlaManager.tsx | 759 |
+| pages/admin/SlaManager | Save Calendar | workflow_management.edit | Yes | src/pages/admin/SlaManager.tsx | 788 |
+| pages/admin/SlaManager | Open DASH-OPS | — | Yes | src/pages/admin/SlaManager.tsx | 994 |
+| pages/admin/SlaManager | Refresh | — | Yes | src/pages/admin/SlaManager.tsx | 1182 |
 | pages/admin/SufficiencyRules | New Rule | application_management.create | Yes | src/pages/admin/SufficiencyRules.tsx | 103 |
 | pages/admin/SufficiencyRules | Cancel | application_management.edit | Yes | src/pages/admin/SufficiencyRules.tsx | 202 |
 | pages/admin/SufficiencyRules | Save | application_management.edit | Yes | src/pages/admin/SufficiencyRules.tsx | 203 |
@@ -1212,31 +1323,31 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/ApplicationForms | Review Entered Data | application_management.edit | Yes | src/pages/ApplicationForms.tsx | 499 |
 | pages/ApplicationForms | Review & Submit | application_management.edit | Yes | src/pages/ApplicationForms.tsx | 508 |
 | pages/ApplicationForms | Back to Forms | — | Yes | src/pages/ApplicationForms.tsx | 555 |
-| pages/applications/ApplicationDetail | Cancel Application | application_management.edit | Yes | src/pages/applications/ApplicationDetail.tsx | 1218 |
-| pages/applications/ApplicationDetail | Request Edit | application_management.edit | Yes | src/pages/applications/ApplicationDetail.tsx | 1226 |
-| pages/applications/ApplicationDetail | Allow Edit | application_management.edit | Yes | src/pages/applications/ApplicationDetail.tsx | 1386 |
-| pages/applications/ApplicationDetail | Deny Edit | application_management.edit | Yes | src/pages/applications/ApplicationDetail.tsx | 1390 |
-| pages/applications/ApplicationDetail | {processing ? 'Submitting...' : !taxonomyComplete ? 'Select sector, sub-sector a | application_management.create | Yes | src/pages/applications/ApplicationDetail.tsx | 1525 |
-| pages/applications/ApplicationDetail | Cancel | — | Yes | src/pages/applications/ApplicationDetail.tsx | 1555 |
-| pages/applications/ApplicationDetail | View Payment Details | — | Yes | src/pages/applications/ApplicationDetail.tsx | 1617 |
-| pages/applications/ApplicationQueue | Triage {selected.size > 0 ? `($ )` : ''} | application_management.edit | Yes | src/pages/applications/ApplicationQueue.tsx | 217 |
-| pages/applications/ApplicationQueue | {t.countKey && counts ? ( ) : null} | — | Yes | src/pages/applications/ApplicationQueue.tsx | 243 |
-| pages/applications/ApplicationQueue | Previous | — | Yes | src/pages/applications/ApplicationQueue.tsx | 491 |
-| pages/applications/ApplicationQueue | Next | — | Yes | src/pages/applications/ApplicationQueue.tsx | 500 |
-| pages/applications/ApplicationQueue | Cancel | — | Yes | src/pages/applications/ApplicationQueue.tsx | 552 |
-| pages/applications/ApplicationQueue | Apply | — | Yes | src/pages/applications/ApplicationQueue.tsx | 553 |
-| pages/applications/ApplicationsList | · | application_management.view | Yes | src/pages/applications/ApplicationsList.tsx | 845 |
-| pages/applications/ApplicationsList | New Application | application_management.create | Yes | src/pages/applications/ApplicationsList.tsx | 1260 |
-| pages/applications/ApplicationsList | New Pre-Licensee Application | application_management.create | Yes | src/pages/applications/ApplicationsList.tsx | 1266 |
-| pages/applications/ApplicationsList | New Post-Licensee Application | application_management.create | Yes | src/pages/applications/ApplicationsList.tsx | 1269 |
-| pages/applications/ApplicationsList | New Application | application_management.create | Yes | src/pages/applications/ApplicationsList.tsx | 1275 |
-| pages/applications/ApplicationsList | Clear filter | — | Yes | src/pages/applications/ApplicationsList.tsx | 1297 |
-| pages/applications/ApplicationsList | Export CSV | application_management.export | Yes | src/pages/applications/ApplicationsList.tsx | 1382 |
-| pages/applications/ApplicationsList | Compare submissions | application_management.view | Yes | src/pages/applications/ApplicationsList.tsx | 1410 |
-| pages/applications/ApplicationsList | Cancel | — | Yes | src/pages/applications/ApplicationsList.tsx | 1418 |
-| pages/applications/ApplicationsList | Cancel | — | Yes | src/pages/applications/ApplicationsList.tsx | 1637 |
-| pages/applications/ApplicationsList | Open comparison | — | Yes | src/pages/applications/ApplicationsList.tsx | 1638 |
-| pages/billing/Penalties | Case | — | Yes | src/pages/billing/Penalties.tsx | 120 |
+| pages/applications/ApplicationDetail | Cancel Application | application_management.edit | Yes | src/pages/applications/ApplicationDetail.tsx | 1223 |
+| pages/applications/ApplicationDetail | Request Edit | application_management.edit | Yes | src/pages/applications/ApplicationDetail.tsx | 1231 |
+| pages/applications/ApplicationDetail | Allow Edit | application_management.edit | Yes | src/pages/applications/ApplicationDetail.tsx | 1391 |
+| pages/applications/ApplicationDetail | Deny Edit | application_management.edit | Yes | src/pages/applications/ApplicationDetail.tsx | 1395 |
+| pages/applications/ApplicationDetail | {processing ? 'Submitting...' : !taxonomyComplete ? 'Select sector, sub-sector a | application_management.create | Yes | src/pages/applications/ApplicationDetail.tsx | 1530 |
+| pages/applications/ApplicationDetail | Cancel | — | Yes | src/pages/applications/ApplicationDetail.tsx | 1560 |
+| pages/applications/ApplicationDetail | View Payment Details | — | Yes | src/pages/applications/ApplicationDetail.tsx | 1622 |
+| pages/applications/ApplicationQueue | Triage {selected.size > 0 ? `($ )` : ''} | application_management.edit | Yes | src/pages/applications/ApplicationQueue.tsx | 218 |
+| pages/applications/ApplicationQueue | {t.countKey && counts ? ( ) : null} | — | Yes | src/pages/applications/ApplicationQueue.tsx | 244 |
+| pages/applications/ApplicationQueue | Previous | — | Yes | src/pages/applications/ApplicationQueue.tsx | 492 |
+| pages/applications/ApplicationQueue | Next | — | Yes | src/pages/applications/ApplicationQueue.tsx | 501 |
+| pages/applications/ApplicationQueue | Cancel | — | Yes | src/pages/applications/ApplicationQueue.tsx | 553 |
+| pages/applications/ApplicationQueue | Apply | — | Yes | src/pages/applications/ApplicationQueue.tsx | 554 |
+| pages/applications/ApplicationsList | · | application_management.view | Yes | src/pages/applications/ApplicationsList.tsx | 847 |
+| pages/applications/ApplicationsList | New Application | application_management.create | Yes | src/pages/applications/ApplicationsList.tsx | 1262 |
+| pages/applications/ApplicationsList | New Pre-Licensee Application | application_management.create | Yes | src/pages/applications/ApplicationsList.tsx | 1268 |
+| pages/applications/ApplicationsList | New Post-Licensee Application | application_management.create | Yes | src/pages/applications/ApplicationsList.tsx | 1271 |
+| pages/applications/ApplicationsList | New Application | application_management.create | Yes | src/pages/applications/ApplicationsList.tsx | 1277 |
+| pages/applications/ApplicationsList | Clear filter | — | Yes | src/pages/applications/ApplicationsList.tsx | 1299 |
+| pages/applications/ApplicationsList | Export CSV | application_management.export | Yes | src/pages/applications/ApplicationsList.tsx | 1384 |
+| pages/applications/ApplicationsList | Compare submissions | application_management.view | Yes | src/pages/applications/ApplicationsList.tsx | 1412 |
+| pages/applications/ApplicationsList | Cancel | — | Yes | src/pages/applications/ApplicationsList.tsx | 1420 |
+| pages/applications/ApplicationsList | Cancel | — | Yes | src/pages/applications/ApplicationsList.tsx | 1639 |
+| pages/applications/ApplicationsList | Open comparison | — | Yes | src/pages/applications/ApplicationsList.tsx | 1640 |
+| pages/billing/Penalties | Case | — | Yes | src/pages/billing/Penalties.tsx | 138 |
 | pages/complaints/BulkIntake | Process batch | complaint_management.edit | Yes | src/pages/complaints/BulkIntake.tsx | 96 |
 | pages/complaints/BulkIntake | Rows | — | Yes | src/pages/complaints/BulkIntake.tsx | 132 |
 | pages/complaints/ComplaintDetail | Reprint acknowledgement | complaint_management.edit | Yes | src/pages/complaints/ComplaintDetail.tsx | 339 |
@@ -1245,18 +1356,18 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/complaints/ComplaintDetail | Override | complaint_management.edit | Yes | src/pages/complaints/ComplaintDetail.tsx | 651 |
 | pages/complaints/ComplaintDetail | View | — | Yes | src/pages/complaints/ComplaintDetail.tsx | 749 |
 | pages/complaints/ComplaintsAnalytics | Back to List | — | Yes | src/pages/complaints/ComplaintsAnalytics.tsx | 47 |
-| pages/complaints/ComplaintsList | Analytics | complaint_management.view | Yes | src/pages/complaints/ComplaintsList.tsx | 560 |
-| pages/complaints/ComplaintsList | Bulk intake | complaint_management.create | Yes | src/pages/complaints/ComplaintsList.tsx | 563 |
-| pages/complaints/ComplaintsList | New Complaint | complaint_management.create | Yes | src/pages/complaints/ComplaintsList.tsx | 566 |
-| pages/complaints/ComplaintsList | Track Complaint | complaint_management.create | Yes | src/pages/complaints/ComplaintsList.tsx | 572 |
-| pages/complaints/ComplaintsList | File Complaint | complaint_management.create | Yes | src/pages/complaints/ComplaintsList.tsx | 579 |
-| pages/complaints/ComplaintsList | More filters | — | Yes | src/pages/complaints/ComplaintsList.tsx | 658 |
-| pages/complaints/ComplaintsList | View | — | Yes | src/pages/complaints/ComplaintsList.tsx | 810 |
-| pages/complaints/ComplaintsList | Track | — | Yes | src/pages/complaints/ComplaintsList.tsx | 813 |
-| pages/complaints/ComplaintsList | Open detail | — | Yes | src/pages/complaints/ComplaintsList.tsx | 925 |
-| pages/complaints/ComplaintsList | Reprint acknowledgement | complaint_management.view | Yes | src/pages/complaints/ComplaintsList.tsx | 928 |
-| pages/complaints/ComplaintsList | Run / retry triage | complaint_management.edit | Yes | src/pages/complaints/ComplaintsList.tsx | 931 |
-| pages/complaints/ComplaintsList | View | — | Yes | src/pages/complaints/ComplaintsList.tsx | 1028 |
+| pages/complaints/ComplaintsList | Analytics | complaint_management.view | Yes | src/pages/complaints/ComplaintsList.tsx | 561 |
+| pages/complaints/ComplaintsList | Bulk intake | complaint_management.create | Yes | src/pages/complaints/ComplaintsList.tsx | 564 |
+| pages/complaints/ComplaintsList | New Complaint | complaint_management.create | Yes | src/pages/complaints/ComplaintsList.tsx | 567 |
+| pages/complaints/ComplaintsList | Track Complaint | complaint_management.create | Yes | src/pages/complaints/ComplaintsList.tsx | 573 |
+| pages/complaints/ComplaintsList | File Complaint | complaint_management.create | Yes | src/pages/complaints/ComplaintsList.tsx | 580 |
+| pages/complaints/ComplaintsList | More filters | — | Yes | src/pages/complaints/ComplaintsList.tsx | 659 |
+| pages/complaints/ComplaintsList | View | — | Yes | src/pages/complaints/ComplaintsList.tsx | 811 |
+| pages/complaints/ComplaintsList | Track | — | Yes | src/pages/complaints/ComplaintsList.tsx | 814 |
+| pages/complaints/ComplaintsList | Open detail | — | Yes | src/pages/complaints/ComplaintsList.tsx | 926 |
+| pages/complaints/ComplaintsList | Reprint acknowledgement | complaint_management.view | Yes | src/pages/complaints/ComplaintsList.tsx | 929 |
+| pages/complaints/ComplaintsList | Run / retry triage | complaint_management.edit | Yes | src/pages/complaints/ComplaintsList.tsx | 932 |
+| pages/complaints/ComplaintsList | View | — | Yes | src/pages/complaints/ComplaintsList.tsx | 1029 |
 | pages/complaints/duplicates/DuplicateDetectionHub | Run detection | complaint_management.edit | Yes | src/pages/complaints/duplicates/DuplicateDetectionHub.tsx | 71 |
 | pages/complaints/duplicates/DuplicateDetectionHub | Back to Complaints | — | Yes | src/pages/complaints/duplicates/DuplicateDetectionHub.tsx | 75 |
 | pages/complaints/escalations/EscalationHub | Run sweep now | complaint_management.edit | Yes | src/pages/complaints/escalations/EscalationHub.tsx | 70 |
@@ -1270,18 +1381,6 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/complaints/IntakeQueue | Next | — | Yes | src/pages/complaints/IntakeQueue.tsx | 272 |
 | pages/complaints/NewInternalComplaint | Cancel | — | Yes | src/pages/complaints/NewInternalComplaint.tsx | 286 |
 | pages/complaints/rfi-approvals/RfiApprovalQueue | Review | complaint_management.edit | Yes | src/pages/complaints/rfi-approvals/RfiApprovalQueue.tsx | 116 |
-| pages/compliance/ComplianceReturns | Submit | returns_management.edit | Yes | src/pages/compliance/ComplianceReturns.tsx | 287 |
-| pages/compliance/ComplianceReturns | New Submission | returns_management.create | Yes | src/pages/compliance/ComplianceReturns.tsx | 331 |
-| pages/compliance/ComplianceReturns | Clear filter | — | Yes | src/pages/compliance/ComplianceReturns.tsx | 509 |
-| pages/compliance/ComplianceReturns | Configure Penalties | compliance_management.edit | Yes | src/pages/compliance/ComplianceReturns.tsx | 566 |
-| pages/compliance/ReturnSubmission | Back to Returns | — | Yes | src/pages/compliance/ReturnSubmission.tsx | 687 |
-| pages/compliance/ReturnSubmission | Back | — | Yes | src/pages/compliance/ReturnSubmission.tsx | 701 |
-| pages/compliance/ReturnSubmission | Cancel | returns_management.create | Yes | src/pages/compliance/ReturnSubmission.tsx | 815 |
-| pages/compliance/ReturnSubmission | Create | returns_management.create | Yes | src/pages/compliance/ReturnSubmission.tsx | 823 |
-| pages/compliance/ReturnSubmission | Back | — | Yes | src/pages/compliance/ReturnSubmission.tsx | 846 |
-| pages/compliance/ReturnSubmission | Section / | returns_management.edit | Yes | src/pages/compliance/ReturnSubmission.tsx | 995 |
-| pages/compliance/ReturnSubmission | Previous | — | Yes | src/pages/compliance/ReturnSubmission.tsx | 1057 |
-| pages/compliance/ReturnSubmission | Next | — | Yes | src/pages/compliance/ReturnSubmission.tsx | 1061 |
 | pages/conduct/Conduct360 | Back to entities | — | Yes | src/pages/conduct/Conduct360.tsx | 171 |
 | pages/conduct/ConductActions | Issue requirement | market_conduct.issue_enforcement_action | Yes | src/pages/conduct/ConductActions.tsx | 64 |
 | pages/conduct/ConductActions | Overdue only | — | Yes | src/pages/conduct/ConductActions.tsx | 107 |
@@ -1468,22 +1567,33 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/correspondence/ThreadWorkspace | Back to work queue | notification_management.dispatch | Yes | src/pages/correspondence/ThreadWorkspace.tsx | 46 |
 | pages/correspondence/ThreadWorkspace | Work queue | notification_management.dispatch | Yes | src/pages/correspondence/ThreadWorkspace.tsx | 71 |
 | pages/delegation/DelegationRules | New Role Transfer | workflow_management.manage_config | Yes | src/pages/delegation/DelegationRules.tsx | 332 |
-| pages/enforcement/EnforcementWorkQueue | Include closed | enforcement_management.edit | Yes | src/pages/enforcement/EnforcementWorkQueue.tsx | 175 |
-| pages/enforcement/EnforcementWorkQueue | Clear filters | — | Yes | src/pages/enforcement/EnforcementWorkQueue.tsx | 179 |
-| pages/enforcement/EnforcementWorkQueue | Previous | — | Yes | src/pages/enforcement/EnforcementWorkQueue.tsx | 280 |
-| pages/enforcement/EnforcementWorkQueue | Next | — | Yes | src/pages/enforcement/EnforcementWorkQueue.tsx | 281 |
-| pages/enforcement/EnforcementWorkspace | Back to the enforcement queue | — | Yes | src/pages/enforcement/EnforcementWorkspace.tsx | 213 |
-| pages/enforcement/EnforcementWorkspace | Enforcement queue | — | Yes | src/pages/enforcement/EnforcementWorkspace.tsx | 235 |
-| pages/enforcement/EnforcementWorkspace | Cancel | — | Yes | src/pages/enforcement/EnforcementWorkspace.tsx | 731 |
-| pages/enforcement/EnforcementWorkspace | Confirm | — | Yes | src/pages/enforcement/EnforcementWorkspace.tsx | 732 |
-| pages/entities/Entity360Detail | Return to current state | — | Yes | src/pages/entities/Entity360Detail.tsx | 161 |
-| pages/entities/EntityDirectory | Search registry | — | Yes | src/pages/entities/EntityDirectory.tsx | 237 |
-| pages/entities/EntityDirectory | Clear | — | Yes | src/pages/entities/EntityDirectory.tsx | 241 |
-| pages/entities/EntityStructureHub | Entity 360 | — | Yes | src/pages/entities/EntityStructureHub.tsx | 119 |
-| pages/entities/EntityStructureHub | Start request | licensee_management.edit | Yes | src/pages/entities/EntityStructureHub.tsx | 333 |
-| pages/entities/EntityStructureHub | transition.mutate( , )} >Approve | licensee_management.edit | Yes | src/pages/entities/EntityStructureHub.tsx | 408 |
-| pages/entities/EntityStructureHub | transition.mutate( , )} >Reject | licensee_management.edit | Yes | src/pages/entities/EntityStructureHub.tsx | 414 |
-| pages/entities/EntityStructureHub | Apply | — | Yes | src/pages/entities/EntityStructureHub.tsx | 423 |
+| pages/documents/DocumentDetail | Back to Document Register | document_management.edit_metadata | Yes | src/pages/documents/DocumentDetail.tsx | 152 |
+| pages/documents/DocumentDetail | Register | document_management.edit_metadata | Yes | src/pages/documents/DocumentDetail.tsx | 168 |
+| pages/documents/DocumentDetail | Edit details | document_management.edit_metadata | Yes | src/pages/documents/DocumentDetail.tsx | 172 |
+| pages/documents/DocumentDetail | Classify | document_management.classify | Yes | src/pages/documents/DocumentDetail.tsx | 177 |
+| pages/documents/DocumentDetail | Verify | document_management.verify | Yes | src/pages/documents/DocumentDetail.tsx | 182 |
+| pages/documents/DocumentDetail | Acceptance | document_management.accept | Yes | src/pages/documents/DocumentDetail.tsx | 192 |
+| pages/documents/DocumentDetail | Link record | document_management.link_record | Yes | src/pages/documents/DocumentDetail.tsx | 203 |
+| pages/documents/DocumentDetail | Restore | document_management.restore | Yes | src/pages/documents/DocumentDetail.tsx | 209 |
+| pages/documents/DocumentDetail | Archive | document_management.archive | Yes | src/pages/documents/DocumentDetail.tsx | 222 |
+| pages/documents/DocumentDetail | Delete | document_management.delete | Yes | src/pages/documents/DocumentDetail.tsx | 237 |
+| pages/documents/DocumentRegister | Retry entity filing | document_management.bulk_manage | Yes | src/pages/documents/DocumentRegister.tsx | 232 |
+| pages/enforcement/EnforcementWorkQueue | Include closed | enforcement_management.edit | Yes | src/pages/enforcement/EnforcementWorkQueue.tsx | 179 |
+| pages/enforcement/EnforcementWorkQueue | Clear filters | — | Yes | src/pages/enforcement/EnforcementWorkQueue.tsx | 183 |
+| pages/enforcement/EnforcementWorkQueue | Previous | — | Yes | src/pages/enforcement/EnforcementWorkQueue.tsx | 284 |
+| pages/enforcement/EnforcementWorkQueue | Next | — | Yes | src/pages/enforcement/EnforcementWorkQueue.tsx | 285 |
+| pages/enforcement/EnforcementWorkspace | Back to the enforcement queue | — | Yes | src/pages/enforcement/EnforcementWorkspace.tsx | 235 |
+| pages/enforcement/EnforcementWorkspace | Enforcement queue | — | Yes | src/pages/enforcement/EnforcementWorkspace.tsx | 257 |
+| pages/enforcement/EnforcementWorkspace | Cancel | — | Yes | src/pages/enforcement/EnforcementWorkspace.tsx | 802 |
+| pages/enforcement/EnforcementWorkspace | Confirm | — | Yes | src/pages/enforcement/EnforcementWorkspace.tsx | 803 |
+| pages/entities/Entity360Detail | Return to current state | — | Yes | src/pages/entities/Entity360Detail.tsx | 184 |
+| pages/entities/EntityDirectory | Search registry | — | Yes | src/pages/entities/EntityDirectory.tsx | 256 |
+| pages/entities/EntityDirectory | Clear | — | Yes | src/pages/entities/EntityDirectory.tsx | 260 |
+| pages/entities/EntityStructureHub | Entity 360 | — | Yes | src/pages/entities/EntityStructureHub.tsx | 121 |
+| pages/entities/EntityStructureHub | Start request | licensee_management.edit | Yes | src/pages/entities/EntityStructureHub.tsx | 346 |
+| pages/entities/EntityStructureHub | transition.mutate( , )} >Approve | licensee_management.edit | Yes | src/pages/entities/EntityStructureHub.tsx | 421 |
+| pages/entities/EntityStructureHub | transition.mutate( , )} >Reject | licensee_management.edit | Yes | src/pages/entities/EntityStructureHub.tsx | 427 |
+| pages/entities/EntityStructureHub | Apply | — | Yes | src/pages/entities/EntityStructureHub.tsx | 436 |
 | pages/entity/complaint-rfis/MyComplaintRfis | Submit for review | complaint_management.submit | Yes | src/pages/entity/complaint-rfis/MyComplaintRfis.tsx | 160 |
 | pages/entity/complaint-rfis/MyComplaintRfis | Attach document | complaint_management.edit | Yes | src/pages/entity/complaint-rfis/MyComplaintRfis.tsx | 288 |
 | pages/entity/complaint-rfis/MyComplaintRfis | Attach document (optional) | complaint_management.edit | Yes | src/pages/entity/complaint-rfis/MyComplaintRfis.tsx | 310 |
@@ -1496,15 +1606,15 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/entity/MySupervisoryActions | Submit response | licensee_management.edit | Yes | src/pages/entity/MySupervisoryActions.tsx | 65 |
 | pages/entity/MySupervisoryActions | Cancel | licensee_management.edit | Yes | src/pages/entity/MySupervisoryActions.tsx | 78 |
 | pages/entity/MySupervisoryActions | Respond | licensee_management.edit | Yes | src/pages/entity/MySupervisoryActions.tsx | 82 |
-| pages/entity/returns/canonical/EntityFilingWorkspace | Validate | returns_management.edit | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 145 |
-| pages/entity/returns/canonical/EntityFilingWorkspace | Review &amp; submit | returns_management.submit | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 149 |
-| pages/entity/returns/canonical/EntityFilingWorkspace | . {status === 'issue' && ( )} | returns_management.submit | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 230 |
-| pages/entity/returns/canonical/EntityFilingWorkspace | Review &amp; submit | returns_management.submit | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 252 |
-| pages/entity/returns/canonical/EntityFilingWorkspace | Previous form | — | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 293 |
-| pages/entity/returns/canonical/EntityFilingWorkspace | Open form | — | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 347 |
-| pages/entity/returns/canonical/EntityFilingWorkspace | Validate return | returns_management.edit | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 428 |
-| pages/entity/returns/canonical/EntityFilingWorkspace | Submit return | returns_management.submit | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 432 |
-| pages/entity/returns/canonical/EntityFilingWorkspace | Submit response | returns_management.submit | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 538 |
+| pages/entity/returns/canonical/EntityFilingWorkspace | Validate | returns_management.edit | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 148 |
+| pages/entity/returns/canonical/EntityFilingWorkspace | Review &amp; submit | returns_management.submit | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 152 |
+| pages/entity/returns/canonical/EntityFilingWorkspace | . {status === 'issue' && ( )} | returns_management.submit | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 273 |
+| pages/entity/returns/canonical/EntityFilingWorkspace | Review &amp; submit | returns_management.submit | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 295 |
+| pages/entity/returns/canonical/EntityFilingWorkspace | Previous form | — | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 336 |
+| pages/entity/returns/canonical/EntityFilingWorkspace | Open form | — | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 390 |
+| pages/entity/returns/canonical/EntityFilingWorkspace | Validate return | returns_management.edit | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 471 |
+| pages/entity/returns/canonical/EntityFilingWorkspace | Submit return | returns_management.submit | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 475 |
+| pages/entity/returns/canonical/EntityFilingWorkspace | Submit response | returns_management.submit | Yes | src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx | 581 |
 | pages/entity/returns/canonical/EntityReturnsWorkspace | New Return | returns_management.create | Yes | src/pages/entity/returns/canonical/EntityReturnsWorkspace.tsx | 128 |
 | pages/entity/returns/canonical/EntityReturnsWorkspace | New Return | returns_management.create | Yes | src/pages/entity/returns/canonical/EntityReturnsWorkspace.tsx | 177 |
 | pages/entity/returns/canonical/EntityReturnsWorkspace | Open | — | Yes | src/pages/entity/returns/canonical/EntityReturnsWorkspace.tsx | 280 |
@@ -1514,9 +1624,6 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/entity/returns/CreateReturnPage | Back | — | Yes | src/pages/entity/returns/CreateReturnPage.tsx | 382 |
 | pages/entity/returns/EntityReturnsDashboard | Go to Returns workspace | returns_management.create | Yes | src/pages/entity/returns/EntityReturnsDashboard.tsx | 66 |
 | pages/entity/returns/EntityReturnsDashboard | New Return | returns_management.create | Yes | src/pages/entity/returns/EntityReturnsDashboard.tsx | 69 |
-| pages/entity/returns/FillReturnPage | Previous | returns_management.edit | Yes | src/pages/entity/returns/FillReturnPage.tsx | 903 |
-| pages/entity/returns/FillReturnPage | Next | returns_management.edit | Yes | src/pages/entity/returns/FillReturnPage.tsx | 908 |
-| pages/entity/returns/FillReturnPage | Review &amp; Submit | returns_management.edit | Yes | src/pages/entity/returns/FillReturnPage.tsx | 913 |
 | pages/entity/returns/MyReturnsPage | Create New Return | returns_management.create | Yes | src/pages/entity/returns/MyReturnsPage.tsx | 45 |
 | pages/entity/returns/ViewReturnPage | Edit & Resubmit | returns_management.edit | Yes | src/pages/entity/returns/ViewReturnPage.tsx | 279 |
 | pages/entity/returns/ViewReturnPage | Request Edit | returns_management.edit | Yes | src/pages/entity/returns/ViewReturnPage.tsx | 282 |
@@ -1669,11 +1776,11 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/fpa/FpaSectorRules | Clear filters | — | Yes | src/pages/fpa/FpaSectorRules.tsx | 653 |
 | pages/fpa/FpaSectorRules | Edit | fit_and_proper.edit | Yes | src/pages/fpa/FpaSectorRules.tsx | 762 |
 | pages/fpa/FpaTrends | Export MI Summary | fit_and_proper.export | Yes | src/pages/fpa/FpaTrends.tsx | 455 |
-| pages/governance/ai/AiActivityDetail | Back to the activity register | — | Yes | src/pages/governance/ai/AiActivityDetail.tsx | 65 |
-| pages/governance/ai/AiActivityDetail | Activity register | — | Yes | src/pages/governance/ai/AiActivityDetail.tsx | 74 |
-| pages/governance/ai/AiActivityDetail | Open Conduct 360 for this entity | — | Yes | src/pages/governance/ai/AiActivityDetail.tsx | 96 |
-| pages/governance/ai/AiActivityDetail | Start assurance review | ai_management.edit | Yes | src/pages/governance/ai/AiActivityDetail.tsx | 260 |
-| pages/governance/ai/AiActivityDetail | Open review | — | Yes | src/pages/governance/ai/AiActivityDetail.tsx | 277 |
+| pages/governance/ai/AiActivityDetail | Back to the activity register | — | Yes | src/pages/governance/ai/AiActivityDetail.tsx | 66 |
+| pages/governance/ai/AiActivityDetail | Activity register | — | Yes | src/pages/governance/ai/AiActivityDetail.tsx | 75 |
+| pages/governance/ai/AiActivityDetail | Open Conduct 360 for this entity | — | Yes | src/pages/governance/ai/AiActivityDetail.tsx | 97 |
+| pages/governance/ai/AiActivityDetail | Start assurance review | ai_management.edit | Yes | src/pages/governance/ai/AiActivityDetail.tsx | 272 |
+| pages/governance/ai/AiActivityDetail | Open review | — | Yes | src/pages/governance/ai/AiActivityDetail.tsx | 289 |
 | pages/governance/ai/AiActivityRegister | Open Conduct 360 | — | Yes | src/pages/governance/ai/AiActivityRegister.tsx | 85 |
 | pages/governance/ai/AiActivityRegister | Previous | — | Yes | src/pages/governance/ai/AiActivityRegister.tsx | 178 |
 | pages/governance/ai/AiActivityRegister | Next | — | Yes | src/pages/governance/ai/AiActivityRegister.tsx | 179 |
@@ -1688,29 +1795,32 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/governance/ai/AiAssuranceDetail | conclude.mutate( )} > Conclude review | ai_management.approve | Yes | src/pages/governance/ai/AiAssuranceDetail.tsx | 314 |
 | pages/governance/ai/AiExceptions | Open | ai_management.edit | Yes | src/pages/governance/ai/AiExceptions.tsx | 153 |
 | pages/governance/ai/AiExceptions | Start assurance | ai_management.edit | Yes | src/pages/governance/ai/AiExceptions.tsx | 157 |
-| pages/governance/ai/AiGovernanceOverview | AI activity register | — | Yes | src/pages/governance/ai/AiGovernanceOverview.tsx | 122 |
-| pages/governance/ai/AiGovernanceOverview | Cancel | — | Yes | src/pages/governance/ai/AiGovernanceOverview.tsx | 273 |
+| pages/governance/ai/AiGovernanceOverview | AI activity register | — | Yes | src/pages/governance/ai/AiGovernanceOverview.tsx | 136 |
+| pages/governance/ai/AiGovernanceOverview | Cancel | — | Yes | src/pages/governance/ai/AiGovernanceOverview.tsx | 290 |
 | pages/governance/ai/AiInstructions | Register an instruction version | ai_management.edit | Yes | src/pages/governance/ai/AiInstructions.tsx | 84 |
 | pages/governance/ai/AiInstructions | Full instruction as held on the server | ai_management.create | Yes | src/pages/governance/ai/AiInstructions.tsx | 162 |
 | pages/governance/ai/AiInstructions | Create new version | ai_management.create | Yes | src/pages/governance/ai/AiInstructions.tsx | 188 |
 | pages/governance/ai/AiInstructions | Edit draft | ai_management.edit | Yes | src/pages/governance/ai/AiInstructions.tsx | 191 |
 | pages/governance/ai/AiInstructions | Cancel | ai_management.edit | Yes | src/pages/governance/ai/AiInstructions.tsx | 272 |
 | pages/governance/ai/AiInstructions | Save as draft | ai_management.edit | Yes | src/pages/governance/ai/AiInstructions.tsx | 273 |
-| pages/governance/ai/AiModels | Register a model version | ai_management.edit | Yes | src/pages/governance/ai/AiModels.tsx | 87 |
-| pages/governance/ai/AiModels | Create new version | ai_management.create | Yes | src/pages/governance/ai/AiModels.tsx | 168 |
-| pages/governance/ai/AiModels | Edit draft | ai_management.edit | Yes | src/pages/governance/ai/AiModels.tsx | 171 |
-| pages/governance/ai/AiModels | Cancel | ai_management.edit | Yes | src/pages/governance/ai/AiModels.tsx | 247 |
-| pages/governance/ai/AiModels | Save as draft | ai_management.edit | Yes | src/pages/governance/ai/AiModels.tsx | 248 |
+| pages/governance/ai/AiModels | Register a model version | ai_management.edit | Yes | src/pages/governance/ai/AiModels.tsx | 97 |
+| pages/governance/ai/AiModels | Create new version | ai_management.create | Yes | src/pages/governance/ai/AiModels.tsx | 187 |
+| pages/governance/ai/AiModels | Edit draft | ai_management.edit | Yes | src/pages/governance/ai/AiModels.tsx | 190 |
+| pages/governance/ai/AiModels | Cancel | ai_management.edit | Yes | src/pages/governance/ai/AiModels.tsx | 285 |
+| pages/governance/ai/AiModels | Save as draft | ai_management.edit | Yes | src/pages/governance/ai/AiModels.tsx | 286 |
 | pages/governance/ai/AiSurfaces | { setTarget( ); setReason(''); }}> Reinstate | ai_management.edit | Yes | src/pages/governance/ai/AiSurfaces.tsx | 115 |
 | pages/governance/ai/AiSurfaces | { setTarget( ); setReason(''); }}> Suspend | ai_management.edit | Yes | src/pages/governance/ai/AiSurfaces.tsx | 120 |
 | pages/governance/ai/AiSurfaces | Cancel | ai_management.edit | Yes | src/pages/governance/ai/AiSurfaces.tsx | 159 |
 | pages/governance/ai/AiSurfaces | Record decision | ai_management.edit | Yes | src/pages/governance/ai/AiSurfaces.tsx | 160 |
 | pages/governance/ai/AiUseCaseDetail | Back to capabilities | — | Yes | src/pages/governance/ai/AiUseCaseDetail.tsx | 56 |
 | pages/governance/ai/AiUseCaseDetail | All capabilities | — | Yes | src/pages/governance/ai/AiUseCaseDetail.tsx | 65 |
-| pages/governance/ai/AiUseCaseDetail | Open model register | — | Yes | src/pages/governance/ai/AiUseCaseDetail.tsx | 150 |
-| pages/governance/ai/AiUseCaseDetail | Open instruction register | — | Yes | src/pages/governance/ai/AiUseCaseDetail.tsx | 171 |
-| pages/governance/ai/AiUseCaseDetail | Open | — | Yes | src/pages/governance/ai/AiUseCaseDetail.tsx | 219 |
+| pages/governance/ai/AiUseCaseDetail | Open model register | — | Yes | src/pages/governance/ai/AiUseCaseDetail.tsx | 149 |
+| pages/governance/ai/AiUseCaseDetail | Open instruction register | — | Yes | src/pages/governance/ai/AiUseCaseDetail.tsx | 170 |
+| pages/governance/ai/AiUseCaseDetail | Open | — | Yes | src/pages/governance/ai/AiUseCaseDetail.tsx | 218 |
 | pages/governance/ai/AiUseCases | Open | — | Yes | src/pages/governance/ai/AiUseCases.tsx | 105 |
+| pages/help/UserManual | Print / PDF | — | Yes | src/pages/help/UserManual.tsx | 363 |
+| pages/help/UserManual | Previous | — | Yes | src/pages/help/UserManual.tsx | 444 |
+| pages/help/UserManual | Next | — | Yes | src/pages/help/UserManual.tsx | 447 |
 | pages/inspections/InspectionDetail | ← Back to queue | market_conduct.edit | Yes | src/pages/inspections/InspectionDetail.tsx | 205 |
 | pages/inspections/InspectionDetail | ← Queue | market_conduct.edit | Yes | src/pages/inspections/InspectionDetail.tsx | 214 |
 | pages/inspections/InspectionDetail | Edit | market_conduct.edit | Yes | src/pages/inspections/InspectionDetail.tsx | 221 |
@@ -1724,13 +1834,15 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/inspections/InspectionsCalendar | Today | — | Yes | src/pages/inspections/InspectionsCalendar.tsx | 81 |
 | pages/inspections/InspectionsList | Calendar | — | Yes | src/pages/inspections/InspectionsList.tsx | 100 |
 | pages/inspections/InspectionsList | Open | — | Yes | src/pages/inspections/InspectionsList.tsx | 156 |
-| pages/licenses/LicenseDetail | Download Certificate | license_management.view | Yes | src/pages/licenses/LicenseDetail.tsx | 660 |
-| pages/licenses/LicenseDetail | Renewal in progress | license_management.view | Yes | src/pages/licenses/LicenseDetail.tsx | 752 |
-| pages/licenses/LicenseDetail | Continue Renewal | license_management.view | Yes | src/pages/licenses/LicenseDetail.tsx | 757 |
-| pages/licenses/LicenseDetail | Renewal in progress | license_management.view | Yes | src/pages/licenses/LicenseDetail.tsx | 781 |
-| pages/licenses/LicenseDetail | Continue Renewal | license_management.view | Yes | src/pages/licenses/LicenseDetail.tsx | 785 |
-| pages/licenses/LicenseDetail | Renew License | license_management.edit | Yes | src/pages/licenses/LicenseDetail.tsx | 789 |
-| pages/licenses/LicenseDetail | View submitted form | — | Yes | src/pages/licenses/LicenseDetail.tsx | 828 |
+| pages/intelligence/RelationshipIntelligenceSearch | Search | — | Yes | src/pages/intelligence/RelationshipIntelligenceSearch.tsx | 113 |
+| pages/intelligence/RelationshipIntelligenceSearch | Run projection sweep | entity_structure.apply | Yes | src/pages/intelligence/RelationshipIntelligenceSearch.tsx | 181 |
+| pages/licenses/LicenseDetail | Download Certificate | license_management.view | Yes | src/pages/licenses/LicenseDetail.tsx | 653 |
+| pages/licenses/LicenseDetail | Renewal in progress | license_management.view | Yes | src/pages/licenses/LicenseDetail.tsx | 745 |
+| pages/licenses/LicenseDetail | Continue Renewal | license_management.view | Yes | src/pages/licenses/LicenseDetail.tsx | 750 |
+| pages/licenses/LicenseDetail | Renewal in progress | license_management.view | Yes | src/pages/licenses/LicenseDetail.tsx | 774 |
+| pages/licenses/LicenseDetail | Continue Renewal | license_management.view | Yes | src/pages/licenses/LicenseDetail.tsx | 778 |
+| pages/licenses/LicenseDetail | Renew License | license_management.edit | Yes | src/pages/licenses/LicenseDetail.tsx | 782 |
+| pages/licenses/LicenseDetail | View submitted form | — | Yes | src/pages/licenses/LicenseDetail.tsx | 821 |
 | pages/licenses/LicenseLifecycleQueue | Previous | — | Yes | src/pages/licenses/LicenseLifecycleQueue.tsx | 149 |
 | pages/licenses/LicenseLifecycleQueue | Next | — | Yes | src/pages/licenses/LicenseLifecycleQueue.tsx | 152 |
 | pages/licenses/LicensesList | Clear filter | — | Yes | src/pages/licenses/LicensesList.tsx | 249 |
@@ -1754,26 +1866,25 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/Login | Resend code | — | Yes | src/pages/Login.tsx | 185 |
 | pages/Login | Cancel and sign out | — | Yes | src/pages/Login.tsx | 195 |
 | pages/MailSms | Send Message | notification_management.dispatch | Yes | src/pages/MailSms.tsx | 70 |
-| pages/MyWork | All | — | Yes | src/pages/MyWork.tsx | 76 |
-| pages/NewApplication | Go to My Applications | — | Yes | src/pages/NewApplication.tsx | 1766 |
-| pages/NewApplication | Back | — | Yes | src/pages/NewApplication.tsx | 1769 |
-| pages/NewApplication | Proceed to Forms | — | Yes | src/pages/NewApplication.tsx | 1962 |
-| pages/NewApplication | Review Entered Data | — | Yes | src/pages/NewApplication.tsx | 2049 |
-| pages/NewApplication | Close Review | application_management.edit | Yes | src/pages/NewApplication.tsx | 2086 |
-| pages/NewApplication | Back | application_management.create | Yes | src/pages/NewApplication.tsx | 2093 |
-| pages/NewApplication | {allFormsCompleted ? 'Continue' : `Complete all forms ($ /$ )`} | application_management.create | Yes | src/pages/NewApplication.tsx | 2096 |
-| pages/NewApplication | Back to Forms | — | Yes | src/pages/NewApplication.tsx | 2182 |
-| pages/NewApplication | Back to Forms | — | Yes | src/pages/NewApplication.tsx | 2202 |
-| pages/NewApplication | Back to Forms | — | Yes | src/pages/NewApplication.tsx | 2248 |
-| pages/NewApplication | Continue to Review | — | Yes | src/pages/NewApplication.tsx | 2251 |
-| pages/NewApplication | Retry Payment | — | Yes | src/pages/NewApplication.tsx | 2412 |
-| pages/NewApplication | Back to Review | — | Yes | src/pages/NewApplication.tsx | 2421 |
-| pages/NewApplication | Back to Documents | — | Yes | src/pages/NewApplication.tsx | 2512 |
-| pages/NewApplication | Continue to Payment | — | Yes | src/pages/NewApplication.tsx | 2516 |
-| pages/NewPostLicenseApplication | View my applications | — | Yes | src/pages/NewPostLicenseApplication.tsx | 248 |
-| pages/NewPostLicenseApplication | View my licences | — | Yes | src/pages/NewPostLicenseApplication.tsx | 249 |
-| pages/NewPostLicenseApplication | Open existing request | — | Yes | src/pages/NewPostLicenseApplication.tsx | 349 |
-| pages/NewPostLicenseApplication | Proceed to Application | — | Yes | src/pages/NewPostLicenseApplication.tsx | 357 |
+| pages/NewApplication | Go to My Applications | — | Yes | src/pages/NewApplication.tsx | 1861 |
+| pages/NewApplication | Back | — | Yes | src/pages/NewApplication.tsx | 1864 |
+| pages/NewApplication | Proceed to Forms | — | Yes | src/pages/NewApplication.tsx | 2068 |
+| pages/NewApplication | Review Entered Data | — | Yes | src/pages/NewApplication.tsx | 2155 |
+| pages/NewApplication | Close Review | application_management.edit | Yes | src/pages/NewApplication.tsx | 2192 |
+| pages/NewApplication | Back | application_management.create | Yes | src/pages/NewApplication.tsx | 2199 |
+| pages/NewApplication | {allFormsCompleted ? 'Continue' : `Complete all forms ($ /$ )`} | application_management.create | Yes | src/pages/NewApplication.tsx | 2202 |
+| pages/NewApplication | Back to Forms | — | Yes | src/pages/NewApplication.tsx | 2288 |
+| pages/NewApplication | Back to Forms | — | Yes | src/pages/NewApplication.tsx | 2308 |
+| pages/NewApplication | Back to Forms | — | Yes | src/pages/NewApplication.tsx | 2354 |
+| pages/NewApplication | Continue to Review | — | Yes | src/pages/NewApplication.tsx | 2357 |
+| pages/NewApplication | Retry Payment | — | Yes | src/pages/NewApplication.tsx | 2518 |
+| pages/NewApplication | Back to Review | — | Yes | src/pages/NewApplication.tsx | 2527 |
+| pages/NewApplication | Back to Documents | — | Yes | src/pages/NewApplication.tsx | 2618 |
+| pages/NewApplication | Continue to Payment | — | Yes | src/pages/NewApplication.tsx | 2622 |
+| pages/NewPostLicenseApplication | View my applications | — | Yes | src/pages/NewPostLicenseApplication.tsx | 278 |
+| pages/NewPostLicenseApplication | View my licences | — | Yes | src/pages/NewPostLicenseApplication.tsx | 279 |
+| pages/NewPostLicenseApplication | Open existing request | — | Yes | src/pages/NewPostLicenseApplication.tsx | 379 |
+| pages/NewPostLicenseApplication | Proceed to Application | — | Yes | src/pages/NewPostLicenseApplication.tsx | 387 |
 | pages/notifications/NotificationCenter | Export | — | Yes | src/pages/notifications/NotificationCenter.tsx | 166 |
 | pages/notifications/NotificationCenter | Refresh | — | Yes | src/pages/notifications/NotificationCenter.tsx | 169 |
 | pages/notifications/NotificationCenter | Mark all read | — | Yes | src/pages/notifications/NotificationCenter.tsx | 173 |
@@ -1784,7 +1895,10 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/notifications/NotificationCenter | Try again | — | Yes | src/pages/notifications/NotificationCenter.tsx | 324 |
 | pages/notifications/NotificationCenter | Clear filters | — | Yes | src/pages/notifications/NotificationCenter.tsx | 338 |
 | pages/notifications/NotificationCenter | Load more | — | Yes | src/pages/notifications/NotificationCenter.tsx | 427 |
-| pages/payments/PaymentHistory | View | — | Yes | src/pages/payments/PaymentHistory.tsx | 435 |
+| pages/payments/PaymentHistory | View | — | Yes | src/pages/payments/PaymentHistory.tsx | 436 |
+| pages/persons/PersonIdentityQueue | setTarget(r)} > Resolve | licensee_management.edit | Yes | src/pages/persons/PersonIdentityQueue.tsx | 141 |
+| pages/persons/PersonIdentityQueue | Cancel | licensee_management.edit | Yes | src/pages/persons/PersonIdentityQueue.tsx | 191 |
+| pages/persons/PersonIdentityQueue | Confirm link | licensee_management.edit | Yes | src/pages/persons/PersonIdentityQueue.tsx | 192 |
 | pages/PostLicenseApplicationForms | Review Entered Data | application_management.edit | Yes | src/pages/PostLicenseApplicationForms.tsx | 629 |
 | pages/PostLicenseApplicationForms | Review Application | application_management.edit | Yes | src/pages/PostLicenseApplicationForms.tsx | 637 |
 | pages/PostLicenseApplicationForms | Back to Forms | — | Yes | src/pages/PostLicenseApplicationForms.tsx | 684 |
@@ -1811,24 +1925,26 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/prudential/EscalationsList | Review | prudential_supervision.view | Yes | src/pages/prudential/EscalationsList.tsx | 96 |
 | pages/prudential/EscalationsList | Resolve | prudential_supervision.edit | Yes | src/pages/prudential/EscalationsList.tsx | 98 |
 | pages/prudential/EscalationsList | Back | — | Yes | src/pages/prudential/EscalationsList.tsx | 120 |
-| pages/prudential/ExaminationsList | New examination | prudential_supervision.create | Yes | src/pages/prudential/ExaminationsList.tsx | 98 |
-| pages/prudential/ExaminationWorkspace | Examinations | — | Yes | src/pages/prudential/ExaminationWorkspace.tsx | 249 |
-| pages/prudential/ExaminationWorkspace | Open | — | Yes | src/pages/prudential/ExaminationWorkspace.tsx | 468 |
-| pages/prudential/FinancialGroupProfile | All groups | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 123 |
-| pages/prudential/FinancialGroupProfile | Recompute | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 147 |
-| pages/prudential/FinancialGroupProfile | Refresh | — | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 156 |
-| pages/prudential/FinancialGroupProfile | Add member | prudential_supervision.create | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 227 |
-| pages/prudential/FinancialGroupProfile | Methodology | — | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 257 |
-| pages/prudential/FinancialGroupProfile | Record exposure | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 288 |
-| pages/prudential/FinancialGroupProfile | Edit | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 332 |
-| pages/prudential/FinancialGroupProfile | } > Remove | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 496 |
-| pages/prudential/FinancialGroupProfile | Cancel | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 504 |
-| pages/prudential/FinancialGroupProfile | Save | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 505 |
-| pages/prudential/FinancialGroupProfile | Cancel | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 585 |
-| pages/prudential/FinancialGroupProfile | Save | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 586 |
-| pages/prudential/FinancialGroupProfile | Cancel | — | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 686 |
-| pages/prudential/FinancialGroupsList | New group | prudential_supervision.create | Yes | src/pages/prudential/FinancialGroupsList.tsx | 59 |
-| pages/prudential/FinancialGroupsList | Cancel | — | Yes | src/pages/prudential/FinancialGroupsList.tsx | 78 |
+| pages/prudential/ExaminationsList | New examination | prudential_supervision.create | Yes | src/pages/prudential/ExaminationsList.tsx | 99 |
+| pages/prudential/ExaminationWorkspace | Examinations | — | Yes | src/pages/prudential/ExaminationWorkspace.tsx | 269 |
+| pages/prudential/ExaminationWorkspace | Open | — | Yes | src/pages/prudential/ExaminationWorkspace.tsx | 488 |
+| pages/prudential/FinancialGroupProfile | All groups | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 120 |
+| pages/prudential/FinancialGroupProfile | Recompute | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 144 |
+| pages/prudential/FinancialGroupProfile | Edit group | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 154 |
+| pages/prudential/FinancialGroupProfile | Refresh | — | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 164 |
+| pages/prudential/FinancialGroupProfile | Add member | prudential_supervision.create | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 235 |
+| pages/prudential/FinancialGroupProfile | Methodology | — | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 269 |
+| pages/prudential/FinancialGroupProfile | Record exposure | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 300 |
+| pages/prudential/FinancialGroupProfile | Edit | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 344 |
+| pages/prudential/FinancialGroupProfile | } > Remove | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 441 |
+| pages/prudential/FinancialGroupProfile | Cancel | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 449 |
+| pages/prudential/FinancialGroupProfile | Save | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 450 |
+| pages/prudential/FinancialGroupProfile | Cancel | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 538 |
+| pages/prudential/FinancialGroupProfile | Save | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 539 |
+| pages/prudential/FinancialGroupProfile | Cancel | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 624 |
+| pages/prudential/FinancialGroupProfile | Save | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 625 |
+| pages/prudential/FinancialGroupProfile | Cancel | prudential_supervision.edit | Yes | src/pages/prudential/FinancialGroupProfile.tsx | 696 |
+| pages/prudential/FinancialGroupsList | New group | prudential_supervision.create | Yes | src/pages/prudential/FinancialGroupsList.tsx | 43 |
 | pages/prudential/PaymentOperatorProfile | Oversight | prudential_supervision.edit | Yes | src/pages/prudential/PaymentOperatorProfile.tsx | 62 |
 | pages/prudential/PaymentOperatorProfile | Edit | prudential_supervision.edit | Yes | src/pages/prudential/PaymentOperatorProfile.tsx | 80 |
 | pages/prudential/PaymentOperatorProfile | Start PFMI assessment | prudential_supervision.create | Yes | src/pages/prudential/PaymentOperatorProfile.tsx | 83 |
@@ -1837,17 +1953,17 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/prudential/PfmiAssessmentWizard | Previous | prudential_supervision.edit | Yes | src/pages/prudential/PfmiAssessmentWizard.tsx | 196 |
 | pages/prudential/PfmiAssessmentWizard | Save &amp; next | prudential_supervision.edit | Yes | src/pages/prudential/PfmiAssessmentWizard.tsx | 200 |
 | pages/prudential/PrudentialDashboard | Open work queue | — | Yes | src/pages/prudential/PrudentialDashboard.tsx | 61 |
-| pages/prudential/PrudentialEntityProfile | Back to Entities | prudential_supervision.export | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 275 |
-| pages/prudential/PrudentialEntityProfile | Open Entity 360 | prudential_supervision.export | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 292 |
-| pages/prudential/PrudentialEntityProfile | Open work queue | prudential_supervision.export | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 295 |
-| pages/prudential/PrudentialEntityProfile | Export | prudential_supervision.export | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 298 |
-| pages/prudential/PrudentialEntityProfile | History | — | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 299 |
-| pages/prudential/PrudentialEntityProfile | Evaluate stress | prudential_supervision.edit | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 466 |
-| pages/prudential/PrudentialEntityProfile | All | — | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 564 |
-| pages/prudential/PrudentialEntityProfile | None | — | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 565 |
-| pages/prudential/PrudentialEntityProfile | Create action | prudential_supervision.create | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 705 |
-| pages/prudential/PrudentialEntityProfile | Escalate | prudential_supervision.edit | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 711 |
-| pages/prudential/PrudentialEntityProfile | Open return | — | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 952 |
+| pages/prudential/PrudentialEntityProfile | Back to Entities | prudential_supervision.export | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 287 |
+| pages/prudential/PrudentialEntityProfile | Open Entity 360 | prudential_supervision.export | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 304 |
+| pages/prudential/PrudentialEntityProfile | Open work queue | prudential_supervision.export | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 307 |
+| pages/prudential/PrudentialEntityProfile | Export | prudential_supervision.export | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 310 |
+| pages/prudential/PrudentialEntityProfile | History | — | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 311 |
+| pages/prudential/PrudentialEntityProfile | Evaluate stress | prudential_supervision.edit | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 478 |
+| pages/prudential/PrudentialEntityProfile | All | — | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 576 |
+| pages/prudential/PrudentialEntityProfile | None | — | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 577 |
+| pages/prudential/PrudentialEntityProfile | Create action | prudential_supervision.create | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 717 |
+| pages/prudential/PrudentialEntityProfile | Escalate | prudential_supervision.edit | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 723 |
+| pages/prudential/PrudentialEntityProfile | Open return | — | Yes | src/pages/prudential/PrudentialEntityProfile.tsx | 964 |
 | pages/prudential/PrudentialTaxonomyAdmin | New category | prudential_supervision.edit | Yes | src/pages/prudential/PrudentialTaxonomyAdmin.tsx | 56 |
 | pages/prudential/PrudentialTaxonomyAdmin | Cancel | — | Yes | src/pages/prudential/PrudentialTaxonomyAdmin.tsx | 90 |
 | pages/prudential/PrudentialTaxonomyAdmin | Edit | prudential_supervision.edit | Yes | src/pages/prudential/PrudentialTaxonomyAdmin.tsx | 115 |
@@ -1875,8 +1991,8 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/public/LicenseeServices | Guidance | — | Yes | src/pages/public/LicenseeServices.tsx | 149 |
 | pages/public/LicenseeServices | Help / Contact | — | Yes | src/pages/public/LicenseeServices.tsx | 150 |
 | pages/public/PublicComplaintIntake | Already made a complaint? Track it here | — | Yes | src/pages/public/PublicComplaintIntake.tsx | 50 |
-| pages/public/PublicEnforcement | Previous | — | Yes | src/pages/public/PublicEnforcement.tsx | 82 |
-| pages/public/PublicEnforcement | Next | — | Yes | src/pages/public/PublicEnforcement.tsx | 83 |
+| pages/public/PublicEnforcement | Previous | — | Yes | src/pages/public/PublicEnforcement.tsx | 83 |
+| pages/public/PublicEnforcement | Next | — | Yes | src/pages/public/PublicEnforcement.tsx | 84 |
 | pages/public/PublicEntityRegister | Search | — | Yes | src/pages/public/PublicEntityRegister.tsx | 51 |
 | pages/public/PublicEntityRegister | Previous | — | Yes | src/pages/public/PublicEntityRegister.tsx | 110 |
 | pages/public/PublicEntityRegister | Next | — | Yes | src/pages/public/PublicEntityRegister.tsx | 112 |
@@ -1899,12 +2015,12 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/registration/EntityIdentification | Request access to this entity | — | Yes | src/pages/registration/EntityIdentification.tsx | 298 |
 | pages/registration/EntityIdentification | Create provisional entity and request access | — | Yes | src/pages/registration/EntityIdentification.tsx | 306 |
 | pages/registration/EntityIdentification | Change details | — | Yes | src/pages/registration/EntityIdentification.tsx | 321 |
-| pages/registration/PreLicenseeRegistration | Try again | — | Yes | src/pages/registration/PreLicenseeRegistration.tsx | 1368 |
-| pages/registration/PreLicenseeRegistration | Try again | — | Yes | src/pages/registration/PreLicenseeRegistration.tsx | 1393 |
-| pages/registration/PreLicenseeRegistration | Back to Home | — | Yes | src/pages/registration/PreLicenseeRegistration.tsx | 1414 |
-| pages/registration/PreLicenseeRegistration | Refresh | — | Yes | src/pages/registration/PreLicenseeRegistration.tsx | 1415 |
-| pages/registration/PreLicenseeRegistration | Previous | registration_management.create | Yes | src/pages/registration/PreLicenseeRegistration.tsx | 1509 |
-| pages/registration/PreLicenseeRegistration | {submitting ? ( Submitting... ) : ( )} | registration_management.create | Yes | src/pages/registration/PreLicenseeRegistration.tsx | 1528 |
+| pages/registration/PreLicenseeRegistration | Try again | — | Yes | src/pages/registration/PreLicenseeRegistration.tsx | 1376 |
+| pages/registration/PreLicenseeRegistration | Try again | — | Yes | src/pages/registration/PreLicenseeRegistration.tsx | 1401 |
+| pages/registration/PreLicenseeRegistration | Back to Home | — | Yes | src/pages/registration/PreLicenseeRegistration.tsx | 1422 |
+| pages/registration/PreLicenseeRegistration | Refresh | — | Yes | src/pages/registration/PreLicenseeRegistration.tsx | 1423 |
+| pages/registration/PreLicenseeRegistration | Previous | registration_management.create | Yes | src/pages/registration/PreLicenseeRegistration.tsx | 1517 |
+| pages/registration/PreLicenseeRegistration | {submitting ? ( Submitting... ) : ( )} | registration_management.create | Yes | src/pages/registration/PreLicenseeRegistration.tsx | 1536 |
 | pages/registration/RegistrationJourneyChoice | Try again | — | Yes | src/pages/registration/RegistrationJourneyChoice.tsx | 91 |
 | pages/registration/RegistrationJourneyChoice | Sign in | — | Yes | src/pages/registration/RegistrationJourneyChoice.tsx | 94 |
 | pages/registration/RegistrationJourneyChoice | {JOURNEY_CTA[j.key] ?? `Continue — $ `} | — | Yes | src/pages/registration/RegistrationJourneyChoice.tsx | 147 |
@@ -1942,8 +2058,8 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/returns-canonical/EntityPicker | Change entity | — | Yes | src/pages/returns-canonical/EntityPicker.tsx | 35 |
 | pages/returns-canonical/EntityReportingCalendar | Open | returns_management.edit | Yes | src/pages/returns-canonical/EntityReportingCalendar.tsx | 97 |
 | pages/returns-canonical/EntityReportingCalendar | Start filing | returns_management.edit | Yes | src/pages/returns-canonical/EntityReportingCalendar.tsx | 99 |
-| pages/returns-canonical/FilingDetail | runAction( )} > Assign | returns_management.workflow_action | Yes | src/pages/returns-canonical/FilingDetail.tsx | 150 |
-| pages/returns-canonical/FilingDetail | Submit response | returns_management.submit | Yes | src/pages/returns-canonical/FilingDetail.tsx | 432 |
+| pages/returns-canonical/FilingDetail | runAction( )} > Assign | returns_management.workflow_action | Yes | src/pages/returns-canonical/FilingDetail.tsx | 155 |
+| pages/returns-canonical/FilingDetail | Submit response | returns_management.submit | Yes | src/pages/returns-canonical/FilingDetail.tsx | 474 |
 | pages/returns-canonical/RegulatoryMetricsAdmin | New metric | returns_management.create | Yes | src/pages/returns-canonical/RegulatoryMetricsAdmin.tsx | 75 |
 | pages/returns-canonical/RegulatoryMetricsAdmin | Cancel | returns_management.edit | Yes | src/pages/returns-canonical/RegulatoryMetricsAdmin.tsx | 198 |
 | pages/returns-canonical/RegulatoryMetricsAdmin | Save metric | returns_management.edit | Yes | src/pages/returns-canonical/RegulatoryMetricsAdmin.tsx | 199 |
@@ -1972,8 +2088,8 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/returns-mgmt/ReturnDetail | Approve Return | returns_management.approve | Yes | src/pages/returns-mgmt/ReturnDetail.tsx | 868 |
 | pages/returns-mgmt/ReturnDetail | Request Edit | returns_management.workflow_action | Yes | src/pages/returns-mgmt/ReturnDetail.tsx | 878 |
 | pages/returns-mgmt/ReturnGroups | Create Group | returns_management.manage_config | Yes | src/pages/returns-mgmt/ReturnGroups.tsx | 45 |
-| pages/returns-mgmt/ViewReturns | Clear filter | — | Yes | src/pages/returns-mgmt/ViewReturns.tsx | 246 |
-| pages/returns-mgmt/ViewReturns | Export | returns_management.export | Yes | src/pages/returns-mgmt/ViewReturns.tsx | 274 |
+| pages/returns-mgmt/ViewReturns | Clear filter | — | Yes | src/pages/returns-mgmt/ViewReturns.tsx | 258 |
+| pages/returns-mgmt/ViewReturns | Export | returns_management.export | Yes | src/pages/returns-mgmt/ViewReturns.tsx | 286 |
 | pages/Returns | View Calendar | — | Yes | src/pages/Returns.tsx | 144 |
 | pages/Returns | View Overdue | — | Yes | src/pages/Returns.tsx | 189 |
 | pages/Returns | Filters | — | Yes | src/pages/Returns.tsx | 217 |
@@ -1995,14 +2111,18 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/settings/CertificateSignatorySettings | Back | settings.edit | Yes | src/pages/settings/CertificateSignatorySettings.tsx | 212 |
 | pages/settings/CertificateSignatorySettings | Save Changes | settings.edit | Yes | src/pages/settings/CertificateSignatorySettings.tsx | 215 |
 | pages/settings/CertificateSignatorySettings | Remove | settings.edit | Yes | src/pages/settings/CertificateSignatorySettings.tsx | 344 |
+| pages/settings/CurrencySettings | Approve | fee_management.edit | Yes | src/pages/settings/CurrencySettings.tsx | 323 |
+| pages/settings/CurrencySettings | Reject | fee_management.edit | Yes | src/pages/settings/CurrencySettings.tsx | 324 |
+| pages/settings/CurrencySettings | Supersede | fee_management.edit | Yes | src/pages/settings/CurrencySettings.tsx | 328 |
 | pages/settings/DataManagementSettings | Back | settings.edit | Yes | src/pages/settings/DataManagementSettings.tsx | 25 |
 | pages/settings/DataManagementSettings | Save Changes | settings.edit | Yes | src/pages/settings/DataManagementSettings.tsx | 26 |
 | pages/settings/DataManagementSettings | Export Database | settings.export | Yes | src/pages/settings/DataManagementSettings.tsx | 62 |
 | pages/settings/DataManagementSettings | Export Audit Logs | settings.export | Yes | src/pages/settings/DataManagementSettings.tsx | 74 |
 | pages/settings/DataManagementSettings | Purge | settings.edit | Yes | src/pages/settings/DataManagementSettings.tsx | 121 |
-| pages/settings/EmailSmsSettings | Back | settings.edit | Yes | src/pages/settings/EmailSmsSettings.tsx | 140 |
-| pages/settings/EmailSmsSettings | Save Changes | settings.edit | Yes | src/pages/settings/EmailSmsSettings.tsx | 143 |
-| pages/settings/EmailSmsSettings | Send Test Email | settings.edit | Yes | src/pages/settings/EmailSmsSettings.tsx | 251 |
+| pages/settings/EmailSmsSettings | Back | settings.edit | Yes | src/pages/settings/EmailSmsSettings.tsx | 214 |
+| pages/settings/EmailSmsSettings | Save Changes | settings.edit | Yes | src/pages/settings/EmailSmsSettings.tsx | 217 |
+| pages/settings/EmailSmsSettings | Send Test via Resend | settings.edit | Yes | src/pages/settings/EmailSmsSettings.tsx | 342 |
+| pages/settings/EmailSmsSettings | Send Test Email | settings.edit | Yes | src/pages/settings/EmailSmsSettings.tsx | 460 |
 | pages/settings/GeneralSettings | Back | settings.edit | Yes | src/pages/settings/GeneralSettings.tsx | 51 |
 | pages/settings/GeneralSettings | Save Changes | settings.edit | Yes | src/pages/settings/GeneralSettings.tsx | 52 |
 | pages/settings/IntegrationSettings | Back | — | Yes | src/pages/settings/IntegrationSettings.tsx | 259 |
@@ -2032,12 +2152,32 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/settings/SecuritySettings | Save Changes | settings.edit | Yes | src/pages/settings/SecuritySettings.tsx | 23 |
 | pages/StatementReports | Generate Statement | report_management.view | Yes | src/pages/StatementReports.tsx | 27 |
 | pages/StatementReports | PDF | report_management.export | Yes | src/pages/StatementReports.tsx | 73 |
+| pages/supervision/aml/AmlAssessments | Open | — | Yes | src/pages/supervision/aml/AmlAssessments.tsx | 151 |
+| pages/supervision/aml/AmlAssessmentWorkspace | Back to AML/CFT assessments | — | Yes | src/pages/supervision/aml/AmlAssessmentWorkspace.tsx | 140 |
+| pages/supervision/aml/AmlExaminations | Open only | — | Yes | src/pages/supervision/aml/AmlExaminations.tsx | 116 |
+| pages/supervision/aml/AmlExaminations | Open | — | Yes | src/pages/supervision/aml/AmlExaminations.tsx | 235 |
+| pages/supervision/aml/AmlFindings | Assessment | — | Yes | src/pages/supervision/aml/AmlFindings.tsx | 139 |
+| pages/supervision/aml/AmlFindings | Open finding | — | Yes | src/pages/supervision/aml/AmlFindings.tsx | 143 |
+| pages/supervision/aml/AmlOverview | Open | — | Yes | src/pages/supervision/aml/AmlOverview.tsx | 92 |
+| pages/supervision/aml/AmlOverview | My work queue | — | Yes | src/pages/supervision/aml/AmlOverview.tsx | 114 |
+| pages/supervision/aml/AmlOverview | Assessments | — | Yes | src/pages/supervision/aml/AmlOverview.tsx | 117 |
+| pages/supervision/aml/AmlOverview | View all | — | Yes | src/pages/supervision/aml/AmlOverview.tsx | 141 |
+| pages/supervision/aml/AmlSupervisedEntities | Assessment | — | Yes | src/pages/supervision/aml/AmlSupervisedEntities.tsx | 185 |
+| pages/supervision/aml/AmlWorkQueue | {counts[s] != null ? ( ) : null} | — | Yes | src/pages/supervision/aml/AmlWorkQueue.tsx | 82 |
+| pages/supervision/aml/AmlWorkQueue | Open | — | Yes | src/pages/supervision/aml/AmlWorkQueue.tsx | 187 |
 | pages/supervision/BreachInbox | Ack | prudential_supervision.edit | Yes | src/pages/supervision/BreachInbox.tsx | 324 |
 | pages/supervision/BreachInbox | Escalate | prudential_supervision.initiate_supervisory_action | Yes | src/pages/supervision/BreachInbox.tsx | 327 |
 | pages/supervision/BreachInbox | Cancel | prudential_supervision.edit | Yes | src/pages/supervision/BreachInbox.tsx | 363 |
 | pages/supervision/BreachInbox | Acknowledge | prudential_supervision.edit | Yes | src/pages/supervision/BreachInbox.tsx | 364 |
 | pages/supervision/BreachInbox | Cancel | prudential_supervision.initiate_supervisory_action | Yes | src/pages/supervision/BreachInbox.tsx | 424 |
 | pages/supervision/BreachInbox | Create enforcement case | prudential_supervision.initiate_supervisory_action | Yes | src/pages/supervision/BreachInbox.tsx | 425 |
+| pages/supervision/FindingWorkspace | Findings register | — | Yes | src/pages/supervision/FindingWorkspace.tsx | 111 |
+| pages/supervision/FindingWorkspace | Record response | — | Yes | src/pages/supervision/FindingWorkspace.tsx | 232 |
+| pages/supervision/FindingWorkspace | Add corrective action | — | Yes | src/pages/supervision/FindingWorkspace.tsx | 291 |
+| pages/supervision/FindingWorkspace | Cancel | — | Yes | src/pages/supervision/FindingWorkspace.tsx | 451 |
+| pages/supervision/FindingWorkspace | Record response | — | Yes | src/pages/supervision/FindingWorkspace.tsx | 452 |
+| pages/supervision/FindingWorkspace | Cancel | — | Yes | src/pages/supervision/FindingWorkspace.tsx | 512 |
+| pages/supervision/FindingWorkspace | Raise corrective action | — | Yes | src/pages/supervision/FindingWorkspace.tsx | 513 |
 | pages/supervision/NewThematicReview | Back | prudential_supervision.create | Yes | src/pages/supervision/NewThematicReview.tsx | 202 |
 | pages/supervision/NewThematicReview | Next | prudential_supervision.create | Yes | src/pages/supervision/NewThematicReview.tsx | 204 |
 | pages/supervision/NewThematicReview | Create Review | prudential_supervision.create | Yes | src/pages/supervision/NewThematicReview.tsx | 206 |
@@ -2058,6 +2198,8 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/supervision/SupervisoryPlansDashboard | Extend | prudential_supervision.edit | Yes | src/pages/supervision/SupervisoryPlansDashboard.tsx | 406 |
 | pages/supervision/SupervisoryPlansDashboard | Cancel | prudential_supervision.edit | Yes | src/pages/supervision/SupervisoryPlansDashboard.tsx | 443 |
 | pages/supervision/SupervisoryPlansDashboard | Mark complete | prudential_supervision.edit | Yes | src/pages/supervision/SupervisoryPlansDashboard.tsx | 444 |
+| pages/supervision/SupervisoryPortfolio | Refresh | — | Yes | src/pages/supervision/SupervisoryPortfolio.tsx | 260 |
+| pages/supervision/SupervisoryPortfolio | Clear filters | — | Yes | src/pages/supervision/SupervisoryPortfolio.tsx | 263 |
 | pages/supervision/ThematicClosureQueue | Review report | — | Yes | src/pages/supervision/ThematicClosureQueue.tsx | 49 |
 | pages/supervision/ThematicClosureQueue | Open | — | Yes | src/pages/supervision/ThematicClosureQueue.tsx | 91 |
 | pages/supervision/ThematicReviewDetail | Move back | prudential_supervision.edit | Yes | src/pages/supervision/ThematicReviewDetail.tsx | 121 |

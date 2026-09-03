@@ -551,10 +551,10 @@ export function ExecutiveAiWorkspace({
                 {!presentation && (
                   <div className="flex flex-wrap items-center gap-2 border-t pt-3 text-xs text-muted-foreground">
                     <span>Usefulness feedback (not a formal review):</span>
-                    <Button size="sm" variant="ghost" onClick={() => feedback.mutate('helpful')}>
+                    <Button data-rbac="report_management.view" size="sm" variant="ghost" onClick={() => feedback.mutate('helpful')}>
                       <ThumbsUp className="mr-1.5 h-3.5 w-3.5" /> Helpful
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => feedback.mutate('not_helpful')}>
+                    <Button data-rbac="report_management.view" size="sm" variant="ghost" onClick={() => feedback.mutate('not_helpful')}>
                       <ThumbsDown className="mr-1.5 h-3.5 w-3.5" /> Not helpful
                     </Button>
                   </div>

@@ -157,10 +157,10 @@ export function AmlAssessmentActions({
 
           {st === 'submitted' && canReview ? (
             <>
-              <Button size="sm" onClick={() => setDialog('review')}>
+              <Button data-rbac="aml_supervision.review" size="sm" onClick={() => setDialog('review')}>
                 Mark reviewed
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setDialog('return')}>
+              <Button data-rbac="aml_supervision.review" size="sm" variant="outline" onClick={() => setDialog('return')}>
                 Return for revision
               </Button>
             </>
@@ -171,7 +171,7 @@ export function AmlAssessmentActions({
               <Button data-rbac="aml_supervision.approve" size="sm" onClick={() => setDialog('approve')}>
                 Approve assessment
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setDialog('return')}>
+              <Button data-rbac="aml_supervision.approve" size="sm" variant="outline" onClick={() => setDialog('return')}>
                 Return for revision
               </Button>
             </>
@@ -179,10 +179,10 @@ export function AmlAssessmentActions({
 
           {st === 'approved' && canCreate ? (
             <>
-              <Button size="sm" onClick={() => setDialog('attention')}>
+              <Button data-rbac="aml_supervision.create" size="sm" onClick={() => setDialog('attention')}>
                 Raise supervisory attention
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setDialog('reassess')}>
+              <Button data-rbac="aml_supervision.create" size="sm" variant="outline" onClick={() => setDialog('reassess')}>
                 Require reassessment
               </Button>
             </>
@@ -200,7 +200,7 @@ export function AmlAssessmentActions({
 
           {canCreate
             ? unconfirmedAttention.map((a) => (
-                <Button
+                <Button data-rbac="aml_supervision.create"
                   key={`p-${a.id}`}
                   size="sm"
                   variant="outline"
@@ -218,7 +218,7 @@ export function AmlAssessmentActions({
             ? confirmedAttention
                 .filter((a) => !plans.some((p) => p.attention_id === a.id))
                 .map((a) => (
-                  <Button
+                  <Button data-rbac="aml_supervision.create"
                     key={`pl-${a.id}`}
                     size="sm"
                     variant="outline"
@@ -239,7 +239,7 @@ export function AmlAssessmentActions({
             const permitted = next === 'SUBMITTED' ? canSubmit : next === 'APPROVED' ? canApprove : canCreate;
             if (!permitted) return null;
             return (
-              <Button
+              <Button data-rbac={`aml_supervision.${next === 'SUBMITTED' ? 'submit' : next === 'APPROVED' ? 'approve' : 'create'}`}
                 key={`pls-${p.id}`}
                 size="sm"
                 variant="outline"

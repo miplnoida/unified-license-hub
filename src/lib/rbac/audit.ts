@@ -228,7 +228,28 @@ export const SCOPED_ACTION_CLASSES: Array<{ file: string; kind: ActionClassKind;
   { file: "src/pages/entity/returns/canonical/EntityFilingWorkspace.tsx", kind: 'scanner-artifact', labels: [". {status === 'issue' && ( )}"] },
   { file: "src/pages/fpa/FpaAssessmentWorkspace.tsx", kind: 'scanner-artifact', labels: ["{a.requires_reason && pendingaction?.code !== a.code ? a.label : `confirm: $ `}"] },
   { file: "src/pages/registration/RegistrationJourneyChoice.tsx", kind: 'scanner-artifact', labels: ["{journey_cta[j.key] ?? `continue \u2014 $ `}"] },
+  // EPIC 4 W6: enterprise supervisory surfaces. Presentation controls (view
+  // mode, section paging, narrative variant, tab/filter) and in-page
+  // navigation exercise no authority — the underlying data is already
+  // authorised by the route guard and RLS. Every state-changing action on
+  // these screens carries a data-rbac marker instead.
+  { file: "src/components/dashboard/ExecutiveSupervisoryDashboard.tsx", kind: 'non-mutating', labels: ["approved executive pack", "draft ai-assisted briefing", "exit presentation mode", "facts only", "next section", "presentation mode", "previous section"] },
+  { file: "src/components/entity-detail/OwnershipTreePanel.tsx", kind: 'non-mutating', labels: ["diagram", "list"] },
+  { file: "src/components/entity-detail/SupervisoryTimelinePanel.tsx", kind: 'non-mutating', labels: ["all activity"] },
+  { file: "src/components/entity-detail/SupervisoryTimelinePanel.tsx", kind: 'scanner-artifact', labels: ["( )"] },
+  { file: "src/pages/supervision/FindingWorkspace.tsx", kind: 'non-mutating', labels: ["findings register"] },
+  { file: "src/pages/supervision/aml/AmlFindings.tsx", kind: 'non-mutating', labels: ["assessment"] },
+  { file: "src/pages/supervision/aml/AmlOverview.tsx", kind: 'non-mutating', labels: ["assessments", "my work queue"] },
+  { file: "src/pages/supervision/aml/AmlSupervisedEntities.tsx", kind: 'non-mutating', labels: ["assessment"] },
+  { file: "src/pages/supervision/aml/AmlWorkQueue.tsx", kind: 'scanner-artifact', labels: ["{counts[s] != null ? ( ) : null}"] },
+  // Dialog/picker openers and local draft editors: they mutate component
+  // state only. The governed write behind them is separately marked.
+  { file: "src/components/supervision/RecordDocumentLinks.tsx", kind: 'non-mutating', labels: ["link document"] },
+  { file: "src/components/supervision/aml/AmlEvidenceLinker.tsx", kind: 'non-mutating', labels: ["link document"] },
+  { file: "src/components/prudential/CreateFinancialGroupWizard.tsx", kind: 'non-mutating', labels: ["add member", "edit"] },
+  { file: "src/components/prudential/MethodologyRulesEditor.tsx", kind: 'non-mutating', labels: ["add rule"] },
 ];
+
 
 function classifyScoped(relFile: string, label: string): ActionClassKind | null {
   const low = label.toLowerCase();

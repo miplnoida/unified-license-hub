@@ -30,7 +30,7 @@ export const COMPONENTS: Array<{
   { key: 'open_enforcement', label: 'Open enforcement', description: 'Enforcement actions still open against the entity', cap: 3, defaultWeight: 20, link: '/enforcement' },
   { key: 'open_complaints', label: 'Open complaints', description: 'Complaints against the entity that are not resolved', cap: 10, defaultWeight: 15, link: '/complaints' },
   { key: 'overdue_returns', label: 'Overdue returns', description: 'Returns filed late or still outstanding', cap: 5, defaultWeight: 15, link: '/returns-mgmt/returns' },
-  { key: 'inspection_findings', label: 'Inspection findings', description: 'Open findings raised during inspections', cap: 5, defaultWeight: 15, link: '/inspections' },
+  { key: 'inspection_findings', label: 'Inspection findings', description: 'Open findings raised during inspections', cap: 5, defaultWeight: 15, link: '/prudential/examinations' },
   { key: 'fp_alerts', label: 'Fit & proper alerts', description: 'Adverse fit-and-proper signals on current officers', cap: 3, defaultWeight: 10 },
 ];
 

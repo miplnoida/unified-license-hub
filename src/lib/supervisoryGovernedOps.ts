@@ -40,14 +40,12 @@ export const licenseAppealAcknowledge = (appealId: string) =>
 export const licenseAppealWithdraw = (appealId: string, reason?: string | null) =>
   call('license_appeal_withdraw', { _appeal_id: appealId, _reason: reason ?? null });
 
-/* ── Inspections ── */
-export const inspectionCreate = (payload: Record<string, unknown>) =>
-  call('inspection_create', { _payload: payload });
-export const inspectionLifecycleSave = (
-  inspectionId: string,
-  patch: Record<string, unknown>,
-  rationale?: string | null,
-) => call('inspection_lifecycle_save', { _inspection_id: inspectionId, _patch: patch, _rationale: rationale ?? null });
+/* ── Inspections ──
+ * EPIC 4 / W6: retired. `inspection_create`, `inspection_lifecycle_save`,
+ * `inspection_finding_save` and `inspection_finding_escalate` were removed —
+ * inspection-style activity is written only through the canonical examination
+ * operations below (and findings through `supervisory_finding_create`).
+ */
 
 /* ── Examinations ── */
 export const examinationCreate = (payload: Record<string, unknown>) =>
