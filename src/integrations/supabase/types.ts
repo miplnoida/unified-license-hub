@@ -44307,9 +44307,15 @@ export type Database = {
           response_at: string | null
           response_attachments: Json
           response_by: string | null
+          response_channel: string | null
           response_decision: string | null
           response_decision_at: string | null
           response_decision_by: string | null
+          response_received_date: string | null
+          response_received_from: string | null
+          response_recorded_at: string | null
+          response_recorded_by: string | null
+          response_source: string | null
           response_state: string | null
           response_target_date: string | null
           responsible_person: string | null
@@ -44366,9 +44372,15 @@ export type Database = {
           response_at?: string | null
           response_attachments?: Json
           response_by?: string | null
+          response_channel?: string | null
           response_decision?: string | null
           response_decision_at?: string | null
           response_decision_by?: string | null
+          response_received_date?: string | null
+          response_received_from?: string | null
+          response_recorded_at?: string | null
+          response_recorded_by?: string | null
+          response_source?: string | null
           response_state?: string | null
           response_target_date?: string | null
           responsible_person?: string | null
@@ -44425,9 +44437,15 @@ export type Database = {
           response_at?: string | null
           response_attachments?: Json
           response_by?: string | null
+          response_channel?: string | null
           response_decision?: string | null
           response_decision_at?: string | null
           response_decision_by?: string | null
+          response_received_date?: string | null
+          response_received_from?: string | null
+          response_recorded_at?: string | null
+          response_recorded_by?: string | null
+          response_source?: string | null
           response_state?: string | null
           response_target_date?: string | null
           responsible_person?: string | null
@@ -46121,6 +46139,79 @@ export type Database = {
             columns: ["workpaper_id"]
             isOneToOne: false
             referencedRelation: "examination_workpapers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_residual_acceptance: {
+        Row: {
+          accepted_at: string
+          accepted_by: string
+          action_id: string
+          created_at: string
+          domain_code: string
+          entity_id: string
+          finding_id: string
+          follow_up_requirement: string
+          id: string
+          next_review_date: string | null
+          rationale: string
+          remaining_deficiency: string
+          residual_materiality: string
+          validation_id: string | null
+        }
+        Insert: {
+          accepted_at?: string
+          accepted_by: string
+          action_id: string
+          created_at?: string
+          domain_code: string
+          entity_id: string
+          finding_id: string
+          follow_up_requirement: string
+          id?: string
+          next_review_date?: string | null
+          rationale: string
+          remaining_deficiency: string
+          residual_materiality: string
+          validation_id?: string | null
+        }
+        Update: {
+          accepted_at?: string
+          accepted_by?: string
+          action_id?: string
+          created_at?: string
+          domain_code?: string
+          entity_id?: string
+          finding_id?: string
+          follow_up_requirement?: string
+          id?: string
+          next_review_date?: string | null
+          rationale?: string
+          remaining_deficiency?: string
+          residual_materiality?: string
+          validation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_residual_acceptance_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: true
+            referencedRelation: "supervisory_remediation_action"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_residual_acceptance_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_finding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_residual_acceptance_validation_id_fkey"
+            columns: ["validation_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_remediation_validation"
             referencedColumns: ["id"]
           },
         ]
@@ -63012,9 +63103,12 @@ export type Database = {
       supervisory_finding_response: {
         Args: {
           _attachments?: Json
+          _channel?: string
           _finding_id: string
           _management_response: string
           _proposed_action?: string
+          _received_date?: string
+          _received_from?: string
           _response_state: string
           _responsible_person?: string
           _target_date?: string
@@ -63235,6 +63329,17 @@ export type Database = {
           _workpaper_id?: string
         }
         Returns: Json
+      }
+      supervisory_residual_acceptance_record: {
+        Args: {
+          _action_id: string
+          _follow_up_requirement: string
+          _next_review_date?: string
+          _rationale: string
+          _remaining_deficiency: string
+          _residual_materiality: string
+        }
+        Returns: string
       }
       supervisory_signal_record: {
         Args: {

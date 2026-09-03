@@ -684,7 +684,8 @@ BEGIN
     PERFORM public.supervisory_finding_response((SELECT v FROM e3 WHERE k='f1'), 'ACCEPTED',
       'Accepted. The monitoring model will be retuned and all alert decisions documented.',
       'Retune thresholds, clear the backlog and introduce second-line alert review.',
-      'Head of Compliance', current_date + 60);
+      'Head of Compliance', current_date + 60, NULL,
+      'Head of Compliance, by signed letter', current_date, 'LETTER');
   EXCEPTION WHEN OTHERS THEN
     -- the certification licensee user may not be assigned to this entity; record it internally instead
     ok := (SQLERRM LIKE '%not_authorized%');
@@ -701,7 +702,8 @@ BEGIN
     PERFORM public.supervisory_finding_response(fid, 'ACCEPTED',
       'Management response recorded from the entity''s written submission dated today.',
       'Retune thresholds, clear the backlog and introduce second-line alert review.',
-      'Head of Compliance', current_date + 60);
+      'Head of Compliance', current_date + 60, NULL,
+      'Head of Compliance, by signed letter', current_date, 'LETTER');
   END IF;
 
   -- U: canonical remediation opened against the finding
