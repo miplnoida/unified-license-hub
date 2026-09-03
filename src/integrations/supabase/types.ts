@@ -48752,14 +48752,17 @@ export type Database = {
           decided_at: string | null
           decided_by: string | null
           decision_rationale: string | null
+          domain_code: string | null
           emerging_risk_id: string | null
           evidence: Json | null
+          examination_id: string | null
           expected_outcome: string | null
           followup_completed_at: string | null
           followup_due_date: string | null
           followup_note: string | null
           id: string | null
           intervention_type: string | null
+          investigation_id: string | null
           licensee_id: string | null
           outcome_findings: string | null
           outcome_note: string | null
@@ -48781,6 +48784,7 @@ export type Database = {
           sector_id: string | null
           status: string | null
           team_id: string | null
+          thematic_review_id: string | null
           theme: string | null
           title: string | null
           updated_at: string | null
@@ -48802,14 +48806,17 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           decision_rationale?: string | null
+          domain_code?: string | null
           emerging_risk_id?: string | null
           evidence?: Json | null
+          examination_id?: string | null
           expected_outcome?: string | null
           followup_completed_at?: string | null
           followup_due_date?: string | null
           followup_note?: string | null
           id?: string | null
           intervention_type?: string | null
+          investigation_id?: string | null
           licensee_id?: string | null
           outcome_findings?: string | null
           outcome_note?: string | null
@@ -48831,6 +48838,7 @@ export type Database = {
           sector_id?: string | null
           status?: string | null
           team_id?: string | null
+          thematic_review_id?: string | null
           theme?: string | null
           title?: string | null
           updated_at?: string | null
@@ -48852,14 +48860,17 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           decision_rationale?: string | null
+          domain_code?: string | null
           emerging_risk_id?: string | null
           evidence?: Json | null
+          examination_id?: string | null
           expected_outcome?: string | null
           followup_completed_at?: string | null
           followup_due_date?: string | null
           followup_note?: string | null
           id?: string | null
           intervention_type?: string | null
+          investigation_id?: string | null
           licensee_id?: string | null
           outcome_findings?: string | null
           outcome_note?: string | null
@@ -48881,6 +48892,7 @@ export type Database = {
           sector_id?: string | null
           status?: string | null
           team_id?: string | null
+          thematic_review_id?: string | null
           theme?: string | null
           title?: string | null
           updated_at?: string | null
@@ -48954,6 +48966,34 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "regulatory_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_intervention_examination_id_fkey"
+            columns: ["examination_id"]
+            isOneToOne: false
+            referencedRelation: "examinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_intervention_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_investigations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_intervention_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "v_conduct_investigation_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_intervention_thematic_review_id_fkey"
+            columns: ["thematic_review_id"]
+            isOneToOne: false
+            referencedRelation: "thematic_reviews"
             referencedColumns: ["id"]
           },
         ]
