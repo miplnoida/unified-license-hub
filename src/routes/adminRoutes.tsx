@@ -50,6 +50,8 @@ const RfiAutoRules = lazy(() => import('@/pages/admin/RfiAutoRules'));
 const SupervisoryPlanTemplates = lazy(() => import('@/pages/admin/SupervisoryPlanTemplates'));
 const BulkIntake = lazy(() => import('@/pages/admin/BulkIntake'));
 const FpScreeningConfigs = lazy(() => import('@/pages/admin/FpScreeningConfigs'));
+const SupervisoryCalculationConfig = lazy(() => import('@/pages/admin/SupervisoryCalculationConfig'));
+const SupervisoryCalculationApprovals = lazy(() => import('@/pages/admin/SupervisoryCalculationApprovals'));
 const FpCommittees = lazy(() => import('@/pages/admin/FpCommittees'));
 const RuleOverrides = lazy(() => import('@/pages/admin/RuleOverrides'));
 const RuleLibrary = lazy(() => import('@/pages/admin/RuleLibrary'));
@@ -196,6 +198,10 @@ export const adminRoutes = (
     <Route path="/admin/rfi-auto-rules" element={<M module="application_management"><RfiAutoRules /></M>} />
     <Route path="/admin/supervisory-plan-templates" element={<M module="application_management"><SupervisoryPlanTemplates /></M>} />
     <Route path="/admin/applications/bulk-intake" element={<M module="application_management"><BulkIntake /></M>} />
+    {/* Supervisory calculation configuration is a methodology-governance surface:
+        gated on the exact config authority, not on module view. */}
+    <Route path="/admin/supervisory-calculation" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryCalculationConfig /></PermissionRoute></P>} />
+    <Route path="/admin/supervisory-calculation/approvals" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryCalculationApprovals /></PermissionRoute></P>} />
     <Route path="/admin/fp-screening-configs" element={<M module="fit_and_proper_screening"><FpScreeningConfigs /></M>} />
     <Route path="/admin/fp-committees" element={<M module="fit_and_proper_committee"><FpCommittees /></M>} />
     <Route path="/admin/fp-sector-rules" element={<M module="fit_and_proper_screening"><FpSectorDecisionRules /></M>} />
