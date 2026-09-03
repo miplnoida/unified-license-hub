@@ -74,6 +74,9 @@ const AmlAssessmentWorkspace = lazy(() => import('@/pages/supervision/aml/AmlAss
 const AmlRiskHeatmap = lazy(() => import('@/pages/supervision/aml/AmlRiskHeatmap'));
 const AmlExaminations = lazy(() => import('@/pages/supervision/aml/AmlExaminations'));
 const AmlFindings = lazy(() => import('@/pages/supervision/aml/AmlFindings'));
+// Canonical, domain-neutral finding workspace shared by every supervisory domain.
+const FindingWorkspace = lazy(() => import('@/pages/supervision/FindingWorkspace'));
+
 const ExecutiveDashboard = lazy(() => import('@/pages/analytics/ExecutiveDashboard'));
 const AlertCenter = lazy(() => import('@/pages/analytics/AlertCenter'));
 const ComplaintBulkIntake = lazy(() => import('@/pages/complaints/BulkIntake'));
