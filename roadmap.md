@@ -7,6 +7,7 @@
 - [ ] W2 One enterprise supervisory timeline read model
 - [x] W3 Final Entity 360 (cross-domain) + retire legacy `entity360_section` AML block — CERTIFIED (docs/epic4/W3_entity_360_certification.md)
 - [ ] W4 Escalation convergence (Q-C), conduct investigation decision (Q-D), Governance/F&P feed (Q-E)
+  - [x] W4 P0 supervisory question governance: single question catalogue, domain-specific edit authority, assessment-following response RLS, split gap RPC — CERTIFIED (docs/epic4/W4_question_governance.md)
 - [ ] W5 Global dashboard, executive view, portfolio/sector supervision, read-model re-sourcing
 - [ ] W6 Legacy retirement census + route convergence + enterprise next action + team capacity
 - [ ] W7 Certification: 20+ entity dataset, `scripts/verify-epic-4-enterprise-convergence.sql`, personas, Playwright, reconciliation, performance, security, regression matrix
