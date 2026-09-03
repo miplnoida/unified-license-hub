@@ -56198,6 +56198,10 @@ export type Database = {
         }
         Returns: Json
       }
+      enterprise_supervisory_overview: {
+        Args: { _sector_id?: string; _window_days?: number }
+        Returns: Json
+      }
       entity_appointment_resolve_fp_bridge: {
         Args: { _appointment_id: string }
         Returns: Json
