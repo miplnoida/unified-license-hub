@@ -201,9 +201,26 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
+-- 3b. Methodology version binding
+-- The active AML/CFT methodology version in force, resolved once so every
+-- assessment in the dataset carries an attributable methodology.
+-- ---------------------------------------------------------------------------
+INSERT INTO aml_ref(case_no, k, v)
+SELECT 0, 'methodology', m.id
+  FROM public.supervisory_methodology m
+ WHERE m.domain_code = 'AML_CFT'
+   AND lower(m.status) IN ('active','approved')
+   AND (m.effective_from IS NULL OR m.effective_from <= current_date)
+   AND (m.effective_to   IS NULL OR m.effective_to   >= current_date)
+ ORDER BY m.effective_from DESC NULLS LAST, m.created_at DESC
+ LIMIT 1
+ON CONFLICT (case_no, k) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
 -- 4. Governed pipeline, executed as the real personas
 -- ---------------------------------------------------------------------------
 SET LOCAL ROLE authenticated;
+
 
 DO $$
 DECLARE
@@ -217,22 +234,35 @@ DECLARE
   fid      uuid;
   wp       uuid;
   r1 uuid; r2 uuid; r3 uuid; ra uuid;
+  qrec     record;
+  ans      text;
+  meth     uuid;
   claim_off  text := '{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}';
   claim_sup  text := '{"sub":"0b522724-adcb-48bf-b21d-175339479616","role":"authenticated"}';
   claim_sup2 text := '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
   claim_pru  text := '{"sub":"ef43e80a-e17e-4f26-aa91-bcf0d99e3d89","role":"authenticated"}';
   claim_enf  text := '{"sub":"7190c434-24c1-47dc-a2fb-c3cbad5bfaf3","role":"authenticated"}';
 BEGIN
+-- Every AML/CFT rating must be attributable to a published methodology version.
+meth := (SELECT v FROM aml_ref WHERE case_no = 0 AND k = 'methodology');
+IF meth IS NULL THEN
+  RAISE EXCEPTION 'DEMO AML seed refused: no active AML_CFT supervisory methodology version is published';
+END IF;
+
 FOR c IN SELECT * FROM aml_case ORDER BY case_no LOOP
   ent := (SELECT v FROM aml_ref WHERE case_no = c.case_no AND k='ent');
 
-  -- ---- out-of-perimeter determination --------------------------------------
+  -- ---- AML/CFT perimeter determination -------------------------------------
+  -- Recorded for every entity before any assessment exists: an assessment
+  -- without a recorded perimeter basis has no recorded reason to exist.
+  PERFORM set_config('request.jwt.claims', claim_sup, true);
   IF c.variant = 'OUT_OF_PERIMETER' THEN
-    PERFORM set_config('request.jwt.claims', claim_sup, true);
     PERFORM public.supervisory_domain_perimeter_set(ent, 'AML_CFT', false,
       'Holding company with no relevant financial business; AML/CFT obligations do not apply to it.');
     CONTINUE;
   END IF;
+  PERFORM public.supervisory_domain_perimeter_set(ent, 'AML_CFT', true,
+    'Licensed to carry on relevant financial business; the entity is a supervised person for AML/CFT purposes.');
 
   IF c.depth < 2 THEN CONTINUE; END IF;
 
@@ -241,14 +271,28 @@ FOR c IN SELECT * FROM aml_case ORDER BY case_no LOOP
   IF c.variant = 'DETERIORATING' THEN
     PERFORM set_config('request.jwt.claims', claim_off, true);
     res := public.supervisory_assessment_create(ent,'AML_CFT','PERIODIC',
-      (current_date - 730),(current_date - 366), NULL,'PERIODIC',NULL,
+      (current_date - 730),(current_date - 366), meth,'PERIODIC',NULL,
       'Prior year AML/CFT risk assessment; controls were then adequate for the risk profile.');
+
     prev := (res->>'id')::uuid;
     PERFORM public.supervisory_assessment_dimension_upsert(prev,'TRANSACTION_MONITORING',
       'CONTROL_EFFECTIVENESS','MODERATE','SATISFACTORY','MODERATE',NULL,NULL,
       'Alert volumes were matched by review capacity in the prior period.',
       NULL,NULL,'Prior year monitoring MI',NULL,NULL,'STABLE');
+    -- mandatory methodology questions must be answered before submission
+    FOR qrec IN SELECT q.id, q.requires_evidence, q.min_evidence_count, d.dimension_code, q.question_code
+                  FROM public.supervisory_methodology_question q
+                  JOIN public.supervisory_methodology_dimension d ON d.id = q.methodology_dimension_id
+                 WHERE q.methodology_id = meth AND q.active AND q.mandatory AND d.active LOOP
+      PERFORM public.supervisory_assessment_question_upsert(prev, qrec.id, 'PARTIALLY',
+        'Prior year conclusion on '||qrec.dimension_code||' '||qrec.question_code
+          ||'; controls were then adequate for the risk profile.',
+        CASE WHEN qrec.requires_evidence THEN
+          jsonb_build_array(jsonb_build_object('kind','WORKPAPER',
+            'label','Prior year workpaper — '||qrec.dimension_code||' '||qrec.question_code)) END);
+    END LOOP;
     PERFORM public.supervisory_assessment_transition(prev,'submitted','Submitted for independent review.');
+
     PERFORM set_config('request.jwt.claims', claim_sup, true);
     PERFORM public.supervisory_assessment_transition(prev,'reviewed','Independent review completed.');
     PERFORM public.supervisory_assessment_transition(prev,'approved',
@@ -259,9 +303,12 @@ FOR c IN SELECT * FROM aml_case ORDER BY case_no LOOP
   -- ---- assessment (maker) --------------------------------------------------
   PERFORM set_config('request.jwt.claims', claim_off, true);
   res := public.supervisory_assessment_create(ent,'AML_CFT','PERIODIC',
-    (current_date - 365),(current_date - 1), NULL,'PERIODIC',NULL,
+    (current_date - 365),(current_date - 1), meth,'PERIODIC',NULL,
     'Annual AML/CFT risk assessment of '||c.name||'.', NULL, prev);
   aid := (res->>'id')::uuid;
+  -- question conclusions are polarised with the recorded residual rating
+  ans := CASE c.rating WHEN 'LOW' THEN 'YES' WHEN 'MODERATE' THEN 'PARTIALLY' ELSE 'NO' END;
+
   INSERT INTO aml_ref(case_no,k,v) VALUES (c.case_no,'assessment', aid);
 
   d := public.supervisory_assessment_dimension_upsert(aid,'TRANSACTION_MONITORING',
@@ -298,9 +345,23 @@ FOR c IN SELECT * FROM aml_case ORDER BY case_no LOOP
     'Corridors are limited to low-risk jurisdictions.');
   INSERT INTO aml_ref(case_no,k,v) VALUES (c.case_no,'dim_geo',(d->>'id')::uuid);
 
+  -- mandatory methodology questions must be answered before submission
+  FOR qrec IN SELECT q.id, q.requires_evidence, q.min_evidence_count, d.dimension_code, q.question_code
+                FROM public.supervisory_methodology_question q
+                JOIN public.supervisory_methodology_dimension d ON d.id = q.methodology_dimension_id
+               WHERE q.methodology_id = meth AND q.active AND q.mandatory AND d.active LOOP
+    PERFORM public.supervisory_assessment_question_upsert(aid, qrec.id, ans,
+      'Assessed against the '||qrec.dimension_code||' criteria ('||qrec.question_code
+        ||'); conclusion consistent with the recorded '||c.rating||' residual AML/CFT risk.',
+      CASE WHEN qrec.requires_evidence THEN
+        jsonb_build_array(jsonb_build_object('kind','WORKPAPER',
+          'label','Assessment workpaper — '||qrec.dimension_code||' '||qrec.question_code)) END);
+  END LOOP;
+
   IF c.depth < 3 THEN CONTINUE; END IF;   -- 02: draft assessment only
   PERFORM public.supervisory_assessment_transition(aid,'submitted',
     'Submitted for independent review by the AML/CFT supervisor.');
+
 
   IF c.depth < 4 THEN CONTINUE; END IF;   -- 03: awaiting review
   PERFORM set_config('request.jwt.claims', claim_sup, true);
@@ -608,7 +669,7 @@ FOR c IN SELECT * FROM aml_case ORDER BY case_no LOOP
   -- ---- follow-up assessment: HIGH -> MODERATE -----------------------------
   PERFORM set_config('request.jwt.claims', claim_off, true);
   res := public.supervisory_assessment_create(ent,'AML_CFT','FOLLOW_UP',
-    (current_date - 180), current_date, NULL,'FOLLOW_UP',NULL,
+    (current_date - 180), current_date, meth,'FOLLOW_UP',NULL,
     'Follow-up AML/CFT assessment after validated remediation of the monitoring finding.',
     NULL, aid);
   INSERT INTO aml_ref(case_no,k,v) VALUES (c.case_no,'followup',(res->>'id')::uuid);
@@ -616,8 +677,21 @@ FOR c IN SELECT * FROM aml_case ORDER BY case_no LOOP
     'CONTROL_EFFECTIVENESS','HIGH','SATISFACTORY','MODERATE',NULL,NULL,
     'Backlog cleared, decisions evidenced and capacity increased; two corridor scenarios remain to be tuned.',
     NULL,NULL,'Re-performed alert testing and the accepted residual deficiency',NULL,NULL,'IMPROVING');
+  -- mandatory methodology questions must be answered before submission
+  FOR qrec IN SELECT q.id, q.requires_evidence, q.min_evidence_count, d.dimension_code, q.question_code
+                FROM public.supervisory_methodology_question q
+                JOIN public.supervisory_methodology_dimension d ON d.id = q.methodology_dimension_id
+               WHERE q.methodology_id = meth AND q.active AND q.mandatory AND d.active LOOP
+    PERFORM public.supervisory_assessment_question_upsert((res->>'id')::uuid, qrec.id, 'PARTIALLY',
+      'Re-performed testing after remediation: '||qrec.dimension_code||' '||qrec.question_code
+        ||' is now substantially satisfied, with the accepted residual deficiency recorded.',
+      CASE WHEN qrec.requires_evidence THEN
+        jsonb_build_array(jsonb_build_object('kind','WORKPAPER',
+          'label','Re-performance workpaper — '||qrec.dimension_code||' '||qrec.question_code)) END);
+  END LOOP;
   PERFORM public.supervisory_assessment_transition((res->>'id')::uuid,'submitted',
     'Submitted for independent review following remediation.');
+
   PERFORM set_config('request.jwt.claims', claim_sup, true);
   PERFORM public.supervisory_assessment_transition((res->>'id')::uuid,'reviewed',
     'Independent review confirms the improvement in monitoring controls.');
