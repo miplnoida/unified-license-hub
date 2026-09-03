@@ -74,7 +74,7 @@ BEGIN
   SELECT count(*) INTO n
   FROM public.supervisory_assessment_dimension d
   JOIN public.supervisory_assessment a ON a.id = d.assessment_id
-  WHERE a.domain_code = 'AML_CFT' AND a.status = 'APPROVED'
+  WHERE a.domain_code = 'AML_CFT' AND upper(a.status) = 'APPROVED'
     AND d.residual_rating IS DISTINCT FROM d.calculated_residual_rating
     AND coalesce(btrim(d.override_reason), '') = '';
   PERFORM pg_temp.gate('AMLH-08', 'calculated vs judged rating', n = 0,
@@ -83,7 +83,7 @@ BEGIN
   -- AMLH-10 maker/checker: no approved AML assessment was approved by its maker.
   SELECT count(*) INTO n
   FROM public.supervisory_assessment
-  WHERE domain_code = 'AML_CFT' AND status = 'APPROVED'
+  WHERE domain_code = 'AML_CFT' AND upper(status) = 'APPROVED'
     AND approved_by IS NOT NULL
     AND (approved_by = owner_id OR approved_by = submitted_by);
   PERFORM pg_temp.gate('AMLH-10', 'maker/checker', n = 0,
@@ -95,7 +95,7 @@ BEGIN
   FROM public.entity_risk_state s
   LEFT JOIN public.supervisory_assessment a ON a.id = s.driving_assessment_id
   WHERE s.domain_code = 'AML_CFT'
-    AND (a.id IS NULL OR a.status <> 'APPROVED' OR a.domain_code <> 'AML_CFT'
+    AND (a.id IS NULL OR upper(a.status) <> 'APPROVED' OR a.domain_code <> 'AML_CFT'
          OR a.entity_id <> s.entity_id);
   PERFORM pg_temp.gate('AMLH-11', 'risk-authority single writer', n = 0,
     format('AML risk states not sourced from an approved AML assessment = %s', n));
@@ -156,9 +156,11 @@ BEGIN
   WHERE ns.nspname = 'public'
     AND p.proname IN ('aml_overview_metrics','aml_portfolio','aml_work_queue','aml_entity_panel',
                       'entity360_overview','entity360_section')
-    AND (pg_get_functiondef(p.oid) ~ '\maml_assessments\M'
-      OR pg_get_functiondef(p.oid) ~ '\maml_findings\M'
-      OR pg_get_functiondef(p.oid) ~ '\mexamination_findings\M');
+    -- comment lines are stripped: a retirement note that names a historical
+    -- store is documentation, not a read.
+    AND (regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g') ~ '\maml_assessments\M'
+      OR regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g') ~ '\maml_findings\M'
+      OR regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g') ~ '\mexamination_findings\M');
   PERFORM pg_temp.gate('AMLH-31', 'no legacy current truth', n = 0,
     format('AML/Entity360 read models still reading historical stores = %s', n));
 
