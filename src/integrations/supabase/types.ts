@@ -62875,6 +62875,14 @@ export type Database = {
         Args: { _assessment_id: string }
         Returns: Json
       }
+      supervisory_assessment_question_gaps_internal: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_question_readable: {
+        Args: { _assessment_id: string; _uid: string }
+        Returns: boolean
+      }
       supervisory_assessment_question_upsert: {
         Args: {
           _assessment_id: string
@@ -62933,6 +62941,10 @@ export type Database = {
           _rationale: string
         }
         Returns: Json
+      }
+      supervisory_domain_actions: {
+        Args: { _domain_code: string; _intent: string }
+        Returns: string[]
       }
       supervisory_domain_valid: { Args: { _domain: string }; Returns: boolean }
       supervisory_entity_scope_check: {
@@ -63038,6 +63050,14 @@ export type Database = {
           _rationale: string
         }
         Returns: string
+      }
+      supervisory_methodology_question_backfill: {
+        Args: never
+        Returns: number
+      }
+      supervisory_methodology_question_sync: {
+        Args: { _dimension_id: string; _questions: Json }
+        Returns: number
       }
       supervisory_methodology_resolve: {
         Args: { _as_of?: string; _domain_code: string; _sector_id?: string }
