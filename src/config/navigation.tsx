@@ -333,7 +333,9 @@ export const mainNavSections: NavSection[] = [
     // then engine/config surfaces which are admin-only operations.
     label: 'Prudential Supervision',
     items: [
-      { label: 'Supervisory Portfolio', href: '/supervision/portfolio', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
+      // Canonical enterprise destination (single across every domain — the DB-driven
+      // menu exposes it once under Supervision; domain shortcuts are search-only).
+      { key: 'nav_sup_portfolio', label: 'Portfolio & Sector Supervision', href: '/supervision/portfolio', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Prudential Work', href: '/prudential/work', icon: <ClipboardList className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Prudential Dashboard', href: '/prudential/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Supervised Entities', href: '/prudential/entities', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
