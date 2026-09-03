@@ -43615,6 +43615,75 @@ export type Database = {
           },
         ]
       }
+      supervisory_assessment_calculation_history: {
+        Row: {
+          actor_id: string | null
+          as_of: string | null
+          assessment_id: string
+          calculated_at: string
+          config_id: string | null
+          config_version: number | null
+          control_band: string | null
+          control_score: number | null
+          created_at: string
+          event_reason: string
+          id: string
+          inherent_band: string | null
+          inherent_score: number | null
+          methodology_id: string | null
+          methodology_version: string | null
+          recommended_rating: string | null
+          residual_rating: string | null
+          status: string
+          trace: Json
+          trace_hash: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          as_of?: string | null
+          assessment_id: string
+          calculated_at?: string
+          config_id?: string | null
+          config_version?: number | null
+          control_band?: string | null
+          control_score?: number | null
+          created_at?: string
+          event_reason: string
+          id?: string
+          inherent_band?: string | null
+          inherent_score?: number | null
+          methodology_id?: string | null
+          methodology_version?: string | null
+          recommended_rating?: string | null
+          residual_rating?: string | null
+          status: string
+          trace?: Json
+          trace_hash?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          as_of?: string | null
+          assessment_id?: string
+          calculated_at?: string
+          config_id?: string | null
+          config_version?: number | null
+          control_band?: string | null
+          control_score?: number | null
+          created_at?: string
+          event_reason?: string
+          id?: string
+          inherent_band?: string | null
+          inherent_score?: number | null
+          methodology_id?: string | null
+          methodology_version?: string | null
+          recommended_rating?: string | null
+          residual_rating?: string | null
+          status?: string
+          trace?: Json
+          trace_hash?: string | null
+        }
+        Relationships: []
+      }
       supervisory_assessment_dimension: {
         Row: {
           assessment_id: string
@@ -44414,27 +44483,27 @@ export type Database = {
       supervisory_calculation_config: {
         Row: {
           activated_at: string | null
-          aggregation_method: string
+          aggregation_method: string | null
           approved_at: string | null
           approved_by: string | null
           config_version: number
           created_at: string
           created_by: string | null
-          critical_question_handling: string
+          critical_question_handling: string | null
           effective_from: string | null
           effective_to: string | null
-          evidence_insufficiency_handling: string
+          evidence_insufficiency_handling: string | null
           id: string
-          inherent_direction: string
+          inherent_direction: string | null
           methodology_id: string
-          min_answered_questions: number
-          na_denominator_handling: string
+          min_answered_questions: number | null
+          na_denominator_handling: string | null
           notes: string | null
           override_threshold: string | null
-          recommendation_policy: string
+          recommendation_policy: string | null
           recommendation_threshold: string | null
-          rounding_decimals: number
-          rounding_mode: string
+          rounding_decimals: number | null
+          rounding_mode: string | null
           status: string
           submitted_at: string | null
           submitted_by: string | null
@@ -44443,27 +44512,27 @@ export type Database = {
         }
         Insert: {
           activated_at?: string | null
-          aggregation_method?: string
+          aggregation_method?: string | null
           approved_at?: string | null
           approved_by?: string | null
           config_version?: number
           created_at?: string
           created_by?: string | null
-          critical_question_handling?: string
+          critical_question_handling?: string | null
           effective_from?: string | null
           effective_to?: string | null
-          evidence_insufficiency_handling?: string
+          evidence_insufficiency_handling?: string | null
           id?: string
-          inherent_direction?: string
+          inherent_direction?: string | null
           methodology_id: string
-          min_answered_questions?: number
-          na_denominator_handling?: string
+          min_answered_questions?: number | null
+          na_denominator_handling?: string | null
           notes?: string | null
           override_threshold?: string | null
-          recommendation_policy?: string
+          recommendation_policy?: string | null
           recommendation_threshold?: string | null
-          rounding_decimals?: number
-          rounding_mode?: string
+          rounding_decimals?: number | null
+          rounding_mode?: string | null
           status?: string
           submitted_at?: string | null
           submitted_by?: string | null
@@ -44472,27 +44541,27 @@ export type Database = {
         }
         Update: {
           activated_at?: string | null
-          aggregation_method?: string
+          aggregation_method?: string | null
           approved_at?: string | null
           approved_by?: string | null
           config_version?: number
           created_at?: string
           created_by?: string | null
-          critical_question_handling?: string
+          critical_question_handling?: string | null
           effective_from?: string | null
           effective_to?: string | null
-          evidence_insufficiency_handling?: string
+          evidence_insufficiency_handling?: string | null
           id?: string
-          inherent_direction?: string
+          inherent_direction?: string | null
           methodology_id?: string
-          min_answered_questions?: number
-          na_denominator_handling?: string
+          min_answered_questions?: number | null
+          na_denominator_handling?: string | null
           notes?: string | null
           override_threshold?: string | null
-          recommendation_policy?: string
+          recommendation_policy?: string | null
           recommendation_threshold?: string | null
-          rounding_decimals?: number
-          rounding_mode?: string
+          rounding_decimals?: number | null
+          rounding_mode?: string | null
           status?: string
           submitted_at?: string | null
           submitted_by?: string | null
@@ -63544,6 +63613,10 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_calc_as_of_for: {
+        Args: { _assessment_id: string }
+        Returns: string
+      }
       supervisory_calc_band_of: {
         Args: { _config_id: string; _kind: string; _score: number }
         Returns: string
@@ -63555,6 +63628,14 @@ export type Database = {
       supervisory_calc_config_for: {
         Args: { _assessment_id: string }
         Returns: string
+      }
+      supervisory_calc_materialise: {
+        Args: {
+          _actor_id?: string
+          _assessment_id: string
+          _event_reason: string
+        }
+        Returns: Json
       }
       supervisory_calc_round: {
         Args: { _decimals: number; _mode: string; _v: number }
@@ -63579,6 +63660,16 @@ export type Database = {
       supervisory_calculation_matrix_set: {
         Args: { _cells: Json; _config_id: string }
         Returns: number
+      }
+      supervisory_calculation_recalculate: {
+        Args: {
+          _config_id?: string
+          _domain_code: string
+          _dry_run?: boolean
+          _entity_id?: string
+          _rationale: string
+        }
+        Returns: Json
       }
       supervisory_calculation_response_scores_set: {
         Args: { _config_id: string; _rows: Json }

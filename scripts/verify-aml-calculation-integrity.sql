@@ -42,10 +42,11 @@ BEGIN
    WHERE ns.nspname = 'public' AND p.proname = 'supervisory_assessment_dimension_upsert';
   PERFORM pg_temp.gate('CALC-02','no caller authority over calculated ratings',
     src IS NOT NULL
-      AND src LIKE '%supervisory_assessment_calculate(_assessment_id)%'
+      AND src LIKE '%supervisory_calc_materialise(_assessment_id%'
       AND src NOT LIKE '%calculated_residual_rating = EXCLUDED.calculated_residual_rating%'
       AND src NOT LIKE '%_calculated_residual_rating, _calculated_score%',
     'the governed dimension write recalculates server-side and stores no caller-supplied calculated value');
+
 
   -- CALC-03 no override is recorded where the judgement equals the calculation.
   SELECT count(*) INTO n FROM public.supervisory_assessment_dimension d
