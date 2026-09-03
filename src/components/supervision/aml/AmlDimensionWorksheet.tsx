@@ -75,7 +75,11 @@ const asList = (value: unknown): string[] => {
 
 export function AmlDimensionWorksheet({ assessmentId, entityId, methodologyId, recorded, editable, onChanged }: Props) {
   const { data: dimensions, isLoading } = useAmlMethodologyDimensions(methodologyId);
+  const { data: questionCatalogue } = useAmlMethodologyQuestions(methodologyId);
+  const { data: questionResponses } = useAmlQuestionResponses(assessmentId);
   const dims = dimensions ?? [];
+  const questions = questionCatalogue ?? [];
+  const responses = questionResponses ?? [];
 
   const groups = useMemo(() => {
     const byGroup = new Map<string, AmlMethodologyDimension[]>();
@@ -86,7 +90,18 @@ export function AmlDimensionWorksheet({ assessmentId, entityId, methodologyId, r
     return Array.from(byGroup.entries());
   }, [dims]);
 
+  const questionsByDimension = useMemo(() => {
+    const map = new Map<string, AmlMethodologyQuestion[]>();
+    questions.forEach((q) => {
+      map.set(q.methodology_dimension_id, [...(map.get(q.methodology_dimension_id) ?? []), q]);
+    });
+    return map;
+  }, [questions]);
+
   const assessed = dims.filter((d) => isAssessed(d, matchRecorded(d, recorded))).length;
+  const questionGaps = computeQuestionGaps(questions, responses, dims);
+  const mandatoryQuestions = questions.filter((q) => q.mandatory !== false).length;
+  const questionsDone = Math.max(0, mandatoryQuestions - questionGaps.length);
 
   if (!methodologyId) {
     return (
@@ -112,12 +127,23 @@ export function AmlDimensionWorksheet({ assessmentId, entityId, methodologyId, r
               {assessed} / {dims.length} dimensions assessed
             </span>
           </div>
+          <div className="flex items-center gap-3">
+            <Progress
+              value={mandatoryQuestions ? (questionsDone / mandatoryQuestions) * 100 : 0}
+              className="h-2 flex-1"
+            />
+            <span className="whitespace-nowrap font-mono text-sm">
+              {questionsDone} / {mandatoryQuestions} mandatory questions answered
+            </span>
+          </div>
           <p className="text-xs text-muted-foreground">
-            Every dimension below is configured on the methodology version attached to this assessment. Dimension codes
-            cannot be invented — you record judgment against the configured methodology.
+            Every dimension and question below is configured on the methodology version attached to this assessment.
+            Dimension codes cannot be invented — you record judgment against the configured methodology, and the
+            database refuses submission while any mandatory question remains outstanding.
           </p>
         </CardContent>
       </Card>
+
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading the methodology working file…</p>
