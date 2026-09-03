@@ -566,8 +566,12 @@ BEGIN
 
   SELECT COALESCE(sum((x ->> 'open_attention')::int),0) INTO s
     FROM jsonb_array_elements(pf -> 'rows') x;
+  -- attention is entity-attributed through entity_ids; the portfolio sum must
+  -- equal the number of (attention, readable entity) attributions, not the rows
   SELECT count(*) INTO e FROM public.supervisory_attention t
-   WHERE t.closed_at IS NULL AND t.entity_id IS NOT NULL;
+    CROSS JOIN LATERAL unnest(COALESCE(t.entity_ids, ARRAY[]::uuid[])) AS a(entity_id)
+    JOIN public.licensees l ON l.id = a.entity_id
+   WHERE t.closed_at IS NULL;
   IF s <> e THEN
     RAISE EXCEPTION 'FAIL W5-09: portfolio attention % <> entity-attributed canonical %', s, e;
   END IF;
