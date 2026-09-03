@@ -344,7 +344,7 @@ export const mainNavSections: NavSection[] = [
       { label: 'Onsite Examinations', href: '/prudential/examinations', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Actions Ledger', href: '/prudential/actions', icon: <ClipboardList className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Escalations', href: '/prudential/escalations', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
-      { label: 'Payment Systems', href: '/prudential/payment-systems', icon: <Database className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
+      { key: 'nav_prudential_supervision_payment_systems', label: 'Payment Systems & FMI Oversight', href: '/prudential/payment-systems', icon: <Database className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'prudential_supervision' },
       { label: 'Engine Operations', href: '/admin/prudential/operations', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'prudential_supervision', adminOnly: true },
       { label: 'Stress Indicators', href: '/prudential/stress-indicators', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'prudential_supervision', adminOnly: true },
       { label: 'Risk Taxonomy', href: '/admin/prudential-taxonomy', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'prudential_supervision', adminOnly: true },
@@ -362,7 +362,6 @@ export const mainNavSections: NavSection[] = [
     // supervisory spine filtered to the AML_CFT domain; no AML-private stores.
     label: 'AML/CFT Supervision',
     items: [
-      { label: 'Supervisory Portfolio', href: '/supervision/portfolio', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
       { label: 'AML/CFT Overview', href: '/supervision/aml', icon: <LayoutDashboard className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
       { label: 'AML/CFT Work Queue', href: '/supervision/aml/work-queue', icon: <ClipboardList className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
       { label: 'Supervised Entities', href: '/supervision/aml/entities', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
