@@ -11,6 +11,7 @@ import {
   stageLabel,
   useDataRequests,
   useExamination,
+  useExaminationCanonicalFindings,
   useExaminationFindings,
   useExaminationReports,
   useExaminationScoping,
@@ -69,7 +70,26 @@ export default function ExaminationWorkspace() {
   const { data: team = [] } = useExaminationTeam(id);
   const { data: dataRequests = [] } = useDataRequests(id);
   const { data: workpapers = [] } = useWorkpapers(id);
-  const { data: findings = [] } = useExaminationFindings(id);
+  const { data: legacyFindings = [] } = useExaminationFindings(id);
+  const { data: canonicalFindings = [] } = useExaminationCanonicalFindings(id);
+  /**
+   * Workflow guidance and counters treat the canonical supervisory register as
+   * the source of truth, with historical examination findings still counted so
+   * older examinations cannot be reported with unresolved deficiencies.
+   */
+  const findings = useMemo(
+    () => [
+      ...canonicalFindings.map((f) => ({
+        ...f,
+        status: String(f.status).toLowerCase(),
+        action: f.remediation[0]
+          ? { status: String(f.remediation[0].status).toLowerCase() }
+          : null,
+      })),
+      ...(legacyFindings as any[]),
+    ],
+    [canonicalFindings, legacyFindings],
+  );
   const { data: reports = [] } = useExaminationReports(id);
   const { data: exitMeeting } = useExitMeeting(id);
 
