@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.supervisory_assessment_question_completeness_guard() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.supervisory_methodology_question_version_bump() FROM PUBLIC, anon, authenticated;
