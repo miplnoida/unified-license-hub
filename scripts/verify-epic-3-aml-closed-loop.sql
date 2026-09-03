@@ -999,6 +999,20 @@ BEGIN
     NULL, NULL, 'Customer base composition stable.', NULL, NULL, 'STABLE', 'HIGH', 'HIGH', true,
     'high', NULL, 'medium_high', 3, NULL, false);
 
+  DECLARE qr record;
+  BEGIN
+    FOR qr IN
+      SELECT q.id FROM public.supervisory_methodology_question q
+        JOIN public.supervisory_methodology_dimension d ON d.id = q.methodology_dimension_id
+       WHERE q.methodology_id = (SELECT v FROM e3 WHERE k='aml_meth')
+         AND q.active AND q.mandatory AND d.active
+    LOOP
+      PERFORM public.supervisory_assessment_question_upsert(aid, qr.id, 'YES',
+        'Re-tested at follow-up and evidenced in the reassessment workpaper file.',
+        '[{"kind":"workpaper","ref":"EPIC3-CERT-Q2"}]'::jsonb);
+    END LOOP;
+  END;
+
   PERFORM public.supervisory_assessment_transition(aid, 'submitted', 'Follow-up assessment submitted for review.');
 END $$;
 
