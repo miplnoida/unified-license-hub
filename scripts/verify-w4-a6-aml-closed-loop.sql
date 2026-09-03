@@ -26,6 +26,8 @@ SET row_security = on;
 \set REVIEWER   '{"sub":"b597c405-e0c4-421b-9092-820a444f2429","role":"authenticated"}'
 \set SUPERVISOR '{"sub":"0b522724-adcb-48bf-b21d-175339479616","role":"authenticated"}'
 \set ENFORCER   '{"sub":"7190c434-24c1-47dc-a2fb-c3cbad5bfaf3","role":"authenticated"}'
+-- a second, independent supervisor (residual deficiency decisions)
+\set SUPERVISOR2 '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}'
 
 BEGIN;
 
@@ -62,6 +64,8 @@ BEGIN
       'active', 'W4-A6 closed-loop certification');
   INSERT INTO public.entity_supervision_assignments(entity_id, lead_supervisor_user_id, status, assignment_reason)
   VALUES (ent, '0b522724-adcb-48bf-b21d-175339479616', 'active', 'W4-A6 checker');
+  INSERT INTO public.entity_supervision_assignments(entity_id, lead_supervisor_user_id, status, assignment_reason)
+  VALUES (ent, '021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce', 'active', 'W4-A6 independent residual decision');
   INSERT INTO public.entity_supervision_assignments(entity_id, lead_supervisor_user_id, status, assignment_reason)
   VALUES (other, 'b8eaf680-fe66-4d49-b816-1c087f511235', 'active', 'W4-A6 perimeter control');
   INSERT INTO public.entity_supervision_assignments(entity_id, lead_supervisor_user_id, status, assignment_reason)
@@ -672,7 +676,7 @@ END $$;
 -- A6-21 — a residual deficiency must be accepted before a partial action
 --          closes, and not by the officer who concluded the validation
 -- ---------------------------------------------------------------------------
-SET LOCAL "request.jwt.claims" = :'REVIEWER';
+SET LOCAL "request.jwt.claims" = :'SUPERVISOR2';
 DO $$
 DECLARE rid uuid; ra public.supervisory_residual_acceptance;
 BEGIN
