@@ -1,21 +1,41 @@
-import { useState } from 'react';
+/**
+ * Findings and remediation on the examination workspace.
+ *
+ * Findings are raised from examination fieldwork only: the officer selects the
+ * workpaper that evidences the deficiency and the canonical governed operation
+ * records the finding with its full provenance. The panel therefore never
+ * inserts a finding from the browser, and it lists the canonical supervisory
+ * register (`supervisory_finding`) rather than a local copy. Historical
+ * pre-spine records in `examination_findings` remain visible, clearly labelled,
+ * so their corrective actions can still be worked and closed.
+ */
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertTriangle, CheckCircle2, ClipboardList, Loader2, Plus, Trash2 } from 'lucide-react';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
+  AlertTriangle, ArrowRight, CheckCircle2, ClipboardList, ExternalLink, Loader2, Plus,
+} from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useCreateRemediationAction, useExaminationFindings, useFindingMutations } from '@/hooks/useExaminations';
+import {
+  useCreateRemediationAction,
+  useExamination,
+  useExaminationCanonicalFindings,
+  useExaminationFindings,
+  useExaminationScopeDimensions,
+  useFindingMutations,
+  useWorkpapers,
+} from '@/hooks/useExaminations';
 import { useCloseActionGated } from '@/hooks/usePrudentialActionLifecycle';
+import { RaiseFindingDialog } from './RaiseFindingDialog';
 import { StageActions, type StageActionsMode } from './ExaminationStageActions';
 
-
-const SEVERITIES = ['low', 'medium', 'high', 'critical'];
 
 const CLOSED_ACTION_STATUSES = ['completed', 'waived', 'cancelled'];
 const isActionClosed = (s: any) => CLOSED_ACTION_STATUSES.includes(String(s));
@@ -34,12 +54,18 @@ const actionTone = (s: any) =>
     : ['overdue', 'breached'].includes(String(s)) ? 'bg-destructive/10 text-destructive border-destructive/20'
       : 'bg-warning/10 text-warning border-warning/20';
 
-
-const sevTone = (s: string) =>
-  s === 'critical' ? 'bg-destructive/10 text-destructive border-destructive/20'
-    : s === 'high' ? 'bg-warning/10 text-warning border-warning/20'
-      : s === 'medium' ? 'bg-primary/10 text-primary border-primary/20'
+const sevTone = (s: any) => {
+  const v = String(s ?? '').toLowerCase();
+  return v === 'critical' ? 'bg-destructive/10 text-destructive border-destructive/20'
+    : v === 'high' ? 'bg-warning/10 text-warning border-warning/20'
+      : v === 'medium' ? 'bg-primary/10 text-primary border-primary/20'
         : 'bg-muted text-muted-foreground';
+};
+
+const humanise = (v: any) =>
+  String(v ?? '').replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase());
+
+const isClosedFinding = (s: any) => ['closed', 'CLOSED', 'superseded', 'SUPERSEDED'].includes(String(s));
 
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -51,38 +77,29 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
 }
 
 export function FindingsPanel({ examinationId, readOnly, mode = 'supporting' }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
-  const { data: rows = [], isLoading } = useExaminationFindings(examinationId);
-  const { save, remove } = useFindingMutations(examinationId);
+  const { data: exam } = useExamination(examinationId);
+  const { data: canonical = [], isLoading } = useExaminationCanonicalFindings(examinationId);
+  const { data: legacy = [] } = useExaminationFindings(examinationId);
+  const { data: workpapers = [] } = useWorkpapers(examinationId);
+  const { data: scopeDimensions = [] } = useExaminationScopeDimensions(examinationId);
+  const { save } = useFindingMutations(examinationId);
   const createAction = useCreateRemediationAction(examinationId);
   const closeAction = useCloseActionGated();
   const qc = useQueryClient();
 
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    title: '', category: '', severity: 'medium', criteria_breached: '',
-    observation: '', root_cause: '', recommendation: '', target_date: '',
-  });
+  const [raiseFrom, setRaiseFrom] = useState<any | null>(null);
 
-  const add = async () => {
-    const { data: auth } = await supabase.auth.getUser();
-    await save.mutateAsync({
-      title: form.title,
-      category: form.category || null,
-      severity: form.severity,
-      criteria_breached: form.criteria_breached || null,
-      observation: form.observation || null,
-      root_cause: form.root_cause || null,
-      recommendation: form.recommendation || null,
-      target_date: form.target_date || null,
-      status: 'open',
-      created_by: auth?.user?.id ?? null,
-    });
-    setForm({ title: '', category: '', severity: 'medium', criteria_breached: '', observation: '', root_cause: '', recommendation: '', target_date: '' });
-    setShowForm(false);
-  };
+  /** Fieldwork that can evidence a finding: any workpaper recorded on this examination. */
+  const eligibleWorkpapers = useMemo(
+    () => (workpapers as any[]).filter(w => !!w.id),
+    [workpapers],
+  );
 
-  const closeFinding = async (r: any) => {
-    const hasOpenAction = r.action && !['completed', 'waived', 'cancelled'].includes(String(r.action.status));
+  const openCount = canonical.filter(f => !isClosedFinding(f.status)).length;
+  const withoutAction = canonical.filter(f => !isClosedFinding(f.status) && f.remediation.length === 0);
+
+  const closeLegacyFinding = async (r: any) => {
+    const hasOpenAction = r.action && !isActionClosed(r.action.status);
     const res = await Swal.fire({
       title: 'Close this finding?',
       text: hasOpenAction
@@ -112,191 +129,217 @@ export function FindingsPanel({ examinationId, readOnly, mode = 'supporting' }: 
     qc.invalidateQueries({ queryKey: ['examination-findings', examinationId] });
   };
 
-
-  const openCount = rows.filter((r: any) => r.status !== 'closed').length;
-  const unlinked = rows.filter((r: any) => r.status !== 'closed' && !r.remediation_action_id);
-  // Findings still needing a corrective action come first.
-  const ordered = [...rows].sort((a: any, b: any) => {
-    const aNeeds = a.status !== 'closed' && !a.remediation_action_id ? 0 : 1;
-    const bNeeds = b.status !== 'closed' && !b.remediation_action_id ? 0 : 1;
-    return aNeeds - bNeeds;
-  });
-
   return (
-    <Card>
-      <CardHeader className="space-y-1">
-        <div className="flex flex-row flex-wrap items-center justify-between gap-2">
-          <CardTitle className="text-base">Findings and corrective actions</CardTitle>
-          <div className="flex gap-2">
-            <Badge variant="outline">{openCount} open</Badge>
-            {unlinked.length > 0 && (
-              <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
-                {unlinked.length} without a corrective action
-              </Badge>
-            )}
+    <>
+      <Card>
+        <CardHeader className="space-y-1">
+          <div className="flex flex-row flex-wrap items-center justify-between gap-2">
+            <CardTitle className="text-base">Findings and corrective actions</CardTitle>
+            <div className="flex gap-2">
+              <Badge variant="outline">{openCount} open</Badge>
+              {withoutAction.length > 0 && (
+                <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
+                  {withoutAction.length} without remediation
+                </Badge>
+              )}
+            </div>
           </div>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          What was found, why it happened, and what the entity must do about it.
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {unlinked.length > 0 && (
-          <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-warning flex items-center gap-1.5">
-            <AlertTriangle className="h-4 w-4" />
-            {unlinked.length} finding{unlinked.length === 1 ? '' : 's'} still require corrective actions before the report can be finalised.
-          </div>
-        )}
+          <p className="text-xs text-muted-foreground">
+            Findings are raised from the fieldwork that evidences them, so each one stays traceable to its
+            workpaper, risk area and assessment.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {withoutAction.length > 0 && (
+            <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-warning flex items-center gap-1.5">
+              <AlertTriangle className="h-4 w-4" />
+              {withoutAction.length} finding{withoutAction.length === 1 ? '' : 's'} still require remediation
+              before the examination can be reported.
+            </div>
+          )}
 
-        {isLoading ? (
-          <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-        ) : rows.length === 0 ? (
-          <div className="rounded-md border p-6 text-center space-y-2">
-            <p className="text-sm font-medium">No findings have been recorded yet</p>
-            <p className="text-xs text-muted-foreground">
-              Record each issue identified during the examination so corrective actions can be tracked.
-            </p>
-            {!readOnly && (
-              <Button data-rbac="prudential_supervision.edit" size="sm" onClick={() => setShowForm(true)}>
-                <Plus className="h-4 w-4 mr-1" />Add finding
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {ordered.map((r: any) => (
-              <div key={r.id} className="rounded-md border p-3 space-y-3">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium">{r.reference ? `${r.reference} · ` : ''}{r.title}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {r.category || 'Uncategorised'}
-                      {r.target_date ? ` · target ${new Date(r.target_date).toLocaleDateString()}` : ''}
-                    </p>
+          {!readOnly && (
+            <div className="rounded-md border p-3 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Raise a finding from fieldwork
+              </p>
+              {eligibleWorkpapers.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Record a workpaper first — a finding must be evidenced by the testing that identified it.
+                </p>
+              ) : (
+                <div className="flex flex-wrap items-end gap-2">
+                  <div className="min-w-[260px] flex-1">
+                    <Select onValueChange={(v) => setRaiseFrom(eligibleWorkpapers.find(w => w.id === v) ?? null)}>
+                      <SelectTrigger aria-label="Workpaper evidencing the finding">
+                        <SelectValue placeholder="Select the workpaper that evidences the finding" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {eligibleWorkpapers.map((w: any) => (
+                          <SelectItem key={w.id} value={w.id}>
+                            {[w.reference, w.area].filter(Boolean).join(' · ') || 'Workpaper'}
+                            {w.exceptions_count ? ` — ${w.exceptions_count} exception(s)` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="flex gap-2">
-                    <Badge variant="outline" className={sevTone(r.severity)}>{r.severity} severity</Badge>
-                    <Badge variant="outline" className="capitalize">{String(r.status).replace('_', ' ')}</Badge>
-                  </div>
+                  <Button
+                    data-rbac="prudential_supervision.edit"
+                    size="sm"
+                    disabled={!raiseFrom}
+                    onClick={() => raiseFrom && setRaiseFrom({ ...raiseFrom, __open: true })}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />Create supervisory finding
+                  </Button>
                 </div>
+              )}
+            </div>
+          )}
 
-                <div className="grid gap-3 md:grid-cols-3">
-                  <Block title="What did we find?">
-                    {r.observation ? <p>{r.observation}</p> : <p className="text-muted-foreground">Not recorded</p>}
-                    {r.criteria_breached && <p className="text-muted-foreground">Criteria breached: {r.criteria_breached}</p>}
-                  </Block>
-                  <Block title="Why did it happen?">
-                    {r.root_cause ? <p>{r.root_cause}</p> : <p className="text-muted-foreground">Root cause not recorded</p>}
-                  </Block>
-                  <Block title="What needs to happen?">
-                    {r.recommendation ? <p>{r.recommendation}</p> : <p className="text-muted-foreground">No recommendation recorded</p>}
-                    {r.target_date && <p className="text-muted-foreground">Target {new Date(r.target_date).toLocaleDateString()}</p>}
-                  </Block>
-                </div>
+          {isLoading ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+          ) : canonical.length === 0 ? (
+            <div className="rounded-md border p-6 text-center space-y-1">
+              <p className="text-sm font-medium">No findings have been raised from this examination</p>
+              <p className="text-xs text-muted-foreground">
+                Findings appear here once they are raised from a workpaper.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {canonical.map((f) => {
+                const wp = (workpapers as any[]).find(w => w.id === f.workpaper_id);
+                return (
+                  <div key={f.id} className="rounded-md border p-3 space-y-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium">
+                          {f.reference ? `${f.reference} · ` : ''}{f.title}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {humanise(f.finding_category) || 'Uncategorised'}
+                          {wp ? ` · from ${[wp.reference, wp.area].filter(Boolean).join(' · ')}` : ''}
+                          {f.due_date ? ` · due ${new Date(f.due_date).toLocaleDateString()}` : ''}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline" className={sevTone(f.severity)}>{humanise(f.severity)} severity</Badge>
+                        <Badge variant="outline">{humanise(f.status)}</Badge>
+                        {f.response_state && <Badge variant="outline">{humanise(f.response_state)}</Badge>}
+                      </div>
+                    </div>
 
-                {r.action ? (
-                  <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted/40 p-2 text-xs">
-                    <span><span className="font-medium">Corrective action: </span>{r.action.title}</span>
-                    <Badge variant="outline" className={actionTone(r.action.status)}>{actionStatusLabel(r.action.status)}</Badge>
-                    {r.action.due_date && !isActionClosed(r.action.status) && (
-                      <span className="text-muted-foreground">Due {new Date(r.action.due_date).toLocaleDateString()}</span>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <Block title="What did we find?">
+                        {f.observation ? <p>{f.observation}</p> : <p className="text-muted-foreground">Not recorded</p>}
+                      </Block>
+                      <Block title="What must the entity do?">
+                        {f.required_action ? <p>{f.required_action}</p> : <p className="text-muted-foreground">Not recorded</p>}
+                      </Block>
+                    </div>
+
+                    {f.remediation.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted/40 p-2 text-xs">
+                        <span className="font-medium">Remediation:</span>
+                        {f.remediation.map(a => (
+                          <Badge key={a.id} variant="outline" className={actionTone(a.status)}>
+                            {[a.reference, actionStatusLabel(a.status)].filter(Boolean).join(' · ')}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-warning">Remediation not yet required of the entity.</p>
                     )}
-                  </div>
-                ) : (
-                  <p className="text-xs text-warning">Corrective action not yet created.</p>
-                )}
 
-
-                {!readOnly && (
-                  <div className="flex flex-wrap gap-2">
-                    {!r.remediation_action_id && (
-                      <Button data-rbac="prudential_supervision.workflow_action" size="sm" disabled={createAction.isPending}
-                        onClick={() => createAction.mutate({ finding_id: r.id, due_date: r.target_date ?? null, description: r.recommendation ?? null })}>
-                        <ClipboardList className="h-3.5 w-3.5 mr-1" />Create corrective action
-                      </Button>
-                    )}
-                    {r.status !== 'closed' && (
-                      <Button data-rbac="prudential_supervision.workflow_action" size="sm" variant="outline" onClick={() => closeFinding(r)}>
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" />Close finding
-                      </Button>
-                    )}
-                    <Button data-rbac="prudential_supervision.edit" size="sm" variant="ghost" className="ml-auto"
-                      aria-label="Remove finding" onClick={() => remove.mutate(r.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                    <Button asChild size="sm" variant="outline">
+                      <Link to={`/supervision/findings/${f.id}`}>
+                        Open finding workspace<ArrowRight className="ml-1 h-3.5 w-3.5" />
+                      </Link>
                     </Button>
                   </div>
-                )}
-              </div>
-            ))}
-            {!readOnly && !showForm && (
-              <Button data-rbac="prudential_supervision.edit" size="sm" variant="outline" onClick={() => setShowForm(true)}>
-                <Plus className="h-4 w-4 mr-1" />Add finding
-              </Button>
-            )}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
 
-        {!readOnly && showForm && (
-          <div className="rounded-md border p-3 space-y-3 bg-muted/20">
-            <div className="grid gap-3 md:grid-cols-4">
-              <div className="md:col-span-2">
-                <Label htmlFor="f_title">Finding title</Label>
-                <Input id="f_title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+          {legacy.length > 0 && (
+            <div className="space-y-3 rounded-md border border-dashed p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Historical findings recorded before the supervisory finding register
+                </p>
+                <Badge variant="outline">{legacy.length}</Badge>
               </div>
-              <div>
-                <Label htmlFor="f_sev">Severity</Label>
-                <Select value={form.severity} onValueChange={v => setForm(f => ({ ...f, severity: v }))}>
-                  <SelectTrigger id="f_sev"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {SEVERITIES.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="f_target">Target date for correction</Label>
-                <Input id="f_target" type="date" value={form.target_date}
-                  onChange={e => setForm(f => ({ ...f, target_date: e.target.value }))} />
-              </div>
+              {(legacy as any[]).map((r: any) => (
+                <div key={r.id} className="rounded-md border p-3 space-y-2">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium">{r.reference ? `${r.reference} · ` : ''}{r.title}</div>
+                      <p className="text-xs text-muted-foreground">
+                        {r.category || 'Uncategorised'}
+                        {r.target_date ? ` · target ${new Date(r.target_date).toLocaleDateString()}` : ''}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Badge variant="outline" className={sevTone(r.severity)}>{humanise(r.severity)} severity</Badge>
+                      <Badge variant="outline">{humanise(r.status)}</Badge>
+                    </div>
+                  </div>
+                  {r.observation && <p className="text-xs">{r.observation}</p>}
+                  {r.action ? (
+                    <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted/40 p-2 text-xs">
+                      <span><span className="font-medium">Corrective action: </span>{r.action.title}</span>
+                      <Badge variant="outline" className={actionTone(r.action.status)}>{actionStatusLabel(r.action.status)}</Badge>
+                      {r.action.due_date && !isActionClosed(r.action.status) && (
+                        <span className="text-muted-foreground">Due {new Date(r.action.due_date).toLocaleDateString()}</span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-warning">Corrective action not yet created.</p>
+                  )}
+                  {!readOnly && (
+                    <div className="flex flex-wrap gap-2">
+                      {!r.remediation_action_id && (
+                        <Button data-rbac="prudential_supervision.workflow_action" size="sm" disabled={createAction.isPending}
+                          onClick={() => createAction.mutate({ finding_id: r.id, due_date: r.target_date ?? null, description: r.recommendation ?? null })}>
+                          <ClipboardList className="h-3.5 w-3.5 mr-1" />Create corrective action
+                        </Button>
+                      )}
+                      {r.status !== 'closed' && (
+                        <Button data-rbac="prudential_supervision.workflow_action" size="sm" variant="outline"
+                          onClick={() => closeLegacyFinding(r)}>
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />Close finding
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+              <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <ExternalLink className="h-3 w-3" />
+                New findings are recorded only in the supervisory finding register above.
+              </p>
             </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div>
-                <Label htmlFor="f_cat">Category</Label>
-                <Input id="f_cat" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} />
-              </div>
-              <div>
-                <Label htmlFor="f_crit">Criteria breached</Label>
-                <Input id="f_crit" value={form.criteria_breached}
-                  onChange={e => setForm(f => ({ ...f, criteria_breached: e.target.value }))} />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="f_obs">What did we find? (observation)</Label>
-              <Textarea id="f_obs" rows={2} value={form.observation}
-                onChange={e => setForm(f => ({ ...f, observation: e.target.value }))} />
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div>
-                <Label htmlFor="f_root">Why did it happen? (root cause)</Label>
-                <Textarea id="f_root" rows={2} value={form.root_cause}
-                  onChange={e => setForm(f => ({ ...f, root_cause: e.target.value }))} />
-              </div>
-              <div>
-                <Label htmlFor="f_rec">What needs to happen? (recommendation)</Label>
-                <Textarea id="f_rec" rows={2} value={form.recommendation}
-                  onChange={e => setForm(f => ({ ...f, recommendation: e.target.value }))} />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button data-rbac="prudential_supervision.edit" size="sm" disabled={!form.title || save.isPending} onClick={add}>
-                <Plus className="h-4 w-4 mr-1" />Add finding
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
-            </div>
-          </div>
-        )}
+          )}
 
-        {!readOnly && <StageActions mode={mode} />}
-      </CardContent>
-    </Card>
+          {!readOnly && <StageActions mode={mode} />}
+        </CardContent>
+      </Card>
+
+      {raiseFrom?.__open && exam && (
+        <RaiseFindingDialog
+          open
+          onOpenChange={(o) => { if (!o) setRaiseFrom(null); }}
+          examinationId={examinationId}
+          examinationReference={(exam as any).reference}
+          entityId={(exam as any).entity_id}
+          entityName={(exam as any).entity_name ?? null}
+          domainCode={(exam as any).domain_code ?? 'PRUDENTIAL'}
+          workpaper={raiseFrom}
+          scopeDimensions={scopeDimensions}
+        />
+      )}
+    </>
   );
 }
