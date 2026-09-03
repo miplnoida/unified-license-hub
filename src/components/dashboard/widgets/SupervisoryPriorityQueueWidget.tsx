@@ -1,11 +1,12 @@
 /**
- * Package A4 — canonical supervisory priority work queue.
+ * EPIC 4 / W6 — dashboard work position, served by the canonical enterprise
+ * work model.
  *
- * One ranked list of everything a supervisor must act on next, served by
- * `sup_priority_work_queue`. Ranking is decided in the read model (hard
- * breaches first, then overdue/early-warning work, then investigations, then
- * routine filings and applications) so every surface shows the same order.
- * Each row deep-links to the canonical record — never to a legacy screen.
+ * The widget reads `supervisory_work_queue` (over `supervisory_work_item`), the
+ * same governed read model behind My Work, Entity 360's next action and the
+ * enterprise portfolio. Ranking, priority, due dates and routes all come from
+ * the read model — nothing is inferred from module tables here, so the
+ * dashboard can never disagree with the case file it points at.
  */
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -16,50 +17,46 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDate } from '@/lib/presentation/format';
 import { humanize } from '@/lib/presentation/statusLabels';
-import { useSupPriorityWorkQueue, type SupDomain, type SupWorkItem } from '@/hooks/useSupervisoryReadModels';
+import { useSupervisoryWorkQueue, type SupervisoryWorkItem } from '@/hooks/useSupervisoryWork';
 
-const KIND_LABEL: Record<string, string> = {
-  prudential_signal: 'Prudential signal',
-  return_filing: 'Return filing',
-  conduct_investigation: 'Conduct investigation',
-  conduct_action: 'Conduct action',
-  thematic_action: 'Thematic remediation',
-  application: 'Licence application',
+const PRIORITY_CLASS: Record<string, string> = {
+  CRITICAL: 'bg-destructive/10 text-destructive border-destructive/30',
+  HIGH: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
+  MEDIUM: 'bg-muted text-muted-foreground',
+  LOW: 'bg-muted text-muted-foreground',
+  ROUTINE: 'bg-muted text-muted-foreground',
 };
 
-const SEVERITY_CLASS: Record<string, string> = {
-  critical: 'bg-destructive/10 text-destructive border-destructive/30',
-  high: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
-  medium: 'bg-muted text-muted-foreground',
-  low: 'bg-muted text-muted-foreground',
-};
-
-const FILTERS: Array<{ key: 'all' | SupDomain; label: string }> = [
+const FILTERS = [
   { key: 'all', label: 'All' },
-  { key: 'prudential', label: 'Prudential' },
-  { key: 'returns', label: 'Returns' },
-  { key: 'conduct', label: 'Conduct' },
-  { key: 'licensing', label: 'Licensing' },
-];
+  { key: 'PRUDENTIAL', label: 'Prudential' },
+  { key: 'AML_CFT', label: 'AML/CFT' },
+  { key: 'MARKET_CONDUCT', label: 'Conduct' },
+  { key: 'CROSS_DOMAIN', label: 'Cross-domain' },
+] as const;
 
 export function SupervisoryPriorityQueueWidget({ limit = 30 }: { limit?: number }) {
-  const [filter, setFilter] = useState<'all' | SupDomain>('all');
-  const { data, isLoading, error } = useSupPriorityWorkQueue(limit, filter === 'all' ? null : filter);
+  const [domain, setDomain] = useState<string>('all');
+  const { data, isLoading, error } = useSupervisoryWorkQueue({
+    scope: 'HIGH_PRIORITY',
+    domain: domain === 'all' ? null : domain,
+    limit,
+  });
 
-  const rows: SupWorkItem[] = useMemo(() => data ?? [], [data]);
+  const rows: SupervisoryWorkItem[] = useMemo(() => data?.items ?? [], [data]);
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
-            <ListChecks className="h-4 w-4 text-primary" /> Supervisory priority queue
+            <ListChecks className="h-4 w-4 text-primary" /> Supervisory priority work
           </CardTitle>
           <p className="mt-1 text-xs text-muted-foreground">
-            Ranked by regulatory consequence — unacknowledged breaches first, then overdue obligations.
+            One enterprise work model — governed priority first, then overdue and decision-point work.
           </p>
         </div>
-        <Tabs value={filter} onValueChange={(v) => setFilter(v as 'all' | SupDomain)}>
+        <Tabs value={domain} onValueChange={setDomain}>
           <TabsList className="h-8">
             {FILTERS.map((f) => (
               <TabsTrigger key={f.key} value={f.key} className="px-2.5 text-xs">{f.label}</TabsTrigger>
@@ -74,29 +71,40 @@ export function SupervisoryPriorityQueueWidget({ limit = 30 }: { limit?: number 
           <p className="py-3 text-sm text-destructive">{(error as Error).message}</p>
         ) : rows.length === 0 ? (
           <p className="py-3 text-sm text-muted-foreground">
-            No outstanding supervisory work in the domains you can access.
+            No high-priority supervisory work in the domains you can access.
           </p>
         ) : (
-          rows.map((item) => (
-            <Link
-              key={`${item.kind}-${item.id}`}
-              to={item.href}
-              className="flex items-center justify-between gap-3 rounded-md px-2 py-2 transition-colors hover:bg-muted/50"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{item.title}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {KIND_LABEL[item.kind] ?? humanize(item.kind)}
-                  {' · '}{humanize(item.status)}
-                  {item.due_at ? ` · Due ${formatDate(item.due_at)}` : ''}
-                </p>
-              </div>
-              <Badge variant="outline" className={`text-[10px] ${SEVERITY_CLASS[item.severity] ?? SEVERITY_CLASS.medium}`}>
-                {humanize(item.severity)}
-              </Badge>
-              <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <>
+            {rows.map((item) => (
+              <Link
+                key={item.work_key}
+                to={item.route}
+                className="flex items-center justify-between gap-3 rounded-md px-2 py-2 transition-colors hover:bg-muted/50"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{item.title ?? item.reference ?? item.work_type_label}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {item.work_type_label}
+                    {item.entity_name ? ` · ${item.entity_name}` : ''}
+                    {' · '}{humanize(item.work_state)}
+                    {item.due_date ? ` · Due ${formatDate(item.due_date)}` : ''}
+                  </p>
+                </div>
+                {item.is_overdue && (
+                  <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-[10px] text-destructive">
+                    Overdue
+                  </Badge>
+                )}
+                <Badge variant="outline" className={`text-[10px] ${PRIORITY_CLASS[item.priority] ?? PRIORITY_CLASS.MEDIUM}`}>
+                  {humanize(item.priority)}
+                </Badge>
+                <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              </Link>
+            ))}
+            <Link to="/my-work" className="mt-2 block px-2 text-xs text-primary hover:underline">
+              Open My Work for the full enterprise queue
             </Link>
-          ))
+          </>
         )}
       </CardContent>
     </Card>
