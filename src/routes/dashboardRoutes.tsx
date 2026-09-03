@@ -385,6 +385,14 @@ export const dashboardRoutes = (
     <Route path="/supervision/aml/examinations" element={<M module="aml_supervision"><AmlExaminations /></M>} />
     <Route path="/supervision/aml/findings" element={<M module="aml_supervision"><AmlFindings /></M>} />
 
+    {/* Canonical enterprise examination workspace — authorization derives from
+        the examination's real supervisory domain (AML/CFT, prudential, conduct).
+        The prudential path below remains an alias. */}
+    <Route
+      path="/supervision/examinations/:id"
+      element={<ExaminationDomainRoute><ExaminationWorkspace /></ExaminationDomainRoute>}
+    />
+
     <Route path="/prudential" element={<Navigate to="/prudential/dashboard" replace />} />
     <Route path="/prudential/dashboard" element={<M module="prudential_supervision"><PrudentialDashboard /></M>} />
     <Route path="/prudential/work" element={<M module="prudential_supervision"><PrudentialWorkQueue /></M>} />
