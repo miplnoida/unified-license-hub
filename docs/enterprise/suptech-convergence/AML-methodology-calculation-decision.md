@@ -324,7 +324,210 @@ Applies to the response codes actually published by `AML-CFT-RBA` v1.0 — and o
 
 ---
 
+## 3A. The actual calculation formula implemented by the engine
+
+Read from `public.supervisory_calc_compute_core(uuid)` as deployed. This is the
+authoritative description; no other formula may be assumed by a maker or checker.
+
+**Step 1 — resolve as-of date and configuration.** `supervisory_calc_as_of_for`
+applies the domain effective-date rule (decision A). No rule → status
+`NO_EFFECTIVE_DATE_RULE`. No configuration in force on that date (half-open
+`[effective_from, effective_to)`) → `NO_CONFIGURATION`. Any of the nine required
+parameters undecided → `CONFIGURATION_INCOMPLETE`. In all three cases **no rating
+is produced**.
+
+**Step 2 — per-question scoring.** Each recorded response for the dimension is
+mapped to its configured score. Responses flagged `excluded_from_denominator` are
+handled per decision C (`EXCLUDE` = dropped, `INCLUDE_AS_ZERO` = 0 in numerator
+and 1 in denominator, `INCLUDE_AS_FULL` = 100 and 1).
+
+**Step 3 — per-dimension aggregation** (decision D):
+
+```text
+UNWEIGHTED_MEAN : raw = Σ(question score) / count(scored questions)
+WORST_RESPONSE  : raw = min(question score)
+```
+
+`raw` is rounded per decision H. Then, for an INHERENT dimension only,
+decision I is applied: `score = 100 - raw` when `inherent_direction = INVERTED`,
+otherwise `score = raw`. CONTROL dimensions always use `score = raw`.
+
+The dimension is `NOT_CALCULABLE` — and carries no score, band or rating — when
+answered questions < decision E, or the denominator is zero, or decision F is
+`NOT_CALCULABLE` and evidence is insufficient. `CAP_AT_MIDPOINT` instead caps the
+score at 50 (upward for inherent, downward for control).
+
+**Step 4 — dimension band.** `supervisory_calc_band_of` resolves the score
+against the INHERENT bands (decision J) or CONTROL bands (decision K), half-open.
+
+**Step 5 — overall weighted scores.** Only `CALCULATED` dimensions participate,
+in both numerator and denominator:
+
+```text
+overall inherent score = Σ(calculable inherent dimension score × its weight)
+                         / Σ(calculable inherent dimension weights)
+
+overall control score  = Σ(calculable control dimension score × its weight)
+                         / Σ(calculable control dimension weights)
+```
+
+The weight used is the assessment dimension's own `weight`, falling back to the
+methodology dimension weight, falling back to 1. Each overall score is rounded
+per decision H and banded per decisions J / K.
+
+**Step 6 — per-dimension residual rating**, from the matrix (decision L):
+
+```text
+INHERENT dimension : matrix( that dimension's inherent band , overall control band )
+CONTROL  dimension : matrix( overall inherent band          , that dimension's control band )
+```
+
+An assessment-level residual is additionally taken as
+`matrix(overall inherent band, overall control band)`.
+
+**Step 7 — recommendation policy** (decision M), over the residual ordinals of
+the dimensions that received a residual rating:
+
+```text
+HIGHEST_DIMENSION      : recommended ordinal = max(dimension residual ordinal)
+WEIGHTED_SCORE         : recommended ordinal = round( Σ(ordinal × weight) / Σ(weight) )
+WEIGHTED_WITH_THRESHOLD: as WEIGHTED_SCORE, then raised to the decision-N
+                         threshold ordinal if any dimension reaches it
+```
+
+The recommendation is **advisory**; the judged rating remains authoritative, and
+divergence at or above decision O requires the full override record.
+
+---
+
+## 3B. Weight denominator semantics, the 117 total, and the six question-less dimensions
+
+**The engine treats dimension weights as relative weights.** It never assumes a
+total of 100: it normalises by the **weight sum of the dimensions actually
+included** — that is, of the `CALCULATED` dimensions only. A control weight total
+of 117 is therefore **not automatically invalid** and does not, by itself, block
+a weighted policy.
+
+Consequences that must be understood before approval:
+
+1. **The denominator moves with calculability.** Six control dimensions publish
+   zero questions (`INDEPENDENT_TESTING` 6, `THIRD_PARTY_OVERSIGHT` 5,
+   `TRAINING` 4, `AML_DATA_QUALITY` 4, `MODEL_GOVERNANCE` 4,
+   `REMEDIATION_TRACKING` 4 — combined **27 of 117**). While they are
+   `NOT_CALCULABLE` their 27 weight does not participate, and the remaining
+   calculable control dimensions are normalised over **their own** weight sum.
+   Independent testing, training and remediation tracking are therefore absent
+   from the computed control effectiveness; the supervisory owner must accept
+   that the calculated control picture is silent on them, or give them questions.
+2. **The relative weights are a supervisory decision, not a defect.** The owner
+   must confirm that the current relative weights are intentional. For example
+   `TRANSACTION_MONITORING` 9/117 = 7.7% of the published total, but a larger
+   share of the calculable denominator whenever question-less dimensions are
+   excluded.
+3. **Rescaling the weights to total 100 is a methodology content change** and
+   must not be done to tidy the arithmetic. It requires a new methodology
+   version with maker/checker approval; existing assessments stay bound to their
+   own version.
+4. **`HIGHEST_DIMENSION` is not weight-free.** See decision M: the ratings it
+   compares are produced from the weighted overall bands.
+
+---
+
+## 3C. Inherent question polarity — live read of all 12 active inherent questions
+
+Read from `supervisory_methodology_question` joined to
+`supervisory_methodology_dimension` for methodology
+`1e248dc0-c559-48d7-bcf3-70d6ec5db99a` (`AML-CFT-RBA` v1.0), `active` only.
+Prompts are quoted as published.
+
+| # | Dimension | Q | Prompt | `YES` polarity | Justification |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `BUSINESS_MODEL_RISK` | Q1 | "Does the growth strategy or ownership structure introduce ML/TF risk not reflected in the entity's risk assessment?" | **MORE_INHERENT_RISK** | `YES` asserts that an unassessed risk factor is present. |
+| 2 | `BUSINESS_MODEL_RISK` | Q2 | "Are group or affiliate dependencies relevant to ML/TF risk understood and documented?" | LESS_INHERENT_RISK | `YES` asserts understanding and documentation — a protective condition. |
+| 3 | `CUSTOMER_RISK` | Q1 | "Has the entity classified its customer base by ML/TF risk, including PEPs, high-risk occupations and non-resident customers?" | LESS_INHERENT_RISK | `YES` asserts classification is performed. |
+| 4 | `CUSTOMER_RISK` | Q2 | "Is the proportion of higher-risk customers quantified, trended and consistent with the stated risk appetite?" | LESS_INHERENT_RISK | `YES` asserts quantification, trending and consistency. |
+| 5 | `DELIVERY_CHANNEL_RISK` | Q1 | "Are non-face-to-face and intermediated delivery channels identified and risk-rated?" | LESS_INHERENT_RISK | `YES` asserts identification and rating. |
+| 6 | `DELIVERY_CHANNEL_RISK` | Q2 | "Are third-party introducers and agents subject to oversight proportionate to their risk?" | LESS_INHERENT_RISK | `YES` asserts proportionate oversight. |
+| 7 | `GEOGRAPHIC_RISK` | Q1 | "Has the entity identified its exposure to higher-risk jurisdictions, including those under FATF monitoring?" | LESS_INHERENT_RISK | `YES` asserts exposure is identified. |
+| 8 | `GEOGRAPHIC_RISK` | Q2 | "Are cross-border and correspondent exposures proportionate to the declared business model?" | LESS_INHERENT_RISK | `YES` asserts proportionality. |
+| 9 | `PRODUCTS_SERVICES_RISK` | Q1 | "Have all products and services been risk-rated for ML/TF vulnerability, including cash-intensive and anonymity-enabling features?" | LESS_INHERENT_RISK | `YES` asserts all products are rated. |
+| 10 | `PRODUCTS_SERVICES_RISK` | Q2 | "Are new or materially changed products subject to ML/TF risk assessment before launch?" | LESS_INHERENT_RISK | `YES` asserts pre-launch assessment. |
+| 11 | `TRANSACTION_PROFILE_RISK` | Q1 | "Is the actual transaction profile (volume, value, cash, cross-border) consistent with the declared business model?" | LESS_INHERENT_RISK | `YES` asserts consistency with the declared model. |
+| 12 | `TRANSACTION_PROFILE_RISK` | Q2 | "Are unusual concentrations of value, counterparties or corridors identified and explained?" | LESS_INHERENT_RISK | `YES` asserts identification and explanation. |
+
+**Can one global `inherent_direction` truthfully represent all 12? No.**
+Eleven questions are protective (`YES` = less inherent risk → `INVERTED` is
+consistent). One question, row 1, is risk-present (`YES` = more inherent risk →
+`DIRECT` is consistent). The polarity is **mixed**, so the single global
+`inherent_direction` column is insufficient and **the calculation configuration
+must not be approved** in its current form.
+
+**Reporting as required:** the defect is in **question wording, not in the
+engine**. The narrower and more honest remedy is to **normalise the wording of
+`BUSINESS_MODEL_RISK / Q1` through a new methodology version** so that all 12
+inherent questions are protective, after which `INVERTED` is truthful for the
+whole set and no schema change is needed. The alternative — **per-question
+polarity** in the calculation configuration — leaves approved methodology content
+untouched but requires a schema and engine change and adds a per-question
+supervisory decision for every future question. Either route requires explicit
+supervisory approval; neither is taken in this wave. See decision I.
+
+---
+
+## 3D. Configuration effective-from governance
+
+Two things must not be conflated:
+
+| Concept | Where it lives | What it decides |
+| --- | --- | --- |
+| Domain effective-date **rule** | `supervisory_domain_calculation_rule` (decision A) | *Which date* on an assessment is used to resolve a configuration (`EXECUTION_DATE`, `ASSESSMENT_DATE`, `PERIOD_END`, `TRIGGER_DATE`, `EXPLICIT_AS_OF`). |
+| Configuration **effective_from** date | `supervisory_calculation_config.effective_from` | *From when* configuration version 1 is in force, i.e. how far back the policy claims applicability. |
+
+**Configuration version 1 must not be silently backdated.** Read from the live
+approved population, the earliest date the authorised backfill needs to cover is:
+
+- earliest `assessment_date` across the 21 approved AML/CFT assessments:
+  **2026-09-02**;
+- earliest `period_end` across the same population: **2026-09-02**.
+
+**Recommended narrowest `effective_from` = 2026-09-02.** Under the recommended
+`ASSESSMENT_DATE` rule this covers every assessment in the authorised backfill
+population and claims **no** applicability to any earlier period. It is
+materially narrower than the previously drafted `2026-01-01`, which asserted
+eight months of retrospective policy applicability that no assessment in the
+population requires.
+
+If the supervisory owner intends retrospective applicability earlier than
+2026-09-02 — for example to align the configuration with the methodology's own
+`effective_from` of 2026-01-01 — that is a deliberate retrospective act and
+**must carry an explicit written supervisory rationale recorded in the
+configuration's approval rationale**, stating why calculated recommendations are
+being asserted for periods that were supervised before the policy existed.
+Nothing is persisted in this wave.
+
+---
+
+## 3E. Verifier semantics corrected in this wave
+
+| Item | Before | After |
+| --- | --- | --- |
+| **AMLH-09** | Required every approved AML dimension to carry a non-null `calculated_residual_rating`. This contradicted the governed `NOT_CALCULABLE` state and could only be cleared by inventing ratings. | Requires a **governed calculation outcome** per approved dimension, evaluated by `public.supervisory_calc_outcome_acceptable(status, residual_rating, config_id, trace, calculated_at)`. Acceptable: `CALCULATED` with rating + configuration id + trace + timestamp; **or** `NOT_CALCULABLE` with a NULL rating, a recorded reason in the trace, and a timestamp. Failures: `calculation_status` NULL / never calculated, `NO_CONFIGURATION`, `NO_EFFECTIVE_DATE_RULE`, `CONFIGURATION_INCOMPLETE`, `CALCULATED` with a NULL rating, `NOT_CALCULABLE` carrying a rating. |
+| **CALC-07** | Checked `as_of > effective_to`, so a configuration was treated as in force at `as_of = effective_to`. | Checks `as_of >= effective_to`. The authoritative interval is half-open `[effective_from, effective_to)`; `effective_to` is exclusive. Runtime temporal resolution was already exclusive and was not changed. |
+| **Non-calculable provenance** | `supervisory_calc_materialise` discarded the resolved configuration when the outcome was not `CALCULATED`. | For a non-`CALCULATED` outcome it now persists `calculation_config_id` (where a configuration resolved), the configuration version, methodology id/version, resolved as-of date, reason and `calculated_at` in the trace, while leaving all four `calculated_*` rating fields NULL. `NO_CONFIGURATION` legitimately has no configuration id. No rating is ever produced. |
+
+Fixtures proving the contract live in
+`scripts/verify-aml-calc-outcome-fixtures.sql` (gates OUTC-01 … OUTC-10,
+transaction-scoped and rolled back), appended to the AML full-module hardening
+suite: valid `CALCULATED` → PASS, valid `NOT_CALCULABLE` → PASS, never
+calculated → FAIL, `NO_CONFIGURATION` → FAIL, `NO_EFFECTIVE_DATE_RULE` → FAIL,
+`CONFIGURATION_INCOMPLETE` → FAIL, `CALCULATED` + NULL rating → FAIL,
+`NOT_CALCULABLE` + non-null rating → FAIL, exact `effective_to = as_of` boundary
+→ not in force, and provenance retained on a non-calculable dimension.
+
+---
+
 ## 4. Does a new methodology version have to be created?
+
 
 **No. A new methodology version is not required for this work.**
 
