@@ -81,16 +81,27 @@ BEGIN
   PERFORM pg_temp.gate('AMLH-08', 'calculated vs judged rating', n = 0,
     format('approved AML dimensions overridden without a recorded reason = %s', n));
 
-  -- AMLH-09 calculated rating recorded: an approved AML dimension must carry the
-  -- methodology-calculated residual rating alongside the judged one, otherwise
-  -- override discipline cannot be evidenced at all.
+  -- AMLH-09 governed calculation outcome recorded: every dimension of an approved
+  -- AML assessment must carry a GOVERNED CALCULATION OUTCOME. That is not the same
+  -- as "a rating exists": the governed engine has a legitimate NOT_CALCULABLE
+  -- state, and requiring a rating for such a dimension would demand a fabricated
+  -- value. Acceptance is delegated to the canonical contract
+  -- public.supervisory_calc_outcome_acceptable():
+  --   A. CALCULATED     — rating, configuration id, trace and timestamp present
+  --   B. NOT_CALCULABLE — no rating, a recorded reason and a timestamp
+  -- Failures: calculation_status NULL (never calculated), NO_CONFIGURATION,
+  -- NO_EFFECTIVE_DATE_RULE, CONFIGURATION_INCOMPLETE, CALCULATED with a NULL
+  -- rating, NOT_CALCULABLE carrying a rating.
   SELECT count(*) INTO n
   FROM public.supervisory_assessment_dimension d
   JOIN public.supervisory_assessment a ON a.id = d.assessment_id
   WHERE a.domain_code = 'AML_CFT' AND upper(a.status) = 'APPROVED'
-    AND d.calculated_residual_rating IS NULL;
-  PERFORM pg_temp.gate('AMLH-09', 'calculated rating recorded', n = 0,
-    format('approved AML dimensions with no calculated residual rating = %s', n));
+    AND NOT public.supervisory_calc_outcome_acceptable(
+          d.calculation_status, d.calculated_residual_rating,
+          d.calculation_config_id, d.calculation_trace, d.calculated_at);
+  PERFORM pg_temp.gate('AMLH-09', 'governed calculation outcome recorded', n = 0,
+    format('approved AML dimensions with no acceptable governed calculation outcome = %s', n));
+
 
   -- AMLH-10 maker/checker: no approved AML assessment was approved by its maker.
   SELECT count(*) INTO n
