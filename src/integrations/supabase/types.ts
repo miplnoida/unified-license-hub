@@ -45721,6 +45721,7 @@ export type Database = {
           mandatory_questions: Json
           methodology_id: string
           min_evidence_count: number
+          provenance: Json | null
           scoring_guidance: string | null
           sort_order: number
           updated_at: string
@@ -45741,6 +45742,7 @@ export type Database = {
           mandatory_questions?: Json
           methodology_id: string
           min_evidence_count?: number
+          provenance?: Json | null
           scoring_guidance?: string | null
           sort_order?: number
           updated_at?: string
@@ -45761,6 +45763,7 @@ export type Database = {
           mandatory_questions?: Json
           methodology_id?: string
           min_evidence_count?: number
+          provenance?: Json | null
           scoring_guidance?: string | null
           sort_order?: number
           updated_at?: string
@@ -45820,65 +45823,261 @@ export type Database = {
           },
         ]
       }
+      supervisory_methodology_fact_requirement: {
+        Row: {
+          attribute_source: string | null
+          auto_prefill_allowed: boolean
+          created_at: string
+          data_type: string | null
+          definition_status: string
+          denominator_basis: string | null
+          fact_code: string
+          id: string
+          is_required: boolean
+          label: string | null
+          materiality_parameter_code: string | null
+          methodology_id: string
+          numerator_basis: string | null
+          officer_edit_allowed: boolean
+          period_expectation: string | null
+          provenance: Json | null
+          source_type_expectation: string[] | null
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          attribute_source?: string | null
+          auto_prefill_allowed?: boolean
+          created_at?: string
+          data_type?: string | null
+          definition_status?: string
+          denominator_basis?: string | null
+          fact_code: string
+          id?: string
+          is_required?: boolean
+          label?: string | null
+          materiality_parameter_code?: string | null
+          methodology_id: string
+          numerator_basis?: string | null
+          officer_edit_allowed?: boolean
+          period_expectation?: string | null
+          provenance?: Json | null
+          source_type_expectation?: string[] | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attribute_source?: string | null
+          auto_prefill_allowed?: boolean
+          created_at?: string
+          data_type?: string | null
+          definition_status?: string
+          denominator_basis?: string | null
+          fact_code?: string
+          id?: string
+          is_required?: boolean
+          label?: string | null
+          materiality_parameter_code?: string | null
+          methodology_id?: string
+          numerator_basis?: string | null
+          officer_edit_allowed?: boolean
+          period_expectation?: string | null
+          provenance?: Json | null
+          source_type_expectation?: string[] | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_methodology_fact_requirement_methodology_id_fkey"
+            columns: ["methodology_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_methodology_parameter: {
+        Row: {
+          approval_status: string
+          created_at: string
+          data_type: string | null
+          id: string
+          label: string | null
+          methodology_id: string
+          parameter_code: string
+          parameter_kind: string
+          provenance: Json | null
+          unit: string | null
+          updated_at: string
+          value_numeric: number | null
+          value_text: string | null
+        }
+        Insert: {
+          approval_status?: string
+          created_at?: string
+          data_type?: string | null
+          id?: string
+          label?: string | null
+          methodology_id: string
+          parameter_code: string
+          parameter_kind?: string
+          provenance?: Json | null
+          unit?: string | null
+          updated_at?: string
+          value_numeric?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          approval_status?: string
+          created_at?: string
+          data_type?: string | null
+          id?: string
+          label?: string | null
+          methodology_id?: string
+          parameter_code?: string
+          parameter_kind?: string
+          provenance?: Json | null
+          unit?: string | null
+          updated_at?: string
+          value_numeric?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_methodology_parameter_methodology_id_fkey"
+            columns: ["methodology_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supervisory_methodology_question: {
         Row: {
           active: boolean
           allow_not_applicable: boolean
+          applicability_rule: Json | null
+          axis: string | null
+          calculation_participation: string | null
+          change_classification: string | null
           created_at: string
+          effectiveness_focus: string | null
+          evidence_basis_types: string[] | null
+          factual_auto_prefill_possible: boolean | null
           guidance: string | null
           id: string
           mandatory: boolean
           methodology_dimension_id: string
           methodology_id: string
           min_evidence_count: number
+          minimum_evidence_note: string | null
+          na_conditions: string | null
           na_requires_rationale: boolean
+          predecessor_mapping: string | null
           prompt: string
+          provenance: Json | null
+          question_class: string | null
           question_code: string
           question_version: number
           requires_evidence: boolean
           requires_observation: boolean
           response_options: string[]
+          response_semantics_code: string | null
+          sector_applicability: string | null
+          sector_classification: string | null
+          sector_notes: string | null
           sort_order: number
+          standards_reference: string | null
+          standards_reference_review: string | null
+          standards_reference_strength: string | null
+          supervisory_intent: string | null
+          supervisory_judgement_required: boolean | null
+          trigger_condition: string | null
           updated_at: string
         }
         Insert: {
           active?: boolean
           allow_not_applicable?: boolean
+          applicability_rule?: Json | null
+          axis?: string | null
+          calculation_participation?: string | null
+          change_classification?: string | null
           created_at?: string
+          effectiveness_focus?: string | null
+          evidence_basis_types?: string[] | null
+          factual_auto_prefill_possible?: boolean | null
           guidance?: string | null
           id?: string
           mandatory?: boolean
           methodology_dimension_id: string
           methodology_id: string
           min_evidence_count?: number
+          minimum_evidence_note?: string | null
+          na_conditions?: string | null
           na_requires_rationale?: boolean
+          predecessor_mapping?: string | null
           prompt: string
+          provenance?: Json | null
+          question_class?: string | null
           question_code: string
           question_version?: number
           requires_evidence?: boolean
           requires_observation?: boolean
           response_options?: string[]
+          response_semantics_code?: string | null
+          sector_applicability?: string | null
+          sector_classification?: string | null
+          sector_notes?: string | null
           sort_order?: number
+          standards_reference?: string | null
+          standards_reference_review?: string | null
+          standards_reference_strength?: string | null
+          supervisory_intent?: string | null
+          supervisory_judgement_required?: boolean | null
+          trigger_condition?: string | null
           updated_at?: string
         }
         Update: {
           active?: boolean
           allow_not_applicable?: boolean
+          applicability_rule?: Json | null
+          axis?: string | null
+          calculation_participation?: string | null
+          change_classification?: string | null
           created_at?: string
+          effectiveness_focus?: string | null
+          evidence_basis_types?: string[] | null
+          factual_auto_prefill_possible?: boolean | null
           guidance?: string | null
           id?: string
           mandatory?: boolean
           methodology_dimension_id?: string
           methodology_id?: string
           min_evidence_count?: number
+          minimum_evidence_note?: string | null
+          na_conditions?: string | null
           na_requires_rationale?: boolean
+          predecessor_mapping?: string | null
           prompt?: string
+          provenance?: Json | null
+          question_class?: string | null
           question_code?: string
           question_version?: number
           requires_evidence?: boolean
           requires_observation?: boolean
           response_options?: string[]
+          response_semantics_code?: string | null
+          sector_applicability?: string | null
+          sector_classification?: string | null
+          sector_notes?: string | null
           sort_order?: number
+          standards_reference?: string | null
+          standards_reference_review?: string | null
+          standards_reference_strength?: string | null
+          supervisory_intent?: string | null
+          supervisory_judgement_required?: boolean | null
+          trigger_condition?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -45897,6 +46096,141 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      supervisory_methodology_question_fact: {
+        Row: {
+          created_at: string
+          fact_requirement_id: string
+          id: string
+          is_required: boolean
+          question_id: string
+        }
+        Insert: {
+          created_at?: string
+          fact_requirement_id: string
+          id?: string
+          is_required?: boolean
+          question_id: string
+        }
+        Update: {
+          created_at?: string
+          fact_requirement_id?: string
+          id?: string
+          is_required?: boolean
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_methodology_question_fact_fact_requirement_id_fkey"
+            columns: ["fact_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_fact_requirement"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_methodology_question_fact_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_question"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_methodology_reference_decision: {
+        Row: {
+          approval_scope: string
+          customer_adoption_recorded: boolean
+          decision_code: string
+          decision_source: string
+          decision_text: string
+          domain_code: string
+          id: string
+          methodology_code: string
+          methodology_version: string
+          provenance: Json | null
+          rationale: string
+          recorded_at: string
+          recorded_by: string | null
+          regulator_approval_recorded: boolean
+          status: string
+          title: string
+        }
+        Insert: {
+          approval_scope?: string
+          customer_adoption_recorded?: boolean
+          decision_code: string
+          decision_source?: string
+          decision_text: string
+          domain_code: string
+          id?: string
+          methodology_code: string
+          methodology_version: string
+          provenance?: Json | null
+          rationale: string
+          recorded_at?: string
+          recorded_by?: string | null
+          regulator_approval_recorded?: boolean
+          status?: string
+          title: string
+        }
+        Update: {
+          approval_scope?: string
+          customer_adoption_recorded?: boolean
+          decision_code?: string
+          decision_source?: string
+          decision_text?: string
+          domain_code?: string
+          id?: string
+          methodology_code?: string
+          methodology_version?: string
+          provenance?: Json | null
+          rationale?: string
+          recorded_at?: string
+          recorded_by?: string | null
+          regulator_approval_recorded?: boolean
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      supervisory_methodology_semantic_profile: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          domain_code: string
+          id: string
+          label: string
+          provenance: Json | null
+          response_meaning: Json
+          semantic_code: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          domain_code: string
+          id?: string
+          label: string
+          provenance?: Json | null
+          response_meaning?: Json
+          semantic_code: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          domain_code?: string
+          id?: string
+          label?: string
+          provenance?: Json | null
+          response_meaning?: Json
+          semantic_code?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       supervisory_plan: {
         Row: {
@@ -64165,6 +64499,10 @@ export type Database = {
         Args: { _methodology_id: string; _payload: Json }
         Returns: string
       }
+      supervisory_methodology_fact_requirement_set: {
+        Args: { _methodology_id: string; _payload: Json }
+        Returns: number
+      }
       supervisory_methodology_lifecycle: {
         Args: {
           _methodology_id: string
@@ -64181,12 +64519,28 @@ export type Database = {
         }
         Returns: string
       }
+      supervisory_methodology_parameter_set: {
+        Args: { _methodology_id: string; _payload: Json }
+        Returns: number
+      }
+      supervisory_methodology_question_attributes_set: {
+        Args: { _methodology_id: string; _payload: Json }
+        Returns: number
+      }
       supervisory_methodology_question_backfill: {
         Args: never
         Returns: number
       }
+      supervisory_methodology_question_purge: {
+        Args: { _methodology_id: string; _rationale: string }
+        Returns: number
+      }
       supervisory_methodology_question_sync: {
         Args: { _dimension_id: string; _questions: Json }
+        Returns: number
+      }
+      supervisory_methodology_reference_decision_record: {
+        Args: { _payload: Json }
         Returns: number
       }
       supervisory_methodology_resolve: {
@@ -64214,6 +64568,10 @@ export type Database = {
       supervisory_methodology_save: {
         Args: { _methodology_id?: string; _payload: Json }
         Returns: string
+      }
+      supervisory_methodology_semantic_profile_set: {
+        Args: { _domain_code: string; _payload: Json }
+        Returns: number
       }
       supervisory_plan_action_create: {
         Args: {
