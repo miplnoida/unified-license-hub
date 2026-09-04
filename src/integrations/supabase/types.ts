@@ -63629,6 +63629,16 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_calc_outcome_acceptable: {
+        Args: {
+          _calculated_at: string
+          _config_id: string
+          _residual_rating: string
+          _status: string
+          _trace: Json
+        }
+        Returns: boolean
+      }
       supervisory_calc_round: {
         Args: { _decimals: number; _mode: string; _v: number }
         Returns: number

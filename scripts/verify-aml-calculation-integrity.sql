@@ -106,6 +106,9 @@ BEGIN
   -- CALC-07 temporal consistency: the configuration used belongs to the
   -- assessment's own methodology version and was in force on the resolved
   -- as-of date given the approved effective-date rule.
+  -- The authoritative configuration interval is HALF-OPEN: [effective_from,
+  -- effective_to). effective_to is EXCLUSIVE, so as_of = effective_to means the
+  -- configuration is NOT in force.
   SELECT count(*) INTO n FROM public.supervisory_assessment_calculation c
     JOIN public.supervisory_assessment asmt ON asmt.id = c.assessment_id
     LEFT JOIN public.supervisory_calculation_config cc ON cc.id = c.config_id
@@ -114,9 +117,10 @@ BEGIN
           OR cc.methodology_id <> asmt.methodology_id
           OR c.methodology_version IS DISTINCT FROM asmt.methodology_version
           OR (cc.effective_from IS NOT NULL AND c.as_of < cc.effective_from)
-          OR (cc.effective_to IS NOT NULL AND c.as_of > cc.effective_to));
+          OR (cc.effective_to IS NOT NULL AND c.as_of >= cc.effective_to));
   PERFORM pg_temp.gate('CALC-07','configuration/version temporal consistency', n = 0,
-    format('calculations using a configuration outside the assessment methodology or its window = %s', n));
+    format('calculations using a configuration outside the assessment methodology or its half-open window = %s', n));
+
 
   -- CALC-08 the methodology binding of an approved assessment is frozen.
   SELECT count(*) INTO n FROM pg_trigger
