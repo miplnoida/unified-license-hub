@@ -28,6 +28,7 @@ CREATE OR REPLACE FUNCTION pg_temp.gate(_id text, _name text, _ok boolean, _deta
 RETURNS void LANGUAGE sql AS $$
   INSERT INTO outc_gate VALUES (_id, _name, CASE WHEN _ok THEN 'PASS' ELSE 'FAIL' END, _detail);
 $$;
+GRANT INSERT ON outc_gate TO authenticated;
 
 -- ------------------------------------------------------- 1. acceptance contract
 DO $$
@@ -41,11 +42,15 @@ BEGIN
     public.supervisory_calc_outcome_acceptable('CALCULATED','HIGH',_cfg,_ok_trace,_t),
     'expected acceptable');
 
-  -- OUTC-02 NOT_CALCULABLE, no rating, recorded reason -> acceptable
-  PERFORM pg_temp.gate('OUTC-02','NOT_CALCULABLE with a recorded reason and timestamp',
-    public.supervisory_calc_outcome_acceptable('NOT_CALCULABLE',NULL,_cfg,_nc_trace,_t),
-    'expected acceptable, and acceptable with no configuration id too: '
-    || public.supervisory_calc_outcome_acceptable('NOT_CALCULABLE',NULL,NULL,_nc_trace,_t)::text);
+  -- OUTC-02 NOT_CALCULABLE requires the configuration provenance the engine
+  -- had already resolved before it could conclude that nothing is calculable.
+  -- A reason alone, with no configuration/version/as-of, is NOT acceptable.
+  PERFORM pg_temp.gate('OUTC-02','NOT_CALCULABLE requires configuration/version/as-of provenance',
+    public.supervisory_calc_outcome_acceptable('NOT_CALCULABLE',NULL,_cfg,
+      _nc_trace || jsonb_build_object('config_version',1,'as_of','2026-06-01','methodology_version','1'),_t)
+    AND NOT public.supervisory_calc_outcome_acceptable('NOT_CALCULABLE',NULL,NULL,_nc_trace,_t)
+    AND NOT public.supervisory_calc_outcome_acceptable('NOT_CALCULABLE',NULL,_cfg,_nc_trace,_t),
+    'full provenance acceptable; missing configuration id or missing config_version/as_of/methodology_version refused');
 
   -- OUTC-03 never calculated -> unacceptable
   PERFORM pg_temp.gate('OUTC-03','never calculated is refused',
@@ -88,7 +93,7 @@ END $$;
 -- ------------------------------------ 2/3. half-open boundary and provenance
 DO $$
 DECLARE _ent uuid; _m uuid; _dimI uuid; _dimC uuid; _q1 uuid; _cfgv uuid;
-        _aEdge uuid; _aIn uuid; _r jsonb; _row public.supervisory_assessment_dimension;
+        _aEdge uuid; _aIn uuid; _aNone uuid; _r jsonb; _row public.supervisory_assessment_dimension;
         _resolved uuid;
 BEGIN
   SELECT entity_id INTO _ent FROM public.supervisory_assessment WHERE entity_id IS NOT NULL LIMIT 1;
@@ -141,6 +146,15 @@ BEGIN
   VALUES ('ZZ-OUTC-IN',_ent,'AML_CFT',_m,'1','2026-04-01','2026-06-29','2026-07-01','draft')
   RETURNING id INTO _aIn;
 
+  -- C. an assessment whose only dimension is unanswered -> wholly NOT_CALCULABLE
+  INSERT INTO public.supervisory_assessment(reference, entity_id, domain_code, methodology_id,
+    methodology_version, period_start, period_end, assessment_date, status)
+  VALUES ('ZZ-OUTC-NONE',_ent,'AML_CFT',_m,'1','2026-04-01','2026-06-29','2026-07-01','draft')
+  RETURNING id INTO _aNone;
+  INSERT INTO public.supervisory_assessment_dimension(assessment_id, methodology_dimension_id,
+    dimension_code, dimension_group, weight)
+  VALUES (_aNone,_dimC,'FX_CTL','CONTROL_EFFECTIVENESS',1);
+
   FOR _resolved IN SELECT unnest(ARRAY[_aEdge,_aIn]) LOOP
     INSERT INTO public.supervisory_assessment_dimension(assessment_id, methodology_dimension_id,
       dimension_code, dimension_group, weight)
@@ -185,6 +199,78 @@ BEGIN
       COALESCE((_row.calculation_trace->>'config_version'),'(null)'),
       COALESCE((_row.calculation_trace->>'as_of'),'(null)'),
       left(COALESCE(_row.calculation_trace->>'reason','(null)'),60)));
+END $$;
+
+-- ------------------------------------ 4. governed recalculation of NOT_CALCULABLE
+DO $$
+DECLARE _uid uuid; _cfg uuid; _aIn uuid; _aNone uuid; _dry jsonb; _wr jsonb; _row public.supervisory_assessment_dimension;
+        _item jsonb; _itemw jsonb;
+BEGIN
+  SELECT id INTO _aIn FROM public.supervisory_assessment WHERE reference = 'ZZ-OUTC-IN';
+  SELECT id INTO _aNone FROM public.supervisory_assessment WHERE reference = 'ZZ-OUTC-NONE';
+  _cfg := public.supervisory_calc_config_for(_aIn);
+  SELECT u.id INTO _uid FROM auth.users u
+   WHERE public.has_permission(u.id,'aml_supervision','manage_config') ORDER BY u.email LIMIT 1;
+  IF _uid IS NULL OR _aIn IS NULL OR _aNone IS NULL THEN
+    PERFORM pg_temp.gate('OUTC-11','governed recalculation dry run labels each outcome distinctly',
+      false, 'no manage_config identity or fixture assessment');
+    RETURN;
+  END IF;
+
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub',_uid::text,'role','authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  _dry := public.supervisory_calculation_recalculate('AML_CFT',
+    'outcome fixture: governed recalculation dry run', _cfg, NULL, true);
+  _wr := public.supervisory_calculation_recalculate('AML_CFT',
+    'outcome fixture: governed recalculation write run', _cfg, NULL, false);
+  RESET ROLE;
+  PERFORM set_config('request.jwt.claims','{}', true);
+
+  SELECT e INTO _item FROM jsonb_array_elements(_dry->'items') e WHERE e->>'assessment_id' = _aNone::text;
+  SELECT e INTO _itemw FROM jsonb_array_elements(_wr->'items') e WHERE e->>'assessment_id' = _aNone::text;
+
+  PERFORM pg_temp.gate('OUTC-11','governed recalculation dry run labels each outcome distinctly',
+    _item->>'result' = 'WOULD_RECORD_NOT_CALCULABLE'
+    AND (SELECT e->>'result' FROM jsonb_array_elements(_dry->'items') e
+          WHERE e->>'assessment_id' = _aIn::text) = 'WOULD_CALCULATE'
+    AND (_dry->>'not_calculable')::int >= 1
+    AND (_dry->>'recalculated')::int >= 1,
+    format('non-calculable item=%s calculable item=%s not_calculable=%s recalculated=%s',
+      COALESCE(_item->>'result','(none)'),
+      COALESCE((SELECT e->>'result' FROM jsonb_array_elements(_dry->'items') e
+                 WHERE e->>'assessment_id' = _aIn::text),'(none)'),
+      _dry->>'not_calculable', _dry->>'recalculated'));
+
+  PERFORM pg_temp.gate('OUTC-12','governed recalculation write run materialises NOT_CALCULABLE',
+    _itemw->>'result' = 'RECORDED_NOT_CALCULABLE'
+    AND EXISTS (SELECT 1 FROM public.supervisory_assessment_dimension d
+                 WHERE d.assessment_id = _aNone AND d.calculation_status = 'NOT_CALCULABLE'
+                   AND d.calculated_residual_rating IS NULL AND d.calculation_config_id = _cfg),
+    format('item=%s', COALESCE(_itemw->>'result','(none)')));
+
+  SELECT * INTO _row FROM public.supervisory_assessment_dimension
+   WHERE assessment_id = _aIn AND dimension_code = 'FX_CTL';
+  PERFORM pg_temp.gate('OUTC-13','recalculation fabricates no rating and keeps provenance',
+    _row.calculated_residual_rating IS NULL
+    AND _row.calculation_status = 'NOT_CALCULABLE'
+    AND _row.calculation_config_id = _cfg
+    AND public.supervisory_calc_outcome_acceptable(_row.calculation_status,
+          _row.calculated_residual_rating, _row.calculation_config_id,
+          _row.calculation_trace, _row.calculated_at),
+    format('status=%s rating=%s config=%s', _row.calculation_status,
+      COALESCE(_row.calculated_residual_rating,'(null)'),
+      COALESCE(_row.calculation_config_id::text,'(null)')));
+
+  PERFORM pg_temp.gate('OUTC-14','a legitimate NOT_CALCULABLE is not counted as an ordinary skip',
+    (_dry->>'not_calculable')::int >= 1
+    AND COALESCE((_dry->>'skipped')::int,0) = COALESCE((_dry->>'no_configuration')::int,0)
+        + COALESCE((_dry->>'no_effective_date_rule')::int,0)
+        + COALESCE((_dry->>'configuration_incomplete')::int,0)
+        + COALESCE((_dry->>'other_configuration')::int,0),
+    format('skipped=%s no_configuration=%s no_rule=%s incomplete=%s other_config=%s not_calculable=%s',
+      _dry->>'skipped', _dry->>'no_configuration', _dry->>'no_effective_date_rule',
+      _dry->>'configuration_incomplete', _dry->>'other_configuration', _dry->>'not_calculable'));
 END $$;
 
 SELECT id, name, result, detail FROM outc_gate ORDER BY id;
