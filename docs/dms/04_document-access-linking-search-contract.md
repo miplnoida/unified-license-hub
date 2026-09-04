@@ -5,9 +5,14 @@ Principle, recorded permanently:
 **CENTRALISED STORAGE / GOVERNANCE + CONTEXTUAL ACCESS EVERYWHERE.**
 
 Officers never leave AML, Licensing, Returns, Examination, Finding, Complaint or Enforcement to
-use the central repository. Every module document action consumes the canonical DMS
-(`file_uploads`, `document_groups`, `document_versions`, `document_relationships`). No second
-storage, no second file table, no module-local canonical document.
+use the central repository. Every module document action consumes the canonical DMS control plane
+(`document_groups`, `document_versions`, `document_relationships`, taxonomy/classification/
+retention) through the Enterprise Document Gateway. No second storage, no second file table, no
+module-local canonical document.
+
+`file_uploads` is **not** part of that contract: it is the internal document provider's
+implementation record. Content location is a provider concern behind the Gateway — see
+`05-enterprise-document-platform-provider-architecture.md` (final provider-neutral lock).
 
 ## 1. No technical-id user workflows
 
