@@ -84,6 +84,7 @@ def parse() -> list[dict]:
         rec = {"question_code": code, "_block": block}
         for m in re.finditer(r"^\| ([a-zA-Z0-9_]+) \| (.*?) \|$", block, re.M):
             rec[m.group(1)] = m.group(2).strip()
+        rec["question_code"] = code  # heading is authoritative; table value is backticked
         g = re.search(r"\*\*Guidance\.\*\* (.*)", block)
         rec["guidance"] = g.group(1) if g else ""
         recs.append(rec)
