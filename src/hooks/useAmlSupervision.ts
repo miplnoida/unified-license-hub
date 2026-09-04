@@ -203,7 +203,7 @@ export function useAmlAssessmentStatuses() {
         .eq('domain_code', 'AML_CFT')
         .limit(1000);
       if (error) throw error;
-      return Array.from(new Set((data ?? []).map((r: any) => r.status).filter(Boolean))).sort();
+      return Array.from(new Set((data ?? []).map((r: any) => String(r.status)).filter(Boolean))).sort() as string[];
     },
   });
 }

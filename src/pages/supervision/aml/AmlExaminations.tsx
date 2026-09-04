@@ -132,7 +132,7 @@ export default function AmlExaminations() {
                 size="sm"
                 className="h-9"
                 variant={openOnly ? 'default' : 'outline'}
-                onClick={() => setOpenOnly((v) => !v)}
+                onClick={() => setOpenOnly(!openOnly)}
                 aria-pressed={openOnly}
               >
                 <Filter className="mr-1.5 h-4 w-4" />
