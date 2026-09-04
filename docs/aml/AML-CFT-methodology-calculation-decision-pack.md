@@ -12,6 +12,27 @@ clearly in one direction, an **Engineering recommendation** is stated and marked
 
 ---
 
+## Current v1.1 design state (methodology-design baseline)
+
+**Baseline distinction.** The SHA at the top of this pack (`190db738…`) and sections 1–17 below are the **historical analysis baseline** — measured database evidence from the calculation-policy analysis wave. They are retained as historical evidence and are not rewritten. This section is the **current methodology-design baseline**.
+
+| Item | Current state |
+| --- | --- |
+| Current HEAD (design baseline) | `68ed14448cb24ba71fe34d3da2f29873b2e4bcdb` — "Red-temed AML v1.1 catalogue" |
+| Proposed catalogue | 70 active questions (17 inherent entries, 53 control), 5 retired and documented |
+| Question classes | CORE 48 / CONDITIONAL 16 / ENHANCED 6 |
+| Inherent split | 16 scored inherent + 1 contextual inherent (`IR-GEO-03`, `CONTEXTUAL_NOT_SCORED`) |
+| Supervisory judgement | `supervisory_judgement_required` YES 67 / NO 3 (`IR-TRX-01`, `CT-ERA-01`, `CT-RK-01`) |
+| Evidence model | `requires_evidence` = governed **evidence basis** (11 types), shareable and inheritable; `SYSTEM_FACT` / `STRUCTURED_METRIC` satisfy it through provenance; no AML-local document repository; no universal evidence-strength hierarchy; no automatic score or answer from facts |
+| Structured fact model | Provider-neutral fact contract (`fact_code`, `label`, `data_type`, `unit`, numerator/denominator, period/`as_of`, source type/reference/timestamp, `peer_group`, `materiality_basis`, required/optional, `auto_prefill_allowed`, `officer_edit_allowed`, `provenance`) |
+| Production state | 0 migrations, 0 database writes, 0 runtime changes, 0 methodology versions created, 0 question rows, 0 calculation policy rows, 0 STR relinks |
+| `AML-METH-01..10` | All **AWAITING SUPERVISORY APPROVAL** (see register at the end of this pack) |
+| Module status | AML/CFT **NOT CERTIFIED** |
+
+Design-time verification: `python3 scripts/verify-aml-v11-catalogue-design.py` (parses the catalogue and documents; no database access).
+
+---
+
 ## 1. Current state (measured, not reported)
 
 ### 1.1 Methodologies (`supervisory_methodology`)
