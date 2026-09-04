@@ -628,32 +628,25 @@ export function useStartWorkflow() {
       entity_type: string;
       entity_id: string;
     }) => {
-      // Get first step
-      const { data: steps } = await supabase
-        .from('approval_steps')
-        .select('id')
-        .eq('workflow_id', params.workflow_id)
-        .order('step_order', { ascending: true })
-        .limit(1);
-      const firstStepId = steps?.[0]?.id || null;
-
-      const { data, error } = await supabase
-        .from('workflow_instances')
-        .insert({
-          workflow_id: params.workflow_id,
-          entity_type: params.entity_type,
-          entity_id: params.entity_id,
-          current_step_id: firstStepId,
-          status: 'active',
-        } as any)
-        .select()
-        .single();
+      // Governed start: the server checks workflow authority, derives the first
+      // step and writes the audit entry. The browser never inserts the instance.
+      const { data: instanceId, error } = await (supabase as any).rpc('workflow_instance_start', {
+        _workflow_id: params.workflow_id,
+        _entity_type: params.entity_type,
+        _entity_id: params.entity_id,
+      });
       if (error) throw error;
+      const { data } = await supabase
+        .from('workflow_instances')
+        .select('*')
+        .eq('id', instanceId as string)
+        .maybeSingle();
       return data as unknown as WorkflowInstance;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['workflow_instances'] }),
   });
 }
+
 
 /**
  * Centralized workflow-action mutation. Routes to the correct edge function
