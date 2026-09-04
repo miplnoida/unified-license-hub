@@ -14112,6 +14112,112 @@ export type Database = {
         }
         Relationships: []
       }
+      dms_ingest_sessions: {
+        Row: {
+          actor_id: string
+          canonical_target_type: string | null
+          category_code: string | null
+          context_status: string | null
+          created_at: string
+          document_group_id: string | null
+          entity_id: string | null
+          evidentiary_role: string | null
+          expires_at: string
+          failure_reason: string | null
+          finalized_at: string | null
+          id: string
+          mode: string
+          picker_type: string | null
+          result_document_reference: string | null
+          result_version: number | null
+          result_version_id: string | null
+          source_module: string | null
+          source_record_id: string | null
+          source_reference: string | null
+          status: string
+          storage_bucket: string
+          storage_prefix: string
+          type_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          actor_id: string
+          canonical_target_type?: string | null
+          category_code?: string | null
+          context_status?: string | null
+          created_at?: string
+          document_group_id?: string | null
+          entity_id?: string | null
+          evidentiary_role?: string | null
+          expires_at?: string
+          failure_reason?: string | null
+          finalized_at?: string | null
+          id?: string
+          mode: string
+          picker_type?: string | null
+          result_document_reference?: string | null
+          result_version?: number | null
+          result_version_id?: string | null
+          source_module?: string | null
+          source_record_id?: string | null
+          source_reference?: string | null
+          status?: string
+          storage_bucket?: string
+          storage_prefix: string
+          type_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actor_id?: string
+          canonical_target_type?: string | null
+          category_code?: string | null
+          context_status?: string | null
+          created_at?: string
+          document_group_id?: string | null
+          entity_id?: string | null
+          evidentiary_role?: string | null
+          expires_at?: string
+          failure_reason?: string | null
+          finalized_at?: string | null
+          id?: string
+          mode?: string
+          picker_type?: string | null
+          result_document_reference?: string | null
+          result_version?: number | null
+          result_version_id?: string | null
+          source_module?: string | null
+          source_record_id?: string | null
+          source_reference?: string | null
+          status?: string
+          storage_bucket?: string
+          storage_prefix?: string
+          type_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dms_ingest_sessions_document_group_id_fkey"
+            columns: ["document_group_id"]
+            isOneToOne: false
+            referencedRelation: "document_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dms_ingest_sessions_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dms_ingest_sessions_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+        ]
+      }
       document_action_logs: {
         Row: {
           action: string
@@ -56366,6 +56472,57 @@ export type Database = {
       }
       dms_get_document: { Args: { _group_id: string }; Returns: Json }
       dms_has: { Args: { _action: string }; Returns: boolean }
+      dms_ingest_abort: {
+        Args: { _reason?: string; _session_id: string }
+        Returns: boolean
+      }
+      dms_ingest_begin: {
+        Args: {
+          _category_code?: string
+          _document_group_id?: string
+          _evidentiary_role?: string
+          _mode: string
+          _picker_type: string
+          _record_id: string
+          _source_module?: string
+          _type_code?: string
+        }
+        Returns: {
+          bucket: string
+          expires_at: string
+          mode: string
+          session_id: string
+          storage_prefix: string
+        }[]
+      }
+      dms_ingest_cleanup_expired: {
+        Args: { _limit?: number }
+        Returns: {
+          expired: number
+          storage_prefixes: string[]
+        }[]
+      }
+      dms_ingest_finalize: {
+        Args: {
+          _change_note?: string
+          _checksum?: string
+          _display_name?: string
+          _extension?: string
+          _file_name: string
+          _file_size: number
+          _mime_type: string
+          _session_id: string
+          _storage_path: string
+        }
+        Returns: {
+          already_finalized: boolean
+          context_status: string
+          document_reference: string
+          group_id: string
+          version: number
+          version_id: string
+        }[]
+      }
       dms_link_picked_record: {
         Args: {
           _group_id: string
