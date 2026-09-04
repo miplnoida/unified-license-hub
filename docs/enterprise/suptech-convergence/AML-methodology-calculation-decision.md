@@ -181,7 +181,7 @@ values the platform accepts today; nothing else may be entered.
 - **Current platform options:** `EXECUTION_DATE`, `ASSESSMENT_DATE`, `PERIOD_END`, `TRIGGER_DATE`, `EXPLICIT_AS_OF` (one row per domain in `supervisory_domain_calculation_rule`; `supervisory_calc_as_of_for` coalesces any null source date to the execution date).
 - **Recommended:** `ASSESSMENT_DATE`.
 - **Rationale:** the calculation must be governed by the configuration in force when the supervisory decision was taken, which is the date the regulator can defend in an appeal. `assessment_date` is populated on all 21 approved AML assessments, and the function already coalesces to the execution date where it is null, so the rule cannot produce a null as-of date.
-- **Alternative:** `EXECUTION_DATE` — simpler and never null, but ties the methodology parameters to record-creation mechanics rather than to the supervisory act. `PERIOD_END` is **not recommended**: it points at the reviewed period, so a 2026-executed reassessment of a 2025 period would resolve to 2025 and, with any configuration effective from 2026-01-01, would have **no in-force configuration** (see E.4).
+- **Alternative:** `EXECUTION_DATE` — simpler and never null, but ties the methodology parameters to record-creation mechanics rather than to the supervisory act. `PERIOD_END` is **not recommended**: it points at the reviewed period, so a 2026-executed reassessment of a 2025 period would resolve to 2025 and, with any configuration effective from 2026 onwards, would have **no in-force configuration** (see E.4).
 - **Operational consequence:** one row, platform-wide per domain; every screen and the engine read the same value. Changing it later re-resolves which configuration applies to future calculations.
 
 ### B. Response scoring
@@ -734,13 +734,20 @@ Administration → Supervisory methodology → Calculation approvals.
    `HIGHEST_DIMENSION` (if chosen) is understood as worst residual among
    calculable dimensions, and that `recommendation_threshold` is present if and
    only if the policy requires it.
-9. If `WEIGHTED_SCORE` is chosen, confirm the control weight total of 117 has an
-   explicitly approved treatment.
+9. Confirm the relative dimension weights (control total 117) have an explicitly
+   approved treatment, and that the engine's included-weight normalisation
+   (section 3B) is understood — including that the six question-less control
+   dimensions contribute nothing while they are not calculable.
 10. Confirm `inherent_direction` against the actual inherent question wording —
-    this is the highest-consequence single field (decision I).
-11. Confirm `override_threshold` does not contradict the methodology's recorded
+    this is the highest-consequence single field. **A checker must refuse the
+    configuration while the polarity of the 12 inherent questions remains mixed
+    (section 3C); no global value is truthful today.**
+11. Confirm the assessment-dimension linkage defect in E.2 has been repaired, so
+    that activation can produce calculated outcomes rather than 80
+    `NOT_CALCULABLE` results.
+12. Confirm `override_threshold` does not contradict the methodology's recorded
     `MEDIUM_HIGH`.
-12. Approve with rationale, or return with reasons. Approval and activation are
+13. Approve with rationale, or return with reasons. Approval and activation are
     separate acts; every transition is written to
     `supervisory_calculation_event` with actor, timestamp and rationale.
 
