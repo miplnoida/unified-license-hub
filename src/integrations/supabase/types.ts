@@ -64622,6 +64622,10 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_methodology_action_capabilities: {
+        Args: { _methodology_id: string }
+        Returns: Json
+      }
       supervisory_methodology_adopt_reference: {
         Args: {
           _rationale: string
@@ -64629,6 +64633,10 @@ export type Database = {
           _regulator_id: string
         }
         Returns: string
+      }
+      supervisory_methodology_adoption_targets: {
+        Args: { _methodology_id: string }
+        Returns: Json
       }
       supervisory_methodology_approval_register: {
         Args: {
@@ -64656,6 +64664,10 @@ export type Database = {
       }
       supervisory_methodology_audit_register: {
         Args: { _limit?: number; _methodology_id: string; _offset?: number }
+        Returns: Json
+      }
+      supervisory_methodology_compare: {
+        Args: { _baseline_id?: string; _methodology_id: string }
         Returns: Json
       }
       supervisory_methodology_context_internal: {
@@ -64697,6 +64709,10 @@ export type Database = {
       }
       supervisory_methodology_fact_requirement_set: {
         Args: { _methodology_id: string; _payload: Json }
+        Returns: number
+      }
+      supervisory_methodology_legacy_str_row_count: {
+        Args: never
         Returns: number
       }
       supervisory_methodology_lifecycle: {
@@ -64830,6 +64846,10 @@ export type Database = {
       }
       supervisory_methodology_resolve_for_entity: {
         Args: { _as_of?: string; _domain_code: string; _entity_id: string }
+        Returns: Json
+      }
+      supervisory_methodology_review_readiness: {
+        Args: { _methodology_id: string }
         Returns: Json
       }
       supervisory_methodology_save: {
