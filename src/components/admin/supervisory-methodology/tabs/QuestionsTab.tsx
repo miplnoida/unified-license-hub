@@ -282,8 +282,6 @@ export function QuestionsTab({ methodologyId }: { methodologyId: string }) {
           )}
       </div>
       <QuestionDrawer questionId={openQuestion} onClose={() => setOpenQuestion(null)} />
-      {dims.data && dims.data.length === 0 ? null : null}
-      {formatDate ? null : null}
     </div>
   );
 }
