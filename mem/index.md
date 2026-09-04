@@ -26,3 +26,5 @@
 - [FSRA Sector Model](mem://features/operating-structure/fsra-sector-model) — Saint Lucia FSRA regulator, 9 active grouped sectors, retired legacy sectors
 - [Sector Alias Map](mem://architecture/sector-alias-map) — Legacy-to-active FSRA sector resolution for licence entitlement and returns obligations
 - [Returns Filing Workspace](mem://features/returns/filing-workspace-and-financial-rules) — Form-level navigator, Review & Submit, configurable balance-sheet equation
+- [Methodology Approval Layers](mem://features/methodology/reference-vs-regulator-approval) — MIPL reference approval never counts as regulator approval
+- [Methodology Authority](mem://features/methodology/regulator-scoped-authority) — Regulator scope, methodology vs assessment approval, technical vs substantive authority

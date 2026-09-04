@@ -44815,27 +44815,30 @@ export type Database = {
       }
       supervisory_domain_authority: {
         Row: {
+          assessment_approval_permission: string | null
           created_at: string
           domain_code: string
           manage_config_permission: string | null
+          methodology_approval_permission: string | null
           notes: string | null
-          regulator_approval_permission: string | null
           updated_at: string
         }
         Insert: {
+          assessment_approval_permission?: string | null
           created_at?: string
           domain_code: string
           manage_config_permission?: string | null
+          methodology_approval_permission?: string | null
           notes?: string | null
-          regulator_approval_permission?: string | null
           updated_at?: string
         }
         Update: {
+          assessment_approval_permission?: string | null
           created_at?: string
           domain_code?: string
           manage_config_permission?: string | null
+          methodology_approval_permission?: string | null
           notes?: string | null
-          regulator_approval_permission?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -64527,6 +64530,10 @@ export type Database = {
         Args: { _domain_code: string }
         Returns: string
       }
+      supervisory_domain_require_manage_for_regulator: {
+        Args: { _domain_code: string; _regulator_id: string }
+        Returns: string
+      }
       supervisory_domain_valid: { Args: { _domain: string }; Returns: boolean }
       supervisory_entity_scope_check: {
         Args: { _entity_id: string; _uid: string }
@@ -64666,6 +64673,10 @@ export type Database = {
         }
         Returns: string
       }
+      supervisory_methodology_oversight_reader: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       supervisory_methodology_parameter_set: {
         Args: { _methodology_id: string; _payload: Json }
         Returns: number
@@ -64689,6 +64700,10 @@ export type Database = {
       supervisory_methodology_reference_decision_record: {
         Args: { _payload: Json }
         Returns: number
+      }
+      supervisory_methodology_regulator_scope_readable: {
+        Args: { _domain_code: string; _regulator_id: string }
+        Returns: boolean
       }
       supervisory_methodology_require_manage: {
         Args: { _methodology_id: string }
@@ -65156,10 +65171,23 @@ export type Database = {
         Args: { _action: string; _module: string; _user_id: string }
         Returns: boolean
       }
+      user_has_regulator_authority: {
+        Args: {
+          _action: string
+          _module: string
+          _regulator_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       user_licensee_id: { Args: { _user_id: string }; Returns: string }
       user_meets_assignment_eligibility: {
         Args: { _function_id: string; _role_type: string; _user_id: string }
         Returns: boolean
+      }
+      user_regulator_scope_for: {
+        Args: { _action: string; _module: string; _user_id: string }
+        Returns: Json
       }
       user_scope_for: {
         Args: { _action: string; _module: string; _user_id: string }
