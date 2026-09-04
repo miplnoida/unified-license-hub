@@ -210,6 +210,9 @@ ROLLBACK;
 -- remains a single entry point:
 --   CALCG-01..CALCG-14  calculation governance (no silent defaults, provenance)
 --   CALC-01..CALC-11    calculation integrity (server as the only producer)
+--   OUTC-01..OUTC-10    AMLH-09 outcome acceptance and half-open window fixtures
 -- ---------------------------------------------------------------------------
 \i scripts/verify-aml-calculation-governance.sql
 \i scripts/verify-aml-calculation-integrity.sql
+\i scripts/verify-aml-calc-outcome-fixtures.sql
+
