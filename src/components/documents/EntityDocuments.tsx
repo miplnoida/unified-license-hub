@@ -201,7 +201,7 @@ export default function EntityDocuments({ entityId, hideIntro }: EntityDocuments
             produced it. Visibility follows the register's own access rules.
           </p>
         ) : <span />}
-        <Button size="sm" onClick={() => setAddOpen(true)} data-rbac="document_management.upload">
+        <Button size="sm" data-rbac="document_management.upload" onClick={() => setAddOpen(true)}>
           <Plus className="mr-1 h-4 w-4" /> Add document
         </Button>
       </div>
