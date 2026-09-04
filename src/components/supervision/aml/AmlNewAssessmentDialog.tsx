@@ -3,8 +3,9 @@
  *
  * The entity list is the supervised portfolio the officer can already see, so
  * no entity is ever invented here. The methodology version is resolved by the
- * database from domain, sector and effective date — never "the latest active
- * one" — and creation is blocked outright when no version applies.
+ * database from the entity's own supervisory context — never "the latest active
+ * one" — through the same entity-context operation the creation routine uses.
+ * The preview informs the officer; the server remains the authority.
  */
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -176,7 +177,7 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
               Cancel
             </Button>
             <Button
-              disabled={!chosenEntity || !methodology || resolving}
+              disabled={!chosenEntity || !methodology || ambiguous || resolving}
               onClick={() => {
                 setPickerOpen(false);
                 setOpen(true);
