@@ -202,6 +202,8 @@ export const adminRoutes = (
     <Route path="/admin/applications/bulk-intake" element={<M module="application_management"><BulkIntake /></M>} />
     {/* Supervisory calculation configuration is a methodology-governance surface:
         gated on the exact config authority, not on module view. */}
+    <Route path="/admin/supervisory-methodology" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryMethodologyRegisterPage /></PermissionRoute></P>} />
+    <Route path="/admin/supervisory-methodology/:methodologyId" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryMethodologyDetailPage /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-calculation" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryCalculationConfig /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-calculation/approvals" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryCalculationApprovals /></PermissionRoute></P>} />
     <Route path="/admin/fp-screening-configs" element={<M module="fit_and_proper_screening"><FpScreeningConfigs /></M>} />
