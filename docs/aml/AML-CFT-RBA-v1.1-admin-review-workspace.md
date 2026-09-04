@@ -84,3 +84,33 @@ python3 scripts/run-meth-read-gates.py | psql -q -f -
 
 LINK-11 (22 legacy `STR_SAR_GOVERNANCE` rows, repair approved but not executed),
 CALC-05/06/09/11 (no approved calculation policy), AMLH-09.
+
+## UI + persona verification closure (HEAD 9ca431c)
+
+- `src/test/supervisoryMethodologyAdminUi.test.tsx` — UI-METH-01…24 (25 tests),
+  all passing. Every render is driven by real captured server payloads in
+  `src/test/fixtures/methodologyReadModels.json` (produced by
+  `scripts/capture-methodology-read-model-fixtures.sql`); no invented data, no
+  write RPC is reachable from the workspace.
+- `scripts/verify-methodology-persona-matrix.sql` — PERSONA-01…12: 11 PASS,
+  1 SKIP (PERSONA-08, no enterprise oversight persona is provisioned in this
+  deployment). Direct table writes, parameter value writes and activation are
+  refused for every persona; approval is never granted to platform
+  administration and maker/checker separation holds.
+- Browser smoke (`http://localhost:8080`, 1280×1800): register renders the live
+  three-version AML register with derived filters; the v1.1 workspace renders
+  26 dimensions / 70 questions across the nine tabs with zero console errors.
+- Zero duplication: one register page, one detail page, one hook
+  (`useSupervisoryMethodologyAdmin.ts`) is the only RPC caller; two routes, two
+  navigation items, one permission mapping.
+- Regression: METH-READ 22/22, platform contract 17/17, authority boundary
+  17/17, regulator methodology authority 16/16, v1.1 reference draft 18/18,
+  calculation governance 20/20, structural integrity 14/14, catalogue design
+  (Python) pass, breadcrumb coverage 364/364, nav icons 242/242, RBAC parity OK
+  and action coverage 100 % (two read-only workspace controls annotated
+  `aml_supervision.view`), typecheck clean, full frontend suite 1437/1437.
+- Production state unchanged: v1.1 remains `MIPL_REFERENCE` / `DRAFT`,
+  0 regulator approvals, 0 valued parameters, 0 ACTIVE calculation
+  configuration, and no methodology event was written during verification.
+- Preserved policy failures: LINK-11, CALC-05, CALC-06, CALC-09, CALC-11,
+  AMLH-09.

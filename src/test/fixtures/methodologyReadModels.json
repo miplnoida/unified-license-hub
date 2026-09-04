@@ -1,0 +1,3641 @@
+{
+    "audit": {
+        "rows": [
+            {
+                "id": "7b860093-beac-4e29-996a-4366f8cac903",
+                "detail": {
+                    "questions": 70
+                },
+                "actor_id": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "rationale": "Reference attribute set applied",
+                "to_status": null,
+                "actor_name": "Certification - Super Admin",
+                "created_at": "2026-09-04T16:11:53.338432+00:00",
+                "event_type": "QUESTION_ATTRIBUTES_SET",
+                "from_status": null
+            },
+            {
+                "id": "dc818807-4973-4728-b0a5-b99054ccd2a8",
+                "detail": {
+                    "removed": 70
+                },
+                "actor_id": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "rationale": "Replace the inherited v1.0 question set with the approved AML-CFT-RBA v1.1 reference catalogue.",
+                "to_status": null,
+                "actor_name": "Certification - Super Admin",
+                "created_at": "2026-09-04T16:11:53.338432+00:00",
+                "event_type": "QUESTION_PURGE",
+                "from_status": null
+            },
+            {
+                "id": "0f0cd919-9cdb-49e9-af22-3bef56f4b417",
+                "detail": {
+                    "questions": 70
+                },
+                "actor_id": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "rationale": "Extended question attributes applied from the approved reference catalogue",
+                "to_status": "DRAFT",
+                "actor_name": "Certification - Super Admin",
+                "created_at": "2026-09-04T15:33:57.744399+00:00",
+                "event_type": "QUESTION_ATTRIBUTES_SET",
+                "from_status": null
+            },
+            {
+                "id": "a5bac0c0-75f5-4416-82e0-4c190963e667",
+                "detail": {
+                    "removed": 70
+                },
+                "actor_id": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "rationale": "Replace the inherited v1.0 question set with the approved AML-CFT-RBA v1.1 reference catalogue.",
+                "to_status": "DRAFT",
+                "actor_name": "Certification - Super Admin",
+                "created_at": "2026-09-04T15:33:57.744399+00:00",
+                "event_type": "QUESTIONS_PURGED",
+                "from_status": null
+            },
+            {
+                "id": "a5170220-8f76-4c62-815f-44311f53eec7",
+                "detail": {
+                    "removed": 70
+                },
+                "actor_id": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "rationale": "Replace the inherited v1.0 question set with the approved AML-CFT-RBA v1.1 reference catalogue.",
+                "to_status": "DRAFT",
+                "actor_name": "Certification - Super Admin",
+                "created_at": "2026-09-04T15:31:43.723735+00:00",
+                "event_type": "QUESTIONS_PURGED",
+                "from_status": null
+            },
+            {
+                "id": "ba1bc05f-7417-44b3-a13a-8534a86e0530",
+                "detail": {
+                    "questions": 70
+                },
+                "actor_id": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "rationale": "Extended question attributes applied from the approved reference catalogue",
+                "to_status": "DRAFT",
+                "actor_name": "Certification - Super Admin",
+                "created_at": "2026-09-04T15:31:43.723735+00:00",
+                "event_type": "QUESTION_ATTRIBUTES_SET",
+                "from_status": null
+            },
+            {
+                "id": "5dd9baed-00cd-4088-b5ce-e6bb021e9bba",
+                "detail": {
+                    "version": "1.1",
+                    "supersedes_id": "1e248dc0-c559-48d7-bcf3-70d6ec5db99a"
+                },
+                "actor_id": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "rationale": "Create AML-CFT-RBA v1.1 DRAFT to carry the MIPL reference question catalogue; v1.0 remains ACTIVE and structurally frozen.",
+                "to_status": "DRAFT",
+                "actor_name": "Certification - Super Admin",
+                "created_at": "2026-09-04T15:31:13.68507+00:00",
+                "event_type": "VERSION_CREATED",
+                "from_status": null
+            },
+            {
+                "id": "63aea6c1-8978-4d3c-8ef2-a3887fa5c282",
+                "detail": {
+                    "questions": 70
+                },
+                "actor_id": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "rationale": "Extended question attributes applied from the approved reference catalogue",
+                "to_status": "DRAFT",
+                "actor_name": "Certification - Super Admin",
+                "created_at": "2026-09-04T15:31:13.68507+00:00",
+                "event_type": "QUESTION_ATTRIBUTES_SET",
+                "from_status": null
+            },
+            {
+                "id": "ef97fcff-ef5c-47a5-91be-9772f6d1abe9",
+                "detail": {
+                    "removed": 41
+                },
+                "actor_id": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "rationale": "Replace the inherited v1.0 question set with the approved AML-CFT-RBA v1.1 reference catalogue.",
+                "to_status": "DRAFT",
+                "actor_name": "Certification - Super Admin",
+                "created_at": "2026-09-04T15:31:13.68507+00:00",
+                "event_type": "QUESTIONS_PURGED",
+                "from_status": null
+            }
+        ],
+        "total_count": 9
+    },
+    "facts": {
+        "rows": [
+            {
+                "id": "04017265-0568-4457-9271-b0d34c57169a",
+                "unit": null,
+                "label": "Actions By Severity",
+                "data_type": "structured",
+                "fact_code": "FACT-ACTIONS-BY-SEVERITY",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "86c5b07a-7b62-4e98-bf28-c9816c1dff95",
+                "unit": "count",
+                "label": "Actions Open",
+                "data_type": "integer",
+                "fact_code": "FACT-ACTIONS-OPEN",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "9974453f-ce4c-4968-b161-585ea0ab674d",
+                "unit": "count",
+                "label": "Actions Overdue",
+                "data_type": "integer",
+                "fact_code": "FACT-ACTIONS-OVERDUE",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "69b3655a-bd3d-4fb6-b8ea-e325e35b7f32",
+                "unit": "%",
+                "label": "Actions Overdue Share",
+                "data_type": "percentage",
+                "fact_code": "FACT-ACTIONS-OVERDUE-SHARE",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "4255f6f8-dedd-4b5f-b7fb-6ae761123075",
+                "unit": "count",
+                "label": "Agent Count",
+                "data_type": "integer",
+                "fact_code": "FACT-AGENT-COUNT",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "027578e9-8cbd-4b97-a324-ae9a8a6734eb",
+                "unit": "%",
+                "label": "Agent Sourced Share",
+                "data_type": "percentage",
+                "fact_code": "FACT-AGENT-SOURCED-SHARE",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "300d509b-dd49-4a43-8f58-920f27c5e036",
+                "unit": null,
+                "label": "Alert Ageing Bands",
+                "data_type": "structured",
+                "fact_code": "FACT-ALERT-AGEING-BANDS",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "086c70dd-57c1-46f0-ba1d-78d3249d272c",
+                "unit": "count",
+                "label": "Alert Backlog",
+                "data_type": "integer",
+                "fact_code": "FACT-ALERT-BACKLOG",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "ffd9c2d8-7800-43e3-8657-4d57b7438e8a",
+                "unit": null,
+                "label": "Alert Disposition Mix",
+                "data_type": "structured",
+                "fact_code": "FACT-ALERT-DISPOSITION-MIX",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "4fe5255d-32d7-43ce-8b2d-9e14259f181b",
+                "unit": "count",
+                "label": "Alert Volume",
+                "data_type": "integer",
+                "fact_code": "FACT-ALERT-VOLUME",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "3379de56-479a-435e-8953-8765445086a4",
+                "unit": "count",
+                "label": "Aml Fte",
+                "data_type": "integer",
+                "fact_code": "FACT-AML-FTE",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "ebf1f7ad-cf6b-44ff-88a4-39bb677e1831",
+                "unit": "ratio",
+                "label": "Aml Fte Per 1000 Customers",
+                "data_type": "decimal",
+                "fact_code": "FACT-AML-FTE-PER-1000-CUSTOMERS",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "fc8365bc-cada-462d-9c33-392d1ebe0167",
+                "unit": "count",
+                "label": "Anon Product Count",
+                "data_type": "integer",
+                "fact_code": "FACT-ANON-PRODUCT-COUNT",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "b8e92fff-68bd-4890-a787-2a876ee1dffa",
+                "unit": "%",
+                "label": "Anon Product Value Share",
+                "data_type": "percentage",
+                "fact_code": "FACT-ANON-PRODUCT-VALUE-SHARE",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "bfa90c9a-d8b9-4515-8497-d4428077e028",
+                "unit": "%",
+                "label": "Assessment Pass Rate",
+                "data_type": "percentage",
+                "fact_code": "FACT-ASSESSMENT-PASS-RATE",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "9951da6d-fabd-40c4-a094-e3aae1dba759",
+                "unit": "%",
+                "label": "Bo Stale Share",
+                "data_type": "percentage",
+                "fact_code": "FACT-BO-STALE-SHARE",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "164bf204-e41f-49c6-9962-834dfd6a1012",
+                "unit": "days",
+                "label": "Case Closure Days",
+                "data_type": "integer",
+                "fact_code": "FACT-CASE-CLOSURE-DAYS",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "c9f633f1-0d02-40bf-bc63-5a42055def16",
+                "unit": "%",
+                "label": "Case Overdue Share",
+                "data_type": "percentage",
+                "fact_code": "FACT-CASE-OVERDUE-SHARE",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "301d1529-56d0-49ed-985f-fc72836112cf",
+                "unit": "count",
+                "label": "Cash Txn Count",
+                "data_type": "integer",
+                "fact_code": "FACT-CASH-TXN-COUNT",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "62a0b13c-3a20-435e-94c2-24ce46df84e1",
+                "unit": "currency",
+                "label": "Cash Value",
+                "data_type": "currency",
+                "fact_code": "FACT-CASH-VALUE",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "d538daa0-7d69-4911-91e5-082dd05e2987",
+                "unit": "%",
+                "label": "Cash Value Share",
+                "data_type": "percentage",
+                "fact_code": "FACT-CASH-VALUE-SHARE",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": "MAT_CASH_VALUE_SHARE"
+            },
+            {
+                "id": "8ad0874b-b0c3-4521-98ab-71e93d89df4b",
+                "unit": null,
+                "label": "Cdd Overdue Ageing",
+                "data_type": "structured",
+                "fact_code": "FACT-CDD-OVERDUE-AGEING",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "ee5e798a-d8ba-4c49-827d-50156fd66c50",
+                "unit": "count",
+                "label": "Cdd Overdue Count",
+                "data_type": "integer",
+                "fact_code": "FACT-CDD-OVERDUE-COUNT",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "5514863f-0004-4ffb-a900-f5f082897935",
+                "unit": "%",
+                "label": "Cdd Overdue Share",
+                "data_type": "percentage",
+                "fact_code": "FACT-CDD-OVERDUE-SHARE",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            },
+            {
+                "id": "b2eb0475-f828-4f14-970a-fd4196d40927",
+                "unit": "%",
+                "label": "Cde Coverage Share",
+                "data_type": "percentage",
+                "fact_code": "FACT-CDE-COVERAGE-SHARE",
+                "is_required": false,
+                "question_count": 1,
+                "definition_status": "ATTRIBUTES_PENDING",
+                "auto_prefill_allowed": false,
+                "officer_edit_allowed": true,
+                "materiality_parameter_code": null
+            }
+        ],
+        "total_count": 87,
+        "status_summary": {
+            "ATTRIBUTES_PENDING": 87
+        }
+    },
+    "detail": {
+        "id": "4dc13ebf-f85e-45ce-9710-0433513c4798",
+        "code": "AML-CFT-RBA",
+        "name": "Inherent ML/TF risk, control effectiveness and residual risk determination",
+        "counts": {
+            "events": 9,
+            "questions": 70,
+            "dimensions": 26,
+            "parameters": 8,
+            "fact_requirements": 87,
+            "semantic_profiles": 5,
+            "dimensions_control": 20,
+            "dimensions_inherent": 6,
+            "reference_decisions": 10,
+            "regulator_approvals": 0
+        },
+        "origin": "MIPL_REFERENCE",
+        "status": "DRAFT",
+        "version": "1.1",
+        "adoptions": [
+        ],
+        "regulator": null,
+        "created_at": "2026-09-04T15:31:13.68507+00:00",
+        "retired_at": null,
+        "supersedes": {
+            "id": "1e248dc0-c559-48d7-bcf3-70d6ec5db99a",
+            "code": "AML-CFT-RBA",
+            "origin": "REGULATOR_AUTHORED",
+            "status": "ACTIVE",
+            "version": "1.0"
+        },
+        "updated_at": "2026-09-04T16:03:38.325835+00:00",
+        "approved_at": null,
+        "composition": {
+            "by_axis": {
+                "INHERENT_EXPOSURE": 17,
+                "CONTROL_EFFECTIVENESS": 53
+            },
+            "by_class": {
+                "CORE": 48,
+                "ENHANCED": 6,
+                "CONDITIONAL": 16
+            },
+            "by_focus": {
+                "DESIGN": 14,
+                "OPERATING": 27,
+                "INHERENT_EXPOSURE": 17,
+                "DESIGN_AND_OPERATING": 12
+            },
+            "by_change": {
+                "NEW": 22,
+                "KEEP": 5,
+                "MERGE": 2,
+                "SPLIT": 13,
+                "REWORD": 14,
+                "MOVE_DIMENSION": 6,
+                "SEMANTIC_CORRECTION": 8
+            },
+            "na_allowed": 26,
+            "scored_inherent": 16,
+            "by_participation": {
+                "SCORED": 69,
+                "CONTEXTUAL_NOT_SCORED": 1
+            },
+            "evidence_required": 70,
+            "judgement_required": 67,
+            "contextual_inherent": 1,
+            "auto_prefill_possible": 40
+        },
+        "domain_code": "AML_CFT",
+        "reviewed_at": null,
+        "activated_at": null,
+        "adopted_from": null,
+        "effective_to": null,
+        "entity_types": [
+            "BANK",
+            "CREDIT_UNION",
+            "INSURANCE",
+            "MONEY_SERVICES",
+            "TRUST_COMPANY",
+            "VIRTUAL_ASSET",
+            "OTHER"
+        ],
+        "origin_label": "MIPL Reference",
+        "domain_module": "aml_supervision",
+        "superseded_by": [
+        ],
+        "effective_from": null,
+        "sector_summary": null,
+        "approval_required": true,
+        "assessment_frequency_months": 12
+    },
+    "compare": {
+        "note": "Question mapping only. No historical assessment response was migrated between versions.",
+        "groups": [
+            {
+                "count": 5,
+                "questions": [
+                    {
+                        "id": "9ef9f805-cd8f-42b8-bc6a-4eee322c1109",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Investigation quality is subject to independent quality assurance, and identified defects are corrected.",
+                        "predecessors": [
+                            {
+                                "prompt": "Is investigation quality subject to independent assurance?",
+                                "question_code": "Q2",
+                                "dimension_code": "ALERT_INVESTIGATION",
+                                "dimension_label": "Alert Investigation and Disposition"
+                            }
+                        ],
+                        "question_code": "CT-ALRT-02",
+                        "dimension_code": "ALERT_INVESTIGATION",
+                        "question_class": "ENHANCED",
+                        "dimension_label": "Alert Investigation and Disposition",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "90be2eb1-c3de-4eb4-be85-786e80ef600e",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Beneficial ownership information is kept current and is reverified on defined trigger events.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are ownership records kept current and reverified on trigger events?",
+                                "question_code": "Q2",
+                                "dimension_code": "BENEFICIAL_OWNERSHIP",
+                                "dimension_label": "Beneficial Ownership Identification"
+                            }
+                        ],
+                        "question_code": "CT-BO-02",
+                        "dimension_code": "BENEFICIAL_OWNERSHIP",
+                        "question_class": "CORE",
+                        "dimension_label": "Beneficial Ownership Identification",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "29498caf-b3d5-44a1-8391-7b7d91704e5c",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "A documented enterprise-wide ML/TF risk assessment is current and formally approved.",
+                        "predecessors": [
+                            {
+                                "prompt": "Is the enterprise-wide ML/TF risk assessment current, documented and formally approved?",
+                                "question_code": "Q1",
+                                "dimension_code": "ENTERPRISE_RISK_ASSESSMENT",
+                                "dimension_label": "Enterprise ML/TF Risk Assessment"
+                            }
+                        ],
+                        "question_code": "CT-ERA-01",
+                        "dimension_code": "ENTERPRISE_RISK_ASSESSMENT",
+                        "question_class": "CORE",
+                        "dimension_label": "Enterprise ML/TF Risk Assessment",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "eef349ce-3f1c-48ed-8ccd-24b387b31d0d",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "AML/CFT policies are current, approved and consistent with the applicable legal and regulatory requirements of the jurisdiction.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are AML/CFT policies and procedures current, approved and consistent with the governing legislation?",
+                                "question_code": "Q1",
+                                "dimension_code": "POLICIES_PROCEDURES",
+                                "dimension_label": "Policies, Procedures and Internal Controls"
+                            }
+                        ],
+                        "question_code": "CT-POL-01",
+                        "dimension_code": "POLICIES_PROCEDURES",
+                        "question_class": "CORE",
+                        "dimension_label": "Policies, Procedures and Internal Controls",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "c0be698e-b551-41c6-9d8b-d6d3828d901a",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Alert volumes, ageing and disposition are within approved thresholds, with no material backlog.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are alert ageing and backlog within approved thresholds?",
+                                "question_code": "Q3",
+                                "dimension_code": "TRANSACTION_MONITORING",
+                                "dimension_label": "Transaction Monitoring"
+                            }
+                        ],
+                        "question_code": "CT-TM-03",
+                        "dimension_code": "TRANSACTION_MONITORING",
+                        "question_class": "CONDITIONAL",
+                        "dimension_label": "Transaction Monitoring",
+                        "dimension_changed": false
+                    }
+                ],
+                "change_classification": "KEEP"
+            },
+            {
+                "count": 2,
+                "questions": [
+                    {
+                        "id": "57d8dd75-6147-4128-8553-8ece238407ee",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Higher-risk relationships receive documented senior-management approval at inception and enhanced ongoing monitoring thereafter.",
+                        "predecessors": [
+                            {
+                                "prompt": "Is senior management approval obtained and documented for higher-risk relationships?",
+                                "question_code": "Q2",
+                                "dimension_code": "EDD",
+                                "dimension_label": "Enhanced Due Diligence"
+                            }
+                        ],
+                        "question_code": "CT-EDD-02",
+                        "dimension_code": "EDD",
+                        "question_class": "CONDITIONAL",
+                        "dimension_label": "Enhanced Due Diligence",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "090df41d-b24a-4177-b30c-ac575412429c",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Confidentiality and tipping-off controls operate, records of suspicion are securely retained, and there is no material backlog of undecided cases.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are tipping-off risks controlled through defined confidentiality arrangements?",
+                                "question_code": "Q2",
+                                "dimension_code": "STR_GOVERNANCE",
+                                "dimension_label": "STR/SAR Governance, Quality and Timeliness"
+                            }
+                        ],
+                        "question_code": "CT-STRG-04",
+                        "dimension_code": "STR_GOVERNANCE",
+                        "question_class": "CORE",
+                        "dimension_label": "STR/SAR Governance, Quality and Timeliness",
+                        "dimension_changed": false
+                    }
+                ],
+                "change_classification": "MERGE"
+            },
+            {
+                "count": 6,
+                "questions": [
+                    {
+                        "id": "6256d073-fa1a-4612-bcb1-201ff87897ee",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Risk-assessment outputs demonstrably drive the intensity of due diligence, monitoring and resourcing.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are new or materially changed products subject to ML/TF risk assessment before launch?",
+                                "question_code": "Q2",
+                                "dimension_code": "PRODUCTS_SERVICES_RISK",
+                                "dimension_label": "Products and Services Risk"
+                            },
+                            {
+                                "prompt": "Does the risk assessment demonstrably drive the control framework and the intensity of due diligence?",
+                                "question_code": "Q2",
+                                "dimension_code": "ENTERPRISE_RISK_ASSESSMENT",
+                                "dimension_label": "Enterprise ML/TF Risk Assessment"
+                            }
+                        ],
+                        "question_code": "CT-ERA-03",
+                        "dimension_code": "ENTERPRISE_RISK_ASSESSMENT",
+                        "question_class": "CORE",
+                        "dimension_label": "Enterprise ML/TF Risk Assessment",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "6394e6ca-fb03-48c1-bf2b-7ca50bebf798",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Detection logic is independently reviewed or validated before deployment and periodically thereafter, proportionate to its complexity and reliance.",
+                        "predecessors": [
+                            {
+                                "prompt": "Has the monitoring model or rule set been independently validated?",
+                                "question_code": "Q2",
+                                "dimension_code": "TRANSACTION_MONITORING",
+                                "dimension_label": "Transaction Monitoring"
+                            }
+                        ],
+                        "question_code": "CT-MG-02",
+                        "dimension_code": "MODEL_GOVERNANCE",
+                        "question_class": "CONDITIONAL",
+                        "dimension_label": "Monitoring Technology and Model Governance",
+                        "dimension_changed": true
+                    },
+                    {
+                        "id": "e4bf3cf9-d86f-476a-8e68-baa68c608f12",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Reports are filed with the financial intelligence unit within the applicable deadline, evidenced by timeliness statistics for the period.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are suspicious transaction reports filed with the FIU without undue delay?",
+                                "question_code": "Q2",
+                                "dimension_code": "STR_IDENTIFICATION",
+                                "dimension_label": "STR/SAR Identification and Escalation"
+                            }
+                        ],
+                        "question_code": "CT-STRG-02",
+                        "dimension_code": "STR_GOVERNANCE",
+                        "question_class": "CONDITIONAL",
+                        "dimension_label": "STR/SAR Governance, Quality and Timeliness",
+                        "dimension_changed": true
+                    },
+                    {
+                        "id": "c9950aec-202a-4af6-950c-9b4711860912",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "AML/CFT due diligence is performed on agents, intermediaries, introducers and outsourced providers before appointment.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are third-party introducers and agents subject to oversight proportionate to their risk?",
+                                "question_code": "Q2",
+                                "dimension_code": "DELIVERY_CHANNEL_RISK",
+                                "dimension_label": "Delivery Channel Risk"
+                            }
+                        ],
+                        "question_code": "CT-TPO-01",
+                        "dimension_code": "THIRD_PARTY_OVERSIGHT",
+                        "question_class": "CONDITIONAL",
+                        "dimension_label": "Agent, Intermediary and Third-Party Oversight",
+                        "dimension_changed": true
+                    },
+                    {
+                        "id": "295b413e-5464-4fbf-b52e-7753588cdeeb",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Third parties are monitored on a risk-based basis during the relationship, and identified breaches lead to escalation, remediation or termination.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are third-party introducers and agents subject to oversight proportionate to their risk?",
+                                "question_code": "Q2",
+                                "dimension_code": "DELIVERY_CHANNEL_RISK",
+                                "dimension_label": "Delivery Channel Risk"
+                            }
+                        ],
+                        "question_code": "CT-TPO-03",
+                        "dimension_code": "THIRD_PARTY_OVERSIGHT",
+                        "question_class": "CONDITIONAL",
+                        "dimension_label": "Agent, Intermediary and Third-Party Oversight",
+                        "dimension_changed": true
+                    },
+                    {
+                        "id": "45811a69-2364-40c5-a2d0-a3903a86b220",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "A role-based AML/CFT training programme exists, covering the board, senior management, customer-facing staff, operations and the AML function, at a defined frequency.",
+                        "predecessors": [
+                            {
+                                "prompt": "Is staff training delivered, role-specific and tested for effectiveness?",
+                                "question_code": "Q2",
+                                "dimension_code": "POLICIES_PROCEDURES",
+                                "dimension_label": "Policies, Procedures and Internal Controls"
+                            }
+                        ],
+                        "question_code": "CT-TRN-01",
+                        "dimension_code": "TRAINING",
+                        "question_class": "CORE",
+                        "dimension_label": "Employee Training and Awareness",
+                        "dimension_changed": true
+                    }
+                ],
+                "change_classification": "MOVE_DIMENSION"
+            },
+            {
+                "count": 22,
+                "questions": [
+                    {
+                        "id": "2a88bdb2-8e92-4d15-b945-0d3ba816994c",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Sample testing shows customer files are complete, accurate and current, including purpose and intended nature of the relationship and source of funds where required.",
+                        "predecessors": [
+                        ],
+                        "question_code": "CT-CDD-03",
+                        "dimension_code": "CDD_KYC",
+                        "question_class": "ENHANCED",
+                        "dimension_label": "Customer Due Diligence / KYC",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "296f7f35-367c-4d9b-9275-8a66f151d1af",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Critical AML data elements are defined, and the data held in source systems is materially complete and accurate for those elements.",
+                        "predecessors": [
+                        ],
+                        "question_code": "CT-DQ-01",
+                        "dimension_code": "AML_DATA_QUALITY",
+                        "question_class": "CORE",
+                        "dimension_label": "AML Data Quality",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "9a947e9f-1173-4853-8975-c5fb991c0223",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Data-quality defects affecting AML controls are recorded with an owner and due date and are remediated.",
+                        "predecessors": [
+                        ],
+                        "question_code": "CT-DQ-03",
+                        "dimension_code": "AML_DATA_QUALITY",
+                        "question_class": "CORE",
+                        "dimension_label": "AML Data Quality",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "5948a5bb-a60a-4fb2-89b0-c45712ddbe03",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "AML/CFT independent testing is performed by a function or party independent of AML operations, with a mandate and unrestricted scope.",
+                        "predecessors": [
+                        ],
+                        "question_code": "CT-IT-01",
+                        "dimension_code": "INDEPENDENT_TESTING",
+                        "question_class": "CORE",
+                        "dimension_label": "Independent Testing / Internal Audit",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "5c705d98-2f4c-4611-970e-e6becd132f55",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "The testing scope, frequency and depth are risk-based and include substantive sample testing rather than policy review alone.",
+                        "predecessors": [
+                        ],
+                        "question_code": "CT-IT-02",
+                        "dimension_code": "INDEPENDENT_TESTING",
+                        "question_class": "CORE",
+                        "dimension_label": "Independent Testing / Internal Audit",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "82a0b4cd-9309-467e-88cc-72deebf99a4b",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Independent-testing results are reported to the board or audit committee, with severity and management response recorded.",
+                        "predecessors": [
+                        ],
+                        "question_code": "CT-IT-03",
+                        "dimension_code": "INDEPENDENT_TESTING",
+                        "question_class": "CORE",
+                        "dimension_label": "Independent Testing / Internal Audit",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "59efce95-e187-4e64-b4bc-8bd2f62f3771",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Monitoring and screening rules, scenarios, thresholds and models are inventoried, with a named owner and documented purpose for each.",
+                        "predecessors": [
+                        ],
+                        "question_code": "CT-MG-01",
+                        "dimension_code": "MODEL_GOVERNANCE",
+                        "question_class": "CONDITIONAL",
+                        "dimension_label": "Monitoring Technology and Model Governance",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "55714c21-9c17-474c-b25a-63f02990eeba",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Changes to rules, scenarios and thresholds follow change control, are supported by tuning analysis, and performance is monitored with limitations documented.",
+                        "predecessors": [
+                        ],
+                        "question_code": "CT-MG-03",
+                        "dimension_code": "MODEL_GOVERNANCE",
+                        "question_class": "CONDITIONAL",
+                        "dimension_label": "Monitoring Technology and Model Governance",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "08448c2d-85cb-4258-bee0-2776ddcce501",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "AML/CFT issues from all sources are captured in a single register with severity, named owner, agreed action and due date.",
+                        "predecessors": [
+                        ],
+                        "question_code": "CT-REM-01",
+                        "dimension_code": "REMEDIATION_TRACKING",
+                        "question_class": "CORE",
+                        "dimension_label": "Remediation and Issue Management",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "e11c3e6b-0b8d-4470-9a8a-9b35dc3f993b",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Progress is tracked, and overdue or at-risk actions are escalated to the accountable governance forum.",
+                        "predecessors": [
+                        ],
+                        "question_code": "CT-REM-02",
+                        "dimension_code": "REMEDIATION_TRACKING",
+                        "question_class": "CORE",
+                        "dimension_label": "Remediation and Issue Management",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "9ae1f20e-3c27-4b58-b98a-2e9e4771a4ee",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Closure is supported by validation evidence, and repeat or recurring findings are analysed for root cause.",
+                        "predecessors": [
+                        ],
+                        "question_code": "CT-REM-03",
+                        "dimension_code": "REMEDIATION_TRACKING",
+                        "question_class": "ENHANCED",
+                        "dimension_label": "Remediation and Issue Management",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "4bd66717-4010-4caf-8da7-f00a693f3a39",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Filed reports are complete and of sufficient quality, subject to quality assurance, and feedback from the FIU or supervisor is acted upon.",
+                        "predecessors": [
+                        ],
+                        "question_code": "CT-STRG-03",
+                        "dimension_code": "STR_GOVERNANCE",
+                        "question_class": "ENHANCED",
+                        "dimension_label": "STR/SAR Governance, Quality and Timeliness",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "e518e183-8ea7-4d69-bb39-dd75cebaac6f",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Internal escalation of suspicion occurs promptly and cannot be suppressed by line management or commercial considerations.",
+                        "predecessors": [
+                        ],
+                        "question_code": "CT-STRI-03",
+                        "dimension_code": "STR_IDENTIFICATION",
+                        "question_class": "ENHANCED",
+                        "dimension_label": "STR/SAR Identification and Escalation",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "7b2cf766-f05f-486f-82a5-d3923588fd10",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Monitoring operates over complete and timely data for all in-scope products, channels and entities.",
+                        "predecessors": [
+                        ],
+                        "question_code": "CT-TM-02",
+                        "dimension_code": "TRANSACTION_MONITORING",
+                        "question_class": "CORE",
+                        "dimension_label": "Transaction Monitoring",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "a1e54d5b-bdc5-4e8c-bc08-f9463df85ecd",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Contracts impose AML/CFT obligations, data and record access, audit rights, breach notification and termination rights.",
+                        "predecessors": [
+                        ],
+                        "question_code": "CT-TPO-02",
+                        "dimension_code": "THIRD_PARTY_OVERSIGHT",
+                        "question_class": "CONDITIONAL",
+                        "dimension_label": "Agent, Intermediary and Third-Party Oversight",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "9cff020d-ed57-45ef-a526-24f6764229b7",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Training effectiveness is tested, and failures or knowledge gaps lead to remedial action.",
+                        "predecessors": [
+                        ],
+                        "question_code": "CT-TRN-03",
+                        "dimension_code": "TRAINING",
+                        "question_class": "ENHANCED",
+                        "dimension_label": "Employee Training and Awareness",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "2bfee185-3402-466c-9a2a-ee621ad079eb",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "Legal persons, trusts, nominee or otherwise complex customer structures are material to the business.",
+                        "predecessors": [
+                        ],
+                        "question_code": "IR-CUS-02",
+                        "dimension_code": "CUSTOMER_RISK",
+                        "question_class": "CORE",
+                        "dimension_label": "Customer Risk",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "d43ac06f-2254-431e-bef8-b88a834a1234",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "Non-resident or cross-border customers are material to the business.",
+                        "predecessors": [
+                        ],
+                        "question_code": "IR-CUS-03",
+                        "dimension_code": "CUSTOMER_RISK",
+                        "question_class": "CORE",
+                        "dimension_label": "Customer Risk",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "e77ebd43-01bd-4fa6-9502-cd541eea1566",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "Politically exposed persons and their close associates are material to the customer base.",
+                        "predecessors": [
+                        ],
+                        "question_code": "IR-CUS-04",
+                        "dimension_code": "CUSTOMER_RISK",
+                        "question_class": "CORE",
+                        "dimension_label": "Customer Risk",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "57baa054-3ecb-40f7-8b85-f54a2554bfb4",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "Cross-border or corridor activity is concentrated in a small number of jurisdictions or corridors (contextual fact — not scored).",
+                        "predecessors": [
+                        ],
+                        "question_code": "IR-GEO-03",
+                        "dimension_code": "GEOGRAPHIC_RISK",
+                        "question_class": "CONDITIONAL",
+                        "dimension_label": "Geographic Risk",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "499a3fbb-66e5-4fc1-aeac-32ae071e12a7",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "Cash-intensive products, services or transaction activity are material to the business.",
+                        "predecessors": [
+                        ],
+                        "question_code": "IR-PRD-02",
+                        "dimension_code": "PRODUCTS_SERVICES_RISK",
+                        "question_class": "CONDITIONAL",
+                        "dimension_label": "Products and Services Risk",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "c290d2a6-653e-43a3-80ae-d855b30a80ff",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "Products permit rapid or immediate movement of value, including across borders.",
+                        "predecessors": [
+                        ],
+                        "question_code": "IR-PRD-03",
+                        "dimension_code": "PRODUCTS_SERVICES_RISK",
+                        "question_class": "CORE",
+                        "dimension_label": "Products and Services Risk",
+                        "dimension_changed": false
+                    }
+                ],
+                "change_classification": "NEW"
+            },
+            {
+                "count": 1,
+                "questions": [
+                    {
+                        "prompt": "Are group or affiliate dependencies relevant to ML/TF risk understood and documented?",
+                        "predecessors": [
+                        ],
+                        "question_code": "Q2",
+                        "dimension_code": "BUSINESS_MODEL_RISK",
+                        "dimension_label": "Ownership and Business Model Risk",
+                        "dimension_changed": false
+                    }
+                ],
+                "change_classification": "RETIRED"
+            },
+            {
+                "count": 14,
+                "questions": [
+                    {
+                        "id": "7a7e9a02-bdb4-48e0-85cc-c79c3f696700",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Alerts and cases are investigated within defined timeframes with a documented, reasoned disposition supported by the information reviewed.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are alerts investigated within defined timeframes with a documented rationale for closure?",
+                                "question_code": "Q1",
+                                "dimension_code": "ALERT_INVESTIGATION",
+                                "dimension_label": "Alert Investigation and Disposition"
+                            }
+                        ],
+                        "question_code": "CT-ALRT-01",
+                        "dimension_code": "ALERT_INVESTIGATION",
+                        "question_class": "CORE",
+                        "dimension_label": "Alert Investigation and Disposition",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "b33cb27a-f783-4937-8d0a-1d021d112e70",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Beneficial ownership and control are identified and verified to the required threshold, including for layered, cross-border and trust structures.",
+                        "predecessors": [
+                            {
+                                "prompt": "Is beneficial ownership identified and verified to the required threshold, including for complex structures?",
+                                "question_code": "Q1",
+                                "dimension_code": "BENEFICIAL_OWNERSHIP",
+                                "dimension_label": "Beneficial Ownership Identification"
+                            }
+                        ],
+                        "question_code": "CT-BO-01",
+                        "dimension_code": "BENEFICIAL_OWNERSHIP",
+                        "question_class": "CORE",
+                        "dimension_label": "Beneficial Ownership Identification",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "0a8475ca-fd38-461d-abc4-18dad8d2bb3e",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Customer due diligence is completed and verified before the business relationship is established or the occasional transaction is executed, with defined and controlled exceptions.",
+                        "predecessors": [
+                            {
+                                "prompt": "Is customer due diligence completed and documented before the business relationship is established?",
+                                "question_code": "Q1",
+                                "dimension_code": "CDD_KYC",
+                                "dimension_label": "Customer Due Diligence / KYC"
+                            }
+                        ],
+                        "question_code": "CT-CDD-01",
+                        "dimension_code": "CDD_KYC",
+                        "question_class": "CORE",
+                        "dimension_label": "Customer Due Diligence / KYC",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "58783bbe-7d3a-42ad-aa03-405d5d1f251b",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Ongoing due diligence and periodic refresh are executed to the risk-based schedule, with overdue populations controlled.",
+                        "predecessors": [
+                            {
+                                "prompt": "Is ongoing due diligence performed at a frequency driven by the customer risk rating?",
+                                "question_code": "Q2",
+                                "dimension_code": "CDD_KYC",
+                                "dimension_label": "Customer Due Diligence / KYC"
+                            }
+                        ],
+                        "question_code": "CT-CDD-02",
+                        "dimension_code": "CDD_KYC",
+                        "question_class": "CORE",
+                        "dimension_label": "Customer Due Diligence / KYC",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "b027a2a9-817b-4c67-b070-e8ddaff70eef",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Enhanced due diligence is applied to every relationship that the risk framework identifies as higher risk, with measures that are genuinely enhanced.",
+                        "predecessors": [
+                            {
+                                "prompt": "Is enhanced due diligence applied to every higher-risk relationship identified by the risk assessment?",
+                                "question_code": "Q1",
+                                "dimension_code": "EDD",
+                                "dimension_label": "Enhanced Due Diligence"
+                            }
+                        ],
+                        "question_code": "CT-EDD-01",
+                        "dimension_code": "EDD",
+                        "question_class": "CORE",
+                        "dimension_label": "Enhanced Due Diligence",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "7fc29e82-69c1-470a-a172-79e759ba4b87",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "A named compliance officer / MLRO is appointed at sufficient seniority, is fit and proper for the role, and is free from duties that conflict with the AML/CFT mandate.",
+                        "predecessors": [
+                            {
+                                "prompt": "Is the MLRO appropriately qualified, sufficiently senior and free from conflicting duties?",
+                                "question_code": "Q1",
+                                "dimension_code": "MLRO_FUNCTION",
+                                "dimension_label": "MLRO and Compliance Function"
+                            }
+                        ],
+                        "question_code": "CT-MLRO-01",
+                        "dimension_code": "MLRO_FUNCTION",
+                        "question_class": "CORE",
+                        "dimension_label": "MLRO and Compliance Function",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "224ade34-e4c6-4f57-8b61-d6091b7b3301",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Domestic and foreign PEPs, their family members and close associates are identified at onboarding and on an ongoing basis, including where the PEP is a beneficial owner.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are domestic and foreign PEPs, including close associates, identified at onboarding and on an ongoing basis?",
+                                "question_code": "Q1",
+                                "dimension_code": "PEP_CONTROLS",
+                                "dimension_label": "PEP Identification and Controls"
+                            }
+                        ],
+                        "question_code": "CT-PEP-01",
+                        "dimension_code": "PEP_CONTROLS",
+                        "question_class": "CORE",
+                        "dimension_label": "PEP Identification and Controls",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "23614722-773f-4201-956a-3fdf95daf698",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "PEP relationships are subject to senior approval, source-of-wealth enquiry, enhanced monitoring and periodic review, evidenced in the period.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are PEP relationships subject to enhanced monitoring and periodic senior review?",
+                                "question_code": "Q2",
+                                "dimension_code": "PEP_CONTROLS",
+                                "dimension_label": "PEP Identification and Controls"
+                            }
+                        ],
+                        "question_code": "CT-PEP-02",
+                        "dimension_code": "PEP_CONTROLS",
+                        "question_class": "CONDITIONAL",
+                        "dimension_label": "PEP Identification and Controls",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "82d7498d-e2a2-418e-baa3-9351f6bfac26",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Records of due diligence, transactions, internal and external suspicion reports and training are retained for the required period in a usable form.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are due diligence and transaction records retained for the statutory period and retrievable on request?",
+                                "question_code": "Q1",
+                                "dimension_code": "RECORD_KEEPING",
+                                "dimension_label": "Record Keeping"
+                            }
+                        ],
+                        "question_code": "CT-RK-01",
+                        "dimension_code": "RECORD_KEEPING",
+                        "question_class": "CORE",
+                        "dimension_label": "Record Keeping",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "9254ec53-dbec-4484-beb2-999d6806f3fe",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Records can be retrieved completely and promptly on supervisory or competent-authority request, demonstrated in the period.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are records complete and accessible to the supervisor without undue delay?",
+                                "question_code": "Q2",
+                                "dimension_code": "RECORD_KEEPING",
+                                "dimension_label": "Record Keeping"
+                            }
+                        ],
+                        "question_code": "CT-RK-02",
+                        "dimension_code": "RECORD_KEEPING",
+                        "question_class": "CORE",
+                        "dimension_label": "Record Keeping",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "de3443e5-3da8-42d2-950a-f31842ebe027",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Sanctions screening covers customers, beneficial owners, related parties and, where relevant, counterparties and payment fields, against the lists applicable in the jurisdiction.",
+                        "predecessors": [
+                            {
+                                "prompt": "Is sanctions screening applied to customers, beneficial owners and counterparties against current lists?",
+                                "question_code": "Q1",
+                                "dimension_code": "SANCTIONS_CONTROLS",
+                                "dimension_label": "Sanctions Screening Controls"
+                            }
+                        ],
+                        "question_code": "CT-SANC-01",
+                        "dimension_code": "SANCTIONS_CONTROLS",
+                        "question_class": "CORE",
+                        "dimension_label": "Sanctions Screening Controls",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "75bba3b7-31af-46e2-9721-1496c79d67e8",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Authority to decide whether to file a suspicious transaction report is defined and exercised only by the authorised role, with the decision and its basis recorded for filed and not-filed cases alike.",
+                        "predecessors": [
+                            {
+                                "prompt": "Is there a documented, confidential decision trail for both reported and not-reported suspicions?",
+                                "question_code": "Q1",
+                                "dimension_code": "STR_GOVERNANCE",
+                                "dimension_label": "STR/SAR Governance, Quality and Timeliness"
+                            }
+                        ],
+                        "question_code": "CT-STRG-01",
+                        "dimension_code": "STR_GOVERNANCE",
+                        "question_class": "CORE",
+                        "dimension_label": "STR/SAR Governance, Quality and Timeliness",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "fc757d0c-56d4-4b7b-8277-3b52c160826e",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Staff in customer-facing and processing roles are able to recognise indicators of suspicion relevant to the entity business and know the internal reporting channel.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are suspicious activity indicators recognised and escalated by front-line staff?",
+                                "question_code": "Q1",
+                                "dimension_code": "STR_IDENTIFICATION",
+                                "dimension_label": "STR/SAR Identification and Escalation"
+                            }
+                        ],
+                        "question_code": "CT-STRI-01",
+                        "dimension_code": "STR_IDENTIFICATION",
+                        "question_class": "CORE",
+                        "dimension_label": "STR/SAR Identification and Escalation",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "72738545-1d8f-4111-b5d7-e45e9c82f4a4",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "The monitoring framework is designed to cover the entity products, customers, channels and geographies, with scenarios or rules traceable to identified risks.",
+                        "predecessors": [
+                            {
+                                "prompt": "Is transaction-monitoring coverage aligned to the entity's products, customers and geographic exposure?",
+                                "question_code": "Q1",
+                                "dimension_code": "TRANSACTION_MONITORING",
+                                "dimension_label": "Transaction Monitoring"
+                            }
+                        ],
+                        "question_code": "CT-TM-01",
+                        "dimension_code": "TRANSACTION_MONITORING",
+                        "question_class": "CORE",
+                        "dimension_label": "Transaction Monitoring",
+                        "dimension_changed": false
+                    }
+                ],
+                "change_classification": "REWORD"
+            },
+            {
+                "count": 8,
+                "questions": [
+                    {
+                        "id": "34b264a0-69d4-4491-ab2e-202c97df494c",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "AML/CFT issues escalated to the board or senior management resulted in decisions that were implemented and followed through within the period.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are AML/CFT roles, accountabilities and escalation paths clearly defined and operating in practice?",
+                                "question_code": "Q2",
+                                "dimension_code": "GOVERNANCE",
+                                "dimension_label": "Governance, Board and Senior Management"
+                            }
+                        ],
+                        "question_code": "CT-GOV-03",
+                        "dimension_code": "GOVERNANCE",
+                        "question_class": "CORE",
+                        "dimension_label": "Governance, Board and Senior Management",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "c0793259-f5e6-4e69-9af0-ca9ff794a47a",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "The AML/CFT function has resources, skills, data access and systems adequate for the entity risk profile, evidenced by the work actually completed in the period.",
+                        "predecessors": [
+                            {
+                                "prompt": "Does the MLRO have adequate resources and direct access to the board?",
+                                "question_code": "Q2",
+                                "dimension_code": "MLRO_FUNCTION",
+                                "dimension_label": "MLRO and Compliance Function"
+                            }
+                        ],
+                        "question_code": "CT-MLRO-02",
+                        "dimension_code": "MLRO_FUNCTION",
+                        "question_class": "CORE",
+                        "dimension_label": "MLRO and Compliance Function",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "2a5e8f3a-9124-4bd4-9c07-e16d01afda92",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "Higher-risk customer classes represent a material share of the customer base.",
+                        "predecessors": [
+                            {
+                                "prompt": "Has the entity classified its customer base by ML/TF risk, including PEPs, high-risk occupations and non-resident customers?",
+                                "question_code": "Q1",
+                                "dimension_code": "CUSTOMER_RISK",
+                                "dimension_label": "Customer Risk"
+                            },
+                            {
+                                "prompt": "Is the proportion of higher-risk customers quantified, trended and consistent with the stated risk appetite?",
+                                "question_code": "Q2",
+                                "dimension_code": "CUSTOMER_RISK",
+                                "dimension_label": "Customer Risk"
+                            }
+                        ],
+                        "question_code": "IR-CUS-01",
+                        "dimension_code": "CUSTOMER_RISK",
+                        "question_class": "CORE",
+                        "dimension_label": "Customer Risk",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "b2114c0f-c2e5-44a7-9602-043e26baf849",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "Non-face-to-face or fully remote onboarding is material to the business.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are non-face-to-face and intermediated delivery channels identified and risk-rated?",
+                                "question_code": "Q1",
+                                "dimension_code": "DELIVERY_CHANNEL_RISK",
+                                "dimension_label": "Delivery Channel Risk"
+                            }
+                        ],
+                        "question_code": "IR-DEL-01",
+                        "dimension_code": "DELIVERY_CHANNEL_RISK",
+                        "question_class": "CORE",
+                        "dimension_label": "Delivery Channel Risk",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "3fc53ef7-753a-4dc2-9551-43952a42bb28",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "Business is materially placed or serviced through agents, intermediaries, introducers or other third parties.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are third-party introducers and agents subject to oversight proportionate to their risk?",
+                                "question_code": "Q2",
+                                "dimension_code": "DELIVERY_CHANNEL_RISK",
+                                "dimension_label": "Delivery Channel Risk"
+                            }
+                        ],
+                        "question_code": "IR-DEL-02",
+                        "dimension_code": "DELIVERY_CHANNEL_RISK",
+                        "question_class": "CONDITIONAL",
+                        "dimension_label": "Delivery Channel Risk",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "cc43b663-4df1-4133-82e3-3a5e1027ed24",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "The entity has material exposure to higher-risk or monitored jurisdictions.",
+                        "predecessors": [
+                            {
+                                "prompt": "Has the entity identified its exposure to higher-risk jurisdictions, including those under FATF monitoring?",
+                                "question_code": "Q1",
+                                "dimension_code": "GEOGRAPHIC_RISK",
+                                "dimension_label": "Geographic Risk"
+                            }
+                        ],
+                        "question_code": "IR-GEO-01",
+                        "dimension_code": "GEOGRAPHIC_RISK",
+                        "question_class": "CORE",
+                        "dimension_label": "Geographic Risk",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "0feb90d0-d7de-45d2-aa0e-1d85dfee8ed9",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "The entity offers complex, structured, or virtual-asset related products that are material to the business.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are new or materially changed products subject to ML/TF risk assessment before launch?",
+                                "question_code": "Q2",
+                                "dimension_code": "PRODUCTS_SERVICES_RISK",
+                                "dimension_label": "Products and Services Risk"
+                            }
+                        ],
+                        "question_code": "IR-PRD-04",
+                        "dimension_code": "PRODUCTS_SERVICES_RISK",
+                        "question_class": "CONDITIONAL",
+                        "dimension_label": "Products and Services Risk",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "636f356b-fc79-4a88-b04c-480da236465c",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "Observed activity shows high velocity, pass-through behaviour, or unusual concentration of value, counterparties or corridors.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are unusual concentrations of value, counterparties or corridors identified and explained?",
+                                "question_code": "Q2",
+                                "dimension_code": "TRANSACTION_PROFILE_RISK",
+                                "dimension_label": "Transaction and Activity Profile Risk"
+                            }
+                        ],
+                        "question_code": "IR-TRX-04",
+                        "dimension_code": "TRANSACTION_PROFILE_RISK",
+                        "question_class": "CORE",
+                        "dimension_label": "Transaction and Activity Profile Risk",
+                        "dimension_changed": false
+                    }
+                ],
+                "change_classification": "SEMANTIC_CORRECTION"
+            },
+            {
+                "count": 13,
+                "questions": [
+                    {
+                        "id": "f53ba640-6e67-4d93-84b9-31a013adedd9",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "The risk-assessment methodology addresses the relevant risk factors and the entity own business drivers, with a documented rating basis.",
+                        "predecessors": [
+                            {
+                                "prompt": "Is the enterprise-wide ML/TF risk assessment current, documented and formally approved?",
+                                "question_code": "Q1",
+                                "dimension_code": "ENTERPRISE_RISK_ASSESSMENT",
+                                "dimension_label": "Enterprise ML/TF Risk Assessment"
+                            }
+                        ],
+                        "question_code": "CT-ERA-02",
+                        "dimension_code": "ENTERPRISE_RISK_ASSESSMENT",
+                        "question_class": "CORE",
+                        "dimension_label": "Enterprise ML/TF Risk Assessment",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "24d56339-60c6-4feb-a47d-14a86956e084",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "The board has approved an AML/CFT framework appropriate to the nature, size and complexity of the entity, with documented accountability for each element.",
+                        "predecessors": [
+                            {
+                                "prompt": "Has the board approved the AML/CFT framework and does it receive sufficient management information to oversee it?",
+                                "question_code": "Q1",
+                                "dimension_code": "GOVERNANCE",
+                                "dimension_label": "Governance, Board and Senior Management"
+                            }
+                        ],
+                        "question_code": "CT-GOV-01",
+                        "dimension_code": "GOVERNANCE",
+                        "question_class": "CORE",
+                        "dimension_label": "Governance, Board and Senior Management",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "eb886464-84f9-4deb-8a1d-4b1c7caa25be",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "The board and senior management receive AML/CFT management information sufficient in content, quality and frequency to oversee the framework, and there is evidence of challenge.",
+                        "predecessors": [
+                            {
+                                "prompt": "Has the board approved the AML/CFT framework and does it receive sufficient management information to oversee it?",
+                                "question_code": "Q1",
+                                "dimension_code": "GOVERNANCE",
+                                "dimension_label": "Governance, Board and Senior Management"
+                            }
+                        ],
+                        "question_code": "CT-GOV-02",
+                        "dimension_code": "GOVERNANCE",
+                        "question_class": "CORE",
+                        "dimension_label": "Governance, Board and Senior Management",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "769ebf32-56bd-4e5e-bb5c-8fa880479032",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Policies are translated into operable procedures that staff actually use, and material changes are communicated and implemented.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are AML/CFT policies and procedures current, approved and consistent with the governing legislation?",
+                                "question_code": "Q1",
+                                "dimension_code": "POLICIES_PROCEDURES",
+                                "dimension_label": "Policies, Procedures and Internal Controls"
+                            }
+                        ],
+                        "question_code": "CT-POL-02",
+                        "dimension_code": "POLICIES_PROCEDURES",
+                        "question_class": "CORE",
+                        "dimension_label": "Policies, Procedures and Internal Controls",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "0b7b4e7f-18fe-4265-b634-f31a00bc46ee",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Sanctions lists are updated and the customer base rescreened without undue delay after a list change.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are lists updated promptly and potential matches escalated and resolved within defined timeframes?",
+                                "question_code": "Q2",
+                                "dimension_code": "SANCTIONS_CONTROLS",
+                                "dimension_label": "Sanctions Screening Controls"
+                            }
+                        ],
+                        "question_code": "CT-SANC-02",
+                        "dimension_code": "SANCTIONS_CONTROLS",
+                        "question_class": "CORE",
+                        "dimension_label": "Sanctions Screening Controls",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "dd9f403e-9100-4aac-9f45-6ab1ff31cb21",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Potential matches are investigated, escalated and resolved within defined timeframes, and the entity can give effect to a freezing or blocking obligation.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are lists updated promptly and potential matches escalated and resolved within defined timeframes?",
+                                "question_code": "Q2",
+                                "dimension_code": "SANCTIONS_CONTROLS",
+                                "dimension_label": "Sanctions Screening Controls"
+                            }
+                        ],
+                        "question_code": "CT-SANC-03",
+                        "dimension_code": "SANCTIONS_CONTROLS",
+                        "question_class": "CONDITIONAL",
+                        "dimension_label": "Sanctions Screening Controls",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "147a72cc-5139-413c-9dc0-5e67c24f8820",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Every internally reported suspicion creates a recorded, investigable case, and defined escalation triggers exist for identifying suspicion from monitoring, screening and external information.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are suspicious activity indicators recognised and escalated by front-line staff?",
+                                "question_code": "Q1",
+                                "dimension_code": "STR_IDENTIFICATION",
+                                "dimension_label": "STR/SAR Identification and Escalation"
+                            }
+                        ],
+                        "question_code": "CT-STRI-02",
+                        "dimension_code": "STR_IDENTIFICATION",
+                        "question_class": "CORE",
+                        "dimension_label": "STR/SAR Identification and Escalation",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "6e5f0969-a581-424a-a3a6-fd88a2a00a4a",
+                        "axis": "CONTROL_EFFECTIVENESS",
+                        "prompt": "Training was delivered as planned in the period, new joiners were trained before or on commencement of relevant duties, and the overdue population is immaterial.",
+                        "predecessors": [
+                            {
+                                "prompt": "Is staff training delivered, role-specific and tested for effectiveness?",
+                                "question_code": "Q2",
+                                "dimension_code": "POLICIES_PROCEDURES",
+                                "dimension_label": "Policies, Procedures and Internal Controls"
+                            }
+                        ],
+                        "question_code": "CT-TRN-02",
+                        "dimension_code": "TRAINING",
+                        "question_class": "CORE",
+                        "dimension_label": "Employee Training and Awareness",
+                        "dimension_changed": true
+                    },
+                    {
+                        "id": "3c95599d-d850-428f-b996-63e2ec6320d3",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "The ownership or group structure is complex, multi-jurisdictional or otherwise difficult to trace.",
+                        "predecessors": [
+                            {
+                                "prompt": "Does the growth strategy or ownership structure introduce ML/TF risk not reflected in the entity's risk assessment?",
+                                "question_code": "Q1",
+                                "dimension_code": "BUSINESS_MODEL_RISK",
+                                "dimension_label": "Ownership and Business Model Risk"
+                            }
+                        ],
+                        "question_code": "IR-BUS-01",
+                        "dimension_code": "BUSINESS_MODEL_RISK",
+                        "question_class": "CORE",
+                        "dimension_label": "Ownership and Business Model Risk",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "5021f9bd-1298-468f-b8ee-95ea8d8e89b5",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "Material growth or material change in the assessment period expanded or materially altered the entity's ML/TF exposure surface.",
+                        "predecessors": [
+                            {
+                                "prompt": "Does the growth strategy or ownership structure introduce ML/TF risk not reflected in the entity's risk assessment?",
+                                "question_code": "Q1",
+                                "dimension_code": "BUSINESS_MODEL_RISK",
+                                "dimension_label": "Ownership and Business Model Risk"
+                            }
+                        ],
+                        "question_code": "IR-BUS-02",
+                        "dimension_code": "BUSINESS_MODEL_RISK",
+                        "question_class": "CORE",
+                        "dimension_label": "Ownership and Business Model Risk",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "fbb6599e-fa59-431c-a77c-78eff11180ae",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "Cross-border, correspondent or remittance flows are material to the business, by volume and value.",
+                        "predecessors": [
+                            {
+                                "prompt": "Are cross-border and correspondent exposures proportionate to the declared business model?",
+                                "question_code": "Q2",
+                                "dimension_code": "GEOGRAPHIC_RISK",
+                                "dimension_label": "Geographic Risk"
+                            }
+                        ],
+                        "question_code": "IR-GEO-02",
+                        "dimension_code": "GEOGRAPHIC_RISK",
+                        "question_class": "CONDITIONAL",
+                        "dimension_label": "Geographic Risk",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "25e3e75c-afe1-4b32-a96b-ca0716db3d6a",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "The entity offers products or services with anonymity, opacity or third-party value-transfer features that are material to the business.",
+                        "predecessors": [
+                            {
+                                "prompt": "Have all products and services been risk-rated for ML/TF vulnerability, including cash-intensive and anonymity-enabling features?",
+                                "question_code": "Q1",
+                                "dimension_code": "PRODUCTS_SERVICES_RISK",
+                                "dimension_label": "Products and Services Risk"
+                            }
+                        ],
+                        "question_code": "IR-PRD-01",
+                        "dimension_code": "PRODUCTS_SERVICES_RISK",
+                        "question_class": "CORE",
+                        "dimension_label": "Products and Services Risk",
+                        "dimension_changed": false
+                    },
+                    {
+                        "id": "7af4ccc2-d9a1-4584-ac23-4b5b646bda58",
+                        "axis": "INHERENT_EXPOSURE",
+                        "prompt": "Transaction volume or value is material in absolute terms and relative to comparable entities.",
+                        "predecessors": [
+                            {
+                                "prompt": "Is the actual transaction profile (volume, value, cash, cross-border) consistent with the declared business model?",
+                                "question_code": "Q1",
+                                "dimension_code": "TRANSACTION_PROFILE_RISK",
+                                "dimension_label": "Transaction and Activity Profile Risk"
+                            }
+                        ],
+                        "question_code": "IR-TRX-01",
+                        "dimension_code": "TRANSACTION_PROFILE_RISK",
+                        "question_class": "CORE",
+                        "dimension_label": "Transaction and Activity Profile Risk",
+                        "dimension_changed": false
+                    }
+                ],
+                "change_classification": "SPLIT"
+            }
+        ],
+        "target": {
+            "id": "4dc13ebf-f85e-45ce-9710-0433513c4798",
+            "code": "AML-CFT-RBA",
+            "name": "Inherent ML/TF risk, control effectiveness and residual risk determination",
+            "origin": "MIPL_REFERENCE",
+            "status": "DRAFT",
+            "version": "1.1",
+            "origin_label": "MIPL Reference",
+            "question_count": 70,
+            "dimension_count": 26
+        },
+        "summary": {
+            "NEW": 22,
+            "KEEP": 5,
+            "MERGE": 2,
+            "SPLIT": 13,
+            "REWORD": 14,
+            "RETIRED": 1,
+            "MOVE_DIMENSION": 6,
+            "SEMANTIC_CORRECTION": 8
+        },
+        "baseline": {
+            "id": "1e248dc0-c559-48d7-bcf3-70d6ec5db99a",
+            "code": "AML-CFT-RBA",
+            "name": "Inherent ML/TF risk, control effectiveness and residual risk determination",
+            "origin": "REGULATOR_AUTHORED",
+            "status": "ACTIVE",
+            "version": "1.0",
+            "origin_label": "Regulator Authored",
+            "question_count": 41,
+            "dimension_count": 26
+        },
+        "comparable": true
+    },
+    "register": {
+        "page": {
+            "dir": "asc",
+            "sort": "code",
+            "limit": 25,
+            "offset": 0
+        },
+        "rows": [
+            {
+                "id": "e7d52276-d3b1-4c86-b2d7-ffc0909a42e0",
+                "code": "AML_RBA",
+                "name": "AML/CFT risk-based assessment methodology",
+                "origin": "REGULATOR_AUTHORED",
+                "status": "SUPERSEDED",
+                "version": "1.0",
+                "updated_at": "2026-09-02T20:25:31.966982+00:00",
+                "domain_code": "AML_CFT",
+                "has_lineage": false,
+                "effective_to": "2026-09-02",
+                "entity_types": [
+                ],
+                "origin_label": "Regulator Authored",
+                "regulator_id": null,
+                "sector_count": 0,
+                "approval_state": "NOT_RECORDED",
+                "effective_from": null,
+                "question_count": 0,
+                "regulator_code": null,
+                "regulator_name": null,
+                "sector_summary": null,
+                "dimension_count": 19,
+                "approval_decided_at": null
+            },
+            {
+                "id": "1e248dc0-c559-48d7-bcf3-70d6ec5db99a",
+                "code": "AML-CFT-RBA",
+                "name": "Inherent ML/TF risk, control effectiveness and residual risk determination",
+                "origin": "REGULATOR_AUTHORED",
+                "status": "ACTIVE",
+                "version": "1.0",
+                "updated_at": "2026-09-02T20:20:54.476912+00:00",
+                "domain_code": "AML_CFT",
+                "has_lineage": false,
+                "effective_to": null,
+                "entity_types": [
+                    "BANK",
+                    "CREDIT_UNION",
+                    "INSURANCE",
+                    "MONEY_SERVICES",
+                    "TRUST_COMPANY",
+                    "VIRTUAL_ASSET",
+                    "OTHER"
+                ],
+                "origin_label": "Regulator Authored",
+                "regulator_id": null,
+                "sector_count": 0,
+                "approval_state": "NOT_RECORDED",
+                "effective_from": "2026-01-01",
+                "question_count": 41,
+                "regulator_code": null,
+                "regulator_name": null,
+                "sector_summary": null,
+                "dimension_count": 26,
+                "approval_decided_at": null
+            },
+            {
+                "id": "4dc13ebf-f85e-45ce-9710-0433513c4798",
+                "code": "AML-CFT-RBA",
+                "name": "Inherent ML/TF risk, control effectiveness and residual risk determination",
+                "origin": "MIPL_REFERENCE",
+                "status": "DRAFT",
+                "version": "1.1",
+                "updated_at": "2026-09-04T16:03:38.325835+00:00",
+                "domain_code": "AML_CFT",
+                "has_lineage": true,
+                "effective_to": null,
+                "entity_types": [
+                    "BANK",
+                    "CREDIT_UNION",
+                    "INSURANCE",
+                    "MONEY_SERVICES",
+                    "TRUST_COMPANY",
+                    "VIRTUAL_ASSET",
+                    "OTHER"
+                ],
+                "origin_label": "MIPL Reference",
+                "regulator_id": null,
+                "sector_count": 0,
+                "approval_state": "NOT_RECORDED",
+                "effective_from": null,
+                "question_count": 70,
+                "regulator_code": null,
+                "regulator_name": null,
+                "sector_summary": null,
+                "dimension_count": 26,
+                "approval_decided_at": null
+            },
+            {
+                "id": "48821eaa-0f27-4b09-9c48-d73769387a16",
+                "code": "CONDUCT_RBA",
+                "name": "Market conduct risk-based assessment methodology",
+                "origin": "REGULATOR_AUTHORED",
+                "status": "ACTIVE",
+                "version": "1.0",
+                "updated_at": "2026-09-02T19:20:07.687797+00:00",
+                "domain_code": "MARKET_CONDUCT",
+                "has_lineage": false,
+                "effective_to": null,
+                "entity_types": [
+                ],
+                "origin_label": "Regulator Authored",
+                "regulator_id": null,
+                "sector_count": 0,
+                "approval_state": "NOT_RECORDED",
+                "effective_from": null,
+                "question_count": 0,
+                "regulator_code": null,
+                "regulator_name": null,
+                "sector_summary": null,
+                "dimension_count": 0,
+                "approval_decided_at": null
+            },
+            {
+                "id": "c5e368ee-ef4b-4ffa-986f-49d7c92fd7e3",
+                "code": "CAMELS",
+                "name": "CAMELS prudential assessment methodology",
+                "origin": "REGULATOR_AUTHORED",
+                "status": "ACTIVE",
+                "version": "1.0",
+                "updated_at": "2026-09-02T19:20:07.687797+00:00",
+                "domain_code": "PRUDENTIAL",
+                "has_lineage": false,
+                "effective_to": null,
+                "entity_types": [
+                ],
+                "origin_label": "Regulator Authored",
+                "regulator_id": null,
+                "sector_count": 0,
+                "approval_state": "NOT_RECORDED",
+                "effective_from": null,
+                "question_count": 0,
+                "regulator_code": null,
+                "regulator_name": null,
+                "sector_summary": null,
+                "dimension_count": 6,
+                "approval_decided_at": null
+            }
+        ],
+        "total_count": 5
+    },
+    "approvals": {
+        "rows": [
+        ],
+        "total_count": 0
+    },
+    "questions": {
+        "rows": [
+            {
+                "id": "7a7e9a02-bdb4-48e0-85cc-c79c3f696700",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "Alerts and cases are investigated within defined timeframes with a documented, reasoned disposition supported by the information reviewed.",
+                "fact_count": 2,
+                "dimension_id": "0c92f4fd-2921-47ec-86e3-c6b8d6360493",
+                "question_code": "CT-ALRT-01",
+                "dimension_code": "ALERT_INVESTIGATION",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "Alert Investigation and Disposition",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "OPERATING",
+                "allow_not_applicable": true,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "REWORD",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "9ef9f805-cd8f-42b8-bc6a-4eee322c1109",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "Investigation quality is subject to independent quality assurance, and identified defects are corrected.",
+                "fact_count": 0,
+                "dimension_id": "0c92f4fd-2921-47ec-86e3-c6b8d6360493",
+                "question_code": "CT-ALRT-02",
+                "dimension_code": "ALERT_INVESTIGATION",
+                "dimension_kind": "CONTROL",
+                "question_class": "ENHANCED",
+                "dimension_label": "Alert Investigation and Disposition",
+                "requires_evidence": true,
+                "trigger_condition": "Selected for examination or thematic review of investigation quality.",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "DESIGN_AND_OPERATING",
+                "allow_not_applicable": false,
+                "sector_applicability": "SECTOR_CONDITIONAL",
+                "change_classification": "KEEP",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_DESIGN_AND_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "b33cb27a-f783-4937-8d0a-1d021d112e70",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "Beneficial ownership and control are identified and verified to the required threshold, including for layered, cross-border and trust structures.",
+                "fact_count": 0,
+                "dimension_id": "9f095c1f-ea0c-4dce-b0bd-7f1945add4fd",
+                "question_code": "CT-BO-01",
+                "dimension_code": "BENEFICIAL_OWNERSHIP",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "Beneficial Ownership Identification",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "DESIGN_AND_OPERATING",
+                "allow_not_applicable": true,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "REWORD",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_DESIGN_AND_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "90be2eb1-c3de-4eb4-be85-786e80ef600e",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "Beneficial ownership information is kept current and is reverified on defined trigger events.",
+                "fact_count": 1,
+                "dimension_id": "9f095c1f-ea0c-4dce-b0bd-7f1945add4fd",
+                "question_code": "CT-BO-02",
+                "dimension_code": "BENEFICIAL_OWNERSHIP",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "Beneficial Ownership Identification",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "OPERATING",
+                "allow_not_applicable": true,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "KEEP",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "0a8475ca-fd38-461d-abc4-18dad8d2bb3e",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "Customer due diligence is completed and verified before the business relationship is established or the occasional transaction is executed, with defined and controlled exceptions.",
+                "fact_count": 0,
+                "dimension_id": "02fab950-fce4-4a97-b3c0-48fdc497275d",
+                "question_code": "CT-CDD-01",
+                "dimension_code": "CDD_KYC",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "Customer Due Diligence / KYC",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "DESIGN_AND_OPERATING",
+                "allow_not_applicable": false,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "REWORD",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_DESIGN_AND_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "58783bbe-7d3a-42ad-aa03-405d5d1f251b",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "Ongoing due diligence and periodic refresh are executed to the risk-based schedule, with overdue populations controlled.",
+                "fact_count": 3,
+                "dimension_id": "02fab950-fce4-4a97-b3c0-48fdc497275d",
+                "question_code": "CT-CDD-02",
+                "dimension_code": "CDD_KYC",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "Customer Due Diligence / KYC",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "OPERATING",
+                "allow_not_applicable": false,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "REWORD",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "2a88bdb2-8e92-4d15-b945-0d3ba816994c",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "Sample testing shows customer files are complete, accurate and current, including purpose and intended nature of the relationship and source of funds where required.",
+                "fact_count": 0,
+                "dimension_id": "02fab950-fce4-4a97-b3c0-48fdc497275d",
+                "question_code": "CT-CDD-03",
+                "dimension_code": "CDD_KYC",
+                "dimension_kind": "CONTROL",
+                "question_class": "ENHANCED",
+                "dimension_label": "Customer Due Diligence / KYC",
+                "requires_evidence": true,
+                "trigger_condition": "Selected for examination, thematic review or elevated-risk deep dive (file sampling).",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "OPERATING",
+                "allow_not_applicable": false,
+                "sector_applicability": "SECTOR_CONDITIONAL",
+                "change_classification": "NEW",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "296f7f35-367c-4d9b-9275-8a66f151d1af",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "Critical AML data elements are defined, and the data held in source systems is materially complete and accurate for those elements.",
+                "fact_count": 2,
+                "dimension_id": "4bcf2180-ed71-4ecb-a8c3-4a60e472a9b7",
+                "question_code": "CT-DQ-01",
+                "dimension_code": "AML_DATA_QUALITY",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "AML Data Quality",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "DESIGN_AND_OPERATING",
+                "allow_not_applicable": false,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "NEW",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_DESIGN_AND_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "9a947e9f-1173-4853-8975-c5fb991c0223",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "Data-quality defects affecting AML controls are recorded with an owner and due date and are remediated.",
+                "fact_count": 2,
+                "dimension_id": "4bcf2180-ed71-4ecb-a8c3-4a60e472a9b7",
+                "question_code": "CT-DQ-03",
+                "dimension_code": "AML_DATA_QUALITY",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "AML Data Quality",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "OPERATING",
+                "allow_not_applicable": false,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "NEW",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "b027a2a9-817b-4c67-b070-e8ddaff70eef",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "Enhanced due diligence is applied to every relationship that the risk framework identifies as higher risk, with measures that are genuinely enhanced.",
+                "fact_count": 2,
+                "dimension_id": "eb785834-7065-45ba-b094-39a645c832ba",
+                "question_code": "CT-EDD-01",
+                "dimension_code": "EDD",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "Enhanced Due Diligence",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "DESIGN_AND_OPERATING",
+                "allow_not_applicable": true,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "REWORD",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_DESIGN_AND_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "57d8dd75-6147-4128-8553-8ece238407ee",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "Higher-risk relationships receive documented senior-management approval at inception and enhanced ongoing monitoring thereafter.",
+                "fact_count": 2,
+                "dimension_id": "eb785834-7065-45ba-b094-39a645c832ba",
+                "question_code": "CT-EDD-02",
+                "dimension_code": "EDD",
+                "dimension_kind": "CONTROL",
+                "question_class": "CONDITIONAL",
+                "dimension_label": "Enhanced Due Diligence",
+                "requires_evidence": true,
+                "trigger_condition": "Entity has relationships classified higher risk in the assessment period.",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "OPERATING",
+                "allow_not_applicable": true,
+                "sector_applicability": "SECTOR_CONDITIONAL",
+                "change_classification": "MERGE",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "29498caf-b3d5-44a1-8391-7b7d91704e5c",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "A documented enterprise-wide ML/TF risk assessment is current and formally approved.",
+                "fact_count": 0,
+                "dimension_id": "8ec2c591-9fa4-4dd1-9955-2f0ac5750022",
+                "question_code": "CT-ERA-01",
+                "dimension_code": "ENTERPRISE_RISK_ASSESSMENT",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "Enterprise ML/TF Risk Assessment",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "DESIGN",
+                "allow_not_applicable": false,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "KEEP",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_DESIGN",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "f53ba640-6e67-4d93-84b9-31a013adedd9",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "The risk-assessment methodology addresses the relevant risk factors and the entity own business drivers, with a documented rating basis.",
+                "fact_count": 0,
+                "dimension_id": "8ec2c591-9fa4-4dd1-9955-2f0ac5750022",
+                "question_code": "CT-ERA-02",
+                "dimension_code": "ENTERPRISE_RISK_ASSESSMENT",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "Enterprise ML/TF Risk Assessment",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "DESIGN",
+                "allow_not_applicable": false,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "SPLIT",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_DESIGN",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "6256d073-fa1a-4612-bcb1-201ff87897ee",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "Risk-assessment outputs demonstrably drive the intensity of due diligence, monitoring and resourcing.",
+                "fact_count": 0,
+                "dimension_id": "8ec2c591-9fa4-4dd1-9955-2f0ac5750022",
+                "question_code": "CT-ERA-03",
+                "dimension_code": "ENTERPRISE_RISK_ASSESSMENT",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "Enterprise ML/TF Risk Assessment",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "OPERATING",
+                "allow_not_applicable": false,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "MOVE_DIMENSION",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "24d56339-60c6-4feb-a47d-14a86956e084",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "The board has approved an AML/CFT framework appropriate to the nature, size and complexity of the entity, with documented accountability for each element.",
+                "fact_count": 0,
+                "dimension_id": "d7aa60a2-f602-4d03-85cb-f8e6653497fc",
+                "question_code": "CT-GOV-01",
+                "dimension_code": "GOVERNANCE",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "Governance, Board and Senior Management",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "DESIGN",
+                "allow_not_applicable": false,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "SPLIT",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_DESIGN",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "eb886464-84f9-4deb-8a1d-4b1c7caa25be",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "The board and senior management receive AML/CFT management information sufficient in content, quality and frequency to oversee the framework, and there is evidence of challenge.",
+                "fact_count": 0,
+                "dimension_id": "d7aa60a2-f602-4d03-85cb-f8e6653497fc",
+                "question_code": "CT-GOV-02",
+                "dimension_code": "GOVERNANCE",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "Governance, Board and Senior Management",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "OPERATING",
+                "allow_not_applicable": false,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "SPLIT",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "34b264a0-69d4-4491-ab2e-202c97df494c",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "AML/CFT issues escalated to the board or senior management resulted in decisions that were implemented and followed through within the period.",
+                "fact_count": 0,
+                "dimension_id": "d7aa60a2-f602-4d03-85cb-f8e6653497fc",
+                "question_code": "CT-GOV-03",
+                "dimension_code": "GOVERNANCE",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "Governance, Board and Senior Management",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "OPERATING",
+                "allow_not_applicable": true,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "SEMANTIC_CORRECTION",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "5948a5bb-a60a-4fb2-89b0-c45712ddbe03",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "AML/CFT independent testing is performed by a function or party independent of AML operations, with a mandate and unrestricted scope.",
+                "fact_count": 0,
+                "dimension_id": "ff149e63-5381-4d55-a99e-d07469830363",
+                "question_code": "CT-IT-01",
+                "dimension_code": "INDEPENDENT_TESTING",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "Independent Testing / Internal Audit",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "DESIGN",
+                "allow_not_applicable": false,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "NEW",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_DESIGN",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "5c705d98-2f4c-4611-970e-e6becd132f55",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "The testing scope, frequency and depth are risk-based and include substantive sample testing rather than policy review alone.",
+                "fact_count": 0,
+                "dimension_id": "ff149e63-5381-4d55-a99e-d07469830363",
+                "question_code": "CT-IT-02",
+                "dimension_code": "INDEPENDENT_TESTING",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "Independent Testing / Internal Audit",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "DESIGN_AND_OPERATING",
+                "allow_not_applicable": false,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "NEW",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_DESIGN_AND_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "82a0b4cd-9309-467e-88cc-72deebf99a4b",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "Independent-testing results are reported to the board or audit committee, with severity and management response recorded.",
+                "fact_count": 0,
+                "dimension_id": "ff149e63-5381-4d55-a99e-d07469830363",
+                "question_code": "CT-IT-03",
+                "dimension_code": "INDEPENDENT_TESTING",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "Independent Testing / Internal Audit",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "OPERATING",
+                "allow_not_applicable": true,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "NEW",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "59efce95-e187-4e64-b4bc-8bd2f62f3771",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "Monitoring and screening rules, scenarios, thresholds and models are inventoried, with a named owner and documented purpose for each.",
+                "fact_count": 0,
+                "dimension_id": "cd976de4-ed51-4b45-a063-690a59ecdb99",
+                "question_code": "CT-MG-01",
+                "dimension_code": "MODEL_GOVERNANCE",
+                "dimension_kind": "CONTROL",
+                "question_class": "CONDITIONAL",
+                "dimension_label": "Monitoring Technology and Model Governance",
+                "requires_evidence": true,
+                "trigger_condition": "Entity relies on automated detection or screening logic, scenarios, thresholds or models.",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "DESIGN",
+                "allow_not_applicable": true,
+                "sector_applicability": "SECTOR_OVERLAY_CANDIDATE",
+                "change_classification": "NEW",
+                "sector_classification": "SECTOR_SENSITIVE",
+                "response_semantics_code": "CONTROL_SEM_DESIGN",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "6394e6ca-fb03-48c1-bf2b-7ca50bebf798",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "Detection logic is independently reviewed or validated before deployment and periodically thereafter, proportionate to its complexity and reliance.",
+                "fact_count": 0,
+                "dimension_id": "cd976de4-ed51-4b45-a063-690a59ecdb99",
+                "question_code": "CT-MG-02",
+                "dimension_code": "MODEL_GOVERNANCE",
+                "dimension_kind": "CONTROL",
+                "question_class": "CONDITIONAL",
+                "dimension_label": "Monitoring Technology and Model Governance",
+                "requires_evidence": true,
+                "trigger_condition": "Entity relies on automated detection or screening logic, scenarios, thresholds or models.",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "DESIGN_AND_OPERATING",
+                "allow_not_applicable": true,
+                "sector_applicability": "SECTOR_OVERLAY_CANDIDATE",
+                "change_classification": "MOVE_DIMENSION",
+                "sector_classification": "SECTOR_SENSITIVE",
+                "response_semantics_code": "CONTROL_SEM_DESIGN_AND_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "55714c21-9c17-474c-b25a-63f02990eeba",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "Changes to rules, scenarios and thresholds follow change control, are supported by tuning analysis, and performance is monitored with limitations documented.",
+                "fact_count": 2,
+                "dimension_id": "cd976de4-ed51-4b45-a063-690a59ecdb99",
+                "question_code": "CT-MG-03",
+                "dimension_code": "MODEL_GOVERNANCE",
+                "dimension_kind": "CONTROL",
+                "question_class": "CONDITIONAL",
+                "dimension_label": "Monitoring Technology and Model Governance",
+                "requires_evidence": true,
+                "trigger_condition": "Entity relies on automated detection or screening logic, scenarios, thresholds or models.",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "OPERATING",
+                "allow_not_applicable": true,
+                "sector_applicability": "SECTOR_OVERLAY_CANDIDATE",
+                "change_classification": "NEW",
+                "sector_classification": "SECTOR_SENSITIVE",
+                "response_semantics_code": "CONTROL_SEM_OPERATING",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "7fc29e82-69c1-470a-a172-79e759ba4b87",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "A named compliance officer / MLRO is appointed at sufficient seniority, is fit and proper for the role, and is free from duties that conflict with the AML/CFT mandate.",
+                "fact_count": 0,
+                "dimension_id": "12b45a10-6490-4589-bf78-3a0d357467fd",
+                "question_code": "CT-MLRO-01",
+                "dimension_code": "MLRO_FUNCTION",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "MLRO and Compliance Function",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "DESIGN",
+                "allow_not_applicable": false,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "REWORD",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_DESIGN",
+                "calculation_participation": "SCORED"
+            },
+            {
+                "id": "c0793259-f5e6-4e69-9af0-ca9ff794a47a",
+                "axis": "CONTROL_EFFECTIVENESS",
+                "prompt": "The AML/CFT function has resources, skills, data access and systems adequate for the entity risk profile, evidenced by the work actually completed in the period.",
+                "fact_count": 2,
+                "dimension_id": "12b45a10-6490-4589-bf78-3a0d357467fd",
+                "question_code": "CT-MLRO-02",
+                "dimension_code": "MLRO_FUNCTION",
+                "dimension_kind": "CONTROL",
+                "question_class": "CORE",
+                "dimension_label": "MLRO and Compliance Function",
+                "requires_evidence": true,
+                "trigger_condition": "Not applicable — CORE question",
+                "min_evidence_count": 1,
+                "effectiveness_focus": "OPERATING",
+                "allow_not_applicable": false,
+                "sector_applicability": "CORE_ALL",
+                "change_classification": "SEMANTIC_CORRECTION",
+                "sector_classification": "CORE",
+                "response_semantics_code": "CONTROL_SEM_OPERATING",
+                "calculation_participation": "SCORED"
+            }
+        ],
+        "total_count": 70
+    },
+    "readiness": {
+        "note": "Readiness is layered. A layer marked pending is not automatically a blocker on another layer.",
+        "layers": [
+            {
+                "key": "CONTENT",
+                "label": "Methodology content",
+                "state": "COMPLETE",
+                "metrics": {
+                    "questions": 70,
+                    "dimensions": 26,
+                    "semantic_profiles": 5
+                },
+                "headline": "26 dimensions, 70 questions, 5 response semantic profiles"
+            },
+            {
+                "key": "REFERENCE_GOVERNANCE",
+                "label": "MIPL reference approval",
+                "state": "COMPLETE",
+                "metrics": {
+                    "decisions": 10,
+                    "reference_approved": 10,
+                    "regulator_approved": 0
+                },
+                "headline": "10 of 10 reference decisions approved"
+            },
+            {
+                "key": "REGULATOR_ADOPTION",
+                "label": "Regulator adoption",
+                "state": "NOT_DONE",
+                "metrics": {
+                    "origin": "MIPL_REFERENCE",
+                    "adoptions": 0
+                },
+                "headline": "No regulator has adopted this reference"
+            },
+            {
+                "key": "REGULATOR_APPROVAL",
+                "label": "Regulator methodology approval",
+                "state": "NOT_APPLICABLE",
+                "metrics": {
+                    "decision": null,
+                    "decided_at": null
+                },
+                "headline": "A reference template can never carry a regulator approval"
+            },
+            {
+                "key": "FACT_DEFINITIONS",
+                "label": "Fact definitions",
+                "state": "PENDING",
+                "metrics": {
+                    "facts": 87,
+                    "pending": 87
+                },
+                "headline": "87 of 87 fact definitions pending attributes",
+                "blocks_approval": false
+            },
+            {
+                "key": "MATERIALITY_POLICY",
+                "label": "Materiality parameter policy",
+                "state": "NOT_APPROVED",
+                "metrics": {
+                    "valued": 0,
+                    "parameters": 8,
+                    "unapproved": 8
+                },
+                "headline": "8 unapproved, 8 without a value, of 8",
+                "blocks_approval": false
+            },
+            {
+                "key": "CALCULATION_POLICY",
+                "label": "Calculation policy",
+                "state": "NOT_CONFIGURED",
+                "metrics": {
+                    "bands": 0,
+                    "active": 0,
+                    "configs": 0,
+                    "matrix_cells": 0,
+                    "response_scores": 0
+                },
+                "headline": "No calculation configuration, scores, bands or residual matrix"
+            },
+            {
+                "key": "LEGACY_DATA_REPAIR",
+                "label": "Legacy data repair",
+                "state": "APPROVED_NOT_EXECUTED",
+                "metrics": {
+                    "legacy_rows": 22,
+                    "repair_executed": false,
+                    "decision_approved": true,
+                    "reference_decision_status": "REFERENCE_APPROVED"
+                },
+                "headline": "22 STR_SAR_GOVERNANCE rows remain; the relink is approved as a reference decision and has not been executed"
+            },
+            {
+                "key": "ASSESSMENT_ELIGIBILITY",
+                "label": "Assessment eligibility",
+                "state": "NOT_ELIGIBLE",
+                "metrics": {
+                    "origin": "MIPL_REFERENCE",
+                    "status": "DRAFT"
+                },
+                "headline": "No — reference draft; a regulator must adopt it first"
+            },
+            {
+                "key": "CERTIFICATION",
+                "label": "Module certification",
+                "state": "NOT_CERTIFIED",
+                "metrics": {
+                },
+                "headline": "Not certified — certification is a separate governance outcome and is not recorded against a methodology version"
+            }
+        ],
+        "generated_at": "2026-09-04T18:43:02.933411+00:00",
+        "methodology_id": "4dc13ebf-f85e-45ce-9710-0433513c4798"
+    },
+    "semantics": [
+        {
+            "id": "b5a01e2d-9d47-4dc1-91d1-815a9623cc9c",
+            "label": "Contextual fact",
+            "owner": {
+                "code": "AML-CFT-RBA",
+                "origin": "MIPL_REFERENCE",
+                "version": "1.1",
+                "origin_label": "MIPL Reference",
+                "methodology_id": "4dc13ebf-f85e-45ce-9710-0433513c4798"
+            },
+            "description": "A contextual fact is recorded; no favourable or adverse polarity, never scored.",
+            "semantic_code": "CONTEXT_FACT_SEM",
+            "question_count": 1,
+            "profile_version": 1,
+            "response_meaning": {
+                "RECORDED": "The contextual fact has been recorded with its provenance.",
+                "NOT_AVAILABLE": "The contextual fact could not be obtained; the reason is recorded."
+            }
+        },
+        {
+            "id": "d9b71b5c-5f29-4dce-bc3e-44abb049cf5e",
+            "label": "Control effectiveness — design",
+            "owner": {
+                "code": "AML-CFT-RBA",
+                "origin": "MIPL_REFERENCE",
+                "version": "1.1",
+                "origin_label": "MIPL Reference",
+                "methodology_id": "4dc13ebf-f85e-45ce-9710-0433513c4798"
+            },
+            "description": "Design-only control question; operating evidence is not required.",
+            "semantic_code": "CONTROL_SEM_DESIGN",
+            "question_count": 14,
+            "profile_version": 1,
+            "response_meaning": {
+                "NO": "The control is absent, or so weak in design that it cannot be relied upon.",
+                "YES": "The control is appropriately designed and proportionate to this entity's risk, nature, size and complexity.",
+                "PARTIALLY": "Material design gaps leave residual weakness.",
+                "NOT_APPLICABLE": "The activity the control addresses is genuinely not undertaken, so the control cannot exist."
+            }
+        },
+        {
+            "id": "d32c9990-833e-4d99-98f9-46fdc49ebd87",
+            "label": "Control effectiveness — design and operating",
+            "owner": {
+                "code": "AML-CFT-RBA",
+                "origin": "MIPL_REFERENCE",
+                "version": "1.1",
+                "origin_label": "MIPL Reference",
+                "methodology_id": "4dc13ebf-f85e-45ce-9710-0433513c4798"
+            },
+            "description": "Both design adequacy and operating effectiveness must hold for a favourable response.",
+            "semantic_code": "CONTROL_SEM_DESIGN_AND_OPERATING",
+            "question_count": 12,
+            "profile_version": 1,
+            "response_meaning": {
+                "NO": "The control is absent, or so weak in design or operation that it cannot be relied upon.",
+                "YES": "The control is appropriately designed and operated effectively over the relevant period or sample.",
+                "PARTIALLY": "Material design gaps or evidenced operating exceptions leave residual weakness.",
+                "NOT_APPLICABLE": "The activity the control addresses is genuinely not undertaken, so the control cannot exist."
+            }
+        },
+        {
+            "id": "0fedb9c4-0e48-4d64-9ffd-fad7a628133e",
+            "label": "Control effectiveness — operating",
+            "owner": {
+                "code": "AML-CFT-RBA",
+                "origin": "MIPL_REFERENCE",
+                "version": "1.1",
+                "origin_label": "MIPL Reference",
+                "methodology_id": "4dc13ebf-f85e-45ce-9710-0433513c4798"
+            },
+            "description": "Operating-effectiveness control question; period, sample or system evidence is required.",
+            "semantic_code": "CONTROL_SEM_OPERATING",
+            "question_count": 27,
+            "profile_version": 1,
+            "response_meaning": {
+                "NO": "The control is absent, or so weak in operation that it cannot be relied upon.",
+                "YES": "The control operated effectively over the relevant period or sample, evidenced by period data, samples or system facts.",
+                "PARTIALLY": "Evidenced exceptions in operation leave residual weakness.",
+                "NOT_APPLICABLE": "The activity the control addresses is genuinely not undertaken, so the control cannot exist."
+            }
+        },
+        {
+            "id": "4ad85860-c254-4d00-942a-fc23fa753cc8",
+            "label": "Inherent exposure",
+            "owner": {
+                "code": "AML-CFT-RBA",
+                "origin": "MIPL_REFERENCE",
+                "version": "1.1",
+                "origin_label": "MIPL Reference",
+                "methodology_id": "4dc13ebf-f85e-45ce-9710-0433513c4798"
+            },
+            "description": "Response meaning for inherent ML/TF exposure questions.",
+            "semantic_code": "INHERENT_SEM",
+            "question_count": 16,
+            "profile_version": 1,
+            "response_meaning": {
+                "NO": "The exposure characteristic is absent or immaterial for the assessment period.",
+                "YES": "The exposure characteristic is present and material to the entity, judged against the materiality criteria in the guidance.",
+                "PARTIALLY": "The exposure characteristic exists but is limited, bounded or below the materiality criteria.",
+                "NOT_APPLICABLE": "The underlying activity is genuinely not undertaken in the assessment period (not: unknown, unevidenced or unanswered)."
+            }
+        }
+    ],
+    "dimensions": [
+        {
+            "id": "00eb4464-d588-4883-95b6-8103d4c9127f",
+            "label": "Customer Risk",
+            "weight": 20,
+            "sort_order": 10,
+            "description": null,
+            "dimension_code": "CUSTOMER_RISK",
+            "dimension_kind": "INHERENT",
+            "question_count": 4,
+            "dimension_group": "INHERENT_RISK",
+            "evidence_required": true
+        },
+        {
+            "id": "d0013dfa-683f-4bd3-9d5e-6562b3ed06b8",
+            "label": "Geographic Risk",
+            "weight": 18,
+            "sort_order": 20,
+            "description": null,
+            "dimension_code": "GEOGRAPHIC_RISK",
+            "dimension_kind": "INHERENT",
+            "question_count": 3,
+            "dimension_group": "INHERENT_RISK",
+            "evidence_required": true
+        },
+        {
+            "id": "688c88bb-57a4-4711-a94d-b6b3d6b63129",
+            "label": "Products and Services Risk",
+            "weight": 18,
+            "sort_order": 30,
+            "description": null,
+            "dimension_code": "PRODUCTS_SERVICES_RISK",
+            "dimension_kind": "INHERENT",
+            "question_count": 4,
+            "dimension_group": "INHERENT_RISK",
+            "evidence_required": true
+        },
+        {
+            "id": "0eb1a08f-c73f-4c1c-91b5-9809b0e754b9",
+            "label": "Delivery Channel Risk",
+            "weight": 14,
+            "sort_order": 40,
+            "description": null,
+            "dimension_code": "DELIVERY_CHANNEL_RISK",
+            "dimension_kind": "INHERENT",
+            "question_count": 2,
+            "dimension_group": "INHERENT_RISK",
+            "evidence_required": true
+        },
+        {
+            "id": "443e4bba-3137-42cd-9dd9-8830f8b5ca71",
+            "label": "Transaction and Activity Profile Risk",
+            "weight": 18,
+            "sort_order": 50,
+            "description": null,
+            "dimension_code": "TRANSACTION_PROFILE_RISK",
+            "dimension_kind": "INHERENT",
+            "question_count": 2,
+            "dimension_group": "INHERENT_RISK",
+            "evidence_required": true
+        },
+        {
+            "id": "15511e5d-5418-40bc-8495-d5b122c3fdc5",
+            "label": "Ownership and Business Model Risk",
+            "weight": 12,
+            "sort_order": 60,
+            "description": null,
+            "dimension_code": "BUSINESS_MODEL_RISK",
+            "dimension_kind": "INHERENT",
+            "question_count": 2,
+            "dimension_group": "INHERENT_RISK",
+            "evidence_required": true
+        },
+        {
+            "id": "d7aa60a2-f602-4d03-85cb-f8e6653497fc",
+            "label": "Governance, Board and Senior Management",
+            "weight": 8,
+            "sort_order": 100,
+            "description": null,
+            "dimension_code": "GOVERNANCE",
+            "dimension_kind": "CONTROL",
+            "question_count": 3,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "8ec2c591-9fa4-4dd1-9955-2f0ac5750022",
+            "label": "Enterprise ML/TF Risk Assessment",
+            "weight": 7,
+            "sort_order": 110,
+            "description": null,
+            "dimension_code": "ENTERPRISE_RISK_ASSESSMENT",
+            "dimension_kind": "CONTROL",
+            "question_count": 3,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "12b45a10-6490-4589-bf78-3a0d357467fd",
+            "label": "MLRO and Compliance Function",
+            "weight": 7,
+            "sort_order": 120,
+            "description": null,
+            "dimension_code": "MLRO_FUNCTION",
+            "dimension_kind": "CONTROL",
+            "question_count": 2,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "323fa042-0db3-47e2-b9f9-1a396de63ac9",
+            "label": "Policies, Procedures and Internal Controls",
+            "weight": 6,
+            "sort_order": 130,
+            "description": null,
+            "dimension_code": "POLICIES_PROCEDURES",
+            "dimension_kind": "CONTROL",
+            "question_count": 2,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "02fab950-fce4-4a97-b3c0-48fdc497275d",
+            "label": "Customer Due Diligence / KYC",
+            "weight": 8,
+            "sort_order": 140,
+            "description": null,
+            "dimension_code": "CDD_KYC",
+            "dimension_kind": "CONTROL",
+            "question_count": 3,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "9f095c1f-ea0c-4dce-b0bd-7f1945add4fd",
+            "label": "Beneficial Ownership Identification",
+            "weight": 6,
+            "sort_order": 150,
+            "description": null,
+            "dimension_code": "BENEFICIAL_OWNERSHIP",
+            "dimension_kind": "CONTROL",
+            "question_count": 2,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "eb785834-7065-45ba-b094-39a645c832ba",
+            "label": "Enhanced Due Diligence",
+            "weight": 6,
+            "sort_order": 160,
+            "description": null,
+            "dimension_code": "EDD",
+            "dimension_kind": "CONTROL",
+            "question_count": 2,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "9190211b-f0da-4db2-be86-bd12b44ea2c1",
+            "label": "PEP Identification and Controls",
+            "weight": 5,
+            "sort_order": 170,
+            "description": null,
+            "dimension_code": "PEP_CONTROLS",
+            "dimension_kind": "CONTROL",
+            "question_count": 2,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "57c85447-c7b9-4af7-89af-7b8e58c2e2d1",
+            "label": "Sanctions Screening Controls",
+            "weight": 5,
+            "sort_order": 180,
+            "description": null,
+            "dimension_code": "SANCTIONS_CONTROLS",
+            "dimension_kind": "CONTROL",
+            "question_count": 3,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "ef7fb401-c3d6-46d2-b947-a58a803b68a0",
+            "label": "Transaction Monitoring",
+            "weight": 9,
+            "sort_order": 190,
+            "description": null,
+            "dimension_code": "TRANSACTION_MONITORING",
+            "dimension_kind": "CONTROL",
+            "question_count": 3,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "0c92f4fd-2921-47ec-86e3-c6b8d6360493",
+            "label": "Alert Investigation and Disposition",
+            "weight": 6,
+            "sort_order": 200,
+            "description": null,
+            "dimension_code": "ALERT_INVESTIGATION",
+            "dimension_kind": "CONTROL",
+            "question_count": 2,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "605e1384-b71b-4dd4-b156-d278b05704a7",
+            "label": "STR/SAR Identification and Escalation",
+            "weight": 7,
+            "sort_order": 210,
+            "description": null,
+            "dimension_code": "STR_IDENTIFICATION",
+            "dimension_kind": "CONTROL",
+            "question_count": 3,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "013918ef-2c4d-4916-a278-6d0a78b46758",
+            "label": "STR/SAR Governance, Quality and Timeliness",
+            "weight": 6,
+            "sort_order": 220,
+            "description": null,
+            "dimension_code": "STR_GOVERNANCE",
+            "dimension_kind": "CONTROL",
+            "question_count": 4,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "223c4ff2-3a82-4f57-8a14-477b8a736aee",
+            "label": "Record Keeping",
+            "weight": 4,
+            "sort_order": 230,
+            "description": null,
+            "dimension_code": "RECORD_KEEPING",
+            "dimension_kind": "CONTROL",
+            "question_count": 2,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "bee20a5c-d97b-42c9-be8a-2f57054e1152",
+            "label": "Employee Training and Awareness",
+            "weight": 4,
+            "sort_order": 240,
+            "description": null,
+            "dimension_code": "TRAINING",
+            "dimension_kind": "CONTROL",
+            "question_count": 3,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "ff149e63-5381-4d55-a99e-d07469830363",
+            "label": "Independent Testing / Internal Audit",
+            "weight": 6,
+            "sort_order": 250,
+            "description": null,
+            "dimension_code": "INDEPENDENT_TESTING",
+            "dimension_kind": "CONTROL",
+            "question_count": 3,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "3d44562b-089d-4b5c-9c7a-d73e7cd1eeca",
+            "label": "Agent, Intermediary and Third-Party Oversight",
+            "weight": 5,
+            "sort_order": 260,
+            "description": null,
+            "dimension_code": "THIRD_PARTY_OVERSIGHT",
+            "dimension_kind": "CONTROL",
+            "question_count": 3,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "4bcf2180-ed71-4ecb-a8c3-4a60e472a9b7",
+            "label": "AML Data Quality",
+            "weight": 4,
+            "sort_order": 270,
+            "description": null,
+            "dimension_code": "AML_DATA_QUALITY",
+            "dimension_kind": "CONTROL",
+            "question_count": 2,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "cd976de4-ed51-4b45-a063-690a59ecdb99",
+            "label": "Monitoring Technology and Model Governance",
+            "weight": 4,
+            "sort_order": 280,
+            "description": null,
+            "dimension_code": "MODEL_GOVERNANCE",
+            "dimension_kind": "CONTROL",
+            "question_count": 3,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        },
+        {
+            "id": "67f0bdaa-0f9b-44d6-b2d8-0da32de8ccd4",
+            "label": "Remediation and Issue Management",
+            "weight": 4,
+            "sort_order": 290,
+            "description": null,
+            "dimension_code": "REMEDIATION_TRACKING",
+            "dimension_kind": "CONTROL",
+            "question_count": 3,
+            "dimension_group": "CONTROL_EFFECTIVENESS",
+            "evidence_required": true
+        }
+    ],
+    "parameters": {
+        "rows": [
+            {
+                "id": "1f7b3b3b-9c52-4c23-983d-8ec99a09afe0",
+                "unit": "%",
+                "label": "Cash transaction value share materiality",
+                "data_type": "percentage",
+                "has_value": false,
+                "value_text": null,
+                "referenced_by": [
+                    "FACT-CASH-VALUE-SHARE"
+                ],
+                "value_numeric": null,
+                "parameter_code": "MAT_CASH_VALUE_SHARE",
+                "parameter_kind": "MATERIALITY",
+                "approval_status": "UNAPPROVED",
+                "referenced_by_count": 1
+            },
+            {
+                "id": "bffc55d6-748d-40fb-9d2a-fc5910c080d0",
+                "unit": "%",
+                "label": "Critical data element defect-rate materiality",
+                "data_type": "percentage",
+                "has_value": false,
+                "value_text": null,
+                "referenced_by": [
+                    "FACT-CDE-DEFECT-RATE"
+                ],
+                "value_numeric": null,
+                "parameter_code": "MAT_CDE_DEFECT_RATE",
+                "parameter_kind": "MATERIALITY",
+                "approval_status": "UNAPPROVED",
+                "referenced_by_count": 1
+            },
+            {
+                "id": "4dd88b2d-5731-439f-a990-68e986f335da",
+                "unit": "%",
+                "label": "Largest corridor concentration materiality",
+                "data_type": "percentage",
+                "has_value": false,
+                "value_text": null,
+                "referenced_by": [
+                    "FACT-CORRIDOR-TOP1-SHARE"
+                ],
+                "value_numeric": null,
+                "parameter_code": "MAT_CORRIDOR_TOP1_SHARE",
+                "parameter_kind": "MATERIALITY",
+                "approval_status": "UNAPPROVED",
+                "referenced_by_count": 1
+            },
+            {
+                "id": "2d3626bf-71e7-40f1-a51e-3df2a1db286a",
+                "unit": "%",
+                "label": "Top three corridor concentration materiality",
+                "data_type": "percentage",
+                "has_value": false,
+                "value_text": null,
+                "referenced_by": [
+                    "FACT-CORRIDOR-TOP3-SHARE"
+                ],
+                "value_numeric": null,
+                "parameter_code": "MAT_CORRIDOR_TOP3_SHARE",
+                "parameter_kind": "MATERIALITY",
+                "approval_status": "UNAPPROVED",
+                "referenced_by_count": 1
+            },
+            {
+                "id": "864733b6-6da5-4653-9aba-71cad2b13441",
+                "unit": "%",
+                "label": "Customer or value growth-rate materiality",
+                "data_type": "percentage",
+                "has_value": false,
+                "value_text": null,
+                "referenced_by": [
+                    "FACT-CUSTOMER-GROWTH-RATE",
+                    "FACT-VALUE-GROWTH-RATE"
+                ],
+                "value_numeric": null,
+                "parameter_code": "MAT_GROWTH_RATE",
+                "parameter_kind": "MATERIALITY",
+                "approval_status": "UNAPPROVED",
+                "referenced_by_count": 2
+            },
+            {
+                "id": "a7755656-16b8-40d7-8ba1-a26f6faa3130",
+                "unit": "%",
+                "label": "Higher-risk customer share materiality",
+                "data_type": "percentage",
+                "has_value": false,
+                "value_text": null,
+                "referenced_by": [
+                    "FACT-HRC-SHARE"
+                ],
+                "value_numeric": null,
+                "parameter_code": "MAT_HIGH_RISK_CUSTOMER_SHARE",
+                "parameter_kind": "MATERIALITY",
+                "approval_status": "UNAPPROVED",
+                "referenced_by_count": 1
+            },
+            {
+                "id": "4727eaa6-1445-44ec-8ae0-54ee0339bb57",
+                "unit": "%",
+                "label": "Higher-risk customer value share materiality",
+                "data_type": "percentage",
+                "has_value": false,
+                "value_text": null,
+                "referenced_by": [
+                    "FACT-HRC-VALUE-SHARE"
+                ],
+                "value_numeric": null,
+                "parameter_code": "MAT_HIGH_RISK_VALUE_SHARE",
+                "parameter_kind": "MATERIALITY",
+                "approval_status": "UNAPPROVED",
+                "referenced_by_count": 1
+            },
+            {
+                "id": "88900510-bf0e-46cc-8637-1a6a858a3425",
+                "unit": "%",
+                "label": "Cross-border value share materiality",
+                "data_type": "percentage",
+                "has_value": false,
+                "value_text": null,
+                "referenced_by": [
+                ],
+                "value_numeric": null,
+                "parameter_code": "MAT_XBORDER_VALUE_SHARE",
+                "parameter_kind": "MATERIALITY",
+                "approval_status": "UNAPPROVED",
+                "referenced_by_count": 0
+            }
+        ],
+        "total_count": 8,
+        "valued_count": 0,
+        "unapproved_count": 8
+    },
+    "baseline_id": "1e248dc0-c559-48d7-bcf3-70d6ec5db99a",
+    "captured_at": "2026-09-04T18:43:02.933411+00:00",
+    "fact_detail": {
+        "id": "04017265-0568-4457-9271-b0d34c57169a",
+        "unit": null,
+        "label": "Actions By Severity",
+        "data_type": "structured",
+        "fact_code": "FACT-ACTIONS-BY-SEVERITY",
+        "questions": [
+            {
+                "id": "08448c2d-85cb-4258-bee0-2776ddcce501",
+                "prompt": "AML/CFT issues from all sources are captured in a single register with severity, named owner, agreed action and due date.",
+                "is_required": false,
+                "question_code": "CT-REM-01"
+            }
+        ],
+        "provenance": {
+            "decision_layer": "MIPL_REFERENCE",
+            "source_document": "docs/aml/AML-CFT-RBA-v1.1-evidence-data-source-map.md"
+        },
+        "is_required": false,
+        "methodology_id": "4dc13ebf-f85e-45ce-9710-0433513c4798",
+        "numerator_basis": null,
+        "attribute_source": "DERIVED_FROM_FACT_CODE_CONVENTION",
+        "definition_status": "ATTRIBUTES_PENDING",
+        "denominator_basis": null,
+        "period_expectation": "ASSESSMENT_PERIOD",
+        "auto_prefill_allowed": false,
+        "officer_edit_allowed": true,
+        "materiality_parameter": null,
+        "source_type_expectation": null,
+        "materiality_parameter_code": null
+    },
+    "capabilities": {
+        "origin": "MIPL_REFERENCE",
+        "status": "DRAFT",
+        "can_edit": {
+            "reason": null,
+            "allowed": true
+        },
+        "can_adopt": {
+            "reason": null,
+            "allowed": true,
+            "target_count": 1
+        },
+        "can_approve": {
+            "reason": "A MIPL reference template cannot be approved in place. A regulator must adopt it first.",
+            "allowed": false,
+            "requires_rationale": true
+        },
+        "domain_code": "AML_CFT",
+        "can_activate": {
+            "reason": "Operational activation is not included in this review wave.",
+            "allowed": false
+        },
+        "maker_checker": {
+            "author_id": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+            "author_name": "Certification - Super Admin",
+            "submitted_at": null,
+            "submitted_by": null,
+            "actor_is_author": false,
+            "submitted_by_name": null,
+            "actor_is_submitter": false
+        },
+        "methodology_id": "4dc13ebf-f85e-45ce-9710-0433513c4798",
+        "can_submit_review": {
+            "reason": null,
+            "allowed": true
+        },
+        "can_return_to_draft": {
+            "reason": "Only a version in REVIEW can be returned to draft.",
+            "allowed": false
+        },
+        "is_platform_administrator": false
+    },
+    "methodology_id": "4dc13ebf-f85e-45ce-9710-0433513c4798",
+    "register_page2": {
+        "page": {
+            "dir": "asc",
+            "sort": "code",
+            "limit": 2,
+            "offset": 2
+        },
+        "rows": [
+            {
+                "id": "4dc13ebf-f85e-45ce-9710-0433513c4798",
+                "code": "AML-CFT-RBA",
+                "name": "Inherent ML/TF risk, control effectiveness and residual risk determination",
+                "origin": "MIPL_REFERENCE",
+                "status": "DRAFT",
+                "version": "1.1",
+                "updated_at": "2026-09-04T16:03:38.325835+00:00",
+                "domain_code": "AML_CFT",
+                "has_lineage": true,
+                "effective_to": null,
+                "entity_types": [
+                    "BANK",
+                    "CREDIT_UNION",
+                    "INSURANCE",
+                    "MONEY_SERVICES",
+                    "TRUST_COMPANY",
+                    "VIRTUAL_ASSET",
+                    "OTHER"
+                ],
+                "origin_label": "MIPL Reference",
+                "regulator_id": null,
+                "sector_count": 0,
+                "approval_state": "NOT_RECORDED",
+                "effective_from": null,
+                "question_count": 70,
+                "regulator_code": null,
+                "regulator_name": null,
+                "sector_summary": null,
+                "dimension_count": 26,
+                "approval_decided_at": null
+            },
+            {
+                "id": "48821eaa-0f27-4b09-9c48-d73769387a16",
+                "code": "CONDUCT_RBA",
+                "name": "Market conduct risk-based assessment methodology",
+                "origin": "REGULATOR_AUTHORED",
+                "status": "ACTIVE",
+                "version": "1.0",
+                "updated_at": "2026-09-02T19:20:07.687797+00:00",
+                "domain_code": "MARKET_CONDUCT",
+                "has_lineage": false,
+                "effective_to": null,
+                "entity_types": [
+                ],
+                "origin_label": "Regulator Authored",
+                "regulator_id": null,
+                "sector_count": 0,
+                "approval_state": "NOT_RECORDED",
+                "effective_from": null,
+                "question_count": 0,
+                "regulator_code": null,
+                "regulator_name": null,
+                "sector_summary": null,
+                "dimension_count": 0,
+                "approval_decided_at": null
+            }
+        ],
+        "total_count": 5
+    },
+    "question_detail": {
+        "id": "57baa054-3ecb-40f7-8b85-f54a2554bfb4",
+        "axis": "INHERENT_EXPOSURE",
+        "prompt": "Cross-border or corridor activity is concentrated in a small number of jurisdictions or corridors (contextual fact — not scored).",
+        "guidance": "Record the largest single corridor share, the top-three share and the risk classification of those corridors. Concentration in lower-risk corridors is not adverse; concentration in higher-risk corridors amplifies IR-GEO-01 and is judged there. Share thresholds are configuration parameters ([MAT_CORRIDOR_TOP1_SHARE], [MAT_CORRIDOR_TOP3_SHARE]), not fixed wording.",
+        "dimension": {
+            "id": "d0013dfa-683f-4bd3-9d5e-6562b3ed06b8",
+            "label": "Geographic Risk",
+            "dimension_code": "GEOGRAPHIC_RISK",
+            "dimension_kind": "INHERENT"
+        },
+        "mandatory": false,
+        "provenance": {
+            "decision_layer": "MIPL_REFERENCE",
+            "source_document": "docs/aml/AML-CFT-RBA-v1.1-question-catalogue.md",
+            "reference_decisions": [
+                "AML-METH-01",
+                "AML-METH-04",
+                "AML-METH-06",
+                "AML-METH-07"
+            ],
+            "candidate_data_sources": "regulatory returns, entity profile, external intelligence where authorised",
+            "suggested_evidence_types": "Country exposure report, cross-border flow analysis, correspondent relationship register"
+        },
+        "sector_notes": null,
+        "na_conditions": "The entity conducts no cross-border activity of any kind in the assessment period.",
+        "question_code": "IR-GEO-03",
+        "methodology_id": "4dc13ebf-f85e-45ce-9710-0433513c4798",
+        "question_class": "CONDITIONAL",
+        "question_version": 1,
+        "response_options": [
+            "YES",
+            "PARTIALLY",
+            "NO",
+            "NOT_APPLICABLE"
+        ],
+        "semantic_profile": {
+            "id": "b5a01e2d-9d47-4dc1-91d1-815a9623cc9c",
+            "label": "Contextual fact",
+            "description": "A contextual fact is recorded; no favourable or adverse polarity, never scored.",
+            "semantic_code": "CONTEXT_FACT_SEM",
+            "profile_version": 1,
+            "response_meaning": {
+                "RECORDED": "The contextual fact has been recorded with its provenance.",
+                "NOT_AVAILABLE": "The contextual fact could not be obtained; the reason is recorded."
+            }
+        },
+        "fact_requirements": [
+            {
+                "id": "450faa9b-ec1c-4bd1-b4c6-1f2fc6f079a4",
+                "unit": null,
+                "label": "Corridor Risk Class",
+                "data_type": "structured",
+                "fact_code": "FACT-CORRIDOR-RISK-CLASS",
+                "is_required": false,
+                "definition_status": "ATTRIBUTES_PENDING"
+            },
+            {
+                "id": "ea451a58-9960-45df-bdad-f3742a1f378c",
+                "unit": "%",
+                "label": "Corridor Top1 Share",
+                "data_type": "percentage",
+                "fact_code": "FACT-CORRIDOR-TOP1-SHARE",
+                "is_required": false,
+                "definition_status": "ATTRIBUTES_PENDING"
+            },
+            {
+                "id": "673ee929-3a4f-4094-99bf-d05d77dadb20",
+                "unit": "%",
+                "label": "Corridor Top3 Share",
+                "data_type": "percentage",
+                "fact_code": "FACT-CORRIDOR-TOP3-SHARE",
+                "is_required": false,
+                "definition_status": "ATTRIBUTES_PENDING"
+            }
+        ],
+        "requires_evidence": true,
+        "trigger_condition": "Contextual fact — asked where cross-border or corridor activity exists; never scored.",
+        "applicability_rule": null,
+        "min_evidence_count": 1,
+        "supervisory_intent": "Record the concentration profile so the supervisor can interpret IR-GEO-01 and IR-GEO-02; concentration is not itself higher or lower ML/TF exposure.",
+        "effectiveness_focus": "INHERENT_EXPOSURE",
+        "predecessor_mapping": "None (new in v1.1)",
+        "standards_reference": "FATF R.1",
+        "allow_not_applicable": true,
+        "evidence_basis_types": [
+            "STRUCTURED_METRIC",
+            "SYSTEM_FACT",
+            "REGULATORY_RETURN",
+            "ENTERPRISE_DOCUMENT",
+            "AUTHORISED_EXTERNAL_SOURCE",
+            "RFI_RESPONSE"
+        ],
+        "requires_observation": false,
+        "sector_applicability": "SECTOR_CONDITIONAL",
+        "change_classification": "NEW",
+        "minimum_evidence_note": "1 governed evidence basis (may be shared with other questions)",
+        "na_requires_rationale": true,
+        "sector_classification": "CORE",
+        "response_semantics_code": "CONTEXT_FACT_SEM",
+        "calculation_participation": "CONTEXTUAL_NOT_SCORED",
+        "standards_reference_review": "No FATF provision addresses corridor concentration — reference reduced to supervisory context and the question made contextual/non-scoring.",
+        "standards_reference_strength": "SUPERVISORY_GUIDANCE_CONTEXT",
+        "factual_auto_prefill_possible": true,
+        "supervisory_judgement_required": true
+    },
+    "adoption_targets": {
+        "rows": [
+            {
+                "id": "882591d0-0fc6-4652-8d99-75c5ca60f314",
+                "code": "ZZCAPR",
+                "name": "ZZ FIXTURE CAPTURE Regulator",
+                "already_adopted": false,
+                "resulting_version": "1.1+ZZCAPR"
+            }
+        ],
+        "reason": null,
+        "reference": {
+            "id": "4dc13ebf-f85e-45ce-9710-0433513c4798",
+            "code": "AML-CFT-RBA",
+            "origin": "MIPL_REFERENCE",
+            "version": "1.1",
+            "origin_label": "MIPL Reference"
+        },
+        "total_count": 1
+    },
+    "register_options": {
+        "domains": [
+            "AML_CFT",
+            "MARKET_CONDUCT",
+            "PRUDENTIAL"
+        ],
+        "origins": [
+            {
+                "label": "MIPL Reference",
+                "value": "MIPL_REFERENCE"
+            },
+            {
+                "label": "Regulator Authored",
+                "value": "REGULATOR_AUTHORED"
+            }
+        ],
+        "sectors": [
+        ],
+        "statuses": [
+            "ACTIVE",
+            "DRAFT",
+            "SUPERSEDED"
+        ],
+        "regulators": [
+        ],
+        "approval_states": [
+            "NOT_RECORDED",
+            "APPROVED",
+            "REVOKED"
+        ]
+    },
+    "reference_decisions": {
+        "rows": [
+            {
+                "id": "2dd791ba-50f2-4635-9596-c5a526177854",
+                "title": "Adopt the exposure -> control -> residual -> judgement -> response chain, with question classes",
+                "status": "REFERENCE_APPROVED",
+                "rationale": "Reference design approved by the platform methodology owner (MIPL) for the AML-CFT-RBA v1.1 reference catalogue. Reference approval only: it does not constitute approval by any regulator and does not authorise use in a live supervisory decision until the regulator adopts it.",
+                "recorded_at": "2026-09-04T16:11:53.338432+00:00",
+                "recorded_by": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "decision_code": "AML-METH-01",
+                "decision_text": "Adopt the chain, and adopt the CORE / CONDITIONAL / ENHANCED question-class model so that a catalogue question is not automatically mandatory in every assessment.",
+                "approval_scope": "MIPL_REFERENCE_APPROVAL",
+                "decision_source": "MIPL_REFERENCE_DESIGN",
+                "methodology_code": "AML-CFT-RBA",
+                "recorded_by_name": "Certification - Super Admin",
+                "methodology_version": "1.1",
+                "customer_adoption_recorded": false,
+                "regulator_approval_recorded": false
+            },
+            {
+                "id": "9bd044a9-a5c0-4dab-a905-879a28e8d198",
+                "title": "Inherent question set: 17 inherent questions across 6 dimensions — 12 CORE / 5 CONDITIONAL — 16 scored / 1 contextual non-scored",
+                "status": "REFERENCE_APPROVED",
+                "rationale": "Reference design approved by the platform methodology owner (MIPL) for the AML-CFT-RBA v1.1 reference catalogue. Reference approval only: it does not constitute approval by any regulator and does not authorise use in a live supervisory decision until the regulator adopts it.",
+                "recorded_at": "2026-09-04T16:11:53.338432+00:00",
+                "recorded_by": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "decision_code": "AML-METH-02",
+                "decision_text": "Adopt the red-teamed set. `IR-BUS-03` (outsourced/intragroup AML operations) is moved to control effectiveness (`THIRD_PARTY_OVERSIGHT`); `IR-TRX-02` merges into `IR-PRD-02` (cash) and `IR-TRX-03` into `IR-GEO-02` (cross-border); `IR-DEL-03` merges into `IR-DEL-01`/`IR-PRD-03`; `IR-GEO-03` (corridor concentration) is recorded as a contextual, non-scored fact because concentration in lower-risk corridors is not higher inherent exposure. Every remaining scored inherent question satisfies: `YES` = more inherent ML/TF exposure before controls.",
+                "approval_scope": "MIPL_REFERENCE_APPROVAL",
+                "decision_source": "MIPL_REFERENCE_DESIGN",
+                "methodology_code": "AML-CFT-RBA",
+                "recorded_by_name": "Certification - Super Admin",
+                "methodology_version": "1.1",
+                "customer_adoption_recorded": false,
+                "regulator_approval_recorded": false
+            },
+            {
+                "id": "549de62c-d341-4aba-a08a-8ffa55c01232",
+                "title": "Control question set: 53 questions across 20 dimensions (36 CORE, 11 CONDITIONAL, 6 ENHANCED)",
+                "status": "REFERENCE_APPROVED",
+                "rationale": "Reference design approved by the platform methodology owner (MIPL) for the AML-CFT-RBA v1.1 reference catalogue. Reference approval only: it does not constitute approval by any regulator and does not authorise use in a live supervisory decision until the regulator adopts it.",
+                "recorded_at": "2026-09-04T16:11:53.338432+00:00",
+                "recorded_by": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "decision_code": "AML-METH-03",
+                "decision_text": "Adopt with the closure changes: `CT-DQ-02` retired (reconciliation absorbed by `CT-DQ-01` and `CT-TM-02`); `CT-IT-03` narrowed to board reporting so closure validation is assessed once, in `CT-REM-03`; file/alert/report sampling and training-effectiveness testing (`CT-CDD-03`, `CT-ALRT-02`, `CT-STRI-03`, `CT-STRG-03`, `CT-TRN-03`, `CT-REM-03`) classified ENHANCED (examination/thematic); third-party oversight and model governance classified CONDITIONAL on the presence of third parties or automated detection.",
+                "approval_scope": "MIPL_REFERENCE_APPROVAL",
+                "decision_source": "MIPL_REFERENCE_DESIGN",
+                "methodology_code": "AML-CFT-RBA",
+                "recorded_by_name": "Certification - Super Admin",
+                "methodology_version": "1.1",
+                "customer_adoption_recorded": false,
+                "regulator_approval_recorded": false
+            },
+            {
+                "id": "80a733db-836a-4bb9-922f-6e7e3e713044",
+                "title": "Context-sensitive response semantics per axis and effectiveness focus",
+                "status": "REFERENCE_APPROVED",
+                "rationale": "Reference design approved by the platform methodology owner (MIPL) for the AML-CFT-RBA v1.1 reference catalogue. Reference approval only: it does not constitute approval by any regulator and does not authorise use in a live supervisory decision until the regulator adopts it.",
+                "recorded_at": "2026-09-04T16:11:53.338432+00:00",
+                "recorded_by": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "decision_code": "AML-METH-04",
+                "decision_text": "Adopt `INHERENT_SEM`, `CONTROL_SEM_DESIGN`, `CONTROL_SEM_OPERATING`, `CONTROL_SEM_DESIGN_AND_OPERATING` and `CONTEXT_FACT_SEM`. A pure DESIGN question must not require operating evidence merely because a global control definition demanded it.",
+                "approval_scope": "MIPL_REFERENCE_APPROVAL",
+                "decision_source": "MIPL_REFERENCE_DESIGN",
+                "methodology_code": "AML-CFT-RBA",
+                "recorded_by_name": "Certification - Super Admin",
+                "methodology_version": "1.1",
+                "customer_adoption_recorded": false,
+                "regulator_approval_recorded": false
+            },
+            {
+                "id": "029459a7-cba3-4474-9213-b70f69bbcf5e",
+                "title": "Selective design vs operating-effectiveness split (14 DESIGN / 27 OPERATING / 12 DESIGN_AND_OPERATING)",
+                "status": "REFERENCE_APPROVED",
+                "rationale": "Reference design approved by the platform methodology owner (MIPL) for the AML-CFT-RBA v1.1 reference catalogue. Reference approval only: it does not constitute approval by any regulator and does not authorise use in a live supervisory decision until the regulator adopts it.",
+                "recorded_at": "2026-09-04T16:11:53.338432+00:00",
+                "recorded_by": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "decision_code": "AML-METH-05",
+                "decision_text": "Adopt as catalogued; split only where the operating failure mode is distinct.",
+                "approval_scope": "MIPL_REFERENCE_APPROVAL",
+                "decision_source": "MIPL_REFERENCE_DESIGN",
+                "methodology_code": "AML-CFT-RBA",
+                "recorded_by_name": "Certification - Super Admin",
+                "methodology_version": "1.1",
+                "customer_adoption_recorded": false,
+                "regulator_approval_recorded": false
+            },
+            {
+                "id": "22cd8d7a-c84e-4b03-9319-48db66236861",
+                "title": "Evidence basis (replaces the \"observation + one evidence item per question\" mandate)",
+                "status": "REFERENCE_APPROVED",
+                "rationale": "Reference design approved by the platform methodology owner (MIPL) for the AML-CFT-RBA v1.1 reference catalogue. Reference approval only: it does not constitute approval by any regulator and does not authorise use in a live supervisory decision until the regulator adopts it.",
+                "recorded_at": "2026-09-04T16:11:53.338432+00:00",
+                "recorded_by": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "decision_code": "AML-METH-06",
+                "decision_text": "Every **final supervisory response** must carry (A) a rationale/observation appropriate to the judgement and (B) a sufficient **governed evidence basis**. An evidence basis may be an `ENTERPRISE_DOCUMENT`, `SYSTEM_FACT`, `REGULATORY_RETURN`, `STRUCTURED_METRIC`, `SUPERVISORY_SAMPLE`, `WORKPAPER`, `PRIOR_EXAMINATION`, `FINDING`, `REMEDIATION_RECORD`, `RFI_RESPONSE` or `AUTHORISED_EXTERNAL_SOURCE`. One document or governed fact may support several questions; a question need not create a duplicate evidence object. For purely system-factual questions, structured provenance (source, period, timestamp, extraction reference) satisfies the evidence requirement. No assertion-only favourable conclusion. No AML-local document store; references are governed references into existing platform records.",
+                "approval_scope": "MIPL_REFERENCE_APPROVAL",
+                "decision_source": "MIPL_REFERENCE_DESIGN",
+                "methodology_code": "AML-CFT-RBA",
+                "recorded_by_name": "Certification - Super Admin",
+                "methodology_version": "1.1",
+                "customer_adoption_recorded": false,
+                "regulator_approval_recorded": false
+            },
+            {
+                "id": "5d0b2a3d-48aa-49bf-9253-fcae4ef486c5",
+                "title": "N/A discipline: enumerated conditions only, rationale always required; N/A distinguished from NOT_TRIGGERED and NOT_ASKED",
+                "status": "REFERENCE_APPROVED",
+                "rationale": "Reference design approved by the platform methodology owner (MIPL) for the AML-CFT-RBA v1.1 reference catalogue. Reference approval only: it does not constitute approval by any regulator and does not authorise use in a live supervisory decision until the regulator adopts it.",
+                "recorded_at": "2026-09-04T16:11:53.338432+00:00",
+                "recorded_by": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "decision_code": "AML-METH-07",
+                "decision_text": "Adopt. `NOT_APPLICABLE` (activity genuinely not undertaken), `NOT_TRIGGERED` (conditional trigger absent) and `NOT_ASKED` / `OUT_OF_SCOPE` (enhanced question outside this assessment's scope) are three distinct states; none may silently score zero or full, and none is a favourable response.",
+                "approval_scope": "MIPL_REFERENCE_APPROVAL",
+                "decision_source": "MIPL_REFERENCE_DESIGN",
+                "methodology_code": "AML-CFT-RBA",
+                "recorded_by_name": "Certification - Super Admin",
+                "methodology_version": "1.1",
+                "customer_adoption_recorded": false,
+                "regulator_approval_recorded": false
+            },
+            {
+                "id": "6a2bf4e5-c8f4-4ec5-9556-e35db88db72f",
+                "title": "Legacy `STR_SAR_GOVERNANCE`: governed audited relink to `STR_GOVERNANCE` (supersedes the display-only recommendation)",
+                "status": "REFERENCE_APPROVED",
+                "rationale": "Reference design approved by the platform methodology owner (MIPL) for the AML-CFT-RBA v1.1 reference catalogue. Reference approval only: it does not constitute approval by any regulator and does not authorise use in a live supervisory decision until the regulator adopts it.",
+                "recorded_at": "2026-09-04T16:11:53.338432+00:00",
+                "recorded_by": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "decision_code": "AML-METH-08",
+                "decision_text": "If the methodology owner confirms that `STR_SAR_GOVERNANCE` is the semantic predecessor of `STR_GOVERNANCE`, execute a **governed, audited, idempotent relink** of the 22 rows to canonical `STR_GOVERNANCE`, preserving the original dimension code and provenance, assessment status, responses, judged ratings and history. Because the rows hold no responses and no calculated results, no rating is invented. Display/lineage-only mapping is rejected as a final route: it leaves LINK-11 permanently open and is therefore not an acceptable certification path.",
+                "approval_scope": "MIPL_REFERENCE_APPROVAL",
+                "decision_source": "MIPL_REFERENCE_DESIGN",
+                "methodology_code": "AML-CFT-RBA",
+                "recorded_by_name": "Certification - Super Admin",
+                "methodology_version": "1.1",
+                "customer_adoption_recorded": false,
+                "regulator_approval_recorded": false
+            },
+            {
+                "id": "668dc59e-dbc6-4e29-b9d4-1ce55f24f925",
+                "title": "Global AML/CFT core plus sector applicability/overlay capability (supersedes the single-catalogue-with-N/A approach)",
+                "status": "REFERENCE_APPROVED",
+                "rationale": "Reference design approved by the platform methodology owner (MIPL) for the AML-CFT-RBA v1.1 reference catalogue. Reference approval only: it does not constitute approval by any regulator and does not authorise use in a live supervisory decision until the regulator adopts it.",
+                "recorded_at": "2026-09-04T16:11:53.338432+00:00",
+                "recorded_by": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "decision_code": "AML-METH-09",
+                "decision_text": "Adopt a **global core** (44 CORE_ALL, 4 CORE_WITH_SECTOR_GUIDANCE) with **13 SECTOR_CONDITIONAL** questions resolved by trigger and **9 SECTOR_OVERLAY_CANDIDATE** questions (correspondent/remittance corridors, virtual-asset and complex products, agent networks, automated detection and model governance) earmarked for sector overlays. Overlays should later be expressed as sector-scoped applicability and guidance records over the same canonical question catalogue, resolved through the existing entity-context methodology resolver — duplicating no question text, evidence contract, document or storage architecture. Sectors analysed: banks, credit unions, insurance, securities, MSBs, VASPs, DNFBPs, other.",
+                "approval_scope": "MIPL_REFERENCE_APPROVAL",
+                "decision_source": "MIPL_REFERENCE_DESIGN",
+                "methodology_code": "AML-CFT-RBA",
+                "recorded_by_name": "Certification - Super Admin",
+                "methodology_version": "1.1",
+                "customer_adoption_recorded": false,
+                "regulator_approval_recorded": false
+            },
+            {
+                "id": "5bd195a8-06e3-47c5-b6e2-3c9bbfbc0dd7",
+                "title": "v1.0 -> v1.1 transition, by assessment status",
+                "status": "REFERENCE_APPROVED",
+                "rationale": "Reference design approved by the platform methodology owner (MIPL) for the AML-CFT-RBA v1.1 reference catalogue. Reference approval only: it does not constitute approval by any regulator and does not authorise use in a live supervisory decision until the regulator adopts it.",
+                "recorded_at": "2026-09-04T16:11:53.338432+00:00",
+                "recorded_by": "4248640c-3397-4cf6-a274-fa09bad4ba64",
+                "decision_code": "AML-METH-10",
+                "decision_text": "APPROVED / SUPERSEDED v1.0 assessments are never re-versioned and remain reproducible. DRAFT v1.0 assessments may be abandoned or superseded and recreated under v1.1 through a governed, audited process where the supervisor decides that is appropriate. SUBMITTED / REVIEWED v1.0 assessments require an explicit supervisory decision per assessment: finish under v1.0, or return/cancel and restart under v1.1. Never silently re-version. No migration in this wave.",
+                "approval_scope": "MIPL_REFERENCE_APPROVAL",
+                "decision_source": "MIPL_REFERENCE_DESIGN",
+                "methodology_code": "AML-CFT-RBA",
+                "recorded_by_name": "Certification - Super Admin",
+                "methodology_version": "1.1",
+                "customer_adoption_recorded": false,
+                "regulator_approval_recorded": false
+            }
+        ],
+        "total_count": 10,
+        "regulator_approved_count": 0
+    }
+}
