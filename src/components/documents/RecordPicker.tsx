@@ -26,7 +26,7 @@ import {
   RECORD_PICKER_TYPES, type RecordPickerRow, type RecordPickerType,
   searchRecords,
 } from '@/services/recordPicker';
-import { humanizeStatus } from '@/lib/presentation/dmsLabels';
+import { humanize } from '@/lib/presentation/statusLabels';
 
 interface RecordPickerProps {
   /** Restrict the picker to these record types (in this order). */
@@ -148,7 +148,7 @@ export function RecordPicker({
                     <span className="truncate">{r.title || r.entityName || activeType.label}</span>
                     {r.status ? (
                       <Badge variant="outline" className="shrink-0 text-[10px]">
-                        {humanizeStatus(r.status)}
+                        {humanize(r.status)}
                       </Badge>
                     ) : null}
                   </p>
