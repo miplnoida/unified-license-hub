@@ -130,6 +130,8 @@ SELECT
   (SELECT count(*) FROM public.supervisory_methodology_parameter WHERE value_numeric IS NOT NULL OR value_text IS NOT NULL) AS valued_parameters,
   (SELECT count(*) FROM public.supervisory_methodology_event) AS events;
 
+GRANT SELECT ON meth_ctx, meth_actor, meth_baseline TO authenticated;
+
 -- ===========================================================================
 -- METH-READ-01 — anonymous callers are refused every read model
 -- ===========================================================================
