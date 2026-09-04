@@ -2457,7 +2457,7 @@ Placeholders in square brackets (e.g. `[LOCAL_STR_DEADLINE_REF]`) are deployment
 | trigger_condition | Entity uses agents, intermediaries, introducers or outsourced AML-relevant providers. |
 | calculation_participation | SCORED (subject to approved calculation policy; NOT_TRIGGERED / NOT_ASKED are distinct from NOT_APPLICABLE) |
 | evidence_basis_types | ENTERPRISE_DOCUMENT, WORKPAPER, PRIOR_EXAMINATION, RFI_RESPONSE |
-| fact_requirements | None — qualitative design/governance judgement; no quantitative fact is required to answer it |
+| fact_requirements | FACT-THIRDPARTY-COUNT, FACT-THIRDPARTY-DD-COMPLETED-SHARE |
 | standards_reference_strength | DIRECT_REQUIREMENT |
 | standards_reference_review | Mapping accepted as stated |
 | sector_applicability | SECTOR_OVERLAY_CANDIDATE |
@@ -2537,7 +2537,7 @@ Placeholders in square brackets (e.g. `[LOCAL_STR_DEADLINE_REF]`) are deployment
 | trigger_condition | Entity uses agents, intermediaries, introducers or outsourced AML-relevant providers. |
 | calculation_participation | SCORED (subject to approved calculation policy; NOT_TRIGGERED / NOT_ASKED are distinct from NOT_APPLICABLE) |
 | evidence_basis_types | SUPERVISORY_SAMPLE, WORKPAPER, SYSTEM_FACT, STRUCTURED_METRIC, ENTERPRISE_DOCUMENT, FINDING, REMEDIATION_RECORD, RFI_RESPONSE |
-| fact_requirements | None — qualitative design/governance judgement; no quantitative fact is required to answer it |
+| fact_requirements | FACT-THIRDPARTY-REVIEWS-DUE, FACT-THIRDPARTY-REVIEWS-COMPLETED-SHARE, FACT-THIRDPARTY-BREACHES |
 | standards_reference_strength | SUPERVISORY_GUIDANCE_CONTEXT |
 | standards_reference_review | Mapping accepted as stated |
 | sector_applicability | SECTOR_OVERLAY_CANDIDATE |
