@@ -25,14 +25,19 @@ import {
   useSupervisoryWorkQueue,
   type WorkScope,
 } from '@/hooks/useSupervisoryWork';
+import { useListingState } from '@/components/shared/listing';
 import { RED, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 const SCOPE_LABELS: Record<WorkScope, string> = { ...WORK_SCOPE_LABELS, ALL: 'All AML/CFT work' };
 
 export default function AmlWorkQueue() {
   const [scope, setScope] = useState<WorkScope>('MY_WORK');
-  const [q, setQ] = useState('');
-  const [workType, setWorkType] = useState('all');
+  // Default order is the read model's own supervisory order (overdue, then
+  // priority, then due date); an explicit column sort overrides it locally.
+  const listing = useListingState({ filterKeys: ['type'] });
+  const q = listing.search;
+  const setQ = listing.setSearch;
+  const workType = listing.filters.type;
   const { data, isLoading, error, refetch, isFetching } = useSupervisoryWorkQueue({
     scope,
     domain: 'AML_CFT',
@@ -107,7 +112,7 @@ export default function AmlWorkQueue() {
                 </span>
               }
             >
-              <Select value={workType} onValueChange={setWorkType}>
+              <Select value={workType} onValueChange={(v) => listing.setFilter('type', v)}>
                 <SelectTrigger className="h-9 w-56">
                   <SelectValue placeholder="Work type" />
                 </SelectTrigger>
@@ -133,6 +138,15 @@ export default function AmlWorkQueue() {
                 rows={filtered}
                 getRowId={(i) => i.work_key}
                 caption="AML/CFT work queue"
+                sort={listing.sort}
+                onSortChange={listing.setSort}
+                identifierSortable
+                paged
+                page={listing.page}
+                pageSize={listing.pageSize}
+                onPageChange={listing.setPage}
+                onPageSizeChange={listing.setPageSize}
+                showRecordCount
                 identifierHeader="Reference / item"
                 identifier={(i) => ({
                   reference: i.reference || i.work_type_label || titleCase(i.work_type),
@@ -144,6 +158,9 @@ export default function AmlWorkQueue() {
                   {
                     id: 'work_type',
                     header: 'Work type',
+                    sortable: true,
+                    sortAccessor: (i) => i.work_type_label || i.work_type,
+                    dataType: 'text',
                     cell: (i) => (
                       <>
                         <div className="text-sm">{i.work_type_label || titleCase(i.work_type)}</div>
@@ -158,6 +175,9 @@ export default function AmlWorkQueue() {
                   {
                     id: 'state',
                     header: 'State / priority',
+                    sortable: true,
+                    sortAccessor: (i) => i.priority,
+                    dataType: 'risk',
                     cell: (i) => (
                       <>
                         <Badge variant="outline" className={statusTone(i.work_state)}>
@@ -172,6 +192,9 @@ export default function AmlWorkQueue() {
                   {
                     id: 'due',
                     header: 'Due',
+                    sortable: true,
+                    sortAccessor: (i) => i.due_date,
+                    dataType: 'date',
                     cell: (i) => (
                       <>
                         <span
@@ -195,6 +218,9 @@ export default function AmlWorkQueue() {
                     id: 'entity',
                     header: 'Entity / owner',
                     priority: 3,
+                    sortable: true,
+                    sortAccessor: (i) => i.entity_name,
+                    dataType: 'text',
                     cell: (i) => (
                       <>
                         <div className="text-sm">{i.entity_name || '—'}</div>

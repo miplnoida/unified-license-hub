@@ -130,6 +130,84 @@ export function useAmlAssessments() {
   });
 }
 
+/**
+ * Server-paged AML/CFT assessment register.
+ *
+ * Real backend paging: the count, ordering and range are all executed by the
+ * database, so the register never fetches a whole table to slice it locally.
+ * Sort keys are whitelisted here — an unknown key falls back to the canonical
+ * `created_at desc` ordering rather than being interpolated into a query.
+ */
+export const AML_ASSESSMENT_SORT_KEYS: Record<string, string> = {
+  reference: 'reference',
+  type: 'assessment_type',
+  status: 'status',
+  residual: 'residual_rating',
+  period: 'period_end',
+  created_at: 'created_at',
+  approved_at: 'approved_at',
+};
+
+export interface AmlAssessmentPageArgs {
+  page: number;
+  pageSize: number;
+  sortKey?: string | null;
+  sortDirection?: 'asc' | 'desc';
+  search?: string;
+  status?: string | null;
+}
+
+export function useAmlAssessmentsPage(args: AmlAssessmentPageArgs) {
+  const { page, pageSize, sortKey, sortDirection = 'desc', search = '', status = null } = args;
+  const column = AML_ASSESSMENT_SORT_KEYS[sortKey ?? ''] ?? 'created_at';
+  const ascending = AML_ASSESSMENT_SORT_KEYS[sortKey ?? ''] ? sortDirection === 'asc' : false;
+  const term = search.trim();
+  return useQuery({
+    queryKey: ['aml', 'assessments', 'page', page, pageSize, column, ascending, term, status],
+    queryFn: async (): Promise<{ rows: any[]; totalCount: number }> => {
+      const from = Math.max(0, (page - 1) * pageSize);
+      let query = sb
+        .from('supervisory_assessment')
+        .select(
+          'id, reference, entity_id, assessment_type, trigger_type, status, period_start, period_end, ' +
+            'methodology_version, residual_rating, inherent_rating, control_rating, is_current, ' +
+            'owner_id, submitted_at, approved_at, approved_by, confidentiality, created_at',
+          { count: 'exact' },
+        )
+        .eq('domain_code', 'AML_CFT');
+      if (status) query = query.eq('status', status);
+      if (term) query = query.or(`reference.ilike.%${term}%,assessment_type.ilike.%${term}%`);
+      const { data, error, count } = await query
+        .order(column, { ascending, nullsFirst: false })
+        .order('reference', { ascending: true })
+        .range(from, from + pageSize - 1);
+      if (error) throw error;
+      const names = await nameMap((data ?? []).map((r: any) => r.entity_id));
+      return {
+        rows: (data ?? []).map((r: any) => ({ ...r, entity_name: names.get(r.entity_id) ?? null })),
+        totalCount: count ?? 0,
+      };
+    },
+  });
+}
+
+/** Distinct statuses present in the AML/CFT assessment register (server-derived). */
+export function useAmlAssessmentStatuses() {
+  return useQuery({
+    queryKey: ['aml', 'assessment-statuses'],
+    staleTime: 300_000,
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await sb
+        .from('supervisory_assessment')
+        .select('status')
+        .eq('domain_code', 'AML_CFT')
+        .limit(1000);
+      if (error) throw error;
+      return Array.from(new Set((data ?? []).map((r: any) => String(r.status)).filter(Boolean))).sort() as string[];
+    },
+  });
+}
+
 export function useAmlAssessment(assessmentId?: string) {
   return useQuery({
     queryKey: ['aml', 'assessment', assessmentId],

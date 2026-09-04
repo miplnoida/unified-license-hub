@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { SortableHeader, sortRows, type ListingSort } from '@/components/shared/listing';
+import { ariaSortOf } from '@/components/shared/listing/sorting';
 import { useAmlAssessment } from '@/hooks/useAmlSupervision';
 import { AmlAssessmentGovernance } from '@/components/supervision/aml/AmlAssessmentGovernance';
 import { AmlAssessmentCalculation } from '@/components/supervision/aml/AmlAssessmentCalculation';
@@ -26,7 +30,9 @@ const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
 
 export default function AmlAssessmentWorkspace() {
   const { id } = useParams<{ id: string }>();
-  const { data, isLoading, error, refetch } = useAmlAssessment(id);
+  const { data, isLoading, error, refetch, isFetching } = useAmlAssessment(id);
+  // Methodology dimension lists are small and bounded — sortable columns, no pager.
+  const [dimSort, setDimSort] = useState<ListingSort | null>({ key: 'dimension', direction: 'asc' });
 
   if (isLoading) {
     return (
@@ -56,32 +62,71 @@ export default function AmlAssessmentWorkspace() {
   const control = dims.filter((d) => /control/i.test(d.dimension_group ?? ''));
   const other = dims.filter((d) => !inherent.includes(d) && !control.includes(d));
 
-  const dimensionTable = (rows: any[], kind: 'inherent' | 'control' | 'other') => (
-    <div className="overflow-x-auto">
+  const calcOf = (d: any, kind: 'inherent' | 'control' | 'other') =>
+    kind === 'control'
+      ? d.calculated_control_rating
+      : kind === 'inherent'
+        ? d.calculated_inherent_rating
+        : d.calculated_residual_rating;
+  const judgedOf = (d: any, kind: 'inherent' | 'control' | 'other') =>
+    kind === 'control' ? d.control_rating : kind === 'inherent' ? d.inherent_rating : d.residual_rating;
+
+  const dimensionTable = (rows: any[], kind: 'inherent' | 'control' | 'other') => {
+    const specs = [
+      { key: 'dimension', accessor: (d: any) => d.dimension_code, dataType: 'text' as const },
+      { key: 'weight', accessor: (d: any) => d.weight, dataType: 'number' as const },
+      { key: 'calculated', accessor: (d: any) => calcOf(d, kind), dataType: 'risk' as const },
+      { key: 'judged', accessor: (d: any) => judgedOf(d, kind), dataType: 'risk' as const },
+      { key: 'trend', accessor: (d: any) => d.confidence, dataType: 'risk' as const },
+      {
+        key: 'evidence',
+        accessor: (d: any) => (Array.isArray(d.evidence_refs) ? d.evidence_refs.length : d.evidence_refs ? 1 : 0),
+        dataType: 'number' as const,
+      },
+    ];
+    const sorted = sortRows(rows, dimSort, specs, (d: any) => String(d.dimension_code ?? d.id));
+    const head = (label: string, key: string) => (
+      <TableHead aria-sort={ariaSortOf(dimSort, key)}>
+        <SortableHeader
+          label={label}
+          sortKey={key}
+          sort={dimSort}
+          onSort={(k) =>
+            setDimSort(
+              !dimSort || dimSort.key !== k
+                ? { key: k, direction: 'asc' }
+                : dimSort.direction === 'asc'
+                  ? { key: k, direction: 'desc' }
+                  : null,
+            )
+          }
+        />
+      </TableHead>
+    );
+    return (
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Dimension</TableHead>
-            <TableHead>Weight</TableHead>
-            <TableHead>Calculated</TableHead>
-            <TableHead>Judged</TableHead>
+            {head('Dimension', 'dimension')}
+            {head('Weight', 'weight')}
+            {head('Calculated', 'calculated')}
+            {head('Judged', 'judged')}
             <TableHead>Override rationale</TableHead>
-            <TableHead>Trend / confidence</TableHead>
-            <TableHead>Evidence</TableHead>
+            {head('Trend / confidence', 'trend')}
+            {head('Evidence', 'evidence')}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.length === 0 ? (
+          {sorted.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
                 No {kind} dimensions recorded on this assessment.
               </TableCell>
             </TableRow>
           ) : (
-            rows.map((d) => {
-              const calc =
-                kind === 'control' ? d.calculated_control_rating : kind === 'inherent' ? d.calculated_inherent_rating : d.calculated_residual_rating;
-              const judged = kind === 'control' ? d.control_rating : kind === 'inherent' ? d.inherent_rating : d.residual_rating;
+            sorted.map((d) => {
+              const calc = calcOf(d, kind);
+              const judged = judgedOf(d, kind);
               const evidence = Array.isArray(d.evidence_refs) ? d.evidence_refs.length : d.evidence_refs ? 1 : 0;
               return (
                 <TableRow key={d.id}>
@@ -131,38 +176,44 @@ export default function AmlAssessmentWorkspace() {
           )}
         </TableBody>
       </Table>
-    </div>
-  );
+    );
+  };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs">
-              <Link to="/supervision/aml/assessments">
-                <ArrowLeft className="mr-1 h-3 w-3" /> Back to AML/CFT assessments
-              </Link>
-            </Button>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-              {h.entity_name || 'AML/CFT assessment'}
-            </h1>
-            <p className="font-mono text-xs text-muted-foreground">{h.reference}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className={statusTone(h.status)}>
-              {titleCase(h.status)}
-            </Badge>
-            <Badge variant="outline" className={ratingTone(h.residual_rating)}>
-              Residual: {titleCase(h.residual_rating)}
-            </Badge>
-            {h.is_current ? (
-              <Badge variant="outline" className={EMERALD}>
-                Current
+        <PageHeader
+          title={h.entity_name || 'AML/CFT assessment'}
+          backHref="/supervision/aml/assessments"
+          backLabel="Back to AML/CFT assessments"
+          breadcrumbLabel={h.reference || null}
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-xs text-muted-foreground">{h.reference}</span>
+              <Badge variant="outline" className={statusTone(h.status)}>
+                {titleCase(h.status)}
               </Badge>
-            ) : null}
-          </div>
-        </div>
+              <Badge variant="outline" className={ratingTone(h.residual_rating)}>
+                Residual: {titleCase(h.residual_rating)}
+              </Badge>
+              {h.is_current ? (
+                <Badge variant="outline" className={EMERALD}>
+                  Current
+                </Badge>
+              ) : null}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => void refetch()}
+                disabled={isFetching}
+                aria-label="Refresh assessment"
+                title="Refresh assessment"
+              >
+                <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          }
+        />
 
         <Card>
           <CardHeader className="pb-3">

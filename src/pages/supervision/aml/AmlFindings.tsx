@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -9,17 +9,41 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, ArrowUpRight, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { useAmlFindings } from '@/hooks/useAmlSupervision';
+import { PaginationBar, sortRows, useListingState } from '@/components/shared/listing';
 import { AMBER, EMERALD, RED, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
+
+/** Sort choices for the findings loop view — canonical values only. */
+const SORT_OPTIONS = [
+  { key: 'severity', label: 'Severity' },
+  { key: 'status', label: 'Status' },
+  { key: 'due_date', label: 'Due date' },
+  { key: 'entity', label: 'Entity' },
+  { key: 'reference', label: 'Reference' },
+] as const;
+
+const SORT_SPECS = [
+  { key: 'severity', accessor: (f: any) => f.severity, dataType: 'risk' as const },
+  { key: 'status', accessor: (f: any) => f.status, dataType: 'stage' as const },
+  { key: 'due_date', accessor: (f: any) => f.due_date, dataType: 'date' as const },
+  { key: 'entity', accessor: (f: any) => f.entity_name, dataType: 'text' as const },
+  { key: 'reference', accessor: (f: any) => f.reference, dataType: 'text' as const },
+];
 
 export default function AmlFindings() {
   const { data, isLoading, error, refetch, isFetching } = useAmlFindings();
   const [params] = useSearchParams();
   const focus = params.get('focus');
-  const [q, setQ] = useState('');
-  const [severity, setSeverity] = useState('all');
-  const [view, setView] = useState('all');
+  const listing = useListingState({
+    defaultSort: { key: 'severity', direction: 'desc' },
+    filterKeys: ['severity', 'view'],
+  });
+  const q = listing.search;
+  const setQ = listing.setSearch;
+  const severity = listing.filters.severity;
+  const view = listing.filters.view;
+  const sort = listing.sort ?? { key: 'severity', direction: 'desc' as const };
 
   const rows = (data ?? []) as any[];
   const severities = useMemo(() => Array.from(new Set(rows.map((r) => r.severity).filter(Boolean))), [rows]);
@@ -45,6 +69,15 @@ export default function AmlFindings() {
         return true;
       }),
     [rows, severity, view, q, today],
+  );
+
+  const sorted = useMemo(
+    () => sortRows(filtered, sort, SORT_SPECS, (f: any) => `${f.reference ?? ''}|${f.id}`),
+    [filtered, sort],
+  );
+  const visible = useMemo(
+    () => sorted.slice((listing.page - 1) * listing.pageSize, listing.page * listing.pageSize),
+    [sorted, listing.page, listing.pageSize],
   );
 
   return (
@@ -82,11 +115,11 @@ export default function AmlFindings() {
               searchPlaceholder="Search entity, reference or title…"
               trailing={
                 <span className="text-sm text-muted-foreground">
-                  {isLoading ? 'Loading…' : `${filtered.length} finding${filtered.length === 1 ? '' : 's'}`}
+                  {isLoading ? 'Loading…' : `${sorted.length} finding${sorted.length === 1 ? '' : 's'}`}
                 </span>
               }
             >
-              <Select value={severity} onValueChange={setSeverity}>
+              <Select value={severity} onValueChange={(v) => listing.setFilter('severity', v)}>
                 <SelectTrigger className="h-9 w-40">
                   <SelectValue placeholder="Severity" />
                 </SelectTrigger>
@@ -99,7 +132,7 @@ export default function AmlFindings() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={view} onValueChange={setView}>
+              <Select value={view} onValueChange={(v) => listing.setFilter('view', v)}>
                 <SelectTrigger className="h-9 w-56">
                   <SelectValue placeholder="Loop stage" />
                 </SelectTrigger>
@@ -111,17 +144,44 @@ export default function AmlFindings() {
                   <SelectItem value="escalated">Escalated to attention</SelectItem>
                 </SelectContent>
               </Select>
+              <Select
+                value={sort.key}
+                onValueChange={(key) => listing.setSort({ key, direction: sort.direction })}
+              >
+                <SelectTrigger className="h-9 w-44" aria-label="Sort by">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_OPTIONS.map((o) => (
+                    <SelectItem key={o.key} value={o.key}>
+                      Sort: {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9"
+                aria-label={sort.direction === 'asc' ? 'Sort descending' : 'Sort ascending'}
+                title={sort.direction === 'asc' ? 'Ascending — switch to descending' : 'Descending — switch to ascending'}
+                onClick={() =>
+                  listing.setSort({ key: sort.key, direction: sort.direction === 'asc' ? 'desc' : 'asc' })
+                }
+              >
+                {sort.direction === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+              </Button>
             </RegisterToolbar>
 
             {isLoading ? (
               <Skeleton className="h-64 w-full" />
-            ) : filtered.length === 0 ? (
+            ) : sorted.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 No AML/CFT findings match the current filters.
               </p>
             ) : (
               <div className="space-y-3">
-                {filtered.map((f) => {
+                {visible.map((f) => {
                   const responseOverdue = f.response_target_date && f.response_target_date < today && !f.response_at;
                   return (
                     <div
@@ -224,6 +284,14 @@ export default function AmlFindings() {
                     </div>
                   );
                 })}
+                <PaginationBar
+                  totalCount={sorted.length}
+                  page={listing.page}
+                  pageSize={listing.pageSize}
+                  onPageChange={listing.setPage}
+                  onPageSizeChange={listing.setPageSize}
+                  alwaysShowCount
+                />
               </div>
             )}
           </CardContent>
