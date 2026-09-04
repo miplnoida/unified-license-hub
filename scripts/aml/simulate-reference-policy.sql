@@ -129,7 +129,14 @@ BEGIN
     ('BANDS_MINUS_5',    public.supervisory_calc_simulate('AML_CFT', _base || jsonb_build_object('bands',_bands_dn))),
     ('WORST_RESPONSE',   public.supervisory_calc_simulate('AML_CFT', _base || jsonb_build_object('aggregation_method','WORST_RESPONSE'))),
     ('EQUAL_DIM_WEIGHTS',public.supervisory_calc_simulate('AML_CFT', _base || jsonb_build_object('dimension_weight_mode','EQUAL'))),
-    ('MIN_ANSWERED_1',   public.supervisory_calc_simulate('AML_CFT', _base || jsonb_build_object('completeness_mode','MIN_ANSWERED','min_answered_questions',1)));
+    ('MIN_ANSWERED_1',   public.supervisory_calc_simulate('AML_CFT', _base || jsonb_build_object('completeness_mode','MIN_ANSWERED','min_answered_questions',1))),
+    -- Isolating the recorded-evidence gap from the policy choice: FLAG_ONLY and
+    -- CAP_AT_MIDPOINT let a dimension score despite insufficient evidence, so the
+    -- remaining variants show what the candidate parameters would actually produce.
+    ('EVIDENCE_FLAG_ONLY',   public.supervisory_calc_simulate('AML_CFT', _base || jsonb_build_object('evidence_insufficiency_handling','FLAG_ONLY','completeness_mode','MIN_ANSWERED','min_answered_questions',1))),
+    ('EVIDENCE_CAP_MIDPOINT',public.supervisory_calc_simulate('AML_CFT', _base || jsonb_build_object('evidence_insufficiency_handling','CAP_AT_MIDPOINT','completeness_mode','MIN_ANSWERED','min_answered_questions',1))),
+    ('INHERENT_INVERTED',    public.supervisory_calc_simulate('AML_CFT', _base || jsonb_build_object('evidence_insufficiency_handling','FLAG_ONLY','completeness_mode','MIN_ANSWERED','min_answered_questions',1,'inherent_direction','INVERTED'))),
+    ('HIGHEST_DIMENSION',    public.supervisory_calc_simulate('AML_CFT', _base || jsonb_build_object('evidence_insufficiency_handling','FLAG_ONLY','completeness_mode','MIN_ANSWERED','min_answered_questions',1,'recommendation_policy','HIGHEST_DIMENSION')));
 
   RESET ROLE;
   PERFORM set_config('request.jwt.claims','{}', true);
