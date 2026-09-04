@@ -150,8 +150,7 @@ BEGIN
     'a recorded reference decision cannot be re-pointed at a different methodology version',
     _ok, _err);
 END $$;
-ROLLBACK AND CHAIN;
-
+-- The re-point probe above is rejected by the target trigger, so nothing to undo.
 -- ---------------------------------------------------------------------------
 -- CONTRACT-07  response semantics are owned by the VERSION, and every v1.1
 --              question binds to a v1.1-owned profile
@@ -198,8 +197,6 @@ BEGIN
     'a question of one version cannot adopt the response semantics of another version',
     _ok, _err);
 END $$;
-ROLLBACK AND CHAIN;
-
 -- ---------------------------------------------------------------------------
 -- CONTRACT-09  semantic profiles freeze with the version that owns them
 --              (executed against a synthetic frozen fixture)
@@ -213,13 +210,13 @@ BEGIN
   RETURNING id INTO _fix;
 
   INSERT INTO public.supervisory_methodology_semantic_profile(
-    domain_code, methodology_id, semantic_code, name, definition, active)
+    domain_code, methodology_id, semantic_code, label, response_meaning, active)
   VALUES ('AML_CFT', _fix, 'ZZ_PROBE_SEM', 'Probe semantics',
           jsonb_build_object('probe', true), true);
 
   BEGIN
     UPDATE public.supervisory_methodology_semantic_profile
-       SET definition = jsonb_build_object('probe','rewritten')
+       SET response_meaning = jsonb_build_object('probe','rewritten')
      WHERE methodology_id = _fix;
     _err := 'no error raised — a frozen version''s response semantics were rewritten';
   EXCEPTION WHEN others THEN _ok := true; _err := SQLERRM;
@@ -227,9 +224,11 @@ BEGIN
   PERFORM pg_temp.gate('CONTRACT-09',
     'the response semantics of a version outside DRAFT/REVIEW are immutable',
     _ok, _err);
-END $$;
-ROLLBACK AND CHAIN;
 
+  DELETE FROM public.supervisory_methodology_semantic_profile WHERE methodology_id = _fix;
+  DELETE FROM public.supervisory_methodology_event WHERE methodology_id = _fix;
+  DELETE FROM public.supervisory_methodology WHERE id = _fix;
+END $$;
 -- ---------------------------------------------------------------------------
 -- CONTRACT-10  axis and effectiveness focus are distinct and coherent
 -- CONTRACT-11  an incoherent axis/focus pair is refused (executed)
@@ -269,8 +268,6 @@ BEGIN
     'an inherent-exposure question cannot carry a control-effectiveness focus',
     _ok, _err);
 END $$;
-ROLLBACK AND CHAIN;
-
 -- ---------------------------------------------------------------------------
 -- CONTRACT-12  a reference template can never become regulator policy in place
 -- ---------------------------------------------------------------------------
@@ -304,9 +301,14 @@ BEGIN
   PERFORM pg_temp.gate('CONTRACT-13',
     'a reference template is structurally barred from the operational statuses',
     _ok2, _err);
-END $$;
-ROLLBACK AND CHAIN;
 
+  -- Undo the probe transition so later gates read the real draft state.
+  DELETE FROM public.supervisory_methodology_event
+   WHERE methodology_id = _v11 AND rationale LIKE 'Contract probe:%';
+  UPDATE public.supervisory_methodology
+     SET status = 'DRAFT', reviewed_by = NULL, reviewed_at = NULL
+   WHERE id = _v11;
+END $$;
 -- ---------------------------------------------------------------------------
 -- CONTRACT-14  activation requires a recorded regulator approval, and the
 --              author of a version cannot approve it (executed on fixtures)
@@ -347,9 +349,12 @@ BEGIN
   PERFORM pg_temp.gate('CONTRACT-15',
     'the author of a methodology version can never record its regulator approval (maker/checker)',
     _okMaker, _errA);
-END $$;
-ROLLBACK AND CHAIN;
 
+  DELETE FROM public.supervisory_methodology_regulator_approval
+   WHERE methodology_id IN (_fix, _fix2);
+  DELETE FROM public.supervisory_methodology_event WHERE methodology_id IN (_fix, _fix2);
+  DELETE FROM public.supervisory_methodology WHERE id IN (_fix, _fix2);
+END $$;
 -- ---------------------------------------------------------------------------
 -- CONTRACT-16  no policy value was invented: parameters and facts stay pending
 -- CONTRACT-17  no assessment or historical record is bound to the draft
@@ -367,7 +372,7 @@ BEGIN
     FROM public.supervisory_methodology_parameter WHERE methodology_id = _v11;
   SELECT count(*) INTO _valued FROM public.supervisory_methodology_parameter
    WHERE methodology_id = _v11
-     AND (numeric_value IS NOT NULL OR text_value IS NOT NULL OR jsonb_value IS NOT NULL);
+     AND (value_numeric IS NOT NULL OR value_text IS NOT NULL);
 
   SELECT count(*), count(*) FILTER (WHERE definition_status = 'ATTRIBUTES_PENDING')
     INTO _facts, _pending
