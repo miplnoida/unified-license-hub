@@ -54,13 +54,13 @@ export async function logReturnActivity(args: LogReturnActivityArgs): Promise<vo
       previous_step_id: args.previous_step_id ?? null,
       new_step_id: args.new_step_id ?? null,
       comments: args.comments ?? null,
-      performed_by: args.performed_by ?? null,
       actor_role: args.actor_role ?? null,
       metadata: args.metadata ?? {},
       event_key: args.event_key ?? null,
       source: args.source ?? 'client',
     };
-    const { error } = await (supabase as any).from('return_audit_log').insert(payload);
+    // Governed append: the server records the signed-in officer as the author.
+    const { error } = await (supabase as any).rpc('return_activity_log_append', { _entry: payload });
     if (error && import.meta.env.DEV) {
       // eslint-disable-next-line no-console
       console.warn('[returnActivityLogger]', args.action, error.message);
