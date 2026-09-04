@@ -61533,6 +61533,26 @@ export type Database = {
           source: string
         }[]
       }
+      record_picker_search: {
+        Args: {
+          _entity_id?: string
+          _page?: number
+          _page_size?: number
+          _record_type: string
+          _search?: string
+        }
+        Returns: {
+          entity_name: string
+          record_date: string
+          record_id: string
+          record_status: string
+          record_type: string
+          reference: string
+          secondary: string
+          title: string
+          total_count: number
+        }[]
+      }
       record_return_breach: {
         Args: {
           _comparator: string

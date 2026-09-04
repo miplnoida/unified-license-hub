@@ -49,6 +49,8 @@ what exists today, what is authoritative, and what must converge.
   `document_extractions`; 34 governed `dms_*` RPCs; frontend contract `src/services/dms.ts`.
 - Missing: controlled-document lifecycle, controlled revisions, review/approval policy per
   document type, effective-dating, acknowledgement. See `docs/dms/03_document-control-master-architecture.md`.
+- Access/linking/search contract (DocumentPicker, RecordPicker, action semantics, context
+  propagation, filing exceptions, scale): `docs/dms/04_document-access-linking-search-contract.md`.
 - Converge: legacy `documents` (3 rows), module-local evidence stores.
 
 ## K5 — Communication Kernel — STRONG_BUT_NEEDS_CONVERGENCE
