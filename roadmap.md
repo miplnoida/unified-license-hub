@@ -16,7 +16,9 @@
   - [x] W4-A6 AML/CFT closed-loop certification (25/25 gates) — CERTIFIED (docs/enterprise/suptech-convergence/EPIC-4-aml-operational-ux-closure.md)
   - [x] AML/CFT persistent demonstration/QA dataset — 24 governed cases, 18/18 verification gates, 6/6 browser specs (docs/enterprise/suptech-convergence/AML-demonstration-dataset.md)
   - [x] AML/CFT calculation configuration architecture + pre-policy closure (docs/enterprise/suptech-convergence/AML-calculation-configuration-implementation.md, AML-calculation-pre-policy-closure.md)
-  - [x] AML/CFT calculation policy decision pack rebased on the final calculation contract — READY FOR SUPERVISORY APPROVAL (docs/enterprise/suptech-convergence/AML-methodology-calculation-decision.md)
+  - [x] AML/CFT calculation policy decision pack — correctness closure (AMLH-09 governed-outcome semantics, CALC-07 half-open boundary, non-calculable provenance, documented engine formula, OUTC-01..10 fixtures) — pack verdict **NOT READY** (docs/enterprise/suptech-convergence/AML-methodology-calculation-decision.md)
+  - [ ] AML/CFT inherent question polarity is mixed (decision I blocked) — re-word `BUSINESS_MODEL_RISK/Q1` via a new methodology version, or add per-question polarity
+  - [ ] AML/CFT approved assessment dimensions carry no `methodology_dimension_id` (0/80) — governed linkage repair required before any backfill
   - [ ] AML/CFT calculation policy **awaiting supervisory decisions A–O**, maker/checker approval, activation and the 80-dimension recalculation; AMLH-09 + CALC-05/06/09/11 stay open until then — AML FULL MODULE NOT CERTIFIED
 - [x] W5 Global dashboard, executive view, portfolio/sector supervision, read-model re-sourcing — CERTIFIED (18/18 gates, `scripts/verify-w5-enterprise-portfolio.sql`; verdict: [docs/supervision/epic-4-w5-a3b-final-verdict.md](docs/supervision/epic-4-w5-a3b-final-verdict.md); convergence record: [docs/enterprise/suptech-convergence/W5-enterprise-dashboard-portfolio-convergence.md](docs/enterprise/suptech-convergence/W5-enterprise-dashboard-portfolio-convergence.md))
 - [x] W6 Legacy retirement census + route convergence + enterprise next action + team capacity — CERTIFIED
