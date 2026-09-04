@@ -93,7 +93,7 @@ not require a UI rewrite.
 | --- | --- | --- |
 | Business search picker for records (no technical ids) | Delivered | `record_picker_search` RPC + `src/components/documents/RecordPicker.tsx`; used by the document detail link dialog and the conduct intervention link dialog |
 | Choose Existing document from the central register, in context | Delivered | `src/components/supervision/RecordDocumentLinks.tsx` (business search over the register, governed `dms_link_record`) |
-| Upload New + link as one governed operation | **Not delivered — W2 dependency** | There is no governed operation that registers an uploaded file as a document group with its first version. `secureUpload` writes `file_uploads` only; the only registration routine today is the certificate-specific `dms_register_certificate`. This is the first item of W2. |
+| Upload New + link as one governed operation | Delivered (W1A.2) | Canonical ingest `dms_ingest_begin` → controlled storage write → `dms_ingest_finalize`, consumed through `src/services/dmsIngest.ts` (`uploadNewDocument` / `uploadNewVersion`). One officer action registers the file, the document with its own `DOC-…` reference and first version, applies taxonomy defaults/retention and files the canonical relationships. Verified by `scripts/verify-w1a2-dms-ingest.sql` (ING-01..ING-19). |
 | Relationship-only semantics for Choose Existing / Link | Delivered | `dms_link_record` creates a `document_relationships` row only; no group or version is created, so no duplicate is produced |
 | Proof contexts | Supervision (examination workpapers, data requests) and Licensing Application (documents tab) | `WorkpapersPanel`, `DataRequestsPanel`, `ApplicationDocumentsPanel` |
 
