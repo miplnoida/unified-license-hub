@@ -105,14 +105,16 @@ BEGIN
   END IF;
 
   ---------------------------------------------------------------- REF-08 ----
+  -- Semantics are resolved through the version's OWN immutable profile set.
   SELECT count(*) INTO v_n FROM public.supervisory_methodology_question q
    WHERE q.methodology_id = v_v11 AND q.active
      AND NOT EXISTS (SELECT 1 FROM public.supervisory_methodology_semantic_profile p
-                      WHERE p.domain_code = 'AML_CFT'
+                      WHERE p.id = q.response_semantics_profile_id
+                        AND p.methodology_id = v_v11
                         AND p.semantic_code = q.response_semantics_code
                         AND p.active);
   IF v_n = 0 THEN
-    v_pass := v_pass + 1; RAISE NOTICE 'REF-08 PASS every question resolves to a published response-semantics profile';
+    v_pass := v_pass + 1; RAISE NOTICE 'REF-08 PASS every question resolves to a version-owned response-semantics profile';
   ELSE
     v_fail := v_fail + 1; RAISE WARNING 'REF-08 FAIL % questions have no published semantics profile', v_n;
   END IF;
