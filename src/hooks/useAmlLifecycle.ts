@@ -46,12 +46,6 @@ async function rpc<T = any>(fn: string, args: Record<string, unknown>): Promise<
 export interface CreateAmlAssessmentInput {
   entityId: string;
   assessmentType: string;
-  /**
-   * Display only. The browser never selects the methodology version: the
-   * database resolves it inside `supervisory_assessment_create`. This value is
-   * used solely to block a pointless round trip when nothing applies.
-   */
-  methodologyId: string;
   periodStart?: string | null;
   periodEnd?: string | null;
   triggerType?: string;
@@ -63,14 +57,9 @@ export function useCreateAmlAssessment() {
   const invalidate = useInvalidateAml();
   return useMutation({
     mutationFn: async (input: CreateAmlAssessmentInput) => {
-      if (!input.methodologyId) {
-        throw new Error(
-          'No AML/CFT methodology is applicable to this entity on this date. A methodology owner must publish an ' +
-            'applicable active version before an assessment can be created.',
-        );
-      }
-      // _methodology_id is deliberately not sent: the server resolves and binds
-      // the applicable version and rejects any caller-supplied alternative.
+      // No methodology selector: the creation input carries business inputs only.
+      // The server resolves and binds the applicable version from the entity's
+      // supervisory context and refuses any caller-supplied alternative.
       return rpc('supervisory_assessment_create', {
         _entity_id: input.entityId,
         _domain_code: 'AML_CFT',
@@ -85,6 +74,7 @@ export function useCreateAmlAssessment() {
     onSuccess: invalidate,
   });
 }
+
 
 
 export interface SaveAmlDimensionInput {
