@@ -52,6 +52,8 @@ const BulkIntake = lazy(() => import('@/pages/admin/BulkIntake'));
 const FpScreeningConfigs = lazy(() => import('@/pages/admin/FpScreeningConfigs'));
 const SupervisoryCalculationConfig = lazy(() => import('@/pages/admin/SupervisoryCalculationConfig'));
 const SupervisoryCalculationApprovals = lazy(() => import('@/pages/admin/SupervisoryCalculationApprovals'));
+const SupervisoryMethodologyRegisterPage = lazy(() => import('@/pages/admin/SupervisoryMethodologyRegister'));
+const SupervisoryMethodologyDetailPage = lazy(() => import('@/pages/admin/SupervisoryMethodologyDetail'));
 const FpCommittees = lazy(() => import('@/pages/admin/FpCommittees'));
 const RuleOverrides = lazy(() => import('@/pages/admin/RuleOverrides'));
 const RuleLibrary = lazy(() => import('@/pages/admin/RuleLibrary'));
@@ -200,6 +202,8 @@ export const adminRoutes = (
     <Route path="/admin/applications/bulk-intake" element={<M module="application_management"><BulkIntake /></M>} />
     {/* Supervisory calculation configuration is a methodology-governance surface:
         gated on the exact config authority, not on module view. */}
+    <Route path="/admin/supervisory-methodology" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryMethodologyRegisterPage /></PermissionRoute></P>} />
+    <Route path="/admin/supervisory-methodology/:methodologyId" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryMethodologyDetailPage /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-calculation" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryCalculationConfig /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-calculation/approvals" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryCalculationApprovals /></PermissionRoute></P>} />
     <Route path="/admin/fp-screening-configs" element={<M module="fit_and_proper_screening"><FpScreeningConfigs /></M>} />
