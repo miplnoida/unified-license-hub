@@ -120,6 +120,7 @@ python3 scripts/aml/build-aml-v11-reference-draft.py      # regenerate
 psql -f scripts/aml/aml-v11-reference-draft.generated.sql # idempotent re-apply
 psql -f scripts/verify-aml-v11-reference-draft.sql        # REF-01..REF-18
 psql -f scripts/verify-supervisory-platform-contract.sql  # CONTRACT-01..CONTRACT-17
+psql -f scripts/verify-supervisory-regulator-methodology-authority.sql # REG-AUTH-01..16
 ```
 
 ## 8. Regression (this wave)
@@ -127,6 +128,7 @@ psql -f scripts/verify-supervisory-platform-contract.sql  # CONTRACT-01..CONTRAC
 | Suite | Result |
 | --- | --- |
 | `scripts/verify-supervisory-platform-contract.sql` | 17 PASS, 0 FAIL |
+| `scripts/verify-supervisory-regulator-methodology-authority.sql` | 16 PASS, 0 FAIL |
 | `scripts/verify-aml-v11-reference-draft.sql` | 18 PASS, 0 FAIL |
 | `scripts/verify-supervisory-authority-boundary.sql` | 17 PASS, 0 FAIL |
 | `scripts/verify-aml-v11-catalogue-design.py` | 61/61 PASS |
@@ -142,7 +144,8 @@ psql -f scripts/verify-supervisory-platform-contract.sql  # CONTRACT-01..CONTRAC
 - No materiality value, no calculation configuration (CALC-05/06/09/11).
 - AML-METH-08 (`STR_SAR_GOVERNANCE` → `STR_GOVERNANCE`) still not executed (LINK-11).
 - No fact ingestion, no auto-prefill, no assessment-time trigger evaluation.
-- No `market_conduct.manage_config` permission.
+- No `market_conduct.manage_config` and no market-conduct methodology approval permission.
+- Revocation does not deactivate an already `ACTIVE` methodology — a policy decision, not an engineering default.
 - No UI for the new registers, adoption or regulator-approval surfaces.
 
 **Verdict: AML/CFT remains NOT CERTIFIED.**
