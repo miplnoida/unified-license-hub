@@ -787,53 +787,38 @@ export default function InterventionDetail() {
 
         {/* Canonical link */}
         <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
-          <DialogContent>
+          <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>Link the {cat?.canonical_module} record</DialogTitle>
               <DialogDescription>
-                The supervisory work is carried out and evidenced in the {cat?.canonical_module} module. Linking it
-                here keeps the planning trail complete without duplicating the record.
+                The supervisory work is carried out and evidenced in the {cat?.canonical_module} module. Choose the
+                record here to keep the planning trail complete without duplicating it.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label>Record identifier</Label>
-                <Input
-                  value={linkRecordId}
-                  onChange={(e) => setLinkRecordId(e.target.value)}
-                  placeholder="The identifier of the record in that module"
-                />
-              </div>
-              <div>
-                <Label>Reference shown to supervisors (optional)</Label>
-                <Input value={linkReference} onChange={(e) => setLinkReference(e.target.value)} />
-              </div>
-            </div>
+            <RecordPicker
+              defaultType={CANONICAL_MODULE_RECORD_TYPE[cat?.canonical_module ?? '']}
+              busy={linkCanonical.isPending}
+              onSelect={(row) => {
+                linkCanonical.mutate(
+                  {
+                    module: cat?.canonical_module ?? 'other',
+                    recordId: row.recordId,
+                    reference: row.reference || row.title || null,
+                    route: cat?.canonical_route ? `${cat.canonical_route}/${row.recordId}` : null,
+                  },
+                  {
+                    onSuccess: () => { setLinkOpen(false); toast.success('The record has been linked.'); },
+                    onError: fail,
+                  },
+                );
+              }}
+            />
             <DialogFooter>
-              <Button variant="outline" onClick={() => setLinkOpen(false)}>Cancel</Button>
-              <Button data-rbac="market_conduct.manage_complaints"
-                disabled={linkRecordId.trim().length < 10 || linkCanonical.isPending}
-                onClick={() => {
-                  linkCanonical.mutate(
-                    {
-                      module: cat?.canonical_module ?? 'other',
-                      recordId: linkRecordId.trim(),
-                      reference: linkReference.trim() || null,
-                      route: cat?.canonical_route ? `${cat.canonical_route}/${linkRecordId.trim()}` : null,
-                    },
-                    {
-                      onSuccess: () => { setLinkOpen(false); toast.success('The record has been linked.'); },
-                      onError: fail,
-                    },
-                  );
-                }}
-              >
-                {linkCanonical.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-                Link the record
-              </Button>
+              <Button variant="outline" onClick={() => setLinkOpen(false)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
 
         {/* Reassess */}
         <Dialog open={raOpen} onOpenChange={setRaOpen}>
