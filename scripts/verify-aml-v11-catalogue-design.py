@@ -37,6 +37,42 @@ SECTOR_APPLICABILITY = {
 # Materiality figures may only appear as configuration placeholders in question prose.
 THRESHOLD_RE = re.compile(r"\d+\s?%|\d+\s?percent", re.I)
 
+RETIRED_CODES = {"IR-BUS-03", "IR-DEL-03", "IR-TRX-02", "IR-TRX-03", "CT-DQ-02"}
+
+# Maintained semantic-review allowlist. Each scored inherent question has been read
+# in full (prompt, intent, guidance, polarity review) and confirmed to mean
+# "YES = more inherent ML/TF exposure, before controls".
+SCORED_INHERENT_POLARITY = {
+    "IR-CUS-01": "share of higher-risk customer classes",
+    "IR-CUS-02": "opacity of customer ownership structures",
+    "IR-CUS-03": "non-resident / cross-border customer share",
+    "IR-CUS-04": "PEP exposure as a customer characteristic",
+    "IR-GEO-01": "exposure to higher-risk or monitored jurisdictions",
+    "IR-GEO-02": "cross-border flow concentration",
+    "IR-PRD-01": "product/service inherent vulnerability",
+    "IR-PRD-02": "cash intensity of products and activity",
+    "IR-PRD-03": "value-transfer / payment product exposure",
+    "IR-PRD-04": "anonymity-enabling product features",
+    "IR-TRX-01": "transaction volume and value exposure",
+    "IR-TRX-04": "unusual-pattern exposure observed in activity data",
+    "IR-DEL-01": "non-face-to-face delivery exposure",
+    "IR-DEL-02": "third-party distribution distance",
+    "IR-BUS-01": "structural complexity of the business/group",
+    "IR-BUS-02": "change in the exposure surface from material growth or change",
+}
+
+# Language that would make inherent exposure depend on mitigation quality.
+CONTROL_LEAK_RE = re.compile(
+    r"\b(control(s)?\s+(fail|failed|weak|inadequa|calibrat|kept pace|outpac)"
+    r"|kept pace|outpaced|unmitigated|mitigation\s+(quality|adequacy)"
+    r"|because controls|control environment)\b", re.I)
+# Explicit deferral of control assessment to the control dimensions is permitted.
+CONTROL_DEFERRAL_RE = re.compile(
+    r"(assessed (elsewhere|in the|under|in relevant)|is a CONTROL|recorded under"
+    r"|CONTROL dimension|control effectiveness is assessed|before (any )?control"
+    r"|independent of|not considered here|distinct from)", re.I)
+
+
 
 def parse() -> list[dict]:
     text = CAT.read_text()
