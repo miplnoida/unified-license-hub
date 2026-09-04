@@ -123,8 +123,7 @@ export default function InterventionDetail() {
   const [fuComplete, setFuComplete] = useState(false);
 
   const [linkOpen, setLinkOpen] = useState(false);
-  const [linkRecordId, setLinkRecordId] = useState('');
-  const [linkReference, setLinkReference] = useState('');
+
 
   const [raOpen, setRaOpen] = useState(false);
   const [concernState, setConcernState] = useState('unchanged');
