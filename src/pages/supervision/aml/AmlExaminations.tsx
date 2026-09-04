@@ -125,129 +125,132 @@ export default function AmlExaminations() {
                 No AML/CFT examinations match the current filters.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Reference</TableHead>
-                      <TableHead>Entity</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Provenance</TableHead>
-                      <TableHead>Risk focus</TableHead>
-                      <TableHead>Lead examiner</TableHead>
-                      <TableHead>Stage</TableHead>
-                      <TableHead>Planned dates</TableHead>
-                      <TableHead className="text-right">RFIs</TableHead>
-                      <TableHead className="text-right">Workpapers</TableHead>
-                      <TableHead className="text-right">Findings</TableHead>
-                      <TableHead>Next action</TableHead>
-                      <TableHead className="w-24" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((r) => (
-                      <TableRow
-                        key={r.id}
-                        className={`cursor-pointer ${focus === r.id ? 'bg-muted/60' : ''}`}
-                        onClick={() => open(r.id)}
-                      >
-                        <TableCell className="font-mono text-xs">
-                          {r.reference || '—'}
-                          <div className="max-w-[14rem] truncate font-sans text-xs text-muted-foreground">
-                            {r.title}
-                          </div>
-                        </TableCell>
-                        <TableCell className="max-w-[13rem] truncate text-sm">{r.entity_name || '—'}</TableCell>
-                        <TableCell className="text-xs">
-                          <div>{titleCase(r.engagement_type)}</div>
-                          <div className="text-muted-foreground">{titleCase(r.examination_type)}</div>
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {r.driving_assessment_reference ? (
-                            <div className="font-mono">{r.driving_assessment_reference}</div>
-                          ) : (
-                            <div className="text-muted-foreground">No driving assessment</div>
-                          )}
-                          <div className="text-muted-foreground">
-                            {r.plan_reference ? `Plan ${r.plan_reference}` : 'No plan'}
-                            {r.intervention_reference ? ` · ${r.intervention_reference}` : ''}
-                          </div>
-                          {r.intervention_type ? (
-                            <div className="text-muted-foreground">{titleCase(r.intervention_type)}</div>
-                          ) : null}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          <Badge variant="outline" className={ratingTone(r.risk_rating)}>
-                            {titleCase(r.risk_rating)}
+              <SupervisoryRegister
+                rows={filtered}
+                getRowId={(r) => r.id}
+                caption="AML/CFT examinations"
+                onRowClick={(r) => open(r.id)}
+                isRowFocused={(r) => focus === r.id}
+                identifier={(r) => ({
+                  reference: r.reference || '—',
+                  copyValue: r.id,
+                  copyLabel: 'Copy examination id',
+                  subject: (
+                    <>
+                      <span className="block truncate">{r.entity_name || '—'}</span>
+                      <span className="block truncate text-xs font-normal text-muted-foreground">
+                        {r.title}
+                      </span>
+                    </>
+                  ),
+                })}
+                columns={[
+                  {
+                    id: 'type_risk',
+                    header: 'Type / risk',
+                    cell: (r) => (
+                      <>
+                        <div>{titleCase(r.engagement_type)}</div>
+                        <div className="text-muted-foreground">{titleCase(r.examination_type)}</div>
+                        <Badge variant="outline" className={`mt-1 ${ratingTone(r.risk_rating)}`}>
+                          {titleCase(r.risk_rating)}
+                        </Badge>
+                        <div className="mt-1 max-w-[12rem] text-muted-foreground">
+                          {(r.scope_dimensions ?? []).length
+                            ? (r.scope_dimensions ?? [])
+                                .map((d: any) => titleCase(d.dimension_code))
+                                .slice(0, 3)
+                                .join(', ')
+                            : 'Scope not yet set'}
+                          {(r.scope_dimensions ?? []).length > 3
+                            ? ` +${(r.scope_dimensions ?? []).length - 3}`
+                            : ''}
+                        </div>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'stage',
+                    header: 'Stage / dates',
+                    cell: (r) => (
+                      <>
+                        <Badge variant="outline" className={statusTone(r.stage)}>
+                          {titleCase(r.stage)}
+                        </Badge>
+                        {r.reassessment_required ? (
+                          <Badge variant="outline" className={`mt-1 block w-fit ${RED}`}>
+                            Reassessment required
                           </Badge>
-                          <div className="mt-1 max-w-[12rem] text-muted-foreground">
-                            {(r.scope_dimensions ?? []).length
-                              ? (r.scope_dimensions ?? [])
-                                  .map((d: any) => titleCase(d.dimension_code))
-                                  .slice(0, 3)
-                                  .join(', ')
-                              : 'Scope not yet set'}
-                            {(r.scope_dimensions ?? []).length > 3
-                              ? ` +${(r.scope_dimensions ?? []).length - 3}`
-                              : ''}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          <div>{r.lead_examiner_name || 'Unassigned'}</div>
-                          <div className="text-muted-foreground">
-                            {r.team_size ? `${r.team_size} on team` : 'No team'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={statusTone(r.stage)}>
-                            {titleCase(r.stage)}
-                          </Badge>
-                          {r.reassessment_required ? (
-                            <Badge variant="outline" className={`mt-1 block w-fit ${RED}`}>
-                              Reassessment required
-                            </Badge>
-                          ) : null}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
+                        ) : null}
+                        <div className="mt-1 font-mono">
                           {fmtDate(r.fieldwork_start)} → {fmtDate(r.fieldwork_end)}
-                          <div className="text-muted-foreground">
-                            {r.closed_at ? `Closed ${fmtDate(r.closed_at)}` : 'In progress'}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right text-xs">
+                        </div>
+                        <div className="text-muted-foreground">
+                          {r.closed_at ? `Closed ${fmtDate(r.closed_at)}` : 'In progress'}
+                        </div>
+                        <div className="mt-1">Next: {nextAction(r.stage)}</div>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'workload',
+                    header: 'Workload',
+                    priority: 2,
+                    cell: (r) => (
+                      <>
+                        <div>
+                          RFIs{' '}
                           <span className={r.overdue_rfis ? RED : undefined}>{r.open_rfis ?? 0} open</span>
                           {r.overdue_rfis ? (
-                            <div className="text-muted-foreground">{r.overdue_rfis} overdue</div>
+                            <span className="text-muted-foreground"> · {r.overdue_rfis} overdue</span>
                           ) : null}
-                        </TableCell>
-                        <TableCell className="text-right text-xs">
+                        </div>
+                        <div>
+                          Workpapers{' '}
                           <span className={r.workpapers_outstanding ? AMBER : EMERALD}>
                             {r.workpapers_outstanding ?? 0}
                           </span>
-                          <div className="text-muted-foreground">of {r.workpapers_total ?? 0}</div>
-                        </TableCell>
-                        <TableCell className="text-right text-xs">
-                          {r.findings_open ?? 0} open
-                          <div className="text-muted-foreground">of {r.findings_total ?? 0}</div>
-                        </TableCell>
-                        <TableCell className="text-xs">{nextAction(r.stage)}</TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              open(r.id);
-                            }}
-                          >
-                            Open <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                          <span className="text-muted-foreground"> of {r.workpapers_total ?? 0}</span>
+                        </div>
+                        <div>
+                          Findings {r.findings_open ?? 0} open
+                          <span className="text-muted-foreground"> of {r.findings_total ?? 0}</span>
+                        </div>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'provenance',
+                    header: 'Provenance / team',
+                    priority: 3,
+                    cell: (r) => (
+                      <>
+                        {r.driving_assessment_reference ? (
+                          <div className="font-mono">{r.driving_assessment_reference}</div>
+                        ) : (
+                          <div className="text-muted-foreground">No driving assessment</div>
+                        )}
+                        <div className="text-muted-foreground">
+                          {r.plan_reference ? `Plan ${r.plan_reference}` : 'No plan'}
+                          {r.intervention_reference ? ` · ${r.intervention_reference}` : ''}
+                        </div>
+                        {r.intervention_type ? (
+                          <div className="text-muted-foreground">{titleCase(r.intervention_type)}</div>
+                        ) : null}
+                        <div className="mt-1">{r.lead_examiner_name || 'Unassigned'}</div>
+                        <div className="text-muted-foreground">
+                          {r.team_size ? `${r.team_size} on team` : 'No team'}
+                        </div>
+                      </>
+                    ),
+                  },
+                ]}
+                actions={(r) => (
+                  <Button size="sm" variant="outline" onClick={() => open(r.id)}>
+                    Open <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                  </Button>
+                )}
+              />
             )}
           </CardContent>
         </Card>
