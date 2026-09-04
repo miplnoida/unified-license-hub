@@ -225,9 +225,13 @@ BEGIN
   -- CALCG-11 every exposed option has distinct semantics; withdrawn options refused
   UPDATE public.supervisory_assessment_question_response SET response = 'NO'
    WHERE assessment_id = _aAug AND question_code = 'FXQ1';
-  INSERT INTO public.supervisory_assessment_question_response(assessment_id, methodology_id,
-    methodology_dimension_id, methodology_question_id, dimension_code, question_code, question_text, response)
-  SELECT _aAug, methodology_id, (SELECT fx FROM calcg_fx WHERE k='dimI'),
+  INSERT INTO public.supervisory_assessment_question_response(assessment_id, assessment_dimension_id,
+    methodology_id, methodology_dimension_id, methodology_question_id, dimension_code, question_code,
+    question_text, response)
+  SELECT _aAug,
+         (SELECT id FROM public.supervisory_assessment_dimension
+           WHERE assessment_id = _aAug AND dimension_code = 'FX_INH'),
+         methodology_id, (SELECT fx FROM calcg_fx WHERE k='dimI'),
          (SELECT id FROM public.supervisory_methodology_question WHERE methodology_id = _m AND question_code='FXQ1B'),
          'FX_INH','FXQ1B','Second inherent question','YES'
     FROM public.supervisory_assessment WHERE id = _aAug;
