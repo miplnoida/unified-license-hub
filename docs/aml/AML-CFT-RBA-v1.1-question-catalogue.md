@@ -681,8 +681,8 @@ Placeholders in square brackets (e.g. `[LOCAL_STR_DEADLINE_REF]`) are deployment
 | question_version | 1 |
 | axis | INHERENT_EXPOSURE |
 | effectiveness_focus | INHERENT_EXPOSURE |
-| prompt | The entity experienced rapid growth or material change in the assessment period. |
-| supervisory_intent | Measure exposure from change outpacing the control environment. |
+| prompt | Material growth or material change in the assessment period expanded or materially altered the entity's ML/TF exposure surface. |
+| supervisory_intent | Measure the additional ML/TF exposure surface created by material change in scale, customers, transaction activity, products, services, channels, jurisdictions, ownership, group structure or business model, before considering the adequacy of any mitigating control. |
 | response_semantics | `INHERENT_SEM` (see design document §4) |
 | mandatory | YES (CORE) |
 | requires_observation | YES |
