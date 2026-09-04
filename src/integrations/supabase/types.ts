@@ -64622,6 +64622,10 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_methodology_action_capabilities: {
+        Args: { _methodology_id: string }
+        Returns: Json
+      }
       supervisory_methodology_adopt_reference: {
         Args: {
           _rationale: string
@@ -64629,6 +64633,23 @@ export type Database = {
           _regulator_id: string
         }
         Returns: string
+      }
+      supervisory_methodology_adoption_targets: {
+        Args: { _methodology_id: string }
+        Returns: Json
+      }
+      supervisory_methodology_approval_register: {
+        Args: {
+          _current_only?: boolean
+          _decision?: string
+          _dir?: string
+          _limit?: number
+          _methodology_id?: string
+          _offset?: number
+          _regulator_id?: string
+          _sort?: string
+        }
+        Returns: Json
       }
       supervisory_methodology_as_of: {
         Args: {
@@ -64641,8 +64662,24 @@ export type Database = {
         }
         Returns: string
       }
+      supervisory_methodology_audit_register: {
+        Args: { _limit?: number; _methodology_id: string; _offset?: number }
+        Returns: Json
+      }
+      supervisory_methodology_compare: {
+        Args: { _baseline_id?: string; _methodology_id: string }
+        Returns: Json
+      }
       supervisory_methodology_context_internal: {
         Args: { _as_of?: string; _domain_code: string; _entity_id: string }
+        Returns: Json
+      }
+      supervisory_methodology_detail: {
+        Args: { _methodology_id: string }
+        Returns: Json
+      }
+      supervisory_methodology_dimension_list: {
+        Args: { _methodology_id: string }
         Returns: Json
       }
       supervisory_methodology_dimension_resolve: {
@@ -64653,8 +64690,29 @@ export type Database = {
         Args: { _methodology_id: string; _payload: Json }
         Returns: string
       }
+      supervisory_methodology_fact_detail: {
+        Args: { _fact_id: string }
+        Returns: Json
+      }
+      supervisory_methodology_fact_register: {
+        Args: {
+          _definition_status?: string
+          _dir?: string
+          _limit?: number
+          _methodology_id: string
+          _offset?: number
+          _required?: boolean
+          _search?: string
+          _sort?: string
+        }
+        Returns: Json
+      }
       supervisory_methodology_fact_requirement_set: {
         Args: { _methodology_id: string; _payload: Json }
+        Returns: number
+      }
+      supervisory_methodology_legacy_str_row_count: {
+        Args: never
         Returns: number
       }
       supervisory_methodology_lifecycle: {
@@ -64673,9 +64731,17 @@ export type Database = {
         }
         Returns: string
       }
+      supervisory_methodology_origin_label: {
+        Args: { _origin: string }
+        Returns: string
+      }
       supervisory_methodology_oversight_reader: {
         Args: { _user_id: string }
         Returns: boolean
+      }
+      supervisory_methodology_parameter_register: {
+        Args: { _methodology_id: string }
+        Returns: Json
       }
       supervisory_methodology_parameter_set: {
         Args: { _methodology_id: string; _payload: Json }
@@ -64689,9 +64755,35 @@ export type Database = {
         Args: never
         Returns: number
       }
+      supervisory_methodology_question_detail: {
+        Args: { _question_id: string }
+        Returns: Json
+      }
       supervisory_methodology_question_purge: {
         Args: { _methodology_id: string; _rationale: string }
         Returns: number
+      }
+      supervisory_methodology_question_register: {
+        Args: {
+          _auto_prefill?: boolean
+          _axis?: string
+          _change_classification?: string
+          _dimension_id?: string
+          _dir?: string
+          _effectiveness_focus?: string
+          _evidence_required?: boolean
+          _judgement_required?: boolean
+          _limit?: number
+          _methodology_id: string
+          _na_allowed?: boolean
+          _offset?: number
+          _participation?: string
+          _question_class?: string
+          _search?: string
+          _sector_classification?: string
+          _sort?: string
+        }
+        Returns: Json
       }
       supervisory_methodology_question_sync: {
         Args: { _dimension_id: string; _questions: Json }
@@ -64701,6 +64793,27 @@ export type Database = {
         Args: { _payload: Json }
         Returns: number
       }
+      supervisory_methodology_reference_decision_register: {
+        Args: { _methodology_id: string }
+        Returns: Json
+      }
+      supervisory_methodology_register: {
+        Args: {
+          _approval_state?: string
+          _dir?: string
+          _domain_code?: string
+          _limit?: number
+          _offset?: number
+          _origin?: string
+          _regulator_id?: string
+          _search?: string
+          _sector_id?: string
+          _sort?: string
+          _status?: string
+        }
+        Returns: Json
+      }
+      supervisory_methodology_register_options: { Args: never; Returns: Json }
       supervisory_methodology_regulator_scope_readable: {
         Args: { _domain_code: string; _regulator_id: string }
         Returns: boolean
@@ -64735,6 +64848,10 @@ export type Database = {
         Args: { _as_of?: string; _domain_code: string; _entity_id: string }
         Returns: Json
       }
+      supervisory_methodology_review_readiness: {
+        Args: { _methodology_id: string }
+        Returns: Json
+      }
       supervisory_methodology_save: {
         Args: { _methodology_id?: string; _payload: Json }
         Returns: string
@@ -64742,6 +64859,10 @@ export type Database = {
       supervisory_methodology_semantic_profile_set: {
         Args: { _methodology_id: string; _payload: Json }
         Returns: number
+      }
+      supervisory_methodology_semantic_register: {
+        Args: { _methodology_id: string }
+        Returns: Json
       }
       supervisory_plan_action_create: {
         Args: {
