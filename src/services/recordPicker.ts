@@ -6,7 +6,7 @@
  * picks the *business record* — by its reference, title or entity — and the
  * internal identifier is resolved behind this service boundary.
  *
- * Reads go through the governed `record_picker_search` operation, which runs
+ * Reads go through the governed `record_picker_page` operation, which runs
  * with the caller's own privileges so row-level visibility of each domain is
  * enforced by the database. It is read-only, server-paged and returns a
  * `total_count` taken from the same filtered population.
@@ -22,7 +22,7 @@ export type RecordPickerType =
   | 'return'
   | 'correspondence'
   | 'fit_and_proper'
-  | 'inspection'
+  | 'examination'
   | 'assessment'
   | 'finding'
   | 'enforcement';
@@ -42,7 +42,7 @@ export const RECORD_PICKER_TYPES: RecordPickerOption[] = [
   { value: 'return', label: 'Regulatory return', searchHint: 'Search by return name, period or entity' },
   { value: 'complaint', label: 'Complaint', searchHint: 'Search by complaint reference, complainant or entity' },
   { value: 'investigation', label: 'Investigation', searchHint: 'Search by investigation reference or entity' },
-  { value: 'inspection', label: 'Examination', searchHint: 'Search by examination reference, title or entity' },
+  { value: 'examination', label: 'Examination', searchHint: 'Search by examination reference, title or entity' },
   { value: 'assessment', label: 'Supervisory assessment', searchHint: 'Search by assessment reference or entity' },
   { value: 'finding', label: 'Supervisory finding', searchHint: 'Search by finding reference, title or entity' },
   { value: 'enforcement', label: 'Enforcement case', searchHint: 'Search by case or notice reference' },
@@ -51,11 +51,49 @@ export const RECORD_PICKER_TYPES: RecordPickerOption[] = [
 
 ];
 
-const TYPE_LABEL = new Map(RECORD_PICKER_TYPES.map((t) => [t.value, t.label]));
+/**
+ * Picker type (which population the officer searches) is not the same thing as
+ * the canonical target type recorded on a document relationship. The mapping
+ * below is the single client-side statement of that distinction; the database
+ * resolves it independently in `record_picker_target_type`, and the link
+ * operation only ever uses the server's own resolution.
+ */
+export const CANONICAL_TARGET_TYPE: Record<RecordPickerType, string> = {
+  entity: 'entity',
+  application: 'application',
+  license: 'licence',
+  return: 'filing',
+  complaint: 'complaint',
+  investigation: 'investigation',
+  examination: 'examination',
+  assessment: 'assessment',
+  finding: 'finding',
+  enforcement: 'enforcement_action',
+  correspondence: 'correspondence_thread',
+  fit_and_proper: 'fit_and_proper_assessment',
+};
+
+/** Legacy wording accepted at the boundary and normalised immediately. */
+const LEGACY_TYPE_ALIAS: Record<string, RecordPickerType> = { inspection: 'examination' };
+
+export function normaliseRecordType(type: string): string {
+  return LEGACY_TYPE_ALIAS[type] ?? type;
+}
+
+const TYPE_LABEL = new Map<string, string>([
+  ...RECORD_PICKER_TYPES.map((t) => [t.value, t.label] as [string, string]),
+  // Canonical relationship target types, for displaying existing links.
+  ['licence', 'Licence'],
+  ['filing', 'Regulatory return'],
+  ['enforcement_action', 'Enforcement case'],
+  ['correspondence_thread', 'Correspondence'],
+  ['fit_and_proper_assessment', 'Fit and proper assessment'],
+  ['inspection', 'Examination'],
+]);
 
 export function presentRecordType(type?: string | null): string {
   if (!type) return 'Record';
-  return TYPE_LABEL.get(type as RecordPickerType) ?? type;
+  return TYPE_LABEL.get(normaliseRecordType(type)) ?? type;
 }
 
 export interface RecordPickerRow {
@@ -72,7 +110,13 @@ export interface RecordPickerRow {
 
 export interface RecordPickerResult {
   rows: RecordPickerRow[];
+  /** Authoritative count of the same filtered population, even on an empty page. */
   total: number;
+  page: number;
+  pageSize: number;
+  lastPage: number;
+  /** Canonical relationship target type for the searched population. */
+  targetType: string;
 }
 
 export interface RecordPickerQuery {
@@ -98,7 +142,7 @@ export async function searchRecords(
   const pageSize = Math.min(Math.max(q.pageSize ?? 25, 1), 100);
   const page = Math.max(q.page ?? 1, 1);
 
-  const { data, error } = await (supabase as any).rpc('record_picker_search', {
+  const { data, error } = await (supabase as any).rpc('record_picker_page', {
     _record_type: q.recordType,
     _search: q.search?.trim() || null,
     _entity_id: q.entityId || null,
@@ -108,13 +152,18 @@ export async function searchRecords(
 
   if (error) return { error: error.message };
 
-  const raw = (data ?? []) as any[];
+  const env = (data ?? {}) as any;
+  const raw = (env.rows ?? []) as any[];
   return {
     data: {
-      total: raw.length ? Number(raw[0].total_count ?? 0) : 0,
+      total: Number(env.total_count ?? 0),
+      page: Number(env.page ?? page),
+      pageSize: Number(env.page_size ?? pageSize),
+      lastPage: Number(env.last_page ?? 1),
+      targetType: String(env.target_type ?? CANONICAL_TARGET_TYPE[q.recordType]),
       rows: raw.map((r) => ({
         recordId: r.record_id as string,
-        recordType: r.record_type as RecordPickerType,
+        recordType: normaliseRecordType(String(r.record_type)) as RecordPickerType,
         reference: r.reference ?? null,
         title: r.title ?? null,
         entityName: r.entity_name ?? null,

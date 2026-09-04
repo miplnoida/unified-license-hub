@@ -106,3 +106,52 @@ not require a UI rewrite.
 | workflow-generated `notifications` insert | `workflow_notification_emit` — resolves the applicant from the record; the caller cannot choose a recipient |
 | `return_audit_log` insert | `return_activity_log_append` — the server stamps the author |
 | maker-checker decisions | `maker_checker_evaluate` — segregation by default, honours decision-authority rules and active delegations, break-glass requires a rationale |
+
+## Picker type is not the canonical target type
+
+The type an officer chooses in the RecordPicker names a **searchable population**
+in business language. The value stored on `document_relationships.target_type`
+names the **canonical object** from `docs/architecture/canonical-object-register.md`.
+They are deliberately different concepts and must never be conflated: the client
+sends only the picker type, and the database resolves the canonical target type
+itself in `public.record_picker_target_type`.
+
+| Picker type (UI label) | Canonical source table | `document_relationships.target_type` |
+|---|---|---|
+| `entity` (Regulated entity) | `licensees` | `entity` |
+| `application` (Licensing application) | `applications` | `application` |
+| `license` (Licence) | `licenses` | `licence` |
+| `return` (Regulatory return) | `return_filings` + `return_filing_versions` | `filing` |
+| `complaint` (Complaint) | `complaints` | `complaint` |
+| `investigation` (Investigation) | `conduct_investigations` | `investigation` |
+| `examination` (Examination) | `examinations` | `examination` |
+| `assessment` (Supervisory assessment) | `supervisory_assessment` | `assessment` |
+| `finding` (Supervisory finding) | `supervisory_finding` | `finding` |
+| `enforcement` (Enforcement case) | `enforcement_actions` | `enforcement_action` |
+| `correspondence` (Correspondence) | `correspondence_threads` | `correspondence_thread` |
+| `fit_and_proper` (Fit and proper assessment) | `fp_assessments` | `fit_and_proper_assessment` (domain-specific pending Assessment convergence) |
+
+`inspection` is a **retired alias only**. It is accepted at the boundary,
+normalised to `examination` immediately (`record_picker_normalise_type`), and
+`dms_link_record` refuses `inspection` and `return` outright, so retired
+vocabulary can never enter `document_relationships`.
+
+## Authoritative total on an out-of-range page
+
+`record_picker_search` reports `total_count` on result rows only, so a page past
+the end of the population carries no total. `public.record_picker_page` returns a
+single envelope — `{picker_type, target_type, page, page_size, total_count,
+last_page, rows}` — and recovers the total from the same filtered population when
+the requested page is empty. The picker owner then repairs to `last_page` and
+reloads, so a stale page can never be presented as "no records".
+
+## Linking a picked record
+
+`public.dms_link_picked_record(_group_id, _picker_type, _record_id, _relationship_type)`
+is SECURITY INVOKER. It resolves the canonical target type, confirms through the
+caller's own row-level visibility that the target exists and is in scope
+(`target_not_found_or_out_of_scope` otherwise), and then delegates to
+`dms_link_record`, which remains authoritative for document authority
+(`dms_assert_can_manage`), entity-scope checks and audit. Reading a record in the
+picker therefore grants no linking authority; authority is rechecked on write and
+repeated links are idempotent.

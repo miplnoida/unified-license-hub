@@ -6,7 +6,7 @@
  * they are authorised to see, and selects one; the internal identifier is
  * returned to the caller and never shown.
  *
- * Reads are server-paged through the governed `record_picker_search` operation,
+ * Reads are server-paged through the governed `record_picker_page` operation,
  * which runs with the caller's own privileges, so the picker can only ever list
  * records the user could already open.
  */
@@ -85,7 +85,9 @@ export function RecordPicker({
   // Owner-level page repair: never present "no records" because of a stale page.
   useEffect(() => {
     if (!query.data) return;
-    const lastPage = Math.max(1, Math.ceil(total / pageSize));
+    // `total` is authoritative even when this page holds no rows, so an
+    // out-of-range page always recovers to the last real page.
+    const lastPage = query.data.lastPage || Math.max(1, Math.ceil(total / pageSize));
     if (page > lastPage) setPage(lastPage);
   }, [query.data, total, page, pageSize]);
 

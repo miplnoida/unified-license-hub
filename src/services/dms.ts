@@ -313,10 +313,32 @@ export async function linkDocumentToRecord(args: {
   });
 }
 
+/**
+ * Link a record chosen in the RecordPicker. The server resolves the canonical
+ * target type from the picker type, re-checks that the record exists and is in
+ * the caller's scope, and then applies the authoritative `dms_link_record`.
+ */
+export async function linkPickedRecord(args: {
+  groupId: string;
+  pickerType: string;
+  recordId: string;
+  relationshipType?: string;
+}) {
+  return rpc<string>('dms_link_picked_record', {
+    _group_id: args.groupId,
+    _picker_type: args.pickerType,
+    _record_id: args.recordId,
+    _relationship_type: args.relationshipType ?? 'attached_to',
+  });
+}
+
 /** Human-readable messages for governed RPC failures. */
 export function describeDmsError(message: string): string {
   const map: Record<string, string> = {
     not_authenticated: 'You must be signed in to perform this action.',
+    target_not_found_or_out_of_scope: 'That record is no longer available to you. Please search again.',
+    non_canonical_target_type: 'That record type is no longer supported for linking.',
+    unsupported_record_type: 'That record type cannot be linked.',
     forbidden: 'You do not have access to this document.',
     document_not_found: 'This document no longer exists.',
     scan_not_clean: 'This file has not passed its security scan yet.',
