@@ -1,21 +1,22 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { Card, CardContent } from '@/components/ui/card';
 import { SupervisoryRegister } from '@/components/supervision/SupervisoryRegister';
+import { RegisterToolbar } from '@/components/shared/RegisterToolbar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { useAmlPortfolio } from '@/hooks/useAmlSupervision';
 import { AmlNewAssessmentDialog } from '@/components/supervision/aml/AmlNewAssessmentDialog';
-import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, statusTone, titleCase, trendTone } from '@/lib/amlLabels';
+import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, titleCase, trendTone } from '@/lib/amlLabels';
 
 export default function AmlSupervisedEntities() {
-  const { data, isLoading, error } = useAmlPortfolio(300);
+  const { data, isLoading, error, refetch, isFetching } = useAmlPortfolio(300);
   const [q, setQ] = useState('');
   const [rating, setRating] = useState('all');
   const [coverage, setCoverage] = useState('all');
@@ -44,18 +45,25 @@ export default function AmlSupervisedEntities() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">AML/CFT Supervised Entities</h1>
-            <p className="text-sm text-muted-foreground">
-              Risk-based portfolio view: current residual rating with its inherent and control drivers,
-              rating movement, review currency and open closed-loop workload per entity.
-            </p>
-          </div>
-          <AmlNewAssessmentDialog />
-        </div>
-
+      <div className="space-y-5">
+        <PageHeader
+          title="AML/CFT Supervised Entities"
+          actions={
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                aria-label="Refresh portfolio"
+                title="Refresh portfolio"
+              >
+                <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              </Button>
+              <AmlNewAssessmentDialog size="sm" />
+            </>
+          }
+        />
 
         {error ? (
           <Alert variant="destructive">
@@ -66,21 +74,19 @@ export default function AmlSupervisedEntities() {
         ) : null}
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">
-              {isLoading ? 'Loading…' : `${filtered.length} entit${filtered.length === 1 ? 'y' : 'ies'}`}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <Input
-                placeholder="Search entity, sector or licence…"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                className="max-w-xs"
-              />
+          <CardContent className="space-y-3 pt-4">
+            <RegisterToolbar
+              search={q}
+              onSearchChange={setQ}
+              searchPlaceholder="Search entity, sector or licence…"
+              trailing={
+                <span className="text-sm text-muted-foreground">
+                  {isLoading ? 'Loading…' : `${filtered.length} entit${filtered.length === 1 ? 'y' : 'ies'}`}
+                </span>
+              }
+            >
               <Select value={rating} onValueChange={setRating}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="h-9 w-44">
                   <SelectValue placeholder="Residual rating" />
                 </SelectTrigger>
                 <SelectContent>
@@ -93,7 +99,7 @@ export default function AmlSupervisedEntities() {
                 </SelectContent>
               </Select>
               <Select value={coverage} onValueChange={setCoverage}>
-                <SelectTrigger className="w-56">
+                <SelectTrigger className="h-9 w-52">
                   <SelectValue placeholder="Assessment coverage" />
                 </SelectTrigger>
                 <SelectContent>
@@ -103,7 +109,7 @@ export default function AmlSupervisedEntities() {
                   <SelectItem value="reassessment">Reassessment required</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </RegisterToolbar>
 
             {isLoading ? (
               <Skeleton className="h-64 w-full" />
@@ -206,7 +212,10 @@ export default function AmlSupervisedEntities() {
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     {r.last_assessment_id ? (
                       <Button asChild size="sm" variant="outline">
-                        <Link to={`/supervision/aml/assessments/${r.last_assessment_id}`}>Assessment</Link>
+                        <Link to={`/supervision/aml/assessments/${r.last_assessment_id}`}>
+                          Assessment
+                          <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                        </Link>
                       </Button>
                     ) : (
                       <Badge variant="outline" className={NEUTRAL}>

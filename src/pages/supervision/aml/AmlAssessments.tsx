@@ -1,21 +1,22 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { RegisterToolbar } from '@/components/shared/RegisterToolbar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { useAmlAssessments } from '@/hooks/useAmlSupervision';
 import { AmlNewAssessmentDialog } from '@/components/supervision/aml/AmlNewAssessmentDialog';
 import { SupervisoryRegister } from '@/components/supervision/SupervisoryRegister';
-import { EMERALD, NEUTRAL, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
+import { EMERALD, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 export default function AmlAssessments() {
-  const { data, isLoading, error } = useAmlAssessments();
+  const { data, isLoading, error, refetch, isFetching } = useAmlAssessments();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
 
@@ -37,17 +38,25 @@ export default function AmlAssessments() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">AML/CFT Risk Assessments</h1>
-            <p className="text-sm text-muted-foreground">
-              Canonical supervisory assessments scoped to the AML/CFT domain, with methodology version,
-              rating outcome, maker–checker state and review period.
-            </p>
-          </div>
-          <AmlNewAssessmentDialog />
-        </div>
+      <div className="space-y-5">
+        <PageHeader
+          title="AML/CFT Risk Assessments"
+          actions={
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                aria-label="Refresh assessments"
+                title="Refresh assessments"
+              >
+                <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              </Button>
+              <AmlNewAssessmentDialog size="sm" />
+            </>
+          }
+        />
 
         {error ? (
           <Alert variant="destructive">
@@ -58,21 +67,19 @@ export default function AmlAssessments() {
         ) : null}
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">
-              {isLoading ? 'Loading…' : `${filtered.length} assessment${filtered.length === 1 ? '' : 's'}`}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <Input
-                placeholder="Search entity, reference or type…"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                className="max-w-xs"
-              />
+          <CardContent className="space-y-3 pt-4">
+            <RegisterToolbar
+              search={q}
+              onSearchChange={setQ}
+              searchPlaceholder="Search entity, reference or type…"
+              trailing={
+                <span className="text-sm text-muted-foreground">
+                  {isLoading ? 'Loading…' : `${filtered.length} assessment${filtered.length === 1 ? '' : 's'}`}
+                </span>
+              }
+            >
               <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="h-9 w-44">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -84,7 +91,7 @@ export default function AmlAssessments() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </RegisterToolbar>
 
             {isLoading ? (
               <Skeleton className="h-64 w-full" />
@@ -171,18 +178,16 @@ export default function AmlAssessments() {
                 ]}
                 actions={(r) => (
                   <Button asChild size="sm" variant="outline">
-                    <Link to={`/supervision/aml/assessments/${r.id}`}>Open</Link>
+                    <Link to={`/supervision/aml/assessments/${r.id}`}>
+                      Open
+                      <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                    </Link>
                   </Button>
                 )}
               />
             )}
           </CardContent>
         </Card>
-
-        <p className="text-xs text-muted-foreground">
-          Assessments are created, submitted, reviewed and approved through the governed supervisory
-          operations; ratings and decisions are recorded in the assessment workspace. <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${NEUTRAL}`}>Domain: AML/CFT</span>
-        </p>
       </div>
     </DashboardLayout>
   );

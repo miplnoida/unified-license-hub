@@ -1,15 +1,16 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { Card, CardContent } from '@/components/ui/card';
 import { SupervisoryRegister } from '@/components/supervision/SupervisoryRegister';
+import { RegisterToolbar } from '@/components/shared/RegisterToolbar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, ArrowUpRight } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, Filter, RefreshCw } from 'lucide-react';
 import { useAmlExaminations } from '@/hooks/useAmlSupervision';
 import { businessActionLabel, isTerminalStage } from '@/lib/examinationWorkflow';
 import { AMBER, EMERALD, RED, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
@@ -37,7 +38,7 @@ function nextAction(stage?: string | null): string {
 }
 
 export default function AmlExaminations() {
-  const { data, isLoading, error } = useAmlExaminations();
+  const { data, isLoading, error, refetch, isFetching } = useAmlExaminations();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const focus = params.get('focus');
@@ -68,15 +69,22 @@ export default function AmlExaminations() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">AML/CFT Examinations</h1>
-          <p className="text-sm text-muted-foreground">
-            AML/CFT-filtered entry point into the canonical examination model — exact provenance
-            (originating assessment, plan, intervention), risk focus, team, and live examination work
-            state. Open takes you into the enterprise examination workspace.
-          </p>
-        </div>
+      <div className="space-y-5">
+        <PageHeader
+          title="AML/CFT Examinations"
+          actions={
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              aria-label="Refresh examinations"
+              title="Refresh examinations"
+            >
+              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+            </Button>
+          }
+        />
 
         {error ? (
           <Alert variant="destructive">
@@ -87,21 +95,19 @@ export default function AmlExaminations() {
         ) : null}
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">
-              {isLoading ? 'Loading…' : `${filtered.length} examination${filtered.length === 1 ? '' : 's'}`}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <Input
-                placeholder="Search entity, reference, assessment, plan or intervention…"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                className="max-w-xs"
-              />
+          <CardContent className="space-y-3 pt-4">
+            <RegisterToolbar
+              search={q}
+              onSearchChange={setQ}
+              searchPlaceholder="Search entity, reference, assessment or plan…"
+              trailing={
+                <span className="text-sm text-muted-foreground">
+                  {isLoading ? 'Loading…' : `${filtered.length} examination${filtered.length === 1 ? '' : 's'}`}
+                </span>
+              }
+            >
               <Select value={stage} onValueChange={setStage}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="h-9 w-44">
                   <SelectValue placeholder="Stage" />
                 </SelectTrigger>
                 <SelectContent>
@@ -113,10 +119,17 @@ export default function AmlExaminations() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant={openOnly ? 'default' : 'outline'} onClick={() => setOpenOnly((v) => !v)}>
+              <Button
+                size="sm"
+                className="h-9"
+                variant={openOnly ? 'default' : 'outline'}
+                onClick={() => setOpenOnly((v) => !v)}
+                aria-pressed={openOnly}
+              >
+                <Filter className="mr-1.5 h-4 w-4" />
                 Open only
               </Button>
-            </div>
+            </RegisterToolbar>
 
             {isLoading ? (
               <Skeleton className="h-64 w-full" />
@@ -152,9 +165,11 @@ export default function AmlExaminations() {
                       <>
                         <div>{titleCase(r.engagement_type)}</div>
                         <div className="text-muted-foreground">{titleCase(r.examination_type)}</div>
-                        <Badge variant="outline" className={`mt-1 ${ratingTone(r.risk_rating)}`}>
-                          {titleCase(r.risk_rating)}
-                        </Badge>
+                        {r.risk_rating ? (
+                          <Badge variant="outline" className={`mt-1 ${ratingTone(r.risk_rating)}`}>
+                            {titleCase(r.risk_rating)}
+                          </Badge>
+                        ) : null}
                         <div className="mt-1 max-w-[12rem] text-muted-foreground">
                           {(r.scope_dimensions ?? []).length
                             ? (r.scope_dimensions ?? [])
@@ -182,9 +197,13 @@ export default function AmlExaminations() {
                             Reassessment required
                           </Badge>
                         ) : null}
-                        <div className="mt-1 font-mono">
-                          {fmtDate(r.fieldwork_start)} → {fmtDate(r.fieldwork_end)}
-                        </div>
+                        {r.fieldwork_start || r.fieldwork_end ? (
+                          <div className="mt-1 font-mono">
+                            {fmtDate(r.fieldwork_start)} → {fmtDate(r.fieldwork_end)}
+                          </div>
+                        ) : (
+                          <div className="mt-1 text-muted-foreground">Fieldwork not scheduled</div>
+                        )}
                         <div className="text-muted-foreground">
                           {r.closed_at ? `Closed ${fmtDate(r.closed_at)}` : 'In progress'}
                         </div>
@@ -254,16 +273,6 @@ export default function AmlExaminations() {
             )}
           </CardContent>
         </Card>
-
-        <p className="text-xs text-muted-foreground">
-          Examination scoping, team assignment, data requests, workpapers, reports, stage transitions and
-          closure are performed inside the canonical examination workspace. Findings issued from an
-          examination appear in{' '}
-          <Link className="underline" to="/supervision/aml/findings">
-            Findings &amp; Remediation
-          </Link>
-          .
-        </p>
       </div>
     </DashboardLayout>
   );
