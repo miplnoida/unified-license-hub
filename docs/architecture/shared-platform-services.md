@@ -43,15 +43,24 @@ what exists today, what is authoritative, and what must converge.
 
 ## K4 — Document & Records Kernel — STRONG_BUT_NEEDS_CONVERGENCE (control layer missing)
 
-- Sources: `document_groups` / `document_versions` / `document_action_logs`,
-  `document_categories` / `document_types` / `classification_*`, `document_relationships`,
-  `document_retention_policies`, `document_holds`, `file_uploads` + scan events,
+- K4 is an **enterprise document platform**, not a business module: business domains own document
+  and evidence requirements, relationships and decisions — never content, storage, provider ids or
+  a module-local canonical document. Final provider-neutral lock:
+  `docs/dms/05-enterprise-document-platform-provider-architecture.md`.
+- Control-plane sources (platform-owned, provider-independent): `document_groups` /
+  `document_versions` / `document_action_logs`, `document_categories` / `document_types` /
+  `classification_*`, `document_relationships`, `document_retention_policies`, `document_holds`,
   `document_extractions`; 34 governed `dms_*` RPCs; frontend contract `src/services/dms.ts`.
-- Missing: controlled-document lifecycle, controlled revisions, review/approval policy per
+- Internal-provider sources (implementation, **not** provider-neutral): `file_uploads` + scan
+  events, the `secure-documents` bucket, signed URLs. `file_uploads` is the internal provider's
+  object record, not the universal physical-document truth; no new business module may depend on it.
+- Missing: provider binding + provider resolution (one active provider per regulator, capability
+  negotiation), and controlled-document lifecycle, controlled revisions, review/approval policy per
   document type, effective-dating, acknowledgement. See `docs/dms/03_document-control-master-architecture.md`.
 - Access/linking/search contract (DocumentPicker, RecordPicker, action semantics, context
   propagation, filing exceptions, scale): `docs/dms/04_document-access-linking-search-contract.md`.
-- Converge: legacy `documents` (3 rows), module-local evidence stores.
+- Converge: legacy `documents` (3 rows), module-local evidence stores, `secureUpload` callers.
+  Target: zero module-owned document repositories.
 
 ## K5 — Communication Kernel — STRONG_BUT_NEEDS_CONVERGENCE
 
