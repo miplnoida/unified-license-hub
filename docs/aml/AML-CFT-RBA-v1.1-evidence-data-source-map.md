@@ -1,11 +1,49 @@
 # AML-CFT-RBA v1.1 — evidence and data-source map (DESIGN ONLY)
 
-## 1. Principles
+## 1. Principles — evidence basis, not document attachment
 
-- Every proposed question requires an observation and at least one evidence item; assertion alone can never support a favourable response.
-- Evidence strength is a **conceptual supervisory category**, not a score: `DIRECT_TESTED` (re-performed or sampled by the supervisor) > `ENTITY_PRODUCED_RECORD` (system output, register, MI) > `THIRD_PARTY_ASSURANCE` (independent testing, external audit) > `ENTITY_ASSERTION` (policy text, self-attestation).
-- Design questions may be satisfied by documentation; operating-effectiveness questions require period evidence (samples, ageing, statistics, logs).
-- No evidence category produces an automatic response value. The supervisor records the response and the reasoning.
+`requires_evidence` means **requires a governed evidence basis**. It does not mean "upload one PDF per question", and there is no AML-local document store.
+
+Acceptable evidence-basis types:
+
+| Type | Meaning |
+| --- | --- |
+| `ENTERPRISE_DOCUMENT` | A registered document in the central document register (governed reference, version, access control) |
+| `SYSTEM_FACT` | A governed value read from a platform record (entity profile, licence, register) with provenance |
+| `REGULATORY_RETURN` | A filed return or schedule, identified by filing reference and period |
+| `STRUCTURED_METRIC` | A structured fact under the fact model in §5, with numerator/denominator, period and source |
+| `SUPERVISORY_SAMPLE` | A sample selected and tested by the supervisor, with population, method and result |
+| `WORKPAPER` | A governed supervisory workpaper recording the test performed |
+| `PRIOR_EXAMINATION` | A prior examination record or its finding set |
+| `FINDING` | A recorded supervisory finding |
+| `REMEDIATION_RECORD` | A remediation action and its closure validation record |
+| `RFI_RESPONSE` | A governed request-for-information response |
+| `AUTHORISED_EXTERNAL_SOURCE` | An external source the supervisor is authorised to rely on, with citation and retrieval date |
+
+Rules:
+
+- Every **final supervisory response** requires (A) a rationale/observation appropriate to the judgement and (B) a sufficient governed evidence basis (AML-METH-06).
+- **Evidence may be shared.** One document, return or governed fact may support several questions; a question never has to create a duplicate evidence object. Implementation must therefore link evidence by governed reference plus provenance, not by copying artefacts.
+- For **purely system-factual** questions, structured provenance (source, period/as-of, timestamp, extraction reference) satisfies the evidence requirement without any attachment.
+- **DESIGN** questions may be satisfied by documentation; **OPERATING** questions require period evidence (samples, ageing, statistics, logs, structured metrics).
+- **Assertion alone is never sufficient for a favourable final conclusion** where corroboration is expected.
+- No evidence type produces an automatic response value, rating or finding. The supervisor records the response and the reasoning.
+
+## 1a. Evidence quality model (attributes, not a universal hierarchy)
+
+The previous universal ranking (`DIRECT_TESTED > ENTITY_PRODUCED_RECORD > THIRD_PARTY_ASSURANCE > ENTITY_ASSERTION`) is **withdrawn**: it is not defensible in every context — a complete system extract can be stronger evidence of population coverage than a small supervisory sample, and an independent audit can be stronger on design than either. Provenance categories are retained as descriptive labels; quality is evaluated across attributes:
+
+| Attribute | Question it answers |
+| --- | --- |
+| independence | How far is the evidence from the party being assessed? |
+| directness | Does it evidence the control operating, or something adjacent? |
+| coverage | Whole population, statistically valid sample, or anecdote? |
+| timeliness | Does it cover the assessment period, and how current is it? |
+| authenticity | Is the source and integrity of the artefact established? |
+| completeness | Are all in-scope products, channels and entities included? |
+| reproducibility | Could another supervisor re-derive the same result? |
+
+Evidence quality is **not scored** in this design. It is recorded and reasoned. Entity assertion alone remains insufficient for a favourable final conclusion where corroboration is expected.
 
 ## 2. Dimension evidence and source classification
 
@@ -38,17 +76,54 @@
 | `MODEL_GOVERNANCE` | CONTROL_EFFECTIVENESS | Rule/scenario/model inventory, validation or independent review reports, tuning and threshold change records | examination history, findings, document metadata |
 | `REMEDIATION_TRACKING` | CONTROL_EFFECTIVENESS | Issue and action register, overdue action MI, closure validation evidence | findings, remediation, enforcement, examination history |
 
-## 3. Contradiction advisories (advisory only, never automatic scoring)
+## 3. Contradiction advisories (advisory only, never automatic)
 
-| Advisory | Trigger | Supervisory action |
-| --- | --- | --- |
-| ADV-01 | Monitoring asserted effective (`YES`) while alert ageing shows material backlog | Require reconciliation; response cannot remain `YES` unquantified |
-| ADV-02 | CDD asserted complete while overdue-review population is material | Re-examine CT-CDD-02 evidence |
-| ADV-03 | Training asserted effective while overdue completion is material | Re-examine CT-TRN-02 |
-| ADV-04 | Independent testing reported no findings while remediation register shows recurring issues | Re-examine CT-IT-02 scope |
-| ADV-05 | Screening asserted effective while list-update latency exceeds entity standard | Re-examine CT-SANC-02 |
-| ADV-06 | STR filings zero while suspicion indicators and alert volumes are material | Re-examine CT-STRI-03 / CT-STRG-02 |
-| ADV-07 | Automated monitoring asserted while MODEL_GOVERNANCE answered `NOT_APPLICABLE` on the no-automation ground | Mutually inconsistent; resolve before completion |
-| ADV-08 | Data-quality defects open while any automated control asserted fully effective | Re-examine CT-DQ-01/02 |
+No advisory changes an answer, a rating or creates a finding automatically. Every advisory is raised to the officer, who must record one resolution state: `RESOLVED`, `ACCEPTED_WITH_RATIONALE` or `ESCALATED_FOR_REVIEW`. An unresolved advisory does not block a response; it is visible on the working file and in review.
 
-Advisories are surfaced to the supervisor. They do not change a response, a rating or an outcome.
+| Advisory | Source of signal | Trigger | False-positive risk | Evidence needed to resolve | Officer resolution |
+| --- | --- | --- | --- | --- | --- |
+| ADV-01 | `FACT-ALERT-BACKLOG`, `FACT-ALERT-AGEING-BANDS` vs `CT-TM-03` | Monitoring/alerting asserted effective while alert ageing shows material backlog | Medium — a backlog may be a known, funded, time-bound remediation | Backlog quantification plus remediation record | RESOLVED / ACCEPTED_WITH_RATIONALE / ESCALATED_FOR_REVIEW |
+| ADV-02 | `FACT-CDD-OVERDUE-SHARE` vs `CT-CDD-02` | CDD asserted current while overdue-review population is material | Low | Overdue ageing extract and risk-tiering of the overdue population | as above |
+| ADV-03 | `FACT-TRAINING-COMPLETION-SHARE` vs `CT-TRN-02` | Training asserted effective while completion is materially incomplete | Medium — long-leave and new-joiner timing | Completion report with exclusion basis | as above |
+| ADV-04 | `FACT-REPEAT-FINDING-COUNT` vs `CT-IT-02` | Independent testing reported no findings while remediation shows recurring issues | Medium — scope may legitimately exclude the recurring area | Testing scope and plan versus the recurring issue population | as above |
+| ADV-05 | `FACT-LIST-UPDATE-LAG-DAYS` vs `CT-SANC-02` | Screening asserted effective while list-update latency exceeds the entity standard | Low | Update logs and rescreening completion evidence | as above |
+| ADV-06 | `FACT-STR-FILED-COUNT`, `FACT-ALERT-VOLUME` vs `CT-STRI-03` / `CT-STRG-02` | Zero filings while suspicion indicators and alert volumes are material | Medium — a genuinely low-risk small entity may legitimately file none | Internal report log and case dispositions | as above |
+| ADV-07 | `CT-MG-*` trigger vs monitoring answers | Automated monitoring asserted while model-governance questions are recorded `NOT_TRIGGERED` on the no-automation ground | Low | Confirmation of whether detection is automated | as above (mutually inconsistent; resolve before completion) |
+| ADV-08 | `FACT-DQ-DEFECTS-OPEN` vs `CT-DQ-01` | Data-quality defects open while an automated control is asserted fully effective | Medium — defects may not touch AML-critical elements | Defect register mapped to critical data elements | as above |
+
+## 4. Evidence-basis defaults by question type
+
+| Question type | Default acceptable evidence bases |
+| --- | --- |
+| Inherent exposure | `STRUCTURED_METRIC`, `SYSTEM_FACT`, `REGULATORY_RETURN`, `ENTERPRISE_DOCUMENT`, `AUTHORISED_EXTERNAL_SOURCE`, `RFI_RESPONSE` |
+| Control — DESIGN | `ENTERPRISE_DOCUMENT`, `WORKPAPER`, `PRIOR_EXAMINATION`, `RFI_RESPONSE` |
+| Control — OPERATING | `SUPERVISORY_SAMPLE`, `WORKPAPER`, `SYSTEM_FACT`, `STRUCTURED_METRIC`, `ENTERPRISE_DOCUMENT`, `FINDING`, `REMEDIATION_RECORD`, `RFI_RESPONSE` |
+| Control — DESIGN_AND_OPERATING | `ENTERPRISE_DOCUMENT`, `SUPERVISORY_SAMPLE`, `WORKPAPER`, `STRUCTURED_METRIC`, `PRIOR_EXAMINATION`, `RFI_RESPONSE` |
+
+Per-question acceptable types are recorded on every question in the catalogue (`evidence_basis_types`).
+
+## 5. Structured fact model (provider-neutral, design only)
+
+Questions that depend on quantitative facts carry `fact_requirements` naming `FACT-*` codes. A fact is a governed record, not free text:
+
+| Field | Purpose |
+| --- | --- |
+| `fact_code` | Stable identifier (e.g. `FACT-CDD-OVERDUE-SHARE`) |
+| `label` | Human-readable name |
+| `data_type` | integer / decimal / percentage / currency / date / boolean |
+| `unit` | count, %, currency code |
+| `numerator` / `denominator` | For any ratio, both sides are recorded — never a bare percentage |
+| `period` / `as_of` | Period covered or point-in-time date |
+| `source_type` | One of the evidence-basis types (`REGULATORY_RETURN`, `SYSTEM_FACT`, `ENTERPRISE_DOCUMENT`, `RFI_RESPONSE`, …) |
+| `source_reference` | Governed reference into that record |
+| `source_timestamp` | When the value was extracted or filed |
+| `peer_group` | Where comparison is relevant (e.g. `FACT-PEER-GROUP-MEDIAN-VALUE`) |
+| `materiality_basis` | Which configuration parameter the officer judged against (`[MAT_*]`) |
+| `required` / `optional` | Whether the question can be answered without it |
+| `auto_prefill_allowed` | Whether the platform may propose the value |
+| `officer_edit_allowed` | Whether the officer may override, always with rationale |
+| `provenance` | Retained on every value: who/what produced it, from where, when |
+
+Illustrative fact families: high-risk customer count/share, non-resident share, PEP count/share, cash value/share, cross-border volume/value, transaction scale and peer median, CDD overdue count/share/ageing, alert volume/backlog/ageing, STR filing timeliness, training completion, open and overdue remediation actions, data-quality defect rate.
+
+**No rating, score, band or threshold is derived from these facts by this design.** Facts support supervisory judgement and are the input surface for a future, separately approved configurable calculation policy. A prefilled fact never answers a question; the officer records the response.
