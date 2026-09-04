@@ -300,6 +300,41 @@ def main() -> int:
              f"Inherent: CORE {inh['CORE']} / CONDITIONAL {inh['CONDITIONAL']} / ENHANCED {inh['ENHANCED']} = {len(inherent)}",
              f"Control: CORE {ctl['CORE']} / CONDITIONAL {ctl['CONDITIONAL']} / ENHANCED {ctl['ENHANCED']} = {len(recs) - len(inherent)}")))
 
+    # ---- normalised runtime contract: axis is NOT effectiveness focus ----------
+    # The catalogue is authored in supervisory language and uses one column for
+    # both. The runtime keeps them apart, so the derivation is asserted here.
+    CONTROL_FOCUS = ("DESIGN", "OPERATING", "DESIGN_AND_OPERATING")
+    norm_axis = collections.Counter()
+    norm_focus = collections.Counter()
+    bad_focus = []
+    for r in recs:
+        raw = (r.get("axis") or "").upper()
+        f = (r.get("effectiveness_focus") or "").upper()
+        if raw in ("INHERENT_EXPOSURE", "CONTEXT"):
+            norm_axis["INHERENT_EXPOSURE"] += 1
+            norm_focus["INHERENT_EXPOSURE"] += 1
+        elif raw in CONTROL_FOCUS or raw == "CONTROL_EFFECTIVENESS":
+            norm_axis["CONTROL_EFFECTIVENESS"] += 1
+            f = f or (raw if raw in CONTROL_FOCUS else "")
+            norm_focus[f] += 1
+            if f not in CONTROL_FOCUS:
+                bad_focus.append(r["question_code"])
+        else:
+            bad_focus.append(r["question_code"])
+
+    gate("DQ-59 normalised AXIS split is 17 INHERENT_EXPOSURE / 53 CONTROL_EFFECTIVENESS",
+         norm_axis["INHERENT_EXPOSURE"] == 17 and norm_axis["CONTROL_EFFECTIVENESS"] == 53
+         and sum(norm_axis.values()) == len(recs), str(dict(norm_axis)))
+    gate("DQ-60 EFFECTIVENESS FOCUS split is 17 INHERENT_EXPOSURE / 14 DESIGN / 27 OPERATING / 12 DESIGN_AND_OPERATING",
+         not bad_focus
+         and norm_focus["INHERENT_EXPOSURE"] == 17 and norm_focus["DESIGN"] == 14
+         and norm_focus["OPERATING"] == 27 and norm_focus["DESIGN_AND_OPERATING"] == 12,
+         f"{dict(norm_focus)} unmapped={bad_focus}")
+    gate("DQ-61 IR-GEO-03 stays on the inherent axis with an inherent focus",
+         geo is not None and (geo.get("axis") or "").upper() in ("INHERENT_EXPOSURE", "CONTEXT")
+         and (geo.get("effectiveness_focus") or "").upper() == "INHERENT_EXPOSURE",
+         "missing" if geo is None else f"{geo.get('axis')} / {geo.get('effectiveness_focus')}")
+
 
 
 
