@@ -757,24 +757,33 @@ Before recalculating the approved population:
    confidential evidence content.
 4. Verify a `NOT_CALCULABLE` dimension shows **no value**, not a default.
 5. Verify the judged ratings were not altered by the calculation.
-6. Confirm the expected split — 58 calculable, 19 not calculable — before any
-   wider run.
+6. Confirm the assessment-dimension → methodology-dimension linkage defect in
+   E.2 has been repaired through a governed operation, and restate the expected
+   split from live counts, **before** any wider run. Do not accept a run that
+   returns 80 `NOT_CALCULABLE` outcomes as a certification result.
 7. Only then run the governed recalculation across the approved population, and
    reconcile the resulting counts against E.1 / E.2.
 
 ### I. Certification steps after activation
 
 1. `scripts/verify-aml-calculation-governance.sql` — expect 20 PASS / 0 FAIL.
-2. `scripts/verify-aml-calculation-integrity.sql` — CALC-05, CALC-06, CALC-09 and
+2. `scripts/verify-aml-calc-outcome-fixtures.sql` — expect 10 PASS / 0 FAIL
+   (OUTC-01 … OUTC-10; contract and half-open boundary).
+3. `scripts/verify-aml-calculation-integrity.sql` — CALC-05, CALC-06, CALC-09 and
    CALC-11 must clear (they fail today solely because no `ACTIVE` configuration
    exists).
-3. `scripts/verify-aml-full-module-hardening.sql` — AMLH-09 must clear; expect
-   16 PASS / 0 FAIL.
-4. Confirm override discipline on every divergent dimension: reason,
+4. `scripts/verify-aml-full-module-hardening.sql` — AMLH-09 must clear; expect
+   16 PASS / 0 FAIL. **AMLH-09 does not expect 80 non-null calculated ratings.**
+   It expects **80 governed outcomes**: `CALCULATED` where the data and
+   configuration support one, and explicit `NOT_CALCULABLE` with a recorded
+   reason where they do not. No rating may be invented to clear the gate.
+5. Reconcile the 80 outcomes against E.2 and record the split actually achieved,
+   with the reason distribution for every `NOT_CALCULABLE` dimension.
+6. Confirm override discipline on every divergent dimension: reason,
    `overridden_by`, `overridden_at`, audit event.
-5. Full regression: Epic 2, Epic 3, W3, W4, AML, W5, W6 24/24, PFMI / payment
+7. Full regression: Epic 2, Epic 3, W3, W4, AML, W5, W6 24/24, PFMI / payment
    systems, DMS, RBAC coverage, `bunx tsgo --noEmit`, build, security baseline.
-6. Re-publish the module verdict only after all of the above.
+8. Re-publish the module verdict only after all of the above.
 
 ---
 
@@ -784,28 +793,45 @@ Decisions **A through O** in section C, without exception. In addition:
 
 | # | Question | Why it cannot be settled here |
 | --- | --- | --- |
-| 1 | Is `inherent_direction` `INVERTED` correct for the actual inherent question wording? | Reversing it inverts the entire estate's inherent risk picture. |
-| 2 | Is the control weight total of **117** intended, or should the weights be corrected to 100? | Correcting them is a methodology content change requiring a new methodology version. |
-| 3 | Should the six question-less control dimensions receive questions? | Methodology content change; until then they are permanently not calculable. |
-| 4 | Is the recorded demonstration answer data (820 `NO` of 984) an acceptable basis for the first override review? | It will drive a large adverse calculated population. |
-| 5 | Is `PARTIALLY = 50` the intended severity, or lower? | Pure supervisory severity judgement. |
-| 6 | Is "both questions `YES`" the intended bar for `STRONG` control effectiveness? | Consequence of 2-question dimensions meeting the recommended band edges. |
+| 1 | **Decision I is blocked.** Inherent question polarity is mixed (section 3C). Should `BUSINESS_MODEL_RISK / Q1` be re-worded through a new methodology version, or should per-question polarity be added to the platform? | The first is governed methodology content; the second is a schema and engine change. Either way, no global `inherent_direction` is truthful today. |
+| 2 | Are the current **relative** dimension weights (control total 117) intentional? | The engine normalises by the included weight denominator, so 117 is not invalid — but rescaling to 100 is a methodology content change requiring a new methodology version. |
+| 3 | Should the six question-less control dimensions (27/117) receive questions? | Methodology content change; until then they are permanently not calculable and absent from computed control effectiveness. |
+| 4 | Is retrospective applicability intended, or is `effective_from = 2026-09-02` accepted as the narrowest lawful date? | Backdating asserts calculated recommendations for periods supervised before the policy existed and needs a written rationale (section 3D). |
+| 5 | Is the recorded demonstration answer data (820 `NO` of 984) an acceptable basis for the first override review? | It will drive a large adverse calculated population. |
+| 6 | Is `PARTIALLY = 50` the intended severity, or lower? | Pure supervisory severity judgement. |
+| 7 | Is "both questions `YES`" the intended bar for `STRONG` control effectiveness? | Consequence of 2-question dimensions meeting the recommended band edges. |
+| 8 | Who repairs the assessment-dimension linkage defect (E.2), and under which governed operation? | Without it every approved dimension returns `NOT_CALCULABLE`. |
 
 ---
 
 ## Verdict
 
-**AML/CFT CALCULATION POLICY DECISION PACK — READY FOR SUPERVISORY APPROVAL**
+**AML/CFT CALCULATION POLICY DECISION PACK — NOT READY**
 
-The baseline is factual and read from the live database, the superseded
-document's obsolete terminology is retired in section B, every decision in
-section C is restricted to values the platform actually accepts, the methodology
-version question is answered (no new version required), and the backfill impact
-is quantified without persisting anything.
+The correctness work required of this wave is complete: AMLH-09 now tests a
+governed calculation outcome rather than a non-null rating, CALC-07 enforces the
+exclusive `effective_to` boundary, non-calculable provenance is retained without
+inventing a rating, the engine's actual formula and weight-denominator semantics
+are documented, the `HIGHEST_DIMENSION` weight claim is corrected, and the
+backfill expectation is restated from live data.
+
+The pack nonetheless **cannot be declared ready for supervisory approval**,
+because two prerequisites are unmet:
+
+1. **Inherent question polarity is mixed** (section 3C), so decision I has no
+   truthful value under the current single global `inherent_direction`.
+2. **No approved assessment dimension is linked to a methodology dimension**
+   (section E.2), so a backfill today would produce 80 `NOT_CALCULABLE`
+   outcomes and no calculated recommendation at all.
+
+Both must be resolved — the first by supervisory decision, the second by a
+governed data repair — before decisions A–O are recorded.
 
 **AML FULL MODULE remains NOT CERTIFIED** — AMLH-09 plus CALC-05, CALC-06,
-CALC-09 and CALC-11 stay open until a supervisory owner records decisions A–O,
-a second person approves and activates the configuration, and the backfill and
-certification steps in H and I are completed.
+CALC-09 and CALC-11 stay open until the two prerequisites above are cleared, a
+supervisory owner records decisions A–O, a second person approves and activates
+the configuration, and the backfill and certification steps in H and I are
+completed.
 
 Work stops at this wave.
+
