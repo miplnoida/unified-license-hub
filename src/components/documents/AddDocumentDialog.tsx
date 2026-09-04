@@ -79,7 +79,7 @@ export function AddDocumentDialog({
     });
     setBusy(false);
 
-    if (!result.success) { toast.error(result.error); return; }
+    if (result.success !== true) { toast.error(result.error); return; }
 
     if (result.data.filingNotice) {
       toast.warning(result.data.filingNotice, {
