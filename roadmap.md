@@ -34,11 +34,15 @@
 
 ## Proposed programme — Master Platform Convergence & Document Control (architecture locked, not started)
 
-Reference only. Nothing below is implemented.
+Reference only. Only the items marked complete below are implemented.
 
 - [ ] W0 Architecture lock — [platform master implementation plan](docs/architecture/platform-master-implementation-plan.md), [canonical object register](docs/architecture/canonical-object-register.md), [shared platform services](docs/architecture/shared-platform-services.md), [document control master architecture](docs/dms/03_document-control-master-architecture.md)
-- [ ] W1 Workflow / decision hardening (first wave after the lock)
-- [ ] W2 Document Control backend
+- [x] W1A Work / decision architecture lock + central document access & linking contract — [access, linking and search contract](docs/dms/04_document-access-linking-search-contract.md); record picker delivered; five client write families closed by governed operations; maker-checker kernel added
+- [ ] W1B Workflow / authority convergence
+- [ ] W1C Assignment, delegation, SLA and escalation convergence
+- [ ] W1D Enterprise work projection (module-wide work items)
+- [ ] W2 Document Control backend — includes the governed "register an uploaded document" operation W1A could not deliver
+
 - [ ] W3 Document Control UX
 - [ ] W4 Records & Evidence
 - [ ] W5 Licensing + Returns document integration
