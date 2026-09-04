@@ -25,13 +25,11 @@ BEGIN
 
   -- ING-01 unauthenticated begin is denied
   PERFORM set_config('request.jwt.claims', NULL, true);
-  PERFORM set_config('role', 'anon', true);
   BEGIN
     PERFORM public.dms_ingest_begin('NEW_DOCUMENT', 'entity', _entity);
     RAISE EXCEPTION 'ING-01 FAIL: unauthenticated begin allowed';
   EXCEPTION WHEN insufficient_privilege OR raise_exception THEN NULL;
   END;
-  PERFORM set_config('role', 'postgres', true);
 
   -- act as the officer
   PERFORM set_config('request.jwt.claims',
@@ -76,7 +74,6 @@ BEGIN
   END IF;
 
   -- ING-06 finalize rejects a path outside the session
-  PERFORM set_config('role', 'postgres', true);
   INSERT INTO storage.objects (bucket_id, name, owner) VALUES ('secure-documents', _prefix || '/1-a.pdf', _officer);
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', _officer::text, 'role', 'authenticated')::text, true);
@@ -165,7 +162,6 @@ BEGIN
   SELECT s.session_id, s.storage_prefix INTO _sid2, _prefix
     FROM public.dms_ingest_begin('NEW_VERSION', 'entity', _entity, _group) s;
   _path2 := _prefix || '/2-a.pdf';
-  PERFORM set_config('role', 'postgres', true);
   INSERT INTO storage.objects (bucket_id, name, owner) VALUES ('secure-documents', _path2, _officer);
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', _officer::text, 'role', 'authenticated')::text, true);
