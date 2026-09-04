@@ -499,7 +499,12 @@ export default function DocumentDetail() {
           />
           <DocumentDecisionDialog open={verifyOpen} onOpenChange={setVerifyOpen} groupId={documentId} onDone={refetch} kind="verification" />
           <DocumentDecisionDialog open={acceptOpen} onOpenChange={setAcceptOpen} groupId={documentId} onDone={refetch} kind="acceptance" />
-          <LinkRecordDialog open={linkOpen} onOpenChange={setLinkOpen} groupId={documentId} onDone={refetch} />
+          <LinkRecordDialog
+            open={linkOpen} onOpenChange={setLinkOpen} groupId={documentId} onDone={refetch}
+            entityId={s(doc, 'primary_entity_id') || null}
+            linkedRecordIds={relationships.map((r) => String(r.target_id ?? '')).filter(Boolean)}
+          />
+
         </>
       )}
     </DashboardLayout>
