@@ -22,7 +22,6 @@ export type RecordPickerType =
   | 'return'
   | 'correspondence'
   | 'fit_and_proper'
-  | 'person'
   | 'inspection'
   | 'assessment'
   | 'finding'
