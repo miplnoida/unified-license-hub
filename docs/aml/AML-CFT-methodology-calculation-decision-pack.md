@@ -18,9 +18,10 @@ clearly in one direction, an **Engineering recommendation** is stated and marked
 
 | Item | Current state |
 | --- | --- |
-| Current HEAD (design baseline) | `68ed14448cb24ba71fe34d3da2f29873b2e4bcdb` — "Red-temed AML v1.1 catalogue" |
+| Design baseline entering final closure | `68ed14448cb24ba71fe34d3da2f29873b2e4bcdb` — "Red-temed AML v1.1 catalogue". This is the design input baseline for the closure waves, **not** a claim about the repository's current HEAD. |
 | Proposed catalogue | 70 active questions (17 inherent entries, 53 control), 5 retired and documented |
 | Question classes | CORE 48 / CONDITIONAL 16 / ENHANCED 6 |
+| Question classes per axis | Inherent: CORE 12 / CONDITIONAL 5 / ENHANCED 0 = 17. Control: CORE 36 / CONDITIONAL 11 / ENHANCED 6 = 53 |
 | Inherent split | 16 scored inherent + 1 contextual inherent (`IR-GEO-03`, `CONTEXTUAL_NOT_SCORED`) |
 | Supervisory judgement | `supervisory_judgement_required` YES 67 / NO 3 (`IR-TRX-01`, `CT-ERA-01`, `CT-RK-01`) |
 | Evidence model | `requires_evidence` = governed **evidence basis** (11 types), shareable and inheritable; `SYSTEM_FACT` / `STRUCTURED_METRIC` satisfy it through provenance; no AML-local document repository; no universal evidence-strength hierarchy; no automatic score or answer from facts |
@@ -574,9 +575,10 @@ Design-only. No item below is approved. Implementation of v1.1 is blocked until 
 - **APPROVED BY:** ______________________
 - **DATE:** ______________________
 
-### AML-METH-02 — Inherent question set: 17 questions across 6 dimensions (12 CORE, 4 CONDITIONAL, 1 contextual non-scored)
+### AML-METH-02 — Inherent question set: 17 inherent questions across 6 dimensions — 12 CORE / 5 CONDITIONAL — 16 scored / 1 contextual non-scored
 
-- **Recommendation:** Adopt the red-teamed set. `IR-BUS-03` (outsourced/intragroup AML operations) is moved to control effectiveness (`THIRD_PARTY_OVERSIGHT`); `IR-TRX-02` merges into `IR-PRD-02` (cash) and `IR-TRX-03` into `IR-GEO-02` (cross-border); `IR-DEL-03` merges into `IR-DEL-01`/`IR-PRD-03`; `IR-GEO-03` (corridor concentration) becomes a contextual, non-scored fact because concentration in lower-risk corridors is not higher inherent exposure. Every remaining scored inherent question satisfies: `YES` = more inherent ML/TF exposure before controls.
+- **Two orthogonal classifications.** `question_class` (CORE / CONDITIONAL / ENHANCED) governs **when the question is asked**; `calculation_participation` (scored vs `CONTEXTUAL_NOT_SCORED`) governs **whether the answer feeds the inherent exposure result**. They are independent axes and must not be added together. Accordingly the 17 inherent questions are **12 CORE / 5 CONDITIONAL** (0 ENHANCED) on the class axis, and **16 scored / 1 contextual non-scored** on the calculation axis. `IR-GEO-03` is **one of the five CONDITIONAL questions** and separately carries `calculation_participation = CONTEXTUAL_NOT_SCORED`; it is not itself a question class alongside CORE / CONDITIONAL / ENHANCED.
+- **Recommendation:** Adopt the red-teamed set. `IR-BUS-03` (outsourced/intragroup AML operations) is moved to control effectiveness (`THIRD_PARTY_OVERSIGHT`); `IR-TRX-02` merges into `IR-PRD-02` (cash) and `IR-TRX-03` into `IR-GEO-02` (cross-border); `IR-DEL-03` merges into `IR-DEL-01`/`IR-PRD-03`; `IR-GEO-03` (corridor concentration) is recorded as a contextual, non-scored fact because concentration in lower-risk corridors is not higher inherent exposure. Every remaining scored inherent question satisfies: `YES` = more inherent ML/TF exposure before controls.
 - **Alternatives:** Retain the 21-question proposal (accepts one non-risk-positive question and three double counts); retain 12 v1.0 questions.
 - **Impact:** Sets the exposure measurement basis and removes double counting between customer, geographic, transaction and channel exposure.
 - **STATUS:** AWAITING SUPERVISORY APPROVAL

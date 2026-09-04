@@ -257,6 +257,51 @@ def main() -> int:
     gate("DQ-50 three distinct non-answer states remain reserved",
          all(s in review for s in ("NOT_TRIGGERED", "NOT_ASKED", "NOT_APPLICABLE")))
 
+    # ---- per-axis question-class accounting (derived, then compared) -----------
+    pack = docs.get(PACK, "")
+    matrix = collections.Counter()
+    for r in recs:
+        axis = "INHERENT" if r.get("axis") == "INHERENT_EXPOSURE" else "CONTROL"
+        matrix[(axis, r["question_class"])] += 1
+    inh = {c: matrix[("INHERENT", c)] for c in ("CORE", "CONDITIONAL", "ENHANCED")}
+    ctl = {c: matrix[("CONTROL", c)] for c in ("CORE", "CONDITIONAL", "ENHANCED")}
+
+    gate("DQ-51 per-axis class matrix reconciles to the parsed class census",
+         all(inh[c] + ctl[c] == cls[c] for c in inh)
+         and sum(inh.values()) + sum(ctl.values()) == len(recs),
+         f"inherent={inh} control={ctl} classes={dict(cls)}")
+    gate("DQ-52 inherent axis classes sum to the parsed inherent entry count",
+         sum(inh.values()) == len(inherent) == 17, f"{inh} sum={sum(inh.values())}")
+    gate("DQ-53 control axis classes sum to the parsed control entry count",
+         sum(ctl.values()) == len(recs) - len(inherent) == 53, f"{ctl} sum={sum(ctl.values())}")
+    geo = next((r for r in recs if r["question_code"] == "IR-GEO-03"), None)
+    gate("DQ-54 IR-GEO-03 is CONDITIONAL and CONTEXTUAL_NOT_SCORED on the orthogonal axis",
+         geo is not None and geo["question_class"] == "CONDITIONAL"
+         and geo["calculation_participation"] == "CONTEXTUAL_NOT_SCORED",
+         "missing" if geo is None else f"{geo['question_class']} / {geo['calculation_participation']}")
+    gate("DQ-55 decision pack AML-METH-02 states the derived per-axis and calculation split",
+         all(s in pack for s in (
+             f"{len(inherent)} inherent questions across 6 dimensions",
+             f"{inh['CORE']} CORE / {inh['CONDITIONAL']} CONDITIONAL",
+             f"{len(scored_inherent)} scored / {len(contextual)} contextual non-scored")),
+         "AML-METH-02 heading/wording does not match the derived counts")
+    misleading = [p for p in (
+        f"{inh['CORE']} CORE, {inh['CONDITIONAL'] - 1} CONDITIONAL, {len(contextual)} contextual",
+        "12 CORE, 4 CONDITIONAL, 1 contextual",
+        "third question class",
+    ) if p in pack]
+    gate("DQ-56 decision pack does not treat contextual as a mutually exclusive class",
+         not misleading, str(misleading))
+    gate("DQ-57 decision pack does not claim an older SHA is the repository HEAD",
+         "Current HEAD (design baseline)" not in pack
+         and "Design baseline entering final closure" in pack)
+    gate("DQ-58 decision pack states the derived per-axis matrix",
+         all(s in pack for s in (
+             f"Inherent: CORE {inh['CORE']} / CONDITIONAL {inh['CONDITIONAL']} / ENHANCED {inh['ENHANCED']} = {len(inherent)}",
+             f"Control: CORE {ctl['CORE']} / CONDITIONAL {ctl['CONDITIONAL']} / ENHANCED {ctl['ENHANCED']} = {len(recs) - len(inherent)}")))
+
+
+
 
     width = max(len(n) for n, _, _ in results)
     fails = 0
@@ -270,6 +315,7 @@ def main() -> int:
     print(f"  classes: CORE={cls['CORE']} CONDITIONAL={cls['CONDITIONAL']} ENHANCED={cls['ENHANCED']}")
     print(f"  inherent entries={len(inherent)} scored={len(scored_inherent)} contextual={len(contextual)}")
     print(f"  control entries={len(recs) - len(inherent)}")
+    print(f"  per-axis classes: INHERENT={inh} CONTROL={ctl}")
     print(f"  mandatory: YES={cls['CORE']} NO={len(recs) - cls['CORE']}")
     print(f"  requires_observation: {dict(obs)}")
     print(f"  requires_evidence: YES={len(recs)} NO=0")

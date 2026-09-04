@@ -3,7 +3,7 @@
 Mode: design / red-team review only. No migration, no database write, no methodology version creation, no scores, no bands, no matrix, no effective-date rule, no STR relink write, no certification claim.
 
 Baseline reviewed: `4dd03f5095ae7fe86af5cc9336324630a1b637b5` ("Designed AML-CFT-RBA v1.1").
-Final micro-closure baseline: `68ed14448cb24ba71fe34d3da2f29873b2e4bcdb` ("Red-temed AML v1.1 catalogue").
+Final micro-closure input baseline: `68ed14448cb24ba71fe34d3da2f29873b2e4bcdb` ("Red-temed AML v1.1 catalogue").
 Verification: `python3 scripts/verify-aml-v11-catalogue-design.py` — 50 design gates (DQ-01..DQ-50), every count **parsed** from the catalogue rather than asserted by hand.
 
 ## 1. Honest catalogue census (parsed, post-closure)
