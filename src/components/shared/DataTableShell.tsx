@@ -311,15 +311,7 @@ export function DataTableShell<T extends Record<string, any>>({
                         label={col.label}
                         sortKey={key}
                         sort={sort}
-                        onSort={(k) =>
-                          setSort(
-                            !sort || sort.key !== k
-                              ? { key: k, direction: 'asc' }
-                              : sort.direction === 'asc'
-                                ? { key: k, direction: 'desc' }
-                                : null,
-                          )
-                        }
+                        onSort={toggleSort}
                         align={col.align ?? 'left'}
                       />
                     ) : (
