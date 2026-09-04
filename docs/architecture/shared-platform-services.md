@@ -100,3 +100,24 @@ what exists today, what is authoritative, and what must converge.
 - `master_data_types`, classification schemes/values, taxonomy hierarchy, methodology
   configuration, thresholds/rules seeds under `supabase/baseline/seed/`.
 - Rule: no domain constant in TypeScript that duplicates a configuration table.
+
+## K4 addendum — canonical document ingestion (W1A.2)
+
+The Document & Records Kernel now has one canonical ingestion contract:
+`dms_ingest_begin` → controlled storage write → `dms_ingest_finalize`, consumed
+only through `src/services/dmsIngest.ts` (`beginDocumentIngest`,
+`finalizeDocumentIngest`, `uploadNewDocument`, `uploadNewVersion`). Consumers know
+nothing about buckets, `file_uploads`, `document_groups`, version allocation or
+relationship schema.
+
+Convergence inventory for upload paths:
+
+| Path | Classification | Status |
+| --- | --- | --- |
+| `dms_ingest_begin` / `dms_ingest_finalize` | CANONICAL | Mandatory for all new document upload flows |
+| `secureUpload` | LEGACY TRANSPORT | Existing callers operational; never a document-registration operation |
+| `uploadVersionedDocument` / `create_document_version_metadata` | DOMAIN COMPATIBILITY (Form Management) | Preserved; converge in a later wave |
+| `dms_register_certificate` | SPECIAL-PURPOSE | Licence certificates only |
+
+Ingest staging (`public.dms_ingest_sessions`) is server-written; browsers hold read
+access to their own sessions only. Verifier: `scripts/verify-w1a2-dms-ingest.sql`.

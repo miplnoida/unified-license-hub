@@ -1,3 +1,7 @@
+// LEGACY TRANSPORT PATH (W1A.2). This module uploads an object and records a
+// `file_uploads` row; it registers NO canonical document. Existing callers stay
+// operational, but new canonical "Upload New" flows MUST use
+// `src/services/dmsIngest.ts` (dms_ingest_begin / dms_ingest_finalize).
 import { supabase } from '@/integrations/supabase/client';
 
 // Allowed MIME types for upload
