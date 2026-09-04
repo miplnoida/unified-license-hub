@@ -93,7 +93,7 @@ not require a UI rewrite.
 | --- | --- | --- |
 | Business search picker for records (no technical ids) | Delivered | `record_picker_search` RPC + `src/components/documents/RecordPicker.tsx`; used by the document detail link dialog and the conduct intervention link dialog |
 | Choose Existing document from the central register, in context | Delivered | `src/components/supervision/RecordDocumentLinks.tsx` (business search over the register, governed `dms_link_record`) |
-| Upload New + link as one governed operation | **Not delivered — W2 dependency** | There is no governed operation that registers an uploaded file as a document group with its first version. `secureUpload` writes `file_uploads` only; the only registration routine today is the certificate-specific `dms_register_certificate`. This is the first item of W2. |
+| Upload New + link as one governed operation | Delivered (W1A.2) | Canonical ingest `dms_ingest_begin` → controlled storage write → `dms_ingest_finalize`, consumed through `src/services/dmsIngest.ts` (`uploadNewDocument` / `uploadNewVersion`). One officer action registers the file, the document with its own `DOC-…` reference and first version, applies taxonomy defaults/retention and files the canonical relationships. Verified by `scripts/verify-w1a2-dms-ingest.sql` (ING-01..ING-19). |
 | Relationship-only semantics for Choose Existing / Link | Delivered | `dms_link_record` creates a `document_relationships` row only; no group or version is created, so no duplicate is produced |
 | Proof contexts | Supervision (examination workpapers, data requests) and Licensing Application (documents tab) | `WorkpapersPanel`, `DataRequestsPanel`, `ApplicationDocumentsPanel` |
 
@@ -155,3 +155,68 @@ caller's own row-level visibility that the target exists and is in scope
 (`dms_assert_can_manage`), entity-scope checks and audit. Reading a record in the
 picker therefore grants no linking authority; authority is rechecked on write and
 repeated links are idempotent.
+
+## Canonical document ingestion (W1A.2)
+
+### Upload path classification
+
+| Path | Classification | Rule |
+| --- | --- | --- |
+| `secureUpload` (`src/lib/secureFileUpload.ts`) | LEGACY TRANSPORT | Uploads an object and writes `file_uploads` only. It registers no logical document. Existing callers keep working; **no new caller may use it as a document-registration operation**. |
+| `uploadVersionedDocument` + `create_document_version_metadata` | DOMAIN COMPATIBILITY (Form Management) | Creates group/version/history under a `…/form-management/…` path with client-side probing. Preserved unchanged for certified form flows; converged in a later wave. |
+| `dms_register_certificate` | SPECIAL-PURPOSE REGISTRATION | Licence certificate artefacts only. |
+| `dms_ingest_begin` + `dms_ingest_finalize` | **CANONICAL PLATFORM INGEST** | The only path for new Upload New / Add Version flows. |
+
+### The one business operation
+
+"Add Document" is a single action for the officer. Technically it is a controlled
+two-phase process, because object storage and Postgres are separate systems:
+
+1. **Begin** — server checks the signed-in actor, `document_management.upload`
+   (plus `create_version` for `NEW_VERSION`), that the business record exists and
+   is inside the caller's own scope, and that the category/type are active. It
+   derives the owning entity itself and returns a short-lived ingest session
+   (2 hours) plus a controlled, module-neutral storage location
+   `{auth.uid()}/dms-ingest/{session_id}/…`. No module names appear in the
+   canonical storage architecture; the officer never types a record id.
+2. **Binary upload** — the browser writes only the file, only to that path.
+3. **Finalize** — server re-checks actor, session ownership, expiry, permission,
+   path ownership, object existence, size and MIME, then registers
+   `file_uploads` (`pending_scan`), the `document_groups` row with its own
+   `DOC-…` reference (or the same group for `NEW_VERSION`), the
+   server-allocated `document_versions` row, taxonomy defaults, confidentiality,
+   retention, source context, canonical `document_relationships` and the
+   `document_action_logs` entry.
+
+`public.dms_ingest_sessions` is staging state only — never a document lifecycle.
+The browser can read its own sessions and write none of them.
+
+### Guarantees
+
+- **No client business writes.** `file_uploads`, `document_groups`,
+  `document_versions` and `document_relationships` are server-written on this path.
+- **Idempotent.** A repeated finalize returns the already-registered result: no
+  second file, group, version, relationship or audit decision.
+- **Version semantics.** `NEW_VERSION` requires an existing document and
+  `create_version` authority; the server allocates the next number, the prior
+  object is preserved and its version marked superseded.
+- **Filing exception.** A registered document is never discarded because filing
+  failed. It keeps `canonical_context_status` `retry_required` / `failed` with a
+  reason and attempt count for `dms_reconcile_context`, and the officer sees
+  "Document uploaded, but filing against this record needs attention."
+- **Hard failure.** If registration cannot complete at all, the session is
+  aborted and the staged object removed — it is never treated as a document.
+  `dms_ingest_cleanup_expired` marks abandoned sessions expired and never
+  touches a finalized document.
+- **Scan gate.** New files start `pending_scan`; `dms_version_scan_clean` and the
+  existing quarantine controls remain the sole release authority.
+- **Discoverable.** The result is a normal register document, so the future
+  DocumentPicker "Choose Existing" (relationship only) reaches it unchanged.
+
+### Proof context
+
+Entity ▸ Documents (`src/components/documents/EntityDocuments.tsx`, the Documents
+tab of the licensee record) exposes **Add Document**
+(`src/components/documents/AddDocumentDialog.tsx`). The officer picks a file,
+category and type; the entity comes from the screen. The new `DOC-…` reference
+appears in that entity's register rows immediately.

@@ -9,7 +9,11 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AddDocumentDialog } from '@/components/documents/AddDocumentDialog';
 import { Card, CardContent } from '@/components/ui/card';
+
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -58,6 +62,8 @@ export interface EntityDocumentsProps {
 
 export default function EntityDocuments({ entityId, hideIntro }: EntityDocumentsProps) {
   const [grid, setGrid] = useState<GridState>(emptyGridState(25));
+  const [addOpen, setAddOpen] = useState(false);
+
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState(ALL);
@@ -188,12 +194,26 @@ export default function EntityDocuments({ entityId, hideIntro }: EntityDocuments
 
   return (
     <div className="space-y-4">
-      {!hideIntro && (
-        <p className="text-sm text-muted-foreground">
-          Every document held for this entity in the central document register, whatever process
-          produced it. Visibility follows the register's own access rules.
-        </p>
-      )}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        {!hideIntro ? (
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            Every document held for this entity in the central document register, whatever process
+            produced it. Visibility follows the register's own access rules.
+          </p>
+        ) : <span />}
+        <Button size="sm" onClick={() => setAddOpen(true)} data-rbac="document_management.upload">
+          <Plus className="mr-1 h-4 w-4" /> Add document
+        </Button>
+      </div>
+
+      <AddDocumentDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        context={{ recordType: 'entity', recordId: entityId, sourceModule: 'entity' }}
+        contextLabel="this entity"
+        onUploaded={() => refetch()}
+      />
+
 
       <Card>
         <CardContent className="grid gap-3 p-4 md:grid-cols-3 xl:grid-cols-4">
