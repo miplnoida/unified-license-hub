@@ -176,6 +176,29 @@ BEGIN
       _m,_dimI,_q1,'FX_INH','FXQ1','Inherent question','YES','[]'::jsonb);
   END LOOP;
 
+  -- D. an assessment whose inherent AND control sides are both answered, so the
+  --    engine can produce a residual rating and a recommendation end to end.
+  INSERT INTO public.supervisory_assessment(reference, entity_id, domain_code, methodology_id,
+    methodology_version, period_start, period_end, assessment_date, status)
+  VALUES ('ZZ-OUTC-CALC',_ent,'AML_CFT',_m,'1','2026-04-01','2026-06-29','2026-07-01','draft')
+  RETURNING id INTO _aCalc;
+  INSERT INTO public.supervisory_assessment_dimension(assessment_id, methodology_dimension_id,
+    dimension_code, dimension_group, weight)
+  VALUES (_aCalc,_dimI,'FX_INH','INHERENT_RISK',1),
+         (_aCalc,_dimC,'FX_CTL','CONTROL_EFFECTIVENESS',1);
+  INSERT INTO public.supervisory_assessment_question_response(assessment_id, assessment_dimension_id,
+    methodology_id, methodology_dimension_id, methodology_question_id, dimension_code, question_code,
+    question_text, response, evidence_refs)
+  VALUES (_aCalc,
+    (SELECT id FROM public.supervisory_assessment_dimension
+      WHERE assessment_id = _aCalc AND dimension_code = 'FX_INH'),
+    _m,_dimI,_q1,'FX_INH','FXQ1','Inherent question','YES','[]'::jsonb),
+   (_aCalc,
+    (SELECT id FROM public.supervisory_assessment_dimension
+      WHERE assessment_id = _aCalc AND dimension_code = 'FX_CTL'),
+    _m,_dimC,_q2,'FX_CTL','FXQ2','Control question','YES','[]'::jsonb);
+
+
   -- OUTC-09 exact half-open boundary
   _r := public.supervisory_calc_compute(_aEdge);
   PERFORM pg_temp.gate('OUTC-09','effective_to is exclusive at the exact boundary',
