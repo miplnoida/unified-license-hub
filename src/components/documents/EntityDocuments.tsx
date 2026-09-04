@@ -62,6 +62,8 @@ export interface EntityDocumentsProps {
 
 export default function EntityDocuments({ entityId, hideIntro }: EntityDocumentsProps) {
   const [grid, setGrid] = useState<GridState>(emptyGridState(25));
+  const [addOpen, setAddOpen] = useState(false);
+
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState(ALL);
