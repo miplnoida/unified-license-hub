@@ -575,9 +575,10 @@ Design-only. No item below is approved. Implementation of v1.1 is blocked until 
 - **APPROVED BY:** ______________________
 - **DATE:** ______________________
 
-### AML-METH-02 — Inherent question set: 17 questions across 6 dimensions (12 CORE, 4 CONDITIONAL, 1 contextual non-scored)
+### AML-METH-02 — Inherent question set: 17 inherent questions across 6 dimensions — 12 CORE / 5 CONDITIONAL — 16 scored / 1 contextual non-scored
 
-- **Recommendation:** Adopt the red-teamed set. `IR-BUS-03` (outsourced/intragroup AML operations) is moved to control effectiveness (`THIRD_PARTY_OVERSIGHT`); `IR-TRX-02` merges into `IR-PRD-02` (cash) and `IR-TRX-03` into `IR-GEO-02` (cross-border); `IR-DEL-03` merges into `IR-DEL-01`/`IR-PRD-03`; `IR-GEO-03` (corridor concentration) becomes a contextual, non-scored fact because concentration in lower-risk corridors is not higher inherent exposure. Every remaining scored inherent question satisfies: `YES` = more inherent ML/TF exposure before controls.
+- **Two orthogonal classifications.** `question_class` (CORE / CONDITIONAL / ENHANCED) governs **when the question is asked**; `calculation_participation` (scored vs `CONTEXTUAL_NOT_SCORED`) governs **whether the answer feeds the inherent exposure result**. They are independent axes and must not be added together. Accordingly the 17 inherent questions are **12 CORE / 5 CONDITIONAL** (0 ENHANCED) on the class axis, and **16 scored / 1 contextual non-scored** on the calculation axis. `IR-GEO-03` is **one of the five CONDITIONAL questions** and separately carries `calculation_participation = CONTEXTUAL_NOT_SCORED`; it is not a third question class.
+- **Recommendation:** Adopt the red-teamed set. `IR-BUS-03` (outsourced/intragroup AML operations) is moved to control effectiveness (`THIRD_PARTY_OVERSIGHT`); `IR-TRX-02` merges into `IR-PRD-02` (cash) and `IR-TRX-03` into `IR-GEO-02` (cross-border); `IR-DEL-03` merges into `IR-DEL-01`/`IR-PRD-03`; `IR-GEO-03` (corridor concentration) is recorded as a contextual, non-scored fact because concentration in lower-risk corridors is not higher inherent exposure. Every remaining scored inherent question satisfies: `YES` = more inherent ML/TF exposure before controls.
 - **Alternatives:** Retain the 21-question proposal (accepts one non-risk-positive question and three double counts); retain 12 v1.0 questions.
 - **Impact:** Sets the exposure measurement basis and removes double counting between customer, geographic, transaction and channel exposure.
 - **STATUS:** AWAITING SUPERVISORY APPROVAL
