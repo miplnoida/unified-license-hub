@@ -93,7 +93,7 @@ END $$;
 -- ------------------------------------ 2/3. half-open boundary and provenance
 DO $$
 DECLARE _ent uuid; _m uuid; _dimI uuid; _dimC uuid; _q1 uuid; _cfgv uuid;
-        _aEdge uuid; _aIn uuid; _r jsonb; _row public.supervisory_assessment_dimension;
+        _aEdge uuid; _aIn uuid; _aNone uuid; _r jsonb; _row public.supervisory_assessment_dimension;
         _resolved uuid;
 BEGIN
   SELECT entity_id INTO _ent FROM public.supervisory_assessment WHERE entity_id IS NOT NULL LIMIT 1;
@@ -146,6 +146,15 @@ BEGIN
   VALUES ('ZZ-OUTC-IN',_ent,'AML_CFT',_m,'1','2026-04-01','2026-06-29','2026-07-01','draft')
   RETURNING id INTO _aIn;
 
+  -- C. an assessment whose only dimension is unanswered -> wholly NOT_CALCULABLE
+  INSERT INTO public.supervisory_assessment(reference, entity_id, domain_code, methodology_id,
+    methodology_version, period_start, period_end, assessment_date, status)
+  VALUES ('ZZ-OUTC-NONE',_ent,'AML_CFT',_m,'1','2026-04-01','2026-06-29','2026-07-01','draft')
+  RETURNING id INTO _aNone;
+  INSERT INTO public.supervisory_assessment_dimension(assessment_id, methodology_dimension_id,
+    dimension_code, dimension_group, weight)
+  VALUES (_aNone,_dimC,'FX_CTL','CONTROL_EFFECTIVENESS',1);
+
   FOR _resolved IN SELECT unnest(ARRAY[_aEdge,_aIn]) LOOP
     INSERT INTO public.supervisory_assessment_dimension(assessment_id, methodology_dimension_id,
       dimension_code, dimension_group, weight)
@@ -194,16 +203,17 @@ END $$;
 
 -- ------------------------------------ 4. governed recalculation of NOT_CALCULABLE
 DO $$
-DECLARE _uid uuid; _cfg uuid; _aIn uuid; _dry jsonb; _wr jsonb; _row public.supervisory_assessment_dimension;
+DECLARE _uid uuid; _cfg uuid; _aIn uuid; _aNone uuid; _dry jsonb; _wr jsonb; _row public.supervisory_assessment_dimension;
         _item jsonb; _itemw jsonb;
 BEGIN
   SELECT id INTO _aIn FROM public.supervisory_assessment WHERE reference = 'ZZ-OUTC-IN';
+  SELECT id INTO _aNone FROM public.supervisory_assessment WHERE reference = 'ZZ-OUTC-NONE';
   _cfg := public.supervisory_calc_config_for(_aIn);
   SELECT u.id INTO _uid FROM auth.users u
    WHERE public.has_permission(u.id,'aml_supervision','manage_config') ORDER BY u.email LIMIT 1;
-  IF _uid IS NULL OR _aIn IS NULL THEN
-    PERFORM pg_temp.gate('OUTC-11','governed recalculation reports WOULD_RECORD_NOT_CALCULABLE', false,
-      'no manage_config identity or fixture assessment');
+  IF _uid IS NULL OR _aIn IS NULL OR _aNone IS NULL THEN
+    PERFORM pg_temp.gate('OUTC-11','governed recalculation dry run labels each outcome distinctly',
+      false, 'no manage_config identity or fixture assessment');
     RETURN;
   END IF;
 
@@ -217,22 +227,26 @@ BEGIN
   RESET ROLE;
   PERFORM set_config('request.jwt.claims','{}', true);
 
-  SELECT e INTO _item FROM jsonb_array_elements(_dry->'items') e WHERE e->>'assessment_id' = _aIn::text;
-  SELECT e INTO _itemw FROM jsonb_array_elements(_wr->'items') e WHERE e->>'assessment_id' = _aIn::text;
+  SELECT e INTO _item FROM jsonb_array_elements(_dry->'items') e WHERE e->>'assessment_id' = _aNone::text;
+  SELECT e INTO _itemw FROM jsonb_array_elements(_wr->'items') e WHERE e->>'assessment_id' = _aNone::text;
 
-  PERFORM pg_temp.gate('OUTC-11','governed recalculation dry run reports WOULD_RECORD_NOT_CALCULABLE',
+  PERFORM pg_temp.gate('OUTC-11','governed recalculation dry run labels each outcome distinctly',
     _item->>'result' = 'WOULD_RECORD_NOT_CALCULABLE'
+    AND (SELECT e->>'result' FROM jsonb_array_elements(_dry->'items') e
+          WHERE e->>'assessment_id' = _aIn::text) = 'WOULD_CALCULATE'
     AND (_dry->>'not_calculable')::int >= 1
-    AND (_dry->>'recalculated')::int = 0,
-    format('item=%s not_calculable=%s recalculated=%s blocked=%s',
-      COALESCE(_item->>'result','(none)'), _dry->>'not_calculable', _dry->>'recalculated',
-      _dry->>'blocked_review_required'));
+    AND (_dry->>'recalculated')::int >= 1,
+    format('non-calculable item=%s calculable item=%s not_calculable=%s recalculated=%s',
+      COALESCE(_item->>'result','(none)'),
+      COALESCE((SELECT e->>'result' FROM jsonb_array_elements(_dry->'items') e
+                 WHERE e->>'assessment_id' = _aIn::text),'(none)'),
+      _dry->>'not_calculable', _dry->>'recalculated'));
 
   PERFORM pg_temp.gate('OUTC-12','governed recalculation write run materialises NOT_CALCULABLE',
     _itemw->>'result' = 'RECORDED_NOT_CALCULABLE'
-    AND EXISTS (SELECT 1 FROM public.supervisory_assessment_calculation c
-                 WHERE c.assessment_id = _aIn AND c.status = 'NOT_CALCULABLE'
-                   AND c.residual_rating IS NULL AND c.config_id = _cfg),
+    AND EXISTS (SELECT 1 FROM public.supervisory_assessment_dimension d
+                 WHERE d.assessment_id = _aNone AND d.calculation_status = 'NOT_CALCULABLE'
+                   AND d.calculated_residual_rating IS NULL AND d.calculation_config_id = _cfg),
     format('item=%s', COALESCE(_itemw->>'result','(none)')));
 
   SELECT * INTO _row FROM public.supervisory_assessment_dimension
