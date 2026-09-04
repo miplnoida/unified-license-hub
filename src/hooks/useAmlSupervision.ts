@@ -712,9 +712,11 @@ export function useAmlWorkTypes() {
         .eq('domain_code', 'AML_CFT')
         .limit(2000);
       if (error) throw error;
-      return Array.from(
-        new Map((data ?? []).map((r: any) => [String(r.work_type), String(r.work_type_label ?? r.work_type)])).entries(),
-      ).sort((a, b) => a[1].localeCompare(b[1]));
+      const byCode = new Map<string, string>();
+      (data ?? []).forEach((r: any) => {
+        byCode.set(String(r.work_type), String(r.work_type_label ?? r.work_type));
+      });
+      return Array.from(byCode.entries()).sort((a, b) => a[1].localeCompare(b[1]));
     },
   });
 }
