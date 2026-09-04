@@ -102,13 +102,13 @@ No policy choice below is presented as an engineering fix.
 - **22** assessment-dimension rows, in **22 distinct assessments**, all `dimension_code = STR_SAR_GOVERNANCE`, all with `methodology_dimension_id IS NULL`.
 - `STR_SAR_GOVERNANCE` exists **only** in the retired `AML_RBA 1.0` (19 dimensions, no questions, no weights).
 - The active `AML-CFT-RBA 1.0` uses `STR_GOVERNANCE` (control, weight 6) plus a separate `STR_IDENTIFICATION` (control, weight 7).
-- **Critical finding:** every one of the 22 host assessments is bound to the **ACTIVE** methodology `AML-CFT-RBA 1.0` (`methodology_version = 1.0`), not to the retired methodology. These are therefore **code-mismatch rows on current assessments**, not historical rows on a retired methodology.
+- **Critical finding:** every one of the 22 host assessments is bound to the **ACTIVE** methodology `AML-CFT-RBA 1.0` (`methodology_version = 1.0`), not to that older methodology. These are therefore **code-mismatch rows on current assessments**, not historical rows on a retired methodology.
 - Assessment dates: all **2026-09-03**; period 2025-09-03 → 2026-09-02. References `SUP-AML_CFT-2026-00351`…`00375`.
 - Status: **19 approved**, **1 superseded** (`00370`), **1 submitted** (`00352`), **1 draft** (`00351`).
 - Question codes attached to these rows: **none**. `supervisory_assessment_question_response` rows referencing these dimensions: **0**.
 - Scores/outcomes dependent on them: **none**. `score`, `calculated_score`, `calculated_*_rating` are NULL on all 22; `calculation_status` is NULL on 21 and `NO_EFFECTIVE_DATE_RULE` on 1.
 - Assessment-level `residual_rating` on the hosts (HIGH ×18, MODERATE, LOW) is **judged**, entered before any calculation existed; it does not derive from these rows.
-- Reachability: the draft and submitted assessments are **still reachable by active writers**; the rows are therefore **not historical-only**. The current link guard would refuse a new insert of this code against the active methodology, so no *new* rows of this shape can be created.
+- Reachability: the draft and submitted assessments are **still reachable by active writers**; the rows are therefore **not historical only**. The current link guard would refuse a new insert of this code against the active methodology, so no *new* rows of this shape can be created.
 
 ### 3.2 Semantic comparison
 
@@ -132,7 +132,7 @@ Equivalence **cannot be proven from repository evidence**: the retired dimension
 | Migration | one governed dry-run then write run scoped to `AML_CFT` |
 | Risk | asserts a semantic equivalence the repository cannot substantiate; if policy later says the retired dimension also covered *identification/filing*, the mapping is wrong and the amendment is on approved records |
 
-**OPTION B — keep the 22 rows bound only to the retired methodology** (leave unlinked, or move the host assessments' dimension provenance to `AML_RBA 1.0`).
+**OPTION B — keep the 22 rows bound only to that older methodology** (leave unlinked, or move the host assessments' dimension provenance to `AML_RBA 1.0`).
 
 | Aspect | Effect |
 |---|---|
@@ -314,7 +314,7 @@ Each decision is left unapproved. `APPROVED VALUE`, `APPROVED BY`, `APPROVED DAT
 **Question requiring approval:** How should the 22 `STR_SAR_GOVERNANCE` assessment dimensions be treated?
 **Why it matters:** LINK-11 fails while they are unresolved; 2 of the 22 host assessments are still writable; certification cannot complete.
 **Current system state:** 22 rows, 22 assessments, all bound to the active methodology, 0 responses, 0 scores, 0 dependent outcomes; the code exists only in the retired `AML_RBA 1.0`.
-**Choices:** Option A predecessor of `STR_GOVERNANCE` | Option B leave bound to the retired methodology | Option C distinct dimension via methodology v1.1.
+**Choices:** Option A predecessor of `STR_GOVERNANCE` | Option B leave bound to that older methodology | Option C distinct dimension via methodology v1.1.
 **Impact:** see section 3.3.
 **Engineering recommendation:** Option A (**NOT APPROVED POLICY**).
 **APPROVED VALUE:**
@@ -539,106 +539,126 @@ AML/CFT is **NOT CERTIFIED** and the roadmap status is unchanged. Certification 
 
 ---
 
-## AML-METH decision register — AML-CFT-RBA v1.1 content design
+## AML-METH decision register — AML-CFT-RBA v1.1 content design (rewritten by the quality closure of 2026-09-04)
 
-Design-only. No item below is approved. Implementation of v1.1 is blocked until all are decided.
+Design-only. No item below is approved. Implementation of v1.1 is blocked until all are decided. Recommendations were rewritten — not retained — after the quality review (`docs/aml/AML-CFT-RBA-v1.1-quality-review.md`).
 
-### AML-METH-01 — Adopt the exposure -> control -> residual -> judgement -> response chain for v1.1
+### AML-METH-01 — Adopt the exposure -> control -> residual -> judgement -> response chain, with question classes
 
-- **Recommendation:** Adopt as designed
-- **Alternatives:** Retain v1.0 undifferentiated model
-- **Impact:** Determines whether policy existence can count as control effectiveness
+- **Recommendation:** Adopt the chain, and adopt the CORE / CONDITIONAL / ENHANCED question-class model so that a catalogue question is not automatically mandatory in every assessment.
+- **Alternatives:** Retain v1.0 undifferentiated model; or adopt the chain with a single mandatory question set.
+- **Impact:** Determines whether policy existence can count as control effectiveness, and whether standard-cycle burden is proportionate (48 questions rather than 70).
 - **STATUS:** AWAITING SUPERVISORY APPROVAL
 - **APPROVED VALUE:** ______________________
 - **APPROVED BY:** ______________________
 - **DATE:** ______________________
 
-### AML-METH-02 — Inherent question set (21 questions across 6 dimensions)
+### AML-METH-02 — Inherent question set: 17 questions across 6 dimensions (12 CORE, 4 CONDITIONAL, 1 contextual non-scored)
 
-- **Recommendation:** Adopt as catalogued
-- **Alternatives:** Retain 12 v1.0 questions; or reduce scope
-- **Impact:** Sets exposure measurement basis
+- **Recommendation:** Adopt the red-teamed set. `IR-BUS-03` (outsourced/intragroup AML operations) is moved to control effectiveness (`THIRD_PARTY_OVERSIGHT`); `IR-TRX-02` merges into `IR-PRD-02` (cash) and `IR-TRX-03` into `IR-GEO-02` (cross-border); `IR-DEL-03` merges into `IR-DEL-01`/`IR-PRD-03`; `IR-GEO-03` (corridor concentration) becomes a contextual, non-scored fact because concentration in lower-risk corridors is not higher inherent exposure. Every remaining scored inherent question satisfies: `YES` = more inherent ML/TF exposure before controls.
+- **Alternatives:** Retain the 21-question proposal (accepts one non-risk-positive question and three double counts); retain 12 v1.0 questions.
+- **Impact:** Sets the exposure measurement basis and removes double counting between customer, geographic, transaction and channel exposure.
 - **STATUS:** AWAITING SUPERVISORY APPROVAL
 - **APPROVED VALUE:** ______________________
 - **APPROVED BY:** ______________________
 - **DATE:** ______________________
 
-### AML-METH-03 — Control question set (54 questions across 20 dimensions)
+### AML-METH-03 — Control question set: 53 questions across 20 dimensions (36 CORE, 11 CONDITIONAL, 6 ENHANCED)
 
-- **Recommendation:** Adopt as catalogued
-- **Alternatives:** Reduce to high-risk dimensions only
-- **Impact:** Sets assessment burden and coverage
+- **Recommendation:** Adopt with the closure changes: `CT-DQ-02` retired (reconciliation absorbed by `CT-DQ-01` and `CT-TM-02`); `CT-IT-03` narrowed to board reporting so closure validation is assessed once, in `CT-REM-03`; file/alert/report sampling and training-effectiveness testing (`CT-CDD-03`, `CT-ALRT-02`, `CT-STRI-03`, `CT-STRG-03`, `CT-TRN-03`, `CT-REM-03`) classified ENHANCED (examination/thematic); third-party oversight and model governance classified CONDITIONAL on the presence of third parties or automated detection.
+- **Alternatives:** Adopt all 54 as mandatory (checklist effect, 70-question standard cycle); reduce further by retiring model governance or data quality (loses supervisory expectation coverage).
+- **Impact:** Sets control burden. Standard cycle = 36 control questions; deep-dive work adds the ENHANCED set.
 - **STATUS:** AWAITING SUPERVISORY APPROVAL
 - **APPROVED VALUE:** ______________________
 - **APPROVED BY:** ______________________
 - **DATE:** ______________________
 
-### AML-METH-04 — Response semantics for both axes
+### AML-METH-04 — Context-sensitive response semantics per axis and effectiveness focus
 
-- **Recommendation:** Adopt as designed
-- **Alternatives:** Alternative wording or additional response values
-- **Impact:** Affects every future calculation configuration
+- **Recommendation:** Adopt `INHERENT_SEM`, `CONTROL_SEM_DESIGN`, `CONTROL_SEM_OPERATING`, `CONTROL_SEM_DESIGN_AND_OPERATING` and `CONTEXT_FACT_SEM`. A pure DESIGN question must not require operating evidence merely because a global control definition demanded it.
+- **Alternatives:** Retain one global control definition requiring design *and* operation on every control question (internally inconsistent with the DESIGN/OPERATING split).
+- **Impact:** Determines what `YES` means, and what evidence is sufficient, on 53 control questions.
 - **STATUS:** AWAITING SUPERVISORY APPROVAL
 - **APPROVED VALUE:** ______________________
 - **APPROVED BY:** ______________________
 - **DATE:** ______________________
 
-### AML-METH-05 — Selective design vs operating-effectiveness split
+### AML-METH-05 — Selective design vs operating-effectiveness split (14 DESIGN / 27 OPERATING / 12 DESIGN_AND_OPERATING)
 
-- **Recommendation:** Adopt as designed
-- **Alternatives:** Apply the split to all controls, or none
-- **Impact:** Affects question count and evidence demand
+- **Recommendation:** Adopt as catalogued; split only where the operating failure mode is distinct.
+- **Alternatives:** Split every control (doubles burden); split none (policy existence becomes proof of effectiveness).
+- **Impact:** Assessment effort and the ability to say a control is well designed but failing.
 - **STATUS:** AWAITING SUPERVISORY APPROVAL
 - **APPROVED VALUE:** ______________________
 - **APPROVED BY:** ______________________
 - **DATE:** ______________________
 
-### AML-METH-06 — Evidence mandate: observation + minimum one evidence item on every question
+### AML-METH-06 — Evidence basis (replaces the "observation + one evidence item per question" mandate)
 
-- **Recommendation:** Adopt
-- **Alternatives:** Permit assertion-only for design questions
-- **Impact:** Affects assessment effort and defensibility
+- **Recommendation:** Every **final supervisory response** must carry (A) a rationale/observation appropriate to the judgement and (B) a sufficient **governed evidence basis**. An evidence basis may be an `ENTERPRISE_DOCUMENT`, `SYSTEM_FACT`, `REGULATORY_RETURN`, `STRUCTURED_METRIC`, `SUPERVISORY_SAMPLE`, `WORKPAPER`, `PRIOR_EXAMINATION`, `FINDING`, `REMEDIATION_RECORD`, `RFI_RESPONSE` or `AUTHORISED_EXTERNAL_SOURCE`. One document or governed fact may support several questions; a question need not create a duplicate evidence object. For purely system-factual questions, structured provenance (source, period, timestamp, extraction reference) satisfies the evidence requirement. No assertion-only favourable conclusion. No AML-local document store; references are governed references into existing platform records.
+- **Alternatives:** Retain one uploaded artefact per question (70 uploads per cycle, duplicated evidence, no provenance gain); permit assertion-only for design questions (undermines defensibility).
+- **Impact:** Determines assessment effort, evidence duplication and defensibility.
 - **STATUS:** AWAITING SUPERVISORY APPROVAL
 - **APPROVED VALUE:** ______________________
 - **APPROVED BY:** ______________________
 - **DATE:** ______________________
 
-### AML-METH-07 — N/A discipline: enumerated conditions only, rationale always required
+### AML-METH-07 — N/A discipline: enumerated conditions only, rationale always required; N/A distinguished from NOT_TRIGGERED and NOT_ASKED
 
-- **Recommendation:** Adopt
-- **Alternatives:** Free N/A with rationale
-- **Impact:** Affects comparability and calculability
+- **Recommendation:** Adopt. `NOT_APPLICABLE` (activity genuinely not undertaken), `NOT_TRIGGERED` (conditional trigger absent) and `NOT_ASKED` / `OUT_OF_SCOPE` (enhanced question outside this assessment's scope) are three distinct states; none may silently score zero or full, and none is a favourable response.
+- **Alternatives:** Free N/A with rationale; or treat untriggered questions as N/A (loses the distinction between "not applicable" and "not in scope").
+- **Impact:** Comparability, calculability and honest completeness reporting.
 - **STATUS:** AWAITING SUPERVISORY APPROVAL
 - **APPROVED VALUE:** ______________________
 - **APPROVED BY:** ______________________
 - **DATE:** ______________________
 
-### AML-METH-08 — Legacy STR_SAR_GOVERNANCE -> STR_GOVERNANCE display/lineage mapping only
+### AML-METH-08 — Legacy `STR_SAR_GOVERNANCE`: governed audited relink to `STR_GOVERNANCE` (supersedes the display-only recommendation)
 
-- **Recommendation:** Adopt mapping for display; no data repair
-- **Alternatives:** Leave unmapped (LINK-11 stays open); or repair historical rows
-- **Impact:** Affects historical rendering only
+- **Measured fact:** 22 assessment-dimension rows across 22 assessments whose **host assessments are bound to active `AML-CFT-RBA` v1.0**; the rows themselves have **no canonical methodology-dimension link**. 0 question responses, 0 calculated scores, 0 dependent calculated ratings; officer-judged dimension ratings and rationale are present. Host statuses: 19 approved, 1 superseded, 1 submitted, 1 draft — not historical only.
+- **Recommendation:** If the methodology owner confirms that `STR_SAR_GOVERNANCE` is the semantic predecessor of `STR_GOVERNANCE`, execute a **governed, audited, idempotent relink** of the 22 rows to canonical `STR_GOVERNANCE`, preserving the original dimension code and provenance, assessment status, responses, judged ratings and history. Because the rows hold no responses and no calculated results, no rating is invented. Display/lineage-only mapping is rejected as a final route: it leaves LINK-11 permanently open and is therefore not an acceptable certification path.
+- **Future governed write plan (no write in this wave):** (1) methodology-owner confirmation of semantic equivalence recorded as the approval of this decision; (2) execute the existing governed `supervisory_assessment_structure_backfill`/relink operation under `aml_supervision.manage_config` with `_dry_run := true` and review the per-row export; (3) re-run with `_dry_run := false` and a supervisory rationale, emitting one `STRUCTURE_REPAIRED` event and audit row per repaired row, retaining `legacy_dimension_code = STR_SAR_GOVERNANCE` as provenance; (4) re-run LINK-01..LINK-11 and the structural, outcome and calculation-governance suites; (5) no recalculation is triggered, since no calculated result exists.
+- **Alternatives:** Display/lineage mapping only (LINK-11 stays open); leave unmapped; delete the rows (rejected — destroys judged supervisory record).
+- **Impact:** Closes LINK-11; makes the STR dimension of 22 live assessments canonically linked and reportable.
 - **STATUS:** AWAITING SUPERVISORY APPROVAL
 - **APPROVED VALUE:** ______________________
 - **APPROVED BY:** ______________________
 - **DATE:** ______________________
 
-### AML-METH-09 — Sector overlay approach: single catalogue with N/A conditions and sector notes
+### AML-METH-09 — Global AML/CFT core plus sector applicability/overlay capability (supersedes the single-catalogue-with-N/A approach)
 
-- **Recommendation:** Adopt
-- **Alternatives:** Separate sector variants of the methodology
-- **Impact:** Affects maintenance and comparability
+- **Recommendation:** Adopt a **global core** (44 CORE_ALL, 4 CORE_WITH_SECTOR_GUIDANCE) with **13 SECTOR_CONDITIONAL** questions resolved by trigger and **9 SECTOR_OVERLAY_CANDIDATE** questions (correspondent/remittance corridors, virtual-asset and complex products, agent networks, automated detection and model governance) earmarked for sector overlays. Overlays should later be expressed as sector-scoped applicability and guidance records over the same canonical question catalogue, resolved through the existing entity-context methodology resolver — duplicating no question text, evidence contract, document or storage architecture. Sectors analysed: banks, credit unions, insurance, securities, MSBs, VASPs, DNFBPs, other.
+- **Alternatives:** Single 70-question global methodology answered largely `NOT_APPLICABLE` (previous recommendation — produces a large false N/A population and defeats comparability); separate sector variants of the whole methodology (duplicates maintenance and breaks cross-sector comparison).
+- **Impact:** Determines whether the product scales across sectors without a checklist effect or duplicated architecture.
 - **STATUS:** AWAITING SUPERVISORY APPROVAL
 - **APPROVED VALUE:** ______________________
 - **APPROVED BY:** ______________________
 - **DATE:** ______________________
 
-### AML-METH-10 — v1.0 -> v1.1 transition policy (no re-versioning of existing assessments)
+### AML-METH-10 — v1.0 -> v1.1 transition, by assessment status
 
-- **Recommendation:** Adopt
-- **Alternatives:** Re-version in-flight assessments
-- **Impact:** Affects in-flight supervisory work
+- **Recommendation:** APPROVED / SUPERSEDED v1.0 assessments are never re-versioned and remain reproducible. DRAFT v1.0 assessments may be abandoned or superseded and recreated under v1.1 through a governed, audited process where the supervisor decides that is appropriate. SUBMITTED / REVIEWED v1.0 assessments require an explicit supervisory decision per assessment: finish under v1.0, or return/cancel and restart under v1.1. Never silently re-version. No migration in this wave.
+- **Alternatives:** Freeze all in-flight work under v1.0 regardless of supervisory preference; re-version in-flight assessments automatically (destroys reproducibility).
+- **Impact:** Affects in-flight supervisory work and reproducibility of completed judgements.
 - **STATUS:** AWAITING SUPERVISORY APPROVAL
 - **APPROVED VALUE:** ______________________
 - **APPROVED BY:** ______________________
 - **DATE:** ______________________
+
+### Materiality thresholds withdrawn from question prose
+
+The quality closure removed every numeric threshold from question wording and guidance. Each is now a named configuration parameter awaiting supervisory calibration; none is implemented.
+
+| Parameter | Previously embedded as | Question | Classification |
+| --- | --- | --- | --- |
+| `[MAT_HIGH_RISK_CUSTOMER_SHARE]` | ">10% of customers" | `IR-CUS-01` | CONFIGURABLE_MATERIALITY_PARAMETER |
+| `[MAT_HIGH_RISK_VALUE_SHARE]` | ">20% of value" | `IR-CUS-01` | CONFIGURABLE_MATERIALITY_PARAMETER |
+| `[MAT_CORRIDOR_TOP1_SHARE]` | "largest corridor exceeds 25%" | `IR-GEO-03` | CONFIGURABLE_MATERIALITY_PARAMETER (contextual question) |
+| `[MAT_CORRIDOR_TOP3_SHARE]` | "top three exceed 60%" | `IR-GEO-03` | CONFIGURABLE_MATERIALITY_PARAMETER (contextual question) |
+| `[MAT_GROWTH_RATE]` | ">25% growth" | `IR-BUS-02` | CONFIGURABLE_MATERIALITY_PARAMETER |
+| `[MAT_CASH_VALUE_SHARE]` | (implied by merged cash questions) | `IR-PRD-02` | CONFIGURABLE_MATERIALITY_PARAMETER |
+| `[MAT_XBORDER_VALUE_SHARE]` | (implied by merged cross-border questions) | `IR-GEO-02` | CONFIGURABLE_MATERIALITY_PARAMETER |
+| `[MAT_CDE_DEFECT_RATE]` | (implied by data-quality wording) | `CT-DQ-01` | CONFIGURABLE_MATERIALITY_PARAMETER |
+| Qualitative materiality wording ("material share", "without undue delay") | retained as prose | multiple | ILLUSTRATIVE_ONLY — no numeric effect on YES/PARTIALLY/NO |
+
+No threshold is implemented, defaulted or activated by this document.
