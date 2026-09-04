@@ -124,75 +124,88 @@ export default function AmlWorkQueue() {
                 No AML/CFT work items in this scope.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Work type</TableHead>
-                      <TableHead>Item</TableHead>
-                      <TableHead>Entity</TableHead>
-                      <TableHead>Priority</TableHead>
-                      <TableHead>State</TableHead>
-                      <TableHead>Owner</TableHead>
-                      <TableHead>Due</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((i) => (
-                      <TableRow key={i.work_key}>
-                        <TableCell className="whitespace-nowrap text-sm">
-                          {i.work_type_label || titleCase(i.work_type)}
-                          {i.decision_point ? (
-                            <Badge variant="outline" className="ml-2 text-[10px]">
-                              Decision
-                            </Badge>
-                          ) : null}
-                        </TableCell>
-                        <TableCell className="max-w-[22rem]">
-                          <div className="truncate text-sm font-medium">{i.title || '—'}</div>
-                          {i.reference ? (
-                            <div className="font-mono text-[11px] text-muted-foreground">{i.reference}</div>
-                          ) : null}
-                        </TableCell>
-                        <TableCell className="text-sm">{i.entity_name || '—'}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={ratingTone(i.priority)}>
-                            {titleCase(i.priority)}
+              <SupervisoryRegister
+                rows={filtered}
+                getRowId={(i) => i.work_key}
+                caption="AML/CFT work queue"
+                identifierHeader="Reference / item"
+                identifier={(i) => ({
+                  reference: i.reference || i.work_type_label || titleCase(i.work_type),
+                  copyValue: i.work_key,
+                  copyLabel: 'Copy work key',
+                  subject: <span className="truncate">{i.title || i.entity_name || '—'}</span>,
+                })}
+                columns={[
+                  {
+                    id: 'work_type',
+                    header: 'Work type',
+                    cell: (i) => (
+                      <>
+                        <div className="text-sm">{i.work_type_label || titleCase(i.work_type)}</div>
+                        {i.decision_point ? (
+                          <Badge variant="outline" className="mt-1 text-[10px]">
+                            Decision
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={statusTone(i.work_state)}>
-                            {titleCase(i.work_state)}
+                        ) : null}
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'state',
+                    header: 'State / priority',
+                    cell: (i) => (
+                      <>
+                        <Badge variant="outline" className={statusTone(i.work_state)}>
+                          {titleCase(i.work_state)}
+                        </Badge>
+                        <Badge variant="outline" className={`ml-1 ${ratingTone(i.priority)}`}>
+                          {titleCase(i.priority)}
+                        </Badge>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'due',
+                    header: 'Due',
+                    cell: (i) => (
+                      <>
+                        <span
+                          className={`font-mono ${i.is_overdue ? 'font-semibold text-destructive' : ''}`}
+                        >
+                          {fmtDate(i.due_date)}
+                        </span>
+                        {i.is_overdue ? (
+                          <Badge variant="outline" className={`ml-1 ${RED}`}>
+                            Overdue
                           </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
+                        ) : i.is_due_soon ? (
+                          <Badge variant="outline" className="ml-1">
+                            Due soon
+                          </Badge>
+                        ) : null}
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'entity',
+                    header: 'Entity / owner',
+                    priority: 3,
+                    cell: (i) => (
+                      <>
+                        <div className="text-sm">{i.entity_name || '—'}</div>
+                        <div className="text-muted-foreground">
                           {i.is_unassigned ? 'Unassigned' : i.assignment_note || 'Assigned'}
-                        </TableCell>
-                        <TableCell>
-                          <span className={`font-mono text-xs ${i.is_overdue ? 'font-semibold text-destructive' : ''}`}>
-                            {fmtDate(i.due_date)}
-                          </span>
-                          {i.is_overdue ? (
-                            <Badge variant="outline" className={`ml-2 ${RED}`}>
-                              Overdue
-                            </Badge>
-                          ) : i.is_due_soon ? (
-                            <Badge variant="outline" className="ml-2">
-                              Due soon
-                            </Badge>
-                          ) : null}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button asChild size="sm" variant="outline">
-                            <Link to={i.route}>Open</Link>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                        </div>
+                      </>
+                    ),
+                  },
+                ]}
+                actions={(i) => (
+                  <Button asChild size="sm" variant="outline">
+                    <Link to={i.route}>Open</Link>
+                  </Button>
+                )}
+              />
             )}
           </CardContent>
         </Card>
