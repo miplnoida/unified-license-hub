@@ -18,7 +18,7 @@ import {
   useSupervisoryMethodologyQuestions,
   type MethodologyQuestionRow,
 } from '@/hooks/useSupervisoryMethodologyAdmin';
-import { EmptyPanel, ErrorPanel, Field, YesNo, formatDate, humanize } from '../labels';
+import { EmptyPanel, ErrorPanel, Field, YesNo, humanize } from '../labels';
 
 const FILTER_KEYS = ['dimension', 'class', 'axis', 'focus', 'participation', 'sector', 'change', 'evidence', 'prefill', 'judgement', 'na'];
 
