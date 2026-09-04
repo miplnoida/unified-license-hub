@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -11,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowUpRight, Filter, RefreshCw } from 'lucide-react';
-import { useAmlExaminations } from '@/hooks/useAmlSupervision';
+import { useAmlExaminationStages, useAmlExaminationsPage } from '@/hooks/useAmlSupervision';
 import { businessActionLabel, isTerminalStage } from '@/lib/examinationWorkflow';
 import { useListingState } from '@/components/shared/listing';
 import { AMBER, EMERALD, RED, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
@@ -39,12 +38,12 @@ function nextAction(stage?: string | null): string {
 }
 
 export default function AmlExaminations() {
-  const { data, isLoading, error, refetch, isFetching } = useAmlExaminations();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const focus = params.get('focus');
   // Default order puts current work first: stage lifecycle ordinal, with closed
-  // and cancelled examinations last.
+  // and cancelled examinations last. Ordering, filtering and paging are all
+  // executed by the database.
   const listing = useListingState({
     defaultSort: { key: 'stage', direction: 'asc' },
     filterKeys: ['stage', 'open'],
@@ -55,24 +54,18 @@ export default function AmlExaminations() {
   const openOnly = listing.filters.open === 'true';
   const setOpenOnly = (next: boolean) => listing.setFilter('open', next ? 'true' : 'all');
 
-  const rows = (data ?? []) as any[];
-  const stages = useMemo(() => Array.from(new Set(rows.map((r) => r.stage).filter(Boolean))), [rows]);
-
-  const filtered = useMemo(
-    () =>
-      rows.filter((r) => {
-        if (stage !== 'all' && r.stage !== stage) return false;
-        if (openOnly && r.closed_at) return false;
-        if (q) {
-          const hay = `${r.entity_name ?? ''} ${r.reference ?? ''} ${r.title ?? ''} ${
-            r.driving_assessment_reference ?? ''
-          } ${r.plan_reference ?? ''} ${r.intervention_reference ?? ''}`.toLowerCase();
-          if (!hay.includes(q.toLowerCase())) return false;
-        }
-        return true;
-      }),
-    [rows, stage, openOnly, q],
-  );
+  const { data, isLoading, error, refetch, isFetching } = useAmlExaminationsPage({
+    page: listing.page,
+    pageSize: listing.pageSize,
+    sortKey: listing.sort?.key ?? null,
+    sortDirection: listing.sort?.direction ?? 'asc',
+    search: q,
+    stage: stage === 'all' ? null : stage,
+    openOnly,
+  });
+  const { data: stages = [] } = useAmlExaminationStages();
+  const rows = (data?.rows ?? []) as any[];
+  const total = data?.totalCount ?? 0;
 
   const open = (id: string) => navigate(`/supervision/examinations/${id}`);
 
@@ -111,7 +104,7 @@ export default function AmlExaminations() {
               searchPlaceholder="Search entity, reference, assessment or plan…"
               trailing={
                 <span className="text-sm text-muted-foreground">
-                  {isLoading ? 'Loading…' : `${filtered.length} examination${filtered.length === 1 ? '' : 's'}`}
+                  {isLoading ? 'Loading…' : `${total} examination${total === 1 ? '' : 's'}`}
                 </span>
               }
             >
@@ -122,8 +115,8 @@ export default function AmlExaminations() {
                 <SelectContent>
                   <SelectItem value="all">All stages</SelectItem>
                   {stages.map((s) => (
-                    <SelectItem key={s as string} value={s as string}>
-                      {titleCase(s as string)}
+                    <SelectItem key={s} value={s}>
+                      {titleCase(s)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -142,14 +135,16 @@ export default function AmlExaminations() {
 
             {isLoading ? (
               <Skeleton className="h-64 w-full" />
-            ) : filtered.length === 0 ? (
+            ) : rows.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 No AML/CFT examinations match the current filters.
               </p>
             ) : (
               <SupervisoryRegister
-                rows={filtered}
+                rows={rows}
                 getRowId={(r) => r.id}
+                mode="server"
+                totalCount={total}
                 caption="AML/CFT examinations"
                 onRowClick={(r) => open(r.id)}
                 isRowFocused={(r) => focus === r.id}

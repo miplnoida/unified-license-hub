@@ -109,44 +109,29 @@ async function nameMap(entityIds: (string | null | undefined)[]) {
   return new Map<string, string>((data ?? []).map((r: any) => [r.id, r.name ?? '']));
 }
 
-export function useAmlAssessments() {
-  return useQuery({
-    queryKey: ['aml', 'assessments'],
-    queryFn: async () => {
-      const { data, error } = await sb
-        .from('supervisory_assessment')
-        .select(
-          'id, reference, entity_id, assessment_type, trigger_type, status, period_start, period_end, ' +
-            'methodology_version, residual_rating, inherent_rating, control_rating, is_current, ' +
-            'owner_id, submitted_at, approved_at, approved_by, confidentiality, created_at',
-        )
-        .eq('domain_code', 'AML_CFT')
-        .order('created_at', { ascending: false })
-        .limit(300);
-      if (error) throw error;
-      const names = await nameMap((data ?? []).map((r: any) => r.entity_id));
-      return (data ?? []).map((r: any) => ({ ...r, entity_name: names.get(r.entity_id) ?? null }));
-    },
-  });
-}
 
 /**
  * Server-paged AML/CFT assessment register.
  *
- * Real backend paging: the count, ordering and range are all executed by the
- * database, so the register never fetches a whole table to slice it locally.
- * Sort keys are whitelisted here — an unknown key falls back to the canonical
- * `created_at desc` ordering rather than being interpolated into a query.
+ * Real backend paging through `aml_assessment_page`: the filtered population,
+ * the count, the supervisory ordering and the range are all executed by the
+ * database. Risk sorts by supervisory ordinal and status by workflow order —
+ * never by the alphabetical value of the stored string — and the register never
+ * fetches a whole table to slice it locally.
+ *
+ * Sort keys are whitelisted on both sides; an unknown key falls back to the
+ * canonical `created_at desc` ordering.
  */
-export const AML_ASSESSMENT_SORT_KEYS: Record<string, string> = {
-  reference: 'reference',
-  type: 'assessment_type',
-  status: 'status',
-  residual: 'residual_rating',
-  period: 'period_end',
-  created_at: 'created_at',
-  approved_at: 'approved_at',
-};
+export const AML_ASSESSMENT_SORT_KEYS = [
+  'reference',
+  'type',
+  'status',
+  'residual',
+  'period',
+  'created_at',
+  'approved_at',
+  'entity',
+] as const;
 
 export interface AmlAssessmentPageArgs {
   page: number;
@@ -157,39 +142,46 @@ export interface AmlAssessmentPageArgs {
   status?: string | null;
 }
 
+export interface AmlPagedResult<T = any> {
+  rows: T[];
+  totalCount: number;
+}
+
+function pagedArgs(args: {
+  page: number;
+  pageSize: number;
+  sortKey?: string | null;
+  sortDirection?: 'asc' | 'desc';
+  search?: string;
+}) {
+  return {
+    _page: Math.max(1, args.page),
+    _page_size: args.pageSize,
+    _sort_key: args.sortKey ?? null,
+    _sort_direction: args.sortDirection ?? null,
+    _search: args.search?.trim() ? args.search.trim() : null,
+  };
+}
+
+async function pagedRpc<T = any>(fn: string, params: Record<string, unknown>): Promise<AmlPagedResult<T>> {
+  const { data, error } = await sb.rpc(fn, params);
+  if (error) throw error;
+  const payload = (data ?? {}) as any;
+  return { rows: (payload.rows ?? []) as T[], totalCount: Number(payload.total_count ?? 0) };
+}
+
 export function useAmlAssessmentsPage(args: AmlAssessmentPageArgs) {
   const { page, pageSize, sortKey, sortDirection = 'desc', search = '', status = null } = args;
-  const column = AML_ASSESSMENT_SORT_KEYS[sortKey ?? ''] ?? 'created_at';
-  const ascending = AML_ASSESSMENT_SORT_KEYS[sortKey ?? ''] ? sortDirection === 'asc' : false;
-  const term = search.trim();
   return useQuery({
-    queryKey: ['aml', 'assessments', 'page', page, pageSize, column, ascending, term, status],
-    queryFn: async (): Promise<{ rows: any[]; totalCount: number }> => {
-      const from = Math.max(0, (page - 1) * pageSize);
-      let query = sb
-        .from('supervisory_assessment')
-        .select(
-          'id, reference, entity_id, assessment_type, trigger_type, status, period_start, period_end, ' +
-            'methodology_version, residual_rating, inherent_rating, control_rating, is_current, ' +
-            'owner_id, submitted_at, approved_at, approved_by, confidentiality, created_at',
-          { count: 'exact' },
-        )
-        .eq('domain_code', 'AML_CFT');
-      if (status) query = query.eq('status', status);
-      if (term) query = query.or(`reference.ilike.%${term}%,assessment_type.ilike.%${term}%`);
-      const { data, error, count } = await query
-        .order(column, { ascending, nullsFirst: false })
-        .order('reference', { ascending: true })
-        .range(from, from + pageSize - 1);
-      if (error) throw error;
-      const names = await nameMap((data ?? []).map((r: any) => r.entity_id));
-      return {
-        rows: (data ?? []).map((r: any) => ({ ...r, entity_name: names.get(r.entity_id) ?? null })),
-        totalCount: count ?? 0,
-      };
-    },
+    queryKey: ['aml', 'assessments', 'page', page, pageSize, sortKey, sortDirection, search.trim(), status],
+    queryFn: () =>
+      pagedRpc('aml_assessment_page', {
+        ...pagedArgs({ page, pageSize, sortKey, sortDirection, search }),
+        _status: status,
+      }),
   });
 }
+
 
 /** Distinct statuses present in the AML/CFT assessment register (server-derived). */
 export function useAmlAssessmentStatuses() {
@@ -345,196 +337,406 @@ export function useAmlAssessment(assessmentId?: string) {
   });
 }
 
+
 /**
- * AML/CFT examination register.
+ * Canonical examination enrichment for the AML/CFT register.
  *
- * Reads the canonical `examinations` store filtered to the AML/CFT domain and
- * joins the canonical provenance (`examination_origin` — exact
- * DRIVING_ASSESSMENT / RISK_FOCUS rows), the canonical scope dimensions and
- * the canonical work stores (data requests, workpapers, findings, team) so the
- * register can show real supervisory state instead of a bare stage label.
- * Provenance is never inferred from "same entity + AML domain".
+ * Joins the canonical provenance, scope, work and team stores for the supplied
+ * rows only, in set-based batches (never one query per row).
  */
-export function useAmlExaminations() {
-  return useQuery({
-    queryKey: ['aml', 'examinations', 'register'],
-    queryFn: async () => {
-      const { data, error } = await sb
-        .from('examinations')
-        .select(
-          'id, reference, title, entity_id, engagement_type, examination_type, stage, risk_rating, ' +
-            'fieldwork_start, fieldwork_end, period_under_review_start, period_under_review_end, ' +
-            'lead_examiner_id, closed_at, intervention_id, plan_id, trigger_type, ' +
-            'reassessment_required, created_at',
-        )
-        .eq('domain_code', 'AML_CFT')
-        .order('created_at', { ascending: false })
-        .limit(300);
-      if (error) throw error;
-      const rows = (data ?? []) as any[];
-      const ids = rows.map((r) => r.id);
-      if (!ids.length) return [];
+async function enrichExaminations(rows: any[]) {
+  const ids = rows.map((r) => r.id);
+  if (!ids.length) return [];
 
-      const [names, origins, scope, requests, workpapers, findings, team, plans, interventions] =
-        await Promise.all([
-          nameMap(rows.map((r) => r.entity_id)),
-          sb
-            .from('examination_origin')
-            .select('examination_id, assessment_id, assessment_dimension_id, attention_id, origin_role')
-            .in('examination_id', ids),
-          sb
-            .from('examination_scope_dimension')
-            .select('examination_id, dimension_code, residual_rating')
-            .in('examination_id', ids),
-          sb.from('examination_data_requests').select('examination_id, status, due_date').in('examination_id', ids),
-          sb.from('examination_workpapers').select('examination_id, status').in('examination_id', ids),
-          // Canonical findings only. `examination_findings` is historical
-          // pre-spine data and must never drive current AML counters.
-          sb
-            .from('supervisory_finding')
-            .select('examination_id, status, severity')
-            .eq('domain_code', 'AML_CFT')
-            .in('examination_id', ids),
-          sb.from('examination_team_members').select('examination_id, user_id, ended_at').in('examination_id', ids),
-          sb
-            .from('supervisory_plan')
-            .select('id, reference, status')
-            .in('id', Array.from(new Set(rows.map((r) => r.plan_id).filter(Boolean)))),
-          sb
-            .from('supervisory_intervention')
-            .select('id, reference, intervention_type, status')
-            .in('id', Array.from(new Set(rows.map((r) => r.intervention_id).filter(Boolean)))),
-        ]);
+    const [names, origins, scope, requests, workpapers, findings, team, plans, interventions] =
+      await Promise.all([
+        nameMap(rows.map((r) => r.entity_id)),
+        sb
+          .from('examination_origin')
+          .select('examination_id, assessment_id, assessment_dimension_id, attention_id, origin_role')
+          .in('examination_id', ids),
+        sb
+          .from('examination_scope_dimension')
+          .select('examination_id, dimension_code, residual_rating')
+          .in('examination_id', ids),
+        sb.from('examination_data_requests').select('examination_id, status, due_date').in('examination_id', ids),
+        sb.from('examination_workpapers').select('examination_id, status').in('examination_id', ids),
+        // Canonical findings only. `examination_findings` is historical
+        // pre-spine data and must never drive current AML counters.
+        sb
+          .from('supervisory_finding')
+          .select('examination_id, status, severity')
+          .eq('domain_code', 'AML_CFT')
+          .in('examination_id', ids),
+        sb.from('examination_team_members').select('examination_id, user_id, ended_at').in('examination_id', ids),
+        sb
+          .from('supervisory_plan')
+          .select('id, reference, status')
+          .in('id', Array.from(new Set(rows.map((r) => r.plan_id).filter(Boolean)))),
+        sb
+          .from('supervisory_intervention')
+          .select('id, reference, intervention_type, status')
+          .in('id', Array.from(new Set(rows.map((r) => r.intervention_id).filter(Boolean)))),
+      ]);
 
-      const assessmentIds = Array.from(
-        new Set((origins.data ?? []).map((o: any) => o.assessment_id).filter(Boolean)),
-      ) as string[];
-      const assessments = assessmentIds.length
-        ? (
-            await sb
-              .from('supervisory_assessment')
-              .select('id, reference, residual_rating, status')
-              .in('id', assessmentIds)
-          ).data ?? []
-        : [];
-      const assessmentById = new Map(assessments.map((a: any) => [a.id, a]));
-      const planById = new Map((plans?.data ?? []).map((p: any) => [p.id, p]));
-      const interventionById = new Map((interventions?.data ?? []).map((i: any) => [i.id, i]));
+    const assessmentIds = Array.from(
+      new Set((origins.data ?? []).map((o: any) => o.assessment_id).filter(Boolean)),
+    ) as string[];
+    const assessments = assessmentIds.length
+      ? (
+          await sb
+            .from('supervisory_assessment')
+            .select('id, reference, residual_rating, status')
+            .in('id', assessmentIds)
+        ).data ?? []
+      : [];
+    const assessmentById = new Map(assessments.map((a: any) => [a.id, a]));
+    const planById = new Map((plans?.data ?? []).map((p: any) => [p.id, p]));
+    const interventionById = new Map((interventions?.data ?? []).map((i: any) => [i.id, i]));
 
-      const examinerIds = Array.from(new Set(rows.map((r) => r.lead_examiner_id).filter(Boolean))) as string[];
-      const examinerById = new Map<string, string>(
-        examinerIds.length
-          ? (((await sb.from('profiles').select('id, full_name').in('id', examinerIds)).data ?? []) as any[]).map(
-              (p) => [p.id, p.full_name ?? ''],
-            )
-          : [],
-      );
+    const examinerIds = Array.from(new Set(rows.map((r) => r.lead_examiner_id).filter(Boolean))) as string[];
+    const examinerById = new Map<string, string>(
+      examinerIds.length
+        ? (((await sb.from('profiles').select('id, full_name').in('id', examinerIds)).data ?? []) as any[]).map(
+            (p) => [p.id, p.full_name ?? ''],
+          )
+        : [],
+    );
 
 
-      const today = new Date().toISOString().slice(0, 10);
-      const group = <T,>(list: T[] | null | undefined, key: (r: T) => string) => {
-        const m = new Map<string, T[]>();
-        (list ?? []).forEach((r) => {
-          const k = key(r);
-          m.set(k, [...(m.get(k) ?? []), r]);
-        });
-        return m;
-      };
-
-      const originByExam = group<any>(origins.data, (r) => r.examination_id);
-      const scopeByExam = group<any>(scope.data, (r) => r.examination_id);
-      const requestByExam = group<any>(requests.data, (r) => r.examination_id);
-      const workpaperByExam = group<any>(workpapers.data, (r) => r.examination_id);
-      const findingByExam = group<any>(findings.data, (r) => r.examination_id);
-      const teamByExam = group<any>(team.data, (r) => r.examination_id);
-
-      return rows.map((r) => {
-        const exOrigins = originByExam.get(r.id) ?? [];
-        const driving = exOrigins.find((o: any) => o.origin_role === 'DRIVING_ASSESSMENT') ?? null;
-        const riskFocus = exOrigins.filter((o: any) => o.origin_role === 'RISK_FOCUS');
-        const scopeRows = scopeByExam.get(r.id) ?? [];
-        const rfis = requestByExam.get(r.id) ?? [];
-        const wps = workpaperByExam.get(r.id) ?? [];
-        const fnds = findingByExam.get(r.id) ?? [];
-        const members = (teamByExam.get(r.id) ?? []).filter((m: any) => !m.ended_at);
-        const drivingAssessment = driving?.assessment_id
-          ? assessmentById.get(driving.assessment_id) ?? null
-          : null;
-
-        return {
-          ...r,
-          entity_name: names.get(r.entity_id) ?? null,
-          lead_examiner_name: r.lead_examiner_id ? examinerById.get(r.lead_examiner_id) ?? null : null,
-          driving_assessment_id: driving?.assessment_id ?? null,
-          driving_assessment_reference: (drivingAssessment as any)?.reference ?? null,
-          driving_assessment_rating: (drivingAssessment as any)?.residual_rating ?? null,
-          risk_focus_dimension_count: riskFocus.length,
-          attention_id: exOrigins.find((o: any) => o.attention_id)?.attention_id ?? null,
-          plan_reference: (planById.get(r.plan_id) as any)?.reference ?? null,
-          plan_status: (planById.get(r.plan_id) as any)?.status ?? null,
-          intervention_reference: (interventionById.get(r.intervention_id) as any)?.reference ?? null,
-          intervention_type: (interventionById.get(r.intervention_id) as any)?.intervention_type ?? null,
-          scope_dimensions: scopeRows.map((s: any) => ({
-            dimension_code: s.dimension_code,
-            residual_rating: s.residual_rating,
-          })),
-          open_rfis: rfis.filter((d: any) => !['received', 'closed'].includes(String(d.status ?? '').toLowerCase()))
-            .length,
-          overdue_rfis: rfis.filter(
-            (d: any) =>
-              d.due_date &&
-              d.due_date < today &&
-              !['received', 'closed'].includes(String(d.status ?? '').toLowerCase()),
-          ).length,
-          workpapers_total: wps.length,
-          workpapers_outstanding: wps.filter(
-            (w: any) => String(w.status ?? '').toLowerCase() !== 'reviewed',
-          ).length,
-          findings_total: fnds.length,
-          findings_open: fnds.filter(
-            (f: any) => !['closed', 'withdrawn', 'superseded'].includes(String(f.status ?? '').toLowerCase()),
-          ).length,
-          findings_critical: fnds.filter((f: any) =>
-            ['critical', 'high'].includes(String(f.severity ?? '').toLowerCase()),
-          ).length,
-          team_size: members.length,
-        };
+    const today = new Date().toISOString().slice(0, 10);
+    const group = <T,>(list: T[] | null | undefined, key: (r: T) => string) => {
+      const m = new Map<string, T[]>();
+      (list ?? []).forEach((r) => {
+        const k = key(r);
+        m.set(k, [...(m.get(k) ?? []), r]);
       });
+      return m;
+    };
+
+    const originByExam = group<any>(origins.data, (r) => r.examination_id);
+    const scopeByExam = group<any>(scope.data, (r) => r.examination_id);
+    const requestByExam = group<any>(requests.data, (r) => r.examination_id);
+    const workpaperByExam = group<any>(workpapers.data, (r) => r.examination_id);
+    const findingByExam = group<any>(findings.data, (r) => r.examination_id);
+    const teamByExam = group<any>(team.data, (r) => r.examination_id);
+
+    return rows.map((r) => {
+      const exOrigins = originByExam.get(r.id) ?? [];
+      const driving = exOrigins.find((o: any) => o.origin_role === 'DRIVING_ASSESSMENT') ?? null;
+      const riskFocus = exOrigins.filter((o: any) => o.origin_role === 'RISK_FOCUS');
+      const scopeRows = scopeByExam.get(r.id) ?? [];
+      const rfis = requestByExam.get(r.id) ?? [];
+      const wps = workpaperByExam.get(r.id) ?? [];
+      const fnds = findingByExam.get(r.id) ?? [];
+      const members = (teamByExam.get(r.id) ?? []).filter((m: any) => !m.ended_at);
+      const drivingAssessment = driving?.assessment_id
+        ? assessmentById.get(driving.assessment_id) ?? null
+        : null;
+
+      return {
+        ...r,
+        entity_name: names.get(r.entity_id) ?? null,
+        lead_examiner_name: r.lead_examiner_id ? examinerById.get(r.lead_examiner_id) ?? null : null,
+        driving_assessment_id: driving?.assessment_id ?? null,
+        driving_assessment_reference: (drivingAssessment as any)?.reference ?? null,
+        driving_assessment_rating: (drivingAssessment as any)?.residual_rating ?? null,
+        risk_focus_dimension_count: riskFocus.length,
+        attention_id: exOrigins.find((o: any) => o.attention_id)?.attention_id ?? null,
+        plan_reference: (planById.get(r.plan_id) as any)?.reference ?? null,
+        plan_status: (planById.get(r.plan_id) as any)?.status ?? null,
+        intervention_reference: (interventionById.get(r.intervention_id) as any)?.reference ?? null,
+        intervention_type: (interventionById.get(r.intervention_id) as any)?.intervention_type ?? null,
+        scope_dimensions: scopeRows.map((s: any) => ({
+          dimension_code: s.dimension_code,
+          residual_rating: s.residual_rating,
+        })),
+        open_rfis: rfis.filter((d: any) => !['received', 'closed'].includes(String(d.status ?? '').toLowerCase()))
+          .length,
+        overdue_rfis: rfis.filter(
+          (d: any) =>
+            d.due_date &&
+            d.due_date < today &&
+            !['received', 'closed'].includes(String(d.status ?? '').toLowerCase()),
+        ).length,
+        workpapers_total: wps.length,
+        workpapers_outstanding: wps.filter(
+          (w: any) => String(w.status ?? '').toLowerCase() !== 'reviewed',
+        ).length,
+        findings_total: fnds.length,
+        findings_open: fnds.filter(
+          (f: any) => !['closed', 'withdrawn', 'superseded'].includes(String(f.status ?? '').toLowerCase()),
+        ).length,
+        findings_critical: fnds.filter((f: any) =>
+          ['critical', 'high'].includes(String(f.severity ?? '').toLowerCase()),
+        ).length,
+        team_size: members.length,
+      };
+    });
+}
+
+
+/* ============================================================
+ * Real server-paged AML/CFT registers.
+ *
+ * Each register below reads one page from an additive paged read contract in
+ * the database (`aml_portfolio_page`, `aml_work_queue_page`,
+ * `aml_examination_page`, `aml_finding_page`). The backend owns the filtered
+ * population, the authoritative count, whitelisted sort keys, supervisory
+ * risk/lifecycle ordinals and nulls-last ordering. The certified non-paged
+ * readers (`aml_portfolio`, `aml_work_queue`, `supervisory_work_queue`) are
+ * unchanged and still used by the overview surfaces.
+ * ============================================================ */
+
+export const AML_PORTFOLIO_SORT_KEYS = [
+  'licence',
+  'entity',
+  'sector',
+  'risk',
+  'coverage',
+  'review',
+  'work',
+] as const;
+
+export const AML_WORK_QUEUE_SORT_KEYS = ['queue', 'reference', 'work_type', 'state', 'due', 'entity'] as const;
+
+export const AML_EXAMINATION_SORT_KEYS = [
+  'reference',
+  'entity',
+  'stage',
+  'type_risk',
+  'workload',
+  'fieldwork',
+  'created_at',
+  'provenance',
+] as const;
+
+export const AML_FINDING_SORT_KEYS = [
+  'reference',
+  'entity',
+  'severity',
+  'status',
+  'due_date',
+  'issued_at',
+] as const;
+
+export interface AmlPageArgs {
+  page: number;
+  pageSize: number;
+  sortKey?: string | null;
+  sortDirection?: 'asc' | 'desc';
+  search?: string;
+}
+
+/** AML/CFT supervised entities — server page over the certified portfolio model. */
+export function useAmlPortfolioPage(
+  args: AmlPageArgs & { rating?: string | null; coverage?: string | null; sector?: string | null },
+) {
+  const { page, pageSize, sortKey, sortDirection, search = '', rating = null, coverage = null, sector = null } = args;
+  return useQuery({
+    queryKey: ['aml', 'portfolio', 'page', page, pageSize, sortKey, sortDirection, search.trim(), rating, coverage, sector],
+    queryFn: () =>
+      pagedRpc<AmlPortfolioRow>('aml_portfolio_page', {
+        ...pagedArgs({ page, pageSize, sortKey, sortDirection, search }),
+        _rating: rating,
+        _coverage: coverage,
+        _sector: sector,
+      }),
+  });
+}
+
+/** Distinct residual ratings present in the AML/CFT portfolio (server-derived). */
+export function useAmlPortfolioRatings() {
+  return useQuery({
+    queryKey: ['aml', 'portfolio-ratings'],
+    staleTime: 300_000,
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await sb
+        .from('entity_risk_state')
+        .select('residual_rating')
+        .eq('domain_code', 'AML_CFT')
+        .limit(1000);
+      if (error) throw error;
+      return Array.from(
+        new Set((data ?? []).map((r: any) => String(r.residual_rating)).filter((v: string) => v && v !== 'null')),
+      ).sort() as string[];
     },
   });
 }
 
-export function useAmlFindings() {
+/**
+ * AML/CFT work queue — server page over the single enterprise work model.
+ *
+ * The default `queue` ordering preserves supervisory queue semantics server
+ * side (overdue first, then priority ordinal, then due date, then a
+ * deterministic identifier). Scope counts come from the same contract.
+ */
+export function useAmlWorkQueuePage(
+  args: AmlPageArgs & {
+    scope: string;
+    workType?: string | null;
+    workState?: string | null;
+    priority?: string | null;
+    due?: string | null;
+  },
+) {
+  const {
+    page,
+    pageSize,
+    sortKey,
+    sortDirection,
+    search = '',
+    scope,
+    workType = null,
+    workState = null,
+    priority = null,
+    due = null,
+  } = args;
   return useQuery({
-    queryKey: ['aml', 'findings'],
-    queryFn: async () => {
+    queryKey: [
+      'aml', 'work-queue', 'page', page, pageSize, sortKey, sortDirection, search.trim(), scope, workType, workState, priority, due,
+    ],
+    queryFn: async (): Promise<AmlPagedResult & { counts: Record<string, number> }> => {
+      const { data, error } = await sb.rpc('aml_work_queue_page', {
+        ...pagedArgs({ page, pageSize, sortKey, sortDirection, search }),
+        _scope: scope,
+        _work_type: workType,
+        _work_state: workState,
+        _priority: priority,
+        _due: due,
+      });
+      if (error) throw error;
+      const payload = (data ?? {}) as any;
+      return {
+        rows: (payload.rows ?? []) as any[],
+        totalCount: Number(payload.total_count ?? 0),
+        counts: (payload.counts ?? {}) as Record<string, number>,
+      };
+    },
+  });
+}
+
+/** Distinct AML/CFT work types present in the enterprise work model. */
+export function useAmlWorkTypes() {
+  return useQuery({
+    queryKey: ['aml', 'work-types'],
+    staleTime: 300_000,
+    queryFn: async (): Promise<Array<[string, string]>> => {
+      const { data, error } = await sb
+        .from('supervisory_work_item')
+        .select('work_type, work_type_label')
+        .eq('domain_code', 'AML_CFT')
+        .limit(2000);
+      if (error) throw error;
+      const byCode = new Map<string, string>();
+      (data ?? []).forEach((r: any) => {
+        byCode.set(String(r.work_type), String(r.work_type_label ?? r.work_type));
+      });
+      return Array.from(byCode.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+    },
+  });
+}
+
+/**
+ * AML/CFT examination register — server page over the canonical `examinations`
+ * store, then canonical provenance/work enrichment for that page only.
+ */
+export function useAmlExaminationsPage(
+  args: AmlPageArgs & {
+    stage?: string | null;
+    risk?: string | null;
+    leadExaminer?: string | null;
+    openOnly?: boolean;
+    fieldworkFrom?: string | null;
+    fieldworkTo?: string | null;
+  },
+) {
+  const {
+    page,
+    pageSize,
+    sortKey,
+    sortDirection,
+    search = '',
+    stage = null,
+    risk = null,
+    leadExaminer = null,
+    openOnly = false,
+    fieldworkFrom = null,
+    fieldworkTo = null,
+  } = args;
+  return useQuery({
+    queryKey: [
+      'aml', 'examinations', 'page', page, pageSize, sortKey, sortDirection, search.trim(), stage, risk, leadExaminer, openOnly, fieldworkFrom, fieldworkTo,
+    ],
+    queryFn: async (): Promise<AmlPagedResult> => {
+      const { data, error } = await sb.rpc('aml_examination_page', {
+        ...pagedArgs({ page, pageSize, sortKey, sortDirection, search }),
+        _stage: stage,
+        _risk: risk,
+        _lead_examiner: leadExaminer,
+        _open_only: openOnly,
+        _fieldwork_from: fieldworkFrom,
+        _fieldwork_to: fieldworkTo,
+      });
+      if (error) throw error;
+      const payload = (data ?? {}) as any;
+      const rows = (payload.rows ?? []) as any[];
+      return { rows: await enrichExaminations(rows), totalCount: Number(payload.total_count ?? 0) };
+    },
+  });
+}
+
+/** Distinct AML/CFT examination stages present in the canonical store. */
+export function useAmlExaminationStages() {
+  return useQuery({
+    queryKey: ['aml', 'examination-stages'],
+    staleTime: 300_000,
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await sb
+        .from('examinations')
+        .select('stage')
+        .eq('domain_code', 'AML_CFT')
+        .limit(2000);
+      if (error) throw error;
+      return Array.from(new Set((data ?? []).map((r: any) => String(r.stage)).filter(Boolean))).sort() as string[];
+    },
+  });
+}
+
+/**
+ * AML/CFT findings & remediation — server page. Remediation actions required by
+ * the cards are returned by the same contract, so the card UX keeps its full
+ * remediation detail without a per-finding query.
+ */
+export function useAmlFindingsPage(
+  args: AmlPageArgs & { severity?: string | null; status?: string | null; view?: string | null },
+) {
+  const { page, pageSize, sortKey, sortDirection, search = '', severity = null, status = null, view = null } = args;
+  return useQuery({
+    queryKey: ['aml', 'findings', 'page', page, pageSize, sortKey, sortDirection, search.trim(), severity, status, view],
+    queryFn: () =>
+      pagedRpc('aml_finding_page', {
+        ...pagedArgs({ page, pageSize, sortKey, sortDirection, search }),
+        _severity: severity,
+        _status: status,
+        _view: view,
+      }),
+  });
+}
+
+/** Distinct AML/CFT finding severities present in the canonical store. */
+export function useAmlFindingSeverities() {
+  return useQuery({
+    queryKey: ['aml', 'finding-severities'],
+    staleTime: 300_000,
+    queryFn: async (): Promise<string[]> => {
       const { data, error } = await sb
         .from('supervisory_finding')
-        .select(
-          'id, reference, title, entity_id, finding_category, severity, status, response_state, ' +
-            'due_date, response_target_date, assessment_id, examination_id, confidentiality, ' +
-            'issued_at, closed_at, created_at',
-        )
+        .select('severity')
         .eq('domain_code', 'AML_CFT')
-        .order('created_at', { ascending: false })
-        .limit(300);
+        .limit(2000);
       if (error) throw error;
-
-      const findingIds = (data ?? []).map((r: any) => r.id);
-      let actions: any[] = [];
-      if (findingIds.length) {
-        const { data: ra } = await sb
-          .from('supervisory_remediation_action')
-          .select('id, reference, finding_id, description, status, target_date, effectiveness, escalated_attention_id')
-          .in('finding_id', findingIds);
-        actions = ra ?? [];
-      }
-      const names = await nameMap((data ?? []).map((r: any) => r.entity_id));
-      return (data ?? []).map((r: any) => ({
-        ...r,
-        entity_name: names.get(r.entity_id) ?? null,
-        remediation: actions.filter((a) => a.finding_id === r.id),
-      }));
+      return Array.from(new Set((data ?? []).map((r: any) => String(r.severity)).filter(Boolean))).sort() as string[];
     },
   });
 }

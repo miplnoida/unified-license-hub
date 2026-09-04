@@ -29,7 +29,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { PaginationBar, SortableHeader } from '@/components/shared/listing';
+import { PaginationBar, SortableHeader, useInvalidPageRecovery } from '@/components/shared/listing';
 import { ariaSortOf, paginate, sortRows, type SortSpec } from '@/components/shared/listing/sorting';
 import {
   DEFAULT_PAGE_SIZE,
@@ -210,10 +210,20 @@ export function SupervisoryRegister<T>({
   );
 
   const total = mode === 'server' ? (totalCount ?? rows.length) : sorted.length;
+  // A page can be invalidated by a filter change, a narrowed population or a
+  // page-size change — recover to the last valid page in both data modes.
+  const effectivePage = useInvalidPageRecovery({
+    page,
+    totalCount: total,
+    pageSize,
+    onPageChange,
+    enabled: paged,
+  });
   const visible = useMemo(
-    () => (paged && mode === 'client' ? paginate(sorted, page, pageSize) : sorted),
-    [sorted, paged, mode, page, pageSize],
+    () => (paged && mode === 'client' ? paginate(sorted, effectivePage, pageSize) : sorted),
+    [sorted, paged, mode, effectivePage, pageSize],
   );
+
 
   const handleSort = (key: string) => {
     if (!onSortChange) return;
@@ -366,7 +376,7 @@ export function SupervisoryRegister<T>({
         <PaginationBar
           className="mt-3"
           totalCount={total}
-          page={page}
+          page={effectivePage}
           pageSize={pageSize}
           onPageChange={onPageChange}
           onPageSizeChange={onPageSizeChange}
