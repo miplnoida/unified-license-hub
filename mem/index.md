@@ -1,6 +1,13 @@
 # Project Memory
 
+## Core
+- Real working system, never a prototype: no mock data, no placeholder handlers, no client-side business outcomes. See [Real Working System Rule](mem://engineering/no-mock-real-system-rule).
+- Every visible action needs the full chain: UI → hook → governed RPC → RBAC/scope → validation → canonical mutation → audit → refreshed UI. Build missing backend in the same wave.
+- Report acceptance per feature (data source, read path, action path, persistence, authorization, audit); scale tests to the change.
+
 ## Memories
+- [Real Working System Rule](mem://engineering/no-mock-real-system-rule) — No-mock mandate, real action chain, server authority, acceptance reporting format, test proportionality
+
 - [Location Master Data](mem://features/master-data/location-hierarchy) — Worldwide Country/State/City hierarchy powering cascading address dropdowns
 - [Regulatory Data Model](mem://architecture/regulatory-data-model) — RDM-ENTITY-001: metadata governance (RPC-only writes, single active default, identifier scopes) and Phase 2A party/organization/regulated-entity/multi-licence foundation
 - [Breadcrumbs](mem://navigation/breadcrumbs) — Derived trail from nav tree + route registry, business labels never UUIDs
