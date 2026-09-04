@@ -111,10 +111,14 @@ END $$;
 DO $$
 DECLARE n int;
 BEGIN
+  -- Trigger functions are excluded: Postgres refuses a direct call to a
+  -- trigger function whatever the grant, so their PUBLIC execute bit is not a
+  -- callable surface. Every callable read model / action must be signed-in only.
   SELECT count(*) INTO n
     FROM pg_proc p JOIN pg_namespace ns ON ns.oid = p.pronamespace
    WHERE ns.nspname = 'public'
      AND p.proname LIKE 'supervisory_methodology_%'
+     AND pg_get_function_result(p.oid) <> 'trigger'
      AND (has_function_privilege('anon', p.oid, 'EXECUTE')
        OR has_function_privilege('public', p.oid, 'EXECUTE'));
   IF n > 0 THEN
