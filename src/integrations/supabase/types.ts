@@ -44592,6 +44592,7 @@ export type Database = {
           aggregation_method: string | null
           approved_at: string | null
           approved_by: string | null
+          completeness_mode: string
           config_version: number
           created_at: string
           created_by: string | null
@@ -44621,6 +44622,7 @@ export type Database = {
           aggregation_method?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          completeness_mode?: string
           config_version?: number
           created_at?: string
           created_by?: string | null
@@ -44650,6 +44652,7 @@ export type Database = {
           aggregation_method?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          completeness_mode?: string
           config_version?: number
           created_at?: string
           created_by?: string | null
@@ -63916,12 +63919,26 @@ export type Database = {
         Args: { _config_id: string; _kind: string; _score: number }
         Returns: string
       }
+      supervisory_calc_band_of_policy: {
+        Args: { _bands: Json; _kind: string; _score: number }
+        Returns: string
+      }
       supervisory_calc_compute: {
         Args: { _assessment_id: string }
         Returns: Json
       }
       supervisory_calc_compute_core: {
         Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_calc_compute_policy: {
+        Args: {
+          _as_of: string
+          _assessment_id: string
+          _config_id?: string
+          _config_version?: number
+          _policy: Json
+        }
         Returns: Json
       }
       supervisory_calc_config_for: {
@@ -63946,9 +63963,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      supervisory_calc_policy_from_config: {
+        Args: { _config_id: string }
+        Returns: Json
+      }
       supervisory_calc_round: {
         Args: { _decimals: number; _mode: string; _v: number }
         Returns: number
+      }
+      supervisory_calc_simulate: {
+        Args: { _domain_code: string; _entity_id?: string; _policy: Json }
+        Returns: Json
       }
       supervisory_calculation_bands_set: {
         Args: { _band_kind: string; _config_id: string; _rows: Json }
