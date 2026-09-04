@@ -8,7 +8,7 @@ Builds on the canonical DMS foundation (`00_source_inventory.md`, `01_canonical_
 
 | Layer | Question it answers | Canonical store | State today |
 |---|---|---|---|
-| **1. Document Repository** | "What file exists, who may see it, where is it, is it clean?" | `file_uploads` (physical) + `document_groups`/`document_versions` (logical) + classification/retention/holds | CANONICAL |
+| **1. Document Repository** | "What document exists, who may see it, is its content available and clean?" | `document_groups`/`document_versions` (platform logical identity + version ledger) + classification/retention/holds; content is held by the **active document provider** — `file_uploads` is the *internal provider's* implementation record, not the provider-neutral physical truth (see `05-enterprise-document-platform-provider-architecture.md`) | CANONICAL |
 | **2. Controlled Documents** | "Which revision of this policy is *in force*, who approved it, when did it become effective, who must acknowledge it?" | none — must be added as a control layer *on top of* `document_groups` | FUNCTIONAL_GAP |
 | **3. Records & Evidence** | "What proves this regulatory act? Which document is attached to this application / filing / finding, in what evidentiary role?" | `document_relationships` (+ module evidence stores still outside) | PARTIAL |
 
