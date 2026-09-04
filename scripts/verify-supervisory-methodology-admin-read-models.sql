@@ -68,7 +68,8 @@ SELECT ur.user_id AS config_user
   FROM public.sec_user_roles ur
   JOIN public.sec_role_permissions rp ON rp.role_id = ur.role_id
   JOIN public.sec_permissions p ON p.id = rp.permission_id
- WHERE p.module = 'aml_supervision' AND p.action = 'manage_config'
+  JOIN public.sec_modules m ON m.id = p.module_id
+ WHERE m.key = 'aml_supervision' AND p.key = 'manage_config'
  LIMIT 1;
 
 CREATE TEMP TABLE meth_baseline AS
@@ -174,8 +175,9 @@ BEGIN
     FROM public.sec_user_roles ur
     JOIN public.sec_role_permissions rp ON rp.role_id = ur.role_id
     JOIN public.sec_permissions p ON p.id = rp.permission_id
-   WHERE (p.module, p.action) IN (('audit_management','view'),
-                                  ('executive_oversight','view_cross_module_audit'))
+    JOIN public.sec_modules m ON m.id = p.module_id
+   WHERE (m.key, p.key) IN (('audit_management','view'),
+                            ('executive_oversight','view_cross_module_audit'))
    LIMIT 1;
   IF _uid IS NULL THEN
     RAISE NOTICE 'SKIP METH-READ-05: no enterprise oversight persona is provisioned';
