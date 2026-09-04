@@ -240,12 +240,16 @@ Applies to the response codes actually published by `AML-CFT-RBA` v1.0 — and o
 - **Alternative:** `FLOOR` with 0 decimals is more conservative and simpler to explain to a licensee, at the cost of nudging every score toward the lower band.
 - **Operational consequence:** the mode is mandatory — a missing mode or decimals raises `rounding_undecided` and blocks calculation rather than defaulting.
 
-### I. Inherent-risk score direction
-- **Options:** `DIRECT`, `INVERTED`.
-- **Recommended:** `INVERTED`.
-- **Rationale:** the 12 inherent questions use the same `YES / PARTIALLY / NO` vocabulary as the control questions, but a `YES` on an inherent question asserts that a **risk factor is present**. With the recommended scoring (B), `DIRECT` would read a high-risk entity as low inherent risk. `INVERTED` computes the inherent score as the complement, so higher score = higher inherent risk.
-- **Alternative:** `DIRECT` — only correct if the supervisory owner confirms the inherent question wording is control-positive. This must be confirmed against the actual question text before approval; it is the single easiest way to invert the entire estate's risk picture.
-- **Operational consequence:** determines whether the inherent bands in J read upward or downward. Getting this wrong silently reverses every residual matrix lookup.
+### I. Inherent-risk score direction — **BLOCKED, NOT RECOMMENDABLE**
+- **Options:** `DIRECT`, `INVERTED` (one global value per configuration; there is no per-question polarity column).
+- **Recommendation: none. Decision I cannot be taken as configured.** The polarity of the 12 published inherent questions is **mixed** (evidence: section 5A). Eleven questions read `YES` = the entity has identified / documented / kept proportionate its exposure — a *protective* condition, i.e. **less** inherent risk. One question, `BUSINESS_MODEL_RISK / Q1` ("Does the growth strategy or ownership structure introduce ML/TF risk not reflected in the entity's risk assessment?"), reads `YES` = a risk factor is **present**, i.e. **more** inherent risk.
+- **Mathematical contract with the proposed scores (B: `YES`=100, `PARTIALLY`=50, `NO`=0):** `DIRECT` maps `YES`→100 and `NO`→0; `INVERTED` maps `YES`→0 and `NO`→100. `DIRECT` is consistent only where `YES` means more risk; `INVERTED` only where `YES` means a protective condition.
+- **Consequence of the mix:** either global value mis-scores at least one question. `INVERTED` mis-scores `BUSINESS_MODEL_RISK / Q1` (a candid admission of unassessed structural risk would *reduce* the computed inherent score); `DIRECT` mis-scores the other eleven. No global value is truthful.
+- **Resolution required before any configuration is approved — one of:**
+  1. **Normalise the question wording through a new methodology version.** Re-word `BUSINESS_MODEL_RISK / Q1` so that `YES` is protective, consistent with the other eleven, then `INVERTED` is truthful. This is governed methodology *content*: it requires a new methodology version, maker/checker approval, and it changes what supervisors are asked. Existing assessments stay bound to their own version.
+  2. **Introduce per-question polarity** in the calculation configuration (a schema and engine change: a polarity column on the response-score or question-scoring store, read per question instead of one `inherent_direction`). This keeps methodology content untouched but is a platform change, not a configuration decision.
+- **Not acceptable:** selecting a global direction and accepting known mis-scoring on one question, or silently excluding that question from the calculation.
+
 
 ### J. Inherent-risk bands
 - **Options:** any set of half-open `[min_score, max_score)` rows over the risk vocabulary LOW / MODERATE / MEDIUM_HIGH / HIGH / SEVERE, contiguous, non-overlapping, final band closing at 100.
