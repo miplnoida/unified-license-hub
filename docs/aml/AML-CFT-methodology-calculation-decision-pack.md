@@ -26,8 +26,8 @@ clearly in one direction, an **Engineering recommendation** is stated and marked
 | Supervisory judgement | `supervisory_judgement_required` YES 67 / NO 3 (`IR-TRX-01`, `CT-ERA-01`, `CT-RK-01`) |
 | Evidence model | `requires_evidence` = governed **evidence basis** (11 types), shareable and inheritable; `SYSTEM_FACT` / `STRUCTURED_METRIC` satisfy it through provenance; no AML-local document repository; no universal evidence-strength hierarchy; no automatic score or answer from facts |
 | Structured fact model | Provider-neutral fact contract (`fact_code`, `label`, `data_type`, `unit`, numerator/denominator, period/`as_of`, source type/reference/timestamp, `peer_group`, `materiality_basis`, required/optional, `auto_prefill_allowed`, `officer_edit_allowed`, `provenance`) |
-| Production state | 0 migrations, 0 database writes, 0 runtime changes, 0 methodology versions created, 0 question rows, 0 calculation policy rows, 0 STR relinks |
-| `AML-METH-01..10` | All **AWAITING SUPERVISORY APPROVAL** (see register at the end of this pack) |
+| Production state | Superseded by the reference decision lock of 2026-09-04: the AML-METH design is now persisted as an `AML-CFT-RBA` **v1.1 DRAFT** methodology version (70 questions, 87 fact requirements, 8 unvalued materiality parameters). v1.0 remains ACTIVE and structurally frozen; no calculation policy row and no STR relink was written. See `docs/aml/AML-CFT-RBA-v1.1-reference-decision-lock.md`. |
+| `AML-METH-01..10` | **MIPL REFERENCE APPROVED** (recorded in `supervisory_methodology_reference_decision`, scope `MIPL_REFERENCE_APPROVAL`) and **AWAITING REGULATOR APPROVAL** — reference approval is not regulator approval and does not authorise use in a live supervisory decision |
 | Module status | AML/CFT **NOT CERTIFIED** |
 
 Design-time verification: `python3 scripts/verify-aml-v11-catalogue-design.py` (parses the catalogue and documents; no database access).
@@ -563,7 +563,7 @@ AML/CFT is **NOT CERTIFIED** and the roadmap status is unchanged. Certification 
 
 ## AML-METH decision register — AML-CFT-RBA v1.1 content design (rewritten by the quality closure of 2026-09-04)
 
-Design-only. No item below is approved. Implementation of v1.1 is blocked until all are decided. Recommendations were rewritten — not retained — after the quality review (`docs/aml/AML-CFT-RBA-v1.1-quality-review.md`).
+Two-layer approval. Each item below is **reference-approved by MIPL** as the platform methodology owner and recorded in the governed reference decision register; that approval defines the reference design only. Every item remains **AWAITING REGULATOR APPROVAL**, and the `AML-CFT-RBA` v1.1 version carrying it stays DRAFT — unusable for assessment — until a regulator adopts it. No materiality value, band, weight or calculation parameter is approved by either layer. Recommendations were rewritten — not retained — after the quality review (`docs/aml/AML-CFT-RBA-v1.1-quality-review.md`).
 
 ### AML-METH-01 — Adopt the exposure -> control -> residual -> judgement -> response chain, with question classes
 
