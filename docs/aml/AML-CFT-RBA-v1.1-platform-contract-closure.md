@@ -8,10 +8,10 @@ AML-METH-01…10 decision, a materiality value, a score, a band, the residual
 matrix, the effective-date policy, the `STR_SAR_GOVERNANCE` relink, or the
 status of v1.1. No certification is claimed.
 
-## 1. Configuration authority is domain-specific
+## 1. Configuration authority is domain-specific — and regulator-scoped
 
 `supervisory_domain_authority` maps each supervisory domain to its own
-`manage_config_permission` and `regulator_approval_permission`.
+`manage_config_permission` and `methodology_approval_permission`.
 `supervisory_domain_require_manage`, `supervisory_methodology_require_manage`
 and `supervisory_methodology_require_regulator_approval` derive authority from
 that row alone. Every governed methodology writer — `parameter_set`,
@@ -20,18 +20,29 @@ that row alone. Every governed methodology writer — `parameter_set`,
 `new_version`, `lifecycle`, `reference_decision_record` — now resolves through it,
 so the previous three-permission array is gone.
 
-| Domain | Configure | Regulator approval |
+A later wave added the regulator dimension: adoption and approval also prove that
+the actor may act **for the target regulator**, methodology approval is its own
+permission, and the approval register is regulator-scoped on read. That contract
+is documented in
+[`supervisory-methodology-regulator-authority.md`](../architecture/supervisory-methodology-regulator-authority.md)
+and verified by `scripts/verify-supervisory-regulator-methodology-authority.sql`
+(REG-AUTH-01…16, 16 PASS).
+
+| Domain | Configure | Methodology approval |
 | --- | --- | --- |
-| `AML_CFT` | `aml_supervision.manage_config` | `aml_supervision.approve` |
-| `PRUDENTIAL` | `prudential_supervision.manage_config` | `supervisory_spine.approve` |
-| `MARKET_CONDUCT` | *(unregistered — super administrator only)* | `supervisory_spine.approve` |
+| `AML_CFT` | `aml_supervision.manage_config` | `aml_supervision.methodology_approve` |
+| `PRUDENTIAL` | `prudential_supervision.manage_config` | `prudential_supervision.methodology_approve` |
+| `MARKET_CONDUCT` | *(unregistered — super administrator only)* | *(unregistered — approval refused)* |
 
 Executed negative tests: a prudential configuration officer is refused AML
 methodology configuration (CONTRACT-03), and an unauthenticated caller is
 refused outright (CONTRACT-04).
 
-**Open gap:** no `market_conduct.manage_config` permission exists, so market
-conduct methodology configuration remains super-administrator-only.
+**Open gap:** no `market_conduct.manage_config` and no market-conduct methodology
+approval permission exist, so market conduct methodology configuration remains
+super-administrator-only and its approval is refused. Generic platform backlog;
+does not block AML/CFT.
+
 
 ## 2. Response semantics are owned by the version
 
