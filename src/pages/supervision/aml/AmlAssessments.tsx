@@ -1,4 +1,10 @@
-import { useMemo, useState } from 'react';
+/**
+ * AML/CFT risk assessment register.
+ *
+ * Server-paged: the database performs the filter, the ordering, the range and
+ * the count. The register renders one page and the record total reported by the
+ * backend; nothing is counted or ordered in the browser.
+ */
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -10,31 +16,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowUpRight, RefreshCw } from 'lucide-react';
-import { useAmlAssessments } from '@/hooks/useAmlSupervision';
+import { useAmlAssessmentStatuses, useAmlAssessmentsPage } from '@/hooks/useAmlSupervision';
 import { AmlNewAssessmentDialog } from '@/components/supervision/aml/AmlNewAssessmentDialog';
 import { SupervisoryRegister } from '@/components/supervision/SupervisoryRegister';
+import { useListingState } from '@/components/shared/listing';
 import { EMERALD, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 export default function AmlAssessments() {
-  const { data, isLoading, error, refetch, isFetching } = useAmlAssessments();
-  const [q, setQ] = useState('');
-  const [status, setStatus] = useState('all');
+  const listing = useListingState({
+    defaultSort: { key: 'created_at', direction: 'desc' },
+    filterKeys: ['status'],
+  });
+  const status = listing.filters.status;
+  const { data, isLoading, error, refetch, isFetching } = useAmlAssessmentsPage({
+    page: listing.page,
+    pageSize: listing.pageSize,
+    sortKey: listing.sort?.key ?? null,
+    sortDirection: listing.sort?.direction ?? 'desc',
+    search: listing.search,
+    status: status === 'all' ? null : status,
+  });
+  const { data: statuses = [] } = useAmlAssessmentStatuses();
 
-  const rows = (data ?? []) as any[];
-  const statuses = useMemo(() => Array.from(new Set(rows.map((r) => r.status).filter(Boolean))), [rows]);
-
-  const filtered = useMemo(
-    () =>
-      rows.filter((r) => {
-        if (status !== 'all' && r.status !== status) return false;
-        if (q) {
-          const hay = `${r.entity_name ?? ''} ${r.reference ?? ''} ${r.assessment_type ?? ''}`.toLowerCase();
-          if (!hay.includes(q.toLowerCase())) return false;
-        }
-        return true;
-      }),
-    [rows, status, q],
-  );
+  const rows = data?.rows ?? [];
+  const total = data?.totalCount ?? 0;
 
   return (
     <DashboardLayout>
@@ -69,24 +74,24 @@ export default function AmlAssessments() {
         <Card>
           <CardContent className="space-y-3 pt-4">
             <RegisterToolbar
-              search={q}
-              onSearchChange={setQ}
-              searchPlaceholder="Search entity, reference or type…"
+              search={listing.search}
+              onSearchChange={listing.setSearch}
+              searchPlaceholder="Search reference or type…"
               trailing={
                 <span className="text-sm text-muted-foreground">
-                  {isLoading ? 'Loading…' : `${filtered.length} assessment${filtered.length === 1 ? '' : 's'}`}
+                  {isLoading ? 'Loading…' : `${total} assessment${total === 1 ? '' : 's'}`}
                 </span>
               }
             >
-              <Select value={status} onValueChange={setStatus}>
+              <Select value={status} onValueChange={(v) => listing.setFilter('status', v)}>
                 <SelectTrigger className="h-9 w-44">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All statuses</SelectItem>
                   {statuses.map((s) => (
-                    <SelectItem key={s as string} value={s as string}>
-                      {titleCase(s as string)}
+                    <SelectItem key={s} value={s}>
+                      {titleCase(s)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -95,16 +100,28 @@ export default function AmlAssessments() {
 
             {isLoading ? (
               <Skeleton className="h-64 w-full" />
-            ) : filtered.length === 0 ? (
+            ) : rows.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 No AML/CFT assessments match the current filters.
               </p>
             ) : (
               <SupervisoryRegister
-                rows={filtered}
-                getRowId={(r) => r.id}
+                rows={rows}
+                getRowId={(r: any) => r.id}
                 caption="AML/CFT risk assessments"
-                identifier={(r) => ({
+                mode="server"
+                sort={listing.sort}
+                onSortChange={listing.setSort}
+                identifierSortable
+                identifierSortKey="reference"
+                paged
+                page={listing.page}
+                pageSize={listing.pageSize}
+                totalCount={total}
+                onPageChange={listing.setPage}
+                onPageSizeChange={listing.setPageSize}
+                showRecordCount
+                identifier={(r: any) => ({
                   reference: r.reference || '—',
                   copyValue: r.id,
                   copyLabel: 'Copy assessment id',
@@ -123,7 +140,9 @@ export default function AmlAssessments() {
                   {
                     id: 'type',
                     header: 'Type / trigger',
-                    cell: (r) => (
+                    sortable: true,
+                    sortKey: 'type',
+                    cell: (r: any) => (
                       <>
                         <div>{titleCase(r.assessment_type)}</div>
                         <div className="text-muted-foreground">{titleCase(r.trigger_type)}</div>
@@ -133,7 +152,9 @@ export default function AmlAssessments() {
                   {
                     id: 'ratings',
                     header: 'Ratings',
-                    cell: (r) => (
+                    sortable: true,
+                    sortKey: 'residual',
+                    cell: (r: any) => (
                       <>
                         <Badge variant="outline" className={ratingTone(r.residual_rating)}>
                           {titleCase(r.residual_rating)}
@@ -147,7 +168,9 @@ export default function AmlAssessments() {
                   {
                     id: 'status',
                     header: 'Status',
-                    cell: (r) => (
+                    sortable: true,
+                    sortKey: 'status',
+                    cell: (r: any) => (
                       <>
                         <Badge variant="outline" className={statusTone(r.status)}>
                           {titleCase(r.status)}
@@ -164,7 +187,9 @@ export default function AmlAssessments() {
                     id: 'period',
                     header: 'Period / methodology',
                     priority: 3,
-                    cell: (r) => (
+                    sortable: true,
+                    sortKey: 'period',
+                    cell: (r: any) => (
                       <>
                         <div className="font-mono">
                           {fmtDate(r.period_start)} → {fmtDate(r.period_end)}
@@ -176,7 +201,7 @@ export default function AmlAssessments() {
                     ),
                   },
                 ]}
-                actions={(r) => (
+                actions={(r: any) => (
                   <Button asChild size="sm" variant="outline">
                     <Link to={`/supervision/aml/assessments/${r.id}`}>
                       Open

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -12,14 +12,20 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { useAmlPortfolio } from '@/hooks/useAmlSupervision';
+import { useListingState } from '@/components/shared/listing';
 import { AmlNewAssessmentDialog } from '@/components/supervision/aml/AmlNewAssessmentDialog';
 import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, titleCase, trendTone } from '@/lib/amlLabels';
 
 export default function AmlSupervisedEntities() {
   const { data, isLoading, error, refetch, isFetching } = useAmlPortfolio(300);
-  const [q, setQ] = useState('');
-  const [rating, setRating] = useState('all');
-  const [coverage, setCoverage] = useState('all');
+  const listing = useListingState({
+    defaultSort: { key: 'risk', direction: 'desc' },
+    filterKeys: ['rating', 'coverage'],
+  });
+  const q = listing.search;
+  const setQ = listing.setSearch;
+  const rating = listing.filters.rating;
+  const coverage = listing.filters.coverage;
 
   const rows = data ?? [];
   const ratings = useMemo(
@@ -85,7 +91,7 @@ export default function AmlSupervisedEntities() {
                 </span>
               }
             >
-              <Select value={rating} onValueChange={setRating}>
+              <Select value={rating} onValueChange={(v) => listing.setFilter('rating', v)}>
                 <SelectTrigger className="h-9 w-44">
                   <SelectValue placeholder="Residual rating" />
                 </SelectTrigger>
@@ -98,7 +104,7 @@ export default function AmlSupervisedEntities() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={coverage} onValueChange={setCoverage}>
+              <Select value={coverage} onValueChange={(v) => listing.setFilter('coverage', v)}>
                 <SelectTrigger className="h-9 w-52">
                   <SelectValue placeholder="Assessment coverage" />
                 </SelectTrigger>
@@ -122,6 +128,16 @@ export default function AmlSupervisedEntities() {
                 rows={filtered}
                 getRowId={(r) => r.entity_id}
                 caption="AML/CFT supervised entities"
+                sort={listing.sort}
+                onSortChange={listing.setSort}
+                identifierSortable
+                identifierSortKey="licence"
+                paged
+                page={listing.page}
+                pageSize={listing.pageSize}
+                onPageChange={listing.setPage}
+                onPageSizeChange={listing.setPageSize}
+                showRecordCount
                 identifierHeader="Licence / entity"
                 identifier={(r) => ({
                   reference: r.licence_reference || '—',
@@ -133,6 +149,9 @@ export default function AmlSupervisedEntities() {
                   {
                     id: 'risk',
                     header: 'Risk',
+                    sortable: true,
+                    sortAccessor: (r) => r.residual_rating,
+                    dataType: 'risk',
                     cell: (r) => (
                       <>
                         <Badge variant="outline" className={ratingTone(r.residual_rating)}>
@@ -151,6 +170,9 @@ export default function AmlSupervisedEntities() {
                   {
                     id: 'coverage',
                     header: 'Assessment coverage',
+                    sortable: true,
+                    sortAccessor: (r) => r.assessment_current,
+                    dataType: 'boolean',
                     cell: (r) => (
                       <>
                         <Badge variant="outline" className={r.assessment_current ? EMERALD : AMBER}>
@@ -174,6 +196,9 @@ export default function AmlSupervisedEntities() {
                     id: 'review',
                     header: 'Review dates',
                     priority: 3,
+                    sortable: true,
+                    sortAccessor: (r) => r.next_review_date,
+                    dataType: 'date',
                     cell: (r) => (
                       <>
                         <div className="font-mono">Last {fmtDate(r.last_review_date)}</div>
@@ -185,6 +210,9 @@ export default function AmlSupervisedEntities() {
                     id: 'work',
                     header: 'Open work',
                     priority: 2,
+                    sortable: true,
+                    sortAccessor: (r) => Number(r.open_findings ?? 0),
+                    dataType: 'number',
                     cell: (r) => (
                       <>
                         <div>{r.open_findings ?? 0} findings</div>
@@ -205,6 +233,9 @@ export default function AmlSupervisedEntities() {
                     id: 'sector',
                     header: 'Sector',
                     priority: 2,
+                    sortable: true,
+                    sortAccessor: (r) => r.sector_name,
+                    dataType: 'text',
                     cell: (r) => <span className="text-sm">{r.sector_name || '—'}</span>,
                   },
                 ]}

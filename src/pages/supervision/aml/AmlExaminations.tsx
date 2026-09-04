@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowUpRight, Filter, RefreshCw } from 'lucide-react';
 import { useAmlExaminations } from '@/hooks/useAmlSupervision';
 import { businessActionLabel, isTerminalStage } from '@/lib/examinationWorkflow';
+import { useListingState } from '@/components/shared/listing';
 import { AMBER, EMERALD, RED, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 const STAGE_ORDER = [
@@ -42,9 +43,17 @@ export default function AmlExaminations() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const focus = params.get('focus');
-  const [q, setQ] = useState('');
-  const [stage, setStage] = useState('all');
-  const [openOnly, setOpenOnly] = useState(false);
+  // Default order puts current work first: stage lifecycle ordinal, with closed
+  // and cancelled examinations last.
+  const listing = useListingState({
+    defaultSort: { key: 'stage', direction: 'asc' },
+    filterKeys: ['stage', 'open'],
+  });
+  const q = listing.search;
+  const setQ = listing.setSearch;
+  const stage = listing.filters.stage;
+  const openOnly = listing.filters.open === 'true';
+  const setOpenOnly = (next: boolean) => listing.setFilter('open', next ? 'true' : 'all');
 
   const rows = (data ?? []) as any[];
   const stages = useMemo(() => Array.from(new Set(rows.map((r) => r.stage).filter(Boolean))), [rows]);
@@ -106,7 +115,7 @@ export default function AmlExaminations() {
                 </span>
               }
             >
-              <Select value={stage} onValueChange={setStage}>
+              <Select value={stage} onValueChange={(v) => listing.setFilter('stage', v)}>
                 <SelectTrigger className="h-9 w-44">
                   <SelectValue placeholder="Stage" />
                 </SelectTrigger>
@@ -157,10 +166,22 @@ export default function AmlExaminations() {
                     </>
                   ),
                 })}
+                sort={listing.sort}
+                onSortChange={listing.setSort}
+                identifierSortable
+                paged
+                page={listing.page}
+                pageSize={listing.pageSize}
+                onPageChange={listing.setPage}
+                onPageSizeChange={listing.setPageSize}
+                showRecordCount
                 columns={[
                   {
                     id: 'type_risk',
                     header: 'Type / risk',
+                    sortable: true,
+                    sortAccessor: (r) => r.risk_rating,
+                    dataType: 'risk',
                     cell: (r) => (
                       <>
                         <div>{titleCase(r.engagement_type)}</div>
@@ -187,6 +208,10 @@ export default function AmlExaminations() {
                   {
                     id: 'stage',
                     header: 'Stage / dates',
+                    sortable: true,
+                    sortAccessor: (r) => r.stage,
+                    dataType: 'stage',
+                    businessOrder: STAGE_ORDER,
                     cell: (r) => (
                       <>
                         <Badge variant="outline" className={statusTone(r.stage)}>
@@ -215,6 +240,9 @@ export default function AmlExaminations() {
                     id: 'workload',
                     header: 'Workload',
                     priority: 2,
+                    sortable: true,
+                    sortAccessor: (r) => Number(r.open_rfis ?? 0) + Number(r.findings_open ?? 0),
+                    dataType: 'number',
                     cell: (r) => (
                       <>
                         <div>
@@ -242,6 +270,9 @@ export default function AmlExaminations() {
                     id: 'provenance',
                     header: 'Provenance / team',
                     priority: 3,
+                    sortable: true,
+                    sortAccessor: (r) => r.lead_examiner_name,
+                    dataType: 'text',
                     cell: (r) => (
                       <>
                         {r.driving_assessment_reference ? (
