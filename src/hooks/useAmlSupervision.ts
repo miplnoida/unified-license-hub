@@ -109,26 +109,6 @@ async function nameMap(entityIds: (string | null | undefined)[]) {
   return new Map<string, string>((data ?? []).map((r: any) => [r.id, r.name ?? '']));
 }
 
-export function useAmlAssessments() {
-  return useQuery({
-    queryKey: ['aml', 'assessments'],
-    queryFn: async () => {
-      const { data, error } = await sb
-        .from('supervisory_assessment')
-        .select(
-          'id, reference, entity_id, assessment_type, trigger_type, status, period_start, period_end, ' +
-            'methodology_version, residual_rating, inherent_rating, control_rating, is_current, ' +
-            'owner_id, submitted_at, approved_at, approved_by, confidentiality, created_at',
-        )
-        .eq('domain_code', 'AML_CFT')
-        .order('created_at', { ascending: false })
-        .limit(300);
-      if (error) throw error;
-      const names = await nameMap((data ?? []).map((r: any) => r.entity_id));
-      return (data ?? []).map((r: any) => ({ ...r, entity_name: names.get(r.entity_id) ?? null }));
-    },
-  });
-}
 
 /**
  * Server-paged AML/CFT assessment register.
@@ -357,36 +337,6 @@ export function useAmlAssessment(assessmentId?: string) {
   });
 }
 
-/**
- * AML/CFT examination register.
- *
- * Reads the canonical `examinations` store filtered to the AML/CFT domain and
- * joins the canonical provenance (`examination_origin` — exact
- * DRIVING_ASSESSMENT / RISK_FOCUS rows), the canonical scope dimensions and
- * the canonical work stores (data requests, workpapers, findings, team) so the
- * register can show real supervisory state instead of a bare stage label.
- * Provenance is never inferred from "same entity + AML domain".
- */
-export function useAmlExaminations() {
-  return useQuery({
-    queryKey: ['aml', 'examinations', 'register'],
-    queryFn: async () => {
-      const { data, error } = await sb
-        .from('examinations')
-        .select(
-          'id, reference, title, entity_id, engagement_type, examination_type, stage, risk_rating, ' +
-            'fieldwork_start, fieldwork_end, period_under_review_start, period_under_review_end, ' +
-            'lead_examiner_id, closed_at, intervention_id, plan_id, trigger_type, ' +
-            'reassessment_required, created_at',
-        )
-        .eq('domain_code', 'AML_CFT')
-        .order('created_at', { ascending: false })
-        .limit(300);
-      if (error) throw error;
-      return enrichExaminations((data ?? []) as any[]);
-    },
-  });
-}
 
 /**
  * Canonical examination enrichment for the AML/CFT register.
@@ -525,40 +475,6 @@ async function enrichExaminations(rows: any[]) {
     });
 }
 
-export function useAmlFindings() {
-  return useQuery({
-    queryKey: ['aml', 'findings'],
-    queryFn: async () => {
-      const { data, error } = await sb
-        .from('supervisory_finding')
-        .select(
-          'id, reference, title, entity_id, finding_category, severity, status, response_state, ' +
-            'due_date, response_target_date, assessment_id, examination_id, confidentiality, ' +
-            'issued_at, closed_at, created_at',
-        )
-        .eq('domain_code', 'AML_CFT')
-        .order('created_at', { ascending: false })
-        .limit(300);
-      if (error) throw error;
-
-      const findingIds = (data ?? []).map((r: any) => r.id);
-      let actions: any[] = [];
-      if (findingIds.length) {
-        const { data: ra } = await sb
-          .from('supervisory_remediation_action')
-          .select('id, reference, finding_id, description, status, target_date, effectiveness, escalated_attention_id')
-          .in('finding_id', findingIds);
-        actions = ra ?? [];
-      }
-      const names = await nameMap((data ?? []).map((r: any) => r.entity_id));
-      return (data ?? []).map((r: any) => ({
-        ...r,
-        entity_name: names.get(r.entity_id) ?? null,
-        remediation: actions.filter((a) => a.finding_id === r.id),
-      }));
-    },
-  });
-}
 
 /* ============================================================
  * Real server-paged AML/CFT registers.
