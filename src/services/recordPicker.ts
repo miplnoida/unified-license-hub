@@ -48,7 +48,7 @@ export const RECORD_PICKER_TYPES: RecordPickerOption[] = [
   { value: 'enforcement', label: 'Enforcement case', searchHint: 'Search by case or notice reference' },
   { value: 'fit_and_proper', label: 'Fit and proper assessment', searchHint: 'Search by individual or entity' },
   { value: 'correspondence', label: 'Correspondence', searchHint: 'Search by correspondence reference or sender' },
-  { value: 'person', label: 'Person', searchHint: 'Search by full name' },
+
 ];
 
 const TYPE_LABEL = new Map(RECORD_PICKER_TYPES.map((t) => [t.value, t.label]));
