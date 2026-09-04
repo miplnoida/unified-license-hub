@@ -97,7 +97,7 @@ materiality value was invented.
 | Suite | Result |
 | --- | --- |
 | `scripts/verify-aml-v11-reference-draft.sql` | 18 PASS, 0 FAIL |
-| `scripts/verify-aml-v11-catalogue-design.py` | 58/58 PASS |
+| `scripts/verify-aml-v11-catalogue-design.py` | 61/61 PASS |
 | `scripts/verify-aml-full-module-hardening.sql` | 15 PASS, 1 FAIL (AMLH-09 — unchanged) |
 | `scripts/verify-aml-calculation-governance.sql` | 20 PASS, 0 FAIL |
 | `scripts/verify-aml-calculation-integrity.sql` | 7 PASS, 4 FAIL (CALC-05/06/09/11 — unchanged) |
