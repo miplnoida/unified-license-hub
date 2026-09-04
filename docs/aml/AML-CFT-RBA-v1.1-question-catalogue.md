@@ -708,10 +708,10 @@ Placeholders in square brackets (e.g. `[LOCAL_STR_DEADLINE_REF]`) are deployment
 | standards_reference_strength | RELATED_RISK_FACTOR |
 | standards_reference_review | Growth is a supervisory risk indicator, not an R.1 requirement — RELATED_RISK_FACTOR. |
 | sector_applicability | CORE_ALL |
-| polarity_review | KEEP — YES = controls calibrated to a smaller prior scale = more unmitigated exposure. Standards mapping downgraded. |
+| polarity_review | KEEP — YES = material growth or change expanded or materially altered the entity's ML/TF exposure surface, measured before controls. Standards mapping downgraded. |
 | change_classification | SPLIT |
 
-**Guidance.** Consider growth in customers, value, products, channels, jurisdictions, and material change such as acquisition, new licence class or system replacement. The growth threshold is a configuration parameter (`[MAT_GROWTH_RATE]`). Growth raises exposure because controls are calibrated to the prior scale.
+**Guidance.** Measure the change in exposure surface: growth in customer numbers and value, entry into new products, services, channels or jurisdictions, and material structural change such as acquisition, disposal, new licence class, change of ownership or group reorganisation. The growth threshold is a configuration parameter (`[MAT_GROWTH_RATE]`). Record the figures and the change events relied on. Whether governance, staffing, systems, risk assessment, transaction monitoring, CDD or other controls kept pace with the change is assessed in the relevant CONTROL dimensions and must not influence the answer here.
 
 #### CT-GOV-01
 
