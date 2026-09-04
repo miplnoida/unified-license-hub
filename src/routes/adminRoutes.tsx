@@ -52,6 +52,8 @@ const BulkIntake = lazy(() => import('@/pages/admin/BulkIntake'));
 const FpScreeningConfigs = lazy(() => import('@/pages/admin/FpScreeningConfigs'));
 const SupervisoryCalculationConfig = lazy(() => import('@/pages/admin/SupervisoryCalculationConfig'));
 const SupervisoryCalculationApprovals = lazy(() => import('@/pages/admin/SupervisoryCalculationApprovals'));
+const SupervisoryMethodologyRegisterPage = lazy(() => import('@/pages/admin/SupervisoryMethodologyRegister'));
+const SupervisoryMethodologyDetailPage = lazy(() => import('@/pages/admin/SupervisoryMethodologyDetail'));
 const FpCommittees = lazy(() => import('@/pages/admin/FpCommittees'));
 const RuleOverrides = lazy(() => import('@/pages/admin/RuleOverrides'));
 const RuleLibrary = lazy(() => import('@/pages/admin/RuleLibrary'));
