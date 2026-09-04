@@ -46,7 +46,11 @@ async function rpc<T = any>(fn: string, args: Record<string, unknown>): Promise<
 export interface CreateAmlAssessmentInput {
   entityId: string;
   assessmentType: string;
-  /** Resolved by `supervisory_methodology_resolve` — never chosen by the officer. */
+  /**
+   * Display only. The browser never selects the methodology version: the
+   * database resolves it inside `supervisory_assessment_create`. This value is
+   * used solely to block a pointless round trip when nothing applies.
+   */
   methodologyId: string;
   periodStart?: string | null;
   periodEnd?: string | null;
@@ -65,13 +69,14 @@ export function useCreateAmlAssessment() {
             'applicable active version before an assessment can be created.',
         );
       }
+      // _methodology_id is deliberately not sent: the server resolves and binds
+      // the applicable version and rejects any caller-supplied alternative.
       return rpc('supervisory_assessment_create', {
         _entity_id: input.entityId,
         _domain_code: 'AML_CFT',
         _assessment_type: input.assessmentType,
         _period_start: input.periodStart ?? null,
         _period_end: input.periodEnd ?? null,
-        _methodology_id: input.methodologyId,
         _trigger_type: input.triggerType ?? 'PERIODIC',
         _summary: input.summary ?? null,
         _supersedes_id: input.supersedesId ?? null,

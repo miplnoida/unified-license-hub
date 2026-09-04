@@ -64186,8 +64186,22 @@ export type Database = {
         Returns: number
       }
       supervisory_methodology_resolve: {
-        Args: { _as_of?: string; _domain_code: string; _sector_id?: string }
+        Args: {
+          _as_of?: string
+          _domain_code: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
         Returns: string
+      }
+      supervisory_methodology_resolve_detail: {
+        Args: {
+          _as_of?: string
+          _domain_code: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
+        Returns: Json
       }
       supervisory_methodology_save: {
         Args: { _methodology_id?: string; _payload: Json }
