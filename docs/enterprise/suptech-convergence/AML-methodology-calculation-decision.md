@@ -638,10 +638,11 @@ assessment; no configuration choice changes that.
 
 ### E.4 Would the recommended rule leave any assessment without an in-force configuration?
 
-- Under the recommended `ASSESSMENT_DATE` rule, with a configuration effective
-  from `2026-01-01` (or any date ≤ 2026-09-02): **no. All 21 approved
-  assessments resolve to an in-force configuration.** The two drafts with a null
-  assessment date coalesce to their creation date and also resolve.
+- Under the recommended `ASSESSMENT_DATE` rule, with the recommended narrowest
+  configuration `effective_from = 2026-09-02` (section 3D): **no gap. All 21
+  approved assessments resolve to an in-force configuration.** The two drafts with
+  a null assessment date coalesce to their creation date (2026-09-03) and also
+  resolve.
 - Under `EXECUTION_DATE`: same outcome — no gap.
 - Under `PERIOD_END`: **one gap.** `SUP-AML_CFT-2026-00356` (period ending
   2025-09-02, status `superseded`) would resolve to 2025 and find no
@@ -650,7 +651,12 @@ assessment; no configuration choice changes that.
 - If the configuration's `effective_from` is set later than 2026-09-02, approved
   assessments dated 2026-09-02/03 will fall outside it and remain uncalculated.
   **The configuration effective date must not be later than the earliest
-  assessment it is meant to cover.**
+  assessment it is meant to cover, and — per section 3D — must not be earlier
+  than that without a recorded retrospective rationale.**
+- Boundary reminder: the interval is half-open. A configuration whose
+  `effective_to` equals the resolved as-of date is **not** in force on that date
+  (gate OUTC-09).
+
 
 ### E.5 Expected override-review population
 
