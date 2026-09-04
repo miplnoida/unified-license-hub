@@ -1,6 +1,8 @@
 export { SortableHeader } from './SortableHeader';
 export { PaginationBar } from './PaginationBar';
 export { useListingState } from './useListingState';
+export { useServerPageGuard } from './useServerPageGuard';
+export type { ServerPageGuard, ServerPageGuardOptions } from './useServerPageGuard';
 export { useInvalidPageRecovery } from './useInvalidPageRecovery';
 export type { InvalidPageRecoveryOptions } from './useInvalidPageRecovery';
 export {
