@@ -22,7 +22,16 @@ export interface ListingStateOptions {
 export interface ListingState {
   search: string;
   setSearch: (value: string) => void;
+  /** Effective sort: the explicit user sort when present, otherwise the default. */
   sort: ListingSort | null;
+  /** The user's explicit sort, or null while the register is on its default. */
+  explicitSort: ListingSort | null;
+  /** True once the officer has chosen a sort (URL-backed), false on the default. */
+  isExplicitSort: boolean;
+  /**
+   * Authoritative sort-toggle intent for a column header.
+   * implicit default -> ASC -> DESC -> implicit default.
+   */
   toggleSort: (key: string) => void;
   setSort: (sort: ListingSort | null) => void;
   filters: Record<string, string>;
@@ -48,9 +57,14 @@ export function useListingState(options: ListingStateOptions = {}): ListingState
   const search = params.get(k('q')) ?? '';
   const sortKey = params.get(k('sort'));
   const dir = (params.get(k('dir')) as SortDirection | null) ?? 'asc';
-  const sort: ListingSort | null = sortKey
+  // The explicit sort is the one the officer chose (URL-backed). The effective
+  // sort falls back to the register's default, but a click must always be
+  // interpreted against the explicit state — otherwise the first click on the
+  // default-sorted column would be read as "third click" and clear it.
+  const explicitSort: ListingSort | null = sortKey
     ? { key: sortKey, direction: dir === 'desc' ? 'desc' : 'asc' }
-    : defaultSort;
+    : null;
+  const sort: ListingSort | null = explicitSort ?? defaultSort;
   const rawPage = Number(params.get(k('page')) ?? '1');
   const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
   const rawSize = Number(params.get(k('pageSize')) ?? String(defaultPageSize));
@@ -94,12 +108,11 @@ export function useListingState(options: ListingStateOptions = {}): ListingState
   );
   const toggleSort = useCallback(
     (key: string) => {
-      const current = sort;
-      if (!current || current.key !== key) setSort({ key, direction: 'asc' });
-      else if (current.direction === 'asc') setSort({ key, direction: 'desc' });
-      else setSort(defaultSort && defaultSort.key !== key ? defaultSort : null);
+      if (!explicitSort || explicitSort.key !== key) setSort({ key, direction: 'asc' });
+      else if (explicitSort.direction === 'asc') setSort({ key, direction: 'desc' });
+      else setSort(null); // back to the register's implicit default
     },
-    [sort, setSort, defaultSort],
+    [explicitSort, setSort],
   );
   const setPage = useCallback((next: number) => patch({ page: next <= 1 ? null : String(next) }), [patch]);
   const setPageSize = useCallback(
@@ -112,6 +125,8 @@ export function useListingState(options: ListingStateOptions = {}): ListingState
     search,
     setSearch,
     sort,
+    explicitSort,
+    isExplicitSort: explicitSort !== null,
     toggleSort,
     setSort,
     filters,
