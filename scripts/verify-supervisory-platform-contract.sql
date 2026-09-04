@@ -225,6 +225,8 @@ BEGIN
     'the response semantics of a version outside DRAFT/REVIEW are immutable',
     _ok, _err);
 
+  -- The freeze also guards deletion, so relax the fixture before discarding it.
+  UPDATE public.supervisory_methodology SET status = 'DRAFT' WHERE id = _fix;
   DELETE FROM public.supervisory_methodology_semantic_profile WHERE methodology_id = _fix;
   DELETE FROM public.supervisory_methodology_event WHERE methodology_id = _fix;
   DELETE FROM public.supervisory_methodology WHERE id = _fix;
