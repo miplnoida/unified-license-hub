@@ -130,3 +130,8 @@ Convergence inventory for upload paths:
 
 Ingest staging (`public.dms_ingest_sessions`) is server-written; browsers hold read
 access to their own sessions only. Verifier: `scripts/verify-w1a2-dms-ingest.sql`.
+
+This contract is the Enterprise Document Gateway ingestion contract bound to the
+internal provider. Making it resolve the active provider and record a provider
+binding is a later implementation increment; the contract shape for modules
+(context + type + metadata + content, never bucket/path/provider id) does not change.
