@@ -264,8 +264,19 @@ def main() -> int:
             fails += 1
         print(f"{name.ljust(width)}  {status}{('  ' + detail) if detail and status == 'FAIL' else ''}")
     print(f"\n{len(results) - fails}/{len(results)} PASS")
-    print(f"census: total={len(recs)} inherent={sum(1 for r in recs if r.get('axis') == 'INHERENT_EXPOSURE')} "
-          f"CORE={cls['CORE']} CONDITIONAL={cls['CONDITIONAL']} ENHANCED={cls['ENHANCED']}")
+    print("\nderived census (parsed, not asserted):")
+    print(f"  active={len(recs)} retired={len(RETIRED_CODES)}")
+    print(f"  classes: CORE={cls['CORE']} CONDITIONAL={cls['CONDITIONAL']} ENHANCED={cls['ENHANCED']}")
+    print(f"  inherent entries={len(inherent)} scored={len(scored_inherent)} contextual={len(contextual)}")
+    print(f"  control entries={len(recs) - len(inherent)}")
+    print(f"  mandatory: YES={cls['CORE']} NO={len(recs) - cls['CORE']}")
+    print(f"  requires_observation: {dict(obs)}")
+    print(f"  requires_evidence: YES={len(recs)} NO=0")
+    print(f"  allow_NA: {dict(na)}")
+    print(f"  factual_auto_prefill_possible: {dict(prefill)}")
+    print(f"  supervisory_judgement_required: {dict(judge)}")
+    print(f"  effectiveness focus: {dict(focus)}")
+    print(f"  standards reference strength: {dict(strength)}")
     return 1 if fails else 0
 
 
