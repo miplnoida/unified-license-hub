@@ -316,63 +316,47 @@ export function DocumentDecisionDialog({
 
 /* -------------------------------------------------------------- link record */
 
-export function LinkRecordDialog({ open, onOpenChange, groupId, onDone }: BaseProps) {
-  const [targetType, setTargetType] = useState(DMS_CONTEXT_TYPES[0].value);
-  const [targetId, setTargetId] = useState('');
-  const [reference, setReference] = useState('');
+export function LinkRecordDialog({
+  open, onOpenChange, groupId, onDone, entityId, linkedRecordIds,
+}: BaseProps & { entityId?: string | null; linkedRecordIds?: string[] }) {
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { if (open) { setTargetId(''); setReference(''); } }, [open]);
-
-  const save = async () => {
-    if (!targetId.trim()) { toast.error('Enter the record this document belongs to'); return; }
+  const pick = async (row: RecordPickerRow) => {
     setSaving(true);
     const res = await linkDocumentToRecord({
       groupId,
-      targetType,
-      targetId: targetId.trim(),
-      targetReference: reference.trim() || null,
+      targetType: row.recordType,
+      targetId: row.recordId,
+      targetReference: row.reference || row.title || null,
     });
     setSaving(false);
     if ('error' in res) { toast.error(describeDmsError(res.error)); return; }
-    toast.success('Document linked to the record');
+    toast.success(`Document linked to ${describeRecord(row)}`);
     onOpenChange(false);
     onDone();
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Link to a regulatory record</DialogTitle>
           <DialogDescription>
-            The same document is attached to another record. No copy is created and the document keeps its reference.
+            Choose the record this document belongs to. The same document is attached to that
+            record — no copy is created and the document keeps its reference.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label>Record type</Label>
-            <Select value={targetType} onValueChange={setTargetType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {DMS_CONTEXT_TYPES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Record identifier</Label>
-            <Input value={targetId} onChange={(e) => setTargetId(e.target.value)} placeholder="Paste the record identifier from its screen" />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Record reference (optional)</Label>
-            <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. APP-2026-0142" />
-          </div>
-        </div>
+        <RecordPicker
+          entityId={entityId}
+          linkedRecordIds={linkedRecordIds}
+          onSelect={pick}
+          busy={saving}
+        />
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={saving}>{saving ? 'Linking…' : 'Link document'}</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
