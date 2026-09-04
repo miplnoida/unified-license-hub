@@ -20,7 +20,9 @@ if len(gates) != 22:
 
 prelude = '\n'.join(l for l in parts[0].split('\n')
                     if not l.startswith('\\') and l.strip() != 'BEGIN;')
-out = ['SET client_min_messages = notice;', 'BEGIN;', prelude,
+out = ['SET client_min_messages = notice;',
+       'DROP TABLE IF EXISTS meth_res, meth_ctx, meth_actor, meth_baseline;',
+       'BEGIN;', prelude,
        'CREATE TEMP TABLE meth_res(gate text, title text, status text, detail text);']
 for name, title, body in gates:
     body = body.replace('ROLLBACK;', '').strip()
