@@ -70,7 +70,15 @@ options, live counts, question filters, question detail fidelity, contextual
 participation, version-owned semantics, fact/parameter truthfulness, reference vs
 regulator approval separation, layered readiness + refused activation/approval,
 server-scoped adoption targets, real audit events, zero persistent write). All
-fixtures run inside one transaction that rolls back.
+22 gates pass. Methodology configuration / approval authority is not a standing
+grant in this deployment, so the verifier builds a regulator-scoped configuration
+persona and a methodology approver as fixtures; every fixture (regulator, roles,
+scopes, role assignments) runs inside one transaction that rolls back.
+`scripts/run-meth-read-gates.py` emits a gate-by-gate PASS/FAIL table:
+
+```text
+python3 scripts/run-meth-read-gates.py | psql -q -f -
+```
 
 ## Known blockers (unchanged by this wave)
 
