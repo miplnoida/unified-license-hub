@@ -19,9 +19,12 @@ import {
   type DmsConfidentiality, type DmsPublicationEligibility,
 } from '@/services/dms';
 import {
-  CONFIDENTIALITY_OPTIONS, DMS_CONTEXT_TYPES, PUBLICATION_OPTIONS,
+  CONFIDENTIALITY_OPTIONS, PUBLICATION_OPTIONS,
 } from '@/lib/presentation/dmsLabels';
+import { RecordPicker } from '@/components/documents/RecordPicker';
+import { describeRecord, type RecordPickerRow } from '@/services/recordPicker';
 import { useDmsRetentionPolicies, useDmsTaxonomy } from '@/hooks/useDmsDocuments';
+
 
 const NONE = 'none';
 const unset = (v: string) => (v === NONE ? null : v);
