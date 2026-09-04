@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useAmlAssessments } from '@/hooks/useAmlSupervision';
 import { AmlNewAssessmentDialog } from '@/components/supervision/aml/AmlNewAssessmentDialog';
+import { SupervisoryRegister } from '@/components/supervision/SupervisoryRegister';
 import { EMERALD, NEUTRAL, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 export default function AmlAssessments() {
