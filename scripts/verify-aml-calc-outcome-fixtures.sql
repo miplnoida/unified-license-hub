@@ -234,11 +234,12 @@ END $$;
 
 -- ------------------------------------ 4. governed recalculation of NOT_CALCULABLE
 DO $$
-DECLARE _uid uuid; _cfg uuid; _aIn uuid; _aNone uuid; _dry jsonb; _wr jsonb; _row public.supervisory_assessment_dimension;
+DECLARE _uid uuid; _cfg uuid; _aIn uuid; _aNone uuid; _aCalc uuid; _dry jsonb; _wr jsonb; _row public.supervisory_assessment_dimension;
         _item jsonb; _itemw jsonb;
 BEGIN
   SELECT id INTO _aIn FROM public.supervisory_assessment WHERE reference = 'ZZ-OUTC-IN';
   SELECT id INTO _aNone FROM public.supervisory_assessment WHERE reference = 'ZZ-OUTC-NONE';
+  SELECT id INTO _aCalc FROM public.supervisory_assessment WHERE reference = 'ZZ-OUTC-CALC';
   _cfg := public.supervisory_calc_config_for(_aIn);
   SELECT u.id INTO _uid FROM auth.users u
    WHERE public.has_permission(u.id,'aml_supervision','manage_config') ORDER BY u.email LIMIT 1;
@@ -264,13 +265,13 @@ BEGIN
   PERFORM pg_temp.gate('OUTC-11','governed recalculation dry run labels each outcome distinctly',
     _item->>'result' = 'WOULD_RECORD_NOT_CALCULABLE'
     AND (SELECT e->>'result' FROM jsonb_array_elements(_dry->'items') e
-          WHERE e->>'assessment_id' = _aIn::text) = 'WOULD_CALCULATE'
+          WHERE e->>'assessment_id' = _aCalc::text) = 'WOULD_CALCULATE'
     AND (_dry->>'not_calculable')::int >= 1
     AND (_dry->>'recalculated')::int >= 1,
     format('non-calculable item=%s calculable item=%s not_calculable=%s recalculated=%s',
       COALESCE(_item->>'result','(none)'),
       COALESCE((SELECT e->>'result' FROM jsonb_array_elements(_dry->'items') e
-                 WHERE e->>'assessment_id' = _aIn::text),'(none)'),
+                 WHERE e->>'assessment_id' = _aCalc::text),'(none)'),
       _dry->>'not_calculable', _dry->>'recalculated'));
 
   PERFORM pg_temp.gate('OUTC-12','governed recalculation write run materialises NOT_CALCULABLE',
