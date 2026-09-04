@@ -119,6 +119,10 @@ BEGIN
   INSERT INTO public.supervisory_methodology_question(methodology_id, methodology_dimension_id,
     question_code, prompt, response_options, min_evidence_count)
   VALUES (_m,_dimI,'FXQ1','Inherent question',ARRAY['YES','NO'],0) RETURNING id INTO _q1;
+  INSERT INTO public.supervisory_methodology_question(methodology_id, methodology_dimension_id,
+    question_code, prompt, response_options, min_evidence_count)
+  VALUES (_m,_dimC,'FXQ2','Control question',ARRAY['YES','NO'],0) RETURNING id INTO _q2;
+
 
   -- one configuration version, window [2026-01-01, 2026-06-30)
   INSERT INTO public.supervisory_calculation_config(methodology_id, config_version, status,
