@@ -555,7 +555,8 @@ BEGIN
   END IF;
 
   cmp := public.supervisory_methodology_compare(_ref);
-  IF (cmp->>'comparable')::boolean AND cmp->>'note' NOT LIKE '%not migrated%' THEN
+  IF (cmp->>'comparable')::boolean
+     AND cmp->>'note' NOT ILIKE '%no historical assessment response was migrated%' THEN
     RAISE EXCEPTION 'FAIL METH-READ-20: comparison does not state that responses were not migrated';
   END IF;
   PERFORM pg_temp.act_as_owner();
