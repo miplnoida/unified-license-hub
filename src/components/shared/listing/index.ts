@@ -1,6 +1,8 @@
 export { SortableHeader } from './SortableHeader';
 export { PaginationBar } from './PaginationBar';
 export { useListingState } from './useListingState';
+export { useInvalidPageRecovery } from './useInvalidPageRecovery';
+export type { InvalidPageRecoveryOptions } from './useInvalidPageRecovery';
 export {
   compareValues,
   sortRows,
@@ -8,6 +10,7 @@ export {
   ariaSortOf,
   paginate,
   pageCount,
+  clampPage,
   rangeLabel,
 } from './sorting';
 export type { SortSpec } from './sorting';

@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -11,13 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowUpRight, RefreshCw } from 'lucide-react';
-import { useAmlPortfolio } from '@/hooks/useAmlSupervision';
+import { useAmlPortfolioPage, useAmlPortfolioRatings } from '@/hooks/useAmlSupervision';
 import { useListingState } from '@/components/shared/listing';
 import { AmlNewAssessmentDialog } from '@/components/supervision/aml/AmlNewAssessmentDialog';
 import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, titleCase, trendTone } from '@/lib/amlLabels';
 
 export default function AmlSupervisedEntities() {
-  const { data, isLoading, error, refetch, isFetching } = useAmlPortfolio(300);
   const listing = useListingState({
     defaultSort: { key: 'risk', direction: 'desc' },
     filterKeys: ['rating', 'coverage'],
@@ -27,27 +25,20 @@ export default function AmlSupervisedEntities() {
   const rating = listing.filters.rating;
   const coverage = listing.filters.coverage;
 
-  const rows = data ?? [];
-  const ratings = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.residual_rating).filter(Boolean))) as string[],
-    [rows],
-  );
-
-  const filtered = useMemo(
-    () =>
-      rows.filter((r) => {
-        if (rating !== 'all' && r.residual_rating !== rating) return false;
-        if (coverage === 'current' && !r.assessment_current) return false;
-        if (coverage === 'missing' && r.assessment_current) return false;
-        if (coverage === 'reassessment' && !r.reassessment_required) return false;
-        if (q) {
-          const hay = `${r.entity_name ?? ''} ${r.sector_name ?? ''} ${r.licence_reference ?? ''}`.toLowerCase();
-          if (!hay.includes(q.toLowerCase())) return false;
-        }
-        return true;
-      }),
-    [rows, rating, coverage, q],
-  );
+  // Real server paging: the database owns the filtered population, the count
+  // and the supervisory risk ordering for every page.
+  const { data, isLoading, error, refetch, isFetching } = useAmlPortfolioPage({
+    page: listing.page,
+    pageSize: listing.pageSize,
+    sortKey: listing.sort?.key ?? null,
+    sortDirection: listing.sort?.direction ?? 'desc',
+    search: q,
+    rating: rating === 'all' ? null : rating,
+    coverage: coverage === 'all' ? null : coverage,
+  });
+  const { data: ratings = [] } = useAmlPortfolioRatings();
+  const rows = data?.rows ?? [];
+  const total = data?.totalCount ?? 0;
 
   return (
     <DashboardLayout>
@@ -87,7 +78,7 @@ export default function AmlSupervisedEntities() {
               searchPlaceholder="Search entity, sector or licence…"
               trailing={
                 <span className="text-sm text-muted-foreground">
-                  {isLoading ? 'Loading…' : `${filtered.length} entit${filtered.length === 1 ? 'y' : 'ies'}`}
+                  {isLoading ? 'Loading…' : `${total} entit${total === 1 ? 'y' : 'ies'}`}
                 </span>
               }
             >
@@ -119,15 +110,17 @@ export default function AmlSupervisedEntities() {
 
             {isLoading ? (
               <Skeleton className="h-64 w-full" />
-            ) : filtered.length === 0 ? (
+            ) : rows.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 No supervised entities match the current filters.
               </p>
             ) : (
               <SupervisoryRegister
-                rows={filtered}
+                rows={rows}
                 getRowId={(r) => r.entity_id}
                 caption="AML/CFT supervised entities"
+                mode="server"
+                totalCount={total}
                 sort={listing.sort}
                 onSortChange={listing.setSort}
                 identifierSortable

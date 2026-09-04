@@ -1,12 +1,14 @@
 /**
  * AML/CFT work queue.
  *
- * Reads the single enterprise work model (`supervisory_work_queue`) filtered to
- * the AML/CFT domain. Nothing is counted or prioritised in the browser: scope
- * counts, overdue/due-soon flags and the route to open each item all come from
- * the read model.
+ * Reads the single enterprise work model through the paged AML/CFT contract
+ * (`aml_work_queue_page`). Nothing is counted, filtered, ordered or prioritised
+ * in the browser: the page, the authoritative total, the scope counts, the
+ * overdue/due-soon flags and the route to open each item all come from the read
+ * model, and the default order keeps supervisory queue semantics (overdue,
+ * priority, due date, deterministic identifier).
  */
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -19,12 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowUpRight, RefreshCw } from 'lucide-react';
-import {
-  WORK_SCOPES,
-  WORK_SCOPE_LABELS,
-  useSupervisoryWorkQueue,
-  type WorkScope,
-} from '@/hooks/useSupervisoryWork';
+import { WORK_SCOPES, WORK_SCOPE_LABELS, type WorkScope } from '@/hooks/useSupervisoryWork';
+import { useAmlWorkQueuePage, useAmlWorkTypes } from '@/hooks/useAmlSupervision';
 import { useListingState } from '@/components/shared/listing';
 import { RED, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
@@ -32,35 +30,29 @@ const SCOPE_LABELS: Record<WorkScope, string> = { ...WORK_SCOPE_LABELS, ALL: 'Al
 
 export default function AmlWorkQueue() {
   const [scope, setScope] = useState<WorkScope>('MY_WORK');
-  // Default order is the read model's own supervisory order (overdue, then
-  // priority, then due date); an explicit column sort overrides it locally.
-  const listing = useListingState({ filterKeys: ['type'] });
+  // `queue` is the read model's own supervisory order; an explicit column sort
+  // replaces it server-side.
+  const listing = useListingState({
+    defaultSort: { key: 'queue', direction: 'asc' },
+    filterKeys: ['type'],
+  });
   const q = listing.search;
   const setQ = listing.setSearch;
   const workType = listing.filters.type;
-  const { data, isLoading, error, refetch, isFetching } = useSupervisoryWorkQueue({
+  const { data, isLoading, error, refetch, isFetching } = useAmlWorkQueuePage({
+    page: listing.page,
+    pageSize: listing.pageSize,
+    sortKey: listing.sort?.key ?? null,
+    sortDirection: listing.sort?.direction ?? 'asc',
+    search: q,
     scope,
-    domain: 'AML_CFT',
     workType: workType === 'all' ? null : workType,
-    limit: 300,
   });
+  const { data: workTypes = [] } = useAmlWorkTypes();
 
-  const items = data?.items ?? [];
+  const items = data?.rows ?? [];
+  const total = data?.totalCount ?? 0;
   const counts = data?.counts ?? {};
-  const workTypes = useMemo(
-    () => Array.from(new Map(items.map((i) => [i.work_type, i.work_type_label])).entries()).sort(),
-    [items],
-  );
-
-  const filtered = useMemo(
-    () =>
-      items.filter((i) => {
-        if (!q) return true;
-        const hay = `${i.title ?? ''} ${i.entity_name ?? ''} ${i.reference ?? ''} ${i.work_type_label}`.toLowerCase();
-        return hay.includes(q.toLowerCase());
-      }),
-    [items, q],
-  );
 
   return (
     <DashboardLayout>
@@ -108,7 +100,7 @@ export default function AmlWorkQueue() {
               searchPlaceholder="Search entity, reference or item…"
               trailing={
                 <span className="text-sm text-muted-foreground">
-                  {isLoading ? 'Loading…' : `${filtered.length} item${filtered.length === 1 ? '' : 's'}`}
+                  {isLoading ? 'Loading…' : `${total} item${total === 1 ? '' : 's'}`}
                 </span>
               }
             >
@@ -129,15 +121,17 @@ export default function AmlWorkQueue() {
 
             {isLoading ? (
               <Skeleton className="h-64 w-full" />
-            ) : filtered.length === 0 ? (
+            ) : items.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 No AML/CFT work items in this scope.
               </p>
             ) : (
               <SupervisoryRegister
-                rows={filtered}
+                rows={items}
                 getRowId={(i) => i.work_key}
                 caption="AML/CFT work queue"
+                mode="server"
+                totalCount={total}
                 sort={listing.sort}
                 onSortChange={listing.setSort}
                 identifierSortable

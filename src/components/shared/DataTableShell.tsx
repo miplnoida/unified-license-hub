@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Download } from 'lucide-react';
 import { RegisterToolbar } from '@/components/shared/RegisterToolbar';
-import { PaginationBar, SortableHeader } from '@/components/shared/listing';
+import { PaginationBar, SortableHeader, useInvalidPageRecovery } from '@/components/shared/listing';
 import { ariaSortOf, paginate, sortRows, type SortSpec } from '@/components/shared/listing/sorting';
 import {
   DEFAULT_PAGE_SIZE,
@@ -152,8 +152,23 @@ export function DataTableShell<T extends Record<string, any>>({
     setPage(1);
   };
 
-  const rowId = (row: T, index: number) =>
-    getRowId ? getRowId(row) : String(row.id ?? row.uuid ?? row.key ?? index);
+  /**
+   * Stable row identity. A register row is a real record, so it always has a
+   * canonical key — array position is never an identity because it changes with
+   * every sort, filter and page. When neither `getRowId` nor a canonical key is
+   * available the shell refuses to render rather than fabricate identity.
+   */
+  const rowId = (row: T) => {
+    if (getRowId) return getRowId(row);
+    const canonical = row.id ?? row.uuid ?? row.key ?? row.work_key ?? row.code ?? row.reference;
+    if (canonical === undefined || canonical === null || canonical === '') {
+      throw new Error(
+        'DataTableShell: rows have no canonical identity — supply getRowId. Array index is never a row id.',
+      );
+    }
+    return String(canonical);
+  };
+
 
   const rawValue = (col: Column<T>, row: T) =>
     col.sortAccessor ? col.sortAccessor(row) : row[col.key];
@@ -202,13 +217,23 @@ export function DataTableShell<T extends Record<string, any>>({
     () =>
       mode === 'server'
         ? filtered
-        : sortRows(filtered, sort, sortSpecs, (row) => rowId(row, 0)),
+        : sortRows(filtered, sort, sortSpecs, (row) => rowId(row)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [filtered, sort, sortSpecs, mode],
   );
 
   const total = mode === 'server' ? (totalCount ?? sorted.length) : sorted.length;
-  const visible = mode === 'server' || !paged ? sorted : paginate(sorted, page, pageSize);
+  // Filters/data/count can invalidate the current page — move to the last valid
+  // page instead of showing an empty table on a page that no longer exists.
+  const effectivePage = useInvalidPageRecovery({
+    page,
+    totalCount: total,
+    pageSize,
+    onPageChange: setPage,
+    enabled: paged,
+  });
+  const visible = mode === 'server' || !paged ? sorted : paginate(sorted, effectivePage, pageSize);
+
 
   return (
     <div className="space-y-3">
@@ -298,9 +323,9 @@ export function DataTableShell<T extends Record<string, any>>({
                 </TableCell>
               </TableRow>
             ) : (
-              visible.map((row, idx) => (
+              visible.map((row) => (
                 <TableRow
-                  key={rowId(row, idx)}
+                  key={rowId(row)}
                   className={onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
                   onClick={() => onRowClick?.(row)}
                 >
@@ -322,7 +347,7 @@ export function DataTableShell<T extends Record<string, any>>({
       {paged ? (
         <PaginationBar
           totalCount={total}
-          page={page}
+          page={effectivePage}
           pageSize={pageSize}
           onPageChange={setPage}
           onPageSizeChange={setPageSize}

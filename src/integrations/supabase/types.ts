@@ -51890,7 +51890,47 @@ export type Database = {
         Args: { _assessment_id: string; _payload?: Json }
         Returns: string
       }
+      aml_assessment_page: {
+        Args: {
+          _page?: number
+          _page_size?: number
+          _search?: string
+          _sort_direction?: string
+          _sort_key?: string
+          _status?: string
+        }
+        Returns: Json
+      }
       aml_entity_panel: { Args: { _entity_id: string }; Returns: Json }
+      aml_examination_page: {
+        Args: {
+          _fieldwork_from?: string
+          _fieldwork_to?: string
+          _lead_examiner?: string
+          _open_only?: boolean
+          _page?: number
+          _page_size?: number
+          _risk?: string
+          _search?: string
+          _sort_direction?: string
+          _sort_key?: string
+          _stage?: string
+        }
+        Returns: Json
+      }
+      aml_finding_page: {
+        Args: {
+          _page?: number
+          _page_size?: number
+          _search?: string
+          _severity?: string
+          _sort_direction?: string
+          _sort_key?: string
+          _status?: string
+          _view?: string
+        }
+        Returns: Json
+      }
       aml_overview_metrics: { Args: never; Returns: Json }
       aml_portfolio: {
         Args: { _limit?: number }
@@ -51922,6 +51962,19 @@ export type Database = {
           trend: string
         }[]
       }
+      aml_portfolio_page: {
+        Args: {
+          _coverage?: string
+          _page?: number
+          _page_size?: number
+          _rating?: string
+          _search?: string
+          _sector?: string
+          _sort_direction?: string
+          _sort_key?: string
+        }
+        Returns: Json
+      }
       aml_work_queue: {
         Args: { _limit?: number }
         Returns: {
@@ -51934,6 +51987,21 @@ export type Database = {
           status: string
           title: string
         }[]
+      }
+      aml_work_queue_page: {
+        Args: {
+          _due?: string
+          _page?: number
+          _page_size?: number
+          _priority?: string
+          _scope?: string
+          _search?: string
+          _sort_direction?: string
+          _sort_key?: string
+          _work_state?: string
+          _work_type?: string
+        }
+        Returns: Json
       }
       app_actor_display_name: { Args: { _user_id: string }; Returns: string }
       app_applicant_org_name: { Args: { _user_id: string }; Returns: string }
@@ -63281,6 +63349,7 @@ export type Database = {
         }
         Returns: Json
       }
+      sup_assessment_status_ordinal: { Args: { _v: string }; Returns: number }
       sup_can_read_domain: {
         Args: { _domain: string; _user: string }
         Returns: boolean
@@ -63294,11 +63363,14 @@ export type Database = {
         Args: { _entity_id: string }
         Returns: Json
       }
+      sup_examination_stage_ordinal: { Args: { _v: string }; Returns: number }
+      sup_finding_status_ordinal: { Args: { _v: string }; Returns: number }
       sup_priority_work_queue: {
         Args: { _domain?: string; _limit?: number }
         Returns: Json
       }
       sup_read_guard: { Args: never; Returns: string }
+      sup_risk_ordinal: { Args: { _v: string }; Returns: number }
       sup_team_performance: {
         Args: { _domain?: string; _from?: string; _to?: string }
         Returns: Json

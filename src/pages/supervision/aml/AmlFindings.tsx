@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -10,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpRight, RefreshCw } from 'lucide-react';
-import { useAmlFindings } from '@/hooks/useAmlSupervision';
-import { PaginationBar, sortRows, useListingState } from '@/components/shared/listing';
+import { useAmlFindingSeverities, useAmlFindingsPage } from '@/hooks/useAmlSupervision';
+import { PaginationBar, useInvalidPageRecovery, useListingState } from '@/components/shared/listing';
 import { AMBER, EMERALD, RED, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 /** Sort choices for the findings loop view — canonical values only. */
@@ -23,16 +22,7 @@ const SORT_OPTIONS = [
   { key: 'reference', label: 'Reference' },
 ] as const;
 
-const SORT_SPECS = [
-  { key: 'severity', accessor: (f: any) => f.severity, dataType: 'risk' as const },
-  { key: 'status', accessor: (f: any) => f.status, dataType: 'stage' as const },
-  { key: 'due_date', accessor: (f: any) => f.due_date, dataType: 'date' as const },
-  { key: 'entity', accessor: (f: any) => f.entity_name, dataType: 'text' as const },
-  { key: 'reference', accessor: (f: any) => f.reference, dataType: 'text' as const },
-];
-
 export default function AmlFindings() {
-  const { data, isLoading, error, refetch, isFetching } = useAmlFindings();
   const [params] = useSearchParams();
   const focus = params.get('focus');
   const listing = useListingState({
@@ -45,40 +35,28 @@ export default function AmlFindings() {
   const view = listing.filters.view;
   const sort = listing.sort ?? { key: 'severity', direction: 'desc' as const };
 
-  const rows = (data ?? []) as any[];
-  const severities = useMemo(() => Array.from(new Set(rows.map((r) => r.severity).filter(Boolean))), [rows]);
+  // Real server paging behind the card UX: severity and status order by
+  // canonical business ordinal, and remediation detail arrives with the page.
+  const { data, isLoading, error, refetch, isFetching } = useAmlFindingsPage({
+    page: listing.page,
+    pageSize: listing.pageSize,
+    sortKey: sort.key,
+    sortDirection: sort.direction,
+    search: q,
+    severity: severity === 'all' ? null : severity,
+    view: view === 'all' ? null : view,
+  });
+  const { data: severities = [] } = useAmlFindingSeverities();
+  const visible = (data?.rows ?? []) as any[];
+  const total = data?.totalCount ?? 0;
   const today = new Date().toISOString().slice(0, 10);
-
-  const filtered = useMemo(
-    () =>
-      rows.filter((r) => {
-        if (severity !== 'all' && r.severity !== severity) return false;
-        if (view === 'open' && ['CLOSED', 'WITHDRAWN', 'SUPERSEDED'].includes((r.status ?? '').toUpperCase())) return false;
-        if (view === 'response_due' && !(r.response_target_date && r.response_target_date < today && !r.response_at)) return false;
-        if (view === 'remediation_overdue') {
-          const overdue = (r.remediation ?? []).some(
-            (a: any) => a.target_date && a.target_date < today && !['EFFECTIVE', 'CLOSED'].includes((a.status ?? '').toUpperCase()),
-          );
-          if (!overdue) return false;
-        }
-        if (view === 'escalated' && !(r.remediation ?? []).some((a: any) => a.escalated_attention_id)) return false;
-        if (q) {
-          const hay = `${r.entity_name ?? ''} ${r.reference ?? ''} ${r.title ?? ''}`.toLowerCase();
-          if (!hay.includes(q.toLowerCase())) return false;
-        }
-        return true;
-      }),
-    [rows, severity, view, q, today],
-  );
-
-  const sorted = useMemo(
-    () => sortRows(filtered, sort, SORT_SPECS, (f: any) => `${f.reference ?? ''}|${f.id}`),
-    [filtered, sort],
-  );
-  const visible = useMemo(
-    () => sorted.slice((listing.page - 1) * listing.pageSize, listing.page * listing.pageSize),
-    [sorted, listing.page, listing.pageSize],
-  );
+  const effectivePage = useInvalidPageRecovery({
+    page: listing.page,
+    totalCount: total,
+    pageSize: listing.pageSize,
+    onPageChange: listing.setPage,
+    enabled: !isLoading,
+  });
 
   return (
     <DashboardLayout>
@@ -115,7 +93,7 @@ export default function AmlFindings() {
               searchPlaceholder="Search entity, reference or title…"
               trailing={
                 <span className="text-sm text-muted-foreground">
-                  {isLoading ? 'Loading…' : `${sorted.length} finding${sorted.length === 1 ? '' : 's'}`}
+                  {isLoading ? 'Loading…' : `${total} finding${total === 1 ? '' : 's'}`}
                 </span>
               }
             >
@@ -126,8 +104,8 @@ export default function AmlFindings() {
                 <SelectContent>
                   <SelectItem value="all">All severities</SelectItem>
                   {severities.map((s) => (
-                    <SelectItem key={s as string} value={s as string}>
-                      {titleCase(s as string)}
+                    <SelectItem key={s} value={s}>
+                      {titleCase(s)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -175,7 +153,7 @@ export default function AmlFindings() {
 
             {isLoading ? (
               <Skeleton className="h-64 w-full" />
-            ) : sorted.length === 0 ? (
+            ) : visible.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 No AML/CFT findings match the current filters.
               </p>
@@ -285,8 +263,8 @@ export default function AmlFindings() {
                   );
                 })}
                 <PaginationBar
-                  totalCount={sorted.length}
-                  page={listing.page}
+                  totalCount={total}
+                  page={effectivePage}
                   pageSize={listing.pageSize}
                   onPageChange={listing.setPage}
                   onPageSizeChange={listing.setPageSize}

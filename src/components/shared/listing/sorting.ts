@@ -139,6 +139,19 @@ export function pageCount(totalCount: number, pageSize: number): number {
   return Math.max(1, Math.ceil(totalCount / Math.max(1, pageSize)));
 }
 
+/**
+ * Clamps a page number into the currently valid range.
+ *
+ * Used for invalid page recovery when filters, the page size or the underlying
+ * population change under a page the officer is already on.
+ */
+export function clampPage(page: number, totalCount: number, pageSize: number): number {
+  const pages = pageCount(totalCount, pageSize);
+  const safe = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+  return Math.min(safe, pages);
+}
+
+
 export function rangeLabel(totalCount: number, page: number, pageSize: number): string {
   if (totalCount === 0) return 'No records';
   const from = (Math.max(1, page) - 1) * pageSize + 1;
