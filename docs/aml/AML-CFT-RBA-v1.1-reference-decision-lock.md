@@ -31,7 +31,7 @@ rewritten, as a regulator decision.
 | Object | State |
 | --- | --- |
 | Questions | 70 active — 48 CORE (mandatory), 16 CONDITIONAL, 6 ENHANCED |
-| Axis split | 17 inherent exposure, 14 design, 27 operating, 12 design and operating |
+| Axis split | 17 inherent exposure, 53 control effectiveness (focus: 17 inherent, 14 design, 27 operating, 12 design and operating) — see the platform-contract closure note |
 | Calculation participation | 69 `SCORED`, 1 `CONTEXTUAL_NOT_SCORED` (`IR-GEO-03`) |
 | Response semantics | 5 published profiles: `INHERENT_SEM`, `CONTROL_SEM_DESIGN`, `CONTROL_SEM_OPERATING`, `CONTROL_SEM_DESIGN_AND_OPERATING`, `CONTEXT_FACT_SEM` |
 | Evidence basis | Every question declares accepted evidence-basis types from the 11-type vocabulary |
