@@ -174,7 +174,7 @@ async function ingest(args: {
     context: args.context,
     groupId: args.groupId ?? null,
   });
-  if (!begun.success) return begun;
+  if (begun.success !== true) return { success: false, error: begun.error };
   const session = begun.data;
 
   const storagePath = `${session.storage_prefix}/${Date.now()}-${sanitize(args.file.name)}`;
