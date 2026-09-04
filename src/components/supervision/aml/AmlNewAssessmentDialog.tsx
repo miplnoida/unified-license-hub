@@ -3,8 +3,9 @@
  *
  * The entity list is the supervised portfolio the officer can already see, so
  * no entity is ever invented here. The methodology version is resolved by the
- * database from domain, sector and effective date — never "the latest active
- * one" — and creation is blocked outright when no version applies.
+ * database from the entity's own supervisory context — never "the latest active
+ * one" — through the same entity-context operation the creation routine uses.
+ * The preview informs the officer; the server remains the authority.
  */
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -54,6 +55,7 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
   const targetEntity = entityId ?? chosenEntity;
   const { data: resolved, isLoading: resolving } = useResolvedAmlMethodology(targetEntity || null);
   const methodology = resolved?.methodology ?? null;
+  const ambiguous = resolved?.status === 'AMBIGUOUS';
   const readiness = useCalculationReadiness('AML_CFT', methodology?.id ?? undefined);
 
 
@@ -94,7 +96,8 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
           <DialogHeader>
             <DialogTitle>Select the supervised entity</DialogTitle>
             <DialogDescription>
-              The applicable AML/CFT methodology version is resolved from the entity's sector and the effective date.
+              The platform resolves the currently effective AML/CFT methodology for this entity; the officer never picks a
+              version.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -116,6 +119,15 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
           {chosenEntity ? (
             resolving ? (
               <p className="text-sm text-muted-foreground">Resolving the applicable methodology…</p>
+            ) : ambiguous ? (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  The AML/CFT methodology configuration is ambiguous for this entity: more than one active version applies
+                  with equal specificity. A methodology owner must scope or supersede one of them before an assessment can
+                  be created.
+                </AlertDescription>
+              </Alert>
             ) : methodology ? (
               <Alert>
                 <AlertDescription className="space-y-1">
@@ -134,7 +146,7 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  No AML/CFT methodology is applicable to this entity on this date. A methodology owner must publish an
+                  No currently effective AML/CFT methodology applies to this entity. A methodology owner must publish an
                   applicable active version before an assessment can be created.
                 </AlertDescription>
               </Alert>
@@ -165,7 +177,7 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
               Cancel
             </Button>
             <Button
-              disabled={!chosenEntity || !methodology || resolving}
+              disabled={!chosenEntity || !methodology || ambiguous || resolving}
               onClick={() => {
                 setPickerOpen(false);
                 setOpen(true);
@@ -220,14 +232,11 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
         ]}
         submitLabel="Create assessment"
         onSubmit={async (v) => {
-          if (!methodology) {
-            throw new Error(
-              'No AML/CFT methodology is applicable to this entity on this date. A methodology owner must publish an applicable active version before an assessment can be created.',
-            );
-          }
+          // The preview is informational. The server resolves the methodology at
+          // submission time and is authoritative if the configuration changed in
+          // between, so no preview id is sent and staleness is not an error here.
           const result: any = await create.mutateAsync({
             entityId: targetEntity,
-            methodologyId: methodology.id,
             assessmentType: v.assessment_type,
             triggerType: v.trigger_type,
             periodStart: v.period_start || null,
@@ -236,7 +245,12 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
             supersedesId: v.assessment_type === 'FOLLOW_UP' ? prior : null,
           });
           const id = result?.id ?? null;
-          toast.success('AML/CFT assessment created in draft.');
+          const boundVersion = result?.methodology_version ?? null;
+          toast.success(
+            boundVersion
+              ? `AML/CFT assessment created in draft on methodology version ${boundVersion}.`
+              : 'AML/CFT assessment created in draft.',
+          );
           if (id) navigate(`/supervision/aml/assessments/${id}`);
           return result;
         }}

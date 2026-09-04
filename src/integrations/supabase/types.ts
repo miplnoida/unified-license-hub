@@ -64153,6 +64153,10 @@ export type Database = {
         }
         Returns: string
       }
+      supervisory_methodology_context_internal: {
+        Args: { _as_of?: string; _domain_code: string; _entity_id: string }
+        Returns: Json
+      }
       supervisory_methodology_dimension_resolve: {
         Args: { _dimension_code: string; _methodology_id: string }
         Returns: string
@@ -64201,6 +64205,10 @@ export type Database = {
           _regulator_id?: string
           _sector_id?: string
         }
+        Returns: Json
+      }
+      supervisory_methodology_resolve_for_entity: {
+        Args: { _as_of?: string; _domain_code: string; _entity_id: string }
         Returns: Json
       }
       supervisory_methodology_save: {

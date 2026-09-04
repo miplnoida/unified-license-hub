@@ -46,12 +46,6 @@ async function rpc<T = any>(fn: string, args: Record<string, unknown>): Promise<
 export interface CreateAmlAssessmentInput {
   entityId: string;
   assessmentType: string;
-  /**
-   * Display only. The browser never selects the methodology version: the
-   * database resolves it inside `supervisory_assessment_create`. This value is
-   * used solely to block a pointless round trip when nothing applies.
-   */
-  methodologyId: string;
   periodStart?: string | null;
   periodEnd?: string | null;
   triggerType?: string;
@@ -63,14 +57,9 @@ export function useCreateAmlAssessment() {
   const invalidate = useInvalidateAml();
   return useMutation({
     mutationFn: async (input: CreateAmlAssessmentInput) => {
-      if (!input.methodologyId) {
-        throw new Error(
-          'No AML/CFT methodology is applicable to this entity on this date. A methodology owner must publish an ' +
-            'applicable active version before an assessment can be created.',
-        );
-      }
-      // _methodology_id is deliberately not sent: the server resolves and binds
-      // the applicable version and rejects any caller-supplied alternative.
+      // No methodology selector: the creation input carries business inputs only.
+      // The server resolves and binds the applicable version from the entity's
+      // supervisory context and refuses any caller-supplied alternative.
       return rpc('supervisory_assessment_create', {
         _entity_id: input.entityId,
         _domain_code: 'AML_CFT',
@@ -85,6 +74,7 @@ export function useCreateAmlAssessment() {
     onSuccess: invalidate,
   });
 }
+
 
 
 export interface SaveAmlDimensionInput {
@@ -306,43 +296,55 @@ export interface ResolvedAmlMethodology {
   version: string;
   status: string;
   effective_from: string | null;
+  effective_to: string | null;
   sector_id: string | null;
+  regulator_id: string | null;
+}
+
+export interface AmlMethodologyPreview {
+  /** RESOLVED | NONE_APPLICABLE | AMBIGUOUS */
+  status: string;
+  methodology: ResolvedAmlMethodology | null;
+  sectorId: string | null;
+  regulatorId: string | null;
+  asOf: string | null;
+  reason: string | null;
+  candidateCount: number | null;
 }
 
 /**
- * Resolves the methodology an AML/CFT assessment must be created on.
+ * Preview of the methodology an AML/CFT assessment would be created on.
  *
- * Resolution is the database's, not the browser's: `supervisory_methodology_resolve`
- * considers domain, the entity's sector, the effective date window, status and
- * applicability. Officers never choose a version, and where nothing applies the
- * caller blocks creation rather than falling back to "latest active".
+ * The browser supplies only the entity: `supervisory_methodology_resolve_for_entity`
+ * authenticates the caller, enforces entity scope, derives the sector and its
+ * regulator and calls the one canonical resolver — the same entity-context
+ * helper `supervisory_assessment_create` uses, so preview and creation cannot
+ * drift. The preview informs the officer; it is never the authority, and the
+ * server remains authoritative if the configuration changes in between.
  */
-export function useResolvedAmlMethodology(entityId?: string | null, asOf?: string | null) {
+export function useResolvedAmlMethodology(entityId?: string | null) {
   return useQuery({
-    queryKey: ['aml', 'methodology-resolve', entityId ?? null, asOf ?? null],
-    queryFn: async (): Promise<{ methodology: ResolvedAmlMethodology | null; sectorId: string | null }> => {
-      let sectorId: string | null = null;
-      if (entityId) {
-        const { data: ent } = await sb.from('licensees').select('sector_id').eq('id', entityId).maybeSingle();
-        sectorId = ent?.sector_id ?? null;
-      }
-      const { data: id, error } = await sb.rpc('supervisory_methodology_resolve', {
+    queryKey: ['aml', 'methodology-resolve', entityId ?? null],
+    enabled: !!entityId,
+    queryFn: async (): Promise<AmlMethodologyPreview> => {
+      const r = await rpc<any>('supervisory_methodology_resolve_for_entity', {
+        _entity_id: entityId,
         _domain_code: 'AML_CFT',
-        _sector_id: sectorId,
-        _as_of: asOf ?? null,
       });
-      if (error) throw error;
-      if (!id) return { methodology: null, sectorId };
-      const { data: meth, error: mErr } = await sb
-        .from('supervisory_methodology')
-        .select('id, code, name, version, status, effective_from, sector_id')
-        .eq('id', id)
-        .maybeSingle();
-      if (mErr) throw mErr;
-      return { methodology: (meth ?? null) as ResolvedAmlMethodology | null, sectorId };
+      return {
+        status: r?.status ?? 'NONE_APPLICABLE',
+        methodology: (r?.methodology ?? null) as ResolvedAmlMethodology | null,
+        sectorId: r?.sector_id ?? null,
+        regulatorId: r?.regulator_id ?? null,
+        asOf: r?.as_of ?? null,
+        reason: r?.reason ?? null,
+        candidateCount: r?.candidate_count ?? null,
+      };
     },
   });
 }
+
+
 
 export interface AmlMethodologyDimension {
   id: string;

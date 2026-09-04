@@ -171,3 +171,27 @@ versus the published `STR_GOVERNANCE`). This is the off-methodology guard from �
 meeting stale fixture vocabulary — the same methodology decision as LINK-11, not
 an authority regression. Not executed, therefore not claimed: driven browser
 journeys, Playwright suites, scale/accessibility passes, full `src/test` run.
+
+## 7. Authority UX parity (methodology preview)
+
+The screen that starts an AML/CFT assessment previously reconstructed
+supervisory context in the browser: it read the entity's sector itself, called
+the raw resolver with that sector, fetched the methodology row, and then sent the
+resulting id back as `_methodology_id`. Sector-only resolution ignored the
+regulator dimension, ambiguity was indistinguishable from "nothing applies", and
+the officer's screen could disagree with what creation would bind.
+
+**Now:** one governed operation,
+`supervisory_methodology_resolve_for_entity(_entity_id, _domain_code, _as_of)`,
+authenticates the caller, enforces entity scope, derives sector, regulator and
+the effective date server-side and calls
+`supervisory_methodology_context_internal` — the same helper
+`supervisory_assessment_create` uses. Preview and binding therefore cannot
+diverge. The browser sends only the entity; it sends no methodology id, holds no
+version selector, and blocks creation on `NONE_APPLICABLE` and `AMBIGUOUS` with
+plain-language reasons. The success confirmation names the version the server
+actually bound.
+
+Verifier: `scripts/verify-aml-authority-ux-parity.sql` — AUTHUX-01..AUTHUX-10,
+10 PASS / 0 FAIL. Focused UI contract: `src/test/amlMethodologyAuthorityUx.test.ts`,
+8 passed.
