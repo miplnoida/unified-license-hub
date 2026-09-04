@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
-  acceptDocument, classifyDocument, describeDmsError, linkDocumentToRecord,
+  acceptDocument, classifyDocument, describeDmsError, linkPickedRecord,
   updateDocumentMetadata, verifyDocument,
   type DmsConfidentiality, type DmsPublicationEligibility,
 } from '@/services/dms';
@@ -326,11 +326,10 @@ export function LinkRecordDialog({
 
   const pick = async (row: RecordPickerRow) => {
     setSaving(true);
-    const res = await linkDocumentToRecord({
+    const res = await linkPickedRecord({
       groupId,
-      targetType: row.recordType,
-      targetId: row.recordId,
-      targetReference: row.reference || row.title || null,
+      pickerType: row.recordType,
+      recordId: row.recordId,
     });
     setSaving(false);
     if ('error' in res) { toast.error(describeDmsError(res.error)); return; }

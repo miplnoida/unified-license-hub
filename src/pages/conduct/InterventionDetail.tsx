@@ -70,8 +70,8 @@ const TRANSITION_LABEL: Record<InterventionStatusMc10, string> = {
  * The officer can still change the type; nothing is hard-coded to an identifier.
  */
 const CANONICAL_MODULE_RECORD_TYPE: Record<string, RecordPickerType | undefined> = {
-  examinations: 'inspection',
-  examination: 'inspection',
+  examinations: 'examination',
+  examination: 'examination',
   enforcement: 'enforcement',
   complaints: 'complaint',
   investigations: 'investigation',

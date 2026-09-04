@@ -56366,6 +56366,15 @@ export type Database = {
       }
       dms_get_document: { Args: { _group_id: string }; Returns: Json }
       dms_has: { Args: { _action: string }; Returns: boolean }
+      dms_link_picked_record: {
+        Args: {
+          _group_id: string
+          _picker_type: string
+          _record_id: string
+          _relationship_type?: string
+        }
+        Returns: string
+      }
       dms_link_record: {
         Args: {
           _group_id: string
@@ -61555,6 +61564,20 @@ export type Database = {
           source: string
         }[]
       }
+      record_picker_normalise_type: {
+        Args: { _picker_type: string }
+        Returns: string
+      }
+      record_picker_page: {
+        Args: {
+          _entity_id?: string
+          _page?: number
+          _page_size?: number
+          _record_type: string
+          _search?: string
+        }
+        Returns: Json
+      }
       record_picker_search: {
         Args: {
           _entity_id?: string
@@ -61574,6 +61597,14 @@ export type Database = {
           title: string
           total_count: number
         }[]
+      }
+      record_picker_target_resolve: {
+        Args: { _picker_type: string; _record_id: string }
+        Returns: Json
+      }
+      record_picker_target_type: {
+        Args: { _picker_type: string }
+        Returns: string
       }
       record_return_breach: {
         Args: {
