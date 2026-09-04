@@ -63799,6 +63799,10 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_assessment_dimension_materialise_internal: {
+        Args: { _actor?: string; _assessment_id: string }
+        Returns: Json
+      }
       supervisory_assessment_dimension_relink: {
         Args: { _domain_code: string; _dry_run?: boolean; _rationale?: string }
         Returns: Json
@@ -63860,6 +63864,10 @@ export type Database = {
           _question_id: string
           _response: string
         }
+        Returns: Json
+      }
+      supervisory_assessment_structure_backfill: {
+        Args: { _domain_code: string; _dry_run?: boolean; _rationale?: string }
         Returns: Json
       }
       supervisory_assessment_transition: {

@@ -96,12 +96,18 @@ BEGIN
     INSERT INTO public.supervisory_assessment_dimension(assessment_id, methodology_dimension_id,
       dimension_code, dimension_group, weight)
     VALUES (_m,_dimI,'FX_INH','INHERENT_RISK',1),(_m,_dimC,'FX_CTL','CONTROL_EFFECTIVENESS',1);
-    INSERT INTO public.supervisory_assessment_question_response(assessment_id, methodology_id,
-      methodology_dimension_id, methodology_question_id, dimension_code, question_code, question_text,
-      response, evidence_refs)
-    VALUES (_m,(SELECT methodology_id FROM public.supervisory_assessment WHERE id = _m),
+    INSERT INTO public.supervisory_assessment_question_response(assessment_id, assessment_dimension_id,
+      methodology_id, methodology_dimension_id, methodology_question_id, dimension_code, question_code,
+      question_text, response, evidence_refs)
+    VALUES (_m,
+            (SELECT id FROM public.supervisory_assessment_dimension
+              WHERE assessment_id = _m AND dimension_code = 'FX_INH'),
+            (SELECT methodology_id FROM public.supervisory_assessment WHERE id = _m),
             _dimI,_q1,'FX_INH','FXQ1','Inherent question','YES','[]'::jsonb),
-           (_m,(SELECT methodology_id FROM public.supervisory_assessment WHERE id = _m),
+           (_m,
+            (SELECT id FROM public.supervisory_assessment_dimension
+              WHERE assessment_id = _m AND dimension_code = 'FX_CTL'),
+            (SELECT methodology_id FROM public.supervisory_assessment WHERE id = _m),
             _dimC,_q2,'FX_CTL','FXQ2','Control question','YES','[]'::jsonb);
   END LOOP;
 
@@ -219,9 +225,13 @@ BEGIN
   -- CALCG-11 every exposed option has distinct semantics; withdrawn options refused
   UPDATE public.supervisory_assessment_question_response SET response = 'NO'
    WHERE assessment_id = _aAug AND question_code = 'FXQ1';
-  INSERT INTO public.supervisory_assessment_question_response(assessment_id, methodology_id,
-    methodology_dimension_id, methodology_question_id, dimension_code, question_code, question_text, response)
-  SELECT _aAug, methodology_id, (SELECT fx FROM calcg_fx WHERE k='dimI'),
+  INSERT INTO public.supervisory_assessment_question_response(assessment_id, assessment_dimension_id,
+    methodology_id, methodology_dimension_id, methodology_question_id, dimension_code, question_code,
+    question_text, response)
+  SELECT _aAug,
+         (SELECT id FROM public.supervisory_assessment_dimension
+           WHERE assessment_id = _aAug AND dimension_code = 'FX_INH'),
+         methodology_id, (SELECT fx FROM calcg_fx WHERE k='dimI'),
          (SELECT id FROM public.supervisory_methodology_question WHERE methodology_id = _m AND question_code='FXQ1B'),
          'FX_INH','FXQ1B','Second inherent question','YES'
     FROM public.supervisory_assessment WHERE id = _aAug;

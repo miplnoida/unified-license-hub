@@ -92,8 +92,9 @@ END $$;
 
 -- ------------------------------------ 2/3. half-open boundary and provenance
 DO $$
-DECLARE _ent uuid; _m uuid; _dimI uuid; _dimC uuid; _q1 uuid; _cfgv uuid;
-        _aEdge uuid; _aIn uuid; _aNone uuid; _r jsonb; _row public.supervisory_assessment_dimension;
+DECLARE _ent uuid; _m uuid; _dimI uuid; _dimC uuid; _q1 uuid; _q2 uuid; _cfgv uuid;
+        _aEdge uuid; _aIn uuid; _aNone uuid; _aCalc uuid;
+        _r jsonb; _row public.supervisory_assessment_dimension;
         _resolved uuid;
 BEGIN
   SELECT entity_id INTO _ent FROM public.supervisory_assessment WHERE entity_id IS NOT NULL LIMIT 1;
@@ -118,6 +119,10 @@ BEGIN
   INSERT INTO public.supervisory_methodology_question(methodology_id, methodology_dimension_id,
     question_code, prompt, response_options, min_evidence_count)
   VALUES (_m,_dimI,'FXQ1','Inherent question',ARRAY['YES','NO'],0) RETURNING id INTO _q1;
+  INSERT INTO public.supervisory_methodology_question(methodology_id, methodology_dimension_id,
+    question_code, prompt, response_options, min_evidence_count)
+  VALUES (_m,_dimC,'FXQ2','Control question',ARRAY['YES','NO'],0) RETURNING id INTO _q2;
+
 
   -- one configuration version, window [2026-01-01, 2026-06-30)
   INSERT INTO public.supervisory_calculation_config(methodology_id, config_version, status,
@@ -162,11 +167,37 @@ BEGIN
            (_resolved,_dimC,'FX_CTL','CONTROL_EFFECTIVENESS',1);
     -- only the inherent dimension is answered; the control dimension is left
     -- unanswered on purpose so it is legitimately NOT_CALCULABLE.
-    INSERT INTO public.supervisory_assessment_question_response(assessment_id, methodology_id,
-      methodology_dimension_id, methodology_question_id, dimension_code, question_code, question_text,
-      response, evidence_refs)
-    VALUES (_resolved,_m,_dimI,_q1,'FX_INH','FXQ1','Inherent question','YES','[]'::jsonb);
+    INSERT INTO public.supervisory_assessment_question_response(assessment_id, assessment_dimension_id,
+      methodology_id, methodology_dimension_id, methodology_question_id, dimension_code, question_code,
+      question_text, response, evidence_refs)
+    VALUES (_resolved,
+      (SELECT id FROM public.supervisory_assessment_dimension
+        WHERE assessment_id = _resolved AND dimension_code = 'FX_INH'),
+      _m,_dimI,_q1,'FX_INH','FXQ1','Inherent question','YES','[]'::jsonb);
   END LOOP;
+
+  -- D. an assessment whose inherent AND control sides are both answered, so the
+  --    engine can produce a residual rating and a recommendation end to end.
+  INSERT INTO public.supervisory_assessment(reference, entity_id, domain_code, methodology_id,
+    methodology_version, period_start, period_end, assessment_date, status)
+  VALUES ('ZZ-OUTC-CALC',_ent,'AML_CFT',_m,'1','2026-04-01','2026-06-29','2026-07-01','draft')
+  RETURNING id INTO _aCalc;
+  INSERT INTO public.supervisory_assessment_dimension(assessment_id, methodology_dimension_id,
+    dimension_code, dimension_group, weight)
+  VALUES (_aCalc,_dimI,'FX_INH','INHERENT_RISK',1),
+         (_aCalc,_dimC,'FX_CTL','CONTROL_EFFECTIVENESS',1);
+  INSERT INTO public.supervisory_assessment_question_response(assessment_id, assessment_dimension_id,
+    methodology_id, methodology_dimension_id, methodology_question_id, dimension_code, question_code,
+    question_text, response, evidence_refs)
+  VALUES (_aCalc,
+    (SELECT id FROM public.supervisory_assessment_dimension
+      WHERE assessment_id = _aCalc AND dimension_code = 'FX_INH'),
+    _m,_dimI,_q1,'FX_INH','FXQ1','Inherent question','YES','[]'::jsonb),
+   (_aCalc,
+    (SELECT id FROM public.supervisory_assessment_dimension
+      WHERE assessment_id = _aCalc AND dimension_code = 'FX_CTL'),
+    _m,_dimC,_q2,'FX_CTL','FXQ2','Control question','YES','[]'::jsonb);
+
 
   -- OUTC-09 exact half-open boundary
   _r := public.supervisory_calc_compute(_aEdge);
@@ -203,11 +234,12 @@ END $$;
 
 -- ------------------------------------ 4. governed recalculation of NOT_CALCULABLE
 DO $$
-DECLARE _uid uuid; _cfg uuid; _aIn uuid; _aNone uuid; _dry jsonb; _wr jsonb; _row public.supervisory_assessment_dimension;
+DECLARE _uid uuid; _cfg uuid; _aIn uuid; _aNone uuid; _aCalc uuid; _dry jsonb; _wr jsonb; _row public.supervisory_assessment_dimension;
         _item jsonb; _itemw jsonb;
 BEGIN
   SELECT id INTO _aIn FROM public.supervisory_assessment WHERE reference = 'ZZ-OUTC-IN';
   SELECT id INTO _aNone FROM public.supervisory_assessment WHERE reference = 'ZZ-OUTC-NONE';
+  SELECT id INTO _aCalc FROM public.supervisory_assessment WHERE reference = 'ZZ-OUTC-CALC';
   _cfg := public.supervisory_calc_config_for(_aIn);
   SELECT u.id INTO _uid FROM auth.users u
    WHERE public.has_permission(u.id,'aml_supervision','manage_config') ORDER BY u.email LIMIT 1;
@@ -233,13 +265,13 @@ BEGIN
   PERFORM pg_temp.gate('OUTC-11','governed recalculation dry run labels each outcome distinctly',
     _item->>'result' = 'WOULD_RECORD_NOT_CALCULABLE'
     AND (SELECT e->>'result' FROM jsonb_array_elements(_dry->'items') e
-          WHERE e->>'assessment_id' = _aIn::text) = 'WOULD_CALCULATE'
+          WHERE e->>'assessment_id' = _aCalc::text) = 'WOULD_CALCULATE'
     AND (_dry->>'not_calculable')::int >= 1
     AND (_dry->>'recalculated')::int >= 1,
     format('non-calculable item=%s calculable item=%s not_calculable=%s recalculated=%s',
       COALESCE(_item->>'result','(none)'),
       COALESCE((SELECT e->>'result' FROM jsonb_array_elements(_dry->'items') e
-                 WHERE e->>'assessment_id' = _aIn::text),'(none)'),
+                 WHERE e->>'assessment_id' = _aCalc::text),'(none)'),
       _dry->>'not_calculable', _dry->>'recalculated'));
 
   PERFORM pg_temp.gate('OUTC-12','governed recalculation write run materialises NOT_CALCULABLE',

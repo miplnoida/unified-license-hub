@@ -119,7 +119,7 @@ export function AddDocumentDialog({
               </Button>
             </div>
           ) : (
-            <Button variant="outline" className="w-full" disabled={busy} onClick={() => fileRef.current?.click()}>
+            <Button variant="outline" className="w-full" data-rbac="document_management.upload" disabled={busy} onClick={() => fileRef.current?.click()}>
               <Upload className="mr-2 h-4 w-4" /> Choose file
             </Button>
           )}
