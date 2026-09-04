@@ -1,10 +1,10 @@
 # RBAC Action Coverage Audit
 
-_Generated: 2026-09-03T15:03:55.119Z_
+_Generated: 2026-09-04T18:48:48.363Z_
 
-**Total action sites scanned:** 2186
-**Protected:** 2186
-**Coverage:** 100%
+**Total action sites scanned:** 2194
+**Protected:** 2192
+**Coverage:** 99.9%
 
 Any row with **Protected = No** must be wrapped in `<PermissionGate module="..." action="...">` or replaced with `<GuardedButton module="..." action="...">` — or, if intentionally public (login, cancel, close, back, …), added to the allow-list in `scripts/rbac-audit.ts`.
 
@@ -12,19 +12,19 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 
 | Category | Total | Protected | Coverage |
 |---|---:|---:|---:|
-| Action | 1341 | 1341 | 100% |
-| Create | 224 | 224 | 100% |
+| Action | 1344 | 1342 | 100% |
+| Create | 225 | 225 | 100% |
 | View | 149 | 149 | 100% |
-| Save | 114 | 114 | 100% |
-| Edit | 49 | 49 | 100% |
-| Approve | 37 | 37 | 100% |
-| Close | 37 | 37 | 100% |
-| Submit | 32 | 32 | 100% |
+| Save | 115 | 115 | 100% |
+| Edit | 48 | 48 | 100% |
+| Close | 39 | 39 | 100% |
+| Approve | 38 | 38 | 100% |
+| Submit | 33 | 33 | 100% |
 | Export | 31 | 31 | 100% |
 | Reject | 21 | 21 | 100% |
 | Delete | 19 | 19 | 100% |
 | Download | 19 | 19 | 100% |
-| Workflow | 17 | 17 | 100% |
+| Workflow | 16 | 16 | 100% |
 | Assign | 14 | 14 | 100% |
 | Issue | 14 | 14 | 100% |
 | Upload | 12 | 12 | 100% |
@@ -32,10 +32,10 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | Reopen | 11 | 11 | 100% |
 | Report | 10 | 10 | 100% |
 | Print | 8 | 8 | 100% |
+| Publish | 4 | 4 | 100% |
 | Configure | 4 | 4 | 100% |
 | Email | 3 | 3 | 100% |
 | Archive | 3 | 3 | 100% |
-| Publish | 3 | 3 | 100% |
 | Status Change | 1 | 1 | 100% |
 | Bulk | 1 | 1 | 100% |
 | Restore | 1 | 1 | 100% |
@@ -173,6 +173,13 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/admin/rule-engine/RuleTesterPanel | Run test | rule_engine.edit | Yes | src/components/admin/rule-engine/RuleTesterPanel.tsx | 171 |
 | components/admin/rule-engine/RuleTesterPanel | Export CSV | rule_engine.export | Yes | src/components/admin/rule-engine/RuleTesterPanel.tsx | 176 |
 | components/admin/rule-engine/RuleTesterPanel | Export JSON | rule_engine.export | Yes | src/components/admin/rule-engine/RuleTesterPanel.tsx | 179 |
+| components/admin/supervisory-methodology/MethodologyActionBar | Cancel | — | Yes | src/components/admin/supervisory-methodology/MethodologyActionBar.tsx | 198 |
+| components/admin/supervisory-methodology/MethodologyActionBar | Cancel | — | Yes | src/components/admin/supervisory-methodology/MethodologyActionBar.tsx | 224 |
+| components/admin/supervisory-methodology/MethodologyActionBar | Cancel | — | Yes | src/components/admin/supervisory-methodology/MethodologyActionBar.tsx | 244 |
+| components/admin/supervisory-methodology/MethodologyActionBar | Cancel | — | Yes | src/components/admin/supervisory-methodology/MethodologyActionBar.tsx | 287 |
+| components/admin/supervisory-methodology/tabs/FactsTab | View | — | Yes | src/components/admin/supervisory-methodology/tabs/FactsTab.tsx | 180 |
+| components/admin/supervisory-methodology/tabs/QuestionsTab | {count !== undefined ? : null} | — | No | src/components/admin/supervisory-methodology/tabs/QuestionsTab.tsx | 164 |
+| components/admin/supervisory-methodology/tabs/QuestionsTab | View | — | Yes | src/components/admin/supervisory-methodology/tabs/QuestionsTab.tsx | 279 |
 | components/ai-reports/EntityCoverageView | Try again | — | Yes | src/components/ai-reports/EntityCoverageView.tsx | 60 |
 | components/ai-reports/EntityCoverageView | View report | — | Yes | src/components/ai-reports/EntityCoverageView.tsx | 137 |
 | components/ai/AiReportDetailDrawer | Try again | — | Yes | src/components/ai/AiReportDetailDrawer.tsx | 239 |
@@ -212,8 +219,8 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/applications/ApplicationAiAssessmentPanel | Accept AI routing | application_management.approve | Yes | src/components/applications/ApplicationAiAssessmentPanel.tsx | 1134 |
 | components/applications/ApplicationAiAssessmentPanel | Override with reason | application_management.edit | Yes | src/components/applications/ApplicationAiAssessmentPanel.tsx | 1137 |
 | components/applications/ApplicationDocumentsPanel | Retry | — | Yes | src/components/applications/ApplicationDocumentsPanel.tsx | 100 |
-| components/applications/ApplicationRfiTab | Close RFI & resume SLA | application_management.close | Yes | src/components/applications/ApplicationRfiTab.tsx | 280 |
-| components/applications/ApplicationRfiTab | Submit response | application_management.edit | Yes | src/components/applications/ApplicationRfiTab.tsx | 493 |
+| components/applications/ApplicationRfiTab | Close RFI & resume SLA | application_management.close | Yes | src/components/applications/ApplicationRfiTab.tsx | 279 |
+| components/applications/ApplicationRfiTab | Submit response | application_management.edit | Yes | src/components/applications/ApplicationRfiTab.tsx | 492 |
 | components/applications/ApplicationUploadPanel | Download Sample (Excel) | application_management.import | Yes | src/components/applications/ApplicationUploadPanel.tsx | 141 |
 | components/applications/ApplicationUploadPanel | Download Sample (XML) | application_management.import | Yes | src/components/applications/ApplicationUploadPanel.tsx | 144 |
 | components/applications/ApplicationUploadPanel | Choose file | application_management.import | Yes | src/components/applications/ApplicationUploadPanel.tsx | 174 |
@@ -252,10 +259,10 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/applications/PaymentVerificationDialog | Cancel | application_management.edit | Yes | src/components/applications/PaymentVerificationDialog.tsx | 391 |
 | components/applications/PaymentVerificationDialog | Received & Verify | application_management.edit | Yes | src/components/applications/PaymentVerificationDialog.tsx | 395 |
 | components/applications/PaymentVerificationDialog | Close | — | Yes | src/components/applications/PaymentVerificationDialog.tsx | 401 |
-| components/applications/RaiseRfiDialog | Add all | application_management.edit | Yes | src/components/applications/RaiseRfiDialog.tsx | 305 |
-| components/applications/RaiseRfiDialog | Add item | application_management.edit | Yes | src/components/applications/RaiseRfiDialog.tsx | 351 |
-| components/applications/RaiseRfiDialog | Cancel | application_management.edit | Yes | src/components/applications/RaiseRfiDialog.tsx | 417 |
-| components/applications/RaiseRfiDialog | Raise RFI | application_management.edit | Yes | src/components/applications/RaiseRfiDialog.tsx | 420 |
+| components/applications/RaiseRfiDialog | Add all | application_management.edit | Yes | src/components/applications/RaiseRfiDialog.tsx | 304 |
+| components/applications/RaiseRfiDialog | Add item | application_management.edit | Yes | src/components/applications/RaiseRfiDialog.tsx | 350 |
+| components/applications/RaiseRfiDialog | Cancel | application_management.edit | Yes | src/components/applications/RaiseRfiDialog.tsx | 416 |
+| components/applications/RaiseRfiDialog | Raise RFI | application_management.edit | Yes | src/components/applications/RaiseRfiDialog.tsx | 419 |
 | components/applications/SubmissionAcknowledgement | Track Application | application_management.view | Yes | src/components/applications/SubmissionAcknowledgement.tsx | 102 |
 | components/applications/SubmissionAcknowledgement | Download | application_management.view | Yes | src/components/applications/SubmissionAcknowledgement.tsx | 109 |
 | components/applications/SubmissionAcknowledgementPanel | View / Download | — | Yes | src/components/applications/SubmissionAcknowledgementPanel.tsx | 140 |
@@ -590,12 +597,15 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/data-grid/EnterpriseDataGrid | Next | — | Yes | src/components/data-grid/EnterpriseDataGrid.tsx | 411 |
 | components/data-grid/GridFilterBar | Filters {activeCount > 0 && } | report_management.create | Yes | src/components/data-grid/GridFilterBar.tsx | 65 |
 | components/data-grid/GridFilterBar | Reset | — | Yes | src/components/data-grid/GridFilterBar.tsx | 75 |
-| components/documents/dms/DmsActionDialogs | Cancel | — | Yes | src/components/documents/dms/DmsActionDialogs.tsx | 114 |
-| components/documents/dms/DmsActionDialogs | Cancel | — | Yes | src/components/documents/dms/DmsActionDialogs.tsx | 235 |
-| components/documents/dms/DmsActionDialogs | Cancel | — | Yes | src/components/documents/dms/DmsActionDialogs.tsx | 309 |
-| components/documents/dms/DmsActionDialogs | Cancel | — | Yes | src/components/documents/dms/DmsActionDialogs.tsx | 372 |
+| components/documents/AddDocumentDialog | Choose file | document_management.upload | Yes | src/components/documents/AddDocumentDialog.tsx | 122 |
+| components/documents/AddDocumentDialog | Cancel | document_management.upload | Yes | src/components/documents/AddDocumentDialog.tsx | 169 |
+| components/documents/dms/DmsActionDialogs | Cancel | — | Yes | src/components/documents/dms/DmsActionDialogs.tsx | 117 |
+| components/documents/dms/DmsActionDialogs | Cancel | — | Yes | src/components/documents/dms/DmsActionDialogs.tsx | 238 |
+| components/documents/dms/DmsActionDialogs | Cancel | — | Yes | src/components/documents/dms/DmsActionDialogs.tsx | 312 |
+| components/documents/dms/DmsActionDialogs | Close | — | Yes | src/components/documents/dms/DmsActionDialogs.tsx | 358 |
 | components/documents/DocumentExtractionPanel | Extract | settings.edit | Yes | src/components/documents/DocumentExtractionPanel.tsx | 80 |
 | components/documents/DocumentUpload | {uploading ? ( Uploading file ... ) : ( Upload file )} | settings.edit | Yes | src/components/documents/DocumentUpload.tsx | 112 |
+| components/documents/EntityDocuments | Add document | document_management.upload | Yes | src/components/documents/EntityDocuments.tsx | 204 |
 | components/documents/versioned/DocumentGroupList | Download | settings.view | Yes | src/components/documents/versioned/DocumentGroupList.tsx | 121 |
 | components/documents/versioned/DocumentGroupList | History | — | Yes | src/components/documents/versioned/DocumentGroupList.tsx | 125 |
 | components/documents/versioned/DocumentVersionHistoryDialog | Download | settings.view | Yes | src/components/documents/versioned/DocumentVersionHistoryDialog.tsx | 113 |
@@ -617,9 +627,6 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/entity-detail/EntityReportingCurrencyPanel | decide(p, 'REJECT')} disabled= >Decline proposal | licensee_management.edit | Yes | src/components/entity-detail/EntityReportingCurrencyPanel.tsx | 334 |
 | components/entity-detail/EntityReportingCurrencyPanel | withdraw(p)} disabled= >Withdraw | licensee_management.edit | Yes | src/components/entity-detail/EntityReportingCurrencyPanel.tsx | 342 |
 | components/entity-detail/EntitySupervisory360Panel | Open record | — | Yes | src/components/entity-detail/EntitySupervisory360Panel.tsx | 64 |
-| components/entity-detail/InspectionsTab | Add | licensee_management.edit | Yes | src/components/entity-detail/InspectionsTab.tsx | 63 |
-| components/entity-detail/InspectionsTab | Cancel | licensee_management.edit | Yes | src/components/entity-detail/InspectionsTab.tsx | 99 |
-| components/entity-detail/InspectionsTab | Save | licensee_management.edit | Yes | src/components/entity-detail/InspectionsTab.tsx | 99 |
 | components/entity-detail/LicensesTab | View | — | Yes | src/components/entity-detail/LicensesTab.tsx | 95 |
 | components/entity-detail/LicensingAuditTab | Issue determination | license_management.approve | Yes | src/components/entity-detail/LicensingAuditTab.tsx | 405 |
 | components/entity-detail/LicensingAuditTab | Generate risk profile | licensee_management.edit | Yes | src/components/entity-detail/LicensingAuditTab.tsx | 465 |
@@ -983,7 +990,7 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/shared/BatchDocumentUpload | Add files | settings.edit | Yes | src/components/shared/BatchDocumentUpload.tsx | 181 |
 | components/shared/BatchDocumentUpload | Upload {staged.length > 0 ? `($ )` : ''} | settings.edit | Yes | src/components/shared/BatchDocumentUpload.tsx | 189 |
 | components/shared/CaptchaWidget | Retry security verification | — | Yes | src/components/shared/CaptchaWidget.tsx | 259 |
-| components/shared/DataTableShell | Export | report_management.export | Yes | src/components/shared/DataTableShell.tsx | 92 |
+| components/shared/DataTableShell | Export | report_management.export | Yes | src/components/shared/DataTableShell.tsx | 265 |
 | components/shared/ErrorBoundary | Try again | — | Yes | src/components/shared/ErrorBoundary.tsx | 76 |
 | components/shared/ErrorBoundary | Reload page | — | Yes | src/components/shared/ErrorBoundary.tsx | 79 |
 | components/supervision/aml/AmlActionDialog | Cancel | — | Yes | src/components/supervision/aml/AmlActionDialog.tsx | 155 |
@@ -998,9 +1005,10 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | components/supervision/aml/AmlAssessmentActions | Confirm priority — | aml_supervision.create | Yes | src/components/supervision/aml/AmlAssessmentActions.tsx | 203 |
 | components/supervision/aml/AmlAssessmentActions | Create supervisory plan — | aml_supervision.create | Yes | src/components/supervision/aml/AmlAssessmentActions.tsx | 221 |
 | components/supervision/aml/AmlAssessmentActions | — | — | Yes | src/components/supervision/aml/AmlAssessmentActions.tsx | 242 |
+| components/supervision/aml/AmlAssessmentCalculation | Recalculate | aml_supervision.edit | Yes | src/components/supervision/aml/AmlAssessmentCalculation.tsx | 54 |
 | components/supervision/aml/AmlEvidenceLinker | Link document | — | Yes | src/components/supervision/aml/AmlEvidenceLinker.tsx | 83 |
-| components/supervision/aml/AmlNewAssessmentDialog | Cancel | — | Yes | src/components/supervision/aml/AmlNewAssessmentDialog.tsx | 134 |
-| components/supervision/aml/AmlNewAssessmentDialog | Continue | — | Yes | src/components/supervision/aml/AmlNewAssessmentDialog.tsx | 137 |
+| components/supervision/aml/AmlNewAssessmentDialog | Cancel | — | Yes | src/components/supervision/aml/AmlNewAssessmentDialog.tsx | 176 |
+| components/supervision/aml/AmlNewAssessmentDialog | Continue | — | Yes | src/components/supervision/aml/AmlNewAssessmentDialog.tsx | 179 |
 | components/supervision/aml/AmlSupervisoryActivity | Open supervisory intervention | — | Yes | src/components/supervision/aml/AmlSupervisoryActivity.tsx | 171 |
 | components/supervision/aml/AmlSupervisoryActivity | Record endorsement decision | aml_supervision.approve | Yes | src/components/supervision/aml/AmlSupervisoryActivity.tsx | 214 |
 | components/supervision/aml/AmlSupervisoryActivity | Create examination | aml_supervision.examine | Yes | src/components/supervision/aml/AmlSupervisoryActivity.tsx | 227 |
@@ -1182,7 +1190,7 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/admin/LicenseAppealPanels | New panel | license_appeals.create | Yes | src/pages/admin/LicenseAppealPanels.tsx | 231 |
 | pages/admin/LicenseAppealPanels | Cancel | license_appeals.edit | Yes | src/pages/admin/LicenseAppealPanels.tsx | 351 |
 | pages/admin/LicenseAppealPanels | Save | license_appeals.edit | Yes | src/pages/admin/LicenseAppealPanels.tsx | 352 |
-| pages/admin/LicenseeDetail | Back to Licensees | — | Yes | src/pages/admin/LicenseeDetail.tsx | 163 |
+| pages/admin/LicenseeDetail | Back to Licensees | — | Yes | src/pages/admin/LicenseeDetail.tsx | 164 |
 | pages/admin/ManageLicensees | View | — | Yes | src/pages/admin/ManageLicensees.tsx | 403 |
 | pages/admin/ManageWebUsers | Add Web User | user_management.create | Yes | src/pages/admin/ManageWebUsers.tsx | 210 |
 | pages/admin/ManageWebUsers | Cancel | — | Yes | src/pages/admin/ManageWebUsers.tsx | 256 |
@@ -1286,6 +1294,21 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/admin/SufficiencyRuleSets | New Rule Set | application_management.create | Yes | src/pages/admin/SufficiencyRuleSets.tsx | 105 |
 | pages/admin/SufficiencyRuleSets | Cancel | application_management.edit | Yes | src/pages/admin/SufficiencyRuleSets.tsx | 152 |
 | pages/admin/SufficiencyRuleSets | Save | application_management.configure | Yes | src/pages/admin/SufficiencyRuleSets.tsx | 152 |
+| pages/admin/SupervisoryCalculationApprovals | Review | aml_supervision.manage_config | Yes | src/pages/admin/SupervisoryCalculationApprovals.tsx | 104 |
+| pages/admin/SupervisoryCalculationApprovals | Check completeness | aml_supervision.manage_config | Yes | src/pages/admin/SupervisoryCalculationApprovals.tsx | 218 |
+| pages/admin/SupervisoryCalculationApprovals | Approve | aml_supervision.manage_config | Yes | src/pages/admin/SupervisoryCalculationApprovals.tsx | 221 |
+| pages/admin/SupervisoryCalculationApprovals | Return to author | aml_supervision.manage_config | Yes | src/pages/admin/SupervisoryCalculationApprovals.tsx | 225 |
+| pages/admin/SupervisoryCalculationApprovals | Publish | aml_supervision.manage_config | Yes | src/pages/admin/SupervisoryCalculationApprovals.tsx | 232 |
+| pages/admin/SupervisoryCalculationConfig | New draft version | aml_supervision.manage_config | Yes | src/pages/admin/SupervisoryCalculationConfig.tsx | 285 |
+| pages/admin/SupervisoryCalculationConfig | Open | — | Yes | src/pages/admin/SupervisoryCalculationConfig.tsx | 312 |
+| pages/admin/SupervisoryCalculationConfig | Save parameters | aml_supervision.manage_config | Yes | src/pages/admin/SupervisoryCalculationConfig.tsx | 440 |
+| pages/admin/SupervisoryCalculationConfig | Save response scoring | aml_supervision.manage_config | Yes | src/pages/admin/SupervisoryCalculationConfig.tsx | 477 |
+| pages/admin/SupervisoryCalculationConfig | Save bands | aml_supervision.manage_config | Yes | src/pages/admin/SupervisoryCalculationConfig.tsx | 515 |
+| pages/admin/SupervisoryCalculationConfig | Save residual matrix | aml_supervision.manage_config | Yes | src/pages/admin/SupervisoryCalculationConfig.tsx | 558 |
+| pages/admin/SupervisoryCalculationConfig | Check completeness | aml_supervision.manage_config | Yes | src/pages/admin/SupervisoryCalculationConfig.tsx | 589 |
+| pages/admin/SupervisoryCalculationConfig | Submit for approval | aml_supervision.manage_config | Yes | src/pages/admin/SupervisoryCalculationConfig.tsx | 592 |
+| pages/admin/SupervisoryCalculationConfig | Record effective-date rule | aml_supervision.manage_config | Yes | src/pages/admin/SupervisoryCalculationConfig.tsx | 661 |
+| pages/admin/SupervisoryMethodologyRegister | Review | — | No | src/pages/admin/SupervisoryMethodologyRegister.tsx | 167 |
 | pages/admin/SupervisoryPlanTemplates | New template | application_management.edit | Yes | src/pages/admin/SupervisoryPlanTemplates.tsx | 119 |
 | pages/admin/SupervisoryPlanTemplates | Add action | application_management.edit | Yes | src/pages/admin/SupervisoryPlanTemplates.tsx | 164 |
 | pages/admin/SupervisoryPlanTemplates | Cancel | application_management.edit | Yes | src/pages/admin/SupervisoryPlanTemplates.tsx | 204 |
@@ -1466,30 +1489,29 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/conduct/EmergingRiskDetail | Cancel | market_conduct.manage_complaints | Yes | src/pages/conduct/EmergingRiskDetail.tsx | 655 |
 | pages/conduct/EmergingRiskDetail | Record follow-up | market_conduct.manage_complaints | Yes | src/pages/conduct/EmergingRiskDetail.tsx | 656 |
 | pages/conduct/EmergingRisksRegister | Go to Supervisory Intelligence | — | Yes | src/pages/conduct/EmergingRisksRegister.tsx | 84 |
-| pages/conduct/InterventionDetail | Back to the register | — | Yes | src/pages/conduct/InterventionDetail.tsx | 154 |
-| pages/conduct/InterventionDetail | Back to the register | — | Yes | src/pages/conduct/InterventionDetail.tsx | 174 |
-| pages/conduct/InterventionDetail | Record an endorsement decision | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 216 |
-| pages/conduct/InterventionDetail | Change status | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 221 |
-| pages/conduct/InterventionDetail | Record the outcome | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 229 |
-| pages/conduct/InterventionDetail | Record follow-up | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 232 |
-| pages/conduct/InterventionDetail | Link the record | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 237 |
-| pages/conduct/InterventionDetail | Reassess the concern | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 242 |
-| pages/conduct/InterventionDetail | Open the record | — | Yes | src/pages/conduct/InterventionDetail.tsx | 339 |
-| pages/conduct/InterventionDetail | Open the risk | — | Yes | src/pages/conduct/InterventionDetail.tsx | 422 |
-| pages/conduct/InterventionDetail | Open the attention item | — | Yes | src/pages/conduct/InterventionDetail.tsx | 443 |
-| pages/conduct/InterventionDetail | Open the plan | — | Yes | src/pages/conduct/InterventionDetail.tsx | 462 |
-| pages/conduct/InterventionDetail | Cancel | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 590 |
-| pages/conduct/InterventionDetail | Record the decision | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 591 |
-| pages/conduct/InterventionDetail | Cancel | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 635 |
-| pages/conduct/InterventionDetail | Record the change | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 636 |
-| pages/conduct/InterventionDetail | Cancel | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 709 |
-| pages/conduct/InterventionDetail | Record the outcome | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 710 |
-| pages/conduct/InterventionDetail | Cancel | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 768 |
-| pages/conduct/InterventionDetail | Record the follow-up | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 769 |
-| pages/conduct/InterventionDetail | Cancel | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 813 |
-| pages/conduct/InterventionDetail | Link the record | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 814 |
-| pages/conduct/InterventionDetail | Cancel | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 881 |
-| pages/conduct/InterventionDetail | Record the reassessment | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 882 |
+| pages/conduct/InterventionDetail | Back to the register | — | Yes | src/pages/conduct/InterventionDetail.tsx | 173 |
+| pages/conduct/InterventionDetail | Back to the register | — | Yes | src/pages/conduct/InterventionDetail.tsx | 193 |
+| pages/conduct/InterventionDetail | Record an endorsement decision | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 235 |
+| pages/conduct/InterventionDetail | Change status | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 240 |
+| pages/conduct/InterventionDetail | Record the outcome | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 248 |
+| pages/conduct/InterventionDetail | Record follow-up | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 251 |
+| pages/conduct/InterventionDetail | Link the record | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 256 |
+| pages/conduct/InterventionDetail | Reassess the concern | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 261 |
+| pages/conduct/InterventionDetail | Open the record | — | Yes | src/pages/conduct/InterventionDetail.tsx | 358 |
+| pages/conduct/InterventionDetail | Open the risk | — | Yes | src/pages/conduct/InterventionDetail.tsx | 441 |
+| pages/conduct/InterventionDetail | Open the attention item | — | Yes | src/pages/conduct/InterventionDetail.tsx | 462 |
+| pages/conduct/InterventionDetail | Open the plan | — | Yes | src/pages/conduct/InterventionDetail.tsx | 481 |
+| pages/conduct/InterventionDetail | Cancel | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 609 |
+| pages/conduct/InterventionDetail | Record the decision | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 610 |
+| pages/conduct/InterventionDetail | Cancel | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 654 |
+| pages/conduct/InterventionDetail | Record the change | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 655 |
+| pages/conduct/InterventionDetail | Cancel | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 728 |
+| pages/conduct/InterventionDetail | Record the outcome | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 729 |
+| pages/conduct/InterventionDetail | Cancel | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 787 |
+| pages/conduct/InterventionDetail | Record the follow-up | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 788 |
+| pages/conduct/InterventionDetail | Close | — | Yes | src/pages/conduct/InterventionDetail.tsx | 836 |
+| pages/conduct/InterventionDetail | Cancel | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 885 |
+| pages/conduct/InterventionDetail | Record the reassessment | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionDetail.tsx | 886 |
 | pages/conduct/InterventionsRegister | Prioritisation | market_conduct.manage_complaints | Yes | src/pages/conduct/InterventionsRegister.tsx | 64 |
 | pages/conduct/InvestigationClosureQueue | Review | — | Yes | src/pages/conduct/InvestigationClosureQueue.tsx | 73 |
 | pages/conduct/InvestigationDetail | Work queue | market_conduct.manage_complaints | Yes | src/pages/conduct/InvestigationDetail.tsx | 61 |
@@ -1566,7 +1588,7 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/correspondence/RoutingRulesAdmin | Save rule | notification_management.dispatch | Yes | src/pages/correspondence/RoutingRulesAdmin.tsx | 129 |
 | pages/correspondence/ThreadWorkspace | Back to work queue | notification_management.dispatch | Yes | src/pages/correspondence/ThreadWorkspace.tsx | 46 |
 | pages/correspondence/ThreadWorkspace | Work queue | notification_management.dispatch | Yes | src/pages/correspondence/ThreadWorkspace.tsx | 71 |
-| pages/delegation/DelegationRules | New Role Transfer | workflow_management.manage_config | Yes | src/pages/delegation/DelegationRules.tsx | 332 |
+| pages/delegation/DelegationRules | New Role Transfer | workflow_management.manage_config | Yes | src/pages/delegation/DelegationRules.tsx | 338 |
 | pages/documents/DocumentDetail | Back to Document Register | document_management.edit_metadata | Yes | src/pages/documents/DocumentDetail.tsx | 152 |
 | pages/documents/DocumentDetail | Register | document_management.edit_metadata | Yes | src/pages/documents/DocumentDetail.tsx | 168 |
 | pages/documents/DocumentDetail | Edit details | document_management.edit_metadata | Yes | src/pages/documents/DocumentDetail.tsx | 172 |
@@ -1821,19 +1843,6 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/help/UserManual | Print / PDF | — | Yes | src/pages/help/UserManual.tsx | 363 |
 | pages/help/UserManual | Previous | — | Yes | src/pages/help/UserManual.tsx | 444 |
 | pages/help/UserManual | Next | — | Yes | src/pages/help/UserManual.tsx | 447 |
-| pages/inspections/InspectionDetail | ← Back to queue | market_conduct.edit | Yes | src/pages/inspections/InspectionDetail.tsx | 205 |
-| pages/inspections/InspectionDetail | ← Queue | market_conduct.edit | Yes | src/pages/inspections/InspectionDetail.tsx | 214 |
-| pages/inspections/InspectionDetail | Edit | market_conduct.edit | Yes | src/pages/inspections/InspectionDetail.tsx | 221 |
-| pages/inspections/InspectionDetail | Open licensee | market_conduct.edit | Yes | src/pages/inspections/InspectionDetail.tsx | 244 |
-| pages/inspections/InspectionDetail | Add finding | market_conduct.edit | Yes | src/pages/inspections/InspectionDetail.tsx | 255 |
-| pages/inspections/InspectionDetail | Escalate | inspection_management.edit | Yes | src/pages/inspections/InspectionDetail.tsx | 301 |
-| pages/inspections/InspectionDetail | Cancel | market_conduct.edit | Yes | src/pages/inspections/InspectionDetail.tsx | 345 |
-| pages/inspections/InspectionDetail | Save | market_conduct.edit | Yes | src/pages/inspections/InspectionDetail.tsx | 346 |
-| pages/inspections/InspectionDetail | Cancel | market_conduct.edit | Yes | src/pages/inspections/InspectionDetail.tsx | 386 |
-| pages/inspections/InspectionDetail | Save | market_conduct.edit | Yes | src/pages/inspections/InspectionDetail.tsx | 387 |
-| pages/inspections/InspectionsCalendar | Today | — | Yes | src/pages/inspections/InspectionsCalendar.tsx | 81 |
-| pages/inspections/InspectionsList | Calendar | — | Yes | src/pages/inspections/InspectionsList.tsx | 100 |
-| pages/inspections/InspectionsList | Open | — | Yes | src/pages/inspections/InspectionsList.tsx | 156 |
 | pages/intelligence/RelationshipIntelligenceSearch | Search | — | Yes | src/pages/intelligence/RelationshipIntelligenceSearch.tsx | 113 |
 | pages/intelligence/RelationshipIntelligenceSearch | Run projection sweep | entity_structure.apply | Yes | src/pages/intelligence/RelationshipIntelligenceSearch.tsx | 181 |
 | pages/licenses/LicenseDetail | Download Certificate | license_management.view | Yes | src/pages/licenses/LicenseDetail.tsx | 653 |
@@ -2152,25 +2161,24 @@ Any row with **Protected = No** must be wrapped in `<PermissionGate module="..."
 | pages/settings/SecuritySettings | Save Changes | settings.edit | Yes | src/pages/settings/SecuritySettings.tsx | 23 |
 | pages/StatementReports | Generate Statement | report_management.view | Yes | src/pages/StatementReports.tsx | 27 |
 | pages/StatementReports | PDF | report_management.export | Yes | src/pages/StatementReports.tsx | 73 |
-| pages/supervision/aml/AmlAssessments | Open | — | Yes | src/pages/supervision/aml/AmlAssessments.tsx | 151 |
-| pages/supervision/aml/AmlAssessmentWorkspace | Back to AML/CFT assessments | — | Yes | src/pages/supervision/aml/AmlAssessmentWorkspace.tsx | 140 |
-| pages/supervision/aml/AmlExaminations | Open only | — | Yes | src/pages/supervision/aml/AmlExaminations.tsx | 116 |
-| pages/supervision/aml/AmlExaminations | Open | — | Yes | src/pages/supervision/aml/AmlExaminations.tsx | 235 |
-| pages/supervision/aml/AmlFindings | Assessment | — | Yes | src/pages/supervision/aml/AmlFindings.tsx | 139 |
-| pages/supervision/aml/AmlFindings | Open finding | — | Yes | src/pages/supervision/aml/AmlFindings.tsx | 143 |
-| pages/supervision/aml/AmlOverview | Open | — | Yes | src/pages/supervision/aml/AmlOverview.tsx | 92 |
-| pages/supervision/aml/AmlOverview | My work queue | — | Yes | src/pages/supervision/aml/AmlOverview.tsx | 114 |
-| pages/supervision/aml/AmlOverview | Assessments | — | Yes | src/pages/supervision/aml/AmlOverview.tsx | 117 |
-| pages/supervision/aml/AmlOverview | View all | — | Yes | src/pages/supervision/aml/AmlOverview.tsx | 141 |
-| pages/supervision/aml/AmlSupervisedEntities | Assessment | — | Yes | src/pages/supervision/aml/AmlSupervisedEntities.tsx | 185 |
-| pages/supervision/aml/AmlWorkQueue | {counts[s] != null ? ( ) : null} | — | Yes | src/pages/supervision/aml/AmlWorkQueue.tsx | 82 |
-| pages/supervision/aml/AmlWorkQueue | Open | — | Yes | src/pages/supervision/aml/AmlWorkQueue.tsx | 187 |
+| pages/supervision/aml/AmlAssessments | Open | — | Yes | src/pages/supervision/aml/AmlAssessments.tsx | 215 |
+| pages/supervision/aml/AmlExaminations | Open only | — | Yes | src/pages/supervision/aml/AmlExaminations.tsx | 133 |
+| pages/supervision/aml/AmlExaminations | Open | — | Yes | src/pages/supervision/aml/AmlExaminations.tsx | 304 |
+| pages/supervision/aml/AmlFindings | Assessment | — | Yes | src/pages/supervision/aml/AmlFindings.tsx | 187 |
+| pages/supervision/aml/AmlFindings | Open finding | — | Yes | src/pages/supervision/aml/AmlFindings.tsx | 194 |
+| pages/supervision/aml/AmlOverview | Work queue | — | Yes | src/pages/supervision/aml/AmlOverview.tsx | 121 |
+| pages/supervision/aml/AmlOverview | Assessments | — | Yes | src/pages/supervision/aml/AmlOverview.tsx | 127 |
+| pages/supervision/aml/AmlOverview | View all | — | Yes | src/pages/supervision/aml/AmlOverview.tsx | 155 |
+| pages/supervision/aml/AmlSupervisedEntities | Assessment | — | Yes | src/pages/supervision/aml/AmlSupervisedEntities.tsx | 248 |
+| pages/supervision/aml/AmlWorkQueue | {counts[s] != null ? ( ) : null} | — | Yes | src/pages/supervision/aml/AmlWorkQueue.tsx | 97 |
+| pages/supervision/aml/AmlWorkQueue | Open | — | Yes | src/pages/supervision/aml/AmlWorkQueue.tsx | 239 |
 | pages/supervision/BreachInbox | Ack | prudential_supervision.edit | Yes | src/pages/supervision/BreachInbox.tsx | 324 |
 | pages/supervision/BreachInbox | Escalate | prudential_supervision.initiate_supervisory_action | Yes | src/pages/supervision/BreachInbox.tsx | 327 |
 | pages/supervision/BreachInbox | Cancel | prudential_supervision.edit | Yes | src/pages/supervision/BreachInbox.tsx | 363 |
 | pages/supervision/BreachInbox | Acknowledge | prudential_supervision.edit | Yes | src/pages/supervision/BreachInbox.tsx | 364 |
 | pages/supervision/BreachInbox | Cancel | prudential_supervision.initiate_supervisory_action | Yes | src/pages/supervision/BreachInbox.tsx | 424 |
 | pages/supervision/BreachInbox | Create enforcement case | prudential_supervision.initiate_supervisory_action | Yes | src/pages/supervision/BreachInbox.tsx | 425 |
+| pages/supervision/ExaminationSchedule | Today | — | Yes | src/pages/supervision/ExaminationSchedule.tsx | 81 |
 | pages/supervision/FindingWorkspace | Findings register | — | Yes | src/pages/supervision/FindingWorkspace.tsx | 111 |
 | pages/supervision/FindingWorkspace | Record response | — | Yes | src/pages/supervision/FindingWorkspace.tsx | 232 |
 | pages/supervision/FindingWorkspace | Add corrective action | — | Yes | src/pages/supervision/FindingWorkspace.tsx | 291 |

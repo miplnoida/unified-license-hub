@@ -166,6 +166,7 @@ export function QuestionsTab({ methodologyId }: { methodologyId: string }) {
       variant={f.dimension === id || (id === 'all' && f.dimension === 'all') ? 'secondary' : 'ghost'}
       size="sm"
       className="h-auto w-full justify-between gap-2 px-2 py-1.5 text-left"
+      data-rbac="aml_supervision.view"
       onClick={() => listing.setFilter('dimension', id)}
     >
       <span className="truncate text-xs">{label}</span>

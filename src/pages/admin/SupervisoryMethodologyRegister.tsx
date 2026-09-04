@@ -164,7 +164,7 @@ export default function SupervisoryMethodologyRegisterPage() {
               <span className="font-mono text-xs">{formatDate(r.updated_at)}</span>) },
           ]}
           actions={(r) => (
-            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/admin/supervisory-methodology/${r.id}`); }}>
+            <Button variant="ghost" size="sm" data-rbac="aml_supervision.view" onClick={(e) => { e.stopPropagation(); navigate(`/admin/supervisory-methodology/${r.id}`); }}>
               Review
             </Button>
           )}
