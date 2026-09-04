@@ -584,19 +584,49 @@ calculated residual all belong to `SUP-AML_CFT-2026-00130`
 i.e. produced before the governed engine existed). They must be recalculated by
 the engine, not trusted.
 
-### E.2 Calculability of the 77
+### E.2 Calculability — reconfirmed read-only, and a blocking data defect
 
-| Cohort | Dimensions | Expected calculation status |
+Re-read from the live database at this wave (nothing persisted):
+
+| Measure | Count |
+| --- | --- |
+| Approved AML/CFT assessments | **21** |
+| Their assessment dimensions | **80** |
+| Dimensions with no `calculated_residual_rating` | **77** |
+| Dimensions with `calculation_status` NULL (never governed-calculated) | **80** |
+| Question responses on those assessments | **820** |
+| Responses carrying `methodology_dimension_id` | **820** |
+| **Assessment dimensions carrying `methodology_dimension_id`** | **0** |
+
+**The previously stated expectation of 58 `CALCULATED` / 19 `NOT_CALCULABLE` is
+withdrawn.** The engine associates a response with a dimension only through
+`supervisory_assessment_dimension.methodology_dimension_id =
+supervisory_assessment_question_response.methodology_dimension_id`, and it skips
+the response loop entirely when the dimension side is NULL. Because **none** of
+the 80 approved dimensions is linked to a methodology dimension, a backfill run
+today would return **80 `NOT_CALCULABLE`** outcomes and **0 `CALCULATED`** — a
+technically valid governed result under the corrected AMLH-09 semantics, but a
+supervisorily useless one: it would certify that nothing can be calculated.
+
+This is a **data-linkage defect on the assessment dimensions**, not a policy
+question and not an engine defect. It must be repaired — by binding each
+approved assessment dimension to its methodology dimension through a governed
+operation — **before** any backfill is authorised. Only then can the expected
+split be restated. The theoretical maximum remains:
+
+| Cohort | Dimensions | Expected status once linkage is repaired |
 | --- | --- | --- |
-| Has at least one recorded question response | **58** | `CALCULATED` (assuming E = 1) |
-| Has no recorded question response at all | **19** | `NOT_CALCULABLE` — no rating produced, no default invented |
+| Has at least one matching recorded response | up to **58** | `CALCULATED` (at decision E = 1) |
+| Has no matching recorded response | at least **22** | `NOT_CALCULABLE` — no rating produced, no default invented |
 
-(22 of the 80 approved dimensions have no responses; 3 of those are the legacy
-pre-engine rows in E.1.)
+Three of the 22 are the legacy pre-engine rows in E.1, which carry a residual
+value produced before the governed engine existed and must be recalculated
+rather than trusted.
 
 Independently of the answer data, the six question-less control dimensions in
 section A.2 are structurally not calculable wherever they appear on an
 assessment; no configuration choice changes that.
+
 
 ### E.3 Which date resolves for each cohort
 
