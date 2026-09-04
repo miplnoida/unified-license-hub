@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { useAmlFindingSeverities, useAmlFindingsPage } from '@/hooks/useAmlSupervision';
-import { PaginationBar, useInvalidPageRecovery, useListingState } from '@/components/shared/listing';
+import { PaginationBar, useListingState, useServerPageGuard } from '@/components/shared/listing';
 import { AMBER, EMERALD, RED, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 /** Sort choices for the findings loop view — canonical values only. */
@@ -50,12 +50,14 @@ export default function AmlFindings() {
   const visible = (data?.rows ?? []) as any[];
   const total = data?.totalCount ?? 0;
   const today = new Date().toISOString().slice(0, 10);
-  const effectivePage = useInvalidPageRecovery({
+  // Card register, same rule: the screen repairs an invalid page from the
+  // authoritative total before it can report "no findings match".
+  const { validPage, repairing } = useServerPageGuard({
     page: listing.page,
-    totalCount: total,
     pageSize: listing.pageSize,
-    onPageChange: listing.setPage,
-    enabled: !isLoading,
+    totalCount: total,
+    setPage: listing.setPage,
+    ready: !isLoading && !error,
   });
 
   return (
@@ -151,7 +153,7 @@ export default function AmlFindings() {
               </Button>
             </RegisterToolbar>
 
-            {isLoading ? (
+            {isLoading || repairing ? (
               <Skeleton className="h-64 w-full" />
             ) : visible.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
@@ -264,7 +266,7 @@ export default function AmlFindings() {
                 })}
                 <PaginationBar
                   totalCount={total}
-                  page={effectivePage}
+                  page={validPage}
                   pageSize={listing.pageSize}
                   onPageChange={listing.setPage}
                   onPageSizeChange={listing.setPageSize}

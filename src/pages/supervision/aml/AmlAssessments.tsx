@@ -19,7 +19,7 @@ import { AlertTriangle, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { useAmlAssessmentStatuses, useAmlAssessmentsPage } from '@/hooks/useAmlSupervision';
 import { AmlNewAssessmentDialog } from '@/components/supervision/aml/AmlNewAssessmentDialog';
 import { SupervisoryRegister } from '@/components/supervision/SupervisoryRegister';
-import { useListingState } from '@/components/shared/listing';
+import { useListingState, useServerPageGuard } from '@/components/shared/listing';
 import { EMERALD, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 export default function AmlAssessments() {
@@ -40,6 +40,15 @@ export default function AmlAssessments() {
 
   const rows = data?.rows ?? [];
   const total = data?.totalCount ?? 0;
+  // The screen owns the authoritative count, so the screen repairs an invalid
+  // page (e.g. ?page=99) before it can decide that nothing matches.
+  const { repairing } = useServerPageGuard({
+    page: listing.page,
+    pageSize: listing.pageSize,
+    totalCount: total,
+    setPage: listing.setPage,
+    ready: !isLoading && !error,
+  });
 
   return (
     <DashboardLayout>
@@ -98,7 +107,7 @@ export default function AmlAssessments() {
               </Select>
             </RegisterToolbar>
 
-            {isLoading ? (
+            {isLoading || repairing ? (
               <Skeleton className="h-64 w-full" />
             ) : rows.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
@@ -112,6 +121,7 @@ export default function AmlAssessments() {
                 mode="server"
                 sort={listing.sort}
                 onSortChange={listing.setSort}
+                onSortToggle={listing.toggleSort}
                 identifierSortable
                 identifierSortKey="reference"
                 paged

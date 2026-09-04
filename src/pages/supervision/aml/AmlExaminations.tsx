@@ -12,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowUpRight, Filter, RefreshCw } from 'lucide-react';
 import { useAmlExaminationStages, useAmlExaminationsPage } from '@/hooks/useAmlSupervision';
 import { businessActionLabel, isTerminalStage } from '@/lib/examinationWorkflow';
-import { useListingState } from '@/components/shared/listing';
+import { useListingState, useServerPageGuard } from '@/components/shared/listing';
 import { AMBER, EMERALD, RED, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 const STAGE_ORDER = [
@@ -66,6 +66,15 @@ export default function AmlExaminations() {
   const { data: stages = [] } = useAmlExaminationStages();
   const rows = (data?.rows ?? []) as any[];
   const total = data?.totalCount ?? 0;
+  // The screen owns the authoritative count, so the screen repairs an invalid
+  // page (e.g. ?page=99) before it can decide that nothing matches.
+  const { repairing } = useServerPageGuard({
+    page: listing.page,
+    pageSize: listing.pageSize,
+    totalCount: total,
+    setPage: listing.setPage,
+    ready: !isLoading && !error,
+  });
 
   const open = (id: string) => navigate(`/supervision/examinations/${id}`);
 
@@ -133,7 +142,7 @@ export default function AmlExaminations() {
               </Button>
             </RegisterToolbar>
 
-            {isLoading ? (
+            {isLoading || repairing ? (
               <Skeleton className="h-64 w-full" />
             ) : rows.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
@@ -163,6 +172,7 @@ export default function AmlExaminations() {
                 })}
                 sort={listing.sort}
                 onSortChange={listing.setSort}
+                onSortToggle={listing.toggleSort}
                 identifierSortable
                 paged
                 page={listing.page}

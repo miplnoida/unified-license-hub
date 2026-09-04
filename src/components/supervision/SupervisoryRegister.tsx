@@ -88,6 +88,13 @@ export interface SupervisoryRegisterProps<T> {
   /** Current sort. Controlled when `onSortChange` is supplied. */
   sort?: ListingSort | null;
   onSortChange?: (sort: ListingSort | null) => void;
+  /**
+   * Authoritative sort-toggle intent from the owning listing state. When
+   * supplied the register delegates header clicks instead of inferring the next
+   * state from the effective sort — only the owner knows whether the current
+   * direction is an explicit user choice or the register's default.
+   */
+  onSortToggle?: (key: string) => void;
   /** Sort the canonical identifier column (defaults to the reference text). */
   identifierSortable?: boolean;
   identifierSortKey?: string;
@@ -171,6 +178,7 @@ export function SupervisoryRegister<T>({
   mode = 'client',
   sort = null,
   onSortChange,
+  onSortToggle,
   identifierSortable = false,
   identifierSortKey = IDENTIFIER_KEY,
   paged = false,
@@ -226,13 +234,18 @@ export function SupervisoryRegister<T>({
 
 
   const handleSort = (key: string) => {
+    if (onSortToggle) {
+      onSortToggle(key);
+      return;
+    }
     if (!onSortChange) return;
+    // Local/uncontrolled fallback: no owner state to consult.
     if (!sort || sort.key !== key) onSortChange({ key, direction: 'asc' });
     else if (sort.direction === 'asc') onSortChange({ key, direction: 'desc' });
     else onSortChange(null);
   };
 
-  const sortableEnabled = Boolean(onSortChange);
+  const sortableEnabled = Boolean(onSortChange || onSortToggle);
 
   return (
     <div className={className}>

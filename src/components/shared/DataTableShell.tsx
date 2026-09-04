@@ -76,6 +76,8 @@ export interface DataTableShellProps<T> {
   onPageSizeChange?: (size: number) => void;
   sort?: ListingSort | null;
   onSortChange?: (sort: ListingSort | null) => void;
+  /** Authoritative sort-toggle intent from the owning listing state. */
+  onSortToggle?: (key: string) => void;
   search?: string;
   onSearchChange?: (value: string) => void;
   filterValue?: string;
@@ -104,6 +106,7 @@ export function DataTableShell<T extends Record<string, any>>({
   onPageSizeChange,
   sort: sortProp,
   onSortChange,
+  onSortToggle,
   search: searchProp,
   onSearchChange,
   filterValue: filterValueProp,
@@ -133,6 +136,18 @@ export function DataTableShell<T extends Record<string, any>>({
   };
 
   const sort = sortProp !== undefined ? sortProp : sortLocal;
+  /** Delegates to the owning listing state when it owns the sort semantics. */
+  const toggleSort = (key: string) => {
+    if (onSortToggle) {
+      onSortToggle(key);
+      if (onPageChange) onPageChange(1);
+      setPageLocal(1);
+      return;
+    }
+    if (!sort || sort.key !== key) setSort({ key, direction: 'asc' });
+    else if (sort.direction === 'asc') setSort({ key, direction: 'desc' });
+    else setSort(null);
+  };
   const setSort = (next: ListingSort | null) => {
     if (onSortChange) onSortChange(next);
     if (sortProp === undefined) setSortLocal(next);
@@ -296,15 +311,7 @@ export function DataTableShell<T extends Record<string, any>>({
                         label={col.label}
                         sortKey={key}
                         sort={sort}
-                        onSort={(k) =>
-                          setSort(
-                            !sort || sort.key !== k
-                              ? { key: k, direction: 'asc' }
-                              : sort.direction === 'asc'
-                                ? { key: k, direction: 'desc' }
-                                : null,
-                          )
-                        }
+                        onSort={toggleSort}
                         align={col.align ?? 'left'}
                       />
                     ) : (

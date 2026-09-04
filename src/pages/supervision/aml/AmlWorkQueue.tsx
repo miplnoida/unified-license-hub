@@ -23,7 +23,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { WORK_SCOPES, WORK_SCOPE_LABELS, type WorkScope } from '@/hooks/useSupervisoryWork';
 import { useAmlWorkQueuePage, useAmlWorkTypes } from '@/hooks/useAmlSupervision';
-import { useListingState } from '@/components/shared/listing';
+import { useListingState, useServerPageGuard } from '@/components/shared/listing';
 import { RED, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 const SCOPE_LABELS: Record<WorkScope, string> = { ...WORK_SCOPE_LABELS, ALL: 'All AML/CFT work' };
@@ -52,6 +52,15 @@ export default function AmlWorkQueue() {
 
   const items = data?.rows ?? [];
   const total = data?.totalCount ?? 0;
+  // The screen owns the authoritative count, so the screen repairs an invalid
+  // page (e.g. ?page=99) before it can decide that nothing matches.
+  const { repairing } = useServerPageGuard({
+    page: listing.page,
+    pageSize: listing.pageSize,
+    totalCount: total,
+    setPage: listing.setPage,
+    ready: !isLoading && !error,
+  });
   const counts = data?.counts ?? {};
 
   return (
@@ -119,7 +128,7 @@ export default function AmlWorkQueue() {
               </Select>
             </RegisterToolbar>
 
-            {isLoading ? (
+            {isLoading || repairing ? (
               <Skeleton className="h-64 w-full" />
             ) : items.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
@@ -134,6 +143,7 @@ export default function AmlWorkQueue() {
                 totalCount={total}
                 sort={listing.sort}
                 onSortChange={listing.setSort}
+                onSortToggle={listing.toggleSort}
                 identifierSortable
                 paged
                 page={listing.page}
