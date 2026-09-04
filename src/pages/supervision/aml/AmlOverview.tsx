@@ -1,18 +1,19 @@
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, ShieldCheck, ClipboardList, Gauge, FileSearch, ListChecks } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, ShieldCheck, Gauge, FileSearch, ListChecks, RefreshCw } from 'lucide-react';
 import { useAmlOverview, useAmlWorkQueue } from '@/hooks/useAmlSupervision';
 import { AMBER, EMERALD, RED, WORK_QUEUE_KIND_LABEL, fmtDate, statusTone, titleCase } from '@/lib/amlLabels';
 
 type Metric = { label: string; value: number | string; hint: string; tone?: string; to?: string };
 
 export default function AmlOverview() {
-  const { data, isLoading, error } = useAmlOverview();
+  const { data, isLoading, error, refetch, isFetching } = useAmlOverview();
   const queue = useAmlWorkQueue(8);
   const m = data ?? {};
 
@@ -75,24 +76,25 @@ export default function AmlOverview() {
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {metrics.map((k) => (
-          <div key={k.label} className="rounded-lg border p-4">
+          <div key={k.label} className="rounded-lg border p-3" title={k.hint}>
             <div className="text-xs uppercase tracking-wide text-muted-foreground">{k.label}</div>
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-1.5 flex items-center gap-2">
               {isLoading ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
                 <span className="font-mono text-2xl font-semibold">{k.value}</span>
               )}
               {k.tone && !isLoading ? <Badge variant="outline" className={k.tone}>attention</Badge> : null}
+              {k.to ? (
+                <Button asChild variant="ghost" size="icon" className="ml-auto h-7 w-7" aria-label={`Open ${k.label}`} title={`Open ${k.label}`}>
+                  <Link to={k.to}>
+                    <ArrowUpRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              ) : null}
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">{k.hint}</p>
-            {k.to ? (
-              <Button asChild variant="link" size="sm" className="mt-1 h-auto p-0 text-xs">
-                <Link to={k.to}>Open</Link>
-              </Button>
-            ) : null}
           </div>
         ))}
       </CardContent>
@@ -101,24 +103,36 @@ export default function AmlOverview() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">AML/CFT Supervision Overview</h1>
-            <p className="text-sm text-muted-foreground">
-              Risk-based AML/CFT supervision across the canonical supervisory spine — assessment coverage,
-              examination pipeline and the closed remediation loop.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link to="/supervision/aml/work-queue">My work queue</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link to="/supervision/aml/assessments">Assessments</Link>
-            </Button>
-          </div>
-        </div>
+      <div className="space-y-5">
+        <PageHeader
+          title="AML/CFT Supervision"
+          actions={
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                aria-label="Refresh metrics"
+                title="Refresh metrics"
+              >
+                <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/supervision/aml/work-queue">
+                  <ListChecks className="mr-1.5 h-4 w-4" />
+                  Work queue
+                </Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link to="/supervision/aml/assessments">
+                  <ArrowUpRight className="mr-1.5 h-4 w-4" />
+                  Assessments
+                </Link>
+              </Button>
+            </>
+          }
+        />
 
         {error ? (
           <Alert variant="destructive">
@@ -128,7 +142,7 @@ export default function AmlOverview() {
           </Alert>
         ) : null}
 
-        {section('Supervised population & risk coverage', <ShieldCheck className="h-4 w-4 text-primary" />, coverage)}
+        {section('Population & risk coverage', <ShieldCheck className="h-4 w-4 text-primary" />, coverage)}
         {section('Assessment pipeline', <Gauge className="h-4 w-4 text-primary" />, pipeline)}
         {section('Examinations, findings & remediation', <FileSearch className="h-4 w-4 text-primary" />, loop)}
 
@@ -136,10 +150,13 @@ export default function AmlOverview() {
           <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <ListChecks className="h-4 w-4 text-primary" />
-              Next actions assigned to me
+              Assigned to me
             </CardTitle>
             <Button asChild variant="outline" size="sm">
-              <Link to="/supervision/aml/work-queue">View all</Link>
+              <Link to="/supervision/aml/work-queue">
+                <ArrowUpRight className="mr-1.5 h-4 w-4" />
+                View all
+              </Link>
             </Button>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -176,12 +193,6 @@ export default function AmlOverview() {
             )}
           </CardContent>
         </Card>
-
-        <p className="flex items-center gap-2 text-xs text-muted-foreground">
-          <ClipboardList className="h-3 w-3" />
-          All figures are read directly from the governed AML/CFT read models; no metric is stored or
-          recalculated in the browser.
-        </p>
       </div>
     </DashboardLayout>
   );

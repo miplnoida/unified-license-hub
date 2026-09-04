@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -50,29 +51,25 @@ export default function AmlRiskHeatmap() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">AML/CFT Risk Heatmap</h1>
-            <p className="text-sm text-muted-foreground">
-              Inherent risk against control effectiveness across the supervised population. Every cell
-              lists the entities whose current approved assessment produced that combination.
-            </p>
-          </div>
-          <Select value={sector} onValueChange={setSector}>
-            <SelectTrigger className="w-56">
-              <SelectValue placeholder="Sector" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All sectors</SelectItem>
-              {sectors.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="space-y-5">
+        <PageHeader
+          title="AML/CFT Risk Heatmap"
+          actions={
+            <Select value={sector} onValueChange={setSector}>
+              <SelectTrigger className="h-9 w-56">
+                <SelectValue placeholder="Sector" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All sectors</SelectItem>
+                {sectors.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          }
+        />
 
         {error ? (
           <Alert variant="destructive">

@@ -1,19 +1,20 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { Card, CardContent } from '@/components/ui/card';
+import { RegisterToolbar } from '@/components/shared/RegisterToolbar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { useAmlFindings } from '@/hooks/useAmlSupervision';
-import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
+import { AMBER, EMERALD, RED, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 export default function AmlFindings() {
-  const { data, isLoading, error, refetch } = useAmlFindings();
+  const { data, isLoading, error, refetch, isFetching } = useAmlFindings();
   const [params] = useSearchParams();
   const focus = params.get('focus');
   const [q, setQ] = useState('');
@@ -48,14 +49,22 @@ export default function AmlFindings() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">AML/CFT Findings &amp; Remediation</h1>
-          <p className="text-sm text-muted-foreground">
-            The closed supervisory loop: findings issued, management response, remediation actions,
-            effectiveness validation and escalation back into supervisory attention.
-          </p>
-        </div>
+      <div className="space-y-5">
+        <PageHeader
+          title="AML/CFT Findings & Remediation"
+          actions={
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              aria-label="Refresh findings"
+              title="Refresh findings"
+            >
+              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+            </Button>
+          }
+        />
 
         {error ? (
           <Alert variant="destructive">
@@ -66,21 +75,19 @@ export default function AmlFindings() {
         ) : null}
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">
-              {isLoading ? 'Loading…' : `${filtered.length} finding${filtered.length === 1 ? '' : 's'}`}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <Input
-                placeholder="Search entity, reference or title…"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                className="max-w-xs"
-              />
+          <CardContent className="space-y-3 pt-4">
+            <RegisterToolbar
+              search={q}
+              onSearchChange={setQ}
+              searchPlaceholder="Search entity, reference or title…"
+              trailing={
+                <span className="text-sm text-muted-foreground">
+                  {isLoading ? 'Loading…' : `${filtered.length} finding${filtered.length === 1 ? '' : 's'}`}
+                </span>
+              }
+            >
               <Select value={severity} onValueChange={setSeverity}>
-                <SelectTrigger className="w-44">
+                <SelectTrigger className="h-9 w-40">
                   <SelectValue placeholder="Severity" />
                 </SelectTrigger>
                 <SelectContent>
@@ -93,7 +100,7 @@ export default function AmlFindings() {
                 </SelectContent>
               </Select>
               <Select value={view} onValueChange={setView}>
-                <SelectTrigger className="w-60">
+                <SelectTrigger className="h-9 w-56">
                   <SelectValue placeholder="Loop stage" />
                 </SelectTrigger>
                 <SelectContent>
@@ -104,7 +111,7 @@ export default function AmlFindings() {
                   <SelectItem value="escalated">Escalated to attention</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </RegisterToolbar>
 
             {isLoading ? (
               <Skeleton className="h-64 w-full" />
@@ -123,9 +130,10 @@ export default function AmlFindings() {
                     >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
+                          <div className="font-mono text-xs font-semibold">{f.reference}</div>
                           <div className="text-sm font-semibold">{f.title}</div>
-                          <div className="font-mono text-xs text-muted-foreground">
-                            {f.reference} · {f.entity_name || '—'} · {titleCase(f.finding_category)}
+                          <div className="text-xs text-muted-foreground">
+                            {f.entity_name || '—'} · {titleCase(f.finding_category)}
                           </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
@@ -137,13 +145,18 @@ export default function AmlFindings() {
                           </Badge>
                           {f.assessment_id ? (
                             <Button asChild size="sm" variant="outline">
-                              <Link to={`/supervision/aml/assessments/${f.assessment_id}`}>Assessment</Link>
+                              <Link to={`/supervision/aml/assessments/${f.assessment_id}`}>
+                                Assessment
+                                <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                              </Link>
                             </Button>
                           ) : null}
                           <Button asChild size="sm">
-                            <Link to={`/supervision/findings/${f.id}`}>Open finding</Link>
+                            <Link to={`/supervision/findings/${f.id}`}>
+                              Open finding
+                              <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                            </Link>
                           </Button>
-
                         </div>
                       </div>
 
@@ -208,24 +221,13 @@ export default function AmlFindings() {
                           </ul>
                         )}
                       </div>
-
-                      <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
-                        Findings are decided in the canonical finding workspace, where provenance, corrective actions,
-                        residual acceptance and closure readiness are governed together. Open the finding to act on it.
-                      </p>
                     </div>
-
                   );
                 })}
               </div>
             )}
           </CardContent>
         </Card>
-
-        <p className="text-xs text-muted-foreground">
-          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${NEUTRAL}`}>Domain: AML/CFT</span> Findings and remediation are
-          filtered views of the canonical supervisory finding and remediation models — no AML-private store.
-        </p>
       </div>
     </DashboardLayout>
   );

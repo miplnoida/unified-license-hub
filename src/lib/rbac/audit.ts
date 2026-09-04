@@ -239,7 +239,7 @@ export const SCOPED_ACTION_CLASSES: Array<{ file: string; kind: ActionClassKind;
   { file: "src/components/entity-detail/SupervisoryTimelinePanel.tsx", kind: 'scanner-artifact', labels: ["( )"] },
   { file: "src/pages/supervision/FindingWorkspace.tsx", kind: 'non-mutating', labels: ["findings register"] },
   { file: "src/pages/supervision/aml/AmlFindings.tsx", kind: 'non-mutating', labels: ["assessment"] },
-  { file: "src/pages/supervision/aml/AmlOverview.tsx", kind: 'non-mutating', labels: ["assessments", "my work queue"] },
+  { file: "src/pages/supervision/aml/AmlOverview.tsx", kind: 'non-mutating', labels: ["assessments", "my work queue", "work queue"] },
   { file: "src/pages/supervision/aml/AmlSupervisedEntities.tsx", kind: 'non-mutating', labels: ["assessment"] },
   { file: "src/pages/supervision/aml/AmlWorkQueue.tsx", kind: 'scanner-artifact', labels: ["{counts[s] != null ? ( ) : null}"] },
   // Dialog/picker openers and local draft editors: they mutate component

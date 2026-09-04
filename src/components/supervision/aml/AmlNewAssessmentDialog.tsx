@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Plus } from 'lucide-react';
 import { AmlActionDialog } from '@/components/supervision/aml/AmlActionDialog';
 import { useCreateAmlAssessment, useResolvedAmlMethodology } from '@/hooks/useAmlLifecycle';
 import { useAmlPortfolio } from '@/hooks/useAmlSupervision';
@@ -83,6 +83,7 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
   return (
     <>
       <Button size={size} variant={variant} onClick={startFlow}>
+        <Plus className="mr-1.5 h-4 w-4" />
         {label}
       </Button>
 
