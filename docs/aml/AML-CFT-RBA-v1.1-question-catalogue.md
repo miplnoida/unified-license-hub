@@ -210,7 +210,7 @@ Placeholders in square brackets (e.g. `[LOCAL_STR_DEADLINE_REF]`) are deployment
 | standards_reference_strength | RELATED_RISK_FACTOR |
 | standards_reference_review | Mapping accepted as stated |
 | sector_applicability | CORE_ALL |
-| polarity_review | KEEP — YES = more higher-risk jurisdiction exposure. |
+| polarity_review | KEEP — YES = more higher-risk jurisdiction exposure = more inherent exposure before controls. |
 | change_classification | SEMANTIC_CORRECTION |
 
 **Guidance.** Use the jurisdiction lists applicable in the deployment ([LOCAL_HIGH_RISK_LIST_REF]) together with FATF public identification statements. Consider customer residence, beneficial-owner nationality, counterparty location and transaction corridors. Quantify share of value where possible.
@@ -251,7 +251,7 @@ Placeholders in square brackets (e.g. `[LOCAL_STR_DEADLINE_REF]`) are deployment
 | standards_reference_strength | RELATED_RISK_FACTOR |
 | standards_reference_review | Mapping accepted as stated |
 | sector_applicability | SECTOR_OVERLAY_CANDIDATE |
-| polarity_review | REWORD — merged with IR-TRX-03 and stated by volume and value; polarity risk-positive. |
+| polarity_review | REWORD — merged with IR-TRX-03 and stated by volume and value; YES = larger cross-border flow = more inherent exposure before controls. |
 | change_classification | SPLIT |
 
 **Guidance.** Use volume, value and counterparty facts. Materiality thresholds are configuration parameters (`[MAT_XBORDER_VALUE_SHARE]`). Merged from v1.1 draft IR-GEO-02 and IR-TRX-03; corridor concentration context is IR-GEO-03.
@@ -376,7 +376,7 @@ Placeholders in square brackets (e.g. `[LOCAL_STR_DEADLINE_REF]`) are deployment
 | standards_reference_strength | RELATED_RISK_FACTOR |
 | standards_reference_review | Mapping accepted as stated |
 | sector_applicability | SECTOR_CONDITIONAL |
-| polarity_review | REWORD — merged with IR-TRX-02; YES = more cash exposure. |
+| polarity_review | REWORD — merged with IR-TRX-02; YES = more cash exposure = more inherent exposure before controls. |
 | change_classification | NEW |
 
 **Guidance.** Judge on the share of revenue, value and transaction count that is cash or cash-equivalent, and on absolute cash value for a small entity. Materiality thresholds are configuration parameters (`[MAT_CASH_VALUE_SHARE]`). Merged from v1.1 draft IR-PRD-02 and IR-TRX-02.
@@ -501,7 +501,7 @@ Placeholders in square brackets (e.g. `[LOCAL_STR_DEADLINE_REF]`) are deployment
 | standards_reference_strength | RELATED_RISK_FACTOR |
 | standards_reference_review | FATF R.1 is a risk-based-approach obligation on countries and entities, not a requirement about transaction scale — mapping downgraded to RELATED_RISK_FACTOR. |
 | sector_applicability | CORE_ALL |
-| polarity_review | KEEP — YES = greater scale = greater absolute ML/TF exposure. Standards mapping downgraded. |
+| polarity_review | KEEP — YES = greater scale = more inherent exposure before controls. Standards mapping downgraded. |
 | change_classification | SPLIT |
 
 **Guidance.** Use the entity return data for the period, with peer comparison where a peer group exists. Scale alone is exposure, not a deficiency.
@@ -681,8 +681,8 @@ Placeholders in square brackets (e.g. `[LOCAL_STR_DEADLINE_REF]`) are deployment
 | question_version | 1 |
 | axis | INHERENT_EXPOSURE |
 | effectiveness_focus | INHERENT_EXPOSURE |
-| prompt | The entity experienced rapid growth or material change in the assessment period. |
-| supervisory_intent | Measure exposure from change outpacing the control environment. |
+| prompt | Material growth or material change in the assessment period expanded or materially altered the entity's ML/TF exposure surface. |
+| supervisory_intent | Measure the additional ML/TF exposure surface created by material change in scale, customers, transaction activity, products, services, channels, jurisdictions, ownership, group structure or business model, before considering the adequacy of any mitigating control. |
 | response_semantics | `INHERENT_SEM` (see design document §4) |
 | mandatory | YES (CORE) |
 | requires_observation | YES |
@@ -708,10 +708,10 @@ Placeholders in square brackets (e.g. `[LOCAL_STR_DEADLINE_REF]`) are deployment
 | standards_reference_strength | RELATED_RISK_FACTOR |
 | standards_reference_review | Growth is a supervisory risk indicator, not an R.1 requirement — RELATED_RISK_FACTOR. |
 | sector_applicability | CORE_ALL |
-| polarity_review | KEEP — YES = controls calibrated to a smaller prior scale = more unmitigated exposure. Standards mapping downgraded. |
+| polarity_review | KEEP — YES = material growth or change expanded or materially altered the entity's ML/TF exposure surface, measured before controls. Standards mapping downgraded. |
 | change_classification | SPLIT |
 
-**Guidance.** Consider growth in customers, value, products, channels, jurisdictions, and material change such as acquisition, new licence class or system replacement. The growth threshold is a configuration parameter (`[MAT_GROWTH_RATE]`). Growth raises exposure because controls are calibrated to the prior scale.
+**Guidance.** Measure the change in exposure surface: growth in customer numbers and value, entry into new products, services, channels or jurisdictions, and material structural change such as acquisition, disposal, new licence class, change of ownership or group reorganisation. The growth threshold is a configuration parameter (`[MAT_GROWTH_RATE]`). Record the figures and the change events relied on. Whether governance, staffing, systems, risk assessment, transaction monitoring, CDD or other controls kept pace with the change is assessed in the relevant CONTROL dimensions and must not influence the answer here.
 
 #### CT-GOV-01
 

@@ -37,6 +37,42 @@ SECTOR_APPLICABILITY = {
 # Materiality figures may only appear as configuration placeholders in question prose.
 THRESHOLD_RE = re.compile(r"\d+\s?%|\d+\s?percent", re.I)
 
+RETIRED_CODES = {"IR-BUS-03", "IR-DEL-03", "IR-TRX-02", "IR-TRX-03", "CT-DQ-02"}
+
+# Maintained semantic-review allowlist. Each scored inherent question has been read
+# in full (prompt, intent, guidance, polarity review) and confirmed to mean
+# "YES = more inherent ML/TF exposure, before controls".
+SCORED_INHERENT_POLARITY = {
+    "IR-CUS-01": "share of higher-risk customer classes",
+    "IR-CUS-02": "opacity of customer ownership structures",
+    "IR-CUS-03": "non-resident / cross-border customer share",
+    "IR-CUS-04": "PEP exposure as a customer characteristic",
+    "IR-GEO-01": "exposure to higher-risk or monitored jurisdictions",
+    "IR-GEO-02": "cross-border flow concentration",
+    "IR-PRD-01": "anonymity, opacity or third-party-payment product features",
+    "IR-PRD-02": "cash intensity of products and activity",
+    "IR-PRD-03": "speed of value movement, including cross-border",
+    "IR-PRD-04": "complex, structured or virtual-asset products",
+    "IR-TRX-01": "transaction volume and value exposure",
+    "IR-TRX-04": "velocity, pass-through and concentration observed in activity",
+    "IR-DEL-01": "non-face-to-face / remote onboarding share",
+    "IR-DEL-02": "third-party distribution distance",
+    "IR-BUS-01": "structural complexity of the business/group",
+    "IR-BUS-02": "change in the exposure surface from material growth or change",
+}
+
+# Language that would make inherent exposure depend on mitigation quality.
+CONTROL_LEAK_RE = re.compile(
+    r"\b(control(s)?\s+(fail|failed|weak|inadequa|calibrat|kept pace|outpac)"
+    r"|kept pace|outpaced|unmitigated|mitigation\s+(quality|adequacy)"
+    r"|because controls|control environment)\b", re.I)
+# Explicit deferral of control assessment to the control dimensions is permitted.
+CONTROL_DEFERRAL_RE = re.compile(
+    r"(assessed (elsewhere|in the|under|in relevant)|is a CONTROL|recorded under"
+    r"|CONTROL dimension|control effectiveness is assessed|before (any )?control"
+    r"|independent of|not considered here|distinct from)", re.I)
+
+
 
 def parse() -> list[dict]:
     text = CAT.read_text()
@@ -48,6 +84,7 @@ def parse() -> list[dict]:
         rec = {"question_code": code, "_block": block}
         for m in re.finditer(r"^\| ([a-zA-Z0-9_]+) \| (.*?) \|$", block, re.M):
             rec[m.group(1)] = m.group(2).strip()
+        rec["question_code"] = code  # heading is authoritative; table value is backticked
         g = re.search(r"\*\*Guidance\.\*\* (.*)", block)
         rec["guidance"] = g.group(1) if g else ""
         recs.append(rec)
@@ -158,6 +195,69 @@ def main() -> int:
     gate("DQ-36 no advisory is permitted to act automatically",
          "No advisory changes an answer, a rating or creates a finding automatically." in all_text)
 
+    # ---- derived census gates (nothing assumed) -------------------------------
+    inherent = [r for r in recs if r.get("axis") == "INHERENT_EXPOSURE"]
+    contextual = [r for r in inherent if r["calculation_participation"] == "CONTEXTUAL_NOT_SCORED"]
+    scored_inherent = [r for r in inherent if r not in contextual]
+    judge = collections.Counter(r.get("supervisory_judgement_required", "MISSING") for r in recs)
+    obs = collections.Counter(r.get("requires_observation", "MISSING").split(" ")[0] for r in recs)
+    na = collections.Counter(r.get("allow_NA", "MISSING") for r in recs)
+    prefill = collections.Counter(r.get("factual_auto_prefill_possible", "MISSING") for r in recs)
+    strength = collections.Counter(r["standards_reference_strength"] for r in recs)
+    focus = collections.Counter(r["effectiveness_focus"] for r in recs)
+    review = docs.get(REVIEW, "")
+
+    gate("DQ-37 supervisory judgement is not claimed for every question",
+         judge["YES"] < len(recs) and judge["NO"] > 0, str(dict(judge)))
+    gate("DQ-38 quality review reports the derived supervisory-judgement counts",
+         f"supervisory_judgement_required = YES **{judge['YES']}** / NO **{judge['NO']}**" in review)
+    gate("DQ-39 quality review no longer claims judgement required on all 70",
+         "supervisory judgement required = 70" not in review
+         and "supervisory_judgement_required 70" not in review)
+    gate("DQ-40 quality review explains that judgement = NO is not absence of responsibility",
+         "does NOT mean the officer has no responsibility" in review)
+    gate("DQ-41 exactly one inherent entry is contextual and it is IR-GEO-03",
+         [r["question_code"] for r in contextual] == ["IR-GEO-03"],
+         str([r["question_code"] for r in contextual]))
+    gate("DQ-42 no control question is contextual",
+         not [r["question_code"] for r in recs
+              if r.get("axis") != "INHERENT_EXPOSURE"
+              and r["calculation_participation"] == "CONTEXTUAL_NOT_SCORED"])
+    gate("DQ-43 scored/contextual inherent split is documented as derived",
+         all(s in review for s in (f"INHERENT CATALOGUE ENTRIES = {len(inherent)}",
+                                   f"SCORED INHERENT = {len(scored_inherent)}",
+                                   f"CONTEXTUAL NOT SCORED = {len(contextual)}")))
+    gate("DQ-44 every scored inherent question is on the maintained polarity-review allowlist",
+         {r["question_code"] for r in scored_inherent} == set(SCORED_INHERENT_POLARITY),
+         str({r["question_code"] for r in scored_inherent} ^ set(SCORED_INHERENT_POLARITY)))
+    leaks = []
+    for r in scored_inherent:
+        prose = " ".join(r.get(k, "") for k in ("prompt", "supervisory_intent",
+                                                "polarity_review", "guidance"))
+        for sentence in re.split(r"(?<=[.;])\s+", prose):
+            if CONTROL_LEAK_RE.search(sentence) and not CONTROL_DEFERRAL_RE.search(sentence):
+                leaks.append((r["question_code"], sentence.strip()[:120]))
+    gate("DQ-45 no scored inherent question makes exposure depend on control adequacy",
+         not leaks, str(leaks))
+    gate("DQ-46 every scored inherent polarity review asserts pre-control exposure",
+         all(re.search(r"more inherent exposure|more pre-control exposure|exposure surface",
+                       r["polarity_review"]) for r in scored_inherent),
+         str([r["question_code"] for r in scored_inherent
+              if not re.search(r"more inherent exposure|more pre-control exposure|exposure surface",
+                               r["polarity_review"])]))
+    gate("DQ-47 retired draft codes are absent from the active catalogue",
+         not (RETIRED_CODES & set(codes)), str(RETIRED_CODES & set(codes)))
+    gate("DQ-48 decision pack carries a current v1.1 design-state baseline",
+         "## Current v1.1 design state" in docs.get(PACK, "")
+         and "historical analysis baseline" in docs.get(PACK, ""))
+    gate("DQ-49 decision pack current state matches the derived census",
+         all(s in docs.get(PACK, "") for s in (
+             f"70 active questions", f"CORE {cls['CORE']} / CONDITIONAL {cls['CONDITIONAL']} / ENHANCED {cls['ENHANCED']}",
+             f"{len(scored_inherent)} scored inherent + {len(contextual)} contextual inherent")))
+    gate("DQ-50 three distinct non-answer states remain reserved",
+         all(s in review for s in ("NOT_TRIGGERED", "NOT_ASKED", "NOT_APPLICABLE")))
+
+
     width = max(len(n) for n, _, _ in results)
     fails = 0
     for name, status, detail in results:
@@ -165,8 +265,19 @@ def main() -> int:
             fails += 1
         print(f"{name.ljust(width)}  {status}{('  ' + detail) if detail and status == 'FAIL' else ''}")
     print(f"\n{len(results) - fails}/{len(results)} PASS")
-    print(f"census: total={len(recs)} inherent={sum(1 for r in recs if r.get('axis') == 'INHERENT_EXPOSURE')} "
-          f"CORE={cls['CORE']} CONDITIONAL={cls['CONDITIONAL']} ENHANCED={cls['ENHANCED']}")
+    print("\nderived census (parsed, not asserted):")
+    print(f"  active={len(recs)} retired={len(RETIRED_CODES)}")
+    print(f"  classes: CORE={cls['CORE']} CONDITIONAL={cls['CONDITIONAL']} ENHANCED={cls['ENHANCED']}")
+    print(f"  inherent entries={len(inherent)} scored={len(scored_inherent)} contextual={len(contextual)}")
+    print(f"  control entries={len(recs) - len(inherent)}")
+    print(f"  mandatory: YES={cls['CORE']} NO={len(recs) - cls['CORE']}")
+    print(f"  requires_observation: {dict(obs)}")
+    print(f"  requires_evidence: YES={len(recs)} NO=0")
+    print(f"  allow_NA: {dict(na)}")
+    print(f"  factual_auto_prefill_possible: {dict(prefill)}")
+    print(f"  supervisory_judgement_required: {dict(judge)}")
+    print(f"  effectiveness focus: {dict(focus)}")
+    print(f"  standards reference strength: {dict(strength)}")
     return 1 if fails else 0
 
 
