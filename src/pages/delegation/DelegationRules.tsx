@@ -76,7 +76,7 @@ export default function DelegationRules() {
     const now = new Date().toISOString();
     const expired = rules.filter(r => r.effective_until && r.effective_until < now && r.is_active && r.delegate_from_user_id);
     expired.forEach(async (rule) => {
-      await supabase.from('delegation_rules').update({ is_active: false } as any).eq('id', rule.id);
+      await (supabase as any).rpc('delegation_rule_set_active', { _rule_id: rule.id, _is_active: false });
       await logAudit({
         action: 'delegation_rule_auto_expired',
         entityType: 'delegation_rule',
@@ -244,7 +244,7 @@ export default function DelegationRules() {
         effective_until: endOfDay.toISOString(),
         is_active: delegateActive,
       };
-      const { error } = await supabase.from('delegation_rules').update(payload as any).eq('id', editingRuleId);
+      const { error } = await (supabase as any).rpc('delegation_rule_upsert', { _rule: payload, _rule_id: editingRuleId });
       if (error) { toast.error(error.message); setCreating(false); return; }
       await logAudit({
         action: 'delegation_date_range_updated',
@@ -275,7 +275,12 @@ export default function DelegationRules() {
         effective_until: endOfDay.toISOString(),
         is_active: delegateActive,
       }));
-      const { error } = await supabase.from('delegation_rules').insert(rows as any);
+      let insertError: { message: string } | null = null;
+      for (const row of rows) {
+        const { error } = await (supabase as any).rpc('delegation_rule_upsert', { _rule: row });
+        if (error) { insertError = error; break; }
+      }
+      const error = insertError;
       if (error) { toast.error(error.message); setCreating(false); return; }
       await logAudit({
         action: 'delegation_date_range_created',
@@ -296,14 +301,15 @@ export default function DelegationRules() {
   };
 
   const handleToggle = async (rule: DelegationRule) => {
-    const { error } = await supabase.from('delegation_rules').update({ is_active: !rule.is_active } as any).eq('id', rule.id);
+    const { error } = await (supabase as any).rpc('delegation_rule_set_active', { _rule_id: rule.id, _is_active: !rule.is_active });
     if (error) { toast.error(error.message); return; }
     toast.success(rule.is_active ? 'Rule deactivated' : 'Rule activated');
     loadRules();
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from('delegation_rules').delete().eq('id', id);
+    const { error: deleteError } = await (supabase as any).rpc('delegation_rule_delete', { _rule_id: id });
+    if (deleteError) { toast.error(deleteError.message); return; }
     await logAudit({ action: 'delegation_rule_deleted', entityType: 'delegation_rule', entityId: id });
     toast.success('Rule deleted');
     loadRules();

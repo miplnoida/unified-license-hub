@@ -223,14 +223,13 @@ export function RaiseRfiDialog({
         // Guaranteed in-app row so the applicant dashboard + header bell surface it
         // immediately, even if no notification_event_config exists for this key.
         if (applicantId) {
-          await supabase.from('notifications').insert({
-            user_id: applicantId,
-            title: 'Information requested on your application',
-            message: `${items.length} question${items.length === 1 ? '' : 's'} raised${appNumber ? ` on ${appNumber}` : ''}${dueAtIso ? ` — due ${new Date(dueAtIso).toLocaleDateString()}` : ''}.${summary.trim() ? ` ${summary.trim()}` : ''}`,
-            type: 'rfi',
-            channel: 'in_app',
-            entity_type: 'application',
-            entity_id: applicationId,
+          await (supabase as any).rpc('workflow_notification_emit', {
+            _entity_type: 'application',
+            _entity_id: applicationId,
+            _title: 'Information requested on your application',
+            _message: `${items.length} question${items.length === 1 ? '' : 's'} raised${appNumber ? ` on ${appNumber}` : ''}${dueAtIso ? ` — due ${new Date(dueAtIso).toLocaleDateString()}` : ''}.${summary.trim() ? ` ${summary.trim()}` : ''}`,
+            _type: 'rfi',
+            _route: deepLink,
           });
         }
 

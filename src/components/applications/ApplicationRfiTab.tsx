@@ -87,14 +87,13 @@ export function ApplicationRfiTab({
         const applicantId = (appRow as any)?.applicant_id ?? null;
         const appNumber = (appRow as any)?.application_number ?? null;
         if (applicantId) {
-          await supabase.from('notifications').insert({
-            user_id: applicantId,
-            title: 'Information request closed',
-            message: `The request for information${appNumber ? ` on ${appNumber}` : ''} has been closed.${closeNotesById[rfi.id] ? ` Notes: ${closeNotesById[rfi.id]}` : ''}`,
-            type: 'rfi',
-            channel: 'in_app',
-            entity_type: 'application',
-            entity_id: applicationId,
+          await (supabase as any).rpc('workflow_notification_emit', {
+            _entity_type: 'application',
+            _entity_id: applicationId,
+            _title: 'Information request closed',
+            _message: `The request for information${appNumber ? ` on ${appNumber}` : ''} has been closed.${closeNotesById[rfi.id] ? ` Notes: ${closeNotesById[rfi.id]}` : ''}`,
+            _type: 'rfi',
+            _route: `/applications/${applicationId}?tab=rfi`,
           });
         }
         void dispatchNotificationEvent({

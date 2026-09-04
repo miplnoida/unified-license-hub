@@ -403,7 +403,7 @@ export function useInsertReturnAudit() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: any) => {
-      const { error } = await (supabase as any).from('return_audit_log').insert(payload);
+      const { error } = await (supabase as any).rpc('return_activity_log_append', { _entry: payload });
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['return_audit_log'] }); },

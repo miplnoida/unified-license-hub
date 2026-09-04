@@ -86,3 +86,23 @@ The picker and register contracts assume server paging and indexed search on doc
 display name, file name, primary entity, type/category, source module, source reference and
 dates. Full-text/trigram support can be added behind the same contract, so 100k+ documents does
 not require a UI rewrite.
+
+## W1A delivery status (evidence)
+
+| Contract item | Status | Evidence |
+| --- | --- | --- |
+| Business search picker for records (no technical ids) | Delivered | `record_picker_search` RPC + `src/components/documents/RecordPicker.tsx`; used by the document detail link dialog and the conduct intervention link dialog |
+| Choose Existing document from the central register, in context | Delivered | `src/components/supervision/RecordDocumentLinks.tsx` (business search over the register, governed `dms_link_record`) |
+| Upload New + link as one governed operation | **Not delivered — W2 dependency** | There is no governed operation that registers an uploaded file as a document group with its first version. `secureUpload` writes `file_uploads` only; the only registration routine today is the certificate-specific `dms_register_certificate`. This is the first item of W2. |
+| Relationship-only semantics for Choose Existing / Link | Delivered | `dms_link_record` creates a `document_relationships` row only; no group or version is created, so no duplicate is produced |
+| Proof contexts | Supervision (examination workpapers, data requests) and Licensing Application (documents tab) | `WorkpapersPanel`, `DataRequestsPanel`, `ApplicationDocumentsPanel` |
+
+## W1A governed write closure
+
+| Former client write | Governed operation |
+| --- | --- |
+| `workflow_instances` insert | `workflow_instance_start` — checks `workflow_management.workflow_action`, derives the first step, audits |
+| `delegation_rules` insert / update / toggle / delete | `delegation_rule_upsert`, `delegation_rule_set_active`, `delegation_rule_delete` — check `workflow_management.manage_config`, refuse self-delegation, audit |
+| workflow-generated `notifications` insert | `workflow_notification_emit` — resolves the applicant from the record; the caller cannot choose a recipient |
+| `return_audit_log` insert | `return_activity_log_append` — the server stamps the author |
+| maker-checker decisions | `maker_checker_evaluate` — segregation by default, honours decision-authority rules and active delegations, break-glass requires a rationale |
