@@ -56204,6 +56204,15 @@ export type Database = {
             Returns: string
           }
       decision_gate_status: { Args: { _application_id: string }; Returns: Json }
+      delegation_rule_delete: { Args: { _rule_id: string }; Returns: undefined }
+      delegation_rule_set_active: {
+        Args: { _is_active: boolean; _rule_id: string }
+        Returns: undefined
+      }
+      delegation_rule_upsert: {
+        Args: { _rule: Json; _rule_id?: string }
+        Returns: string
+      }
       delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
       derive_application_request_kind: {
         Args: { _data: Json }
@@ -59445,6 +59454,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      maker_checker_evaluate: {
+        Args: {
+          _break_glass?: boolean
+          _checker_id?: string
+          _decision_type: string
+          _maker_id: string
+          _module_key: string
+          _object_id: string
+          _object_type: string
+          _rationale?: string
+        }
+        Returns: Json
+      }
       manual_escalate_complaint: {
         Args: {
           _complaint_id: string
@@ -62321,6 +62343,7 @@ export type Database = {
         Args: { _ids: string[] }
         Returns: number
       }
+      return_activity_log_append: { Args: { _entry: Json }; Returns: string }
       return_status_is_submitted_lifecycle: {
         Args: { _status: string }
         Returns: boolean
@@ -64497,6 +64520,21 @@ export type Database = {
       workflow_instance_dispose: {
         Args: { _classification: string; _instance_id: string; _reason: string }
         Returns: Json
+      }
+      workflow_instance_start: {
+        Args: { _entity_id: string; _entity_type: string; _workflow_id: string }
+        Returns: string
+      }
+      workflow_notification_emit: {
+        Args: {
+          _entity_id: string
+          _entity_type: string
+          _message: string
+          _route?: string
+          _title: string
+          _type?: string
+        }
+        Returns: string
       }
       workflow_resolve_actor: { Args: { _claimed: string }; Returns: string }
       workflow_retire: {
