@@ -536,3 +536,109 @@ No work above has been started in this wave.
 ## 17. Status
 
 AML/CFT is **NOT CERTIFIED** and the roadmap status is unchanged. Certification requires: the decisions above approved; the effective-date rule recorded; a configuration authored, approved and activated through maker-checker; a governed recalculation run; and LINK-11, CALC-05, CALC-06, CALC-09, CALC-11 and AMLH-09 clearing on re-verification.
+
+---
+
+## AML-METH decision register — AML-CFT-RBA v1.1 content design
+
+Design-only. No item below is approved. Implementation of v1.1 is blocked until all are decided.
+
+### AML-METH-01 — Adopt the exposure -> control -> residual -> judgement -> response chain for v1.1
+
+- **Recommendation:** Adopt as designed
+- **Alternatives:** Retain v1.0 undifferentiated model
+- **Impact:** Determines whether policy existence can count as control effectiveness
+- **STATUS:** AWAITING SUPERVISORY APPROVAL
+- **APPROVED VALUE:** ______________________
+- **APPROVED BY:** ______________________
+- **DATE:** ______________________
+
+### AML-METH-02 — Inherent question set (21 questions across 6 dimensions)
+
+- **Recommendation:** Adopt as catalogued
+- **Alternatives:** Retain 12 v1.0 questions; or reduce scope
+- **Impact:** Sets exposure measurement basis
+- **STATUS:** AWAITING SUPERVISORY APPROVAL
+- **APPROVED VALUE:** ______________________
+- **APPROVED BY:** ______________________
+- **DATE:** ______________________
+
+### AML-METH-03 — Control question set (54 questions across 20 dimensions)
+
+- **Recommendation:** Adopt as catalogued
+- **Alternatives:** Reduce to high-risk dimensions only
+- **Impact:** Sets assessment burden and coverage
+- **STATUS:** AWAITING SUPERVISORY APPROVAL
+- **APPROVED VALUE:** ______________________
+- **APPROVED BY:** ______________________
+- **DATE:** ______________________
+
+### AML-METH-04 — Response semantics for both axes
+
+- **Recommendation:** Adopt as designed
+- **Alternatives:** Alternative wording or additional response values
+- **Impact:** Affects every future calculation configuration
+- **STATUS:** AWAITING SUPERVISORY APPROVAL
+- **APPROVED VALUE:** ______________________
+- **APPROVED BY:** ______________________
+- **DATE:** ______________________
+
+### AML-METH-05 — Selective design vs operating-effectiveness split
+
+- **Recommendation:** Adopt as designed
+- **Alternatives:** Apply the split to all controls, or none
+- **Impact:** Affects question count and evidence demand
+- **STATUS:** AWAITING SUPERVISORY APPROVAL
+- **APPROVED VALUE:** ______________________
+- **APPROVED BY:** ______________________
+- **DATE:** ______________________
+
+### AML-METH-06 — Evidence mandate: observation + minimum one evidence item on every question
+
+- **Recommendation:** Adopt
+- **Alternatives:** Permit assertion-only for design questions
+- **Impact:** Affects assessment effort and defensibility
+- **STATUS:** AWAITING SUPERVISORY APPROVAL
+- **APPROVED VALUE:** ______________________
+- **APPROVED BY:** ______________________
+- **DATE:** ______________________
+
+### AML-METH-07 — N/A discipline: enumerated conditions only, rationale always required
+
+- **Recommendation:** Adopt
+- **Alternatives:** Free N/A with rationale
+- **Impact:** Affects comparability and calculability
+- **STATUS:** AWAITING SUPERVISORY APPROVAL
+- **APPROVED VALUE:** ______________________
+- **APPROVED BY:** ______________________
+- **DATE:** ______________________
+
+### AML-METH-08 — Legacy STR_SAR_GOVERNANCE -> STR_GOVERNANCE display/lineage mapping only
+
+- **Recommendation:** Adopt mapping for display; no data repair
+- **Alternatives:** Leave unmapped (LINK-11 stays open); or repair historical rows
+- **Impact:** Affects historical rendering only
+- **STATUS:** AWAITING SUPERVISORY APPROVAL
+- **APPROVED VALUE:** ______________________
+- **APPROVED BY:** ______________________
+- **DATE:** ______________________
+
+### AML-METH-09 — Sector overlay approach: single catalogue with N/A conditions and sector notes
+
+- **Recommendation:** Adopt
+- **Alternatives:** Separate sector variants of the methodology
+- **Impact:** Affects maintenance and comparability
+- **STATUS:** AWAITING SUPERVISORY APPROVAL
+- **APPROVED VALUE:** ______________________
+- **APPROVED BY:** ______________________
+- **DATE:** ______________________
+
+### AML-METH-10 — v1.0 -> v1.1 transition policy (no re-versioning of existing assessments)
+
+- **Recommendation:** Adopt
+- **Alternatives:** Re-version in-flight assessments
+- **Impact:** Affects in-flight supervisory work
+- **STATUS:** AWAITING SUPERVISORY APPROVAL
+- **APPROVED VALUE:** ______________________
+- **APPROVED BY:** ______________________
+- **DATE:** ______________________
