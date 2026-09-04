@@ -225,9 +225,18 @@ async function main() {
   }
 
   // ---- authorization ----------------------------------------------------
+  // The portfolio contract wraps the certified `aml_portfolio` read model, so
+  // the requirement is parity with that model — never wider.
+  {
+    const paged = await rpc(EXTERNAL, 'aml_portfolio_page', { _page: 1, _page_size: 100 });
+    const certified = await rpc(EXTERNAL, 'aml_portfolio', {});
+    const pagedIds = ((paged.body as any)?.rows ?? []).map((r: any) => String(r.entity_id)).sort();
+    const certifiedIds = (Array.isArray(certified.body) ? certified.body : []).map((r: any) => String(r.entity_id)).sort();
+    record('AUTHZ aml_portfolio_page never exceeds the certified aml_portfolio read model for an external licensee user', pagedIds.every((id: string) => certifiedIds.includes(id)) && pagedIds.length === certifiedIds.length, `paged=${pagedIds.length} certified=${certifiedIds.length}`);
+  }
+
   for (const [name, args] of [
     ['aml_assessment_page', {}],
-    ['aml_portfolio_page', {}],
     ['aml_work_queue_page', { _scope: 'ALL' }],
     ['aml_examination_page', {}],
     ['aml_finding_page', {}],
