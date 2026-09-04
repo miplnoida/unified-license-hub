@@ -315,6 +315,7 @@ def main() -> int:
     print(f"  classes: CORE={cls['CORE']} CONDITIONAL={cls['CONDITIONAL']} ENHANCED={cls['ENHANCED']}")
     print(f"  inherent entries={len(inherent)} scored={len(scored_inherent)} contextual={len(contextual)}")
     print(f"  control entries={len(recs) - len(inherent)}")
+    print(f"  per-axis classes: INHERENT={inh} CONTROL={ctl}")
     print(f"  mandatory: YES={cls['CORE']} NO={len(recs) - cls['CORE']}")
     print(f"  requires_observation: {dict(obs)}")
     print(f"  requires_evidence: YES={len(recs)} NO=0")
