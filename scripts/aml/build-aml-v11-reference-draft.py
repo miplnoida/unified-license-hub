@@ -75,6 +75,34 @@ def predecessor_mapping(rec: dict) -> str | None:
     return clean(m.group(1)) if m else None
 
 
+# The catalogue is authored in supervisory language and uses one column for both
+# the analytical axis and, for control questions, how the control is looked at.
+# The runtime contract keeps these strictly apart:
+#   axis                -> INHERENT_EXPOSURE | CONTROL_EFFECTIVENESS
+#   effectiveness_focus -> INHERENT_EXPOSURE | DESIGN | OPERATING | DESIGN_AND_OPERATING
+CONTROL_FOCUS = {"DESIGN", "OPERATING", "DESIGN_AND_OPERATING"}
+
+
+def normalise_axis(rec: dict) -> tuple[str, str]:
+    """Return (axis, effectiveness_focus) for a catalogue record."""
+    raw_axis = (clean(rec["axis"]) or "").upper()
+    focus = (clean(rec["effectiveness_focus"]) or "").upper()
+
+    if raw_axis in CONTROL_FOCUS or raw_axis == "CONTROL_EFFECTIVENESS":
+        axis = "CONTROL_EFFECTIVENESS"
+        focus = focus or (raw_axis if raw_axis in CONTROL_FOCUS else "")
+        if focus not in CONTROL_FOCUS:
+            raise SystemExit(
+                f"{rec['question_code']}: control question needs a DESIGN/OPERATING focus, got {focus!r}"
+            )
+    elif raw_axis in {"INHERENT_EXPOSURE", "CONTEXT"}:
+        axis = "INHERENT_EXPOSURE"
+        focus = "INHERENT_EXPOSURE"
+    else:
+        raise SystemExit(f"{rec['question_code']}: unsupported axis {raw_axis!r}")
+    return axis, focus
+
+
 # -------------------------------------------------------------- fact model --
 
 MAT_BY_FACT = {
@@ -269,8 +297,8 @@ def main() -> None:
         attributes.append(
             {
                 "question_code": qcode,
-                "axis": clean(r["axis"]),
-                "effectiveness_focus": clean(r["effectiveness_focus"]),
+                "axis": normalise_axis(r)[0],
+                "effectiveness_focus": normalise_axis(r)[1],
                 "question_class": qclass,
                 "response_semantics_code": first_token(r.get("response_semantics")),
                 "calculation_participation": (
@@ -422,8 +450,10 @@ BEGIN
     'Replace the inherited v1.0 question set with the approved AML-CFT-RBA v1.1 reference catalogue.');
 
   -- Reference vocabularies and the quantitative fact contract.
+  -- Semantic profiles are version-scoped: v1.1 owns the response meanings that
+  -- were approved with it, so a later version can never change them.
   PERFORM public.supervisory_methodology_semantic_profile_set(
-    'AML_CFT', (SELECT payload FROM tmp_payload WHERE kind = 'semantics'));
+    v_draft, (SELECT payload FROM tmp_payload WHERE kind = 'semantics'));
   PERFORM public.supervisory_methodology_parameter_set(
     v_draft, (SELECT payload FROM tmp_payload WHERE kind = 'parameters'));
   PERFORM public.supervisory_methodology_fact_requirement_set(
@@ -471,6 +501,30 @@ BEGIN
   IF (SELECT count(*) FROM public.supervisory_methodology_question
        WHERE methodology_id = v_draft AND active) <> 70 THEN
     RAISE EXCEPTION 'refused: v1.1 does not carry exactly 70 active questions';
+  END IF;
+
+  -- Axis and effectiveness focus are two different dimensions, and stay so.
+  IF (SELECT count(*) FROM public.supervisory_methodology_question
+       WHERE methodology_id = v_draft AND axis = 'INHERENT_EXPOSURE') <> 17
+     OR (SELECT count(*) FROM public.supervisory_methodology_question
+          WHERE methodology_id = v_draft AND axis = 'CONTROL_EFFECTIVENESS') <> 53 THEN
+    RAISE EXCEPTION 'refused: v1.1 axis split is not 17 INHERENT_EXPOSURE / 53 CONTROL_EFFECTIVENESS';
+  END IF;
+  IF (SELECT count(*) FROM public.supervisory_methodology_question
+       WHERE methodology_id = v_draft AND effectiveness_focus = 'DESIGN') <> 14
+     OR (SELECT count(*) FROM public.supervisory_methodology_question
+          WHERE methodology_id = v_draft AND effectiveness_focus = 'OPERATING') <> 27
+     OR (SELECT count(*) FROM public.supervisory_methodology_question
+          WHERE methodology_id = v_draft AND effectiveness_focus = 'DESIGN_AND_OPERATING') <> 12
+     OR (SELECT count(*) FROM public.supervisory_methodology_question
+          WHERE methodology_id = v_draft AND effectiveness_focus = 'INHERENT_EXPOSURE') <> 17 THEN
+    RAISE EXCEPTION 'refused: v1.1 effectiveness-focus split is not 17/14/27/12';
+  END IF;
+
+  -- Every question resolves an immutable, version-owned semantic profile.
+  IF (SELECT count(*) FROM public.supervisory_methodology_question
+       WHERE methodology_id = v_draft AND response_semantics_profile_id IS NULL) > 0 THEN
+    RAISE EXCEPTION 'refused: a v1.1 question does not resolve a version-owned semantic profile';
   END IF;
 END $apply$;
 """.strip()

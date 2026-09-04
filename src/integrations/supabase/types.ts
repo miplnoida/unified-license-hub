@@ -44813,6 +44813,33 @@ export type Database = {
           },
         ]
       }
+      supervisory_domain_authority: {
+        Row: {
+          created_at: string
+          domain_code: string
+          manage_config_permission: string | null
+          notes: string | null
+          regulator_approval_permission: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          domain_code: string
+          manage_config_permission?: string | null
+          notes?: string | null
+          regulator_approval_permission?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          domain_code?: string
+          manage_config_permission?: string | null
+          notes?: string | null
+          regulator_approval_permission?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       supervisory_domain_calculation_rule: {
         Row: {
           created_at: string
@@ -45594,6 +45621,7 @@ export type Database = {
       supervisory_methodology: {
         Row: {
           activated_at: string | null
+          adopted_from_id: string | null
           applicable_entity_types: string[]
           applicable_sector_ids: string[]
           approval_required: boolean
@@ -45611,6 +45639,7 @@ export type Database = {
           id: string
           name: string
           next_review_rule: Json
+          origin: string
           override_threshold: string | null
           regulator_id: string | null
           retired_at: string | null
@@ -45626,6 +45655,7 @@ export type Database = {
         }
         Insert: {
           activated_at?: string | null
+          adopted_from_id?: string | null
           applicable_entity_types?: string[]
           applicable_sector_ids?: string[]
           approval_required?: boolean
@@ -45643,6 +45673,7 @@ export type Database = {
           id?: string
           name: string
           next_review_rule?: Json
+          origin?: string
           override_threshold?: string | null
           regulator_id?: string | null
           retired_at?: string | null
@@ -45658,6 +45689,7 @@ export type Database = {
         }
         Update: {
           activated_at?: string | null
+          adopted_from_id?: string | null
           applicable_entity_types?: string[]
           applicable_sector_ids?: string[]
           approval_required?: boolean
@@ -45675,6 +45707,7 @@ export type Database = {
           id?: string
           name?: string
           next_review_rule?: Json
+          origin?: string
           override_threshold?: string | null
           regulator_id?: string | null
           retired_at?: string | null
@@ -45689,6 +45722,13 @@ export type Database = {
           version?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "supervisory_methodology_adopted_from_id_fkey"
+            columns: ["adopted_from_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supervisory_methodology_sector_id_fkey"
             columns: ["sector_id"]
@@ -45984,6 +46024,7 @@ export type Database = {
           requires_observation: boolean
           response_options: string[]
           response_semantics_code: string | null
+          response_semantics_profile_id: string | null
           sector_applicability: string | null
           sector_classification: string | null
           sector_notes: string | null
@@ -46026,6 +46067,7 @@ export type Database = {
           requires_observation?: boolean
           response_options?: string[]
           response_semantics_code?: string | null
+          response_semantics_profile_id?: string | null
           sector_applicability?: string | null
           sector_classification?: string | null
           sector_notes?: string | null
@@ -46068,6 +46110,7 @@ export type Database = {
           requires_observation?: boolean
           response_options?: string[]
           response_semantics_code?: string | null
+          response_semantics_profile_id?: string | null
           sector_applicability?: string | null
           sector_classification?: string | null
           sector_notes?: string | null
@@ -46081,6 +46124,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "supervisory_methodology_quest_response_semantics_profile_i_fkey"
+            columns: ["response_semantics_profile_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_semantic_profile"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supervisory_methodology_question_methodology_dimension_id_fkey"
             columns: ["methodology_dimension_id"]
@@ -46146,6 +46196,7 @@ export type Database = {
           domain_code: string
           id: string
           methodology_code: string
+          methodology_id: string
           methodology_version: string
           provenance: Json | null
           rationale: string
@@ -46164,6 +46215,7 @@ export type Database = {
           domain_code: string
           id?: string
           methodology_code: string
+          methodology_id: string
           methodology_version: string
           provenance?: Json | null
           rationale: string
@@ -46182,6 +46234,7 @@ export type Database = {
           domain_code?: string
           id?: string
           methodology_code?: string
+          methodology_id?: string
           methodology_version?: string
           provenance?: Json | null
           rationale?: string
@@ -46191,7 +46244,75 @@ export type Database = {
           status?: string
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_methodology_reference_decision_methodology_id_fkey"
+            columns: ["methodology_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_methodology_regulator_approval: {
+        Row: {
+          authority_permission: string | null
+          created_at: string
+          decided_at: string
+          decided_by: string
+          decision: string
+          id: string
+          is_current: boolean
+          methodology_id: string
+          rationale: string
+          regulator_id: string | null
+          submitted_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          authority_permission?: string | null
+          created_at?: string
+          decided_at?: string
+          decided_by: string
+          decision: string
+          id?: string
+          is_current?: boolean
+          methodology_id: string
+          rationale: string
+          regulator_id?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          authority_permission?: string | null
+          created_at?: string
+          decided_at?: string
+          decided_by?: string
+          decision?: string
+          id?: string
+          is_current?: boolean
+          methodology_id?: string
+          rationale?: string
+          regulator_id?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_methodology_regulator_approval_methodology_id_fkey"
+            columns: ["methodology_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_methodology_regulator_approval_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       supervisory_methodology_semantic_profile: {
         Row: {
@@ -46201,6 +46322,8 @@ export type Database = {
           domain_code: string
           id: string
           label: string
+          methodology_id: string | null
+          profile_version: number
           provenance: Json | null
           response_meaning: Json
           semantic_code: string
@@ -46213,6 +46336,8 @@ export type Database = {
           domain_code: string
           id?: string
           label: string
+          methodology_id?: string | null
+          profile_version?: number
           provenance?: Json | null
           response_meaning?: Json
           semantic_code: string
@@ -46225,12 +46350,22 @@ export type Database = {
           domain_code?: string
           id?: string
           label?: string
+          methodology_id?: string | null
+          profile_version?: number
           provenance?: Json | null
           response_meaning?: Json
           semantic_code?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_methodology_semantic_profile_methodology_id_fkey"
+            columns: ["methodology_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       supervisory_plan: {
         Row: {
@@ -64388,6 +64523,10 @@ export type Database = {
         }
         Returns: string
       }
+      supervisory_domain_require_manage: {
+        Args: { _domain_code: string }
+        Returns: string
+      }
       supervisory_domain_valid: { Args: { _domain: string }; Returns: boolean }
       supervisory_entity_scope_check: {
         Args: { _entity_id: string; _uid: string }
@@ -64476,6 +64615,14 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_methodology_adopt_reference: {
+        Args: {
+          _rationale: string
+          _reference_methodology_id: string
+          _regulator_id: string
+        }
+        Returns: string
+      }
       supervisory_methodology_as_of: {
         Args: {
           _assessment_date?: string
@@ -64543,6 +64690,14 @@ export type Database = {
         Args: { _payload: Json }
         Returns: number
       }
+      supervisory_methodology_require_manage: {
+        Args: { _methodology_id: string }
+        Returns: string
+      }
+      supervisory_methodology_require_regulator_approval: {
+        Args: { _methodology_id: string }
+        Returns: string
+      }
       supervisory_methodology_resolve: {
         Args: {
           _as_of?: string
@@ -64570,7 +64725,7 @@ export type Database = {
         Returns: string
       }
       supervisory_methodology_semantic_profile_set: {
-        Args: { _domain_code: string; _payload: Json }
+        Args: { _methodology_id: string; _payload: Json }
         Returns: number
       }
       supervisory_plan_action_create: {
