@@ -63493,6 +63493,10 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_assessment_dimension_relink: {
+        Args: { _domain_code: string; _dry_run?: boolean; _rationale?: string }
+        Returns: Json
+      }
       supervisory_assessment_dimension_upsert: {
         Args: {
           _assessment_id: string
@@ -63811,6 +63815,10 @@ export type Database = {
           _period_end?: string
           _trigger_date?: string
         }
+        Returns: string
+      }
+      supervisory_methodology_dimension_resolve: {
+        Args: { _dimension_code: string; _methodology_id: string }
         Returns: string
       }
       supervisory_methodology_dimension_save: {
