@@ -92,8 +92,9 @@ END $$;
 
 -- ------------------------------------ 2/3. half-open boundary and provenance
 DO $$
-DECLARE _ent uuid; _m uuid; _dimI uuid; _dimC uuid; _q1 uuid; _cfgv uuid;
-        _aEdge uuid; _aIn uuid; _aNone uuid; _r jsonb; _row public.supervisory_assessment_dimension;
+DECLARE _ent uuid; _m uuid; _dimI uuid; _dimC uuid; _q1 uuid; _q2 uuid; _cfgv uuid;
+        _aEdge uuid; _aIn uuid; _aNone uuid; _aCalc uuid;
+        _r jsonb; _row public.supervisory_assessment_dimension;
         _resolved uuid;
 BEGIN
   SELECT entity_id INTO _ent FROM public.supervisory_assessment WHERE entity_id IS NOT NULL LIMIT 1;
