@@ -162,10 +162,13 @@ BEGIN
            (_resolved,_dimC,'FX_CTL','CONTROL_EFFECTIVENESS',1);
     -- only the inherent dimension is answered; the control dimension is left
     -- unanswered on purpose so it is legitimately NOT_CALCULABLE.
-    INSERT INTO public.supervisory_assessment_question_response(assessment_id, methodology_id,
-      methodology_dimension_id, methodology_question_id, dimension_code, question_code, question_text,
-      response, evidence_refs)
-    VALUES (_resolved,_m,_dimI,_q1,'FX_INH','FXQ1','Inherent question','YES','[]'::jsonb);
+    INSERT INTO public.supervisory_assessment_question_response(assessment_id, assessment_dimension_id,
+      methodology_id, methodology_dimension_id, methodology_question_id, dimension_code, question_code,
+      question_text, response, evidence_refs)
+    VALUES (_resolved,
+      (SELECT id FROM public.supervisory_assessment_dimension
+        WHERE assessment_id = _resolved AND dimension_code = 'FX_INH'),
+      _m,_dimI,_q1,'FX_INH','FXQ1','Inherent question','YES','[]'::jsonb);
   END LOOP;
 
   -- OUTC-09 exact half-open boundary
