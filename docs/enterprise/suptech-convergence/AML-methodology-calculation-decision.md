@@ -1,18 +1,22 @@
 # AML/CFT supervisory calculation policy — decision pack
 
-Status: **AWAITING SUPERVISORY APPROVAL.**
-Wave type: **policy design / documentation only.**
+Status: **NOT READY FOR SUPERVISORY APPROVAL — blocked on decision I (inherent
+question polarity is mixed) and on the assessment→methodology dimension link
+defect in section 5.**
+Wave type: **policy design / documentation + verifier correctness only.**
 
-Baseline: HEAD `8f915f4aec395e2817ef68c8e5e2ae9898bb5226` ("Closed AML calc auth
-gates"), migration head `20260903212649_52524c52-0437-40ad-a4ac-c375fcd33010.sql`,
-working tree clean at read time.
+Baseline: HEAD `550a208fc528a7e0d42a32429897bedd0ead269a` ("Rebased AML
+calculation policy"). Migration head at publication:
+`20260904_aml_calc_outcome_contract` (canonical calculation-outcome contract and
+non-calculable provenance retention; no policy content).
 
-Nothing in this document has been written to the database. In this wave **no**
-AML/CFT effective-date rule was recorded, **no** calculation configuration was
-created, **no** response score, band or residual matrix cell was entered, **no**
-configuration was submitted, approved or activated, **no** 77-dimension backfill
-was run, **no** approved assessment was modified, and the AML full module is
-**not** marked certified.
+Nothing in this document has been written to the database as AML/CFT policy. In
+this wave **no** AML/CFT effective-date rule was recorded, **no** calculation
+configuration was created, **no** response score, band or residual matrix cell
+was entered, **no** configuration was submitted, approved or activated, **no**
+backfill was run, **no** approved assessment or judged rating was modified, and
+the AML full module is **not** marked certified.
+
 
 This document **supersedes and replaces** the previous version of itself
 (the "configuration decision table" that predated the final calculation
