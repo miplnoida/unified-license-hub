@@ -102,13 +102,13 @@ No policy choice below is presented as an engineering fix.
 - **22** assessment-dimension rows, in **22 distinct assessments**, all `dimension_code = STR_SAR_GOVERNANCE`, all with `methodology_dimension_id IS NULL`.
 - `STR_SAR_GOVERNANCE` exists **only** in the retired `AML_RBA 1.0` (19 dimensions, no questions, no weights).
 - The active `AML-CFT-RBA 1.0` uses `STR_GOVERNANCE` (control, weight 6) plus a separate `STR_IDENTIFICATION` (control, weight 7).
-- **Critical finding:** every one of the 22 host assessments is bound to the **ACTIVE** methodology `AML-CFT-RBA 1.0` (`methodology_version = 1.0`), not to the retired methodology. These are therefore **code-mismatch rows on current assessments**, not historical rows on a retired methodology.
+- **Critical finding:** every one of the 22 host assessments is bound to the **ACTIVE** methodology `AML-CFT-RBA 1.0` (`methodology_version = 1.0`), not to that older methodology. These are therefore **code-mismatch rows on current assessments**, not historical rows on a retired methodology.
 - Assessment dates: all **2026-09-03**; period 2025-09-03 → 2026-09-02. References `SUP-AML_CFT-2026-00351`…`00375`.
 - Status: **19 approved**, **1 superseded** (`00370`), **1 submitted** (`00352`), **1 draft** (`00351`).
 - Question codes attached to these rows: **none**. `supervisory_assessment_question_response` rows referencing these dimensions: **0**.
 - Scores/outcomes dependent on them: **none**. `score`, `calculated_score`, `calculated_*_rating` are NULL on all 22; `calculation_status` is NULL on 21 and `NO_EFFECTIVE_DATE_RULE` on 1.
 - Assessment-level `residual_rating` on the hosts (HIGH ×18, MODERATE, LOW) is **judged**, entered before any calculation existed; it does not derive from these rows.
-- Reachability: the draft and submitted assessments are **still reachable by active writers**; the rows are therefore **not historical-only**. The current link guard would refuse a new insert of this code against the active methodology, so no *new* rows of this shape can be created.
+- Reachability: the draft and submitted assessments are **still reachable by active writers**; the rows are therefore **not historical only**. The current link guard would refuse a new insert of this code against the active methodology, so no *new* rows of this shape can be created.
 
 ### 3.2 Semantic comparison
 
@@ -132,7 +132,7 @@ Equivalence **cannot be proven from repository evidence**: the retired dimension
 | Migration | one governed dry-run then write run scoped to `AML_CFT` |
 | Risk | asserts a semantic equivalence the repository cannot substantiate; if policy later says the retired dimension also covered *identification/filing*, the mapping is wrong and the amendment is on approved records |
 
-**OPTION B — keep the 22 rows bound only to the retired methodology** (leave unlinked, or move the host assessments' dimension provenance to `AML_RBA 1.0`).
+**OPTION B — keep the 22 rows bound only to that older methodology** (leave unlinked, or move the host assessments' dimension provenance to `AML_RBA 1.0`).
 
 | Aspect | Effect |
 |---|---|
@@ -314,7 +314,7 @@ Each decision is left unapproved. `APPROVED VALUE`, `APPROVED BY`, `APPROVED DAT
 **Question requiring approval:** How should the 22 `STR_SAR_GOVERNANCE` assessment dimensions be treated?
 **Why it matters:** LINK-11 fails while they are unresolved; 2 of the 22 host assessments are still writable; certification cannot complete.
 **Current system state:** 22 rows, 22 assessments, all bound to the active methodology, 0 responses, 0 scores, 0 dependent outcomes; the code exists only in the retired `AML_RBA 1.0`.
-**Choices:** Option A predecessor of `STR_GOVERNANCE` | Option B leave bound to the retired methodology | Option C distinct dimension via methodology v1.1.
+**Choices:** Option A predecessor of `STR_GOVERNANCE` | Option B leave bound to that older methodology | Option C distinct dimension via methodology v1.1.
 **Impact:** see section 3.3.
 **Engineering recommendation:** Option A (**NOT APPROVED POLICY**).
 **APPROVED VALUE:**
@@ -615,7 +615,7 @@ Design-only. No item below is approved. Implementation of v1.1 is blocked until 
 
 ### AML-METH-08 — Legacy `STR_SAR_GOVERNANCE`: governed audited relink to `STR_GOVERNANCE` (supersedes the display-only recommendation)
 
-- **Measured fact:** 22 assessment-dimension rows across 22 assessments whose **host assessments are bound to active `AML-CFT-RBA` v1.0**; the rows themselves have **no canonical methodology-dimension link**. 0 question responses, 0 calculated scores, 0 dependent calculated ratings; officer-judged dimension ratings and rationale are present. Host statuses: 19 approved, 1 superseded, 1 submitted, 1 draft — not historical-only.
+- **Measured fact:** 22 assessment-dimension rows across 22 assessments whose **host assessments are bound to active `AML-CFT-RBA` v1.0**; the rows themselves have **no canonical methodology-dimension link**. 0 question responses, 0 calculated scores, 0 dependent calculated ratings; officer-judged dimension ratings and rationale are present. Host statuses: 19 approved, 1 superseded, 1 submitted, 1 draft — not historical only.
 - **Recommendation:** If the methodology owner confirms that `STR_SAR_GOVERNANCE` is the semantic predecessor of `STR_GOVERNANCE`, execute a **governed, audited, idempotent relink** of the 22 rows to canonical `STR_GOVERNANCE`, preserving the original dimension code and provenance, assessment status, responses, judged ratings and history. Because the rows hold no responses and no calculated results, no rating is invented. Display/lineage-only mapping is rejected as a final route: it leaves LINK-11 permanently open and is therefore not an acceptable certification path.
 - **Future governed write plan (no write in this wave):** (1) methodology-owner confirmation of semantic equivalence recorded as the approval of this decision; (2) execute the existing governed `supervisory_assessment_structure_backfill`/relink operation under `aml_supervision.manage_config` with `_dry_run := true` and review the per-row export; (3) re-run with `_dry_run := false` and a supervisory rationale, emitting one `STRUCTURE_REPAIRED` event and audit row per repaired row, retaining `legacy_dimension_code = STR_SAR_GOVERNANCE` as provenance; (4) re-run LINK-01..LINK-11 and the structural, outcome and calculation-governance suites; (5) no recalculation is triggered, since no calculated result exists.
 - **Alternatives:** Display/lineage mapping only (LINK-11 stays open); leave unmapped; delete the rows (rejected — destroys judged supervisory record).
