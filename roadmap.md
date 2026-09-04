@@ -31,3 +31,20 @@
   - [x] W6-A6 Authorization closure: one stated authority for the enterprise supervisory surfaces (`supervisory_spine.view` OR a genuine domain view) enforced identically in `SupervisoryEnterpriseRoute`, `sec_routes`, `sec_navigation_items` and `sup_team_performance`; navigation leak on `nav_sup_portfolio` closed; legacy `app_role` reduced to an audience projection with a canonical internal fallback (Executive Management no longer served the external shell); gates W6-17..W6-24 added → 24/24
 - [ ] W7 Certification: 20+ entity dataset, `scripts/verify-epic-4-enterprise-convergence.sql`, personas, Playwright, reconciliation, performance, security, regression matrix
 - [ ] W8 Final document `docs/enterprise/suptech-convergence/EPIC-4-enterprise-convergence-final-certification.md` + single verdict
+
+## Proposed programme — Master Platform Convergence & Document Control (architecture locked, not started)
+
+Reference only. Nothing below is implemented.
+
+- [ ] W0 Architecture lock — [platform master implementation plan](docs/architecture/platform-master-implementation-plan.md), [canonical object register](docs/architecture/canonical-object-register.md), [shared platform services](docs/architecture/shared-platform-services.md), [document control master architecture](docs/dms/03_document-control-master-architecture.md)
+- [ ] W1 Workflow / decision hardening (first wave after the lock)
+- [ ] W2 Document Control backend
+- [ ] W3 Document Control UX
+- [ ] W4 Records & Evidence
+- [ ] W5 Licensing + Returns document integration
+- [ ] W6 Supervision integration (blocked by the open AML calculation policy decisions A–O)
+- [ ] W7 Conduct / F&P / Enforcement integration
+- [ ] W8 Enterprise UX / listing migration
+- [ ] W9 Legacy convergence
+- [ ] W10 Whole-platform certification
+
