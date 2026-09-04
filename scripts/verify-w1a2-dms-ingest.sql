@@ -13,6 +13,7 @@ DECLARE
   _path text; _path2 text;
   _group uuid; _ver uuid; _v int; _ref text; _ctx text; _again boolean;
   _group2 uuid; _v2 int;
+  _thread uuid; _sid4 uuid; _group3 uuid; _path3 text;
   n integer;
 BEGIN
   -- ---------------------------------------------------------------- fixtures
@@ -218,7 +219,29 @@ BEGIN
           OR has_function_privilege('public', p.oid, 'EXECUTE'));
   IF n <> 0 THEN RAISE EXCEPTION 'ING-18 FAIL: % routines anon/PUBLIC executable', n; END IF;
 
-  RAISE NOTICE 'W1A.2 DMS INGEST: ING-01..ING-18 PASS (18/18)';
+  -- ING-19 context filing exception: an unresolved owning entity leaves the
+  -- registered document intact, observable and reconcilable — never fabricated.
+  SELECT t.id INTO _thread FROM public.correspondence_threads t ORDER BY t.created_at LIMIT 1;
+  IF _thread IS NOT NULL THEN
+    SELECT s.session_id, s.storage_prefix INTO _sid4, _prefix
+      FROM public.dms_ingest_begin('NEW_DOCUMENT', 'correspondence', _thread) s;
+    _path3 := _prefix || '/1-c.pdf';
+    INSERT INTO storage.objects (bucket_id, name, owner) VALUES ('secure-documents', _path3, _officer);
+    SELECT f.group_id, f.context_status INTO _group3, _ctx
+      FROM public.dms_ingest_finalize(_sid4, _path3, 'c.pdf', 512, 'application/pdf') f;
+    IF _group3 IS NULL THEN RAISE EXCEPTION 'ING-19 FAIL: document discarded on filing exception'; END IF;
+    SELECT count(*) INTO n FROM public.document_groups d
+     WHERE d.id = _group3
+       AND (d.primary_entity_id IS NOT NULL
+            OR (d.canonical_context_status IN ('retry_required','failed')
+                AND d.context_failure_reason IS NOT NULL
+                AND d.context_attempts >= 1));
+    IF n <> 1 THEN RAISE EXCEPTION 'ING-19 FAIL: unresolved filing not observable/reconcilable'; END IF;
+    SELECT count(*) INTO n FROM public.document_versions v WHERE v.group_id = _group3;
+    IF n <> 1 THEN RAISE EXCEPTION 'ING-19 FAIL: % versions after filing exception', n; END IF;
+  END IF;
+
+  RAISE NOTICE 'W1A.2 DMS INGEST: ING-01..ING-19 PASS';
 END $$;
 
 ROLLBACK;
