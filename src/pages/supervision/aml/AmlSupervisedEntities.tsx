@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { SupervisoryRegister } from '@/components/supervision/SupervisoryRegister';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -112,98 +112,116 @@ export default function AmlSupervisedEntities() {
                 No supervised entities match the current filters.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Entity</TableHead>
-                      <TableHead>Sector</TableHead>
-                      <TableHead>Residual</TableHead>
-                      <TableHead>Inherent / Control</TableHead>
-                      <TableHead>Movement</TableHead>
-                      <TableHead>Last / next review</TableHead>
-                      <TableHead>Assessment</TableHead>
-                      <TableHead>Open work</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((r) => (
-                      <TableRow key={r.entity_id}>
-                        <TableCell className="max-w-[16rem]">
-                          <div className="truncate text-sm font-medium">{r.entity_name || '—'}</div>
-                          <div className="font-mono text-xs text-muted-foreground">{r.licence_reference || '—'}</div>
-                        </TableCell>
-                        <TableCell className="text-sm">{r.sector_name || '—'}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={ratingTone(r.residual_rating)}>
-                            {titleCase(r.residual_rating)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          <div>Inherent: {titleCase(r.inherent_rating)}</div>
-                          <div className="text-muted-foreground">Control: {titleCase(r.control_rating)}</div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={trendTone(r.trend)}>
-                            {titleCase(r.trend || 'STABLE')}
-                          </Badge>
-                          {r.prior_rating ? (
-                            <div className="mt-1 text-xs text-muted-foreground">from {titleCase(r.prior_rating)}</div>
-                          ) : null}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          <div>{fmtDate(r.last_review_date)}</div>
-                          <div className="text-muted-foreground">{fmtDate(r.next_review_date)}</div>
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          <Badge variant="outline" className={r.assessment_current ? EMERALD : AMBER}>
-                            {r.assessment_current ? 'Current' : 'Not current'}
-                          </Badge>
-                          {r.last_assessment_reference ? (
-                            <div className="mt-1 font-mono text-[11px] text-muted-foreground">
-                              {r.last_assessment_reference}
-                              {r.methodology_version ? ` · v${r.methodology_version}` : ''}
-                            </div>
-                          ) : null}
-                          {r.reassessment_required ? (
-                            <Badge variant="outline" className={`mt-1 ${RED}`}>
-                              Reassessment required
-                            </Badge>
-                          ) : null}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          <div>{r.open_findings ?? 0} findings</div>
-                          <div className={Number(r.overdue_remediation ?? 0) > 0 ? 'text-destructive' : 'text-muted-foreground'}>
-                            {r.overdue_remediation ?? 0} overdue remediation
+              <SupervisoryRegister
+                rows={filtered}
+                getRowId={(r) => r.entity_id}
+                caption="AML/CFT supervised entities"
+                identifierHeader="Licence / entity"
+                identifier={(r) => ({
+                  reference: r.licence_reference || '—',
+                  copyValue: r.entity_id,
+                  copyLabel: 'Copy entity id',
+                  subject: <span className="truncate">{r.entity_name || '—'}</span>,
+                })}
+                columns={[
+                  {
+                    id: 'risk',
+                    header: 'Risk',
+                    cell: (r) => (
+                      <>
+                        <Badge variant="outline" className={ratingTone(r.residual_rating)}>
+                          {titleCase(r.residual_rating)}
+                        </Badge>
+                        <div className="mt-1 text-muted-foreground">
+                          I: {titleCase(r.inherent_rating)} · C: {titleCase(r.control_rating)}
+                        </div>
+                        <Badge variant="outline" className={`mt-1 ${trendTone(r.trend)}`}>
+                          {titleCase(r.trend || 'STABLE')}
+                          {r.prior_rating ? ` · from ${titleCase(r.prior_rating)}` : ''}
+                        </Badge>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'coverage',
+                    header: 'Assessment coverage',
+                    cell: (r) => (
+                      <>
+                        <Badge variant="outline" className={r.assessment_current ? EMERALD : AMBER}>
+                          {r.assessment_current ? 'Current' : 'Not current'}
+                        </Badge>
+                        {r.last_assessment_reference ? (
+                          <div className="mt-1 font-mono text-[11px] text-muted-foreground">
+                            {r.last_assessment_reference}
+                            {r.methodology_version ? ` · v${r.methodology_version}` : ''}
                           </div>
-                          <div className="text-muted-foreground">{r.active_examinations ?? 0} examinations</div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex flex-wrap items-center justify-end gap-2">
-                            {r.last_assessment_id ? (
-                              <Button asChild size="sm" variant="outline">
-                                <Link to={`/supervision/aml/assessments/${r.last_assessment_id}`}>Assessment</Link>
-                              </Button>
-                            ) : (
-                              <Badge variant="outline" className={NEUTRAL}>
-                                No assessment
-                              </Badge>
-                            )}
-                            <AmlNewAssessmentDialog
-                              entityId={r.entity_id}
-                              label={r.last_assessment_id ? 'New assessment' : 'Start assessment'}
-                              size="sm"
-                              variant="outline"
-                            />
-                          </div>
-                        </TableCell>
-
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                        ) : null}
+                        {r.reassessment_required ? (
+                          <Badge variant="outline" className={`mt-1 ${RED}`}>
+                            Reassessment required
+                          </Badge>
+                        ) : null}
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'review',
+                    header: 'Review dates',
+                    priority: 3,
+                    cell: (r) => (
+                      <>
+                        <div className="font-mono">Last {fmtDate(r.last_review_date)}</div>
+                        <div className="font-mono text-muted-foreground">Next {fmtDate(r.next_review_date)}</div>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'work',
+                    header: 'Open work',
+                    priority: 2,
+                    cell: (r) => (
+                      <>
+                        <div>{r.open_findings ?? 0} findings</div>
+                        <div
+                          className={
+                            Number(r.overdue_remediation ?? 0) > 0
+                              ? 'text-destructive'
+                              : 'text-muted-foreground'
+                          }
+                        >
+                          {r.overdue_remediation ?? 0} overdue remediation
+                        </div>
+                        <div className="text-muted-foreground">{r.active_examinations ?? 0} examinations</div>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'sector',
+                    header: 'Sector',
+                    priority: 2,
+                    cell: (r) => <span className="text-sm">{r.sector_name || '—'}</span>,
+                  },
+                ]}
+                actions={(r) => (
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    {r.last_assessment_id ? (
+                      <Button asChild size="sm" variant="outline">
+                        <Link to={`/supervision/aml/assessments/${r.last_assessment_id}`}>Assessment</Link>
+                      </Button>
+                    ) : (
+                      <Badge variant="outline" className={NEUTRAL}>
+                        No assessment
+                      </Badge>
+                    )}
+                    <AmlNewAssessmentDialog
+                      entityId={r.entity_id}
+                      label={r.last_assessment_id ? 'New assessment' : 'Start assessment'}
+                      size="sm"
+                      variant="outline"
+                    />
+                  </div>
+                )}
+              />
             )}
           </CardContent>
         </Card>

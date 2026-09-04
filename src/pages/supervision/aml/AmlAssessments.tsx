@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useAmlAssessments } from '@/hooks/useAmlSupervision';
 import { AmlNewAssessmentDialog } from '@/components/supervision/aml/AmlNewAssessmentDialog';
+import { SupervisoryRegister } from '@/components/supervision/SupervisoryRegister';
 import { EMERALD, NEUTRAL, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 export default function AmlAssessments() {
@@ -93,70 +93,88 @@ export default function AmlAssessments() {
                 No AML/CFT assessments match the current filters.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Reference</TableHead>
-                      <TableHead>Entity</TableHead>
-                      <TableHead>Type / trigger</TableHead>
-                      <TableHead>Period</TableHead>
-                      <TableHead>Methodology</TableHead>
-                      <TableHead>Ratings</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell className="font-mono text-xs">
-                          {r.reference || '—'}
-                          {r.is_current ? (
-                            <Badge variant="outline" className={`ml-2 ${EMERALD}`}>
-                              Current
-                            </Badge>
-                          ) : null}
-                        </TableCell>
-                        <TableCell className="max-w-[14rem] truncate text-sm">{r.entity_name || '—'}</TableCell>
-                        <TableCell className="text-xs">
-                          <div>{titleCase(r.assessment_type)}</div>
-                          <div className="text-muted-foreground">{titleCase(r.trigger_type)}</div>
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {fmtDate(r.period_start)} → {fmtDate(r.period_end)}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {r.methodology_version ? `v${r.methodology_version}` : '—'}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          <Badge variant="outline" className={ratingTone(r.residual_rating)}>
-                            {titleCase(r.residual_rating)}
-                          </Badge>
-                          <div className="mt-1 text-muted-foreground">
-                            I: {titleCase(r.inherent_rating)} · C: {titleCase(r.control_rating)}
+              <SupervisoryRegister
+                rows={filtered}
+                getRowId={(r) => r.id}
+                caption="AML/CFT risk assessments"
+                identifier={(r) => ({
+                  reference: r.reference || '—',
+                  copyValue: r.id,
+                  copyLabel: 'Copy assessment id',
+                  subject: (
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      <span className="truncate">{r.entity_name || '—'}</span>
+                      {r.is_current ? (
+                        <Badge variant="outline" className={EMERALD}>
+                          Current
+                        </Badge>
+                      ) : null}
+                    </span>
+                  ),
+                })}
+                columns={[
+                  {
+                    id: 'type',
+                    header: 'Type / trigger',
+                    cell: (r) => (
+                      <>
+                        <div>{titleCase(r.assessment_type)}</div>
+                        <div className="text-muted-foreground">{titleCase(r.trigger_type)}</div>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'ratings',
+                    header: 'Ratings',
+                    cell: (r) => (
+                      <>
+                        <Badge variant="outline" className={ratingTone(r.residual_rating)}>
+                          {titleCase(r.residual_rating)}
+                        </Badge>
+                        <div className="mt-1 text-muted-foreground">
+                          I: {titleCase(r.inherent_rating)} · C: {titleCase(r.control_rating)}
+                        </div>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'status',
+                    header: 'Status',
+                    cell: (r) => (
+                      <>
+                        <Badge variant="outline" className={statusTone(r.status)}>
+                          {titleCase(r.status)}
+                        </Badge>
+                        {r.approved_at ? (
+                          <div className="mt-1 font-mono text-[11px] text-muted-foreground">
+                            Approved {fmtDate(r.approved_at)}
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={statusTone(r.status)}>
-                            {titleCase(r.status)}
-                          </Badge>
-                          {r.approved_at ? (
-                            <div className="mt-1 font-mono text-[11px] text-muted-foreground">
-                              {fmtDate(r.approved_at)}
-                            </div>
-                          ) : null}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button asChild size="sm" variant="outline">
-                            <Link to={`/supervision/aml/assessments/${r.id}`}>Open</Link>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                        ) : null}
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'period',
+                    header: 'Period / methodology',
+                    priority: 3,
+                    cell: (r) => (
+                      <>
+                        <div className="font-mono">
+                          {fmtDate(r.period_start)} → {fmtDate(r.period_end)}
+                        </div>
+                        <div className="font-mono text-muted-foreground">
+                          {r.methodology_version ? `v${r.methodology_version}` : '—'}
+                        </div>
+                      </>
+                    ),
+                  },
+                ]}
+                actions={(r) => (
+                  <Button asChild size="sm" variant="outline">
+                    <Link to={`/supervision/aml/assessments/${r.id}`}>Open</Link>
+                  </Button>
+                )}
+              />
             )}
           </CardContent>
         </Card>
