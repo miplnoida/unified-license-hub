@@ -62,15 +62,65 @@ SELECT
     ORDER BY version DESC LIMIT 1) AS active_id,
   (SELECT id FROM public.sec_user_roles ur LIMIT 0) AS unused;
 
-CREATE TEMP TABLE meth_actor AS
--- an officer that actually holds AML methodology configuration authority
-SELECT ur.user_id AS config_user
-  FROM public.sec_user_roles ur
-  JOIN public.sec_role_permissions rp ON rp.role_id = ur.role_id
-  JOIN public.sec_permissions p ON p.id = rp.permission_id
-  JOIN public.sec_modules m ON m.id = p.module_id
- WHERE m.key = 'aml_supervision' AND p.key = 'manage_config'
- LIMIT 1;
+-- Methodology configuration / approval authority does not exist as a standing
+-- grant in this deployment, so the personas are built here as transactional
+-- fixtures (regulator-scoped, discarded by the final ROLLBACK) exactly like
+-- scripts/verify-supervisory-regulator-methodology-authority.sql does.
+CREATE TEMP TABLE meth_actor(config_user uuid, approver_user uuid, regulator_id uuid);
+
+DO $$
+DECLARE
+  _reg uuid; _mod uuid; _stReg uuid;
+  _pView uuid; _pManage uuid; _pMeth uuid;
+  _roleCfg uuid; _roleApp uuid; _actors uuid[];
+BEGIN
+  INSERT INTO public.regulators(name, code, status)
+  VALUES ('ZZ METH-READ Regulator (fixture)','ZZMETHR','active') RETURNING id INTO _reg;
+
+  SELECT id INTO _mod    FROM public.sec_modules WHERE key = 'aml_supervision';
+  SELECT id INTO _stReg  FROM public.sec_scope_types WHERE key = 'regulator';
+  SELECT id INTO _pView   FROM public.sec_permissions WHERE module_id = _mod AND key = 'view';
+  SELECT id INTO _pManage FROM public.sec_permissions WHERE module_id = _mod AND key = 'manage_config';
+  SELECT id INTO _pMeth   FROM public.sec_permissions WHERE module_id = _mod AND key = 'methodology_approve';
+
+  SELECT array_agg(id) INTO _actors FROM (
+    SELECT u.id FROM auth.users u
+     WHERE NOT public.is_super_admin(u.id)
+       AND NOT EXISTS (
+         SELECT 1 FROM public.sec_user_roles ur
+           JOIN public.sec_role_permissions rp ON rp.role_id = ur.role_id
+           JOIN public.sec_permissions p ON p.id = rp.permission_id
+           JOIN public.sec_modules m ON m.id = p.module_id
+          WHERE ur.user_id = u.id AND m.key = 'aml_supervision')
+     ORDER BY u.created_at, u.id LIMIT 2) s;
+  IF COALESCE(array_length(_actors,1),0) <> 2 THEN
+    RAISE EXCEPTION 'fixture_identities_unavailable: need 2 AML-unprivileged accounts, found %',
+      COALESCE(array_length(_actors,1),0);
+  END IF;
+
+  INSERT INTO public.sec_roles(key, name, role_type, status)
+  VALUES ('zz_methread_config','ZZ METH-READ Configuration','internal','active') RETURNING id INTO _roleCfg;
+  INSERT INTO public.sec_roles(key, name, role_type, status)
+  VALUES ('zz_methread_approver','ZZ METH-READ Approver','internal','active') RETURNING id INTO _roleApp;
+
+  INSERT INTO public.sec_role_permissions(role_id, permission_id) VALUES
+    (_roleCfg,_pView),(_roleCfg,_pManage),
+    (_roleApp,_pView),(_roleApp,_pManage),(_roleApp,_pMeth);
+
+  INSERT INTO public.sec_role_scopes(role_id, module_id, scope_type_id)
+  VALUES (_roleCfg,_mod,_stReg),(_roleApp,_mod,_stReg);
+  INSERT INTO public.sec_role_scope_values(role_scope_id, value_kind, value_id)
+  SELECT rs.id, 'regulator', _reg FROM public.sec_role_scopes rs
+    JOIN public.sec_roles r ON r.id = rs.role_id
+   WHERE r.key IN ('zz_methread_config','zz_methread_approver');
+
+  INSERT INTO public.sec_user_roles(user_id, role_id, status) VALUES
+    (_actors[1],_roleCfg,'active'),(_actors[2],_roleApp,'active');
+
+  INSERT INTO meth_actor(config_user, approver_user, regulator_id)
+  VALUES (_actors[1], _actors[2], _reg);
+END $$;
+
 
 CREATE TEMP TABLE meth_baseline AS
 SELECT
