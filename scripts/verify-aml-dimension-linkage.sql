@@ -23,6 +23,7 @@ CREATE OR REPLACE FUNCTION pg_temp.gate(_id text, _name text, _ok boolean, _deta
 RETURNS void LANGUAGE sql AS $$
   INSERT INTO link_gate VALUES (_id, _name, CASE WHEN _ok THEN 'PASS' ELSE 'FAIL' END, _detail);
 $$;
+GRANT INSERT ON link_gate TO authenticated;
 
 -- an identity holding aml_supervision.manage_config (used for governed calls)
 CREATE OR REPLACE FUNCTION pg_temp.admin_uid() RETURNS uuid LANGUAGE sql STABLE AS $$
