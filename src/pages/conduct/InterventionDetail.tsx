@@ -65,6 +65,23 @@ const TRANSITION_LABEL: Record<InterventionStatusMc10, string> = {
   CANCELLED: 'Cancel the intervention',
 };
 
+/**
+ * Which record type the picker should open on for each canonical delivery module.
+ * The officer can still change the type; nothing is hard-coded to an identifier.
+ */
+const CANONICAL_MODULE_RECORD_TYPE: Record<string, RecordPickerType | undefined> = {
+  examinations: 'inspection',
+  examination: 'inspection',
+  enforcement: 'enforcement',
+  complaints: 'complaint',
+  investigations: 'investigation',
+  correspondence: 'correspondence',
+  licensing: 'application',
+  returns: 'return',
+  fit_and_proper: 'fit_and_proper',
+};
+
+
 const EXCEPTION_TEXT: Record<string, string> = {
   delivery_overdue: 'Delivery is past its planned end date and the intervention is still in progress.',
   outcome_missing: 'The intervention is closed but no outcome has been recorded.',
