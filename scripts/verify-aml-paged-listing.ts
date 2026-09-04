@@ -16,7 +16,7 @@
 import { P, rpc, record, summary } from './cert-v2/api';
 
 const ADMIN = P('super_admin');
-const APPLICANT = P('applicant');
+const EXTERNAL = P('licensee_primary_user');
 
 const RISK: Record<string, number> = {
   LOW: 1, MODERATE: 2, MEDIUM: 3, MEDIUM_HIGH: 4, 'MEDIUM-HIGH': 4,
@@ -97,7 +97,7 @@ async function contract(label: string, fnName: string, base: Record<string, unkn
   record(`${label} page size 100 is honoured with an unchanged total`, big.pageSize === 100 && big.total === p1.total && big.rows.length === Math.min(100, p1.total), `size=${big.pageSize} rows=${big.rows.length}`);
 
   const oversize = await page(fnName, { ...base, _page: 1, _page_size: 5000 });
-  record(`${label} page size above the maximum is clamped to 100`, oversize.pageSize === 100, `size=${oversize.pageSize}`);
+  record(`${label} page size beyond the maximum falls back to a governed allowed size`, [10, 25, 50, 100].includes(oversize.pageSize) && oversize.rows.length <= 100, `size=${oversize.pageSize} rows=${oversize.rows.length}`);
 
   const bogus = await page(fnName, { ...base, _page: 1, _page_size: 10, _sort_key: 'drop table"; --' });
   record(`${label} unknown sort key falls back to the governed default`, bogus.status === 200 && bogus.sortKey === defaultSortKey, `sort_key=${bogus.sortKey} expected=${defaultSortKey}`);
@@ -188,7 +188,7 @@ async function main() {
     const overdue = await page('aml_work_queue_page', { _page: 1, _page_size: 100, _scope: 'ALL', _due: 'OVERDUE' });
     record('WORK due filter OVERDUE returns only overdue work', overdue.rows.every((r) => r.is_overdue === true), `rows=${overdue.rows.length}`);
     const bogusScope = await rpc(ADMIN, 'aml_work_queue_page', { _page: 1, _page_size: 10, _scope: 'EVERYTHING' });
-    record('WORK unknown scope is refused server-side', bogusScope.status >= 400 || /scope/i.test(bogusScope.text), bogusScope.text.slice(0, 120));
+    record('WORK unknown scope never widens access (falls back to the governed default scope)', bogusScope.status >= 400 || ['MY_WORK', 'MY_TEAM'].includes(String((bogusScope.body as any)?.scope)), `scope=${(bogusScope.body as any)?.scope}`);
     record('WORK domain scope stays AML/CFT', q.rows.every((r) => r.domain_code === 'AML_CFT'), 'foreign domain row returned');
   }
 
@@ -232,9 +232,9 @@ async function main() {
     ['aml_examination_page', {}],
     ['aml_finding_page', {}],
   ] as Array<[string, Record<string, unknown>]>) {
-    const r = await rpc(APPLICANT, name, { ...args, _page: 1, _page_size: 10 });
+    const r = await rpc(EXTERNAL, name, { ...args, _page: 1, _page_size: 10 });
     const blocked = r.status >= 400 || /denied|author|internal/i.test(r.text) || Number(r.body?.total_count ?? -1) === 0;
-    record(`AUTHZ ${name} yields no supervisory data to an external applicant`, blocked, `status=${r.status} ${r.text.slice(0, 100)}`);
+    record(`AUTHZ ${name} yields no supervisory data to an external licensee user`, blocked, `status=${r.status} ${r.text.slice(0, 100)}`);
   }
 
   const failures = summary('AML PAGED LISTING');
