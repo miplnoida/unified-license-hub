@@ -81,6 +81,8 @@ export const navigationSnapshot: NavSnapshotItem[] = [
   { key: "nav_cfg_prudential_operations", parentKey: "nav_adm_cfg_returns_prud", label: "Prudential Engine Operations", href: "/admin/prudential/operations", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_cfg_ret_configuration_hub", parentKey: "nav_adm_cfg_returns_prud", label: "Returns Configuration Hub", href: "/returns/configuration", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_cfg_ret_return_config", parentKey: "nav_adm_cfg_returns_prud", label: "Return Configuration", href: "/admin/return-config", itemType: "link", audience: "internal", showInSidebar: false },
+  { key: "nav_cfg_sup_methodology", parentKey: "nav_adm_cfg_supervision", label: "Supervisory Methodology", href: "/admin/supervisory-methodology", itemType: "link", audience: "internal", showInSidebar: false },
+  { key: "nav_cfg_sup_methodology_detail", parentKey: "nav_cfg_sup_methodology", label: "Methodology Version", href: "/admin/supervisory-methodology/:methodologyId", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_cfg_sup_calculation", parentKey: "nav_adm_cfg_supervision", label: "Calculation Configuration", href: "/admin/supervisory-calculation", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_cfg_sup_calculation_approvals", parentKey: "nav_adm_cfg_supervision", label: "Calculation Approvals", href: "/admin/supervisory-calculation/approvals", itemType: "link", audience: "internal", showInSidebar: false },
   { key: "nav_cfg_sup_fp_committees", parentKey: "nav_adm_cfg_supervision", label: "F&P Committees", href: "/admin/fp-committees", itemType: "link", audience: "internal", showInSidebar: false },
