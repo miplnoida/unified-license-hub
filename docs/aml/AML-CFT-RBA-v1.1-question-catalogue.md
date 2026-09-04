@@ -43,7 +43,7 @@ Placeholders in square brackets (e.g. `[LOCAL_STR_DEADLINE_REF]`) are deployment
 | fact_requirements | FACT-HRC-COUNT, FACT-HRC-SHARE, FACT-HRC-VALUE-SHARE |
 | standards_reference_strength | RELATED_RISK_FACTOR |
 | standards_reference_review | Mapping accepted as stated |
-| sector_applicability | CORE_ALL |
+| sector_applicability | CORE_WITH_SECTOR_GUIDANCE |
 | polarity_review | KEEP — YES = more higher-risk customers = more inherent exposure. |
 | change_classification | SEMANTIC_CORRECTION |
 
@@ -84,7 +84,7 @@ Placeholders in square brackets (e.g. `[LOCAL_STR_DEADLINE_REF]`) are deployment
 | fact_requirements | FACT-LEGALPERSON-SHARE, FACT-COMPLEX-STRUCTURE-COUNT |
 | standards_reference_strength | RELATED_RISK_FACTOR |
 | standards_reference_review | Mapping accepted as stated |
-| sector_applicability | CORE_ALL |
+| sector_applicability | CORE_WITH_SECTOR_GUIDANCE |
 | polarity_review | KEEP — YES = more ownership opacity = more inherent exposure. |
 | change_classification | NEW |
 
@@ -125,7 +125,7 @@ Placeholders in square brackets (e.g. `[LOCAL_STR_DEADLINE_REF]`) are deployment
 | fact_requirements | FACT-NONRES-SHARE, FACT-NONRES-VALUE-SHARE |
 | standards_reference_strength | RELATED_RISK_FACTOR |
 | standards_reference_review | Mapping accepted as stated |
-| sector_applicability | CORE_ALL |
+| sector_applicability | CORE_WITH_SECTOR_GUIDANCE |
 | polarity_review | KEEP — YES = more non-resident/cross-border customers = more inherent exposure. |
 | change_classification | NEW |
 
@@ -334,7 +334,7 @@ Placeholders in square brackets (e.g. `[LOCAL_STR_DEADLINE_REF]`) are deployment
 | fact_requirements | FACT-ANON-PRODUCT-COUNT, FACT-ANON-PRODUCT-VALUE-SHARE |
 | standards_reference_strength | RELATED_RISK_FACTOR |
 | standards_reference_review | Mapping accepted as stated |
-| sector_applicability | CORE_ALL |
+| sector_applicability | CORE_WITH_SECTOR_GUIDANCE |
 | polarity_review | KEEP — YES = anonymity/opacity features = more inherent exposure. |
 | change_classification | SPLIT |
 
