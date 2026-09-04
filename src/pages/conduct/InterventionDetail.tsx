@@ -27,6 +27,9 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { AlertTriangle, ArrowLeft, CheckCircle2, ExternalLink, Loader2 } from 'lucide-react';
+import { RecordPicker } from '@/components/documents/RecordPicker';
+import type { RecordPickerType } from '@/services/recordPicker';
+
 import { toast } from 'sonner';
 import { useCan } from '@/hooks/useCan';
 import { formatDate, formatDateTime } from '@/lib/datetime';
