@@ -81,14 +81,21 @@ BEGIN
   END IF;
 
   ---------------------------------------------------------------- REF-06 ----
+  -- Axis and effectiveness focus are two distinct dimensions: the axis says what
+  -- is being measured, the focus says which part of a control is in scope.
   SELECT count(*) INTO v_n FROM (
     SELECT axis, count(*) c FROM public.supervisory_methodology_question
      WHERE methodology_id = v_v11 AND active GROUP BY 1) s
-   WHERE (axis, c) IN (('INHERENT_EXPOSURE',17),('DESIGN',14),('OPERATING',27),('DESIGN_AND_OPERATING',12));
-  IF v_n = 4 THEN
-    v_pass := v_pass + 1; RAISE NOTICE 'REF-06 PASS axis split 17 / 14 / 27 / 12 as designed';
+   WHERE (axis, c) IN (('INHERENT_EXPOSURE',17),('CONTROL_EFFECTIVENESS',53));
+  SELECT v_n + count(*) INTO v_n FROM (
+    SELECT effectiveness_focus f, count(*) c FROM public.supervisory_methodology_question
+     WHERE methodology_id = v_v11 AND active GROUP BY 1) s
+   WHERE (f, c) IN (('INHERENT_EXPOSURE',17),('DESIGN',14),('OPERATING',27),('DESIGN_AND_OPERATING',12));
+  IF v_n = 6 THEN
+    v_pass := v_pass + 1;
+    RAISE NOTICE 'REF-06 PASS axis 17 inherent / 53 control, focus 17 / 14 / 27 / 12 as designed';
   ELSE
-    v_fail := v_fail + 1; RAISE WARNING 'REF-06 FAIL axis split matched % of 4 expected groups', v_n;
+    v_fail := v_fail + 1; RAISE WARNING 'REF-06 FAIL axis and focus split matched % of 6 expected groups', v_n;
   END IF;
 
   ---------------------------------------------------------------- REF-07 ----
