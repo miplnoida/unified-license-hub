@@ -64505,6 +64505,21 @@ export type Database = {
         Args: { _domain_code: string; _entity_id: string }
         Returns: boolean
       }
+      supervisory_domain_assignment: {
+        Args: { _domain_code: string; _entity_id: string }
+        Returns: {
+          assignment_id: string
+          assignment_scope: string
+          effective_from: string
+          is_primary: boolean
+          lead_supervisor_id: string
+          lead_supervisor_name: string
+          regulatory_function_id: string
+          regulatory_function_key: string
+          team_id: string
+          team_name: string
+        }[]
+      }
       supervisory_domain_calculation_rule_set: {
         Args: {
           _domain_code: string
@@ -64524,6 +64539,10 @@ export type Database = {
           _entity_id: string
           _is_applicable: boolean
         }
+        Returns: string
+      }
+      supervisory_domain_regulatory_function: {
+        Args: { _domain_code: string }
         Returns: string
       }
       supervisory_domain_require_manage: {
