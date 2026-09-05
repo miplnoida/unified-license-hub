@@ -231,8 +231,13 @@ export interface MonitoringSummary {
   entities_in_scope: number;
   reassessment_required: number;
   reassessment_overdue: number;
-  returns_late: number;
-  returns_missing: number;
+  entities_with_late_filings: number;
+  entities_with_missing_filings: number;
+  entities_with_filing_issues: number;
+  entities_without_returns_feed: number;
+  late_filing_periods: number;
+  missing_filing_periods: number;
+  filing_metrics_basis: 'ENTITY_LEVEL_ONLY' | string;
   returns_not_available: number;
   open_attention: number;
   material_signals: number;

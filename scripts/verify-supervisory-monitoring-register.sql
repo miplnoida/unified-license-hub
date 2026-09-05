@@ -247,8 +247,9 @@ BEGIN
   PERFORM pg_temp.rec('MON-04','regulator/entity scope enforced', ok,
     'rows outside the supervisor''s regulator-scoped grant: ' || leaked
     || ' of ' || jsonb_array_length(r->'rows')
-    || ' (register gates on domain permission only; role-scope narrowing '
-    || 'via user_scope_grants_for / regulatory_scope_allows is NOT applied)');
+    || ' (narrowed per entity/domain pair by public.supervisory_monitoring_scope_admits '
+    || 'over public.user_scope_grants_for: all / regulator / sector / sub_sector / '
+    || 'institution / assigned / team)');
 END $$;
 
 -- ===========================================================================
