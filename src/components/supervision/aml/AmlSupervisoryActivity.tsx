@@ -428,9 +428,13 @@ export function AmlSupervisoryActivity({
         open={dialog === 'examination'}
         onOpenChange={(o) => (o ? null : setDialog(null))}
         title="Create examination"
-        description={`Opened from intervention ${
-          interventionTarget?.reference ?? ''
-        } — entity, AML/CFT domain, plan, intervention, attention and the originating assessment are carried automatically.`}
+        description={
+          examCapabilities.data && !examCapabilities.data.can_open_examination
+            ? examCapabilities.data.block_reason ?? 'This intervention cannot open an examination.'
+            : `Opened from intervention ${
+                interventionTarget?.reference ?? ''
+              } — entity, AML/CFT domain, plan, intervention, attention and the originating assessment are carried automatically.`
+        }
         fields={[
           {
             name: 'title',
@@ -444,12 +448,16 @@ export function AmlSupervisoryActivity({
             label: 'Engagement type',
             kind: 'select',
             required: true,
-            defaultValue: 'targeted',
-            options: ENGAGEMENT_OPTIONS,
+            defaultValue: engagementDefault,
+            options: engagementOptions,
+            helper: examCapabilities.data?.requires_explicit_engagement
+              ? 'This intervention type covers more than one form of engagement, so the engagement must be chosen explicitly.'
+              : undefined,
           },
           { name: 'period_start', label: 'Period under review — from', kind: 'date' },
           { name: 'period_end', label: 'Period under review — to', kind: 'date' },
         ]}
+
         submitLabel="Create examination"
         onSubmit={async (v) =>
           openExamination.mutateAsync({
