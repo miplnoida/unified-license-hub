@@ -8,9 +8,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useExitMeeting, useSaveExitMeeting } from '@/hooks/useExaminations';
 import { StageActions, type StageActionsMode } from './ExaminationStageActions';
 import { ChipsInput } from './ChipsInput';
+import { engagementPhrasing } from '@/lib/supervisoryEngagement';
+import { useExaminationEngagement } from '@/hooks/useExaminationEngagement';
 
 export function ExitMeetingPanel({ examinationId, readOnly, mode = 'supporting' }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
   const { data, isLoading } = useExitMeeting(examinationId);
+  const engagement = useExaminationEngagement(examinationId);
   const save = useSaveExitMeeting(examinationId);
   const [form, setForm] = useState({
     meeting_date: '',

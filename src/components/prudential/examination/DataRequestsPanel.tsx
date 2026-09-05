@@ -21,6 +21,8 @@ import {
 } from '@/hooks/useExaminations';
 import { StageActions, type StageActionsMode } from './ExaminationStageActions';
 import { RecordDocumentLinks } from '@/components/supervision/RecordDocumentLinks';
+import { engagementPhrasing } from '@/lib/supervisoryEngagement';
+import { useExaminationEngagement } from '@/hooks/useExaminationEngagement';
 
 type FilterKey = 'attention' | 'overdue' | 'draft' | 'issued' | 'received' | 'all';
 
@@ -58,6 +60,7 @@ export function DataRequestsPanel({
   examinationId, readOnly, mode = 'supporting',
 }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
   const { data: rows = [], isLoading } = useDataRequests(examinationId);
+  const engagement = useExaminationEngagement(examinationId);
   const { data: exam } = useExamination(examinationId);
   const { data: scopeDimensions = [] } = useExaminationScopeDimensions(examinationId);
   const { save, issue, receive, remove } = useDataRequestMutations(examinationId);

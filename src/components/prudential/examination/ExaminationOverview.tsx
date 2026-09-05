@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CalendarDays, ClipboardList, FileWarning, Inbox, UserCheck } from 'lucide-react';
 import type { BlockerSection, CapturedArea, Guidance } from '@/lib/examinationWorkflow';
+import { examinationWorkLabel, engagementLabel } from '@/lib/supervisoryEngagement';
 import { NextActionCard } from './NextActionCard';
 import { ExaminationPhaseProgress } from './ExaminationPhaseProgress';
 
@@ -153,7 +154,7 @@ export function ExaminationOverview({
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Examination type</p>
-            <p className="capitalize">{String(exam.examination_type ?? '').replace('_', ' ')}</p>
+            <p>{engagementLabel(exam.engagement_type ?? exam.examination_type)}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Lead examiner</p>

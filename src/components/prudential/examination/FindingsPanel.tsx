@@ -35,6 +35,8 @@ import {
 import { useCloseActionGated } from '@/hooks/usePrudentialActionLifecycle';
 import { RaiseFindingDialog } from './RaiseFindingDialog';
 import { StageActions, type StageActionsMode } from './ExaminationStageActions';
+import { engagementPhrasing } from '@/lib/supervisoryEngagement';
+import { useExaminationEngagement } from '@/hooks/useExaminationEngagement';
 
 
 const CLOSED_ACTION_STATUSES = ['completed', 'waived', 'cancelled'];
@@ -78,6 +80,7 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
 
 export function FindingsPanel({ examinationId, readOnly, mode = 'supporting' }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
   const { data: exam } = useExamination(examinationId);
+  const engagement = useExaminationEngagement(examinationId);
   const { data: canonical = [], isLoading } = useExaminationCanonicalFindings(examinationId);
   const { data: legacy = [] } = useExaminationFindings(examinationId);
   const { data: workpapers = [] } = useWorkpapers(examinationId);

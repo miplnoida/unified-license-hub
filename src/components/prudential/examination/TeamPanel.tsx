@@ -12,11 +12,14 @@ import { AlertTriangle, ChevronDown, Loader2, Plus, Trash2, UserRound } from 'lu
 import { TEAM_ROLES, useExaminationTeam, useTeamMutations } from '@/hooks/useExaminations';
 import { useStaffProfiles } from '@/hooks/useOperatingStructure';
 import { StageActions, type StageActionsMode } from './ExaminationStageActions';
+import { engagementPhrasing } from '@/lib/supervisoryEngagement';
+import { useExaminationEngagement } from '@/hooks/useExaminationEngagement';
 
 const roleLabel = (r: string) => TEAM_ROLES.find(t => t.value === r)?.label ?? r.replace('_', ' ');
 
 export function TeamPanel({ examinationId, readOnly, mode = 'supporting' }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
   const { data: rows = [], isLoading } = useExaminationTeam(examinationId);
+  const engagement = useExaminationEngagement(examinationId);
   const { save, remove } = useTeamMutations(examinationId);
   const staff = useStaffProfiles();
   const [showForm, setShowForm] = useState(false);
