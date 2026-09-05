@@ -84,15 +84,21 @@ BEGIN
   INSERT INTO public.regulators(name, code, status)
   VALUES ('ZZ MON Regulator (fixture)','ZZMONR','active') RETURNING id INTO _reg;
 
+  -- Internal staff identities only: an external portal identity can never reach
+  -- the supervisory read models, so it cannot exercise the domain gates.
   SELECT array_agg(id) INTO _actors FROM (
     SELECT u.id FROM auth.users u
      WHERE NOT public.is_super_admin(u.id)
-       AND NOT EXISTS (SELECT 1 FROM public.sec_user_roles ur WHERE ur.user_id = u.id)
+       AND NOT EXISTS (SELECT 1 FROM public.external_user_entity_ids(u.id))
+       AND NOT EXISTS (SELECT 1 FROM public.user_roles ur
+                        WHERE ur.user_id = u.id
+                          AND ur.role IN ('applicant','pre_licensee',
+                                          'licensee_primary','licensee_secondary'))
+       AND EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = u.id)
      ORDER BY u.created_at, u.id LIMIT 3) s;
   IF COALESCE(array_length(_actors,1),0) < 3 THEN
-    SELECT array_agg(id) INTO _actors FROM (
-      SELECT u.id FROM auth.users u WHERE NOT public.is_super_admin(u.id)
-       ORDER BY u.created_at, u.id LIMIT 3) s;
+    RAISE EXCEPTION 'fixture_identities_unavailable: need 3 internal accounts, found %',
+      COALESCE(array_length(_actors,1),0);
   END IF;
 
   INSERT INTO public.sec_roles(key,name,role_type,status)
@@ -113,6 +119,7 @@ BEGIN
 
   -- remove any competing grants so the personas are genuinely single-domain
   DELETE FROM public.sec_user_roles WHERE user_id = ANY(_actors);
+  DELETE FROM public.user_roles WHERE user_id = ANY(_actors);
   INSERT INTO public.sec_user_roles(user_id, role_id, status) VALUES
     (_actors[1],_rAml,'active'), (_actors[2],_rPru,'active'), (_actors[3],_rRegScoped,'active');
 
