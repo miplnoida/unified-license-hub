@@ -11,8 +11,9 @@
  * the internal authority boundary and domain/regulator scope, and every row
  * links back to the record it came from.
  */
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ArrowUpRight, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, ListChecks, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { PageHeader } from '@/components/shared/PageHeader';
 import { RegisterToolbar } from '@/components/shared/RegisterToolbar';
 import { SupervisoryRegister } from '@/components/supervision/SupervisoryRegister';
+import { MonitoringActionPanel } from '@/components/supervision/MonitoringActionPanel';
 import { useListingState } from '@/components/shared/listing';
 import { useServerPageGuard } from '@/components/shared/listing/useServerPageGuard';
 import {
@@ -333,7 +335,7 @@ export default function ContinuousMonitoring() {
           onPageChange={listing.setPage}
           onPageSizeChange={listing.setPageSize}
           showRecordCount
-          onRowClick={(r) => navigate(r.route)}
+          onRowClick={(r) => setActionRow(r)}
           columns={[
             { id: 'domain', header: 'Domain', cell: (r) => <span className="text-sm">{humanize(r.domain_code)}</span> },
             { id: 'sector', header: 'Sector', priority: 3, cell: (r) => (
@@ -384,6 +386,14 @@ export default function ContinuousMonitoring() {
           ]}
           actions={(r) => (
             <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); setActionRow(r); }}
+              >
+                <ListChecks className="mr-1 h-4 w-4" />
+                Next steps
+              </Button>
               {r.work.next_item ? (
                 <Button
                   variant="ghost"
@@ -405,6 +415,15 @@ export default function ContinuousMonitoring() {
           )}
         />
       )}
+
+      <MonitoringActionPanel
+        open={actionRow !== null}
+        onOpenChange={(o) => { if (!o) setActionRow(null); }}
+        entityId={actionRow?.entity_id ?? null}
+        entityName={actionRow?.entity_name ?? null}
+        domainCode={actionRow?.domain_code ?? null}
+        entityRoute={actionRow?.route ?? null}
+      />
 
       {query.data?.coverage?.length ? (
         <p className="text-xs text-muted-foreground">
