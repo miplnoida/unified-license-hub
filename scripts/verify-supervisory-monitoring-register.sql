@@ -299,14 +299,19 @@ BEGIN
   PERFORM pg_temp.act_as(a.aml_user);
   r := public.supervisory_monitoring_register();
   PERFORM pg_temp.act_as_owner();
-  -- caller-relative: the entity population the persona may actually read
-  PERFORM pg_temp.act_as(a.aml_user);
-  SELECT count(*) INTO expected FROM public.licensees l
-   WHERE public.supervisory_domain_applicable(l.id, 'AML_CFT');
+  -- caller-relative: every applicable entity x authorised domain pair the
+  -- persona's own scope admits (the register lists one row per pair).
+  SELECT count(*) INTO expected
+    FROM public.licensees l,
+         jsonb_array_elements_text(r->'authorised_domains') AS d(dom)
+   WHERE public.supervisory_domain_applicable(l.id, d.dom)
+     AND public.supervisory_monitoring_scope_admits(a.aml_user, d.dom, l.id,
+           l.lead_regulator_id, l.sector_id);
   PERFORM pg_temp.act_as_owner();
   ok := (r->>'total_count')::bigint = expected;
   PERFORM pg_temp.rec('MON-06','total_count truthful', ok,
-    'register total ' || (r->>'total_count') || ' vs applicable AML entity population ' || expected);
+    'register total ' || (r->>'total_count')
+    || ' vs applicable+in-scope entity/domain pairs ' || expected);
 END $$;
 
 -- ===========================================================================
