@@ -424,6 +424,8 @@ BEGIN
 END $$;
 
 RESET ROLE;
+UPDATE public.supervisory_intervention SET examination_id = (SELECT v FROM os WHERE k='ex')
+ WHERE examination_id = (SELECT v FROM os WHERE k='probe');
 DELETE FROM public.examination_events WHERE examination_id = (SELECT v FROM os WHERE k='probe');
 DELETE FROM public.examination_origin WHERE examination_id = (SELECT v FROM os WHERE k='probe');
 DELETE FROM public.examinations WHERE id = (SELECT v FROM os WHERE k='probe');
