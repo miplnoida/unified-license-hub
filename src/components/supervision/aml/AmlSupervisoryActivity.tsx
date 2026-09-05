@@ -47,28 +47,13 @@ const INTERVENTION_TYPES = [
   { value: 'FULL_SCOPE_EXAMINATION', label: 'Full-scope examination' },
   { value: 'OFFSITE_REVIEW', label: 'Offsite review' },
   { value: 'FOLLOW_UP_REVIEW', label: 'Follow-up examination' },
-  { value: 'DESK_REVIEW', label: 'Desk review' },
+  { value: 'THEMATIC_REVIEW', label: 'Thematic review' },
+  { value: 'DESK_REVIEW', label: 'Desk review (lightweight)' },
   { value: 'SUPERVISORY_MEETING', label: 'Supervisory meeting' },
   { value: 'INFORMATION_REQUEST', label: 'Information request' },
   { value: 'ENHANCED_MONITORING', label: 'Enhanced monitoring' },
 ];
 
-/** Intervention types whose supervisory activity is an examination. */
-const EXAMINATION_TYPES = new Set([
-  'TARGETED_EXAMINATION',
-  'ONSITE_EXAMINATION',
-  'FULL_SCOPE_EXAMINATION',
-  'OFFSITE_REVIEW',
-  'FOLLOW_UP_REVIEW',
-  'DESK_REVIEW',
-]);
-
-const ENGAGEMENT_OPTIONS = [
-  { value: 'targeted', label: 'Targeted' },
-  { value: 'full_scope', label: 'Full scope' },
-  { value: 'follow_up', label: 'Follow-up' },
-  { value: 'thematic', label: 'Thematic' },
-];
 
 const plusDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
 
