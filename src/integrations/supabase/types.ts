@@ -64873,6 +64873,29 @@ export type Database = {
         Args: { _methodology_id: string }
         Returns: Json
       }
+      supervisory_monitoring_register: {
+        Args: {
+          _attention_state?: string
+          _domain?: string
+          _engagement_type?: string
+          _open_finding?: boolean
+          _overdue_remediation?: boolean
+          _owner_id?: string
+          _page?: number
+          _page_size?: number
+          _reassessment_state?: string
+          _regulator_id?: string
+          _returns_state?: string
+          _risk?: string
+          _search?: string
+          _sector_id?: string
+          _sort_direction?: string
+          _sort_key?: string
+          _team_id?: string
+        }
+        Returns: Json
+      }
+      supervisory_monitoring_register_options: { Args: never; Returns: Json }
       supervisory_plan_action_create: {
         Args: {
           _description?: string
