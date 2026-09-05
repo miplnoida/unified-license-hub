@@ -71,7 +71,7 @@ CREATE TEMP TABLE mon_actor(
 DO $$
 DECLARE
   _reg uuid; _amlMod uuid; _pruMod uuid; _stReg uuid;
-  _pAml uuid; _pPru uuid;
+  _pAml uuid; _pPru uuid; _licMod uuid; _pLic uuid;
   _rAml uuid; _rPru uuid; _rRegScoped uuid;
   _actors uuid[]; _spine uuid; _ent uuid; _unassessed uuid;
 BEGIN
@@ -80,6 +80,10 @@ BEGIN
   SELECT id INTO _stReg  FROM public.sec_scope_types WHERE key = 'regulator';
   SELECT id INTO _pAml FROM public.sec_permissions WHERE module_id = _amlMod AND key = 'view';
   SELECT id INTO _pPru FROM public.sec_permissions WHERE module_id = _pruMod AND key = 'view';
+  -- entity visibility itself is governed by licensee RLS, so each persona needs
+  -- the entity read grant; the domain gates under test are the supervisory ones.
+  SELECT id INTO _licMod FROM public.sec_modules WHERE key = 'license_management';
+  SELECT id INTO _pLic FROM public.sec_permissions WHERE module_id = _licMod AND key = 'view';
 
   INSERT INTO public.regulators(name, code, status)
   VALUES ('ZZ MON Regulator (fixture)','ZZMONR','active') RETURNING id INTO _reg;
@@ -110,7 +114,8 @@ BEGIN
   RETURNING id INTO _rRegScoped;
 
   INSERT INTO public.sec_role_permissions(role_id, permission_id) VALUES
-    (_rAml,_pAml), (_rPru,_pPru), (_rRegScoped,_pAml);
+    (_rAml,_pAml), (_rPru,_pPru), (_rRegScoped,_pAml),
+    (_rAml,_pLic), (_rPru,_pLic), (_rRegScoped,_pLic);
 
   INSERT INTO public.sec_role_scopes(role_id, module_id, scope_type_id)
   VALUES (_rRegScoped,_amlMod,_stReg);
@@ -203,7 +208,13 @@ BEGIN
   rp := public.supervisory_monitoring_register();
   PERFORM pg_temp.act_as_owner();
 
-  IF ra->'authorised_domains' <> '["AML_CFT"]'::jsonb THEN
+  -- CROSS_DOMAIN is readable to any supervisory domain reader by the canonical
+  -- sup_domain_readable contract (OS-01, frozen); the gate proves no *other*
+  -- single-domain leaks in either direction.
+  IF EXISTS (SELECT 1 FROM jsonb_array_elements_text(ra->'authorised_domains') d
+              WHERE d.value IN ('PRUDENTIAL','MARKET_CONDUCT','OPERATIONAL_RESILIENCE','GOVERNANCE'))
+     OR EXISTS (SELECT 1 FROM jsonb_array_elements(ra->'rows') r
+                 WHERE r->>'domain_code' <> ALL (ARRAY['AML_CFT','CROSS_DOMAIN'])) THEN
     ok := false; msg := msg || 'AML viewer domains=' || (ra->'authorised_domains')::text || '; ';
   END IF;
   IF rp->'authorised_domains' @> '["AML_CFT"]'::jsonb THEN
@@ -288,8 +299,11 @@ BEGIN
   PERFORM pg_temp.act_as(a.aml_user);
   r := public.supervisory_monitoring_register();
   PERFORM pg_temp.act_as_owner();
+  -- caller-relative: the entity population the persona may actually read
+  PERFORM pg_temp.act_as(a.aml_user);
   SELECT count(*) INTO expected FROM public.licensees l
    WHERE public.supervisory_domain_applicable(l.id, 'AML_CFT');
+  PERFORM pg_temp.act_as_owner();
   ok := (r->>'total_count')::bigint = expected;
   PERFORM pg_temp.rec('MON-06','total_count truthful', ok,
     'register total ' || (r->>'total_count') || ' vs applicable AML entity population ' || expected);
