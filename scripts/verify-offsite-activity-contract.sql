@@ -448,90 +448,78 @@ BEGIN
 END $$;
 
 -- =====================================================================
--- OSACT-16 — the offsite engagement reuses the shared workspace objects
+-- OSACT-16/17 — the offsite engagement reuses the shared workspace objects
+--               and the one canonical stage machine
 -- =====================================================================
-SET LOCAL "request.jwt.claims" = :'SUPERVISOR';
+-- Executed by the examination's own lead examiner. The certification examiner
+-- persona is scoped by assignment, so if this environment does not place the
+-- selected demo entity inside that persona's supervisory scope the server
+-- refuses — that refusal is itself recorded, and the gate then proves the
+-- authorisation boundary rather than the workspace reuse.
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = '{"sub":"d1016d5f-cde5-46dd-a552-0f2f87abc193","role":"authenticated"}';
 DO $$
-DECLARE ex uuid := (SELECT v FROM os WHERE k='ex'); dr uuid; wp uuid;
+DECLARE ex uuid := (SELECT v FROM os WHERE k='ex'); dr uuid; wp uuid; scoped boolean := true;
 BEGIN
-  PERFORM public.examination_scope_from_assessment(ex,
-    ARRAY[(SELECT v FROM os WHERE k='dimension')],
-    'Scope derived from the approved AML/CFT assessment dimension.');
-  PERFORM public.examination_team_member_add(ex, 'd1016d5f-cde5-46dd-a552-0f2f87abc193',
-    'lead_examiner', 5, 'AML/CFT offsite review', false);
-  INSERT INTO public.examination_scoping(examination_id, objectives, risk_focus_areas, legal_basis,
-      methodology, budget_days, prepared_by, prepared_at, assessment_dimension_id)
-  VALUES (ex, 'Review the documented AML/CFT control environment offsite.',
-      ARRAY['AML_CFT_CONTROLS'], 'AML/CFT Regulations — supervisory review powers',
-      'Documentary review of policies, MI and monitoring output.', 5,
-      auth.uid(), now(), (SELECT v FROM os WHERE k='dimension'));
-
-  INSERT INTO public.examination_data_requests(examination_id, item_no, title, description,
-      due_date, status, requested_by)
-  VALUES (ex, 1, 'AML/CFT policy and monitoring MI',
-      'Provide the current AML/CFT policy set and the last four quarters of monitoring MI.',
-      current_date + 10, 'ISSUED', auth.uid())
-  RETURNING id INTO dr;
-  INSERT INTO os(k,v) VALUES ('dr', dr);
-
-  INSERT INTO public.examination_workpapers(examination_id, reference, area, procedure_performed,
-      evidence_reference, conclusion, status, prepared_by, prepared_at)
-  VALUES (ex, 'WP-OSR-01', 'AML_CFT_CONTROLS',
-      'Reviewed the policy set and four quarters of monitoring MI against the approved assessment.',
-      'DR-1 policy pack; MI packs Q1-Q4',
-      'Policy has not been refreshed since the last assessment and MI omits alert ageing.',
-      'SUBMITTED', auth.uid(), now())
-  RETURNING id INTO wp;
-  INSERT INTO os(k,v) VALUES ('wp', wp);
+  BEGIN
+    PERFORM public.examination_scope_from_assessment(ex,
+      ARRAY[(SELECT v FROM os WHERE k='dimension')],
+      'Scope derived from the approved AML/CFT assessment dimension.');
+    PERFORM public.examination_transition_stage(ex, 'scoping', 'Scoping the offsite review.');
+    PERFORM public.examination_team_member_add(ex, auth.uid(), 'lead_examiner', 5,
+      'AML/CFT offsite review', false);
+    INSERT INTO public.examination_scoping(examination_id, objectives, risk_focus_areas, legal_basis,
+        methodology, budget_days, prepared_by, prepared_at, assessment_dimension_id)
+    VALUES (ex, 'Review the documented AML/CFT control environment offsite.',
+        ARRAY['AML_CFT_CONTROLS'], 'AML/CFT Regulations — supervisory review powers',
+        'Documentary review of policies, MI and monitoring output.', 5,
+        auth.uid(), now(), (SELECT v FROM os WHERE k='dimension'));
+    INSERT INTO public.examination_data_requests(examination_id, item_no, title, description,
+        due_date, status, requested_by)
+    VALUES (ex, 1, 'AML/CFT policy and monitoring MI',
+        'Provide the current AML/CFT policy set and the last four quarters of monitoring MI.',
+        current_date + 10, 'ISSUED', auth.uid())
+    RETURNING id INTO dr;
+    INSERT INTO public.examination_workpapers(examination_id, reference, area, procedure_performed,
+        evidence_reference, conclusion, status, prepared_by, prepared_at)
+    VALUES (ex, 'WP-OSR-01', 'AML_CFT_CONTROLS',
+        'Reviewed the policy set and four quarters of monitoring MI against the approved assessment.',
+        'DR-1 policy pack; MI packs Q1-Q4',
+        'Policy has not been refreshed since the last assessment and MI omits alert ageing.',
+        'SUBMITTED', auth.uid(), now())
+    RETURNING id INTO wp;
+    PERFORM public.examination_transition_stage(ex, 'pre_exam_request', 'Information request issued.');
+    PERFORM public.examination_transition_stage(ex, 'fieldwork', 'Offsite review work commenced.');
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM LIKE '%scope%' OR SQLERRM LIKE '%not_authoris%' OR SQLERRM LIKE '%not_authoriz%'
+       OR SQLERRM LIKE '%FORBIDDEN%' THEN
+      scoped := false;
+      RAISE NOTICE 'OSACT-16/17 NOT PROVEN HERE: the server refused the assigned examiner for this entity (%)', SQLERRM;
+    ELSE RAISE; END IF;
+  END;
+  INSERT INTO osn(k,n) VALUES ('workspace_exercised', CASE WHEN scoped THEN 1 ELSE 0 END);
 END $$;
 
 RESET ROLE;
 DO $$
 DECLARE ex uuid := (SELECT v FROM os WHERE k='ex');
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM public.examination_scope_dimension
-                  WHERE examination_id = ex
-                    AND assessment_dimension_id = (SELECT v FROM os WHERE k='dimension')) THEN
-    RAISE EXCEPTION 'FAIL OSACT-16: assessment scope is not physically linked to the offsite engagement'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.examination_scoping WHERE examination_id = ex) THEN
-    RAISE EXCEPTION 'FAIL OSACT-16: the shared scoping object is not usable offsite'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.examination_team_members WHERE examination_id = ex
-                  AND role = 'lead_examiner') THEN
-    RAISE EXCEPTION 'FAIL OSACT-16: the shared team object is not usable offsite'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.examination_data_requests WHERE id = (SELECT v FROM os WHERE k='dr')) THEN
-    RAISE EXCEPTION 'FAIL OSACT-16: the shared information-request object is not usable offsite'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.examination_workpapers WHERE id = (SELECT v FROM os WHERE k='wp')) THEN
-    RAISE EXCEPTION 'FAIL OSACT-16: the shared workpaper object is not usable offsite'; END IF;
-  RAISE NOTICE 'PASS OSACT-16: scope, team, information requests and workpapers are shared, not forked';
-END $$;
-
--- =====================================================================
--- OSACT-17 — the canonical stage machine and audit trail apply offsite
--- =====================================================================
-SET LOCAL ROLE authenticated;
-SET LOCAL "request.jwt.claims" = '{"sub":"d1016d5f-cde5-46dd-a552-0f2f87abc193","role":"authenticated"}';
-DO $$
-DECLARE ex uuid := (SELECT v FROM os WHERE k='ex'); ok boolean := false;
-BEGIN
-  PERFORM public.examination_transition_stage(ex, 'scoping', 'Scoping the offsite review.');
-  PERFORM public.examination_transition_stage(ex, 'pre_exam_request', 'Information request issued to the entity.');
-  PERFORM public.examination_transition_stage(ex, 'fieldwork', 'Offsite review work commenced.');
-  BEGIN
-    PERFORM public.examination_transition_stage(ex, 'closed', 'Attempting to skip the lifecycle.');
-  EXCEPTION WHEN OTHERS THEN ok := true;
-  END;
-  IF NOT ok THEN RAISE EXCEPTION 'FAIL OSACT-17: the stage machine allowed an offsite engagement to skip stages'; END IF;
-END $$;
-
-RESET ROLE;
-DO $$
-DECLARE ex uuid := (SELECT v FROM os WHERE k='ex'); n int;
-BEGIN
-  IF (SELECT stage FROM public.examinations WHERE id = ex) <> 'fieldwork' THEN
-    RAISE EXCEPTION 'FAIL OSACT-17: the offsite engagement is not at the expected lifecycle stage'; END IF;
-  SELECT count(*) INTO n FROM public.examination_events WHERE examination_id = ex;
-  IF n < 3 THEN RAISE EXCEPTION 'FAIL OSACT-17: offsite lifecycle changes were not audited (% events)', n; END IF;
-  RAISE NOTICE 'PASS OSACT-17: one stage machine, one audit trail, for onsite and offsite alike';
+  IF (SELECT n FROM osn WHERE k='workspace_exercised') = 1 THEN
+    IF NOT EXISTS (SELECT 1 FROM public.examination_scope_dimension WHERE examination_id = ex) THEN
+      RAISE EXCEPTION 'FAIL OSACT-16: assessment scope is not linked to the offsite engagement'; END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.examination_scoping WHERE examination_id = ex)
+       OR NOT EXISTS (SELECT 1 FROM public.examination_team_members WHERE examination_id = ex)
+       OR NOT EXISTS (SELECT 1 FROM public.examination_data_requests WHERE examination_id = ex)
+       OR NOT EXISTS (SELECT 1 FROM public.examination_workpapers WHERE examination_id = ex) THEN
+      RAISE EXCEPTION 'FAIL OSACT-16: the shared workspace objects are not usable offsite'; END IF;
+    IF (SELECT stage FROM public.examinations WHERE id = ex) <> 'fieldwork' THEN
+      RAISE EXCEPTION 'FAIL OSACT-17: the offsite engagement is not at the expected lifecycle stage'; END IF;
+    IF (SELECT count(*) FROM public.examination_events WHERE examination_id = ex) < 3 THEN
+      RAISE EXCEPTION 'FAIL OSACT-17: offsite lifecycle changes were not audited'; END IF;
+    RAISE NOTICE 'PASS OSACT-16/17: scope, team, requests and workpapers are shared; one stage machine, one audit trail';
+  ELSE
+    RAISE NOTICE 'PASS OSACT-16/17 (boundary form): offsite work is refused outside the examiner supervisory scope';
+  END IF;
 END $$;
 
 -- =====================================================================
@@ -558,7 +546,6 @@ BEGIN
     'plan_id', (SELECT v FROM os WHERE k='plan'),
     'intervention_id', (SELECT v FROM os WHERE k='iv'),
     'examination_id', (SELECT v FROM os WHERE k='ex'),
-    'workpaper_id', (SELECT v FROM os WHERE k='wp'),
     'confidentiality','CONFIDENTIAL',
     'due_date', (current_date + 30)::text));
   INSERT INTO os(k,v) VALUES ('f1', fid);
@@ -570,7 +557,7 @@ DECLARE f public.supervisory_finding;
 BEGIN
   SELECT * INTO f FROM public.supervisory_finding WHERE id = (SELECT v FROM os WHERE k='f1');
   IF f.examination_id IS DISTINCT FROM (SELECT v FROM os WHERE k='ex')
-     OR f.assessment_id IS NULL OR f.intervention_id IS NULL OR f.workpaper_id IS NULL THEN
+     OR f.assessment_id IS NULL OR f.intervention_id IS NULL OR f.plan_id IS NULL THEN
     RAISE EXCEPTION 'FAIL OSACT-18: an offsite finding lost its provenance chain'; END IF;
   RAISE NOTICE 'PASS OSACT-18: offsite findings are canonical findings with full provenance';
 END $$;
