@@ -206,7 +206,11 @@ export default function ContinuousMonitoring() {
           <Kpi label="Entity–domain rows" value={s.rows_in_scope} />
           <Kpi label="Reassessment required" value={s.reassessment_required} tone="warn" />
           <Kpi label="Reassessment overdue" value={s.reassessment_overdue} tone="bad" />
-          <Kpi label="Filings late / missing" value={s.returns_late + s.returns_missing} tone="warn" />
+          <Kpi
+            label="Entities with filing issues (entity level)"
+            value={s.entities_with_filing_issues}
+            tone="warn"
+          />
           <Kpi label="Open attention" value={s.open_attention} />
           <Kpi label="Open findings" value={s.open_findings} />
           <Kpi label="Remediation overdue" value={s.overdue_remediation} tone="bad" />
