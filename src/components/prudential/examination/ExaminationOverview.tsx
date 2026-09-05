@@ -71,6 +71,7 @@ export function ExaminationOverview({
 
       <NextActionCard
         stage={exam.stage}
+        engagementType={exam.engagement_type ?? exam.examination_type}
         guidance={guidance}
         currentStepTitle={currentStepTitle}
         onOpenCurrentStep={onOpenCurrentStep}

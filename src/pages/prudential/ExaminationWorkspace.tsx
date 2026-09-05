@@ -150,7 +150,7 @@ export default function ExaminationWorkspace() {
   const stageActionsValue = useMemo(() => {
     if (terminal) return null;
     return {
-      nextActionLabel: nextStage ? businessActionLabel(nextStage) : null,
+      nextActionLabel: nextStage ? businessActionLabel(nextStage, exam?.engagement_type ?? exam?.examination_type) : null,
       transitionBlockers: guidance.transitionBlockers,
       advance: async () => {
         if (!nextStage) return;
