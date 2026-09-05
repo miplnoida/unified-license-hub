@@ -134,7 +134,7 @@ export function DataRequestsPanel({
       <CardHeader>
         <CardTitle className="text-base">Information requested from the entity</CardTitle>
         <p className="text-xs text-muted-foreground">
-          The records and data the entity must provide before and during fieldwork.
+          {engagementPhrasing('The records and data the entity must provide before and during fieldwork.', engagement)}
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -144,7 +144,7 @@ export function DataRequestsPanel({
           <div className="rounded-md border p-6 text-center space-y-2">
             <p className="text-sm font-medium">No information requests yet</p>
             <p className="text-xs text-muted-foreground">
-              Create the information requests that must be sent to the entity before fieldwork.
+              {engagementPhrasing('Create the information requests that must be sent to the entity before fieldwork.', engagement)}
             </p>
             {!readOnly && (
               <Button data-rbac="prudential_supervision.edit" size="sm" onClick={() => setShowForm(true)}>

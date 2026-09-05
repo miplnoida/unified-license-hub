@@ -77,7 +77,7 @@ export function ScopingMemoPanel({ examinationId, readOnly, mode = 'supporting' 
         <div>
           <CardTitle className="text-base">Examination scope</CardTitle>
           <p className="text-xs text-muted-foreground">
-            Agree what will be examined and why. The scope must be approved before fieldwork can begin.
+            {engagementPhrasing('Agree what will be examined and why. The scope must be approved before fieldwork can begin.', engagement)}
           </p>
         </div>
         {data?.approved_at ? (

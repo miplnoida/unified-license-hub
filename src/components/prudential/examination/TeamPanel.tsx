@@ -99,7 +99,7 @@ export function TeamPanel({ examinationId, readOnly, mode = 'supporting' }: { ex
               ) : (
                 <div className="rounded-md border border-warning/30 bg-warning/10 p-3 space-y-2">
                   <p className="flex items-center gap-1.5 text-sm text-warning">
-                    <AlertTriangle className="h-4 w-4" />A lead examiner is required before fieldwork can begin.
+                    <AlertTriangle className="h-4 w-4" />{engagementPhrasing('A lead examiner is required before fieldwork can begin.', engagement)}
                   </p>
                   {!readOnly && (
                     <Button data-rbac="prudential_supervision.edit" size="sm" onClick={openLeadForm}>

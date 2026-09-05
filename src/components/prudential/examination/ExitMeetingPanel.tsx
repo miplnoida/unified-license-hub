@@ -58,7 +58,7 @@ export function ExitMeetingPanel({ examinationId, readOnly, mode = 'supporting' 
       <CardHeader>
         <CardTitle className="text-base">Exit meeting</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Record what was discussed with the entity at the close of fieldwork.
+          {engagementPhrasing('Record what was discussed with the entity at the close of fieldwork.', engagement)}
         </p>
       </CardHeader>
       <CardContent className="space-y-3">

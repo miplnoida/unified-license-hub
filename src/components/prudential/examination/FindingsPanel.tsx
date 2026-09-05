@@ -145,7 +145,7 @@ export function FindingsPanel({ examinationId, readOnly, mode = 'supporting' }: 
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Findings are raised from the fieldwork that evidences them, so each one stays traceable to its
+            {engagementPhrasing('Findings are raised from the fieldwork that evidences them, so each one stays traceable to its', engagement)}{' '}
             workpaper, risk area and assessment.
           </p>
         </CardHeader>
@@ -161,7 +161,7 @@ export function FindingsPanel({ examinationId, readOnly, mode = 'supporting' }: 
           {!readOnly && (
             <div className="rounded-md border p-3 space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Raise a finding from fieldwork
+                {engagementPhrasing('Raise a finding from fieldwork', engagement)}
               </p>
               {eligibleWorkpapers.length === 0 ? (
                 <p className="text-xs text-muted-foreground">

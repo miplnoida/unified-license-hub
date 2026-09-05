@@ -164,7 +164,7 @@ export function ExaminationOverview({
             )}
           </div>
           <div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1"><CalendarDays className="h-3 w-3" />Fieldwork</p>
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><CalendarDays className="h-3 w-3" />{examinationWorkLabel(exam?.engagement_type ?? exam?.examination_type)}</p>
             <p>{fmt(exam.fieldwork_start)} → {fmt(exam.fieldwork_end)}</p>
           </div>
           <div>
