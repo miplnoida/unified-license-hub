@@ -457,9 +457,8 @@ BEGIN
   PERFORM public.examination_scope_from_assessment(ex,
     ARRAY[(SELECT v FROM os WHERE k='dimension')],
     'Scope derived from the approved AML/CFT assessment dimension.');
-  PERFORM public.examination_transition_stage(ex, 'scoping', 'Scoping the offsite review.');
-  PERFORM public.examination_team_member_add(ex, auth.uid(), 'lead_examiner', 5,
-    'AML/CFT offsite review', false);
+  PERFORM public.examination_team_member_add(ex, 'd1016d5f-cde5-46dd-a552-0f2f87abc193',
+    'lead_examiner', 5, 'AML/CFT offsite review', false);
   INSERT INTO public.examination_scoping(examination_id, objectives, risk_focus_areas, legal_basis,
       methodology, budget_days, prepared_by, prepared_at, assessment_dimension_id)
   VALUES (ex, 'Review the documented AML/CFT control environment offsite.',
@@ -510,10 +509,11 @@ END $$;
 -- OSACT-17 — the canonical stage machine and audit trail apply offsite
 -- =====================================================================
 SET LOCAL ROLE authenticated;
-SET LOCAL "request.jwt.claims" = :'SUPERVISOR';
+SET LOCAL "request.jwt.claims" = '{"sub":"d1016d5f-cde5-46dd-a552-0f2f87abc193","role":"authenticated"}';
 DO $$
 DECLARE ex uuid := (SELECT v FROM os WHERE k='ex'); ok boolean := false;
 BEGIN
+  PERFORM public.examination_transition_stage(ex, 'scoping', 'Scoping the offsite review.');
   PERFORM public.examination_transition_stage(ex, 'pre_exam_request', 'Information request issued to the entity.');
   PERFORM public.examination_transition_stage(ex, 'fieldwork', 'Offsite review work commenced.');
   BEGIN
