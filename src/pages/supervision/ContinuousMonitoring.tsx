@@ -159,6 +159,8 @@ function Kpi({ label, value, tone }: { label: string; value: number; tone?: 'war
 
 export default function ContinuousMonitoring() {
   const navigate = useNavigate();
+  const [actionRow, setActionRow] = useState<MonitoringRow | null>(null);
+
   const listing = useListingState({
     defaultSort: { key: 'risk', direction: 'desc' },
     filterKeys: FILTER_KEYS,
