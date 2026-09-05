@@ -482,6 +482,7 @@ export function AmlSupervisoryActivity({
         ]}
 
         submitLabel="Create examination"
+        blocked={examCapabilities.isLoading || !examCapabilities.data?.can_open_examination}
         onSubmit={async (v) =>
           openExamination.mutateAsync({
             interventionId: interventionTarget.id,

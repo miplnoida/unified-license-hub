@@ -44,6 +44,12 @@ export interface AmlActionDialogProps {
   fields: AmlField[];
   submitLabel: string;
   pending?: boolean;
+  /**
+   * The server has not granted this operation (or has not answered yet), so the
+   * dialog may be read but cannot be submitted. The server's own refusal remains
+   * the authority; this only stops a submission the server would refuse.
+   */
+  blocked?: boolean;
   onSubmit: (values: Record<string, string>) => Promise<unknown>;
   onDone?: () => void;
 }
@@ -56,6 +62,7 @@ export function AmlActionDialog({
   fields,
   submitLabel,
   pending,
+  blocked,
   onSubmit,
   onDone,
 }: AmlActionDialogProps) {
@@ -171,7 +178,7 @@ export function AmlActionDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy || pending}>
             Cancel
           </Button>
-          <Button onClick={submit} disabled={busy || pending}>
+          <Button onClick={submit} disabled={busy || pending || blocked}>
             {busy || pending ? 'Working…' : submitLabel}
           </Button>
         </DialogFooter>
