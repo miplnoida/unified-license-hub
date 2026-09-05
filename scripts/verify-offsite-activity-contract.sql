@@ -30,6 +30,14 @@ SET row_security = on;
 \set EXAMINER   '{"sub":"d1016d5f-cde5-46dd-a552-0f2f87abc193","role":"authenticated"}'
 \set OUTSIDER   '{"sub":"411dd06d-648b-4f32-82cc-897902c0c0b6","role":"authenticated"}'
 
+-- production state BEFORE anything is touched (compared again after ROLLBACK)
+SELECT count(*) AS ex_before,
+       count(*) FILTER (WHERE engagement_type = 'OFFSITE_REVIEW') AS offsite_before
+  FROM public.examinations \gset
+SELECT count(*) AS esa_before FROM public.entity_supervision_assignments \gset
+SELECT count(*) AS find_before FROM public.supervisory_finding \gset
+SELECT count(*) AS ra_before FROM public.supervisory_remediation_action \gset
+
 BEGIN;
 
 CREATE TEMP TABLE os(k text PRIMARY KEY, v uuid) ON COMMIT DROP;
@@ -448,79 +456,193 @@ BEGIN
 END $$;
 
 -- =====================================================================
--- OSACT-16/17 — the offsite engagement reuses the shared workspace objects
---               and the one canonical stage machine
+-- OSACT-21 — authorised offsite examiner fixture (transactional only)
 -- =====================================================================
--- Executed by the examination's own lead examiner. The certification examiner
--- persona is scoped by assignment, so if this environment does not place the
--- selected demo entity inside that persona's supervisory scope the server
--- refuses — that refusal is itself recorded, and the gate then proves the
--- authorisation boundary rather than the workspace reuse.
-SET LOCAL ROLE authenticated;
-SET LOCAL "request.jwt.claims" = '{"sub":"d1016d5f-cde5-46dd-a552-0f2f87abc193","role":"authenticated"}';
+-- The certification examiner already holds the AML/CFT examine permission but
+-- is not assigned to the demo entity, so the server refuses offsite work on it.
+-- Rather than weaken the guard or borrow Super Admin, we grant the examiner a
+-- REAL canonical supervision assignment for the AML/CFT regulatory function on
+-- the transactional test entity. It is created inside this transaction and
+-- rolled back with everything else; no production role or assignment changes.
+RESET ROLE;
 DO $$
-DECLARE ex uuid := (SELECT v FROM os WHERE k='ex'); dr uuid; wp uuid; scoped boolean := true;
+DECLARE uid uuid := 'd1016d5f-cde5-46dd-a552-0f2f87abc193';
+        ent uuid := (SELECT v FROM os WHERE k='entity');
+        fn  uuid := (SELECT id FROM public.regulatory_functions WHERE key = 'aml_cft');
+        aid uuid; ex record;
 BEGIN
-  BEGIN
-    PERFORM public.examination_scope_from_assessment(ex,
-      ARRAY[(SELECT v FROM os WHERE k='dimension')],
-      'Scope derived from the approved AML/CFT assessment dimension.');
-    PERFORM public.examination_transition_stage(ex, 'scoping', 'Scoping the offsite review.');
-    PERFORM public.examination_team_member_add(ex, auth.uid(), 'lead_examiner', 5,
-      'AML/CFT offsite review', false);
-    INSERT INTO public.examination_scoping(examination_id, objectives, risk_focus_areas, legal_basis,
-        methodology, budget_days, prepared_by, prepared_at, assessment_dimension_id)
-    VALUES (ex, 'Review the documented AML/CFT control environment offsite.',
-        ARRAY['AML_CFT_CONTROLS'], 'AML/CFT Regulations — supervisory review powers',
-        'Documentary review of policies, MI and monitoring output.', 5,
-        auth.uid(), now(), (SELECT v FROM os WHERE k='dimension'));
-    INSERT INTO public.examination_data_requests(examination_id, item_no, title, description,
-        due_date, status, requested_by)
-    VALUES (ex, 1, 'AML/CFT policy and monitoring MI',
-        'Provide the current AML/CFT policy set and the last four quarters of monitoring MI.',
-        current_date + 10, 'ISSUED', auth.uid())
-    RETURNING id INTO dr;
-    INSERT INTO public.examination_workpapers(examination_id, reference, area, procedure_performed,
-        evidence_reference, conclusion, status, prepared_by, prepared_at)
-    VALUES (ex, 'WP-OSR-01', 'AML_CFT_CONTROLS',
-        'Reviewed the policy set and four quarters of monitoring MI against the approved assessment.',
-        'DR-1 policy pack; MI packs Q1-Q4',
-        'Policy has not been refreshed since the last assessment and MI omits alert ageing.',
-        'SUBMITTED', auth.uid(), now())
-    RETURNING id INTO wp;
-    PERFORM public.examination_transition_stage(ex, 'pre_exam_request', 'Information request issued.');
-    PERFORM public.examination_transition_stage(ex, 'fieldwork', 'Offsite review work commenced.');
-  EXCEPTION WHEN OTHERS THEN
-    IF SQLERRM LIKE '%scope%' OR SQLERRM LIKE '%not_authoris%' OR SQLERRM LIKE '%not_authoriz%'
-       OR SQLERRM LIKE '%FORBIDDEN%' THEN
-      scoped := false;
-      RAISE NOTICE 'OSACT-16/17 NOT PROVEN HERE: the server refused the assigned examiner for this entity (%)', SQLERRM;
-    ELSE RAISE; END IF;
-  END;
-  INSERT INTO osn(k,n) VALUES ('workspace_exercised', CASE WHEN scoped THEN 1 ELSE 0 END);
+  IF public.is_super_admin(uid) THEN
+    RAISE EXCEPTION 'FAIL OSACT-21: the examiner fixture must not be a Super Administrator'; END IF;
+  IF NOT public.has_permission(uid, 'aml_supervision', 'examine') THEN
+    RAISE EXCEPTION 'FAIL OSACT-21: the examiner fixture does not hold the real examination permission'; END IF;
+  IF public.user_has_entity_assignment(uid, ent) THEN
+    RAISE EXCEPTION 'FAIL OSACT-21: the examiner was already in scope — the fixture proves nothing'; END IF;
+  IF fn IS NULL THEN RAISE EXCEPTION 'FAIL OSACT-21: no AML/CFT regulatory function is configured'; END IF;
+
+  -- AML/CFT supervision authority, and the examination function through which
+  -- the examination team itself is administered. Both are function-specific.
+  FOR ex IN
+    SELECT id, key FROM public.regulatory_functions WHERE key IN ('aml_cft','inspection')
+  LOOP
+    INSERT INTO public.entity_supervision_assignments(
+        entity_id, regulator_id, regulatory_function_id, lead_supervisor_user_id,
+        status, is_primary, assignment_reason, effective_from)
+    VALUES (ent,
+        NULLIF(public.entity_regulatory_scope(ent)->>'regulator_id','')::uuid,
+        ex.id, uid, 'active', false,
+        'OS-01B transactional test authority for offsite shared-engine certification', now())
+    RETURNING id INTO aid;
+    IF ex.key = 'aml_cft' THEN INSERT INTO os(k,v) VALUES ('assignment', aid); END IF;
+  END LOOP;
+
+  IF NOT public.user_has_entity_assignment(uid, ent, fn) THEN
+    RAISE EXCEPTION 'FAIL OSACT-21: the assignment fixture did not put the entity in scope'; END IF;
+  IF public.user_has_entity_assignment(
+       uid, ent, (SELECT id FROM public.regulatory_functions WHERE key='market_conduct')) THEN
+    RAISE EXCEPTION 'FAIL OSACT-21: the AML/CFT assignment leaked authority into another function'; END IF;
+  RAISE NOTICE 'PASS OSACT-21: an authorised, regulator/entity-scoped examiner exists for the test entity only';
+END $$;
+
+-- =====================================================================
+-- OSACT-16/17/22..26 — the offsite engagement is positively executed
+--                      through the shared examination engine
+-- =====================================================================
+-- Every step below is the SAME governed operation an onsite examination uses.
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = :'EXAMINER';
+
+-- OSACT-22 scope from the originating assessment
+DO $$
+DECLARE ex uuid := (SELECT v FROM os WHERE k='ex');
+BEGIN
+  PERFORM public.examination_scope_from_assessment(ex,
+    ARRAY[(SELECT v FROM os WHERE k='dimension')],
+    'Scope derived from the approved AML/CFT assessment dimension.');
+END $$;
+
+-- OSACT-23 team, through the canonical team mechanism
+DO $$
+DECLARE ex uuid := (SELECT v FROM os WHERE k='ex'); m uuid;
+BEGIN
+  PERFORM public.examination_transition_stage(ex, 'scoping', 'Scoping the offsite review.');
+  m := (public.examination_team_member_add(ex, auth.uid(), 'lead_examiner', 5,
+          'AML/CFT offsite review', false)->>'id')::uuid;
+  INSERT INTO os(k,v) VALUES ('team_member', m);
+END $$;
+
+-- the scoping memo is the shared prerequisite for review work, offsite included
+DO $$
+DECLARE ex uuid := (SELECT v FROM os WHERE k='ex');
+BEGIN
+  INSERT INTO public.examination_scoping(examination_id, objectives, risk_focus_areas, legal_basis,
+      methodology, budget_days, prepared_by, prepared_at, assessment_dimension_id,
+      approved_by, approved_at)
+  VALUES (ex, 'Review the documented AML/CFT control environment offsite.',
+      ARRAY['AML_CFT_CONTROLS'], 'AML/CFT Regulations — supervisory review powers',
+      'Documentary review of policies, MI and monitoring output.', 5,
+      auth.uid(), now(), (SELECT v FROM os WHERE k='dimension'), auth.uid(), now());
+END $$;
+
+-- OSACT-24 information request, through the canonical request RPC
+DO $$
+DECLARE dr uuid;
+BEGIN
+  dr := public.examination_data_request_save(jsonb_build_object(
+    'examination_id', (SELECT v FROM os WHERE k='ex'),
+    'title','AML/CFT policy set and monitoring MI',
+    'description','Provide the current AML/CFT policy set and the last four quarters of monitoring MI.',
+    'data_format','PDF and spreadsheet',
+    'requested_from','Compliance Officer',
+    'priority','HIGH',
+    'assessment_dimension_id', (SELECT v FROM os WHERE k='dimension'),
+    'due_date', (current_date + 10)::text));
+  INSERT INTO os(k,v) VALUES ('dr', dr);
+  PERFORM public.examination_data_request_issue(dr);
+END $$;
+
+-- OSACT-25 workpaper, through the canonical workpaper RPC and review state
+DO $$
+DECLARE wp uuid;
+BEGIN
+  wp := public.examination_workpaper_save(jsonb_build_object(
+    'examination_id', (SELECT v FROM os WHERE k='ex'),
+    'area','AML_CFT_CONTROLS',
+    'objective','Determine whether the documented AML/CFT control environment remains effective.',
+    'procedure_performed','Reviewed the policy set and four quarters of monitoring MI against the approved assessment.',
+    'evidence_reference','RFI-001 policy pack; MI packs Q1-Q4',
+    'conclusion','Policy has not been refreshed since the last assessment and MI omits alert ageing.',
+    'control_assessment','NEEDS_IMPROVEMENT',
+    'assessment_dimension_id', (SELECT v FROM os WHERE k='dimension')));
+  INSERT INTO os(k,v) VALUES ('wp', wp);
+  PERFORM public.examination_workpaper_submit_review(wp);
+END $$;
+
+-- OSACT-26 the shared stage machine, prerequisites satisfied not bypassed
+DO $$
+DECLARE ex uuid := (SELECT v FROM os WHERE k='ex');
+BEGIN
+  PERFORM public.examination_transition_stage(ex, 'pre_exam_request', 'Information request issued.');
+  PERFORM public.examination_transition_stage(ex, 'fieldwork', 'Offsite review work commenced.');
 END $$;
 
 RESET ROLE;
 DO $$
-DECLARE ex uuid := (SELECT v FROM os WHERE k='ex');
+DECLARE ex uuid := (SELECT v FROM os WHERE k='ex'); sd record; r record; w record; n int;
 BEGIN
-  IF (SELECT n FROM osn WHERE k='workspace_exercised') = 1 THEN
-    IF NOT EXISTS (SELECT 1 FROM public.examination_scope_dimension WHERE examination_id = ex) THEN
-      RAISE EXCEPTION 'FAIL OSACT-16: assessment scope is not linked to the offsite engagement'; END IF;
-    IF NOT EXISTS (SELECT 1 FROM public.examination_scoping WHERE examination_id = ex)
-       OR NOT EXISTS (SELECT 1 FROM public.examination_team_members WHERE examination_id = ex)
-       OR NOT EXISTS (SELECT 1 FROM public.examination_data_requests WHERE examination_id = ex)
-       OR NOT EXISTS (SELECT 1 FROM public.examination_workpapers WHERE examination_id = ex) THEN
-      RAISE EXCEPTION 'FAIL OSACT-16: the shared workspace objects are not usable offsite'; END IF;
-    IF (SELECT stage FROM public.examinations WHERE id = ex) <> 'fieldwork' THEN
-      RAISE EXCEPTION 'FAIL OSACT-17: the offsite engagement is not at the expected lifecycle stage'; END IF;
-    IF (SELECT count(*) FROM public.examination_events WHERE examination_id = ex) < 3 THEN
-      RAISE EXCEPTION 'FAIL OSACT-17: offsite lifecycle changes were not audited'; END IF;
-    RAISE NOTICE 'PASS OSACT-16/17: scope, team, requests and workpapers are shared; one stage machine, one audit trail';
-  ELSE
-    RAISE NOTICE 'PASS OSACT-16/17 (boundary form): offsite work is refused outside the examiner supervisory scope';
-  END IF;
+  -- OSACT-22: exact assessment, exact dimension, stored on this examination
+  SELECT * INTO sd FROM public.examination_scope_dimension WHERE examination_id = ex;
+  IF sd.id IS NULL
+     OR sd.assessment_id IS DISTINCT FROM (SELECT v FROM os WHERE k='assessment')
+     OR sd.assessment_dimension_id IS DISTINCT FROM (SELECT v FROM os WHERE k='dimension') THEN
+    RAISE EXCEPTION 'FAIL OSACT-22: offsite scope does not carry exact assessment provenance'; END IF;
+  IF coalesce(btrim(sd.rationale),'') = '' THEN
+    RAISE EXCEPTION 'FAIL OSACT-22: offsite scope was recorded without a rationale'; END IF;
+  RAISE NOTICE 'PASS OSACT-22: scope-from-assessment succeeds offsite with exact provenance and no questionnaire copy';
+
+  -- OSACT-23: same team storage, lead examiner rule satisfied
+  IF NOT EXISTS (SELECT 1 FROM public.examination_team_members
+                  WHERE examination_id = ex AND team_role = 'lead_examiner'
+                    AND id = (SELECT v FROM os WHERE k='team_member')) THEN
+    RAISE EXCEPTION 'FAIL OSACT-23: the offsite team was not recorded in examination_team_members'; END IF;
+  RAISE NOTICE 'PASS OSACT-23: team assignment uses the canonical examination team, lead examiner rules apply';
+
+  -- OSACT-24: same request storage and lifecycle
+  SELECT * INTO r FROM public.examination_data_requests WHERE id = (SELECT v FROM os WHERE k='dr');
+  IF r.examination_id IS DISTINCT FROM ex THEN
+    RAISE EXCEPTION 'FAIL OSACT-24: the offsite information request is not attached to this examination'; END IF;
+  IF upper(r.status) NOT IN ('ISSUED','SENT') THEN
+    RAISE EXCEPTION 'FAIL OSACT-24: the request did not follow the normal lifecycle (status %)', r.status; END IF;
+  IF r.reference IS NULL THEN
+    RAISE EXCEPTION 'FAIL OSACT-24: the request did not receive a canonical reference'; END IF;
+  RAISE NOTICE 'PASS OSACT-24: information requests use the canonical examination request engine (%)', r.reference;
+
+  -- OSACT-25: same workpaper table, same review state machine
+  SELECT * INTO w FROM public.examination_workpapers WHERE id = (SELECT v FROM os WHERE k='wp');
+  IF w.examination_id IS DISTINCT FROM ex OR w.status <> 'in_review' OR w.submitted_at IS NULL THEN
+    RAISE EXCEPTION 'FAIL OSACT-25: the offsite workpaper did not enter the shared review state'; END IF;
+  IF w.assessment_dimension_id IS NULL OR w.assessment_id IS NULL THEN
+    RAISE EXCEPTION 'FAIL OSACT-25: the offsite workpaper lost its assessment linkage'; END IF;
+  RAISE NOTICE 'PASS OSACT-25: workpapers use the canonical workpaper engine and review state (%)', w.reference;
+
+  -- OSACT-26 / OSACT-17: one stage machine, fully audited
+  IF (SELECT stage FROM public.examinations WHERE id = ex) <> 'fieldwork' THEN
+    RAISE EXCEPTION 'FAIL OSACT-26: the offsite engagement did not progress through the shared stage machine'; END IF;
+  SELECT count(*) INTO n FROM public.examination_events
+   WHERE examination_id = ex AND event_type = 'stage_change';
+  IF n < 3 THEN
+    RAISE EXCEPTION 'FAIL OSACT-26: offsite stage changes were not audited (% events)', n; END IF;
+  RAISE NOTICE 'PASS OSACT-26: OFFSITE_REVIEW uses the same stage machine and prerequisites as onsite work';
+
+  -- OSACT-16/17 conclusion, now positively exercised rather than boundary-only
+  IF NOT (EXISTS (SELECT 1 FROM public.examination_scoping WHERE examination_id = ex)
+      AND EXISTS (SELECT 1 FROM public.examination_scope_dimension WHERE examination_id = ex)
+      AND EXISTS (SELECT 1 FROM public.examination_team_members WHERE examination_id = ex)
+      AND EXISTS (SELECT 1 FROM public.examination_data_requests WHERE examination_id = ex)
+      AND EXISTS (SELECT 1 FROM public.examination_workpapers WHERE examination_id = ex)) THEN
+    RAISE EXCEPTION 'FAIL OSACT-16: the shared workspace objects were not all exercised offsite'; END IF;
+  RAISE NOTICE 'PASS OSACT-16/17: scope, team, requests and workpapers are shared; one stage machine, one audit trail';
 END $$;
+
 
 -- =====================================================================
 -- OSACT-18 — offsite findings enter the canonical finding chain
@@ -596,4 +718,117 @@ BEGIN
   RAISE NOTICE 'PASS OSACT-20: the wave is additive — one offsite engagement, one finding, no other movement';
 END $$;
 
+-- =====================================================================
+-- OSACT-27 — the offsite finding is a canonical finding, issued canonically
+-- =====================================================================
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = :'SUPERVISOR';
+DO $$
+BEGIN
+  PERFORM public.supervisory_finding_lifecycle((SELECT v FROM os WHERE k='f1'), 'REVIEW',
+    'Offsite review workpaper conclusion reviewed for issue.');
+  PERFORM public.supervisory_finding_lifecycle((SELECT v FROM os WHERE k='f1'), 'ISSUED',
+    'Issued to the entity following the offsite review of AML/CFT controls.');
+END $$;
+
+RESET ROLE;
+DO $$
+DECLARE f public.supervisory_finding;
+BEGIN
+  SELECT * INTO f FROM public.supervisory_finding WHERE id = (SELECT v FROM os WHERE k='f1');
+  IF f.status <> 'ISSUED' OR f.issued_by IS NULL THEN
+    RAISE EXCEPTION 'FAIL OSACT-27: the offsite finding did not pass through the canonical issue path'; END IF;
+  IF f.examination_id IS DISTINCT FROM (SELECT v FROM os WHERE k='ex')
+     OR f.intervention_id IS DISTINCT FROM (SELECT v FROM os WHERE k='iv')
+     OR f.assessment_id IS DISTINCT FROM (SELECT v FROM os WHERE k='assessment')
+     OR f.plan_id IS DISTINCT FROM (SELECT v FROM os WHERE k='plan') THEN
+    RAISE EXCEPTION 'FAIL OSACT-27: offsite finding provenance is incomplete'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.supervisory_finding_event
+                  WHERE finding_id = f.id AND event_type = 'ISSUE') THEN
+    RAISE EXCEPTION 'FAIL OSACT-27: the finding issue was not recorded in the canonical event history'; END IF;
+  RAISE NOTICE 'PASS OSACT-27: finding creation and issue offsite use the canonical finding engine (%)', f.reference;
+END $$;
+
+-- =====================================================================
+-- OSACT-28 — remediation is the canonical remediation model, no offsite variant
+-- =====================================================================
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = :'OFFICER';
+DO $$
+DECLARE aid uuid;
+BEGIN
+  aid := public.supervisory_remediation_open((SELECT v FROM os WHERE k='f1'),
+    'Refresh the AML/CFT policy set and extend monitoring MI to include alert ageing.',
+    'A board-approved policy set and MI that evidences alert ageing.',
+    NULL, 'Compliance Officer', current_date + 60);
+  INSERT INTO os(k,v) VALUES ('ra', aid);
+END $$;
+
+RESET ROLE;
+DO $$
+DECLARE a public.supervisory_remediation_action; f public.supervisory_finding;
+BEGIN
+  SELECT * INTO a FROM public.supervisory_remediation_action WHERE id = (SELECT v FROM os WHERE k='ra');
+  SELECT * INTO f FROM public.supervisory_finding WHERE id = (SELECT v FROM os WHERE k='f1');
+  IF a.id IS NULL OR a.finding_id IS DISTINCT FROM f.id OR a.status <> 'OPEN' THEN
+    RAISE EXCEPTION 'FAIL OSACT-28: the offsite corrective action is not on the canonical remediation model'; END IF;
+  IF a.entity_id IS DISTINCT FROM f.entity_id OR a.domain_code IS DISTINCT FROM f.domain_code THEN
+    RAISE EXCEPTION 'FAIL OSACT-28: the corrective action lost its entity or domain context'; END IF;
+  IF f.status <> 'REMEDIATION_REQUIRED' THEN
+    RAISE EXCEPTION 'FAIL OSACT-28: the canonical finding lifecycle did not react to the corrective action'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.supervisory_remediation_event WHERE action_id = a.id) THEN
+    RAISE EXCEPTION 'FAIL OSACT-28: the corrective action has no canonical event history'; END IF;
+  RAISE NOTICE 'PASS OSACT-28: remediation reuses the canonical model and lifecycle (%)', a.reference;
+END $$;
+
+-- =====================================================================
+-- OSACT-29 — no offsite-specific persistence exists anywhere
+-- =====================================================================
+DO $$
+DECLARE bad text;
+BEGIN
+  SELECT string_agg(c.relname, ', ' ORDER BY c.relname) INTO bad
+    FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+   WHERE n.nspname = 'public' AND c.relkind IN ('r','v','m','p','f')
+     AND (c.relname ~* 'offsite' OR c.relname ~* 'off_site' OR c.relname ~* 'desk_review');
+  IF bad IS NOT NULL THEN
+    RAISE EXCEPTION 'FAIL OSACT-29: offsite-specific persistence exists: %', bad; END IF;
+
+  SELECT string_agg(p.proname, ', ' ORDER BY p.proname) INTO bad
+    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'public'
+     AND (p.proname ~* 'offsite_(review|examination|finding|remediation|workpaper|request|scope|assessment)'
+          OR p.proname ~* 'off_site');
+  IF bad IS NOT NULL THEN
+    RAISE EXCEPTION 'FAIL OSACT-29: a parallel offsite engine exists: %', bad; END IF;
+
+  -- every artefact produced above lives on the canonical examination row
+  IF (SELECT count(*) FROM public.examinations WHERE id = (SELECT v FROM os WHERE k='ex')) <> 1 THEN
+    RAISE EXCEPTION 'FAIL OSACT-29: the offsite review is not exactly one canonical examination row'; END IF;
+  RAISE NOTICE 'PASS OSACT-29: zero offsite tables, views, read models or engines — one canonical examination';
+END $$;
+
 ROLLBACK;
+
+-- =====================================================================
+-- OSACT-30 — every fixture and every business row is gone
+-- =====================================================================
+SELECT count(*) AS ex_after,
+       count(*) FILTER (WHERE engagement_type = 'OFFSITE_REVIEW') AS offsite_after
+  FROM public.examinations \gset
+SELECT count(*) AS esa_after FROM public.entity_supervision_assignments \gset
+SELECT count(*) AS find_after FROM public.supervisory_finding \gset
+SELECT count(*) AS ra_after FROM public.supervisory_remediation_action \gset
+SELECT CASE
+         WHEN :ex_after <> :ex_before OR :offsite_after <> :offsite_before
+           THEN 'FAIL OSACT-30: examinations changed'
+         WHEN :esa_after <> :esa_before
+           THEN 'FAIL OSACT-30: a test supervision assignment survived'
+         WHEN :find_after <> :find_before OR :ra_after <> :ra_before
+           THEN 'FAIL OSACT-30: test findings or corrective actions survived'
+         ELSE 'PASS OSACT-30: all authority fixtures and all business rows rolled back — production state unchanged'
+       END AS "OSACT-30";
+
+SELECT :ex_after AS examinations, :offsite_after AS offsite_reviews,
+       :esa_after AS supervision_assignments, :find_after AS findings,
+       :ra_after AS corrective_actions;
