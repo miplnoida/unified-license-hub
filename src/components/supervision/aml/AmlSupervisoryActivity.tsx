@@ -177,7 +177,9 @@ export function AmlSupervisoryActivity({
                       const exam = iv.examination_id
                         ? examinations.find((e) => e.id === iv.examination_id) ?? examByIntervention.get(iv.id)
                         : examByIntervention.get(iv.id);
-                      const needsExam = EXAMINATION_TYPES.has(String(iv.intervention_type)) && !exam;
+                      const execution = interventionExecutionContract(iv.intervention_type);
+                      const needsExam = execution.executionKind === 'EXAMINATION' && !exam;
+                      const lightweightNote = exam ? null : lightweightExecutionGuidance(iv.intervention_type);
                       return (
                         <div key={iv.id} className="rounded-md border bg-muted/30 p-3">
                           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
