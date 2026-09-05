@@ -348,7 +348,7 @@ export default function ContinuousMonitoring() {
               ) : <span className="text-xs text-muted-foreground">None approved</span>) },
             { id: 'due_date', header: 'Reassessment due', sortable: true, sortKey: 'due_date', cell: (r) => <DueCell row={r} /> },
             { id: 'returns', header: 'Filings', priority: 2, cell: (r) => <ReturnsCell row={r} /> },
-            { id: 'engagement', header: 'Engagement', priority: 2, cell: (r) => (
+            { id: 'engagement', header: 'Engagement', priority: 3, cell: (r) => (
               r.engagement ? (
                 <div className="space-y-0.5">
                   <div className="text-xs">{humanize(r.engagement.engagement_type)}</div>
