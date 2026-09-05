@@ -12,6 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowUpRight, Filter, RefreshCw } from 'lucide-react';
 import { useAmlExaminationStages, useAmlExaminationsPage } from '@/hooks/useAmlSupervision';
 import { businessActionLabel, isTerminalStage } from '@/lib/examinationWorkflow';
+import { engagementLabel } from '@/lib/supervisoryEngagement';
 import { useListingState, useServerPageGuard } from '@/components/shared/listing';
 import { AMBER, EMERALD, RED, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
@@ -30,11 +31,11 @@ const STAGE_ORDER = [
 ];
 
 /** Next supervisory action for the register — derived from the canonical stage engine. */
-function nextAction(stage?: string | null): string {
+function nextAction(stage?: string | null, engagementType?: string | null): string {
   if (isTerminalStage(stage)) return '—';
   const idx = STAGE_ORDER.indexOf(String(stage ?? ''));
   const next = idx >= 0 && idx < STAGE_ORDER.length - 1 ? STAGE_ORDER[idx + 1] : null;
-  return next ? businessActionLabel(next) : '—';
+  return next ? businessActionLabel(next, engagementType) : '—';
 }
 
 export default function AmlExaminations() {
@@ -189,7 +190,7 @@ export default function AmlExaminations() {
                     dataType: 'risk',
                     cell: (r) => (
                       <>
-                        <div>{titleCase(r.engagement_type)}</div>
+                        <div>{engagementLabel(r.engagement_type)}</div>
                         <div className="text-muted-foreground">{titleCase(r.examination_type)}</div>
                         {r.risk_rating ? (
                           <Badge variant="outline" className={`mt-1 ${ratingTone(r.risk_rating)}`}>
@@ -237,7 +238,7 @@ export default function AmlExaminations() {
                         <div className="text-muted-foreground">
                           {r.closed_at ? `Closed ${fmtDate(r.closed_at)}` : 'In progress'}
                         </div>
-                        <div className="mt-1">Next: {nextAction(r.stage)}</div>
+                        <div className="mt-1">Next: {nextAction(r.stage, r.engagement_type)}</div>
                       </>
                     ),
                   },
