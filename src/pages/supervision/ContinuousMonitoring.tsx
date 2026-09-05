@@ -355,10 +355,14 @@ export default function ContinuousMonitoring() {
                   <div className="text-[11px] text-muted-foreground">{r.engagement.reference ?? humanize(r.engagement.stage)}</div>
                 </div>
               ) : <span className="text-xs text-muted-foreground">None open</span>) },
-            { id: 'open_findings', header: 'Findings', align: 'right', sortable: true, sortKey: 'open_findings', cell: (r) => (
-              <span className="font-mono text-xs">{r.findings.open}{r.findings.material > 0 ? ` (${r.findings.material} material)` : ''}</span>) },
-            { id: 'overdue_remediation', header: 'Remediation overdue', align: 'right', sortable: true, sortKey: 'overdue_remediation', priority: 3, cell: (r) => (
-              <span className={`font-mono text-xs ${r.remediation.overdue > 0 ? 'text-destructive' : ''}`}>{r.remediation.overdue}</span>) },
+            { id: 'open_findings', header: 'Findings / remediation', align: 'right', sortable: true, sortKey: 'open_findings', cell: (r) => (
+              <div className="space-y-0.5">
+                <div className="font-mono text-xs">{r.findings.open}{r.findings.material > 0 ? ` (${r.findings.material} material)` : ''}</div>
+                <div className={`font-mono text-[11px] ${r.remediation.overdue > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {r.remediation.open} open · {r.remediation.overdue} overdue
+                </div>
+              </div>) },
+
             { id: 'flags', header: 'Monitoring flags', cell: (r) => <FlagsCell row={r} /> },
             { id: 'owner', header: 'Owner', priority: 3, cell: (r) => (
               <div className="space-y-0.5 text-xs">
