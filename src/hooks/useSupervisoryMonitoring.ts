@@ -77,6 +77,8 @@ export interface MonitoringReturnsBlock {
   state: MonitoringReturnsState;
   reason?: string | null;
   domain_linkage: 'NONE' | 'ENTITY_LEVEL_ONLY' | string;
+  /** Server-authored disclosure that filings are not a domain fact. */
+  disclosure?: string | null;
   periods_due?: number;
   filed?: number;
   late?: number;
@@ -87,6 +89,7 @@ export interface MonitoringReturnsBlock {
   latest_submission_at?: string | null;
   source_object?: string | null;
 }
+
 
 export interface MonitoringSignalsBlock {
   count: number;
