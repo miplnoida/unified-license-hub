@@ -450,7 +450,7 @@ END $$;
 -- =====================================================================
 -- OSACT-16 — the offsite engagement reuses the shared workspace objects
 -- =====================================================================
-SET LOCAL "request.jwt.claims" = :'EXAMINER';
+SET LOCAL "request.jwt.claims" = :'SUPERVISOR';
 DO $$
 DECLARE ex uuid := (SELECT v FROM os WHERE k='ex'); dr uuid; wp uuid;
 BEGIN
@@ -510,7 +510,7 @@ END $$;
 -- OSACT-17 — the canonical stage machine and audit trail apply offsite
 -- =====================================================================
 SET LOCAL ROLE authenticated;
-SET LOCAL "request.jwt.claims" = :'EXAMINER';
+SET LOCAL "request.jwt.claims" = :'SUPERVISOR';
 DO $$
 DECLARE ex uuid := (SELECT v FROM os WHERE k='ex'); ok boolean := false;
 BEGIN
