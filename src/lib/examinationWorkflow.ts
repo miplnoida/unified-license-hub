@@ -1,4 +1,5 @@
 import type { ExaminationStage } from '@/hooks/useExaminations';
+import { engagementPhrasing } from '@/lib/supervisoryEngagement';
 
 /**
  * Presentation-only helpers for the examination module.
@@ -50,8 +51,8 @@ const ACTION_LABELS: Record<string, string> = {
   closed: 'Complete examination',
 };
 
-export const businessActionLabel = (toStage?: string | null) =>
-  (toStage && ACTION_LABELS[toStage]) || 'Continue';
+export const businessActionLabel = (toStage?: string | null, engagementType?: string | null) =>
+  engagementPhrasing((toStage && ACTION_LABELS[toStage]) || 'Continue', engagementType);
 
 /** Short plain-language description of what the current stage asks the user to do. */
 const STAGE_GUIDANCE: Record<string, string> = {
@@ -68,8 +69,8 @@ const STAGE_GUIDANCE: Record<string, string> = {
   cancelled: 'This examination was cancelled. All sections are read-only.',
 };
 
-export const stageGuidance = (stage?: string | null) =>
-  (stage && STAGE_GUIDANCE[stage]) || '';
+export const stageGuidance = (stage?: string | null, engagementType?: string | null) =>
+  engagementPhrasing((stage && STAGE_GUIDANCE[stage]) || '', engagementType);
 
 /** Which workspace panel is the "current step" for a given stage. */
 export type CurrentStepKey = 'team' | 'scoping' | 'data-requests' | 'workpapers' | 'exit-meeting' | 'reports' | 'findings';

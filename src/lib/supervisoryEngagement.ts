@@ -146,3 +146,15 @@ export function lightweightExecutionGuidance(interventionType?: string | null): 
   if (executionKind === 'UNKNOWN') return null;
   return null;
 }
+
+/**
+ * Rewrites onsite-only wording for an offsite engagement. Presentation only —
+ * the stage machine, data and permissions are identical for every engagement.
+ */
+export function engagementPhrasing(text: string, engagementType?: string | null): string {
+  if (!isOffsiteEngagement(engagementType)) return text;
+  return text
+    .replace(/Fieldwork/g, 'Offsite review work')
+    .replace(/fieldwork/g, 'offsite review work')
+    .replace(/on-?site/gi, 'offsite');
+}
