@@ -64915,6 +64915,16 @@ export type Database = {
         Returns: Json
       }
       supervisory_monitoring_register_options: { Args: never; Returns: Json }
+      supervisory_monitoring_scope_admits: {
+        Args: {
+          _domain_code: string
+          _entity_id: string
+          _regulator_id: string
+          _sector_id: string
+          _uid: string
+        }
+        Returns: boolean
+      }
       supervisory_plan_action_create: {
         Args: {
           _description?: string
