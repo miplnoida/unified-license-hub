@@ -64563,6 +64563,10 @@ export type Database = {
         Args: { _entity_id: string; _uid: string }
         Returns: undefined
       }
+      supervisory_entity_scope_permits: {
+        Args: { _entity_id: string; _uid: string }
+        Returns: boolean
+      }
       supervisory_examination_open: {
         Args: {
           _domain_code?: string
@@ -64896,6 +64900,28 @@ export type Database = {
         Args: { _methodology_id: string }
         Returns: Json
       }
+      supervisory_monitoring_action_capabilities: {
+        Args: { _domain_code: string; _entity_id: string }
+        Returns: Json
+      }
+      supervisory_monitoring_provenance: {
+        Args: { _domain_code: string; _entity_id: string }
+        Returns: Json
+      }
+      supervisory_monitoring_raise_attention: {
+        Args: {
+          _assessment_id?: string
+          _domain_code: string
+          _entity_id: string
+          _materiality?: string
+          _signal_id?: string
+          _supervisory_basis: string
+          _target_review_date?: string
+          _title?: string
+          _urgency?: string
+        }
+        Returns: Json
+      }
       supervisory_monitoring_register: {
         Args: {
           _attention_state?: string
@@ -64919,6 +64945,17 @@ export type Database = {
         Returns: Json
       }
       supervisory_monitoring_register_options: { Args: never; Returns: Json }
+      supervisory_monitoring_require_reassessment: {
+        Args: {
+          _domain_code: string
+          _due_date?: string
+          _entity_id: string
+          _requested_type?: string
+          _signal_id?: string
+          _trigger_rationale: string
+        }
+        Returns: Json
+      }
       supervisory_monitoring_scope_admits: {
         Args: {
           _domain_code: string
