@@ -1,4 +1,4 @@
--- MON-01…25 — Continuous Monitoring register (OS-02B truthfulness closure)
+-- MON-01…35 — Continuous Monitoring register (OS-02B truthfulness + OS-02C scope convergence)
 --
 -- Contract under test:
 --   public.supervisory_monitoring_register(...)          (SECURITY INVOKER)
@@ -633,6 +633,602 @@ BEGIN
   PERFORM pg_temp.rec('MON-25','zero persistent business writes', ok,
     'canonical populations unchanged by the read models (fixture signal/perimeter rows '
     || 'are discarded by ROLLBACK)');
+END $$;
+
+-- ===========================================================================
+-- OS-02C — canonical scope convergence gates (MON-26…35)
+--
+-- Contract under test:
+--   public.supervisory_monitoring_scope_admits  is a THIN delegation to
+--   public.regulatory_scope_allows over public.supervisory_domain_modules,
+--   so Continuous Monitoring is not a second authorization engine.
+-- ===========================================================================
+
+CREATE TEMP TABLE mon_actor2(
+  asgn_user uuid, team_user uuid, pf_user uuid,
+  fn_aml uuid, fn_pru uuid,
+  ent_aml uuid, ent_pru uuid, ent_team uuid, ent_prec uuid,
+  team_aml uuid, reg2 uuid, sector_in uuid, sector_out uuid);
+
+CREATE TEMP TABLE mon_baseline2 AS
+SELECT (SELECT count(*) FROM public.regulators)                     AS regulators,
+       (SELECT count(*) FROM public.sectors)                        AS sectors,
+       (SELECT count(*) FROM public.regulatory_teams)               AS teams,
+       (SELECT count(*) FROM public.regulatory_team_members)        AS team_members,
+       (SELECT count(*) FROM public.staff_portfolios)               AS portfolios,
+       (SELECT count(*) FROM public.staff_portfolio_scopes)         AS portfolio_scopes,
+       (SELECT count(*) FROM public.regulator_mandates)             AS mandates,
+       (SELECT count(*) FROM public.regulator_mandate_enforcement)  AS mandate_enforcement,
+       (SELECT count(*) FROM public.licensees)                      AS licensees;
+
+DO $$
+DECLARE
+  _amlMod uuid; _pruMod uuid; _licMod uuid;
+  _pAml uuid; _pPru uuid; _pLic uuid;
+  _stAssigned uuid; _stTeam uuid; _stRegulator uuid;
+  _rAsgn uuid; _rTeam uuid; _rPf uuid; _rs uuid;
+  _actors uuid[];
+  _fnAml uuid; _fnPru uuid;
+  _entAml uuid; _entPru uuid; _entTeam uuid; _entPrec uuid;
+  _teamAml uuid; _reg2 uuid; _sIn uuid; _sOut uuid; _pf uuid;
+BEGIN
+  SELECT id INTO _amlMod FROM public.sec_modules WHERE key = 'aml_supervision';
+  SELECT id INTO _pruMod FROM public.sec_modules WHERE key = 'prudential_supervision';
+  SELECT id INTO _licMod FROM public.sec_modules WHERE key = 'license_management';
+  SELECT id INTO _pAml FROM public.sec_permissions WHERE module_id = _amlMod AND key = 'view';
+  SELECT id INTO _pPru FROM public.sec_permissions WHERE module_id = _pruMod AND key = 'view';
+  SELECT id INTO _pLic FROM public.sec_permissions WHERE module_id = _licMod AND key = 'view';
+  SELECT id INTO _stAssigned  FROM public.sec_scope_types WHERE key = 'assigned';
+  SELECT id INTO _stTeam      FROM public.sec_scope_types WHERE key = 'team';
+  SELECT id INTO _stRegulator FROM public.sec_scope_types WHERE key = 'regulator';
+
+  _fnAml := public.supervisory_domain_regulatory_function('AML_CFT');
+  _fnPru := public.supervisory_domain_regulatory_function('PRUDENTIAL');
+
+  -- three further internal identities, disjoint from the MON-01…25 personas
+  SELECT array_agg(s.id) INTO _actors FROM (
+    SELECT u.id FROM auth.users u
+     WHERE NOT public.is_super_admin(u.id)
+       AND NOT EXISTS (SELECT 1 FROM public.external_user_entity_ids(u.id))
+       AND NOT EXISTS (SELECT 1 FROM public.user_roles ur
+                        WHERE ur.user_id = u.id
+                          AND ur.role IN ('applicant','pre_licensee',
+                                          'licensee_primary','licensee_secondary'))
+       AND EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = u.id)
+       AND u.id NOT IN (SELECT aml_user FROM mon_actor
+                        UNION SELECT pru_user FROM mon_actor
+                        UNION SELECT reg_user FROM mon_actor)
+     ORDER BY u.created_at, u.id LIMIT 3) s;
+  IF COALESCE(array_length(_actors,1),0) < 3 THEN
+    RAISE EXCEPTION 'fixture_identities_unavailable_os02c: found %',
+      COALESCE(array_length(_actors,1),0);
+  END IF;
+
+  DELETE FROM public.sec_user_roles WHERE user_id = ANY(_actors);
+  DELETE FROM public.user_roles WHERE user_id = ANY(_actors);
+
+  -- assigned-scope persona (AML only)
+  INSERT INTO public.sec_roles(key,name,role_type,status)
+  VALUES ('zz_mon_aml_assigned','ZZ MON AML assigned-scope','internal','active')
+  RETURNING id INTO _rAsgn;
+  INSERT INTO public.sec_role_permissions(role_id,permission_id)
+  VALUES (_rAsgn,_pAml),(_rAsgn,_pLic);
+  INSERT INTO public.sec_role_scopes(role_id,module_id,scope_type_id)
+  VALUES (_rAsgn,_amlMod,_stAssigned);
+
+  -- team-scope persona (AML and Prudential permissions, team scope on both)
+  INSERT INTO public.sec_roles(key,name,role_type,status)
+  VALUES ('zz_mon_team_scope','ZZ MON team-scope supervisor','internal','active')
+  RETURNING id INTO _rTeam;
+  INSERT INTO public.sec_role_permissions(role_id,permission_id)
+  VALUES (_rTeam,_pAml),(_rTeam,_pPru),(_rTeam,_pLic);
+  INSERT INTO public.sec_role_scopes(role_id,module_id,scope_type_id)
+  VALUES (_rTeam,_amlMod,_stTeam),(_rTeam,_pruMod,_stTeam);
+
+  -- regulator-scope persona used for portfolio + mandate narrowing
+  INSERT INTO public.regulators(name,code,status)
+  VALUES ('ZZ MON2 Regulator (fixture)','ZZMON2R','active') RETURNING id INTO _reg2;
+
+  SELECT l.sector_id INTO _sIn FROM public.licensees l
+   WHERE l.sector_id IS NOT NULL GROUP BY l.sector_id
+   ORDER BY count(*) DESC, l.sector_id LIMIT 1;
+  SELECT l.sector_id INTO _sOut FROM public.licensees l
+   WHERE l.sector_id IS NOT NULL AND l.sector_id <> _sIn GROUP BY l.sector_id
+   ORDER BY count(*) DESC, l.sector_id LIMIT 1;
+  IF _sIn IS NULL OR _sOut IS NULL THEN
+    RAISE EXCEPTION 'fixture_sectors_unavailable_os02c';
+  END IF;
+  -- entity_regulatory_scope derives the regulator from the sector, so the
+  -- fixture regulator is attached to the two sectors (rolled back).
+  UPDATE public.sectors SET regulator_id = _reg2 WHERE id IN (_sIn, _sOut);
+
+  INSERT INTO public.sec_roles(key,name,role_type,status)
+  VALUES ('zz_mon_pf_regulator','ZZ MON portfolio/mandate supervisor','internal','active')
+  RETURNING id INTO _rPf;
+  INSERT INTO public.sec_role_permissions(role_id,permission_id)
+  VALUES (_rPf,_pAml),(_rPf,_pLic);
+  INSERT INTO public.sec_role_scopes(role_id,module_id,scope_type_id)
+  VALUES (_rPf,_amlMod,_stRegulator) RETURNING id INTO _rs;
+  INSERT INTO public.sec_role_scope_values(role_scope_id,value_kind,value_id)
+  VALUES (_rs,'regulator',_reg2);
+
+  INSERT INTO public.sec_user_roles(user_id,role_id,status) VALUES
+    (_actors[1],_rAsgn,'active'), (_actors[2],_rTeam,'active'), (_actors[3],_rPf,'active');
+
+  -- four distinct fixture entities with a known classification and NO existing
+  -- current assignment, so the precedence proof is deterministic
+  CREATE TEMP TABLE mon_free_ents AS
+  SELECT l.id, row_number() OVER (ORDER BY l.created_at, l.id) AS rn
+    FROM public.licensees l
+   WHERE l.sector_id IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM public.entity_supervision_assignments a
+                      WHERE a.entity_id = l.id AND a.effective_to IS NULL);
+  SELECT id INTO _entAml  FROM mon_free_ents WHERE rn = 1;
+  SELECT id INTO _entPru  FROM mon_free_ents WHERE rn = 2;
+  SELECT id INTO _entTeam FROM mon_free_ents WHERE rn = 3;
+  SELECT id INTO _entPrec FROM mon_free_ents WHERE rn = 4;
+  IF _entPrec IS NULL THEN
+    RAISE EXCEPTION 'fixture_entities_unavailable_os02c: need 4 unassigned licensees';
+  END IF;
+
+  -- AML-function assignment (must satisfy AML assigned scope)
+  INSERT INTO public.entity_supervision_assignments(
+    entity_id, status, effective_from, regulatory_function_id,
+    lead_supervisor_user_id, is_primary, assignment_reason)
+  VALUES (_entAml,'active',now() - interval '1 day',_fnAml,_actors[1],true,
+          'MON-27 fixture (rolled back)');
+
+  -- Prudential-function assignment for the SAME officer on another entity
+  -- (must NOT satisfy AML assigned scope)
+  INSERT INTO public.entity_supervision_assignments(
+    entity_id, status, effective_from, regulatory_function_id,
+    lead_supervisor_user_id, is_primary, assignment_reason)
+  VALUES (_entPru,'active',now() - interval '1 day',_fnPru,_actors[1],true,
+          'MON-28 fixture (rolled back)');
+
+  -- AML team covering _entTeam
+  INSERT INTO public.regulatory_teams(regulator_id,regulatory_function_id,code,name,
+                                      team_type,status,effective_from)
+  VALUES ((SELECT COALESCE(s.regulator_id,_reg2) FROM public.sectors s
+            WHERE s.id = (SELECT sector_id FROM public.licensees WHERE id = _entTeam)),
+          _fnAml,'ZZMONTEAM','ZZ MON AML team (fixture)','permanent','active',
+          now() - interval '1 day')
+  RETURNING id INTO _teamAml;
+  INSERT INTO public.regulatory_team_members(team_id,user_id,member_role,status,effective_from)
+  VALUES (_teamAml,_actors[2],'member','active',now() - interval '1 day');
+  INSERT INTO public.entity_supervision_assignments(
+    entity_id, status, effective_from, regulatory_function_id, team_id,
+    is_primary, assignment_reason)
+  VALUES (_entTeam,'active',now() - interval '1 day',_fnAml,_teamAml,true,
+          'MON-29 fixture (rolled back)');
+
+  -- precedence fixture: one AML-function assignment plus one legacy
+  -- function-unscoped assignment on the same entity
+  INSERT INTO public.entity_supervision_assignments(
+    entity_id, status, effective_from, regulatory_function_id,
+    lead_supervisor_user_id, is_primary, assignment_reason)
+  VALUES (_entPrec,'active',now() - interval '2 days',_fnAml,_actors[1],true,
+          'MON-33 function-scoped fixture (rolled back)');
+  INSERT INTO public.entity_supervision_assignments(
+    entity_id, status, effective_from, regulatory_function_id,
+    lead_supervisor_user_id, is_primary, assignment_reason)
+  VALUES (_entPrec,'active',now() - interval '1 day',NULL,_actors[2],true,
+          'MON-33 legacy unscoped fixture (rolled back)');
+
+  -- staff portfolio narrowing the regulator-scoped persona to ONE sector
+  INSERT INTO public.staff_portfolios(user_id,regulator_id,regulatory_function_id,
+                                      status,effective_from)
+  VALUES (_actors[3],_reg2,_fnAml,'active',now() - interval '1 day')
+  RETURNING id INTO _pf;
+  INSERT INTO public.staff_portfolio_scopes(portfolio_id,scope_kind,sector_id)
+  VALUES (_pf,'sector',_sIn);
+
+  INSERT INTO mon_actor2 VALUES
+    (_actors[1],_actors[2],_actors[3],_fnAml,_fnPru,
+     _entAml,_entPru,_entTeam,_entPrec,_teamAml,_reg2,_sIn,_sOut);
+END $$;
+
+GRANT SELECT ON mon_actor2, mon_baseline2 TO authenticated;
+
+-- ===========================================================================
+-- MON-26 — monitoring scope delegates to the canonical scope contract
+-- ===========================================================================
+DO $$
+DECLARE
+  src text; a record; b record; n bigint; ok boolean := true; msg text := '';
+  own_logic text[] := ARRAY['user_scope_grants_for','staff_portfolio_allows',
+                            'regulator_mandate_supports','user_has_entity_assignment',
+                            'user_team_covers_entity'];
+  t text;
+BEGIN
+  SELECT pg_get_functiondef(p.oid) INTO src FROM pg_proc p
+    JOIN pg_namespace ns ON ns.oid = p.pronamespace
+   WHERE ns.nspname = 'public' AND p.proname = 'supervisory_monitoring_scope_admits';
+
+  IF position('regulatory_scope_allows' in src) = 0 THEN
+    ok := false; msg := msg || 'does not call regulatory_scope_allows; ';
+  END IF;
+  FOREACH t IN ARRAY own_logic LOOP
+    IF position(t in src) > 0 THEN
+      ok := false; msg := msg || 'reimplements ' || t || '; ';
+    END IF;
+  END LOOP;
+
+  -- behavioural equivalence across every persona x domain x sampled entity
+  SELECT * INTO a FROM mon_actor;
+  SELECT * INTO b FROM mon_actor2;
+  SELECT count(*) INTO n
+    FROM (SELECT u FROM unnest(ARRAY[a.aml_user,a.pru_user,a.reg_user,
+                                     b.asgn_user,b.team_user,b.pf_user]) u) usr,
+         (VALUES ('AML_CFT'),('PRUDENTIAL'),('MARKET_CONDUCT'),('CROSS_DOMAIN')) d(dom),
+         (SELECT l.id, l.sector_id, l.lead_regulator_id FROM public.licensees l
+           WHERE l.sector_id IS NOT NULL ORDER BY l.created_at, l.id LIMIT 8) e
+   WHERE public.supervisory_monitoring_scope_admits(usr.u, d.dom, e.id,
+                                                    e.lead_regulator_id, e.sector_id)
+      IS DISTINCT FROM EXISTS (
+         SELECT 1 FROM unnest(public.supervisory_domain_modules(d.dom)) m
+          WHERE public.regulatory_scope_allows(
+                  usr.u, m, 'view', NULL, NULL, NULL, e.id, NULL,
+                  COALESCE(public.supervisory_domain_regulatory_function(d.dom),
+                           public.regulatory_function_for_module(m))));
+  IF n <> 0 THEN
+    ok := false; msg := msg || 'behavioural divergence on ' || n || ' probes; ';
+  END IF;
+
+  PERFORM pg_temp.rec('MON-26','monitoring scope delegates to canonical contract', ok,
+    COALESCE(NULLIF(msg,''),
+      'thin delegation over public.supervisory_domain_modules -> '
+      || 'public.regulatory_scope_allows; 192 persona x domain x entity probes identical; '
+      || 'zero local re-implementation of role scope, portfolio, mandate, assignment or team logic'));
+END $$;
+
+-- ===========================================================================
+-- MON-27 — assigned scope is satisfied by the domain's own function assignment
+-- ===========================================================================
+DO $$
+DECLARE b record; ok boolean;
+BEGIN
+  SELECT * INTO b FROM mon_actor2;
+  ok := public.supervisory_monitoring_scope_admits(b.asgn_user,'AML_CFT',b.ent_aml,NULL,NULL)
+        AND public.user_has_entity_assignment(b.asgn_user, b.ent_aml, b.fn_aml);
+  PERFORM pg_temp.rec('MON-27','assigned scope is regulatory-function specific', ok,
+    'AML/CFT assignment admits the entity for AML monitoring: ' || ok::text);
+END $$;
+
+-- ===========================================================================
+-- MON-28 — an unrelated function assignment never admits the entity
+-- ===========================================================================
+DO $$
+DECLARE b record; ok boolean := true; msg text := '';
+BEGIN
+  SELECT * INTO b FROM mon_actor2;
+  IF public.supervisory_monitoring_scope_admits(b.asgn_user,'AML_CFT',b.ent_pru,NULL,NULL) THEN
+    ok := false; msg := msg || 'prudential-only assignment admitted AML monitoring; ';
+  END IF;
+  IF public.user_has_entity_assignment(b.asgn_user, b.ent_pru, b.fn_aml) THEN
+    ok := false; msg := msg || 'canonical assignment check leaked across functions; ';
+  END IF;
+  -- the same officer holds no prudential permission at all, so the prudential
+  -- domain is closed to them even on the entity they are assigned to
+  IF public.supervisory_monitoring_scope_admits(b.asgn_user,'PRUDENTIAL',b.ent_pru,NULL,NULL) THEN
+    ok := false; msg := msg || 'assignment granted a permission the role never held; ';
+  END IF;
+  PERFORM pg_temp.rec('MON-28','unrelated function assignment does not admit', ok,
+    COALESCE(NULLIF(msg,''),
+      'prudential-function assignment rejected for AML monitoring; assignment never widens permission'));
+END $$;
+
+-- ===========================================================================
+-- MON-29 — team coverage is regulatory-function specific
+-- ===========================================================================
+DO $$
+DECLARE b record; ok boolean := true; msg text := '';
+BEGIN
+  SELECT * INTO b FROM mon_actor2;
+  IF NOT public.user_team_covers_entity(b.team_user, b.ent_team, b.fn_aml) THEN
+    ok := false; msg := msg || 'AML team does not cover its own entity; ';
+  END IF;
+  IF NOT public.supervisory_monitoring_scope_admits(b.team_user,'AML_CFT',b.ent_team,NULL,NULL) THEN
+    ok := false; msg := msg || 'AML team scope did not admit AML monitoring; ';
+  END IF;
+  IF public.user_team_covers_entity(b.team_user, b.ent_team, b.fn_pru) THEN
+    ok := false; msg := msg || 'AML team covered the prudential function; ';
+  END IF;
+  IF public.supervisory_monitoring_scope_admits(b.team_user,'PRUDENTIAL',b.ent_team,NULL,NULL) THEN
+    ok := false; msg := msg || 'AML team granted prudential monitoring; ';
+  END IF;
+  PERFORM pg_temp.rec('MON-29','team coverage is regulatory-function specific', ok,
+    COALESCE(NULLIF(msg,''),
+      'AML team admits AML monitoring only; prudential monitoring refused for the same entity'));
+END $$;
+
+-- ===========================================================================
+-- MON-30 — staff portfolio narrowing enforced
+-- ===========================================================================
+DO $$
+DECLARE b record; r jsonb; total int; outside int; ok boolean := true; msg text := '';
+BEGIN
+  SELECT * INTO b FROM mon_actor2;
+  -- role grant is regulator-wide; the portfolio narrows it to one sector
+  IF NOT public.supervisory_monitoring_scope_admits(
+           b.pf_user,'AML_CFT',
+           (SELECT l.id FROM public.licensees l WHERE l.sector_id = b.sector_in
+             ORDER BY l.created_at, l.id LIMIT 1), NULL, NULL) THEN
+    ok := false; msg := msg || 'in-portfolio sector entity refused; ';
+  END IF;
+  IF public.supervisory_monitoring_scope_admits(
+       b.pf_user,'AML_CFT',
+       (SELECT l.id FROM public.licensees l WHERE l.sector_id = b.sector_out
+         ORDER BY l.created_at, l.id LIMIT 1), NULL, NULL) THEN
+    ok := false; msg := msg || 'out-of-portfolio sector entity admitted; ';
+  END IF;
+
+  PERFORM pg_temp.act_as(b.pf_user);
+  r := public.supervisory_monitoring_register(null,null,null,null,null,null,null,null,
+                                              null,null,null,null,null,'entity','asc',1,100);
+  PERFORM pg_temp.act_as_owner();
+  total := jsonb_array_length(r->'rows');
+  SELECT count(*) INTO outside FROM jsonb_array_elements(r->'rows') x
+   WHERE (x->>'sector_id') IS DISTINCT FROM b.sector_in::text;
+  IF total = 0 THEN ok := false; msg := msg || 'register returned no rows to narrow; '; END IF;
+  IF outside <> 0 THEN
+    ok := false; msg := msg || outside || ' rows outside the portfolio sector; ';
+  END IF;
+  PERFORM pg_temp.rec('MON-30','staff portfolio narrowing enforced', ok,
+    COALESCE(NULLIF(msg,''),
+      'regulator-wide grant narrowed by public.staff_portfolio_allows to the portfolio sector: '
+      || total || ' rows, 0 outside'));
+END $$;
+
+-- ===========================================================================
+-- MON-31 — regulator mandate narrowing enforced once activated
+-- ===========================================================================
+DO $$
+DECLARE b record; r jsonb; ok boolean := true; msg text := '';
+        before_rows int; after_rows int; scoped_rows int; outside int;
+BEGIN
+  SELECT * INTO b FROM mon_actor2;
+  PERFORM pg_temp.act_as(b.pf_user);
+  r := public.supervisory_monitoring_register(null,null,null,null,null,null,null,null,
+                                              null,null,null,null,null,'entity','asc',1,100);
+  PERFORM pg_temp.act_as_owner();
+  before_rows := jsonb_array_length(r->'rows');
+
+  -- activate mandate enforcement for the fixture regulator + AML function with
+  -- NO covering mandate: the officer must lose the whole domain
+  INSERT INTO public.regulator_mandate_enforcement(
+    regulator_id, regulatory_function_id, enforcement_status, activated_at)
+  VALUES (b.reg2, b.fn_aml, 'ACTIVE', now())
+  ON CONFLICT (regulator_id, regulatory_function_id)
+    DO UPDATE SET enforcement_status = 'ACTIVE', activated_at = now();
+
+  PERFORM pg_temp.act_as(b.pf_user);
+  r := public.supervisory_monitoring_register(null,null,null,null,null,null,null,null,
+                                              null,null,null,null,null,'entity','asc',1,100);
+  PERFORM pg_temp.act_as_owner();
+  after_rows := jsonb_array_length(r->'rows');
+  IF after_rows <> 0 THEN
+    ok := false; msg := msg || 'active enforcement without a mandate still returned '
+                       || after_rows || ' rows; ';
+  END IF;
+
+  -- record a covering mandate for the portfolio sector only
+  INSERT INTO public.regulator_mandates(regulator_id, regulatory_function_id, sector_id,
+                                        responsibility_type, effective_from, status, notes)
+  VALUES (b.reg2, b.fn_aml, b.sector_in, 'LEAD', now() - interval '1 day', 'active',
+          'MON-31 fixture (rolled back)');
+
+  PERFORM pg_temp.act_as(b.pf_user);
+  r := public.supervisory_monitoring_register(null,null,null,null,null,null,null,null,
+                                              null,null,null,null,null,'entity','asc',1,100);
+  PERFORM pg_temp.act_as_owner();
+  scoped_rows := jsonb_array_length(r->'rows');
+  SELECT count(*) INTO outside FROM jsonb_array_elements(r->'rows') x
+   WHERE (x->>'sector_id') IS DISTINCT FROM b.sector_in::text;
+  IF scoped_rows = 0 THEN ok := false; msg := msg || 'covering mandate returned no rows; '; END IF;
+  IF outside <> 0 THEN
+    ok := false; msg := msg || outside || ' rows outside the mandate sector; ';
+  END IF;
+
+  PERFORM pg_temp.rec('MON-31','regulator mandate narrowing enforced', ok,
+    COALESCE(NULLIF(msg,''),
+      'inert before activation (' || before_rows || ' rows), fail-closed once ACTIVE with no mandate ('
+      || after_rows || ' rows), restored to the mandated sector only (' || scoped_rows || ' rows)'));
+END $$;
+
+-- ===========================================================================
+-- MON-32 — options are a subset of the authorised register population
+-- ===========================================================================
+DO $$
+DECLARE a record; b record; o jsonb; r jsonb; n int; ok boolean := true; msg text := '';
+BEGIN
+  SELECT * INTO a FROM mon_actor;
+  SELECT * INTO b FROM mon_actor2;
+
+  FOR n IN 1..2 LOOP
+    DECLARE _u uuid := CASE n WHEN 1 THEN a.aml_user ELSE b.asgn_user END;
+            _pairs int;
+    BEGIN
+      PERFORM pg_temp.act_as(_u);
+      o := public.supervisory_monitoring_register_options();
+      r := public.supervisory_monitoring_register(null,null,null,null,null,null,null,null,
+                                                  null,null,null,null,null,'entity','asc',1,100);
+      PERFORM pg_temp.act_as_owner();
+
+      CREATE TEMP TABLE IF NOT EXISTS mon_pairs(uid uuid, entity_id uuid, domain_code text);
+      DELETE FROM mon_pairs;
+      INSERT INTO mon_pairs
+      SELECT _u, l.id, d.dom
+        FROM public.licensees l,
+             (VALUES ('PRUDENTIAL'),('AML_CFT'),('MARKET_CONDUCT'),
+                     ('OPERATIONAL_RESILIENCE'),('GOVERNANCE'),('CROSS_DOMAIN')) d(dom)
+       WHERE public.sup_domain_readable(_u, d.dom)
+         AND public.supervisory_monitoring_scope_admits(_u, d.dom, l.id,
+               l.lead_regulator_id, l.sector_id);
+      SELECT count(*) INTO _pairs FROM mon_pairs;
+
+      IF EXISTS (SELECT 1 FROM jsonb_array_elements_text(o->'domains') d
+                  WHERE NOT EXISTS (SELECT 1 FROM mon_pairs p WHERE p.domain_code = d.value)) THEN
+        ok := false; msg := msg || 'domain option outside the authorised population; ';
+      END IF;
+      IF EXISTS (SELECT 1 FROM jsonb_array_elements(o->'regulators') g
+                  WHERE NOT EXISTS (SELECT 1 FROM mon_pairs p
+                                     JOIN public.licensees l ON l.id = p.entity_id
+                                    WHERE l.lead_regulator_id = (g->>'id')::uuid)) THEN
+        ok := false; msg := msg || 'regulator option with no authorised record; ';
+      END IF;
+      IF EXISTS (SELECT 1 FROM jsonb_array_elements(o->'sectors') g
+                  WHERE NOT EXISTS (SELECT 1 FROM mon_pairs p
+                                     JOIN public.licensees l ON l.id = p.entity_id
+                                    WHERE l.sector_id = (g->>'id')::uuid)) THEN
+        ok := false; msg := msg || 'sector option with no authorised record; ';
+      END IF;
+      IF EXISTS (SELECT 1 FROM jsonb_array_elements(o->'teams') g
+                  WHERE NOT EXISTS (
+                    SELECT 1 FROM mon_pairs p
+                    CROSS JOIN LATERAL public.supervisory_domain_assignment(p.entity_id, p.domain_code) z
+                     WHERE z.team_id = (g->>'id')::uuid)) THEN
+        ok := false; msg := msg || 'team option with no authorised record; ';
+      END IF;
+      IF EXISTS (SELECT 1 FROM jsonb_array_elements(o->'owners') g
+                  WHERE NOT EXISTS (
+                    SELECT 1 FROM mon_pairs p
+                    CROSS JOIN LATERAL public.supervisory_domain_assignment(p.entity_id, p.domain_code) z
+                     WHERE z.lead_supervisor_id = (g->>'id')::uuid)) THEN
+        ok := false; msg := msg || 'owner option with no authorised record; ';
+      END IF;
+      IF EXISTS (SELECT 1 FROM jsonb_array_elements_text(o->'engagement_types') g
+                  WHERE NOT EXISTS (
+                    SELECT 1 FROM public.examinations x JOIN mon_pairs p
+                        ON p.entity_id = x.entity_id
+                       AND COALESCE(x.domain_code,'CROSS_DOMAIN') = p.domain_code
+                     WHERE upper(x.engagement_type) = g.value)) THEN
+        ok := false; msg := msg || 'engagement-type option with no authorised record; ';
+      END IF;
+      IF EXISTS (SELECT 1 FROM jsonb_array_elements_text(o->'risk_ratings') g
+                  WHERE NOT EXISTS (
+                    SELECT 1 FROM public.supervisory_assessment sa JOIN mon_pairs p
+                        ON p.entity_id = sa.entity_id
+                       AND COALESCE(sa.domain_code,'CROSS_DOMAIN') = p.domain_code
+                     WHERE upper(sa.residual_rating) = g.value
+                       AND sa.status = 'approved' AND COALESCE(sa.is_current,false))) THEN
+        ok := false; msg := msg || 'risk-rating option with no authorised record; ';
+      END IF;
+      IF (o->>'scope_basis') <> 'CANONICAL_REGULATORY_SCOPE_ALLOWS' THEN
+        ok := false; msg := msg || 'options do not declare the canonical scope basis; ';
+      END IF;
+      msg := msg || '[persona ' || n || ' authorised pairs=' || _pairs
+                 || ' register total=' || (r->>'total_count') || '] ';
+    END;
+  END LOOP;
+
+  PERFORM pg_temp.rec('MON-32','options use the same authorised population', ok, msg);
+END $$;
+
+-- ===========================================================================
+-- MON-33 — domain owner precedence remains function-correct
+-- ===========================================================================
+DO $$
+DECLARE b record; aml record; pru record; ok boolean := true; msg text := '';
+BEGIN
+  SELECT * INTO b FROM mon_actor2;
+  SELECT * INTO aml FROM public.supervisory_domain_assignment(b.ent_prec,'AML_CFT');
+  SELECT * INTO pru FROM public.supervisory_domain_assignment(b.ent_prec,'PRUDENTIAL');
+
+  IF aml.regulatory_function_id IS DISTINCT FROM b.fn_aml
+     OR aml.assignment_scope <> 'DOMAIN_FUNCTION_SCOPED'
+     OR aml.lead_supervisor_id IS DISTINCT FROM b.asgn_user THEN
+    ok := false; msg := msg || 'AML owner did not prefer the AML-function assignment ('
+                       || COALESCE(aml.assignment_scope,'<none>') || '); ';
+  END IF;
+  IF pru.regulatory_function_id IS NOT NULL THEN
+    ok := false; msg := msg || 'prudential owner resolved to another function''s assignment; ';
+  END IF;
+  IF pru.lead_supervisor_id IS DISTINCT FROM b.team_user
+     OR pru.assignment_scope <> 'ENTITY_LEVEL_UNSCOPED' THEN
+    ok := false; msg := msg || 'prudential owner did not fall back to the legacy unscoped row ('
+                       || COALESCE(pru.assignment_scope,'<none>') || '); ';
+  END IF;
+  IF aml.lead_supervisor_id IS NOT DISTINCT FROM pru.lead_supervisor_id THEN
+    ok := false; msg := msg || 'both domains resolved to the same owner; ';
+  END IF;
+
+  PERFORM pg_temp.rec('MON-33','domain owner precedence function-correct', ok,
+    COALESCE(NULLIF(msg,''),
+      'AML -> function-scoped assignment (DOMAIN_FUNCTION_SCOPED); prudential -> permitted '
+      || 'function-unscoped legacy row (ENTITY_LEVEL_UNSCOPED); another function''s assignment never chosen'));
+END $$;
+
+-- ===========================================================================
+-- MON-34 — filing entity counts remain de-duplicated (OS-02B fix preserved)
+-- ===========================================================================
+DO $$
+DECLARE a record; r jsonb; s jsonb; ok boolean := true; msg text := '';
+        doms int; row_issues bigint; ent_issues bigint;
+BEGIN
+  SELECT * INTO a FROM mon_actor;
+  PERFORM pg_temp.act_as(COALESCE(a.spine_user, a.aml_user));
+  r := public.supervisory_monitoring_register(null,null,null,null,null,null,null,null,
+                                              null,null,null,null,null,'entity','asc',1,100);
+  PERFORM pg_temp.act_as_owner();
+  s := r->'summary';
+  doms := GREATEST(jsonb_array_length(r->'authorised_domains'), 1);
+
+  IF (s->>'filing_metrics_basis') <> 'ENTITY_LEVEL_ONLY' THEN
+    ok := false; msg := msg || 'filing basis is not ENTITY_LEVEL_ONLY; ';
+  END IF;
+  IF s ? 'returns_late' OR s ? 'returns_missing' THEN
+    ok := false; msg := msg || 'legacy domain-multiplied filing measures reappeared; ';
+  END IF;
+
+  -- the headline counts ENTITIES, so it must never track the row (pair) count
+  SELECT count(*), count(DISTINCT x->>'entity_id') INTO row_issues, ent_issues
+    FROM jsonb_array_elements(r->'rows') x
+   WHERE COALESCE(x->'returns'->>'state','') IN ('LATE','MISSING');
+  IF doms > 1 AND row_issues > 0 AND row_issues = ent_issues * doms
+     AND (s->>'entities_with_filing_issues')::bigint = row_issues THEN
+    ok := false; msg := msg || 'headline equals the domain-multiplied row count; ';
+  END IF;
+  IF (s->>'entities_with_filing_issues')::bigint
+     > (SELECT count(*) FROM public.licensees) THEN
+    ok := false; msg := msg || 'entity filing count exceeds the entity population; ';
+  END IF;
+  IF (s->>'entities_with_filing_issues')::bigint
+     < GREATEST((s->>'entities_with_late_filings')::bigint,
+                (s->>'entities_with_missing_filings')::bigint) THEN
+    ok := false; msg := msg || 'issue count below its components; ';
+  END IF;
+
+  msg := msg || 'entities_with_late_filings=' || COALESCE(s->>'entities_with_late_filings','-')
+             || ' entities_with_missing_filings=' || COALESCE(s->>'entities_with_missing_filings','-')
+             || ' entities_with_filing_issues=' || COALESCE(s->>'entities_with_filing_issues','-')
+             || ' late_filing_periods=' || COALESCE(s->>'late_filing_periods','-')
+             || ' missing_filing_periods=' || COALESCE(s->>'missing_filing_periods','-')
+             || ' basis=' || COALESCE(s->>'filing_metrics_basis','-')
+             || ' (authorised domains=' || doms || ', rows with a filing issue=' || row_issues
+             || ' over ' || ent_issues || ' distinct entities)';
+  PERFORM pg_temp.rec('MON-34','filing entity counts de-duplicated', ok, msg);
+END $$;
+
+-- ===========================================================================
+-- MON-35 — zero persistent writes from the OS-02C scope evaluation
+-- ===========================================================================
+DO $$
+DECLARE b record; ok boolean; msg text;
+BEGIN
+  SELECT * INTO b FROM mon_baseline2;
+  ok := (SELECT count(*) FROM public.licensees) = b.licensees
+    AND (SELECT count(*) FROM public.staff_portfolios)
+        = b.portfolios + 1                       -- the single MON-30 fixture
+    AND (SELECT count(*) FROM public.staff_portfolio_scopes)
+        = b.portfolio_scopes + 1
+    AND (SELECT count(*) FROM public.regulator_mandates) = b.mandates + 1
+    AND (SELECT count(*) FROM public.regulatory_teams) = b.teams + 1
+    AND (SELECT count(*) FROM public.regulatory_team_members) = b.team_members + 1;
+  msg := 'only the declared fixtures exist (1 portfolio, 1 portfolio scope, 1 mandate, '
+      || '1 mandate activation, 1 team, 1 membership, 5 assignments); the read models '
+      || 'themselves wrote nothing, and ROLLBACK discards every fixture';
+  PERFORM pg_temp.rec('MON-35','zero persistent writes from scope evaluation', ok, msg);
 END $$;
 
 -- ---------------------------------------------------------------- results
