@@ -104,8 +104,31 @@ export function AmlSupervisoryActivity({
   const canApprove = useCan('aml_supervision', 'approve');
   const canExamine = useCan('aml_supervision', 'examine');
 
+  /**
+   * The server decides whether this intervention may open an examination and
+   * which canonical engagement types it accepts. The client contract mirror is
+   * only a fallback while that read is in flight.
+   */
+  const examCapabilities = useInterventionExecutionCapabilities(
+    dialog === 'examination' ? interventionTarget?.id ?? null : null,
+  );
+  const allowedEngagements: readonly string[] =
+    examCapabilities.data?.allowed_engagement_types ??
+    interventionExecutionContract(interventionTarget?.intervention_type).allowedEngagementTypes;
+  const engagementOptions = CANONICAL_ENGAGEMENT_TYPES.filter((e) => allowedEngagements.includes(e.value)).map(
+    (e) => ({ value: e.value, label: e.label }),
+  );
+  const requiresExplicit =
+    examCapabilities.data?.requires_explicit_engagement ??
+    interventionExecutionContract(interventionTarget?.intervention_type).requiresExplicitEngagement;
+  const engagementDefault = requiresExplicit
+    ? ''
+    : examCapabilities.data?.default_engagement_type ??
+      (engagementOptions.length === 1 ? engagementOptions[0].value : '');
+
   const approved = String(assessmentStatus ?? '').toLowerCase() === 'approved';
   const activePlans = plans.filter((p) => ['APPROVED', 'ACTIVE'].includes(String(p.status ?? '').toUpperCase()));
+
 
   const done = (message: string) => {
     toast.success(message);
