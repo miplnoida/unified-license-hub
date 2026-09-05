@@ -372,7 +372,13 @@ export default function ContinuousMonitoring() {
               <div className="space-y-0.5 text-xs">
                 <div>{r.owner.lead_supervisor_name ?? <span className="text-muted-foreground">Unassigned</span>}</div>
                 {r.owner.team_name ? <div className="text-[11px] text-muted-foreground">{r.owner.team_name}</div> : null}
+                {r.owner.lead_supervisor_id && r.owner.assignment_scope === 'ENTITY_LEVEL_UNSCOPED' ? (
+                  <div className="text-[11px] text-muted-foreground">
+                    Entity-level assignment, not specific to this supervisory area
+                  </div>
+                ) : null}
               </div>) },
+
             { id: 'as_of', header: 'As of', sortable: true, sortKey: 'as_of', priority: 3, cell: (r) => (
               <span className="font-mono text-xs">{formatDate(r.freshness.risk_updated_at ?? r.freshness.entity_updated_at)}</span>) },
           ]}

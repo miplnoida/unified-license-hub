@@ -64532,6 +64532,10 @@ export type Database = {
         Args: { _domain_code: string }
         Returns: string
       }
+      supervisory_domain_modules: {
+        Args: { _domain_code: string }
+        Returns: string[]
+      }
       supervisory_domain_perimeter_set: {
         Args: {
           _basis: string
