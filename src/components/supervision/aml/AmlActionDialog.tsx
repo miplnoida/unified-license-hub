@@ -63,15 +63,25 @@ export function AmlActionDialog({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  /**
+   * Defaults can arrive after the dialog opens (for example the canonical
+   * engagement type, which the server resolves from the intervention), so a
+   * changed default fills a still-empty field without discarding user input.
+   */
+  const defaultsKey = fields.map((f) => `${f.name}=${f.defaultValue ?? ''}`).join('|');
+
   useEffect(() => {
     if (!open) return;
-    const seed: Record<string, string> = {};
-    fields.forEach((f) => {
-      seed[f.name] = f.defaultValue ?? '';
+    setValues((prev) => {
+      const next: Record<string, string> = {};
+      fields.forEach((f) => {
+        next[f.name] = String(prev[f.name] ?? '').trim() ? prev[f.name] : f.defaultValue ?? '';
+      });
+      return next;
     });
-    setValues(seed);
     setError(null);
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, defaultsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   const set = (name: string, value: string) => setValues((v) => ({ ...v, [name]: value }));
 
