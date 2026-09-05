@@ -245,9 +245,19 @@ export function AmlSupervisoryActivity({
                             ) : null}
                           </div>
 
+                          {lightweightNote ? (
+                            <p
+                              className="mt-2 text-xs text-muted-foreground"
+                              data-testid={`intervention-lightweight-${iv.id}`}
+                            >
+                              {lightweightNote}
+                            </p>
+                          ) : null}
+
                           {exam ? (
                             <div className="mt-2 text-xs text-muted-foreground">
-                              <span className="font-mono">{exam.reference}</span> · {titleCase(exam.stage)} ·{' '}
+                              <span className="font-mono">{exam.reference}</span> ·{' '}
+                              {engagementLabel(exam.engagement_type)} · {titleCase(exam.stage)} ·{' '}
                               {exam.is_driving_assessment
                                 ? 'driving assessment provenance recorded'
                                 : 'linked provenance recorded'}
@@ -261,6 +271,7 @@ export function AmlSupervisoryActivity({
                                 : ' · scope not yet set'}
                             </div>
                           ) : null}
+
                         </div>
                       );
                     })}
