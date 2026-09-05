@@ -12,11 +12,14 @@ import { AlertTriangle, ChevronDown, Loader2, Plus, Trash2, UserRound } from 'lu
 import { TEAM_ROLES, useExaminationTeam, useTeamMutations } from '@/hooks/useExaminations';
 import { useStaffProfiles } from '@/hooks/useOperatingStructure';
 import { StageActions, type StageActionsMode } from './ExaminationStageActions';
+import { engagementPhrasing } from '@/lib/supervisoryEngagement';
+import { useExaminationEngagement } from '@/hooks/useExaminationEngagement';
 
 const roleLabel = (r: string) => TEAM_ROLES.find(t => t.value === r)?.label ?? r.replace('_', ' ');
 
 export function TeamPanel({ examinationId, readOnly, mode = 'supporting' }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
   const { data: rows = [], isLoading } = useExaminationTeam(examinationId);
+  const engagement = useExaminationEngagement(examinationId);
   const { save, remove } = useTeamMutations(examinationId);
   const staff = useStaffProfiles();
   const [showForm, setShowForm] = useState(false);
@@ -99,7 +102,7 @@ export function TeamPanel({ examinationId, readOnly, mode = 'supporting' }: { ex
               ) : (
                 <div className="rounded-md border border-warning/30 bg-warning/10 p-3 space-y-2">
                   <p className="flex items-center gap-1.5 text-sm text-warning">
-                    <AlertTriangle className="h-4 w-4" />A lead examiner is required before fieldwork can begin.
+                    <AlertTriangle className="h-4 w-4" />{engagementPhrasing('A lead examiner is required before fieldwork can begin.', engagement)}
                   </p>
                   {!readOnly && (
                     <Button data-rbac="prudential_supervision.edit" size="sm" onClick={openLeadForm}>

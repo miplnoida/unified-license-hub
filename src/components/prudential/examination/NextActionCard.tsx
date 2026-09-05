@@ -17,6 +17,7 @@ import {
  */
 export function NextActionCard({
   stage,
+  engagementType,
   guidance,
   currentStepTitle,
   onOpenCurrentStep,
@@ -24,6 +25,8 @@ export function NextActionCard({
   readOnly,
 }: {
   stage?: string | null;
+  /** Engagement type, so offsite reviews are not told to start "fieldwork". */
+  engagementType?: string | null;
   guidance: Guidance;
   currentStepTitle: string;
   onOpenCurrentStep: () => void;
@@ -42,8 +45,8 @@ export function NextActionCard({
       <CardContent className="space-y-4">
         <div>
           <p className="text-sm font-medium">Current step: {currentStepTitle}</p>
-          {stageGuidance(stage) && (
-            <p className="text-sm text-muted-foreground">{stageGuidance(stage)}</p>
+          {stageGuidance(stage, engagementType) && (
+            <p className="text-sm text-muted-foreground">{stageGuidance(stage, engagementType)}</p>
           )}
         </div>
 

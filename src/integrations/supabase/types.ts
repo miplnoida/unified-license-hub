@@ -64535,6 +64535,7 @@ export type Database = {
         Returns: string
       }
       supervisory_domain_valid: { Args: { _domain: string }; Returns: boolean }
+      supervisory_engagement_types: { Args: never; Returns: Json }
       supervisory_entity_scope_check: {
         Args: { _entity_id: string; _uid: string }
         Returns: undefined
@@ -64594,6 +64595,14 @@ export type Database = {
           _intervention_id: string
           _rationale: string
         }
+        Returns: Json
+      }
+      supervisory_intervention_execution_capabilities: {
+        Args: { _intervention_id: string }
+        Returns: Json
+      }
+      supervisory_intervention_execution_contract: {
+        Args: { _intervention_type: string }
         Returns: Json
       }
       supervisory_intervention_link_activity: {

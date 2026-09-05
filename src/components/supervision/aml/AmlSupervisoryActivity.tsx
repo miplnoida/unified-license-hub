@@ -38,6 +38,13 @@ import {
   amlErrorMessage,
 } from '@/hooks/useAmlLifecycle';
 import { useCan } from '@/hooks/useCan';
+import { useInterventionExecutionCapabilities } from '@/hooks/useSupervisoryActivityContract';
+import {
+  CANONICAL_ENGAGEMENT_TYPES,
+  engagementLabel,
+  interventionExecutionContract,
+  lightweightExecutionGuidance,
+} from '@/lib/supervisoryEngagement';
 import { fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 /** Canonical intervention types available to AML/CFT supervision. */
@@ -47,28 +54,13 @@ const INTERVENTION_TYPES = [
   { value: 'FULL_SCOPE_EXAMINATION', label: 'Full-scope examination' },
   { value: 'OFFSITE_REVIEW', label: 'Offsite review' },
   { value: 'FOLLOW_UP_REVIEW', label: 'Follow-up examination' },
-  { value: 'DESK_REVIEW', label: 'Desk review' },
+  { value: 'THEMATIC_REVIEW', label: 'Thematic review' },
+  { value: 'DESK_REVIEW', label: 'Desk review (lightweight)' },
   { value: 'SUPERVISORY_MEETING', label: 'Supervisory meeting' },
   { value: 'INFORMATION_REQUEST', label: 'Information request' },
   { value: 'ENHANCED_MONITORING', label: 'Enhanced monitoring' },
 ];
 
-/** Intervention types whose supervisory activity is an examination. */
-const EXAMINATION_TYPES = new Set([
-  'TARGETED_EXAMINATION',
-  'ONSITE_EXAMINATION',
-  'FULL_SCOPE_EXAMINATION',
-  'OFFSITE_REVIEW',
-  'FOLLOW_UP_REVIEW',
-  'DESK_REVIEW',
-]);
-
-const ENGAGEMENT_OPTIONS = [
-  { value: 'targeted', label: 'Targeted' },
-  { value: 'full_scope', label: 'Full scope' },
-  { value: 'follow_up', label: 'Follow-up' },
-  { value: 'thematic', label: 'Thematic' },
-];
 
 const plusDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
 
@@ -112,8 +104,31 @@ export function AmlSupervisoryActivity({
   const canApprove = useCan('aml_supervision', 'approve');
   const canExamine = useCan('aml_supervision', 'examine');
 
+  /**
+   * The server decides whether this intervention may open an examination and
+   * which canonical engagement types it accepts. The client contract mirror is
+   * only a fallback while that read is in flight.
+   */
+  const examCapabilities = useInterventionExecutionCapabilities(
+    dialog === 'examination' ? interventionTarget?.id ?? null : null,
+  );
+  const allowedEngagements: readonly string[] =
+    examCapabilities.data?.allowed_engagement_types ??
+    interventionExecutionContract(interventionTarget?.intervention_type).allowedEngagementTypes;
+  const engagementOptions = CANONICAL_ENGAGEMENT_TYPES.filter((e) => allowedEngagements.includes(e.value)).map(
+    (e) => ({ value: e.value, label: e.label }),
+  );
+  const requiresExplicit =
+    examCapabilities.data?.requires_explicit_engagement ??
+    interventionExecutionContract(interventionTarget?.intervention_type).requiresExplicitEngagement;
+  const engagementDefault = requiresExplicit
+    ? ''
+    : examCapabilities.data?.default_engagement_type ??
+      (engagementOptions.length === 1 ? engagementOptions[0].value : '');
+
   const approved = String(assessmentStatus ?? '').toLowerCase() === 'approved';
   const activePlans = plans.filter((p) => ['APPROVED', 'ACTIVE'].includes(String(p.status ?? '').toUpperCase()));
+
 
   const done = (message: string) => {
     toast.success(message);
@@ -192,7 +207,9 @@ export function AmlSupervisoryActivity({
                       const exam = iv.examination_id
                         ? examinations.find((e) => e.id === iv.examination_id) ?? examByIntervention.get(iv.id)
                         : examByIntervention.get(iv.id);
-                      const needsExam = EXAMINATION_TYPES.has(String(iv.intervention_type)) && !exam;
+                      const execution = interventionExecutionContract(iv.intervention_type);
+                      const needsExam = execution.executionKind === 'EXAMINATION' && !exam;
+                      const lightweightNote = exam ? null : lightweightExecutionGuidance(iv.intervention_type);
                       return (
                         <div key={iv.id} className="rounded-md border bg-muted/30 p-3">
                           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
@@ -258,9 +275,19 @@ export function AmlSupervisoryActivity({
                             ) : null}
                           </div>
 
+                          {lightweightNote ? (
+                            <p
+                              className="mt-2 text-xs text-muted-foreground"
+                              data-testid={`intervention-lightweight-${iv.id}`}
+                            >
+                              {lightweightNote}
+                            </p>
+                          ) : null}
+
                           {exam ? (
                             <div className="mt-2 text-xs text-muted-foreground">
-                              <span className="font-mono">{exam.reference}</span> · {titleCase(exam.stage)} ·{' '}
+                              <span className="font-mono">{exam.reference}</span> ·{' '}
+                              {engagementLabel(exam.engagement_type)} · {titleCase(exam.stage)} ·{' '}
                               {exam.is_driving_assessment
                                 ? 'driving assessment provenance recorded'
                                 : 'linked provenance recorded'}
@@ -274,6 +301,7 @@ export function AmlSupervisoryActivity({
                                 : ' · scope not yet set'}
                             </div>
                           ) : null}
+
                         </div>
                       );
                     })}
@@ -423,9 +451,13 @@ export function AmlSupervisoryActivity({
         open={dialog === 'examination'}
         onOpenChange={(o) => (o ? null : setDialog(null))}
         title="Create examination"
-        description={`Opened from intervention ${
-          interventionTarget?.reference ?? ''
-        } — entity, AML/CFT domain, plan, intervention, attention and the originating assessment are carried automatically.`}
+        description={
+          examCapabilities.data && !examCapabilities.data.can_open_examination
+            ? examCapabilities.data.block_reason ?? 'This intervention cannot open an examination.'
+            : `Opened from intervention ${
+                interventionTarget?.reference ?? ''
+              } — entity, AML/CFT domain, plan, intervention, attention and the originating assessment are carried automatically.`
+        }
         fields={[
           {
             name: 'title',
@@ -439,12 +471,16 @@ export function AmlSupervisoryActivity({
             label: 'Engagement type',
             kind: 'select',
             required: true,
-            defaultValue: 'targeted',
-            options: ENGAGEMENT_OPTIONS,
+            defaultValue: engagementDefault,
+            options: engagementOptions,
+            helper: examCapabilities.data?.requires_explicit_engagement
+              ? 'This intervention type covers more than one form of engagement, so the engagement must be chosen explicitly.'
+              : undefined,
           },
           { name: 'period_start', label: 'Period under review — from', kind: 'date' },
           { name: 'period_end', label: 'Period under review — to', kind: 'date' },
         ]}
+
         submitLabel="Create examination"
         onSubmit={async (v) =>
           openExamination.mutateAsync({

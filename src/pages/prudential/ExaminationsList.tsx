@@ -20,6 +20,7 @@ import {
   useExaminations,
 } from '@/hooks/useExaminations';
 import { EXAMINATION_PHASES, phaseLabel, stagePhase } from '@/lib/examinationWorkflow';
+import { engagementLabel } from '@/lib/supervisoryEngagement';
 
 
 const stageTone = (stage: string) => {
@@ -50,7 +51,7 @@ export default function ExaminationsList() {
   const [form, setForm] = useState({
     entity_id: params.get('entity') || '',
     title: '',
-    examination_type: 'full_scope',
+    examination_type: 'FULL_SCOPE_ONSITE',
     period_under_review_start: '',
     period_under_review_end: '',
     fieldwork_start: '',
@@ -71,6 +72,7 @@ export default function ExaminationsList() {
       entity_id: form.entity_id,
       title: form.title,
       examination_type: form.examination_type,
+      engagement_type: form.examination_type,
       stage: 'planned',
       period_under_review_start: form.period_under_review_start || null,
       period_under_review_end: form.period_under_review_end || null,
@@ -88,10 +90,10 @@ export default function ExaminationsList() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold flex items-center gap-2">
-              <ClipboardCheck className="h-6 w-6 text-primary" />Onsite Examinations
+              <ClipboardCheck className="h-6 w-6 text-primary" />Examinations
             </h1>
             <p className="text-sm text-muted-foreground">
-              Scoping through final report and corrective action plan tracking.
+              Onsite and offsite engagements: scoping through final report and corrective action plan tracking.
             </p>
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
@@ -101,7 +103,7 @@ export default function ExaminationsList() {
               </Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>New onsite examination</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>New examination</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 <div>
                   <Label>Entity</Label>
@@ -118,7 +120,7 @@ export default function ExaminationsList() {
                     placeholder="e.g. 2026 full-scope examination" />
                 </div>
                 <div>
-                  <Label>Type</Label>
+                  <Label>Engagement type</Label>
                   <Select value={form.examination_type} onValueChange={v => setForm(f => ({ ...f, examination_type: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -133,9 +135,9 @@ export default function ExaminationsList() {
                     onChange={e => setForm(f => ({ ...f, period_under_review_end: e.target.value }))} /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><Label>Fieldwork start</Label><Input type="date" value={form.fieldwork_start}
+                  <div><Label>Engagement start</Label><Input type="date" value={form.fieldwork_start}
                     onChange={e => setForm(f => ({ ...f, fieldwork_start: e.target.value }))} /></div>
-                  <div><Label>Fieldwork end</Label><Input type="date" value={form.fieldwork_end}
+                  <div><Label>Engagement end</Label><Input type="date" value={form.fieldwork_end}
                     onChange={e => setForm(f => ({ ...f, fieldwork_end: e.target.value }))} /></div>
                 </div>
               </div>
@@ -199,11 +201,11 @@ export default function ExaminationsList() {
                       <TableHead>Reference</TableHead>
                       <TableHead>Entity</TableHead>
                       <TableHead>Title</TableHead>
-                      <TableHead>Type</TableHead>
+                      <TableHead>Engagement</TableHead>
                       <TableHead>Phase</TableHead>
                       <TableHead>Current step</TableHead>
 
-                      <TableHead>Fieldwork</TableHead>
+                      <TableHead>Engagement window</TableHead>
                       <TableHead className="text-right">Findings</TableHead>
                       <TableHead className="text-right">Open CAP</TableHead>
                     </TableRow>
@@ -216,7 +218,7 @@ export default function ExaminationsList() {
                         </TableCell>
                         <TableCell>{r.licensee?.name || '—'}</TableCell>
                         <TableCell className="max-w-[240px] truncate">{r.title}</TableCell>
-                        <TableCell className="capitalize">{r.examination_type.replace('_', ' ')}</TableCell>
+                        <TableCell>{engagementLabel(r.engagement_type ?? r.examination_type)}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className={stageTone(r.stage)}>
                             {r.stage === 'cancelled' ? 'Cancelled' : phaseLabel(stagePhase(r.stage))}

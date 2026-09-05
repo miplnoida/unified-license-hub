@@ -10,6 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useExaminationScoping, useSaveScoping } from '@/hooks/useExaminations';
 import { StageActions, type StageActionsMode } from './ExaminationStageActions';
 import { ChipsInput } from './ChipsInput';
+import { engagementPhrasing } from '@/lib/supervisoryEngagement';
+import { useExaminationEngagement } from '@/hooks/useExaminationEngagement';
 
 function Group({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -25,6 +27,7 @@ function Group({ title, hint, children }: { title: string; hint?: string; childr
 
 export function ScopingMemoPanel({ examinationId, readOnly, mode = 'supporting' }: { examinationId: string; readOnly?: boolean; mode?: StageActionsMode }) {
   const { data, isLoading } = useExaminationScoping(examinationId);
+  const engagement = useExaminationEngagement(examinationId);
   const save = useSaveScoping(examinationId);
   const [form, setForm] = useState({
     objectives: '',
@@ -77,7 +80,7 @@ export function ScopingMemoPanel({ examinationId, readOnly, mode = 'supporting' 
         <div>
           <CardTitle className="text-base">Examination scope</CardTitle>
           <p className="text-xs text-muted-foreground">
-            Agree what will be examined and why. The scope must be approved before fieldwork can begin.
+            {engagementPhrasing('Agree what will be examined and why. The scope must be approved before fieldwork can begin.', engagement)}
           </p>
         </div>
         {data?.approved_at ? (
