@@ -211,7 +211,8 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'examinations_stage_not_engagement_chk') THEN
     RAISE EXCEPTION 'FAIL OSACT-08: nothing prevents an engagement value being stored as a lifecycle stage'; END IF;
   IF EXISTS (SELECT 1 FROM public.examinations e
-              WHERE upper(e.stage) IN (SELECT t.engagement_type FROM public.supervisory_engagement_types() t)) THEN
+              WHERE upper(e.stage) IN (SELECT x->>'value'
+                                         FROM jsonb_array_elements(public.supervisory_engagement_types()) x)) THEN
     RAISE EXCEPTION 'FAIL OSACT-08: an examination stores an engagement value in its lifecycle stage'; END IF;
   RAISE NOTICE 'PASS OSACT-08: "what kind of engagement" and "where it is in its lifecycle" stay separate';
 END $$;
