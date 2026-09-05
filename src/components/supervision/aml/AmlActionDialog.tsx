@@ -82,6 +82,12 @@ export function AmlActionDialog({
     setError(null);
   }, [open, defaultsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Closing discards the entry so the next record starts from its own defaults.
+  useEffect(() => {
+    if (!open) setValues({});
+  }, [open]);
+
+
 
   const set = (name: string, value: string) => setValues((v) => ({ ...v, [name]: value }));
 
