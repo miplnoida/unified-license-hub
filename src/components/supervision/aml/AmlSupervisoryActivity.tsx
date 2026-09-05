@@ -38,6 +38,13 @@ import {
   amlErrorMessage,
 } from '@/hooks/useAmlLifecycle';
 import { useCan } from '@/hooks/useCan';
+import { useInterventionExecutionCapabilities } from '@/hooks/useSupervisoryActivityContract';
+import {
+  CANONICAL_ENGAGEMENT_TYPES,
+  engagementLabel,
+  interventionExecutionContract,
+  lightweightExecutionGuidance,
+} from '@/lib/supervisoryEngagement';
 import { fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 /** Canonical intervention types available to AML/CFT supervision. */
