@@ -123,7 +123,7 @@ BEGIN
 
   -- explicit governed perimeter exclusion
   SELECT l.id INTO _ent FROM public.licensees l ORDER BY l.created_at LIMIT 1;
-  INSERT INTO public.supervisory_domain_perimeter(entity_id, domain_code, is_applicable, rationale)
+  INSERT INTO public.supervisory_domain_perimeter(entity_id, domain_code, is_applicable, basis)
   VALUES (_ent, 'MARKET_CONDUCT', false, 'MON fixture: explicit governed exclusion')
   ON CONFLICT (entity_id, domain_code) DO UPDATE SET is_applicable = false;
 
@@ -134,9 +134,9 @@ BEGIN
    ORDER BY l.created_at LIMIT 1;
   IF _unassessed IS NOT NULL THEN
     INSERT INTO public.supervisory_signal(entity_id, domain_code, severity, detected_at,
-                                          signal_type, summary, status)
-    VALUES (_unassessed, 'AML_CFT', 'CRITICAL', now(), 'MON_FIXTURE',
-            'MON fixture signal (rolled back)', 'OPEN');
+                                          source_kind, external_reference, summary)
+    VALUES (_unassessed, 'AML_CFT', 'CRITICAL', now(), 'OTHER_GOVERNED_SOURCE',
+            'MON-FIXTURE-ROLLED-BACK', 'MON fixture signal (rolled back)');
   END IF;
 
   INSERT INTO mon_actor VALUES
