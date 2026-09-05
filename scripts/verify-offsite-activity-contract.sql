@@ -86,16 +86,21 @@ END $$;
 -- OSACT-02 — engagement vocabulary is served to clients by the server
 -- =====================================================================
 DO $$
-DECLARE n int;
+DECLARE v jsonb;
 BEGIN
-  SELECT count(*) INTO n FROM public.supervisory_engagement_types();
-  IF n <> 6 THEN RAISE EXCEPTION 'FAIL OSACT-02: server returned % engagement types, expected 6', n; END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.supervisory_engagement_types() t
-                  WHERE t.engagement_type = 'OFFSITE_REVIEW') THEN
-    RAISE EXCEPTION 'FAIL OSACT-02: OFFSITE_REVIEW is not offered by the server'; END IF;
-  IF EXISTS (SELECT 1 FROM public.supervisory_engagement_types() t
-              WHERE t.engagement_type <> upper(t.engagement_type)) THEN
+  v := public.supervisory_engagement_types();
+  IF jsonb_array_length(v) <> 6 THEN
+    RAISE EXCEPTION 'FAIL OSACT-02: server offers % engagement types, expected 6', jsonb_array_length(v); END IF;
+  IF NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v) e WHERE e->>'value' = 'OFFSITE_REVIEW'
+                   AND e->>'mode' = 'OFFSITE') THEN
+    RAISE EXCEPTION 'FAIL OSACT-02: OFFSITE_REVIEW is not offered as an offsite engagement'; END IF;
+  IF EXISTS (SELECT 1 FROM jsonb_array_elements(v) e WHERE e->>'value' <> upper(e->>'value')) THEN
     RAISE EXCEPTION 'FAIL OSACT-02: server emitted a non-canonical (aliased) engagement value'; END IF;
+  IF EXISTS (SELECT 1 FROM jsonb_array_elements(v) e
+              WHERE NOT EXISTS (SELECT 1 FROM pg_constraint c
+                                 WHERE c.conname = 'examinations_engagement_type_chk'
+                                   AND pg_get_constraintdef(c.oid) LIKE '%'||(e->>'value')||'%')) THEN
+    RAISE EXCEPTION 'FAIL OSACT-02: the offered vocabulary is not the vocabulary the table enforces'; END IF;
   RAISE NOTICE 'PASS OSACT-02: engagement vocabulary is resolved from the server, canonical only';
 END $$;
 
@@ -141,16 +146,23 @@ BEGIN
       ('THEMATIC_REVIEW','EXAMINATION'),
       ('DESK_REVIEW','LIGHTWEIGHT'),
       ('INFORMATION_REQUEST','LIGHTWEIGHT'),
-      ('SUPERVISORY_MEETING','LIGHTWEIGHT')) AS x(t, kind)
+      ('SUPERVISORY_MEETING','LIGHTWEIGHT'),
+      ('ENFORCEMENT_REFERRAL','REFERRAL'),
+      ('FORMAL_INVESTIGATION','INVESTIGATION')) AS x(t, kind)
   LOOP
-    IF (SELECT c.execution_kind FROM public.supervisory_intervention_execution_contract(r.t) c) IS DISTINCT FROM r.kind THEN
+    IF public.supervisory_intervention_execution_contract(r.t)->>'execution_kind' IS DISTINCT FROM r.kind THEN
       RAISE EXCEPTION 'FAIL OSACT-05: % is not classified as %', r.t, r.kind; END IF;
   END LOOP;
-  IF (SELECT c.engagement_type FROM public.supervisory_intervention_execution_contract('OFFSITE_REVIEW') c)
+  IF public.supervisory_intervention_execution_contract('OFFSITE_REVIEW')->>'default_engagement_type'
      IS DISTINCT FROM 'OFFSITE_REVIEW' THEN
     RAISE EXCEPTION 'FAIL OSACT-05: offsite intervention does not resolve to the OFFSITE_REVIEW engagement'; END IF;
-  IF (SELECT c.engagement_type FROM public.supervisory_intervention_execution_contract('DESK_REVIEW') c) IS NOT NULL THEN
+  IF public.supervisory_intervention_execution_contract('DESK_REVIEW')->>'default_engagement_type' IS NOT NULL
+     OR jsonb_array_length(public.supervisory_intervention_execution_contract('DESK_REVIEW')->'allowed_engagement_types') <> 0 THEN
     RAISE EXCEPTION 'FAIL OSACT-05: a lightweight intervention was given an examination engagement'; END IF;
+  -- ambiguous onsite work must be chosen by a human, never guessed
+  IF (public.supervisory_intervention_execution_contract('ONSITE_EXAMINATION')->>'requires_explicit_engagement')::boolean IS NOT TRUE
+     OR public.supervisory_intervention_execution_contract('ONSITE_EXAMINATION')->>'default_engagement_type' IS NOT NULL THEN
+    RAISE EXCEPTION 'FAIL OSACT-05: the server guessed an engagement for ambiguous onsite work'; END IF;
   RAISE NOTICE 'PASS OSACT-05: execution kind and engagement are resolved by the server, not the browser';
 END $$;
 
@@ -158,15 +170,22 @@ END $$;
 -- OSACT-06 — every permitted intervention type is classified
 -- =====================================================================
 DO $$
-DECLARE unclassified int;
+DECLARE def text; t text; n int := 0; c jsonb;
 BEGIN
-  SELECT count(*) INTO unclassified FROM public.supervisory_intervention_execution_capabilities() c
-   WHERE c.execution_kind IS NULL OR c.execution_kind NOT IN ('EXAMINATION','LIGHTWEIGHT');
-  IF unclassified > 0 THEN
-    RAISE EXCEPTION 'FAIL OSACT-06: % intervention types have no execution classification', unclassified; END IF;
-  IF (SELECT count(*) FROM public.supervisory_intervention_execution_capabilities()) < 10 THEN
-    RAISE EXCEPTION 'FAIL OSACT-06: the capability contract does not cover the intervention taxonomy'; END IF;
-  RAISE NOTICE 'PASS OSACT-06: the whole intervention taxonomy has a server-declared execution contract';
+  SELECT pg_get_constraintdef(oid) INTO def FROM pg_constraint
+   WHERE conname = 'supervisory_intervention_type_chk';
+  FOR t IN SELECT DISTINCT m[1] FROM regexp_matches(def, '''([A-Z_]+)''', 'g') AS m LOOP
+    c := public.supervisory_intervention_execution_contract(t);
+    IF c->>'execution_kind' = 'UNKNOWN' THEN
+      RAISE EXCEPTION 'FAIL OSACT-06: permitted intervention type % has no execution classification', t; END IF;
+    IF c->>'execution_kind' = 'EXAMINATION'
+       AND jsonb_array_length(c->'allowed_engagement_types') = 0 THEN
+      RAISE EXCEPTION 'FAIL OSACT-06: % executes as an examination but permits no engagement type', t; END IF;
+    n := n + 1;
+  END LOOP;
+  IF n < 10 THEN
+    RAISE EXCEPTION 'FAIL OSACT-06: the capability contract does not cover the intervention taxonomy (% types)', n; END IF;
+  RAISE NOTICE 'PASS OSACT-06: all % permitted intervention types have a server-declared execution contract', n;
 END $$;
 
 -- =====================================================================
@@ -213,7 +232,11 @@ BEGIN
                   AND has_function_privilege('anon', p.oid, 'EXECUTE')) THEN
       RAISE EXCEPTION 'FAIL OSACT-09: % is executable anonymously', f; END IF;
   END LOOP;
-  RAISE NOTICE 'PASS OSACT-09: the activity contract functions exist and are closed to anonymous callers';
+  IF NOT EXISTS (SELECT 1 FROM pg_proc p WHERE p.proname = 'supervisory_intervention_execution_capabilities'
+                  AND p.pronamespace = 'public'::regnamespace AND p.prosecdef
+                  AND p.proconfig::text LIKE '%search_path%') THEN
+    RAISE EXCEPTION 'FAIL OSACT-09: the capability contract is not a guarded security-definer operation'; END IF;
+  RAISE NOTICE 'PASS OSACT-09: the activity contract functions exist, are guarded and closed to anonymous callers';
 END $$;
 
 -- =====================================================================
@@ -310,6 +333,20 @@ BEGIN
   IF (SELECT status FROM public.supervisory_intervention WHERE id = (SELECT v FROM os WHERE k='iv')) <> 'ACTIVE' THEN
     RAISE EXCEPTION 'FAIL OSACT-12: the offsite intervention was not endorsed and activated by a checker'; END IF;
   RAISE NOTICE 'PASS OSACT-12: maker/checker endorsement applies to offsite exactly as to onsite';
+END $$;
+
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = :'SUPERVISOR';
+DO $$
+DECLARE c jsonb;
+BEGIN
+  c := public.supervisory_intervention_execution_capabilities((SELECT v FROM os WHERE k='iv'));
+  IF (c->>'can_open_examination')::boolean IS NOT TRUE THEN
+    RAISE EXCEPTION 'FAIL OSACT-12: the server does not permit execution of the endorsed offsite intervention (%)',
+      c->>'block_reason'; END IF;
+  IF c->>'default_engagement_type' <> 'OFFSITE_REVIEW' THEN
+    RAISE EXCEPTION 'FAIL OSACT-12: the capability contract does not default this intervention to an offsite engagement'; END IF;
+  RAISE NOTICE 'PASS OSACT-12b: the server tells the screen what may be opened, and with which engagement';
 END $$;
 
 -- =====================================================================
