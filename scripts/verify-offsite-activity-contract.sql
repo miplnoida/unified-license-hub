@@ -394,17 +394,30 @@ END $$;
 SET LOCAL ROLE authenticated;
 SET LOCAL "request.jwt.claims" = :'SUPERVISOR';
 DO $$
-DECLARE alias text; ok boolean;
+DECLARE alias text; ok boolean; eng text;
 BEGIN
-  FOREACH alias IN ARRAY ARRAY['offsite_review','targeted','Offsite Review','OFFSITE'] LOOP
+  FOREACH alias IN ARRAY ARRAY['targeted','full_scope','follow_up','thematic',
+                               'Offsite Review','OFFSITE','offsite-review','onsite'] LOOP
     ok := false;
     BEGIN
       PERFORM public.supervisory_examination_open((SELECT v FROM os WHERE k='iv'),
         'Alias probe', alias, 'AML_CFT', (SELECT v FROM os WHERE k='entity'));
-    EXCEPTION WHEN OTHERS THEN ok := true;
+    EXCEPTION WHEN OTHERS THEN ok := (SQLERRM LIKE '%engagement_type%');
     END;
     IF NOT ok THEN RAISE EXCEPTION 'FAIL OSACT-14: alias % was accepted as an engagement type', alias; END IF;
   END LOOP;
+
+  -- casing is normalised to the canonical value, never stored as typed
+  BEGIN
+    eng := (public.supervisory_examination_open((SELECT v FROM os WHERE k='iv'),
+              'Case normalisation probe', ' offsite_review ', 'AML_CFT',
+              (SELECT v FROM os WHERE k='entity'))->>'id');
+    IF (SELECT engagement_type FROM public.examinations WHERE id = eng::uuid) <> 'OFFSITE_REVIEW' THEN
+      RAISE EXCEPTION 'FAIL OSACT-14: typed casing was persisted instead of the canonical value'; END IF;
+    DELETE FROM public.examination_events WHERE examination_id = eng::uuid;
+    DELETE FROM public.examination_origin WHERE examination_id = eng::uuid;
+    DELETE FROM public.examinations WHERE id = eng::uuid;
+  END;
   RAISE NOTICE 'PASS OSACT-14: presentation wording can never be persisted as engagement vocabulary';
 END $$;
 
