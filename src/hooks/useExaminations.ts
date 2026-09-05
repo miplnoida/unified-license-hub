@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { examinationCreate, examinationUpdate } from '@/lib/supervisoryGovernedOps';
+import { CANONICAL_ENGAGEMENT_TYPES } from '@/lib/supervisoryEngagement';
 
 const sb = supabase as any;
 
@@ -31,12 +32,15 @@ export const EXAMINATION_STAGES: { value: ExaminationStage; label: string }[] = 
   { value: 'closed', label: 'Closed' },
 ];
 
-export const EXAMINATION_TYPES = [
-  { value: 'full_scope', label: 'Full scope' },
-  { value: 'targeted', label: 'Targeted' },
-  { value: 'thematic', label: 'Thematic' },
-  { value: 'follow_up', label: 'Follow-up' },
-];
+/**
+ * Examination engagement types, canonical values only.
+ *
+ * The register previously offered display aliases (`full_scope`, `targeted`,
+ * `thematic`, `follow_up`) that the database rejects and that match no stored
+ * row, so the list is now the canonical vocabulary shared with every other
+ * supervisory surface.
+ */
+export const EXAMINATION_TYPES = CANONICAL_ENGAGEMENT_TYPES.map(e => ({ value: e.value, label: e.label }));
 
 export const TEAM_ROLES = [
   { value: 'lead_examiner', label: 'Lead examiner' },
