@@ -90,6 +90,7 @@ export interface ExaminationRow {
   entity_id: string;
   title: string;
   examination_type: string;
+  engagement_type: string | null;
   stage: ExaminationStage;
   risk_rating: string | null;
   fieldwork_start: string | null;
