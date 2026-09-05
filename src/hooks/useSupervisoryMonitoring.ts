@@ -151,8 +151,21 @@ export interface MonitoringOwnerBlock {
   team_id: string | null;
   team_name: string | null;
   assignment_effective_from: string | null;
+  /** Regulatory function the displayed assignment belongs to, when scoped. */
+  regulatory_function_id: string | null;
+  regulatory_function_key: string | null;
+  /** Regulatory function this monitoring domain maps to. */
+  domain_function_key: string | null;
+  /**
+   * DOMAIN_FUNCTION_SCOPED — the assignment is held for this domain's
+   * regulatory function. ENTITY_LEVEL_UNSCOPED — a legacy entity-level
+   * assignment with no function, shown as context only.
+   */
+  assignment_scope: 'DOMAIN_FUNCTION_SCOPED' | 'ENTITY_LEVEL_UNSCOPED' | string | null;
+  precedence_rule: string | null;
   source_object: string;
 }
+
 
 export interface MonitoringFlag {
   code: string;
