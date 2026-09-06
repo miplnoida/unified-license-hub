@@ -815,7 +815,7 @@ BEGIN
   INSERT INTO public.financial_groups (group_code, name, status)
   VALUES ('PT_FIX_GROUP','PT fixture group','active') RETURNING id INTO _grp;
   INSERT INTO public.financial_group_members (group_id, licensee_id, member_role, effective_date)
-  VALUES (_grp, _e1, 'member', CURRENT_DATE), (_grp, _e3, 'member', CURRENT_DATE);
+  VALUES (_grp, _e1, 'subsidiary', CURRENT_DATE), (_grp, _e3, 'subsidiary', CURRENT_DATE);
 
   PERFORM set_config('request.jwt.claims', json_build_object('sub',_mgr,'role','authenticated')::text, true);
   SET LOCAL ROLE authenticated;
