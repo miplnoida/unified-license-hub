@@ -489,6 +489,356 @@ BEGIN
     'out-of-remit overview is honestly empty rather than globally aggregated');
 END $$;
 
+-- ===================== J. POPULATION INDEPENDENT OF DETECTORS =====================
+
+DO $$
+DECLARE _mgr uuid; _pairs bigint; _pairs_inactive bigint; _pairs_deleted bigint;
+        _pairs_added bigint; _dom text; _dom_pairs bigint; _dom_conditions bigint;
+        _deleted boolean := false;
+BEGIN
+  SELECT v INTO _mgr FROM pt_p WHERE k='mgr';
+  PERFORM set_config('request.jwt.claims', json_build_object('sub',_mgr,'role','authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  SELECT count(*) INTO _pairs FROM public.supervisory_portfolio_entity;
+  RESET ROLE;
+
+  -- (a) inactivate every detector
+  UPDATE public.supervisory_detector SET is_active = false, effective_to = now();
+  PERFORM set_config('request.jwt.claims', json_build_object('sub',_mgr,'role','authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  SELECT count(*) INTO _pairs_inactive FROM public.supervisory_portfolio_entity;
+  RESET ROLE;
+
+  -- (b) remove every detector row (rollback-safe)
+  BEGIN
+    DELETE FROM public.supervisory_detector;
+    _deleted := true;
+  EXCEPTION WHEN others THEN _deleted := false;
+  END;
+  PERFORM set_config('request.jwt.claims', json_build_object('sub',_mgr,'role','authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  SELECT count(*) INTO _pairs_deleted FROM public.supervisory_portfolio_entity;
+  SELECT domain_code, count(*) INTO _dom, _dom_pairs
+    FROM public.supervisory_portfolio_entity GROUP BY domain_code ORDER BY 1 LIMIT 1;
+  SELECT count(*) INTO _dom_conditions FROM public.supervisory_portfolio_condition
+   WHERE domain_code = _dom;
+  RESET ROLE;
+
+  PERFORM pg_temp.gate('PT-33',
+    _pairs > 0 AND _pairs_deleted = _pairs AND _dom_pairs > 0
+    AND (SELECT pg_get_viewdef('public.supervisory_portfolio_entity'::regclass))
+          NOT ILIKE '%FROM public.supervisory_detector%'
+    AND (SELECT pg_get_viewdef('public.supervisory_portfolio_entity'::regclass))
+          ILIKE '%supervisory_domain_vocabulary%',
+    format('with every detector %s, %s authorised entity-domain pairs remain (domain %s keeps %s pairs and honestly reports %s detected conditions)',
+           CASE WHEN _deleted THEN 'deleted' ELSE 'inactivated' END, _pairs_deleted, _dom, _dom_pairs, _dom_conditions));
+
+  -- (c) adding a detector creates no portfolio pair either
+  INSERT INTO public.supervisory_detector (code, name, domain_code, source_object, source_kind,
+      execution_mode, config_owner, params, version, is_active, effective_from)
+  VALUES ('PT_FIXTURE_DETECTOR_2','PT fixture detector 2','MARKET_CONDUCT','pt_fixture',
+      'OTHER_GOVERNED_SOURCE','SCHEDULED','SUPERVISORY_POLICY','{"fixture":true}'::jsonb,1,true, now() - interval '1 year');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub',_mgr,'role','authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  SELECT count(*) INTO _pairs_added FROM public.supervisory_portfolio_entity;
+  RESET ROLE;
+
+  PERFORM pg_temp.gate('PT-34',
+    _pairs_inactive = _pairs AND _pairs_deleted = _pairs AND _pairs_added = _pairs,
+    format('portfolio pairs are detector-independent: baseline=%s after-inactivate=%s after-delete=%s after-add=%s',
+           _pairs, _pairs_inactive, _pairs_deleted, _pairs_added));
+
+  -- restore the fixture detector needed by the trend gates
+  DELETE FROM public.supervisory_detector WHERE code = 'PT_FIXTURE_DETECTOR_2';
+  INSERT INTO public.supervisory_detector (code, name, domain_code, source_object, source_kind,
+      execution_mode, config_owner, params, version, is_active, effective_from)
+  SELECT 'PT_FIXTURE_DETECTOR','PT fixture theme','PRUDENTIAL','pt_fixture','OTHER_GOVERNED_SOURCE',
+         'SCHEDULED','SUPERVISORY_POLICY','{"fixture":true}'::jsonb,1,true, now() - interval '1 year'
+   WHERE NOT EXISTS (SELECT 1 FROM public.supervisory_detector WHERE code = 'PT_FIXTURE_DETECTOR');
+END $$;
+
+-- ===================== K. PEER STATE PROPAGATION =====================
+
+DO $$
+DECLARE _mgr uuid; _pe date; _min int; _eng jsonb; _wrap jsonb; _eng2 jsonb; _wrap2 jsonb;
+BEGIN
+  SELECT v INTO _mgr FROM pt_p WHERE k='mgr';
+  SELECT (v)::date INTO _pe FROM pt_peer WHERE k='period_end';
+  SELECT (v)::int INTO _min FROM pt_peer WHERE k='min_peers';
+  PERFORM set_config('request.jwt.claims', json_build_object('sub',_mgr,'role','authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  _eng  := public.peer_ratio_snapshot(_pe, 'PT_FIX_PEER_SUFFICIENT', NULL, NULL, _min);
+  _wrap := public.supervisory_portfolio_peer_view(_pe, 'PT_FIX_PEER_SUFFICIENT', NULL, NULL);
+  _eng2 := public.peer_ratio_snapshot(_pe, 'PT_FIX_PEER_INSUFFICIENT', NULL, NULL, _min);
+  _wrap2:= public.supervisory_portfolio_peer_view(_pe, 'PT_FIX_PEER_INSUFFICIENT', NULL, NULL);
+  RESET ROLE;
+
+  PERFORM pg_temp.gate('PT-35',
+    (_eng->>'state') = 'OK' AND (_eng->>'peer_count')::int >= _min,
+    format('canonical peer engine returns OK on the sufficient fixture (peers=%s, min=%s)', _eng->>'peer_count', _min));
+  PERFORM pg_temp.gate('PT-36',
+    (_wrap->>'state') = 'OK' AND (_wrap->'snapshot'->>'state') = 'OK',
+    format('OS-02G wrapper returns OK for the same fixture (state=%s)', _wrap->>'state'));
+  PERFORM pg_temp.gate('PT-37',
+    (_eng2->>'state') = 'INSUFFICIENT_PEER_DATA' AND (_wrap2->>'state') = 'INSUFFICIENT_PEER_DATA',
+    format('insufficient fixture returns INSUFFICIENT_PEER_DATA in engine (%s) and wrapper (%s)',
+           _eng2->>'state', _wrap2->>'state'));
+  PERFORM pg_temp.gate('PT-38',
+    (_wrap->>'state') = (_eng->>'state') AND (_wrap2->>'state') = (_eng2->>'state')
+    AND (_wrap->>'engine_state') = (_eng->>'state')
+    AND (SELECT pg_get_functiondef(p.oid) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+          WHERE n.nspname='public' AND p.proname='supervisory_portfolio_peer_view')
+        NOT ILIKE '%insufficient''%'
+    AND (SELECT count(*) FROM regexp_matches(
+           (SELECT pg_get_functiondef(p.oid) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+             WHERE n.nspname='public' AND p.proname='supervisory_portfolio_peer_view'),
+           'peer_ratio_snapshot\(', 'g')) = 1,
+    'wrapper state equals canonical engine state, the engine is called exactly once and no non-existent JSON field is read');
+END $$;
+
+-- ===================== L. PEER SECURITY =====================
+
+DO $$
+DECLARE _out uuid; _mgr uuid; _e1 uuid; _pe date; _min int; _sec uuid;
+        _w1 jsonb; _e_eng jsonb; _w2 jsonb; _wsec jsonb; _admitted int; _mgrw jsonb; _txt text;
+BEGIN
+  SELECT v INTO _out FROM pt_p WHERE k='out';
+  SELECT v INTO _mgr FROM pt_p WHERE k='mgr';
+  SELECT v INTO _e1 FROM pt_fx WHERE k='e1';
+  SELECT (v)::date INTO _pe FROM pt_peer WHERE k='period_end';
+  SELECT (v)::int INTO _min FROM pt_peer WHERE k='min_peers';
+  SELECT sector_id INTO _sec FROM public.licensees WHERE id = _e1;
+
+  SELECT count(*) INTO _admitted
+    FROM public.return_metric_values v
+    JOIN public.regulatory_metrics m ON m.id = v.regulatory_metric_id
+   WHERE m.code = 'PT_FIX_PEER_SUFFICIENT'
+     AND public.supervisory_monitoring_scope_admits(_out,'PRUDENTIAL', v.entity_id, NULL, NULL);
+
+  PERFORM set_config('request.jwt.claims', json_build_object('sub',_out,'role','authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  _w1    := public.supervisory_portfolio_peer_view(_pe, 'PT_FIX_PEER_SUFFICIENT', NULL, _e1);
+  _e_eng := public.peer_ratio_snapshot(_pe, 'PT_FIX_PEER_SUFFICIENT', NULL, _e1, _min);
+  _wsec  := public.supervisory_portfolio_peer_view(_pe, 'PT_FIX_PEER_SUFFICIENT', _sec, _e1);
+  _w2    := public.supervisory_portfolio_peer_view(_pe, 'PT_FIX_PEER_SUFFICIENT', _sec, NULL);
+  RESET ROLE;
+
+  PERFORM pg_temp.gate('PT-39',
+    (_w1->>'state') = 'NOT_AUTHORISED'
+    AND (_e_eng->>'state') = 'NOT_AUTHORISED'
+    AND (_w1->'snapshot'->'entity_value') IS NULL
+    AND (_e_eng->'entity_value') = 'null'::jsonb
+    AND (_w1->>'snapshot') NOT ILIKE '%percentile%',
+    'an out-of-remit user cannot retrieve another entity''s metric value or percentile by UUID');
+
+  PERFORM pg_temp.gate('PT-40',
+    (_wsec->>'state') = 'NOT_AUTHORISED'
+    AND COALESCE((_w2->'snapshot'->>'peer_count')::int, 0) <= _admitted
+    AND (_w2->>'peer_population_model') = 'AUTHORISED_POPULATION',
+    format('a client-supplied sector cannot widen authorised peer scope (entity request refused; sector-only peer_count=%s <= authorised=%s)',
+           COALESCE(_w2->'snapshot'->>'peer_count','0'), _admitted));
+
+  PERFORM pg_temp.gate('PT-41',
+    COALESCE((_w2->'snapshot'->>'peer_count')::int, 0) <= _admitted
+    AND CASE WHEN _admitted < _min THEN (_w2->>'state') = 'INSUFFICIENT_PEER_DATA' ELSE true END
+    AND (SELECT obj_description(p.oid) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+          WHERE n.nspname='public' AND p.proname='peer_ratio_snapshot') ILIKE '%Model A%',
+    format('minimum-peer threshold is evaluated against the approved Model A authorised population (authorised=%s, min=%s, state=%s)',
+           _admitted, _min, _w2->>'state'));
+
+  PERFORM set_config('request.jwt.claims', json_build_object('sub',_mgr,'role','authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  _mgrw := public.supervisory_portfolio_peer_view(_pe, 'PT_FIX_PEER_SUFFICIENT', NULL, NULL);
+  RESET ROLE;
+  _txt := _mgrw::text;
+
+  PERFORM pg_temp.gate('PT-42',
+    NOT EXISTS (SELECT 1 FROM unnest(string_to_array((SELECT v FROM pt_peer WHERE k='peer_entities'), ',')) u
+                 WHERE _txt LIKE '%' || u || '%')
+    AND _txt NOT ILIKE '%entity_name%'
+    AND (_mgrw->'snapshot') ? 'median',
+    'peer output publishes distribution statistics only — no peer entity identifier or name is returned');
+END $$;
+
+-- ===================== M. TREND ASSESSABILITY =====================
+
+DO $$
+DECLARE _mgr uuid; _c jsonb; _r jsonb; _cov jsonb;
+BEGIN
+  SELECT v INTO _mgr FROM pt_p WHERE k='mgr';
+
+  -- state 1: current window COMPLETED (fixture run), comparison window unassessed
+  PERFORM set_config('request.jwt.claims', json_build_object('sub',_mgr,'role','authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  _c := public.supervisory_portfolio_change_lens('PRUDENTIAL', 30);
+  RESET ROLE;
+  SELECT r INTO _r FROM jsonb_array_elements(_c->'rows') r WHERE r->>'theme_key'='PT_FIXTURE_DETECTOR';
+  PERFORM pg_temp.gate('PT-43',
+    (_r->>'change_state') = 'NOT_ASSESSABLE'
+    AND (_r->>'current_window_assessable')::boolean
+    AND NOT (_r->>'comparison_window_assessable')::boolean
+    AND (_r->>'comparison_window_assessability_reason') = 'NO_DETECTOR_ATTEMPT_IN_WINDOW',
+    format('current window covered + comparison window unassessed => NOT_ASSESSABLE (%s)',
+           _r->>'comparison_window_assessability_reason'));
+
+  -- state 2: comparison window COMPLETED, current window unassessed
+  DELETE FROM public.supervisory_detector_run WHERE detector_code='PT_FIXTURE_DETECTOR';
+  INSERT INTO public.supervisory_detector_run (detector_code, trigger_kind, status, started_at,
+      completed_at, rows_scanned, signals_created, signals_updated, signals_resolved)
+  VALUES ('PT_FIXTURE_DETECTOR','scheduled','COMPLETED', now() - interval '45 days',
+      now() - interval '45 days', 10, 0, 0, 0);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub',_mgr,'role','authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  _c := public.supervisory_portfolio_change_lens('PRUDENTIAL', 30);
+  RESET ROLE;
+  SELECT r INTO _r FROM jsonb_array_elements(_c->'rows') r WHERE r->>'theme_key'='PT_FIXTURE_DETECTOR';
+  PERFORM pg_temp.gate('PT-44',
+    (_r->>'change_state') = 'NOT_ASSESSABLE'
+    AND (_r->>'comparison_window_assessable')::boolean
+    AND NOT (_r->>'current_window_assessable')::boolean,
+    format('comparison window covered + current window unassessed => NOT_ASSESSABLE (%s)',
+           _r->>'current_window_assessability_reason'));
+
+  -- state 3: both windows COMPLETED, but a later authoritative attempt FAILED
+  INSERT INTO public.supervisory_detector_run (detector_code, trigger_kind, status, started_at,
+      completed_at, rows_scanned, signals_created, signals_updated, signals_resolved)
+  VALUES ('PT_FIXTURE_DETECTOR','scheduled','COMPLETED', now() - interval '10 days',
+      now() - interval '10 days', 10, 0, 0, 0);
+  INSERT INTO public.supervisory_detector_run (detector_code, trigger_kind, status, started_at,
+      completed_at, rows_scanned, signals_created, signals_updated, signals_resolved, error_text)
+  VALUES ('PT_FIXTURE_DETECTOR','scheduled','FAILED', now() - interval '2 hours',
+      NULL, 0, 0, 0, 0, 'fixture scan failure');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub',_mgr,'role','authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  _c := public.supervisory_portfolio_change_lens('PRUDENTIAL', 30);
+  RESET ROLE;
+  SELECT r INTO _r FROM jsonb_array_elements(_c->'rows') r WHERE r->>'theme_key'='PT_FIXTURE_DETECTOR';
+  PERFORM pg_temp.gate('PT-45',
+    (_r->>'change_state') = 'NOT_ASSESSABLE'
+    AND (_r->>'change_state') <> 'IMPROVING'
+    AND NOT (_r->>'current_window_assessable')::boolean
+    AND (_r->>'current_window_assessability_reason') = 'LATEST_ATTEMPT_FAILED'
+    AND (_r->>'current_window_latest_attempt_status') = 'FAILED',
+    'a successful earlier run followed by an authoritative FAILED attempt cannot produce IMPROVING');
+
+  -- state 4: both windows reliably covered (latest attempt COMPLETED)
+  DELETE FROM public.supervisory_detector_run
+   WHERE detector_code='PT_FIXTURE_DETECTOR' AND upper(status) <> 'COMPLETED';
+  INSERT INTO public.supervisory_detector_run (detector_code, trigger_kind, status, started_at,
+      completed_at, rows_scanned, signals_created, signals_updated, signals_resolved)
+  VALUES ('PT_FIXTURE_DETECTOR','scheduled','COMPLETED', now() - interval '1 hour',
+      now() - interval '1 hour', 10, 0, 0, 0);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub',_mgr,'role','authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  _c := public.supervisory_portfolio_change_lens('PRUDENTIAL', 30);
+  RESET ROLE;
+  SELECT r INTO _r FROM jsonb_array_elements(_c->'rows') r WHERE r->>'theme_key'='PT_FIXTURE_DETECTOR';
+  PERFORM pg_temp.gate('PT-46',
+    (_r->>'current_window_assessable')::boolean AND (_r->>'comparison_window_assessable')::boolean
+    AND (_r->>'change_state') IN ('EMERGED','WORSENING','PERSISTENT','IMPROVING'),
+    format('both windows reliably covered => governed trend classification permitted (%s)', _r->>'change_state'));
+
+  -- PT-47 — a failed-only window is never zero observations / improvement
+  _cov := public.supervisory_portfolio_detector_window_coverage('PT_FIXTURE_DETECTOR',
+            now() - interval '5 minutes', now());
+  PERFORM pg_temp.gate('PT-47',
+    NOT COALESCE((_cov->>'assessable')::boolean,true)
+    AND (_cov->>'reason') = 'NO_DETECTOR_ATTEMPT_IN_WINDOW'
+    AND NOT COALESCE((public.supervisory_portfolio_detector_window_coverage('PT_FIXTURE_DETECTOR',
+            now() - interval '3 hours', now() - interval '30 minutes')->>'assessable')::boolean, true)
+    AND (SELECT obj_description(p.oid) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+          WHERE n.nspname='public'
+            AND p.proname='supervisory_portfolio_detector_window_coverage') ILIKE '%never evidence of improvement%',
+    'detector failure or absence is never treated as zero observations or improvement');
+END $$;
+
+-- ===================== N. CROSS-DOMAIN RISK-STATE SCOPE =====================
+
+DO $$
+DECLARE _mgr uuid; _e1 uuid; _x jsonb; _row jsonb;
+BEGIN
+  SELECT v INTO _mgr FROM pt_p WHERE k='mgr';
+  SELECT v INTO _e1 FROM pt_fx WHERE k='e1';
+
+  -- MARKET_CONDUCT is outside the caller's authorised portfolio population for e1
+  INSERT INTO public.supervisory_domain_perimeter (entity_id, domain_code, is_applicable, basis)
+  VALUES (_e1,'MARKET_CONDUCT', false, 'PT fixture: domain outside caller portfolio')
+  ON CONFLICT (entity_id, domain_code) DO UPDATE SET is_applicable = false;
+
+  DELETE FROM public.entity_risk_state WHERE entity_id = _e1
+    AND domain_code IN ('PRUDENTIAL','MARKET_CONDUCT');
+  INSERT INTO public.entity_risk_state (entity_id, domain_code, residual_rating, effective_from)
+  VALUES (_e1,'PRUDENTIAL','HIGH', now() - interval '10 days'),
+         (_e1,'MARKET_CONDUCT','MEDIUM', now() - interval '10 days');
+
+  PERFORM set_config('request.jwt.claims', json_build_object('sub',_mgr,'role','authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  _x := public.supervisory_portfolio_cross_domain(500);
+  RESET ROLE;
+  SELECT e INTO _row FROM jsonb_array_elements(_x->'entities') e WHERE (e->>'entity_id')::uuid = _e1;
+
+  PERFORM pg_temp.gate('PT-48',
+    _row IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(_row->'approved_risk_state') r
+                     WHERE r->>'domain_code' = 'MARKET_CONDUCT')
+    AND (_x->>'risk_state_scope') ILIKE '%withheld%',
+    'a risk state from a domain outside the caller''s authorised remit is absent from cross-domain output');
+
+  PERFORM pg_temp.gate('PT-49',
+    EXISTS (SELECT 1 FROM jsonb_array_elements(_row->'approved_risk_state') r
+             WHERE r->>'domain_code' = 'PRUDENTIAL' AND r->>'residual_rating' = 'HIGH'),
+    'approved risk state for authorised domains remains visible');
+END $$;
+
+-- ===================== O. FINANCIAL-GROUP MEMBERSHIP VISIBILITY =====================
+
+DO $$
+DECLARE _mgr uuid; _e1 uuid; _e2 uuid; _e3 uuid; _e3name text; _grp uuid; _g jsonb; _row jsonb; _txt text; _d text;
+BEGIN
+  SELECT v INTO _mgr FROM pt_p WHERE k='mgr';
+  SELECT v INTO _e1 FROM pt_fx WHERE k='e1';
+  SELECT v INTO _e2 FROM pt_fx WHERE k='e2';
+  SELECT l.id, l.name INTO _e3, _e3name FROM public.licensees l
+   WHERE l.id NOT IN (_e1,_e2) ORDER BY l.created_at LIMIT 1;
+
+  -- _e3 is placed outside the caller's authorised portfolio population
+  FOR _d IN SELECT domain_code FROM public.supervisory_domain_vocabulary LOOP
+    INSERT INTO public.supervisory_domain_perimeter (entity_id, domain_code, is_applicable, basis)
+    VALUES (_e3, _d, false, 'PT fixture: hidden group member')
+    ON CONFLICT (entity_id, domain_code) DO UPDATE SET is_applicable = false;
+  END LOOP;
+
+  INSERT INTO public.financial_groups (group_code, name, status)
+  VALUES ('PT_FIX_GROUP','PT fixture group','active') RETURNING id INTO _grp;
+  INSERT INTO public.financial_group_members (group_id, licensee_id, member_role, effective_date)
+  VALUES (_grp, _e1, 'member', CURRENT_DATE), (_grp, _e3, 'member', CURRENT_DATE);
+
+  PERFORM set_config('request.jwt.claims', json_build_object('sub',_mgr,'role','authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  _g := public.supervisory_portfolio_group_intelligence(NULL);
+  RESET ROLE;
+  SELECT gr INTO _row FROM jsonb_array_elements(_g->'groups') gr WHERE (gr->>'group_id')::uuid = _grp;
+  _txt := COALESCE(_row::text, '');
+
+  PERFORM pg_temp.gate('PT-50',
+    _row IS NOT NULL AND (_row->>'visible_member_count')::int = 1,
+    format('an out-of-remit group member does not contribute to the scoped visible member count (visible=%s of 2 canonical)',
+           _row->>'visible_member_count'));
+
+  PERFORM pg_temp.gate('PT-51',
+    (_row->>'member_count_basis') = 'SCOPED_VISIBLE_MEMBERSHIP_ONLY'
+    AND (_row->'canonical_member_count') = 'null'::jsonb
+    AND NOT (_row->>'full_membership_authorised')::boolean
+    AND (_g->>'membership_visibility_policy') ILIKE '%not disclosed beyond%',
+    'canonical/full membership disclosure follows the documented policy: withheld unless the caller is authorised for every member');
+
+  PERFORM pg_temp.gate('PT-52',
+    _txt NOT LIKE '%' || _e3::text || '%'
+    AND (_e3name IS NULL OR _txt NOT LIKE '%' || _e3name || '%')
+    AND _txt LIKE '%' || _e1::text || '%',
+    'hidden member identifiers and names never leak through the group payload');
+END $$;
+
 -- ---------------------------------------------------------------------------
 -- Verdict
 -- ---------------------------------------------------------------------------
