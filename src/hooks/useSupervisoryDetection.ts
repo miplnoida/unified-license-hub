@@ -128,6 +128,7 @@ export function useRunDetection() {
       qc.invalidateQueries({ queryKey: ['supervisory_detection_register'] });
       qc.invalidateQueries({ queryKey: ['supervisory_detector_assurance'] });
       qc.invalidateQueries({ queryKey: ['supervisory_monitoring_register'] });
+      qc.invalidateQueries({ queryKey: ['supervisory_detection_health'] });
     },
   });
 }
