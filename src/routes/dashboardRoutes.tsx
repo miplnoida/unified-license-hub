@@ -72,6 +72,8 @@ const SupervisoryPortfolio = lazy(() => import('@/pages/supervision/SupervisoryP
 const ContinuousMonitoring = lazy(() => import('@/pages/supervision/ContinuousMonitoring'));
 const DetectionGovernance = lazy(() => import('@/pages/supervision/DetectionGovernance'));
 const ManagementAssurance = lazy(() => import('@/pages/supervision/ManagementAssurance'));
+// OS-02G1 — portfolio, thematic and systemic supervisory intelligence (read layer only).
+const PortfolioIntelligence = lazy(() => import('@/pages/supervision/PortfolioIntelligence'));
 // Epic 3 — AML/CFT supervision workspace (canonical spine, AML_CFT domain).
 const AmlOverview = lazy(() => import('@/pages/supervision/aml/AmlOverview'));
 const AmlWorkQueue = lazy(() => import('@/pages/supervision/aml/AmlWorkQueue'));
@@ -348,6 +350,7 @@ export const dashboardRoutes = (
     <Route path="/supervision/monitoring" element={<SE><ContinuousMonitoring /></SE>} />
     <Route path="/supervision/detection" element={<SE><DetectionGovernance /></SE>} />
     <Route path="/supervision/management-assurance" element={<SE><ManagementAssurance /></SE>} />
+    <Route path="/supervision/portfolio-intelligence" element={<SE><PortfolioIntelligence /></SE>} />
     <Route path="/supervision/risk" element={<M module="prudential_supervision"><RiskHeatmap /></M>} />
     <Route path="/executive" element={<M module="report_management"><ExecutiveDashboard /></M>} />
     <Route path="/alerts" element={<M module="returns_management"><AlertCenter /></M>} />
