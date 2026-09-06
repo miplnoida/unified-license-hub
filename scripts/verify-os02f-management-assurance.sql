@@ -705,9 +705,10 @@ DO $$
 DECLARE _ok boolean := false; _fnd uuid;
 BEGIN
   INSERT INTO public.supervisory_finding (reference, entity_id, domain_code, severity, title,
-      observation, status, source_kind, due_date, issued_at, owner_id, created_by)
+      observation, status, source_kind, signal_id, due_date, issued_at, owner_id, created_by)
   VALUES ('MA-FIX-FND-OTHER', (SELECT v FROM ma_p WHERE k='oent'), 'PRUDENTIAL','HIGH',
-      'MA fixture other-entity finding','fixture','ISSUED','MANUAL',
+      'MA fixture other-entity finding','fixture','ISSUED','SIGNAL',
+      (SELECT v FROM ma_p WHERE k='osig'),
       current_date + 30, now(), (SELECT v FROM ma_fx WHERE k='uid'), (SELECT v FROM ma_fx WHERE k='uid'))
   RETURNING id INTO _fnd;
   BEGIN
