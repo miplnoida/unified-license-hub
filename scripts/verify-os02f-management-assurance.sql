@@ -66,8 +66,12 @@ SELECT pg_temp.gate('MA-02c',
 
 SELECT pg_temp.gate('MA-02d',
   (SELECT count(*) FROM pg_policy pol JOIN pg_class c ON c.oid=pol.polrelid
-    WHERE c.relname IN ('supervisory_signal_review','supervisory_assurance_policy')) >= 4,
-  'read/write policies exist on both new objects');
+    WHERE c.relname IN ('supervisory_signal_review','supervisory_assurance_policy')) >= 3
+  AND NOT EXISTS (
+    SELECT 1 FROM pg_policy pol JOIN pg_class c ON c.oid=pol.polrelid
+     WHERE c.relname = 'supervisory_signal_review' AND pol.polcmd <> 'r'),
+  'policies exist on both objects; the review table exposes read-only policy surface');
+
 
 -- ---------------------------------------------------------------------------
 -- Fixtures (all rolled back).
