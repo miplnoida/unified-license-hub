@@ -1077,6 +1077,13 @@ export type Database = {
             referencedRelation: "supervisory_assessment"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "aml_assessments_supervisory_assessment_id_fkey"
+            columns: ["supervisory_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
         ]
       }
       api_key_usage: {
@@ -10320,6 +10327,13 @@ export type Database = {
             referencedRelation: "supervisory_finding"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "conduct_findings_supervisory_finding_id_fkey"
+            columns: ["supervisory_finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["finding_id"]
+          },
         ]
       }
       conduct_intelligence_report_recipients: {
@@ -15251,6 +15265,13 @@ export type Database = {
             foreignKeyName: "enforcement_actions_remediation_action_id_fkey"
             columns: ["remediation_action_id"]
             isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["remediation_id"]
+          },
+          {
+            foreignKeyName: "enforcement_actions_remediation_action_id_fkey"
+            columns: ["remediation_action_id"]
+            isOneToOne: false
             referencedRelation: "supervisory_remediation_action"
             referencedColumns: ["id"]
           },
@@ -15262,11 +15283,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "enforcement_actions_supervisory_assessment_id_fkey"
+            columns: ["supervisory_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
             foreignKeyName: "enforcement_actions_supervisory_finding_id_fkey"
             columns: ["supervisory_finding_id"]
             isOneToOne: false
             referencedRelation: "supervisory_finding"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enforcement_actions_supervisory_finding_id_fkey"
+            columns: ["supervisory_finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["finding_id"]
           },
         ]
       }
@@ -18473,6 +18508,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "entity_risk_state_driving_assessment_id_fkey"
+            columns: ["driving_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
             foreignKeyName: "entity_risk_state_entity_id_fkey"
             columns: ["entity_id"]
             isOneToOne: false
@@ -18574,11 +18616,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "entity_risk_state_movement_new_assessment_id_fkey"
+            columns: ["new_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
             foreignKeyName: "entity_risk_state_movement_previous_assessment_id_fkey"
             columns: ["previous_assessment_id"]
             isOneToOne: false
             referencedRelation: "supervisory_assessment"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_risk_state_movement_previous_assessment_id_fkey"
+            columns: ["previous_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "entity_risk_state_movement_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["entity_reassessment_id"]
+          },
+          {
+            foreignKeyName: "entity_risk_state_movement_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["reassessment_id"]
           },
           {
             foreignKeyName: "entity_risk_state_movement_requirement_id_fkey"
@@ -19647,6 +19717,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "examination_findings_supervisory_finding_id_fkey"
+            columns: ["supervisory_finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["finding_id"]
+          },
+          {
             foreignKeyName: "examination_findings_workpaper_id_fkey"
             columns: ["workpaper_id"]
             isOneToOne: false
@@ -19708,6 +19785,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "examination_origin_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
             foreignKeyName: "examination_origin_attention_id_fkey"
             columns: ["attention_id"]
             isOneToOne: false
@@ -19722,11 +19806,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "examination_origin_attention_id_fkey"
+            columns: ["attention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["attention_id"]
+          },
+          {
             foreignKeyName: "examination_origin_examination_id_fkey"
             columns: ["examination_id"]
             isOneToOne: false
             referencedRelation: "examinations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examination_origin_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["signal_id"]
           },
           {
             foreignKeyName: "examination_origin_signal_id_fkey"
@@ -19919,6 +20017,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_assessment"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examination_scope_dimension_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
           },
           {
             foreignKeyName: "examination_scope_dimension_examination_id_fkey"
@@ -20168,6 +20273,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_assessment"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "examination_workpapers_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
           },
           {
             foreignKeyName: "examination_workpapers_examination_id_fkey"
@@ -24712,6 +24824,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_finding"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_supervisory_finding_id_fkey"
+            columns: ["supervisory_finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["finding_id"]
           },
         ]
       }
@@ -33394,6 +33513,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_assessment"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prudential_assessments_supervisory_assessment_id_fkey"
+            columns: ["supervisory_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
           },
         ]
       }
@@ -43634,6 +43760,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "supervisory_assessment_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_trigger_signal_fkey"
+            columns: ["trigger_signal_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["signal_id"]
+          },
+          {
             foreignKeyName: "supervisory_assessment_trigger_signal_fkey"
             columns: ["trigger_signal_id"]
             isOneToOne: false
@@ -43704,6 +43844,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "supervisory_assessment"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_calculation_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: true
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
           },
           {
             foreignKeyName: "supervisory_assessment_calculation_config_id_fkey"
@@ -43911,6 +44058,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "supervisory_assessment_dimension_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
             foreignKeyName: "supervisory_assessment_dimension_calculation_config_id_fkey"
             columns: ["calculation_config_id"]
             isOneToOne: false
@@ -43967,6 +44121,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_assessment"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_event_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
           },
         ]
       }
@@ -44053,6 +44214,13 @@ export type Database = {
             referencedRelation: "supervisory_assessment"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "supervisory_assessment_question_response_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
         ]
       }
       supervisory_assessment_signal: {
@@ -44086,6 +44254,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "supervisory_assessment_signal_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_signal_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["signal_id"]
+          },
+          {
             foreignKeyName: "supervisory_assessment_signal_signal_id_fkey"
             columns: ["signal_id"]
             isOneToOne: false
@@ -44093,6 +44275,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      supervisory_assurance_policy: {
+        Row: {
+          awaiting_review_tolerance_days: number
+          code: string
+          config_owner: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          domain_code: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          material_severities: string[]
+          name: string
+          notes: string | null
+          repeat_distinct_day_threshold: number
+          repeat_occurrence_threshold: number
+          stale_activity_tolerance_days: number
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          awaiting_review_tolerance_days: number
+          code: string
+          config_owner: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          domain_code?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          material_severities?: string[]
+          name: string
+          notes?: string | null
+          repeat_distinct_day_threshold?: number
+          repeat_occurrence_threshold: number
+          stale_activity_tolerance_days: number
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          awaiting_review_tolerance_days?: number
+          code?: string
+          config_owner?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          domain_code?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          material_severities?: string[]
+          name?: string
+          notes?: string | null
+          repeat_distinct_day_threshold?: number
+          repeat_occurrence_threshold?: number
+          stale_activity_tolerance_days?: number
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
       }
       supervisory_attention: {
         Row: {
@@ -44303,6 +44554,13 @@ export type Database = {
             referencedRelation: "supervisory_attention"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "conduct_attention_events_attention_id_fkey"
+            columns: ["attention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["attention_id"]
+          },
         ]
       }
       supervisory_attention_origin: {
@@ -44364,6 +44622,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "supervisory_attention_origin_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
             foreignKeyName: "supervisory_attention_origin_attention_id_fkey"
             columns: ["attention_id"]
             isOneToOne: false
@@ -44376,6 +44641,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_attention"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_attention_origin_attention_id_fkey"
+            columns: ["attention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["attention_id"]
           },
           {
             foreignKeyName: "supervisory_attention_origin_complaint_id_fkey"
@@ -44397,6 +44669,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "examinations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_attention_origin_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["signal_id"]
           },
           {
             foreignKeyName: "supervisory_attention_origin_signal_id_fkey"
@@ -44462,6 +44741,13 @@ export type Database = {
             referencedRelation: "supervisory_attention"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "conduct_attention_priority_calcs_attention_id_fkey"
+            columns: ["attention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["attention_id"]
+          },
         ]
       }
       supervisory_attention_reassessment: {
@@ -44518,6 +44804,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_attention"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_attention_reassessments_attention_id_fkey"
+            columns: ["attention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["attention_id"]
           },
           {
             foreignKeyName: "conduct_attention_reassessments_emerging_risk_id_fkey"
@@ -45270,6 +45563,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "supervisory_finding_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
             foreignKeyName: "supervisory_finding_attention_id_fkey"
             columns: ["attention_id"]
             isOneToOne: false
@@ -45282,6 +45582,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_attention"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_finding_attention_id_fkey"
+            columns: ["attention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["attention_id"]
           },
           {
             foreignKeyName: "supervisory_finding_examination_id_fkey"
@@ -45329,6 +45636,13 @@ export type Database = {
             foreignKeyName: "supervisory_finding_signal_id_fkey"
             columns: ["signal_id"]
             isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["signal_id"]
+          },
+          {
+            foreignKeyName: "supervisory_finding_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
             referencedRelation: "supervisory_signal"
             referencedColumns: ["id"]
           },
@@ -45338,6 +45652,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_finding"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_finding_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["finding_id"]
           },
           {
             foreignKeyName: "supervisory_finding_workpaper_id_fkey"
@@ -45389,6 +45710,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_finding"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_finding_event_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["finding_id"]
           },
         ]
       }
@@ -45569,6 +45897,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_attention"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_interventions_attention_id_fkey"
+            columns: ["attention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["attention_id"]
           },
           {
             foreignKeyName: "conduct_interventions_catalogue_code_fkey"
@@ -46641,6 +46976,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conduct_supervisory_plans_attention_id_fkey"
+            columns: ["attention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["attention_id"]
+          },
+          {
             foreignKeyName: "conduct_supervisory_plans_emerging_risk_id_fkey"
             columns: ["emerging_risk_id"]
             isOneToOne: false
@@ -46699,6 +47041,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_assessment"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_plan_assessment_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
           },
           {
             foreignKeyName: "supervisory_plan_assessment_plan_id_fkey"
@@ -47088,11 +47437,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "supervisory_reassessment_requireme_fulfilled_assessment_id_fkey"
+            columns: ["fulfilled_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
             foreignKeyName: "supervisory_reassessment_requiremen_previous_assessment_id_fkey"
             columns: ["previous_assessment_id"]
             isOneToOne: false
             referencedRelation: "supervisory_assessment"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_reassessment_requiremen_previous_assessment_id_fkey"
+            columns: ["previous_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
           },
           {
             foreignKeyName: "supervisory_reassessment_requirement_enforcement_action_id_fkey"
@@ -47123,11 +47486,32 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "supervisory_reassessment_requirement_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["finding_id"]
+          },
+          {
+            foreignKeyName: "supervisory_reassessment_requirement_remediation_action_id_fkey"
+            columns: ["remediation_action_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["remediation_id"]
+          },
+          {
             foreignKeyName: "supervisory_reassessment_requirement_remediation_action_id_fkey"
             columns: ["remediation_action_id"]
             isOneToOne: false
             referencedRelation: "supervisory_remediation_action"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_reassessment_requirement_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["signal_id"]
           },
           {
             foreignKeyName: "supervisory_reassessment_requirement_signal_id_fkey"
@@ -47249,11 +47633,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "supervisory_remediation_action_escalated_attention_id_fkey"
+            columns: ["escalated_attention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["attention_id"]
+          },
+          {
             foreignKeyName: "supervisory_remediation_action_finding_id_fkey"
             columns: ["finding_id"]
             isOneToOne: false
             referencedRelation: "supervisory_finding"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_remediation_action_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["finding_id"]
           },
         ]
       }
@@ -47292,6 +47690,13 @@ export type Database = {
           to_status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "supervisory_remediation_event_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["remediation_id"]
+          },
           {
             foreignKeyName: "supervisory_remediation_event_action_id_fkey"
             columns: ["action_id"]
@@ -47355,6 +47760,13 @@ export type Database = {
             foreignKeyName: "supervisory_remediation_validation_action_id_fkey"
             columns: ["action_id"]
             isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["remediation_id"]
+          },
+          {
+            foreignKeyName: "supervisory_remediation_validation_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
             referencedRelation: "supervisory_remediation_action"
             referencedColumns: ["id"]
           },
@@ -47364,6 +47776,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_finding"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_remediation_validation_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["finding_id"]
           },
           {
             foreignKeyName: "supervisory_remediation_validation_workpaper_id_fkey"
@@ -47428,6 +47847,13 @@ export type Database = {
             foreignKeyName: "supervisory_residual_acceptance_action_id_fkey"
             columns: ["action_id"]
             isOneToOne: true
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["remediation_id"]
+          },
+          {
+            foreignKeyName: "supervisory_residual_acceptance_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: true
             referencedRelation: "supervisory_remediation_action"
             referencedColumns: ["id"]
           },
@@ -47437,6 +47863,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_finding"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_residual_acceptance_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["finding_id"]
           },
           {
             foreignKeyName: "supervisory_residual_acceptance_validation_id_fkey"
@@ -47668,6 +48101,94 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "supervisory_signal_occurrence_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["signal_id"]
+          },
+          {
+            foreignKeyName: "supervisory_signal_occurrence_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_signal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_signal_review: {
+        Row: {
+          created_at: string
+          disposition: string | null
+          disposition_at: string | null
+          disposition_by: string | null
+          disposition_rationale: string | null
+          domain_code: string
+          entity_id: string | null
+          id: string
+          last_detected_at_at_review: string | null
+          linked_module: string | null
+          linked_record_id: string | null
+          linked_reference: string | null
+          occurrence_count_at_review: number | null
+          provenance: Json
+          review_note: string | null
+          reviewed_at: string
+          reviewed_by: string
+          signal_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          disposition?: string | null
+          disposition_at?: string | null
+          disposition_by?: string | null
+          disposition_rationale?: string | null
+          domain_code: string
+          entity_id?: string | null
+          id?: string
+          last_detected_at_at_review?: string | null
+          linked_module?: string | null
+          linked_record_id?: string | null
+          linked_reference?: string | null
+          occurrence_count_at_review?: number | null
+          provenance?: Json
+          review_note?: string | null
+          reviewed_at?: string
+          reviewed_by: string
+          signal_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          disposition?: string | null
+          disposition_at?: string | null
+          disposition_by?: string | null
+          disposition_rationale?: string | null
+          domain_code?: string
+          entity_id?: string | null
+          id?: string
+          last_detected_at_at_review?: string | null
+          linked_module?: string | null
+          linked_record_id?: string | null
+          linked_reference?: string | null
+          occurrence_count_at_review?: number | null
+          provenance?: Json
+          review_note?: string | null
+          reviewed_at?: string
+          reviewed_by?: string
+          signal_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_signal_review_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["signal_id"]
+          },
+          {
+            foreignKeyName: "supervisory_signal_review_signal_id_fkey"
             columns: ["signal_id"]
             isOneToOne: false
             referencedRelation: "supervisory_signal"
@@ -49631,6 +50152,13 @@ export type Database = {
             referencedRelation: "supervisory_attention"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "conduct_attention_events_attention_id_fkey"
+            columns: ["attention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["attention_id"]
+          },
         ]
       }
       conduct_attention_items: {
@@ -49842,6 +50370,13 @@ export type Database = {
             referencedRelation: "supervisory_attention"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "conduct_attention_priority_calcs_attention_id_fkey"
+            columns: ["attention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["attention_id"]
+          },
         ]
       }
       conduct_attention_reassessments: {
@@ -49898,6 +50433,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_attention"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_attention_reassessments_attention_id_fkey"
+            columns: ["attention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["attention_id"]
           },
           {
             foreignKeyName: "conduct_attention_reassessments_emerging_risk_id_fkey"
@@ -50192,6 +50734,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_attention"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_interventions_attention_id_fkey"
+            columns: ["attention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["attention_id"]
           },
           {
             foreignKeyName: "conduct_interventions_catalogue_code_fkey"
@@ -50527,6 +51076,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_attention"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_supervisory_plans_attention_id_fkey"
+            columns: ["attention_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["attention_id"]
           },
           {
             foreignKeyName: "conduct_supervisory_plans_emerging_risk_id_fkey"
@@ -51072,6 +51628,151 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sub_sectors"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_management_assurance_matter: {
+        Row: {
+          action_activity_at: string | null
+          action_closed_at: string | null
+          action_due_date: string | null
+          action_is_open: boolean | null
+          action_opened_at: string | null
+          action_owner_id: string | null
+          action_record_id: string | null
+          action_reference: string | null
+          action_source_table: string | null
+          action_status: string | null
+          action_team_id: string | null
+          action_type: string | null
+          age_days: number | null
+          assessment_approved_at: string | null
+          assessment_id: string | null
+          assessment_next_review: string | null
+          assessment_rating: string | null
+          assessment_reference: string | null
+          assurance_conditions: string[] | null
+          assurance_explanation: string | null
+          assurance_provenance: Json | null
+          attention_activity_at: string | null
+          attention_closed_at: string | null
+          attention_due: string | null
+          attention_id: string | null
+          attention_opened_at: string | null
+          attention_owner_id: string | null
+          attention_reference: string | null
+          attention_status: string | null
+          attention_team_id: string | null
+          awaiting_review_tolerance_days: number | null
+          comparator: string | null
+          condition_state: string | null
+          config_provenance: Json | null
+          days_since_supervisory_activity: number | null
+          detector_code: string | null
+          disposition: string | null
+          disposition_at: string | null
+          disposition_by: string | null
+          disposition_module: string | null
+          disposition_rationale: string | null
+          disposition_record_id: string | null
+          disposition_reference: string | null
+          domain_code: string | null
+          due_date_source: string | null
+          entity_id: string | null
+          entity_name: string | null
+          entity_reassessment_id: string | null
+          entity_reassessment_requested_at: string | null
+          entity_reassessment_status: string | null
+          finding_activity_at: string | null
+          finding_closed_at: string | null
+          finding_due: string | null
+          finding_id: string | null
+          finding_opened_at: string | null
+          finding_owner_id: string | null
+          finding_reference: string | null
+          finding_status: string | null
+          finding_team_id: string | null
+          first_detected_at: string | null
+          is_material: boolean | null
+          is_reviewed: boolean | null
+          last_activity_at: string | null
+          last_detected_at: string | null
+          last_occurrence_at: string | null
+          materiality_reason: string | null
+          observed_value: number | null
+          occurrence_count: number | null
+          occurrence_days: number | null
+          occurrence_total: number | null
+          owner_id: string | null
+          owner_name: string | null
+          owner_team_id: string | null
+          owner_team_name: string | null
+          ownership_assignment_id: string | null
+          ownership_scope: string | null
+          persists_after_action_closed: boolean | null
+          policy_code: string | null
+          policy_id: string | null
+          policy_owner: string | null
+          policy_resolution: string | null
+          policy_version: number | null
+          reassessment_activity_at: string | null
+          reassessment_due: string | null
+          reassessment_fulfilled_at: string | null
+          reassessment_id: string | null
+          reassessment_opened_at: string | null
+          reassessment_owner_id: string | null
+          reassessment_status: string | null
+          reassessment_team_id: string | null
+          recurred_after_action_opened: boolean | null
+          recurred_after_review: boolean | null
+          remediation_activity_at: string | null
+          remediation_closed_at: string | null
+          remediation_due: string | null
+          remediation_id: string | null
+          remediation_opened_at: string | null
+          remediation_owner_id: string | null
+          remediation_reference: string | null
+          remediation_status: string | null
+          repeat_distinct_day_threshold: number | null
+          repeat_occurrence_threshold: number | null
+          resolution_reason: string | null
+          resolved_at: string | null
+          review_id: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewed_by_name: string | null
+          severity: string | null
+          signal_id: string | null
+          source_id: string | null
+          source_kind: string | null
+          source_reference: string | null
+          source_table: string | null
+          stale_activity_tolerance_days: number | null
+          summary: string | null
+          threshold_value: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_attention_items_team_id_fkey"
+            columns: ["attention_team_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_signal_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_signal_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
         ]
       }
@@ -64587,6 +65288,36 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_assurance_policy_effective: {
+        Args: { _domain: string }
+        Returns: {
+          awaiting_review_tolerance_days: number
+          code: string
+          config_owner: string
+          domain_code: string
+          effective_from: string
+          material_severities: string[]
+          name: string
+          policy_id: string
+          repeat_distinct_day_threshold: number
+          repeat_occurrence_threshold: number
+          resolution: string
+          stale_activity_tolerance_days: number
+          version: number
+        }[]
+      }
+      supervisory_assurance_record_review: {
+        Args: {
+          _disposition?: string
+          _disposition_rationale?: string
+          _linked_module?: string
+          _linked_record_id?: string
+          _linked_reference?: string
+          _review_note?: string
+          _signal_id: string
+        }
+        Returns: Json
+      }
       supervisory_attention_confirm_priority: {
         Args: {
           _attention_id: string
@@ -64927,6 +65658,30 @@ export type Database = {
           _team_id?: string
           _title: string
         }
+        Returns: Json
+      }
+      supervisory_management_assurance_item: {
+        Args: { _signal_id: string }
+        Returns: Json
+      }
+      supervisory_management_assurance_register: {
+        Args: {
+          _action_status?: string
+          _condition?: string
+          _domain?: string
+          _entity_id?: string
+          _limit?: number
+          _overdue?: boolean
+          _owner_id?: string
+          _recurring?: boolean
+          _search?: string
+          _severity?: string
+          _team_id?: string
+        }
+        Returns: Json
+      }
+      supervisory_management_assurance_trend: {
+        Args: { _days?: number }
         Returns: Json
       }
       supervisory_methodology_action_capabilities: {

@@ -309,7 +309,7 @@ SELECT pg_temp.det('DET-28',
   'threshold conditions record value, comparator and either the threshold version or that the source does not hold one');
 
 
--- ======================= scheduling gates (OS-02F) ==========================
+-- ============== scheduling gates (OS-02E operationalisation) ================
 
 -- DET-29 scheduled and manual execution converge on one runner ---------------
 SELECT pg_temp.det('DET-29',
