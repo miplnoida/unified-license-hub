@@ -526,16 +526,18 @@ SELECT pg_temp.gate('MA-40',
 
 -- MA-41 — read-only supervisory user cannot INSERT directly.
 DO $$
-DECLARE _ok boolean := false;
+DECLARE _ok boolean := false; _ro uuid; _sig uuid; _ent uuid;
 BEGIN
+  SELECT v INTO _ro FROM ma_p WHERE k='ro';
+  SELECT v INTO _sig FROM ma_fx WHERE k='sig';
+  SELECT v INTO _ent FROM ma_fx WHERE k='ent';
   PERFORM set_config('request.jwt.claims',
-    json_build_object('sub',(SELECT v FROM ma_p WHERE k='ro'),'role','authenticated')::text, true);
+    json_build_object('sub',_ro,'role','authenticated')::text, true);
   SET LOCAL ROLE authenticated;
   BEGIN
     INSERT INTO public.supervisory_signal_review (signal_id, entity_id, domain_code,
         reviewed_by, reviewed_at)
-    VALUES ((SELECT v FROM ma_fx WHERE k='sig'), (SELECT v FROM ma_fx WHERE k='ent'),
-        'PRUDENTIAL', (SELECT v FROM ma_p WHERE k='ro'), now());
+    VALUES (_sig, _ent, 'PRUDENTIAL', _ro, now());
   EXCEPTION WHEN OTHERS THEN _ok := true;
   END;
   RESET ROLE;
@@ -545,14 +547,16 @@ END $$;
 
 -- MA-42 — authenticated user cannot UPDATE an existing historical review.
 DO $$
-DECLARE _ok boolean := false;
+DECLARE _ok boolean := false; _rev uuid; _sig2 uuid;
 BEGIN
+  SELECT v INTO _rev FROM ma_p WHERE k='rev';
+  SELECT v INTO _sig2 FROM ma_fx WHERE k='sig2';
   PERFORM set_config('request.jwt.claims',
-    json_build_object('sub',(SELECT v FROM ma_p WHERE k='rev'),'role','authenticated')::text, true);
+    json_build_object('sub',_rev,'role','authenticated')::text, true);
   SET LOCAL ROLE authenticated;
   BEGIN
     UPDATE public.supervisory_signal_review SET review_note = 'tampered'
-     WHERE signal_id = (SELECT v FROM ma_fx WHERE k='sig2');
+     WHERE signal_id = _sig2;
   EXCEPTION WHEN OTHERS THEN _ok := true;
   END;
   RESET ROLE;
@@ -561,14 +565,15 @@ END $$;
 
 -- MA-43 — authenticated user cannot DELETE a review.
 DO $$
-DECLARE _ok boolean := false;
+DECLARE _ok boolean := false; _rev uuid; _sig2 uuid;
 BEGIN
+  SELECT v INTO _rev FROM ma_p WHERE k='rev';
+  SELECT v INTO _sig2 FROM ma_fx WHERE k='sig2';
   PERFORM set_config('request.jwt.claims',
-    json_build_object('sub',(SELECT v FROM ma_p WHERE k='rev'),'role','authenticated')::text, true);
+    json_build_object('sub',_rev,'role','authenticated')::text, true);
   SET LOCAL ROLE authenticated;
   BEGIN
-    DELETE FROM public.supervisory_signal_review
-     WHERE signal_id = (SELECT v FROM ma_fx WHERE k='sig2');
+    DELETE FROM public.supervisory_signal_review WHERE signal_id = _sig2;
   EXCEPTION WHEN OTHERS THEN _ok := true;
   END;
   RESET ROLE;
@@ -577,14 +582,15 @@ END $$;
 
 -- MA-44 — authorised in-scope supervisor CAN record through the canonical command.
 DO $$
-DECLARE _res jsonb; _ok boolean := false; _err text := NULL;
+DECLARE _res jsonb; _ok boolean := false; _err text := NULL; _rev uuid; _sig uuid;
 BEGIN
+  SELECT v INTO _rev FROM ma_p WHERE k='rev';
+  SELECT v INTO _sig FROM ma_fx WHERE k='sig';
   PERFORM set_config('request.jwt.claims',
-    json_build_object('sub',(SELECT v FROM ma_p WHERE k='rev'),'role','authenticated')::text, true);
+    json_build_object('sub',_rev,'role','authenticated')::text, true);
   SET LOCAL ROLE authenticated;
   BEGIN
-    _res := public.supervisory_assurance_record_review(
-      (SELECT v FROM ma_fx WHERE k='sig'), 'MA-44 governed review');
+    _res := public.supervisory_assurance_record_review(_sig, 'MA-44 governed review');
     _ok := (_res ->> 'review_id') IS NOT NULL;
   EXCEPTION WHEN OTHERS THEN _err := SQLERRM;
   END;
@@ -598,51 +604,55 @@ END $$;
 
 -- MA-45 — read permission is NOT review authority.
 DO $$
-DECLARE _ok boolean := false; _err text;
+DECLARE _ok boolean := false; _err text; _ro uuid; _sig uuid;
 BEGIN
+  SELECT v INTO _ro FROM ma_p WHERE k='ro';
+  SELECT v INTO _sig FROM ma_fx WHERE k='sig';
   PERFORM set_config('request.jwt.claims',
-    json_build_object('sub',(SELECT v FROM ma_p WHERE k='ro'),'role','authenticated')::text, true);
+    json_build_object('sub',_ro,'role','authenticated')::text, true);
   SET LOCAL ROLE authenticated;
   BEGIN
     PERFORM public.supervisory_assurance_record_review(
-      (SELECT v FROM ma_fx WHERE k='sig'), 'MA-45 attempt', 'NO_ACTION_REQUIRED',
+      _sig, 'MA-45 attempt', 'NO_ACTION_REQUIRED',
       'Attempt by a read-only supervisory user.');
   EXCEPTION WHEN OTHERS THEN _ok := true; _err := SQLERRM;
   END;
   RESET ROLE;
   PERFORM pg_temp.gate('MA-45', _ok
-    AND (SELECT public.has_permission((SELECT v FROM ma_p WHERE k='ro'),'supervisory_spine','view')),
+    AND public.has_permission(_ro,'supervisory_spine','view'),
     'user holds supervision view but cannot disposition: '||COALESCE(_err,'(no error!)'));
 END $$;
 
 -- MA-46 — review-capable user outside the entity/domain remit is refused.
 DO $$
-DECLARE _ok boolean := false; _err text;
+DECLARE _ok boolean := false; _err text; _rev uuid; _osig uuid;
 BEGIN
+  SELECT v INTO _rev FROM ma_p WHERE k='rev';
+  SELECT v INTO _osig FROM ma_p WHERE k='osig';
   PERFORM set_config('request.jwt.claims',
-    json_build_object('sub',(SELECT v FROM ma_p WHERE k='rev'),'role','authenticated')::text, true);
+    json_build_object('sub',_rev,'role','authenticated')::text, true);
   SET LOCAL ROLE authenticated;
   BEGIN
-    PERFORM public.supervisory_assurance_record_review(
-      (SELECT v FROM ma_p WHERE k='osig'), 'MA-46 attempt');
+    PERFORM public.supervisory_assurance_record_review(_osig, 'MA-46 attempt');
   EXCEPTION WHEN OTHERS THEN _ok := true; _err := SQLERRM;
   END;
   RESET ROLE;
   PERFORM pg_temp.gate('MA-46', _ok
-    AND NOT public.supervisory_assurance_review_admits(
-          (SELECT v FROM ma_p WHERE k='rev'), (SELECT v FROM ma_p WHERE k='osig')),
+    AND NOT public.supervisory_assurance_review_admits(_rev, _osig),
     'out-of-remit condition cannot be dispositioned: '||COALESCE(_err,'(no error!)'));
 END $$;
 
 -- MA-47 — out-of-scope user cannot read the review row, directly or via read models.
 DO $$
-DECLARE _direct bigint; _view bigint;
+DECLARE _direct bigint; _view bigint; _out uuid; _sigs uuid[];
 BEGIN
+  SELECT v INTO _out FROM ma_p WHERE k='out';
+  SELECT array_agg(v) INTO _sigs FROM ma_fx WHERE k IN ('sig','sig2','sig4');
   PERFORM set_config('request.jwt.claims',
-    json_build_object('sub',(SELECT v FROM ma_p WHERE k='out'),'role','authenticated')::text, true);
+    json_build_object('sub',_out,'role','authenticated')::text, true);
   SET LOCAL ROLE authenticated;
   SELECT count(*) INTO _direct FROM public.supervisory_signal_review r
-   WHERE r.signal_id IN (SELECT v FROM ma_fx WHERE k IN ('sig','sig2','sig4'));
+   WHERE r.signal_id = ANY(_sigs);
   SELECT count(*) INTO _view FROM public.supervisory_management_assurance_matter m
    WHERE m.detector_code = 'MA_FIXTURE_DETECTOR';
   RESET ROLE;
