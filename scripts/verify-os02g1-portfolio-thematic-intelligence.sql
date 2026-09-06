@@ -422,11 +422,26 @@ BEGIN
        FROM jsonb_array_elements(_x->'entities') e WHERE (e->>'entity_id')::uuid = _e1)
     AND (_x->>'statement') ILIKE '%no overall or composite risk rating%',
     'cross-domain correlation drills back to the entity and derives no merged rating');
-  PERFORM pg_temp.gate('PT-29',
-    (_pv->>'engine') ILIKE '%peer_ratio_snapshot%'
-    AND (_pv->>'state') IN ('OK','INSUFFICIENT_PEER_DATA')
-    AND (_pv->>'minimum_peers')::int >= 1,
-    format('peer view reuses the certified peer engine with a minimum-sample guard (state=%s)', _pv->>'state'));
+  -- PT-29 — real peer success path on the rollback-safe sufficient fixture,
+  --          not merely "state belongs to an allowed enum".
+  DECLARE _pvs jsonb; _pe date;
+  BEGIN
+    SELECT (SELECT v FROM pt_peer WHERE k='period_end')::date INTO _pe;
+    PERFORM set_config('request.jwt.claims', json_build_object('sub',_mgr,'role','authenticated')::text, true);
+    SET LOCAL ROLE authenticated;
+    _pvs := public.supervisory_portfolio_peer_view(_pe, 'PT_FIX_PEER_SUFFICIENT', NULL, NULL);
+    RESET ROLE;
+    PERFORM pg_temp.gate('PT-29',
+      (_pvs->>'engine') ILIKE '%peer_ratio_snapshot%'
+      AND (_pvs->>'state') = 'OK'
+      AND (_pvs->'snapshot'->>'state') = 'OK'
+      AND (_pvs->>'minimum_peers')::int >= 3
+      AND (_pvs->'snapshot'->>'peer_count')::int >= (_pvs->>'minimum_peers')::int
+      AND (_pvs->'snapshot'->'median') IS NOT NULL,
+      format('peer success path proven on the certification fixture: state=%s peers=%s min=%s',
+             _pvs->>'state', _pvs->'snapshot'->>'peer_count', _pvs->>'minimum_peers'));
+  END;
+
 END $$;
 
 -- ===================== H. NO RISK-STATE MUTATION =====================
