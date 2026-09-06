@@ -625,20 +625,33 @@ END $$;
 
 -- MA-46 — review-capable user outside the entity/domain remit is refused.
 DO $$
-DECLARE _ok boolean := false; _err text; _rev uuid; _osig uuid;
+DECLARE _ok boolean := false; _err text; _out uuid; _sig uuid; _role uuid;
 BEGIN
-  SELECT v INTO _rev FROM ma_p WHERE k='rev';
-  SELECT v INTO _osig FROM ma_p WHERE k='osig';
+  -- Every review-capable staff user in this deployment holds a global remit, so
+  -- the adversary is built the other way round: take a genuinely out-of-remit
+  -- user and give them real review capability for the duration of this
+  -- (rolled-back) transaction. Capability without remit must still be refused.
+  SELECT v INTO _out FROM ma_p WHERE k='out';
+  SELECT v INTO _sig FROM ma_fx WHERE k='sig';
+  SELECT r.id INTO _role FROM public.roles r
+    JOIN public.role_permissions rp ON rp.role_id = r.id
+    JOIN public.permissions p ON p.id = rp.permission_id
+   WHERE p.module = 'supervisory_spine' AND p.name = 'review'
+   ORDER BY r.id LIMIT 1;
+  INSERT INTO public.user_dynamic_roles (user_id, role_id) VALUES (_out, _role)
+    ON CONFLICT DO NOTHING;
+
   PERFORM set_config('request.jwt.claims',
-    json_build_object('sub',_rev,'role','authenticated')::text, true);
+    json_build_object('sub',_out,'role','authenticated')::text, true);
   SET LOCAL ROLE authenticated;
   BEGIN
-    PERFORM public.supervisory_assurance_record_review(_osig, 'MA-46 attempt');
+    PERFORM public.supervisory_assurance_record_review(_sig, 'MA-46 attempt');
   EXCEPTION WHEN OTHERS THEN _ok := true; _err := SQLERRM;
   END;
   RESET ROLE;
   PERFORM pg_temp.gate('MA-46', _ok
-    AND NOT public.supervisory_assurance_review_admits(_rev, _osig),
+    AND public.has_permission(_out,'supervisory_spine','review')
+    AND NOT public.supervisory_assurance_review_admits(_out, _sig),
     'out-of-remit condition cannot be dispositioned: '||COALESCE(_err,'(no error!)'));
 END $$;
 
