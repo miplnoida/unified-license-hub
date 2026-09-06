@@ -310,12 +310,93 @@ SELECT pg_temp.gate('PT-25',
   'assessability is proven from supervisory_detector_run completion history');
 
 -- PT-26 — recurrence and persistence use signal identity + occurrence history.
-SELECT pg_temp.gate('PT-26',
-  (SELECT pg_get_viewdef('public.supervisory_portfolio_condition'::regclass))
-     LIKE '%occurrence%'
-  AND (SELECT count(*) FROM public.supervisory_portfolio_condition c
-        WHERE c.theme_key='PT_FIXTURE_DETECTOR' AND c.occurrence_total > 1) >= 0,
-  'repeat observations are distinguished from distinct conditions');
+--          Real positive AND negative recurrence fixture (no vacuous >= 0 test).
+DO $$
+DECLARE _rec bigint; _single bigint; _s1 uuid; _s4 uuid; _occ1 bigint; _occ4 bigint;
+BEGIN
+  SELECT v INTO _s1 FROM pt_fx WHERE k='s1';
+  SELECT v INTO _s4 FROM pt_fx WHERE k='s4';
+  SELECT count(*) INTO _rec FROM public.supervisory_portfolio_condition c
+   WHERE c.theme_key='PT_FIXTURE_DETECTOR' AND c.occurrence_days > 1;
+  SELECT count(*) INTO _single FROM public.supervisory_portfolio_condition c
+   WHERE c.signal_id = _s4 AND c.occurrence_days > 1;
+  SELECT occurrence_total INTO _occ1 FROM public.supervisory_portfolio_condition WHERE signal_id = _s1;
+  SELECT occurrence_total INTO _occ4 FROM public.supervisory_portfolio_condition WHERE signal_id = _s4;
+  PERFORM pg_temp.gate('PT-26',
+    (SELECT pg_get_viewdef('public.supervisory_portfolio_condition'::regclass)) LIKE '%occurrence%'
+    AND _rec >= 1                 -- positive: multi-observation condition recognised
+    AND _single = 0               -- negative: single-observation condition is not recurrence
+    AND _occ1 > 1 AND _occ4 = 1,  -- occurrence totals reflect canonical occurrence history
+    format('recurrence proven positively (%s recurring conditions, s1 occurrences=%s) and negatively (single-observation condition s4 occurrences=%s is not recurring)',
+           _rec, _occ1, _occ4));
+END $$;
+
+-- ===================== G0. ROLLBACK-SAFE PEER FIXTURES =====================
+-- Two governed peer metrics are created inside the transaction: one with a
+-- sufficient sample (>= prudential_min_peers distinct entities) and one with a
+-- single entity. Nothing is written to production peer data.
+
+CREATE TEMP TABLE pt_peer(k text primary key, v text) ON COMMIT DROP;
+
+DO $$
+DECLARE _mid uuid; _mid2 uuid; _pe date; _n int := 0; _min int := public.prudential_min_peers();
+BEGIN
+  SELECT period_end INTO _pe
+    FROM public.v_return_metric_facts_current
+   WHERE value_numeric IS NOT NULL
+   GROUP BY period_end HAVING count(DISTINCT entity_id) >= GREATEST(_min,3) + 1
+   ORDER BY count(DISTINCT entity_id) DESC LIMIT 1;
+
+  INSERT INTO public.regulatory_metrics (code, name, description, data_domain_id, data_type,
+      unit, aggregation_type, frequency_compatibility, sensitivity, is_calculated,
+      calculation_strategy, effective_from, is_active, is_system)
+  SELECT 'PT_FIX_PEER_SUFFICIENT', 'PT fixture peer metric (sufficient sample)', m.description,
+         m.data_domain_id, m.data_type, m.unit, m.aggregation_type, m.frequency_compatibility,
+         m.sensitivity, m.is_calculated, m.calculation_strategy, m.effective_from, true, false
+    FROM public.regulatory_metrics m ORDER BY m.created_at LIMIT 1
+  RETURNING id INTO _mid;
+
+  INSERT INTO public.regulatory_metrics (code, name, description, data_domain_id, data_type,
+      unit, aggregation_type, frequency_compatibility, sensitivity, is_calculated,
+      calculation_strategy, effective_from, is_active, is_system)
+  SELECT 'PT_FIX_PEER_INSUFFICIENT', 'PT fixture peer metric (single entity)', m.description,
+         m.data_domain_id, m.data_type, m.unit, m.aggregation_type, m.frequency_compatibility,
+         m.sensitivity, m.is_calculated, m.calculation_strategy, m.effective_from, true, false
+    FROM public.regulatory_metrics m ORDER BY m.created_at LIMIT 1
+  RETURNING id INTO _mid2;
+
+  WITH src AS (
+    SELECT DISTINCT ON (f.entity_id) f.entity_id, f.filing_version_id, f.reporting_period_id,
+           f.availability, f.source_kind
+      FROM public.v_return_metric_facts_current f
+     WHERE f.period_end = _pe AND f.value_numeric IS NOT NULL
+     ORDER BY f.entity_id, f.filing_updated_at DESC NULLS LAST)
+  INSERT INTO public.return_metric_values (return_filing_version_id, entity_id,
+      regulatory_metric_id, reporting_period_id, value_numeric, availability, source_kind, recorded_at)
+  SELECT s.filing_version_id, s.entity_id, _mid, s.reporting_period_id,
+         100 + (row_number() OVER (ORDER BY s.entity_id))::numeric,
+         s.availability, s.source_kind, now()
+    FROM src s LIMIT GREATEST(_min,3) + 1;
+
+  GET DIAGNOSTICS _n = ROW_COUNT;
+
+  INSERT INTO public.return_metric_values (return_filing_version_id, entity_id,
+      regulatory_metric_id, reporting_period_id, value_numeric, availability, source_kind, recorded_at)
+  SELECT v.return_filing_version_id, v.entity_id, _mid2, v.reporting_period_id,
+         42, v.availability, v.source_kind, now()
+    FROM public.return_metric_values v
+   WHERE v.regulatory_metric_id = _mid
+   ORDER BY v.entity_id LIMIT 1;
+
+  INSERT INTO pt_peer VALUES
+    ('period_end', _pe::text), ('sufficient_code','PT_FIX_PEER_SUFFICIENT'),
+    ('insufficient_code','PT_FIX_PEER_INSUFFICIENT'), ('peers', _n::text),
+    ('min_peers', _min::text),
+    ('peer_entities', (SELECT string_agg(DISTINCT entity_id::text, ',')
+                         FROM public.return_metric_values WHERE regulatory_metric_id = _mid));
+END $$;
+
+
 
 -- ===================== G. GROUPS, PEERS, CROSS-DOMAIN =====================
 
