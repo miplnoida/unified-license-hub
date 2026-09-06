@@ -765,11 +765,15 @@ BEGIN
   VALUES (_e1,'MARKET_CONDUCT', false, 'PT fixture: domain outside caller portfolio')
   ON CONFLICT (entity_id, domain_code) DO UPDATE SET is_applicable = false;
 
+  -- the canonical write guard is respected: the fixture declares the approved
+  -- writer context explicitly and rolls back with the transaction.
+  PERFORM set_config('app.supervisory_risk_state_writer','assessment_transition', true);
   DELETE FROM public.entity_risk_state WHERE entity_id = _e1
     AND domain_code IN ('PRUDENTIAL','MARKET_CONDUCT');
   INSERT INTO public.entity_risk_state (entity_id, domain_code, residual_rating, effective_from)
   VALUES (_e1,'PRUDENTIAL','HIGH', now() - interval '10 days'),
          (_e1,'MARKET_CONDUCT','MEDIUM', now() - interval '10 days');
+  PERFORM set_config('app.supervisory_risk_state_writer','', true);
 
   PERFORM set_config('request.jwt.claims', json_build_object('sub',_mgr,'role','authenticated')::text, true);
   SET LOCAL ROLE authenticated;
