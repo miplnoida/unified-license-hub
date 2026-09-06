@@ -155,8 +155,8 @@ BEGIN
   -- canonical supervisory response: finding + remediation
   INSERT INTO public.supervisory_finding (reference, entity_id, domain_code, severity, title,
       observation, status, source_kind, signal_id, due_date, issued_at, owner_id, created_by)
-  VALUES ('MA-FIX-FND-1', _ent, 'PRUDENTIAL','high','MA fixture finding','fixture',
-      'ISSUED','MA_FIXTURE_SIGNAL', _sig3, current_date + 30, now() - interval '30 days', _uid, _uid)
+  VALUES ('MA-FIX-FND-1', _ent, 'PRUDENTIAL','HIGH','MA fixture finding','fixture',
+      'ISSUED','SIGNAL', _sig3, current_date + 30, now() - interval '30 days', _uid, _uid)
   RETURNING id INTO _fnd;
 
   INSERT INTO public.supervisory_remediation_action (reference, finding_id, entity_id,
@@ -169,8 +169,8 @@ BEGIN
   INSERT INTO public.supervisory_finding (reference, entity_id, domain_code, severity, title,
       observation, status, source_kind, signal_id, due_date, issued_at, owner_id, created_by,
       closed_at, closed_by)
-  VALUES ('MA-FIX-FND-2', _ent, 'PRUDENTIAL','high','MA fixture closed finding','fixture',
-      'CLOSED','MA_FIXTURE_SIGNAL', _sig4, current_date - 40, now() - interval '80 days', _uid, _uid,
+  VALUES ('MA-FIX-FND-2', _ent, 'PRUDENTIAL','HIGH','MA fixture closed finding','fixture',
+      'CLOSED','SIGNAL', _sig4, current_date - 40, now() - interval '80 days', _uid, _uid,
       now() - interval '40 days', _uid);
 
   INSERT INTO public.supervisory_remediation_action (reference, finding_id, entity_id,
