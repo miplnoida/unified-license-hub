@@ -44813,6 +44813,140 @@ export type Database = {
           },
         ]
       }
+      supervisory_detector: {
+        Row: {
+          auto_resolve: boolean
+          code: string
+          config_owner: string
+          created_at: string
+          created_by: string | null
+          default_severity: string
+          description: string | null
+          domain_code: string
+          effective_from: string
+          effective_to: string | null
+          execution_mode: string
+          id: string
+          is_active: boolean
+          name: string
+          params: Json
+          regulator_id: string | null
+          source_kind: string
+          source_object: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          auto_resolve?: boolean
+          code: string
+          config_owner: string
+          created_at?: string
+          created_by?: string | null
+          default_severity?: string
+          description?: string | null
+          domain_code: string
+          effective_from?: string
+          effective_to?: string | null
+          execution_mode: string
+          id?: string
+          is_active?: boolean
+          name: string
+          params?: Json
+          regulator_id?: string | null
+          source_kind: string
+          source_object: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          auto_resolve?: boolean
+          code?: string
+          config_owner?: string
+          created_at?: string
+          created_by?: string | null
+          default_severity?: string
+          description?: string | null
+          domain_code?: string
+          effective_from?: string
+          effective_to?: string | null
+          execution_mode?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          params?: Json
+          regulator_id?: string | null
+          source_kind?: string
+          source_object?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_detector_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_detector_run: {
+        Row: {
+          completed_at: string | null
+          config_snapshot: Json
+          detail: Json
+          detector_code: string
+          detector_version: number | null
+          error_text: string | null
+          id: string
+          rows_scanned: number
+          signals_created: number
+          signals_resolved: number
+          signals_updated: number
+          started_at: string
+          status: string
+          trigger_kind: string
+          triggered_by: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          config_snapshot?: Json
+          detail?: Json
+          detector_code: string
+          detector_version?: number | null
+          error_text?: string | null
+          id?: string
+          rows_scanned?: number
+          signals_created?: number
+          signals_resolved?: number
+          signals_updated?: number
+          started_at?: string
+          status?: string
+          trigger_kind?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          config_snapshot?: Json
+          detail?: Json
+          detector_code?: string
+          detector_version?: number | null
+          error_text?: string | null
+          id?: string
+          rows_scanned?: number
+          signals_created?: number
+          signals_resolved?: number
+          signals_updated?: number
+          started_at?: string
+          status?: string
+          trigger_kind?: string
+          triggered_by?: string | null
+        }
+        Relationships: []
+      }
       supervisory_domain_authority: {
         Row: {
           assessment_approval_permission: string | null
@@ -47315,64 +47449,112 @@ export type Database = {
       }
       supervisory_signal: {
         Row: {
+          comparator: string | null
           complaint_id: string | null
           conduct_signal_id: string | null
+          config_provenance: Json
           created_at: string
           created_by: string | null
           detail: Json
           detected_at: string
+          detector_code: string | null
           domain_code: string
           entity_id: string | null
           examination_id: string | null
           external_reference: string | null
+          fingerprint: string | null
+          first_detected_at: string | null
           fp_assessment_id: string | null
           id: string
+          last_detected_at: string | null
+          materiality_reason: string | null
+          observed_value: number | null
+          occurrence_count: number
           period_end: string | null
           period_start: string | null
           prudential_ewi_alert_id: string | null
+          resolution_reason: string | null
+          resolved_at: string | null
           severity: string | null
+          source_id: string | null
           source_kind: string
+          source_reference: string | null
+          source_table: string | null
+          state: string
           summary: string | null
+          threshold_value: number | null
         }
         Insert: {
+          comparator?: string | null
           complaint_id?: string | null
           conduct_signal_id?: string | null
+          config_provenance?: Json
           created_at?: string
           created_by?: string | null
           detail?: Json
           detected_at?: string
+          detector_code?: string | null
           domain_code: string
           entity_id?: string | null
           examination_id?: string | null
           external_reference?: string | null
+          fingerprint?: string | null
+          first_detected_at?: string | null
           fp_assessment_id?: string | null
           id?: string
+          last_detected_at?: string | null
+          materiality_reason?: string | null
+          observed_value?: number | null
+          occurrence_count?: number
           period_end?: string | null
           period_start?: string | null
           prudential_ewi_alert_id?: string | null
+          resolution_reason?: string | null
+          resolved_at?: string | null
           severity?: string | null
+          source_id?: string | null
           source_kind: string
+          source_reference?: string | null
+          source_table?: string | null
+          state?: string
           summary?: string | null
+          threshold_value?: number | null
         }
         Update: {
+          comparator?: string | null
           complaint_id?: string | null
           conduct_signal_id?: string | null
+          config_provenance?: Json
           created_at?: string
           created_by?: string | null
           detail?: Json
           detected_at?: string
+          detector_code?: string | null
           domain_code?: string
           entity_id?: string | null
           examination_id?: string | null
           external_reference?: string | null
+          fingerprint?: string | null
+          first_detected_at?: string | null
           fp_assessment_id?: string | null
           id?: string
+          last_detected_at?: string | null
+          materiality_reason?: string | null
+          observed_value?: number | null
+          occurrence_count?: number
           period_end?: string | null
           period_start?: string | null
           prudential_ewi_alert_id?: string | null
+          resolution_reason?: string | null
+          resolved_at?: string | null
           severity?: string | null
+          source_id?: string | null
           source_kind?: string
+          source_reference?: string | null
+          source_table?: string | null
+          state?: string
           summary?: string | null
+          threshold_value?: number | null
         }
         Relationships: [
           {
@@ -47436,6 +47618,59 @@ export type Database = {
             columns: ["prudential_ewi_alert_id"]
             isOneToOne: false
             referencedRelation: "prudential_ewi_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_signal_occurrence: {
+        Row: {
+          created_at: string
+          detail: Json
+          detector_run_id: string | null
+          id: string
+          observed_at: string
+          observed_value: number | null
+          severity: string | null
+          signal_id: string
+          source_id: string | null
+          source_reference: string | null
+          source_table: string | null
+          threshold_value: number | null
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json
+          detector_run_id?: string | null
+          id?: string
+          observed_at?: string
+          observed_value?: number | null
+          severity?: string | null
+          signal_id: string
+          source_id?: string | null
+          source_reference?: string | null
+          source_table?: string | null
+          threshold_value?: number | null
+        }
+        Update: {
+          created_at?: string
+          detail?: Json
+          detector_run_id?: string | null
+          id?: string
+          observed_at?: string
+          observed_value?: number | null
+          severity?: string | null
+          signal_id?: string
+          source_id?: string | null
+          source_reference?: string | null
+          source_table?: string | null
+          threshold_value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_signal_occurrence_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_signal"
             referencedColumns: ["id"]
           },
         ]
@@ -64497,6 +64732,36 @@ export type Database = {
         Args: { _config_id: string; _rows: Json }
         Returns: number
       }
+      supervisory_detect_candidates: {
+        Args: { _detector_code: string; _params?: Json }
+        Returns: {
+          comparator: string
+          cond_key: string
+          detail: Json
+          domain_code: string
+          entity_id: string
+          materiality_reason: string
+          observed_value: number
+          period_end: string
+          period_start: string
+          severity: string
+          source_id: string
+          source_kind: string
+          source_reference: string
+          source_table: string
+          summary: string
+          threshold_value: number
+        }[]
+      }
+      supervisory_detect_run: {
+        Args: { _detector_code?: string; _trigger_kind?: string }
+        Returns: Json
+      }
+      supervisory_detection_register: {
+        Args: { _domain?: string; _limit?: number; _state?: string }
+        Returns: Json
+      }
+      supervisory_detector_assurance: { Args: never; Returns: Json }
       supervisory_domain_actions: {
         Args: { _domain_code: string; _intent: string }
         Returns: string[]
@@ -64559,6 +64824,10 @@ export type Database = {
       }
       supervisory_domain_valid: { Args: { _domain: string }; Returns: boolean }
       supervisory_engagement_types: { Args: never; Returns: Json }
+      supervisory_entity_detected_conditions: {
+        Args: { _domain?: string; _entity_id: string }
+        Returns: Json
+      }
       supervisory_entity_scope_check: {
         Args: { _entity_id: string; _uid: string }
         Returns: undefined
