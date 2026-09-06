@@ -739,13 +739,20 @@ BEGIN
     format('both windows reliably covered => governed trend classification permitted (%s)', _r->>'change_state'));
 
   -- PT-47 — a failed-only window is never zero observations / improvement
+  -- a window containing ONLY a FAILED attempt must not be assessable
+  INSERT INTO public.supervisory_detector_run (detector_code, trigger_kind, status, started_at,
+      completed_at, rows_scanned, signals_created, signals_updated, signals_resolved, error_text)
+  VALUES ('PT_FIXTURE_DETECTOR','scheduled','FAILED', now() - interval '400 days',
+      NULL, 0, 0, 0, 0, 'fixture scan failure');
   _cov := public.supervisory_portfolio_detector_window_coverage('PT_FIXTURE_DETECTOR',
             now() - interval '5 minutes', now());
   PERFORM pg_temp.gate('PT-47',
     NOT COALESCE((_cov->>'assessable')::boolean,true)
     AND (_cov->>'reason') = 'NO_DETECTOR_ATTEMPT_IN_WINDOW'
     AND NOT COALESCE((public.supervisory_portfolio_detector_window_coverage('PT_FIXTURE_DETECTOR',
-            now() - interval '3 hours', now() - interval '30 minutes')->>'assessable')::boolean, true)
+            now() - interval '401 days', now() - interval '399 days')->>'assessable')::boolean, true)
+    AND (public.supervisory_portfolio_detector_window_coverage('PT_FIXTURE_DETECTOR',
+            now() - interval '401 days', now() - interval '399 days')->>'reason') = 'LATEST_ATTEMPT_FAILED'
     AND (SELECT obj_description(p.oid) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
           WHERE n.nspname='public'
             AND p.proname='supervisory_portfolio_detector_window_coverage') ILIKE '%never evidence of improvement%',
