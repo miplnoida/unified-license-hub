@@ -114,8 +114,9 @@ CREATE TEMP TABLE pt_fx(k text primary key, v uuid) ON COMMIT DROP;
 CREATE TEMP TABLE pt_p(k text primary key, v uuid) ON COMMIT DROP;
 
 DO $$
-DECLARE _det uuid; _e1 uuid; _e2 uuid; _s1 uuid; _s2 uuid; _s3 uuid; _run uuid;
+DECLARE _det uuid; _e1 uuid; _e2 uuid; _s1 uuid; _s2 uuid; _s3 uuid; _s4 uuid; _run uuid;
         _grp uuid; _mgr uuid; _out uuid;
+
 BEGIN
   SELECT id INTO _e1 FROM public.licensees ORDER BY created_at LIMIT 1;
   SELECT id INTO _e2 FROM public.licensees WHERE id <> _e1 ORDER BY created_at LIMIT 1;
@@ -163,11 +164,24 @@ BEGIN
       gen_random_uuid(),'PT-FIX-C','fixture materiality','{"fixture":true}'::jsonb)
   RETURNING id INTO _s3;
 
+  -- single-observation condition: must NOT count as recurrence (negative case)
+  INSERT INTO public.supervisory_signal (entity_id, domain_code, source_kind, severity,
+      detected_at, summary, detector_code, fingerprint, first_detected_at, last_detected_at,
+      occurrence_count, state, source_table, source_id, source_reference,
+      materiality_reason, config_provenance)
+  VALUES (_e2,'AML_CFT','OTHER_GOVERNED_SOURCE','high', now() - interval '3 days',
+      'PT fixture condition D (single observation)','PT_FIXTURE_DETECTOR','PT_FIXTURE:D:'||_e2::text,
+      now() - interval '3 days', now() - interval '3 days', 1,'OPEN','pt_fixture',
+      gen_random_uuid(),'PT-FIX-D','fixture materiality','{"fixture":true}'::jsonb)
+  RETURNING id INTO _s4;
+
   INSERT INTO public.supervisory_signal_occurrence (signal_id, observed_at, severity, source_table, source_reference)
   VALUES (_s1, now() - interval '4 days','high','pt_fixture','PT-FIX-A'),
          (_s1, now() - interval '1 day','high','pt_fixture','PT-FIX-A'),
          (_s2, now(),'critical','pt_fixture','PT-FIX-B'),
-         (_s3, now() - interval '2 days','high','pt_fixture','PT-FIX-C');
+         (_s3, now() - interval '2 days','high','pt_fixture','PT-FIX-C'),
+         (_s4, now() - interval '3 days','high','pt_fixture','PT-FIX-D');
+
 
   SELECT p.id INTO _mgr FROM public.profiles p
    WHERE public.supervisory_monitoring_scope_admits(p.id,'PRUDENTIAL',_e1,NULL,NULL)
