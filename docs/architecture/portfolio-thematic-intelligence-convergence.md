@@ -43,4 +43,15 @@ Functions (all `STABLE`, `SECURITY INVOKER`, no anon EXECUTE):
 - Every aggregate carries provenance and drill-down to canonical record ids.
 
 Certification: `scripts/verify-os02g1-portfolio-thematic-intelligence.sql`
-(PT-01 … PT-32, all fixtures rolled back).
+(PT-01 … PT-52, all fixtures rolled back). OS-02G1A adds:
+
+- PT-33/34 — the authorised entity-domain population is detector-independent
+  (proven with every detector inactivated, deleted and re-added).
+- PT-35…38 — peer state is the canonical `peer_ratio_snapshot` state; success
+  and insufficient-sample paths are both proven on rollback-safe fixtures.
+- PT-39…42 — no peer value, percentile, identifier or name can be obtained for
+  an out-of-remit entity, and a client-supplied sector cannot widen scope.
+- PT-43…47 — trend assessability across both windows, with a failed or absent
+  detector attempt never reported as improvement.
+- PT-48/49 — cross-domain output withholds risk state outside the caller's remit.
+- PT-50…52 — group membership counts are scoped and hidden members never leak.

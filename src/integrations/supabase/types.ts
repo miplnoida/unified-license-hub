@@ -52333,6 +52333,27 @@ export type Database = {
           },
         ]
       }
+      supervisory_domain_vocabulary: {
+        Row: {
+          domain_code: string | null
+          manage_config_permission: string | null
+          methodology_approval_permission: string | null
+          regulatory_function_id: string | null
+        }
+        Insert: {
+          domain_code?: string | null
+          manage_config_permission?: string | null
+          methodology_approval_permission?: string | null
+          regulatory_function_id?: never
+        }
+        Update: {
+          domain_code?: string | null
+          manage_config_permission?: string | null
+          methodology_approval_permission?: string | null
+          regulatory_function_id?: never
+        }
+        Relationships: []
+      }
       supervisory_management_assurance_matter: {
         Row: {
           action_activity_at: string | null
@@ -67041,6 +67062,10 @@ export type Database = {
       supervisory_portfolio_detector_assessable: {
         Args: { _detector_code: string; _since: string }
         Returns: boolean
+      }
+      supervisory_portfolio_detector_window_coverage: {
+        Args: { _detector_code: string; _from: string; _to: string }
+        Returns: Json
       }
       supervisory_portfolio_group_intelligence: {
         Args: { _domain?: string }
