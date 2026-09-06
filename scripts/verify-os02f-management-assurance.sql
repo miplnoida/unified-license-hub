@@ -936,8 +936,7 @@ END $$;
 
 SELECT pg_temp.gate('MA-66',
   (SELECT count(*) FROM public.supervisory_attention a
-     WHERE a.entity_id = (SELECT v FROM ma_fx WHERE k='ent')
-       AND a.created_at > now() - interval '1 minute') = 0,
+     WHERE a.created_at > now() - interval '2 minutes') = 0,
   'no business action was created by any assurance read or review in this run');
 
 SELECT pg_temp.gate('MA-67',
