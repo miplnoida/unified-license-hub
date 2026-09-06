@@ -308,6 +308,261 @@ SELECT pg_temp.det('DET-28',
                 AND detail->>'threshold_version' IS NULL))),
   'threshold conditions record value, comparator and either the threshold version or that the source does not hold one');
 
+
+-- ======================= scheduling gates (OS-02F) ==========================
+
+-- DET-29 scheduled and manual execution converge on one runner ---------------
+SELECT pg_temp.det('DET-29',
+  (SELECT pg_get_functiondef(p.oid) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname='public' AND p.proname='supervisory_detect_run_scheduled')
+    LIKE '%supervisory_detect_run(NULL%'
+  AND (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+        WHERE n.nspname='public' AND p.proname <> 'supervisory_detect_run'
+          AND pg_get_functiondef(p.oid) LIKE '%INSERT INTO public.supervisory_detector_run%') = 0,
+  'scheduled entry point delegates to supervisory_detect_run; no second runner writes run history');
+
+-- DET-30 one nightly orchestration job in the platform overnight UTC window ---
+DO $$
+DECLARE _h jsonb;
+BEGIN
+  _h := public.supervisory_detection_health();
+  PERFORM pg_temp.det('DET-30',
+    _h->>'schedule' = '0 2 * * *' AND _h->>'schedule_timezone' = 'UTC'
+    AND _h->>'next_scheduled_at' IS NOT NULL,
+    format('schedule %s (%s), next %s', _h->>'schedule', _h->>'schedule_timezone',
+      _h->>'next_scheduled_at'));
+END $$;
+
+-- DET-31 scheduled orchestration covers every active effective detector ------
+DO $$
+DECLARE _ran int; _active int;
+BEGIN
+  SELECT count(*) INTO _active FROM public.supervisory_detector
+   WHERE is_active AND effective_from <= CURRENT_DATE
+     AND (effective_to IS NULL OR effective_to >= CURRENT_DATE);
+  SELECT count(*) INTO _ran FROM jsonb_array_elements(
+    (public.supervisory_detect_run_scheduled())->'detectors') d;
+  PERFORM pg_temp.det('DET-31', _ran = _active AND _active > 0,
+    format('one scheduled orchestration executed %s of %s active detectors', _ran, _active));
+END $$;
+
+-- DET-32 same-day scheduled retry is idempotent ------------------------------
+DO $$
+DECLARE _before int; _created int; _resolved int;
+BEGIN
+  SELECT count(*) INTO _before FROM public.supervisory_signal;
+  SELECT COALESCE(sum((d->>'signals_created')::int),0),
+         COALESCE(sum((d->>'signals_resolved')::int),0)
+    INTO _created, _resolved
+    FROM jsonb_array_elements((public.supervisory_detect_run_scheduled())->'detectors') d;
+  PERFORM pg_temp.det('DET-32',
+    _created = 0 AND _resolved = 0
+    AND (SELECT count(*) FROM public.supervisory_signal) = _before,
+    format('same-day retry created %s and resolved %s conditions', _created, _resolved));
+END $$;
+
+-- DET-33 overlapping invocation cannot run a competing scan ------------------
+DO $$
+DECLARE _held boolean; _src text;
+BEGIN
+  PERFORM public.supervisory_detect_run('MC_CONDUCT_SIGNAL','certification');
+  SELECT EXISTS (
+    SELECT 1 FROM pg_locks
+     WHERE locktype = 'advisory' AND granted
+       AND objid = (hashtext('public.supervisory_detect_run')::bigint & 4294967295)
+       AND pid = pg_backend_pid()) INTO _held;
+  SELECT pg_get_functiondef(p.oid) INTO _src FROM pg_proc p
+    JOIN pg_namespace n ON n.oid=p.pronamespace
+   WHERE n.nspname='public' AND p.proname='supervisory_detect_run';
+  PERFORM pg_temp.det('DET-33',
+    _held AND _src LIKE '%pg_try_advisory_xact_lock%'
+    AND _src LIKE '%RUN_ALREADY_IN_PROGRESS%',
+    format('run holds the single-flight lock (%s); a competing invocation is refused', _held));
+END $$;
+
+-- DET-34 a failed detector run resolves nothing ------------------------------
+DO $$
+DECLARE _sig uuid; _state text; _run record;
+BEGIN
+  INSERT INTO public.supervisory_detector (code, name, domain_code, source_object,
+    source_kind, config_owner, execution_mode, params, auto_resolve, is_active)
+  VALUES ('CERT_ABORT_MIDSCAN','Certification aborting detector','PRUDENTIAL',
+    'return_threshold_breaches','RETURN_BREACH','PRUDENTIAL_POLICY','SCHEDULED',
+    '{}'::jsonb, true, true);
+
+  INSERT INTO public.supervisory_signal (entity_id, domain_code, source_kind, severity,
+    summary, detector_code, fingerprint, state, source_table, source_id,
+    materiality_reason, config_provenance, first_detected_at, last_detected_at)
+  SELECT l.id,'PRUDENTIAL','RETURN_BREACH','high','certification open condition',
+    'CERT_ABORT_MIDSCAN','CERT_ABORT_MIDSCAN:'||l.id||':PRUDENTIAL:cert_failed_run',
+    'OPEN','return_threshold_breaches', gen_random_uuid(),'certification fixture',
+    '{"detector_code":"CERT_ABORT_MIDSCAN","detector_version":1,"config_owner":"PRUDENTIAL_POLICY"}'::jsonb,
+    now(), now() FROM public.licensees l LIMIT 1
+  RETURNING id INTO _sig;
+
+  PERFORM public.supervisory_detect_run('CERT_ABORT_MIDSCAN','scheduled');
+
+  SELECT state INTO _state FROM public.supervisory_signal WHERE id = _sig;
+  SELECT * INTO _run FROM public.supervisory_detector_run
+   WHERE detector_code = 'CERT_ABORT_MIDSCAN' ORDER BY started_at DESC LIMIT 1;
+
+  PERFORM pg_temp.det('DET-34',
+    _run.status = 'FAILED' AND _run.error_text IS NOT NULL
+    AND _run.signals_resolved = 0 AND _state = 'OPEN',
+    format('failed run (%s) left the open condition %s', _run.status, _state));
+END $$;
+
+-- DET-35 an incomplete scan resolves nothing and says so ---------------------
+DO $$
+DECLARE _sig uuid; _state text; _run record;
+BEGIN
+  INSERT INTO public.supervisory_detector (code, name, domain_code, source_object,
+    source_kind, config_owner, execution_mode, params, auto_resolve, is_active)
+  VALUES ('CERT_NO_IMPLEMENTATION','Certification unimplemented detector','PRUDENTIAL',
+    'return_threshold_breaches','RETURN_BREACH','PRUDENTIAL_POLICY','SCHEDULED',
+    '{}'::jsonb, true, true);
+
+  INSERT INTO public.supervisory_signal (entity_id, domain_code, source_kind, severity,
+    summary, detector_code, fingerprint, state, source_table, source_id,
+    materiality_reason, config_provenance, first_detected_at, last_detected_at)
+  SELECT l.id,'PRUDENTIAL','RETURN_BREACH','high','certification open condition',
+    'CERT_NO_IMPLEMENTATION','CERT_NO_IMPLEMENTATION:'||l.id||':PRUDENTIAL:cert_incomplete',
+    'OPEN','return_threshold_breaches', gen_random_uuid(),'certification fixture',
+    '{"detector_code":"CERT_NO_IMPLEMENTATION","detector_version":1,"config_owner":"PRUDENTIAL_POLICY"}'::jsonb,
+    now(), now() FROM public.licensees l LIMIT 1
+  RETURNING id INTO _sig;
+
+  PERFORM public.supervisory_detect_run('CERT_NO_IMPLEMENTATION','scheduled');
+
+  SELECT state INTO _state FROM public.supervisory_signal WHERE id = _sig;
+  SELECT * INTO _run FROM public.supervisory_detector_run
+   WHERE detector_code = 'CERT_NO_IMPLEMENTATION' ORDER BY started_at DESC LIMIT 1;
+
+  PERFORM pg_temp.det('DET-35',
+    _run.status = 'FAILED'
+    AND _run.detail->>'scan_status' = 'INCOMPLETE'
+    AND _run.detail->>'resolution_suppressed_reason' = 'SCAN_NOT_SUCCESSFULLY_COMPLETED'
+    AND (_run.detail->>'resolution_applied')::boolean = false
+    AND _state = 'OPEN',
+    format('incomplete scan recorded as %s and resolved nothing', _run.detail->>'scan_status'));
+END $$;
+
+-- DET-36 a successful scheduled scan still resolves a disappeared condition --
+DO $$
+DECLARE _sig uuid; _state text; _reason text;
+BEGIN
+  INSERT INTO public.supervisory_signal (entity_id, domain_code, source_kind, severity,
+    summary, detector_code, fingerprint, state, source_table, source_id,
+    materiality_reason, config_provenance, first_detected_at, last_detected_at)
+  SELECT l.id,'MARKET_CONDUCT','CONDUCT_SIGNAL','high','certification stale condition',
+    'MC_CONDUCT_SIGNAL','MC_CONDUCT_SIGNAL:'||l.id||':MARKET_CONDUCT:cert_scheduled_stale',
+    'OPEN','conduct_signals', gen_random_uuid(),'certification fixture',
+    '{"detector_code":"MC_CONDUCT_SIGNAL","detector_version":1,"config_owner":"MARKET_CONDUCT_POLICY"}'::jsonb,
+    now(), now() FROM public.licensees l LIMIT 1
+  RETURNING id INTO _sig;
+
+  PERFORM public.supervisory_detect_run('MC_CONDUCT_SIGNAL','scheduled');
+  SELECT state, resolution_reason INTO _state, _reason
+    FROM public.supervisory_signal WHERE id = _sig;
+  PERFORM pg_temp.det('DET-36',
+    _state = 'RESOLVED' AND _reason = 'CONDITION_NO_LONGER_OBSERVED',
+    format('successful scheduled scan closed the absent condition (%s / %s)',
+      _state, COALESCE(_reason,'no reason')));
+END $$;
+
+-- DET-37 scheduled runs create run and audit history --------------------------
+DO $$
+DECLARE _r record; _audit int;
+BEGIN
+  SELECT count(*) INTO _audit FROM public.audit_logs
+   WHERE action = 'SUPERVISORY_DETECTION_RUN' AND metadata->>'trigger_kind' = 'scheduled';
+  PERFORM public.supervisory_detect_run('AML_RISK_ELEVATED','scheduled');
+  SELECT * INTO _r FROM public.supervisory_detector_run
+   WHERE detector_code = 'AML_RISK_ELEVATED' AND trigger_kind = 'scheduled'
+   ORDER BY started_at DESC LIMIT 1;
+  PERFORM pg_temp.det('DET-37',
+    _r.trigger_kind = 'scheduled' AND _r.status = 'COMPLETED'
+    AND _r.started_at IS NOT NULL AND _r.completed_at IS NOT NULL
+    AND _r.detector_version IS NOT NULL AND _r.config_snapshot ? 'params'
+    AND (SELECT count(*) FROM public.audit_logs
+          WHERE action='SUPERVISORY_DETECTION_RUN'
+            AND metadata->>'trigger_kind' = 'scheduled') = _audit + 1,
+    format('scheduled run logged with trigger %s, status %s and audit history',
+      _r.trigger_kind, _r.status));
+END $$;
+
+-- DET-38 scheduled runs change no risk state and create no supervisory action -
+DO $$
+DECLARE _risk_b text; _risk_a text;
+  _att int; _att2 int; _pl int; _pl2 int; _wi int; _wi2 int; _fi int; _fi2 int;
+  _ex int; _ex2 int; _rem int; _rem2 int;
+BEGIN
+  SELECT md5(string_agg(id::text || COALESCE(residual_rating,'') || COALESCE(next_review_date::text,''), '|' ORDER BY id))
+    INTO _risk_b FROM public.entity_risk_state;
+  SELECT count(*) INTO _att FROM public.supervisory_attention;
+  SELECT count(*) INTO _pl FROM public.supervisory_plan;
+  SELECT count(*) INTO _wi FROM public.supervisory_work_item;
+  SELECT count(*) INTO _fi FROM public.supervisory_finding;
+  SELECT count(*) INTO _ex FROM public.examinations;
+  SELECT count(*) INTO _rem FROM public.supervisory_remediation_action;
+
+  PERFORM public.supervisory_detect_run_scheduled();
+
+  SELECT md5(string_agg(id::text || COALESCE(residual_rating,'') || COALESCE(next_review_date::text,''), '|' ORDER BY id))
+    INTO _risk_a FROM public.entity_risk_state;
+  SELECT count(*) INTO _att2 FROM public.supervisory_attention;
+  SELECT count(*) INTO _pl2 FROM public.supervisory_plan;
+  SELECT count(*) INTO _wi2 FROM public.supervisory_work_item;
+  SELECT count(*) INTO _fi2 FROM public.supervisory_finding;
+  SELECT count(*) INTO _ex2 FROM public.examinations;
+  SELECT count(*) INTO _rem2 FROM public.supervisory_remediation_action;
+
+  PERFORM pg_temp.det('DET-38',
+    _risk_b IS NOT DISTINCT FROM _risk_a AND _att = _att2 AND _pl = _pl2
+    AND _wi = _wi2 AND _fi = _fi2 AND _ex = _ex2 AND _rem = _rem2,
+    'scheduled run changed no risk state, attention, plan, work item, finding, examination or remediation');
+END $$;
+
+-- DET-39 not-yet-effective detectors stay out of the scheduled run -----------
+DO $$
+DECLARE _ran int;
+BEGIN
+  UPDATE public.supervisory_detector
+     SET effective_from = CURRENT_DATE + 30 WHERE code = 'SUP_FINDING_MATERIAL';
+  SELECT count(*) INTO _ran FROM jsonb_array_elements(
+    (public.supervisory_detect_run_scheduled())->'detectors') d
+   WHERE d->>'detector_code' = 'SUP_FINDING_MATERIAL';
+  PERFORM pg_temp.det('DET-39', _ran = 0,
+    'a detector that is not yet effective is skipped by the scheduled run');
+END $$;
+
+-- DET-40 the scheduled entry point holds no user-facing credential ------------
+SELECT pg_temp.det('DET-40',
+  NOT has_function_privilege('anon','public.supervisory_detect_run_scheduled()','EXECUTE')
+  AND NOT has_function_privilege('authenticated','public.supervisory_detect_run_scheduled()','EXECUTE')
+  AND has_function_privilege('service_role','public.supervisory_detect_run_scheduled()','EXECUTE')
+  AND (SELECT pg_get_functiondef(p.oid) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+        WHERE n.nspname='public' AND p.proname='supervisory_detect_run_scheduled')
+       NOT LIKE '%eyJ%',
+  'scheduled runner is database-invoked only and embeds no key or token');
+
+-- DET-41 health reporting never presents an attempt as a success -------------
+DO $$
+DECLARE _h jsonb;
+BEGIN
+  PERFORM public.supervisory_detect_run('CERT_NO_IMPLEMENTATION','scheduled');
+  _h := public.supervisory_detection_health();
+  PERFORM pg_temp.det('DET-41',
+    _h->'last_attempted_run'->>'status' = 'FAILED'
+    AND (_h->'last_successful_run'->>'status' IS NULL
+         OR _h->'last_successful_run'->>'status' = 'COMPLETED')
+    AND _h->'last_successful_run'->>'run_id'
+        IS DISTINCT FROM _h->'last_attempted_run'->>'run_id'
+    AND jsonb_array_length(_h->'detectors_needing_attention') > 0,
+    format('latest attempt %s reported separately from the last successful run',
+      _h->'last_attempted_run'->>'status'));
+END $$;
+
 -- ---------------------------------------------------------------- report ----
 SELECT gate, verdict, detail FROM det_result ORDER BY gate;
 SELECT count(*) FILTER (WHERE verdict='PASS') AS pass,
