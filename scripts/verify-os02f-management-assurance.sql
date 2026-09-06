@@ -949,6 +949,115 @@ BEGIN
     'the newest effective version resolves while the previous version stays reconstructable');
 END $$;
 
+-- ============ COVERAGE PROVENANCE (COVERED_BY_EXISTING_ACTION) ============
+-- MA-68…72: an open supervisory record on the same entity and domain may only
+-- suppress an assurance exception when canonical provenance ties it to the
+-- underlying detected condition.
+
+DO $$
+DECLARE
+  _ent uuid; _uid uuid; _sa uuid; _rev uuid;
+  _sig5 uuid; _unrelated uuid; _related uuid;
+  _err text; _res jsonb; _conds text[]; _r public.supervisory_signal_review;
+BEGIN
+  SELECT v INTO _ent FROM ma_fx WHERE k='ent';
+  SELECT v INTO _uid FROM ma_fx WHERE k='uid';
+  SELECT v INTO _rev FROM ma_p  WHERE k='rev';
+  SELECT user_id INTO _sa FROM public.user_roles WHERE role='super_admin' LIMIT 1;
+
+  -- fresh material condition, reviewed without disposition
+  INSERT INTO public.supervisory_signal (entity_id, domain_code, source_kind, severity,
+      detected_at, summary, detector_code, fingerprint, first_detected_at, last_detected_at,
+      occurrence_count, state, source_table, source_id, source_reference,
+      materiality_reason, config_provenance)
+  VALUES (_ent,'PRUDENTIAL','OTHER_GOVERNED_SOURCE','high', now() - interval '25 days',
+      'MA fixture: coverage provenance condition','MA_FIXTURE_DETECTOR',
+      'MA_FIXTURE:'||_ent::text||':coverage', now() - interval '25 days', now(),
+      5,'OPEN','ma_fixture', gen_random_uuid(),'MA-FIX-68',
+      'fixture materiality','{"fixture":true}'::jsonb)
+  RETURNING id INTO _sig5;
+
+  INSERT INTO public.supervisory_signal_review (signal_id, entity_id, domain_code,
+      reviewed_by, reviewed_at, review_note, provenance)
+  VALUES (_sig5, _ent, 'PRUDENTIAL', _uid, now() - interval '5 days',
+      'MA-68 fixture review without disposition', '{"fixture":true}'::jsonb);
+
+  -- OPEN canonical finding, same entity + same domain, raised from a DIFFERENT condition
+  INSERT INTO public.supervisory_finding (reference, entity_id, domain_code, severity, title,
+      observation, status, source_kind, signal_id, due_date, issued_at, owner_id, created_by)
+  VALUES ('MA-FIX-FND-UNREL', _ent, 'PRUDENTIAL','HIGH',
+      'MA fixture unrelated open finding','fixture','ISSUED','SIGNAL',
+      (SELECT v FROM ma_fx WHERE k='sig4'), current_date + 30, now(), _uid, _uid)
+  RETURNING id INTO _unrelated;
+
+  -- OPEN canonical finding genuinely raised from this condition
+  INSERT INTO public.supervisory_finding (reference, entity_id, domain_code, severity, title,
+      observation, status, source_kind, signal_id, due_date, issued_at, owner_id, created_by)
+  VALUES ('MA-FIX-FND-REL', _ent, 'PRUDENTIAL','HIGH',
+      'MA fixture related open finding','fixture','ISSUED','SIGNAL',
+      _sig5, current_date + 30, now(), _uid, _uid)
+  RETURNING id INTO _related;
+
+  -- MA-68 — unrelated open action must be REJECTED as coverage
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', _rev, 'role','authenticated')::text, true);
+  BEGIN
+    PERFORM public.supervisory_assurance_record_review(
+      _sig5, NULL, 'COVERED_BY_EXISTING_ACTION',
+      'Fixture: claim of coverage by an unrelated action.',
+      'SUPERVISORY_FINDING', _unrelated);
+  EXCEPTION WHEN OTHERS THEN _err := SQLERRM;
+  END;
+  PERFORM pg_temp.gate('MA-68', _err IS NOT NULL,
+    COALESCE(_err, 'DEFECT: an unrelated open finding was accepted as coverage'));
+
+  -- MA-71 — the rejected claim leaves the exception in place
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', _sa, 'role','authenticated')::text, true);
+  SELECT assurance_conditions INTO _conds
+    FROM public.supervisory_management_assurance_matter WHERE signal_id = _sig5;
+  PERFORM pg_temp.gate('MA-71',
+    'REVIEWED_NO_DISPOSITION' = ANY (COALESCE(_conds, ARRAY[]::text[]))
+    AND NOT EXISTS (SELECT 1 FROM public.supervisory_signal_review r
+                     WHERE r.signal_id = _sig5 AND r.linked_record_id = _unrelated),
+    'a rejected coverage claim neither persists nor clears the missing-disposition exception');
+
+  -- MA-72 — traceability function agrees the unrelated record is not coverage
+  PERFORM pg_temp.gate('MA-72',
+    public.supervisory_assurance_disposition_is_traceable(
+      _sig5, 'COVERED_BY_EXISTING_ACTION', 'SUPERVISORY_FINDING', _unrelated, NULL) IS FALSE,
+    'the unrelated open record is not traceable coverage for this condition');
+
+  -- MA-69 — genuinely linked open action is ACCEPTED
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub', _rev, 'role','authenticated')::text, true);
+  _err := NULL;
+  BEGIN
+    _res := public.supervisory_assurance_record_review(
+      _sig5, 'MA-69 governed review', 'COVERED_BY_EXISTING_ACTION',
+      'Fixture: coverage proven by the finding raised from this condition.',
+      'SUPERVISORY_FINDING', _related, 'FORGED-COVER-REF');
+  EXCEPTION WHEN OTHERS THEN _err := SQLERRM;
+  END;
+  PERFORM pg_temp.gate('MA-69', (_res ->> 'review_id') IS NOT NULL,
+    COALESCE(_err, 'coverage by the canonically linked open finding is accepted'));
+
+  -- MA-70 — the accepted review stores canonical, server-derived provenance
+  SELECT * INTO _r FROM public.supervisory_signal_review
+   WHERE id = (_res ->> 'review_id')::uuid;
+  PERFORM pg_temp.gate('MA-70',
+    _r.linked_record_id = _related
+    AND _r.linked_module = 'SUPERVISORY_FINDING'
+    AND _r.linked_reference = 'MA-FIX-FND-REL'
+    AND _r.signal_id = _sig5
+    AND _r.entity_id = _ent
+    AND _r.domain_code = 'PRUDENTIAL'
+    AND _r.reviewed_by = _rev
+    AND COALESCE((_r.provenance -> 'link' ->> 'signal_related')::boolean, false),
+    format('accepted coverage stores canonical id, server-derived module/reference (%s) and signal provenance',
+           _r.linked_reference));
+END $$;
+
 -- ===================== REGRESSION GUARANTEES =====================
 
 SELECT pg_temp.gate('MA-66',
