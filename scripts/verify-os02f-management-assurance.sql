@@ -1016,6 +1016,8 @@ BEGIN
     json_build_object('sub', _sa, 'role','authenticated')::text, true);
   SELECT assurance_conditions INTO _conds
     FROM public.supervisory_management_assurance_matter WHERE signal_id = _sig5;
+  RAISE NOTICE 'MA-71 diag conds=% rows=%', _conds,
+    (SELECT count(*) FROM public.supervisory_management_assurance_matter WHERE signal_id = _sig5);
   PERFORM pg_temp.gate('MA-71',
     'REVIEWED_NO_DISPOSITION' = ANY (COALESCE(_conds, ARRAY[]::text[]))
     AND NOT EXISTS (SELECT 1 FROM public.supervisory_signal_review r
