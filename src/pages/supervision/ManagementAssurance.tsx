@@ -37,9 +37,21 @@ const DISPOSITIONS = [
   { value: 'ACTION_OPENED', label: 'Supervisory action opened' },
   { value: 'REASSESSMENT_REQUIRED', label: 'Reassessment required' },
   { value: 'COVERED_BY_EXISTING_ACTION', label: 'Existing action already covers this' },
-  { value: 'REFERRED', label: 'Referred / escalated through existing process' },
   { value: 'NO_ACTION_REQUIRED', label: 'No additional action required (reason needed)' },
 ];
+
+/**
+ * Canonical link module for the record behind a matter. The server re-validates
+ * this claim against the real record (type, entity, domain, signal provenance)
+ * and derives the reference itself.
+ */
+const LINK_MODULE_BY_TABLE: Record<string, string> = {
+  supervisory_finding: 'SUPERVISORY_FINDING',
+  supervisory_remediation_action: 'SUPERVISORY_REMEDIATION',
+  supervisory_attention: 'SUPERVISORY_ATTENTION',
+  supervisory_reassessment_requirement: 'REASSESSMENT_REQUIREMENT',
+};
+
 
 function humanise(value?: string | null) {
   if (!value) return '—';
@@ -89,10 +101,12 @@ function MatterDetail({ matter }: { matter: AssuranceMatter }) {
         reviewNote: note || null,
         disposition: disposition === 'none' ? null : disposition,
         dispositionRationale: rationale || null,
-        linkedModule: needsLink ? matter.action_source_table : null,
+        linkedModule: needsLink
+          ? (LINK_MODULE_BY_TABLE[matter.action_source_table ?? ''] ?? null)
+          : null,
         linkedRecordId: needsLink ? matter.action_record_id : null,
-        linkedReference: needsLink ? matter.action_reference : null,
       });
+
       toast({ title: 'Supervisory review recorded' });
       setRationale(''); setNote(''); setDisposition('none');
     } catch (e) {
