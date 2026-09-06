@@ -241,6 +241,7 @@ export const navigationSnapshot: NavSnapshotItem[] = [
   { key: "nav_sup_inspections", parentKey: "nav_sup_planning", label: "Inspections", href: "/inspections", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_sup_inspections_calendar", parentKey: "nav_sup_planning", label: "Inspection Calendar", href: "/inspections/schedule", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_sup_monitoring", parentKey: "grp_nav_supervision", label: "Continuous Monitoring", href: "/supervision/monitoring", itemType: "link", audience: "internal", showInSidebar: true },
+  { key: "nav_sup_detection", parentKey: "grp_nav_supervision", label: "Detection & Trigger Governance", href: "/supervision/detection", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_sup_planning", parentKey: "grp_nav_supervision", label: "Supervisory Planning", href: null, itemType: "group", audience: "internal", showInSidebar: true },
   { key: "nav_sup_plans", parentKey: "nav_sup_planning", label: "Supervisory Plans", href: "/supervision/plans", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_sup_portfolio", parentKey: "grp_nav_supervision", label: "Portfolio & Sector Supervision", href: "/supervision/portfolio", itemType: "link", audience: "internal", showInSidebar: true },
