@@ -653,7 +653,8 @@ BEGIN
   END;
   RESET ROLE;
   PERFORM pg_temp.gate('MA-46', _ok
-    AND public.has_permission(_out,'supervisory_spine','review')
+    AND _role IS NOT NULL
+    AND EXISTS (SELECT 1 FROM public.user_dynamic_roles WHERE user_id = _out AND role_id = _role)
     AND NOT public.supervisory_assurance_review_admits(_out, _sig),
     'out-of-remit condition cannot be dispositioned: '||COALESCE(_err,'(no error!)'));
 END $$;
