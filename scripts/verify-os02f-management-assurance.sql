@@ -87,7 +87,7 @@ BEGIN
       detected_at, summary, detector_code, fingerprint, first_detected_at, last_detected_at,
       occurrence_count, state, source_table, source_id, source_reference,
       materiality_reason, config_provenance)
-  VALUES (_ent,'PRUDENTIAL','MA_FIXTURE','high', now() - interval '20 days',
+  VALUES (_ent,'PRUDENTIAL','OTHER_GOVERNED_SOURCE','high', now() - interval '20 days',
       'MA fixture: unreviewed material condition','MA_FIXTURE_DETECTOR',
       'MA_FIXTURE:'||_ent::text||':unreviewed', now() - interval '20 days', now(),
       4,'OPEN','ma_fixture', gen_random_uuid(),'MA-FIX-1',
@@ -99,7 +99,7 @@ BEGIN
       detected_at, summary, detector_code, fingerprint, first_detected_at, last_detected_at,
       occurrence_count, state, source_table, source_id, source_reference,
       materiality_reason, config_provenance)
-  VALUES (_ent,'PRUDENTIAL','MA_FIXTURE','high', now() - interval '15 days',
+  VALUES (_ent,'PRUDENTIAL','OTHER_GOVERNED_SOURCE','high', now() - interval '15 days',
       'MA fixture: reviewed without disposition','MA_FIXTURE_DETECTOR',
       'MA_FIXTURE:'||_ent::text||':reviewed', now() - interval '15 days', now(),
       3,'OPEN','ma_fixture', gen_random_uuid(),'MA-FIX-2',
@@ -111,7 +111,7 @@ BEGIN
       detected_at, summary, detector_code, fingerprint, first_detected_at, last_detected_at,
       occurrence_count, state, resolved_at, resolution_reason,
       source_table, source_id, source_reference, materiality_reason, config_provenance)
-  VALUES (_ent,'PRUDENTIAL','MA_FIXTURE','high', now() - interval '40 days',
+  VALUES (_ent,'PRUDENTIAL','OTHER_GOVERNED_SOURCE','high', now() - interval '40 days',
       'MA fixture: resolved condition with open action','MA_FIXTURE_DETECTOR',
       NULL, now() - interval '40 days', now() - interval '5 days',
       6,'RESOLVED', now() - interval '5 days','CONDITION_NO_LONGER_OBSERVED',
@@ -123,7 +123,7 @@ BEGIN
       detected_at, summary, detector_code, fingerprint, first_detected_at, last_detected_at,
       occurrence_count, state, source_table, source_id, source_reference,
       materiality_reason, config_provenance)
-  VALUES (_ent,'PRUDENTIAL','MA_FIXTURE','high', now() - interval '90 days',
+  VALUES (_ent,'PRUDENTIAL','OTHER_GOVERNED_SOURCE','high', now() - interval '90 days',
       'MA fixture: recurrence after closed action','MA_FIXTURE_DETECTOR',
       NULL, now() - interval '90 days', now(),
       9,'OPEN','ma_fixture', gen_random_uuid(),'MA-FIX-4',
@@ -156,7 +156,7 @@ BEGIN
   INSERT INTO public.supervisory_finding (reference, entity_id, domain_code, severity, title,
       observation, status, source_kind, signal_id, due_date, issued_at, owner_id, created_by)
   VALUES ('MA-FIX-FND-1', _ent, 'PRUDENTIAL','high','MA fixture finding','fixture',
-      'ISSUED','MA_FIXTURE', _sig3, current_date + 30, now() - interval '30 days', _uid, _uid)
+      'ISSUED','MA_FIXTURE_SIGNAL', _sig3, current_date + 30, now() - interval '30 days', _uid, _uid)
   RETURNING id INTO _fnd;
 
   INSERT INTO public.supervisory_remediation_action (reference, finding_id, entity_id,
@@ -170,7 +170,7 @@ BEGIN
       observation, status, source_kind, signal_id, due_date, issued_at, owner_id, created_by,
       closed_at, closed_by)
   VALUES ('MA-FIX-FND-2', _ent, 'PRUDENTIAL','high','MA fixture closed finding','fixture',
-      'CLOSED','MA_FIXTURE', _sig4, current_date - 40, now() - interval '80 days', _uid, _uid,
+      'CLOSED','MA_FIXTURE_SIGNAL', _sig4, current_date - 40, now() - interval '80 days', _uid, _uid,
       now() - interval '40 days', _uid);
 
   INSERT INTO public.supervisory_remediation_action (reference, finding_id, entity_id,
