@@ -638,6 +638,9 @@ BEGIN
     JOIN public.permissions p ON p.id = rp.permission_id
    WHERE p.module = 'supervisory_spine' AND p.name = 'review'
    ORDER BY r.id LIMIT 1;
+  PERFORM set_config('request.jwt.claims',
+    json_build_object('sub',(SELECT user_id FROM public.user_roles WHERE role='super_admin' LIMIT 1),
+                      'role','authenticated')::text, true);
   INSERT INTO public.user_dynamic_roles (user_id, role_id) VALUES (_out, _role)
     ON CONFLICT DO NOTHING;
 
