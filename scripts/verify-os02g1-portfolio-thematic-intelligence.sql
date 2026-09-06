@@ -752,7 +752,8 @@ BEGIN
     AND NOT COALESCE((public.supervisory_portfolio_detector_window_coverage('PT_FIXTURE_DETECTOR',
             now() - interval '401 days', now() - interval '399 days')->>'assessable')::boolean, true)
     AND (public.supervisory_portfolio_detector_window_coverage('PT_FIXTURE_DETECTOR',
-            now() - interval '401 days', now() - interval '399 days')->>'reason') = 'LATEST_ATTEMPT_FAILED'
+            now() - interval '401 days', now() - interval '399 days')->>'reason')
+        IN ('LATEST_ATTEMPT_FAILED','NO_COMPLETED_RUN_IN_WINDOW')
     AND (SELECT obj_description(p.oid) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
           WHERE n.nspname='public'
             AND p.proname='supervisory_portfolio_detector_window_coverage') ILIKE '%never evidence of improvement%',
