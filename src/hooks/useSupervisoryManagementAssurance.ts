@@ -207,12 +207,16 @@ export interface RecordReviewInput {
   dispositionRationale?: string | null;
   linkedModule?: string | null;
   linkedRecordId?: string | null;
-  linkedReference?: string | null;
+  /** Governed correction: record a superseding review instead of editing history. */
+  supersedesReviewId?: string | null;
+  correctionReason?: string | null;
 }
 
 export function useRecordConditionReview() {
   const qc = useQueryClient();
   return useMutation({
+    // NOTE: the linked reference is derived server-side from the canonical
+    // record — the browser must never be able to invent it.
     mutationFn: (input: RecordReviewInput) => rpc<{ review_id: string }>(
       'supervisory_assurance_record_review', {
         _signal_id: input.signalId,
@@ -221,8 +225,10 @@ export function useRecordConditionReview() {
         _disposition_rationale: input.dispositionRationale ?? null,
         _linked_module: input.linkedModule ?? null,
         _linked_record_id: input.linkedRecordId ?? null,
-        _linked_reference: input.linkedReference ?? null,
+        _supersedes_review_id: input.supersedesReviewId ?? null,
+        _correction_reason: input.correctionReason ?? null,
       }),
+
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['supervisory_management_assurance_register'] });
       qc.invalidateQueries({ queryKey: ['supervisory_management_assurance_trend'] });

@@ -48117,6 +48117,7 @@ export type Database = {
       }
       supervisory_signal_review: {
         Row: {
+          correction_reason: string | null
           created_at: string
           disposition: string | null
           disposition_at: string | null
@@ -48135,9 +48136,12 @@ export type Database = {
           reviewed_at: string
           reviewed_by: string
           signal_id: string
+          superseded_by_review_id: string | null
+          supersedes_review_id: string | null
           updated_at: string
         }
         Insert: {
+          correction_reason?: string | null
           created_at?: string
           disposition?: string | null
           disposition_at?: string | null
@@ -48156,9 +48160,12 @@ export type Database = {
           reviewed_at?: string
           reviewed_by: string
           signal_id: string
+          superseded_by_review_id?: string | null
+          supersedes_review_id?: string | null
           updated_at?: string
         }
         Update: {
+          correction_reason?: string | null
           created_at?: string
           disposition?: string | null
           disposition_at?: string | null
@@ -48177,6 +48184,8 @@ export type Database = {
           reviewed_at?: string
           reviewed_by?: string
           signal_id?: string
+          superseded_by_review_id?: string | null
+          supersedes_review_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -48192,6 +48201,34 @@ export type Database = {
             columns: ["signal_id"]
             isOneToOne: false
             referencedRelation: "supervisory_signal"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_signal_review_superseded_by_review_id_fkey"
+            columns: ["superseded_by_review_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["review_id"]
+          },
+          {
+            foreignKeyName: "supervisory_signal_review_superseded_by_review_id_fkey"
+            columns: ["superseded_by_review_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_signal_review"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_signal_review_supersedes_review_id_fkey"
+            columns: ["supersedes_review_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["review_id"]
+          },
+          {
+            foreignKeyName: "supervisory_signal_review_supersedes_review_id_fkey"
+            columns: ["supersedes_review_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_signal_review"
             referencedColumns: ["id"]
           },
         ]
@@ -65288,6 +65325,20 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_assurance_disposition_is_traceable: {
+        Args: {
+          _disposition: string
+          _module: string
+          _record_id: string
+          _reference: string
+          _signal_id: string
+        }
+        Returns: boolean
+      }
+      supervisory_assurance_link_resolve: {
+        Args: { _module: string; _record_id: string; _signal_id: string }
+        Returns: Json
+      }
       supervisory_assurance_policy_effective: {
         Args: { _domain: string }
         Returns: {
@@ -65308,6 +65359,7 @@ export type Database = {
       }
       supervisory_assurance_record_review: {
         Args: {
+          _correction_reason?: string
           _disposition?: string
           _disposition_rationale?: string
           _linked_module?: string
@@ -65315,8 +65367,17 @@ export type Database = {
           _linked_reference?: string
           _review_note?: string
           _signal_id: string
+          _supersedes_review_id?: string
         }
         Returns: Json
+      }
+      supervisory_assurance_review_action: {
+        Args: { _module: string }
+        Returns: string
+      }
+      supervisory_assurance_review_admits: {
+        Args: { _signal_id: string; _uid: string }
+        Returns: boolean
       }
       supervisory_attention_confirm_priority: {
         Args: {
