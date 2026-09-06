@@ -22,10 +22,13 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { useToast } from '@/hooks/use-toast';
 import {
   formatDetected,
+  formatDetectedAt,
+  useDetectionHealth,
   useDetectionRegister,
   useDetectorAssurance,
   useRunDetection,
   type DetectedCondition,
+  type DetectionHealth,
 } from '@/hooks/useSupervisoryDetection';
 
 const DOMAINS = ['PRUDENTIAL', 'AML_CFT', 'MARKET_CONDUCT', 'OPERATIONAL_RESILIENCE', 'GOVERNANCE', 'CYBER', 'CROSS_DOMAIN'];
@@ -50,6 +53,77 @@ function Kpi({ label, value, tone }: { label: string; value: number; tone?: 'war
         <div className={`font-mono text-xl ${tone === 'bad' ? 'text-destructive' : tone === 'warn' ? 'text-warning-foreground' : ''}`}>
           {value}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RunHealthPanel({ health, loading }: { health?: DetectionHealth; loading: boolean }) {
+  if (loading) return <Skeleton className="h-24 w-full" />;
+  if (!health) return null;
+  const attempted = health.last_attempted_run;
+  const scheduled = health.last_successful_scheduled_run;
+  const attention = health.detectors_needing_attention ?? [];
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <ShieldCheck className="h-4 w-4" /> Automatic run health
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 pt-0">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <div className="text-xs text-muted-foreground">Last successful automatic run</div>
+            <div className="font-mono text-xs">{formatDetectedAt(scheduled?.completed_at)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Last run attempted</div>
+            <div className="font-mono text-xs">{formatDetectedAt(attempted?.started_at)}</div>
+            <div className="text-xs">
+              {attempted ? (
+                <Badge
+                  variant="outline"
+                  className={attempted.status === 'COMPLETED'
+                    ? 'bg-success/10 text-success border-success/20'
+                    : 'bg-destructive/15 text-destructive border-destructive/30'}
+                >
+                  {humanise(attempted.status)}{attempted.trigger_kind ? ` · ${humanise(attempted.trigger_kind)}` : ''}
+                </Badge>
+              ) : 'No run recorded yet'}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Next automatic run</div>
+            <div className="font-mono text-xs">
+              {health.schedule ? formatDetectedAt(health.next_scheduled_at) : 'No schedule registered'}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Running now</div>
+            <div className="font-mono text-xs">{health.runs_in_progress}</div>
+          </div>
+        </div>
+
+        {attention.length > 0 && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-destructive">
+              <AlertTriangle className="h-4 w-4" /> Detectors needing administrator attention
+            </div>
+            <ul className="mt-1 space-y-1 text-xs">
+              {attention.map((a) => (
+                <li key={a.detector_code}>
+                  <span className="font-mono">{a.detector_code}</span> — {humanise(a.reason)}
+                  {a.error_text ? `: ${a.error_text}` : ''}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-muted-foreground">
+              A run that did not complete successfully never closes a condition, so open conditions from these
+              detectors remain as last observed.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -139,6 +213,8 @@ export default function DetectionGovernance() {
       || (r.detector_code ?? '').toLowerCase().includes(q));
   }, [register.data, search]);
 
+  const health = useDetectionHealth();
+
   const summary = useMemo(() => {
     const all = register.data?.rows ?? [];
     return {
@@ -192,6 +268,8 @@ export default function DetectionGovernance() {
         <Kpi label="High or critical" value={summary.severe} tone="bad" />
         <Kpi label="Recurring (seen more than once)" value={summary.recurring} />
       </div>
+
+      <RunHealthPanel health={health.data} loading={health.isLoading} />
 
       <Tabs defaultValue="conditions">
         <TabsList>

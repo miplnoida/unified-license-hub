@@ -64757,6 +64757,8 @@ export type Database = {
         Args: { _detector_code?: string; _trigger_kind?: string }
         Returns: Json
       }
+      supervisory_detect_run_scheduled: { Args: never; Returns: Json }
+      supervisory_detection_health: { Args: never; Returns: Json }
       supervisory_detection_register: {
         Args: { _domain?: string; _limit?: number; _state?: string }
         Returns: Json
