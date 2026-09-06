@@ -1053,7 +1053,7 @@ BEGIN
     AND _r.entity_id = _ent
     AND _r.domain_code = 'PRUDENTIAL'
     AND _r.reviewed_by = _rev
-    AND COALESCE((_r.provenance -> 'link' ->> 'signal_related')::boolean, false),
+    AND COALESCE((_r.provenance -> 'link_resolution' ->> 'signal_related')::boolean, false),
     format('accepted coverage stores canonical id, server-derived module/reference (%s) and signal provenance',
            _r.linked_reference));
 END $$;
