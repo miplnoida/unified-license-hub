@@ -195,7 +195,8 @@ BEGIN
   SELECT id INTO _grp FROM public.financial_groups ORDER BY created_at LIMIT 1;
 
   INSERT INTO pt_fx VALUES ('det',_det),('run',_run),('e1',_e1),('e2',_e2),
-    ('s1',_s1),('s2',_s2),('s3',_s3),('grp',_grp);
+    ('s1',_s1),('s2',_s2),('s3',_s3),('s4',_s4),('grp',_grp);
+
   INSERT INTO pt_p VALUES ('mgr',_mgr),('out',_out);
 END $$;
 
