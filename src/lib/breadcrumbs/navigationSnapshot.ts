@@ -243,6 +243,7 @@ export const navigationSnapshot: NavSnapshotItem[] = [
   { key: "nav_sup_monitoring", parentKey: "grp_nav_supervision", label: "Continuous Monitoring", href: "/supervision/monitoring", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_sup_detection", parentKey: "grp_nav_supervision", label: "Detection & Trigger Governance", href: "/supervision/detection", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_sup_management_assurance", parentKey: "grp_nav_supervision", label: "Management Assurance", href: "/supervision/management-assurance", itemType: "link", audience: "internal", showInSidebar: true },
+  { key: "nav_sup_portfolio_intelligence", parentKey: "grp_nav_supervision", label: "Portfolio & Thematic Intelligence", href: "/supervision/portfolio-intelligence", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_sup_planning", parentKey: "grp_nav_supervision", label: "Supervisory Planning", href: null, itemType: "group", audience: "internal", showInSidebar: true },
   { key: "nav_sup_plans", parentKey: "nav_sup_planning", label: "Supervisory Plans", href: "/supervision/plans", itemType: "link", audience: "internal", showInSidebar: true },
   { key: "nav_sup_portfolio", parentKey: "grp_nav_supervision", label: "Portfolio & Sector Supervision", href: "/supervision/portfolio", itemType: "link", audience: "internal", showInSidebar: true },
