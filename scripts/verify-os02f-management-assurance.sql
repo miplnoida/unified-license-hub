@@ -913,7 +913,7 @@ BEGIN
   RETURNING id INTO _id;
 
   SELECT count(*) INTO _logged FROM public.config_change_log
-   WHERE table_name = 'supervisory_assurance_policy' AND record_id = _id AND action = 'INSERT';
+   WHERE table_name = 'supervisory_assurance_policy' AND record_id = _id AND action = 'CREATE';
 
   PERFORM pg_temp.gate('MA-64', _logged = 1
     AND (SELECT created_by IS NOT NULL AND updated_by IS NOT NULL
