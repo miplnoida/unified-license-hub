@@ -990,14 +990,6 @@ BEGIN
       (SELECT v FROM ma_fx WHERE k='sig4'), current_date + 30, now(), _uid, _uid)
   RETURNING id INTO _unrelated;
 
-  -- OPEN canonical finding genuinely raised from this condition
-  INSERT INTO public.supervisory_finding (reference, entity_id, domain_code, severity, title,
-      observation, status, source_kind, signal_id, due_date, issued_at, owner_id, created_by)
-  VALUES ('MA-FIX-FND-REL', _ent, 'PRUDENTIAL','HIGH',
-      'MA fixture related open finding','fixture','ISSUED','SIGNAL',
-      _sig5, current_date + 30, now(), _uid, _uid)
-  RETURNING id INTO _related;
-
   -- MA-68 — unrelated open action must be REJECTED as coverage
   PERFORM set_config('request.jwt.claims',
     json_build_object('sub', _rev, 'role','authenticated')::text, true);
@@ -1016,8 +1008,6 @@ BEGIN
     json_build_object('sub', _sa, 'role','authenticated')::text, true);
   SELECT assurance_conditions INTO _conds
     FROM public.supervisory_management_assurance_matter WHERE signal_id = _sig5;
-  RAISE NOTICE 'MA-71 diag conds=% rows=%', _conds,
-    (SELECT count(*) FROM public.supervisory_management_assurance_matter WHERE signal_id = _sig5);
   PERFORM pg_temp.gate('MA-71',
     'REVIEWED_NO_DISPOSITION' = ANY (COALESCE(_conds, ARRAY[]::text[]))
     AND NOT EXISTS (SELECT 1 FROM public.supervisory_signal_review r
@@ -1029,6 +1019,14 @@ BEGIN
     public.supervisory_assurance_disposition_is_traceable(
       _sig5, 'COVERED_BY_EXISTING_ACTION', 'SUPERVISORY_FINDING', _unrelated, NULL) IS FALSE,
     'the unrelated open record is not traceable coverage for this condition');
+
+  -- OPEN canonical finding genuinely raised from this condition
+  INSERT INTO public.supervisory_finding (reference, entity_id, domain_code, severity, title,
+      observation, status, source_kind, signal_id, due_date, issued_at, owner_id, created_by)
+  VALUES ('MA-FIX-FND-REL', _ent, 'PRUDENTIAL','HIGH',
+      'MA fixture related open finding','fixture','ISSUED','SIGNAL',
+      _sig5, current_date + 30, now(), _uid, _uid)
+  RETURNING id INTO _related;
 
   -- MA-69 — genuinely linked open action is ACCEPTED
   PERFORM set_config('request.jwt.claims',
