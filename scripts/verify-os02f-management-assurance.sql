@@ -896,7 +896,7 @@ END $$;
 
 -- MA-64 / MA-65 — governed versioning, audit trail and reconstructable history.
 DO $$
-DECLARE _id uuid; _old record; _logged int; _eff jsonb;
+DECLARE _id uuid; _old record; _logged int; _effv int;
 BEGIN
   SELECT * INTO _old FROM public.supervisory_assurance_policy WHERE domain_code IS NULL LIMIT 1;
   PERFORM set_config('request.jwt.claims',
@@ -923,9 +923,9 @@ BEGIN
                  WHERE table_name = 'supervisory_assurance_policy'),
     'a new policy version is audited, attributed and registered as governed configuration');
 
-  _eff := public.supervisory_assurance_policy_effective(NULL);
+  SELECT e.version INTO _effv FROM public.supervisory_assurance_policy_effective(NULL) e;
   PERFORM pg_temp.gate('MA-65',
-    (_eff ->> 'version')::int = _old.version + 1
+    _effv = _old.version + 1
     AND EXISTS (SELECT 1 FROM public.supervisory_assurance_policy
                  WHERE id = _old.id AND version = _old.version
                    AND awaiting_review_tolerance_days = _old.awaiting_review_tolerance_days),
