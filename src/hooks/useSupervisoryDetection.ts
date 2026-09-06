@@ -136,3 +136,53 @@ export function formatDetected(value: string | null | undefined) {
   if (!value) return '—';
   return new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
+
+/**
+ * OS-02F — operational health of the nightly detection run. The server keeps
+ * "last attempted" and "last successful" strictly separate; the client never
+ * infers success from an attempt.
+ */
+export interface DetectionRunRef {
+  run_id: string;
+  detector_code: string | null;
+  trigger_kind?: string | null;
+  status?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  error_text?: string | null;
+}
+
+export interface DetectionHealth {
+  generated_at: string;
+  schedule: string | null;
+  schedule_timezone: string;
+  next_scheduled_at: string | null;
+  last_successful_scheduled_run: DetectionRunRef | null;
+  last_attempted_run: DetectionRunRef | null;
+  last_successful_run: DetectionRunRef | null;
+  runs_in_progress: number;
+  detectors_needing_attention: Array<{
+    detector_code: string;
+    name: string;
+    status: string | null;
+    started_at: string | null;
+    error_text: string | null;
+    reason: 'NEVER_RUN' | 'LAST_RUN_FAILED' | 'LAST_RUN_INCOMPLETE' | string;
+  }>;
+}
+
+export function useDetectionHealth() {
+  return useQuery({
+    queryKey: ['supervisory_detection_health'],
+    queryFn: () => rpc<DetectionHealth>('supervisory_detection_health'),
+    staleTime: 60_000,
+  });
+}
+
+export function formatDetectedAt(value: string | null | undefined) {
+  if (!value) return '—';
+  return new Date(value).toLocaleString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    timeZone: 'UTC',
+  }) + ' UTC';
+}
