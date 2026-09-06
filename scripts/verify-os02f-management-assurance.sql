@@ -855,7 +855,7 @@ SELECT pg_temp.gate('MA-61',
       AND (a.metadata ->> 'entity_id')::uuid = (SELECT v FROM ma_fx WHERE k='ent'))
      FROM public.audit_logs a
     WHERE a.entity_type = 'supervisory_signal_review'
-      AND a.entity_id = (SELECT v FROM ma_p WHERE k='rev44')),
+      AND a.entity_id = (SELECT v::text FROM ma_p WHERE k='rev44')),
   'the canonical command writes exactly one audit event with signal/entity/domain provenance');
 
 -- ===================== POLICY GOVERNANCE =====================
