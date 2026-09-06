@@ -903,10 +903,11 @@ BEGIN
     json_build_object('sub',(SELECT user_id FROM public.user_roles WHERE role='super_admin' LIMIT 1),
                       'role','authenticated')::text, true);
 
-  INSERT INTO public.supervisory_assurance_policy (code, version, domain_code, effective_from,
+  INSERT INTO public.supervisory_assurance_policy (code, name, config_owner, version,
+      domain_code, effective_from,
       awaiting_review_tolerance_days, stale_activity_tolerance_days,
       repeat_occurrence_threshold, repeat_distinct_day_threshold, material_severities, notes)
-  VALUES (_old.code, _old.version + 1, NULL, CURRENT_DATE,
+  VALUES (_old.code, _old.name, _old.config_owner, _old.version + 1, NULL, CURRENT_DATE,
       _old.awaiting_review_tolerance_days + 1, _old.stale_activity_tolerance_days,
       _old.repeat_occurrence_threshold, _old.repeat_distinct_day_threshold,
       _old.material_severities, 'MA-64 fixture version')
