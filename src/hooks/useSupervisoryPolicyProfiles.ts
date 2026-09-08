@@ -85,7 +85,15 @@ export interface PolicyComponentReadiness {
   component_type: string;
   label: string;
   is_available: boolean;
+  /** Effective requirement resolved server-side (domain floor + profile request). */
   requirement: ComponentRequirement;
+  profile_requirement: ComponentRequirement | null;
+  domain_requirement: ComponentRequirement | null;
+  domain_requirement_locked: boolean;
+  domain_requirement_reason: string | null;
+  requirement_editable: boolean;
+  required_for_approval: boolean;
+  required_for_activation: boolean;
   requirement_rationale: string | null;
   state: string;
   detail: string | null;
@@ -103,11 +111,14 @@ export interface PolicyProfileReadiness {
   status: PolicyProfileStatus;
   origin: PolicyProfileOrigin;
   is_ready_for_approval: boolean;
+  is_ready_for_activation: boolean;
   blockers: string[];
+  activation_blockers: string[];
   required_count: number;
   satisfied_count: number;
   components: PolicyComponentReadiness[];
 }
+
 
 export interface PolicyProfileDetail {
   id: string;

@@ -47959,6 +47959,50 @@ export type Database = {
         }
         Relationships: []
       }
+      supervisory_policy_domain_component_requirement: {
+        Row: {
+          component_type: string
+          created_at: string
+          domain_code: string
+          is_locked: boolean
+          rationale: string
+          required_for_activation: boolean
+          required_for_approval: boolean
+          requirement: string
+          updated_at: string
+        }
+        Insert: {
+          component_type: string
+          created_at?: string
+          domain_code: string
+          is_locked?: boolean
+          rationale: string
+          required_for_activation?: boolean
+          required_for_approval?: boolean
+          requirement: string
+          updated_at?: string
+        }
+        Update: {
+          component_type?: string
+          created_at?: string
+          domain_code?: string
+          is_locked?: boolean
+          rationale?: string
+          required_for_activation?: boolean
+          required_for_approval?: boolean
+          requirement?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_policy_domain_component_require_component_type_fkey"
+            columns: ["component_type"]
+            isOneToOne: false
+            referencedRelation: "supervisory_policy_component_type"
+            referencedColumns: ["component_type"]
+          },
+        ]
+      }
       supervisory_policy_profile: {
         Row: {
           activated_at: string | null
@@ -67437,6 +67481,18 @@ export type Database = {
       supervisory_policy_profile_save: {
         Args: { _payload: Json; _profile_id: string }
         Returns: string
+      }
+      supervisory_policy_requirement_effective: {
+        Args: {
+          _component_type: string
+          _domain_code: string
+          _profile_requirement?: string
+        }
+        Returns: Json
+      }
+      supervisory_policy_requirement_strictness: {
+        Args: { _requirement: string }
+        Returns: number
       }
       supervisory_portfolio: {
         Args: {
