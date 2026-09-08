@@ -114,7 +114,7 @@ export function PolicyComponentPanel({
                     {c.detail ? <div className="mt-0.5 text-xs text-muted-foreground">{c.detail}</div> : null}
                   </TableCell>
                   <TableCell className="align-top">
-                    {editable && c.is_available ? (
+                    {editable && c.is_available && c.requirement_editable ? (
                       <Select value={c.requirement} onValueChange={(v) => changeRequirement(c.component_type, v as ComponentRequirement)}>
                         <SelectTrigger className="h-8 w-[10.5rem]" aria-label={`${c.label} requirement`}><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -123,8 +123,18 @@ export function PolicyComponentPanel({
                           <SelectItem value="NOT_APPLICABLE">Not applicable</SelectItem>
                         </SelectContent>
                       </Select>
-                    ) : <RequirementBadge requirement={c.requirement} />}
+                    ) : (
+                      <div className="space-y-1">
+                        <RequirementBadge requirement={c.requirement} />
+                        {c.domain_requirement_locked ? (
+                          <p className="max-w-[13rem] text-xs text-muted-foreground" data-testid={`domain-locked-${c.component_type}`}>
+                            Domain requirement{c.domain_requirement_reason ? ` — ${c.domain_requirement_reason}` : ''}
+                          </p>
+                        ) : null}
+                      </div>
+                    )}
                   </TableCell>
+
                   <TableCell className="align-top">
                     {c.bound_component_id ? (
                       <div className="text-xs">

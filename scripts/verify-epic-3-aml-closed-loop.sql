@@ -134,7 +134,8 @@ BEGIN
   IF NOT ok THEN RAISE EXCEPTION 'FAIL B: an ACTIVE methodology accepted a dimension re-score'; END IF;
 
   -- the governed route is a NEW version, which starts as DRAFT and inherits dimensions
-  nv := public.supervisory_methodology_new_version(mid, '1.1',
+  -- deterministic, test-only version label: the live 1.1 reference version must not be touched
+  nv := public.supervisory_methodology_new_version(mid, '1.1-EPIC3-CERT',
         'Epic 3 certification: proving versioned change control over AML methodology.');
   INSERT INTO e3(k,v) VALUES ('aml_meth_v11', nv);
   IF (SELECT status FROM public.supervisory_methodology WHERE id = nv) <> 'DRAFT' THEN
