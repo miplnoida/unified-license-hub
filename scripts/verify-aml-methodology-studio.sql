@@ -78,7 +78,8 @@ SELECT pg_temp.gate('METH-STUDIO-08',
    'supervisory_methodology','supervisory_methodology_dimension','supervisory_methodology_question',
    'supervisory_methodology_question_fact','supervisory_methodology_fact_requirement',
    'supervisory_methodology_semantic_profile','supervisory_methodology_parameter',
-   'supervisory_methodology_event');
+   'supervisory_methodology_event','supervisory_methodology_reference_decision',
+   'supervisory_methodology_regulator_approval');
 
 SELECT pg_temp.gate('METH-STUDIO-09',
    bool_and(c.relrowsecurity), 'row level security is enabled on every content table')
