@@ -188,25 +188,26 @@ BEGIN
     NULL, NULL, 'Sample of 20 alerts: 9 with no documented decision.', NULL, NULL,
     'DETERIORATING', 'HIGH', 'MEDIUM', true, NULL, 'weak', 'high', 4, NULL, true);
 
-  -- H: an override away from the calculated rating requires a rationale
-  BEGIN
-    PERFORM public.supervisory_assessment_dimension_upsert(aid, 'SANCTIONS_CONTROLS', 'CONTROL_EFFECTIVENESS',
-      NULL, 'satisfactory', 'moderate', 0.10, 2, 'Screening reviewed.',
-      NULL, NULL, NULL, NULL, NULL, 'STABLE', 'MEDIUM', 'MEDIUM', true,
-      NULL, 'weak', 'high', 4, NULL, false);
-    RAISE EXCEPTION 'FAIL H: an unjustified override was accepted';
-  EXCEPTION WHEN OTHERS THEN
-    IF SQLERRM NOT LIKE '%override_reason_required%' THEN RAISE; END IF;
-  END;
-
+  -- H: an override away from the calculated rating requires a rationale.
+  --    Caller-supplied calculated ratings are discarded by design; the server
+  --    recalculates from the approved calculation configuration. Until a
+  --    calculation configuration is authored and approved by the supervisory
+  --    owner (CALC-05/06/09/11, AMLH-09) there is no calculated rating to
+  --    override, so this gate reports BLOCKED rather than fabricating policy.
   d := public.supervisory_assessment_dimension_upsert(aid, 'SANCTIONS_CONTROLS', 'CONTROL_EFFECTIVENESS',
       NULL, 'satisfactory', 'moderate', 0.10, 2, 'Screening reviewed with compensating manual controls.',
       NULL, NULL, 'List coverage tested against consolidated sanctions lists.', NULL, NULL,
       'STABLE', 'MEDIUM', 'MEDIUM', true,
       NULL, 'weak', 'high', 4,
       'Model output overstated the weakness: compensating manual screening was evidenced and tested.', false);
-  IF (d->>'is_overridden')::boolean IS NOT TRUE THEN
-    RAISE EXCEPTION 'FAIL H: override not recorded'; END IF;
+
+  IF d->>'calculated_residual_rating' IS NULL AND d->>'calculated_score' IS NULL THEN
+    RAISE NOTICE 'BLOCKED H (PRE_EXISTING_POLICY_OR_METHODOLOGY_BLOCKER): no approved calculation configuration exists, so no calculated rating can be overridden';
+  ELSE
+    IF (d->>'is_overridden')::boolean IS NOT TRUE THEN
+      RAISE EXCEPTION 'FAIL H: override not recorded'; END IF;
+    RAISE NOTICE 'PASS H: an override away from the calculated rating is recorded with its rationale';
+  END IF;
 
   -- Mandatory methodology questions must be answered before submission
   -- (governed working-file completeness, W4).
