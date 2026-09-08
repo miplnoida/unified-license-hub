@@ -104,7 +104,7 @@ INSERT INTO public.supervisory_policy_domain_component_requirement(
         domain_code, component_type, requirement, required_for_approval, required_for_activation, is_locked, rationale)
 VALUES ('PPCERT_DOMAIN','METHODOLOGY','OPTIONAL',false,false,false,
         'Certification domain: unlocked floor proves a profile may make a requirement stricter.'),
-       ('PPCERT_DOMAIN','CALCULATION_CONFIG','OPTIONAL',false,false,false,
+       ('PPCERT_DOMAIN','CALCULATION_CONFIG','NOT_APPLICABLE',false,false,false,
         'Certification domain: unlocked floor proves configurability where domain policy permits it.')
 ON CONFLICT (domain_code, component_type) DO NOTHING;
 
@@ -458,10 +458,10 @@ BEGIN
     RAISE EXCEPTION 'FAIL PROFILE-18: a stricter profile requirement was not honoured'; END IF;
 
   PERFORM public.supervisory_policy_profile_requirement_set(pid,
-    jsonb_build_object('component_type','CALCULATION_CONFIG','requirement','NOT_APPLICABLE',
-                       'rationale','Certification: unlocked floor permits this domain to opt out.'));
+    jsonb_build_object('component_type','CALCULATION_CONFIG','requirement','OPTIONAL',
+                       'rationale','Certification: unlocked floor permits a profile to choose this level.'));
   ok := (SELECT requirement FROM public.supervisory_policy_profile_requirement
-          WHERE profile_id=pid AND component_type='CALCULATION_CONFIG') = 'NOT_APPLICABLE';
+          WHERE profile_id=pid AND component_type='CALCULATION_CONFIG') = 'OPTIONAL';
   IF NOT ok THEN RAISE EXCEPTION 'FAIL PROFILE-REQ-06: a configurable requirement was not editable'; END IF;
   RAISE NOTICE 'PASS PROFILE-18 / PROFILE-REQ-06: unlocked floors stay configurable and profiles may be stricter';
 END $$;
