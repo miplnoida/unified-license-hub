@@ -67059,6 +67059,14 @@ export type Database = {
         Args: { _dimension_code: string; _methodology_id: string }
         Returns: string
       }
+      supervisory_methodology_dimension_retire: {
+        Args: {
+          _dimension_code: string
+          _methodology_id: string
+          _rationale: string
+        }
+        Returns: string
+      }
       supervisory_methodology_dimension_save: {
         Args: { _methodology_id: string; _payload: Json }
         Returns: string
@@ -67079,6 +67087,14 @@ export type Database = {
           _sort?: string
         }
         Returns: Json
+      }
+      supervisory_methodology_fact_requirement_delete: {
+        Args: {
+          _fact_code: string
+          _methodology_id: string
+          _rationale: string
+        }
+        Returns: string
       }
       supervisory_methodology_fact_requirement_set: {
         Args: { _methodology_id: string; _payload: Json }
@@ -67132,6 +67148,23 @@ export type Database = {
         Args: { _question_id: string }
         Returns: Json
       }
+      supervisory_methodology_question_fact_link: {
+        Args: {
+          _fact_code: string
+          _is_required?: boolean
+          _methodology_id: string
+          _question_code: string
+        }
+        Returns: string
+      }
+      supervisory_methodology_question_fact_unlink: {
+        Args: {
+          _fact_code: string
+          _methodology_id: string
+          _question_code: string
+        }
+        Returns: number
+      }
       supervisory_methodology_question_purge: {
         Args: { _methodology_id: string; _rationale: string }
         Returns: number
@@ -67157,6 +67190,18 @@ export type Database = {
           _sort?: string
         }
         Returns: Json
+      }
+      supervisory_methodology_question_retire: {
+        Args: {
+          _methodology_id: string
+          _question_code: string
+          _rationale: string
+        }
+        Returns: string
+      }
+      supervisory_methodology_question_save: {
+        Args: { _methodology_id: string; _payload: Json; _rationale?: string }
+        Returns: string
       }
       supervisory_methodology_question_sync: {
         Args: { _dimension_id: string; _questions: Json }
@@ -67190,6 +67235,10 @@ export type Database = {
       supervisory_methodology_regulator_scope_readable: {
         Args: { _domain_code: string; _regulator_id: string }
         Returns: boolean
+      }
+      supervisory_methodology_require_authoring: {
+        Args: { _methodology_id: string }
+        Returns: string
       }
       supervisory_methodology_require_manage: {
         Args: { _methodology_id: string }
@@ -67234,6 +67283,14 @@ export type Database = {
         Returns: number
       }
       supervisory_methodology_semantic_register: {
+        Args: { _methodology_id: string }
+        Returns: Json
+      }
+      supervisory_methodology_studio_capabilities: {
+        Args: { _methodology_id: string }
+        Returns: Json
+      }
+      supervisory_methodology_validate: {
         Args: { _methodology_id: string }
         Returns: Json
       }

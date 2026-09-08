@@ -1,26 +1,40 @@
 /**
- * Dimensions & Questions — dimension navigator plus a server-paged question
- * register. Read only: this wave reviews the catalogue, it never edits it.
+ * Dimensions & Questions — dimension navigator, server-paged question register
+ * and governed question authoring.
+ *
+ * Every write goes through `supervisory_methodology_question_save` /
+ * `_question_retire`; whether the controls appear at all is decided by
+ * `supervisory_methodology_studio_capabilities` on the server.
  */
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { RegisterToolbar } from '@/components/shared/RegisterToolbar';
 import { SupervisoryRegister } from '@/components/supervision/SupervisoryRegister';
 import { useListingState } from '@/components/shared/listing';
 import { useServerPageGuard } from '@/components/shared/listing/useServerPageGuard';
 import {
+  useRetireMethodologyQuestion,
   useSupervisoryMethodologyDimensions,
   useSupervisoryMethodologyQuestion,
   useSupervisoryMethodologyQuestions,
+  useSupervisoryMethodologyStudioCapabilities,
   type MethodologyQuestionRow,
 } from '@/hooks/useSupervisoryMethodologyAdmin';
+import { QuestionEditorDialog } from '../QuestionEditorDialog';
 import { EmptyPanel, ErrorPanel, Field, YesNo, humanize } from '../labels';
 
 const FILTER_KEYS = ['dimension', 'class', 'axis', 'focus', 'participation', 'sector', 'change', 'evidence', 'prefill', 'judgement', 'na'];
+
 
 function TriSelect({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
@@ -38,8 +52,64 @@ function TriSelect({ label, value, onChange }: { label: string; value: string; o
 const tri = (v: string) => (v === 'yes' ? true : v === 'no' ? false : null);
 const opt = (v: string) => (v === 'all' ? null : v);
 
-function QuestionDrawer({ questionId, onClose }: { questionId: string | null; onClose: () => void }) {
+function RetireQuestionDialog({
+  methodologyId, questionCode, open, onClose,
+}: { methodologyId: string; questionCode: string | null; open: boolean; onClose: (retired: boolean) => void }) {
+  const [rationale, setRationale] = useState('');
+  const retire = useRetireMethodologyQuestion();
+
+  const submit = async () => {
+    if (!questionCode) return;
+    try {
+      await retire.mutateAsync({ methodologyId, questionCode, rationale: rationale.trim() });
+      toast.success(`${questionCode} retired from this draft version`);
+      setRationale('');
+      onClose(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'The question could not be retired');
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => (o ? null : onClose(false))}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Retire {questionCode}</DialogTitle>
+          <DialogDescription>
+            The question stays in the record for history and comparison; it is no longer part of this version's active content.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-1.5">
+          <Label htmlFor="retire-rationale">Reason (at least 10 characters)</Label>
+          <Input id="retire-rationale" value={rationale} onChange={(e) => setRationale(e.target.value)} />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onClose(false)} disabled={retire.isPending}>Cancel</Button>
+          <Button
+            variant="destructive"
+            onClick={submit}
+            disabled={retire.isPending || rationale.trim().length < 10}
+            data-rbac="aml_supervision.manage_config"
+          >
+            {retire.isPending ? 'Retiring…' : 'Retire question'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function QuestionDrawer({
+  questionId, onClose, canAuthor, onEdit, onRetire,
+}: {
+  questionId: string | null;
+  onClose: () => void;
+  canAuthor: boolean;
+  onEdit: (detail: NonNullable<ReturnType<typeof useSupervisoryMethodologyQuestion>['data']>) => void;
+  onRetire: (questionCode: string) => void;
+}) {
   const { data, isLoading, error } = useSupervisoryMethodologyQuestion(questionId);
+
   return (
     <Sheet open={!!questionId} onOpenChange={(o) => (o ? null : onClose())}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
@@ -49,7 +119,19 @@ function QuestionDrawer({ questionId, onClose }: { questionId: string | null; on
               <SheetTitle className="font-mono text-base">{data.question_code}</SheetTitle>
               <SheetDescription className="text-foreground">{data.prompt}</SheetDescription>
             </SheetHeader>
+            {canAuthor ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => onEdit(data)} data-rbac="aml_supervision.manage_config">
+                  Edit question
+                </Button>
+                <Button size="sm" variant="ghost" className="text-destructive"
+                        onClick={() => onRetire(data.question_code)} data-rbac="aml_supervision.manage_config">
+                  Retire question
+                </Button>
+              </div>
+            ) : null}
             <div className="mt-4 space-y-4">
+
               <div className="flex flex-wrap gap-1.5">
                 <Badge variant="outline">{humanize(data.question_class)}</Badge>
                 <Badge variant="outline">{humanize(data.axis)}</Badge>
@@ -128,7 +210,13 @@ export function QuestionsTab({ methodologyId }: { methodologyId: string }) {
     filterKeys: FILTER_KEYS,
   });
   const [openQuestion, setOpenQuestion] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ open: boolean; detail: any | null }>({ open: false, detail: null });
+  const [retiring, setRetiring] = useState<string | null>(null);
   const dims = useSupervisoryMethodologyDimensions(methodologyId);
+  const caps = useSupervisoryMethodologyStudioCapabilities(methodologyId);
+  const canAuthor = caps.data?.can_author_questions?.allowed === true;
+  const authorReason = caps.data?.can_author_questions?.reason ?? null;
+
 
   const f = listing.filters;
   const query = useSupervisoryMethodologyQuestions({
@@ -191,6 +279,19 @@ export function QuestionsTab({ methodologyId }: { methodologyId: string }) {
       </aside>
 
       <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-muted-foreground">
+            {canAuthor
+              ? 'This draft version may be authored. Every change is recorded in the version history.'
+              : authorReason ?? 'This version is read only.'}
+          </p>
+          {canAuthor ? (
+            <Button size="sm" onClick={() => setEditing({ open: true, detail: null })} data-rbac="aml_supervision.manage_config">
+              Add question
+            </Button>
+          ) : null}
+        </div>
+
         <RegisterToolbar
           search={listing.search}
           onSearchChange={listing.setSearch}
@@ -282,7 +383,27 @@ export function QuestionsTab({ methodologyId }: { methodologyId: string }) {
             />
           )}
       </div>
-      <QuestionDrawer questionId={openQuestion} onClose={() => setOpenQuestion(null)} />
+      <QuestionDrawer
+        questionId={openQuestion}
+        onClose={() => setOpenQuestion(null)}
+        canAuthor={canAuthor}
+        onEdit={(detail) => setEditing({ open: true, detail })}
+        onRetire={(code) => setRetiring(code)}
+      />
+      <QuestionEditorDialog
+        methodologyId={methodologyId}
+        open={editing.open}
+        onClose={() => setEditing({ open: false, detail: null })}
+        dimensions={dims.data ?? []}
+        existing={editing.detail}
+      />
+      <RetireQuestionDialog
+        methodologyId={methodologyId}
+        questionCode={retiring}
+        open={!!retiring}
+        onClose={(retired) => { setRetiring(null); if (retired) setOpenQuestion(null); }}
+      />
+
     </div>
   );
 }
