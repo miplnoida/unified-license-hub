@@ -715,7 +715,7 @@ DO $$
 DECLARE n int;
 BEGIN
   SELECT count(*) INTO n FROM public.compliance_audit_logs
-   WHERE entity_type IN ('supervisory_policy_profile','supervisory_policy_profile_binding')
+   WHERE object_type IN ('supervisory_policy_profile','supervisory_policy_profile_binding')
      AND created_at > now() - interval '10 minutes';
   IF n < 3 THEN RAISE EXCEPTION 'FAIL PROFILE-36: only % policy audit records written', n; END IF;
   RAISE NOTICE 'PASS PROFILE-36: % audit records written for governed policy operations', n;
