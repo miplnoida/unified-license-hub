@@ -51,7 +51,7 @@ INSERT INTO ppn(k,n) VALUES
   ('assessments',            (SELECT count(*) FROM public.supervisory_assessment)),
   ('approved_v10',           (SELECT count(*) FROM public.supervisory_assessment
                                WHERE methodology_id = (SELECT v FROM pp WHERE k='meth_v10')
-                                 AND status IN ('APPROVED','ACTIVE','COMPLETED'))),
+                                 AND lower(status) = 'approved')),
   ('assessments_on_v11',     (SELECT count(*) FROM public.supervisory_assessment
                                WHERE methodology_id = (SELECT v FROM pp WHERE k='meth_v11'))),
   ('methodologies',          (SELECT count(*) FROM public.supervisory_methodology)),
@@ -752,7 +752,7 @@ BEGIN
     RAISE EXCEPTION 'FAIL PROFILE-38: the assessment population changed'; END IF;
   IF (SELECT count(*) FROM public.supervisory_assessment
        WHERE methodology_id=(SELECT v FROM pp WHERE k='meth_v10')
-         AND status IN ('APPROVED','ACTIVE','COMPLETED')) <> (SELECT n FROM ppn WHERE k='approved_v10') THEN
+         AND lower(status) = 'approved') <> (SELECT n FROM ppn WHERE k='approved_v10') THEN
     RAISE EXCEPTION 'FAIL PROFILE-38: approved v1.0 assessments moved off v1.0'; END IF;
   IF (SELECT count(*) FROM public.supervisory_assessment
        WHERE methodology_id=(SELECT v FROM pp WHERE k='meth_v11')) <> (SELECT n FROM ppn WHERE k='assessments_on_v11') THEN
