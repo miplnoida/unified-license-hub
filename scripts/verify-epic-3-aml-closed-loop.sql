@@ -183,7 +183,7 @@ BEGIN
     'Alert backlog of 1,400 items; 62% aged over 90 days.', 'Escalate as examination scope.',
     'No tuning evidence produced.', 'DETERIORATING', 'HIGH', 'HIGH', true,
     NULL, 'weak', 'high', 4, NULL, true);
-  PERFORM public.supervisory_assessment_dimension_upsert(aid, 'STR_SAR_GOVERNANCE', 'CONTROL_EFFECTIVENESS',
+  PERFORM public.supervisory_assessment_dimension_upsert(aid, 'STR_GOVERNANCE', 'CONTROL_EFFECTIVENESS',
     NULL, 'weak', 'high', 0.15, 4, 'STR/SAR decisions undocumented and late.',
     NULL, NULL, 'Sample of 20 alerts: 9 with no documented decision.', NULL, NULL,
     'DETERIORATING', 'HIGH', 'MEDIUM', true, NULL, 'weak', 'high', 4, NULL, true);
@@ -408,7 +408,7 @@ BEGIN
    WHERE assessment_id = (SELECT v FROM e3 WHERE k='a1') AND dimension_code = 'TRANSACTION_MONITORING';
   INSERT INTO e3(k,v) VALUES ('dim_tm', dim);
   INSERT INTO e3(k,v) SELECT 'dim_str', id FROM public.supervisory_assessment_dimension
-   WHERE assessment_id = (SELECT v FROM e3 WHERE k='a1') AND dimension_code = 'STR_SAR_GOVERNANCE';
+   WHERE assessment_id = (SELECT v FROM e3 WHERE k='a1') AND dimension_code = 'STR_GOVERNANCE';
 
   r := public.supervisory_attention_open(
         'AML/CFT transaction monitoring and STR/SAR weakness', 'AML_CFT',
@@ -556,7 +556,7 @@ BEGIN
   INSERT INTO public.examination_scoping(examination_id, objectives, risk_focus_areas, legal_basis,
       methodology, budget_days, prepared_by, prepared_at, assessment_dimension_id)
   VALUES (ex, 'Assess transaction monitoring tuning and STR/SAR governance.',
-      ARRAY['TRANSACTION_MONITORING','STR_SAR_GOVERNANCE'],
+      ARRAY['TRANSACTION_MONITORING','STR_GOVERNANCE'],
       'AML/CFT Regulations — supervisory examination powers',
       'Risk-based sample testing derived from the approved AML/CFT assessment.', 10,
       auth.uid(), now(), (SELECT v FROM e3 WHERE k='dim_tm'));
