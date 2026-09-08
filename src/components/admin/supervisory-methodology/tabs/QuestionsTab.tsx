@@ -1,26 +1,40 @@
 /**
- * Dimensions & Questions — dimension navigator plus a server-paged question
- * register. Read only: this wave reviews the catalogue, it never edits it.
+ * Dimensions & Questions — dimension navigator, server-paged question register
+ * and governed question authoring.
+ *
+ * Every write goes through `supervisory_methodology_question_save` /
+ * `_question_retire`; whether the controls appear at all is decided by
+ * `supervisory_methodology_studio_capabilities` on the server.
  */
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { RegisterToolbar } from '@/components/shared/RegisterToolbar';
 import { SupervisoryRegister } from '@/components/supervision/SupervisoryRegister';
 import { useListingState } from '@/components/shared/listing';
 import { useServerPageGuard } from '@/components/shared/listing/useServerPageGuard';
 import {
+  useRetireMethodologyQuestion,
   useSupervisoryMethodologyDimensions,
   useSupervisoryMethodologyQuestion,
   useSupervisoryMethodologyQuestions,
+  useSupervisoryMethodologyStudioCapabilities,
   type MethodologyQuestionRow,
 } from '@/hooks/useSupervisoryMethodologyAdmin';
+import { QuestionEditorDialog } from '../QuestionEditorDialog';
 import { EmptyPanel, ErrorPanel, Field, YesNo, humanize } from '../labels';
 
 const FILTER_KEYS = ['dimension', 'class', 'axis', 'focus', 'participation', 'sector', 'change', 'evidence', 'prefill', 'judgement', 'na'];
+
 
 function TriSelect({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
