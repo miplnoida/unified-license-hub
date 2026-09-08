@@ -119,7 +119,19 @@ function QuestionDrawer({
               <SheetTitle className="font-mono text-base">{data.question_code}</SheetTitle>
               <SheetDescription className="text-foreground">{data.prompt}</SheetDescription>
             </SheetHeader>
+            {canAuthor ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => onEdit(data)} data-rbac="aml_supervision.manage_config">
+                  Edit question
+                </Button>
+                <Button size="sm" variant="ghost" className="text-destructive"
+                        onClick={() => onRetire(data.question_code)} data-rbac="aml_supervision.manage_config">
+                  Retire question
+                </Button>
+              </div>
+            ) : null}
             <div className="mt-4 space-y-4">
+
               <div className="flex flex-wrap gap-1.5">
                 <Badge variant="outline">{humanize(data.question_class)}</Badge>
                 <Badge variant="outline">{humanize(data.axis)}</Badge>
