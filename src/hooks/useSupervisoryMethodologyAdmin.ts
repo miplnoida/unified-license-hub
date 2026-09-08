@@ -697,3 +697,184 @@ export function useMethodologyLifecycleTransition() {
     onSuccess: (_r, vars) => invalidate(vars.methodologyId),
   });
 }
+
+/* ------------------------------------------------------- studio (AML-02) */
+
+export interface MethodologyStudioCapabilities extends MethodologyCapabilities {
+  can_author: MethodologyCapability;
+  can_author_dimensions: MethodologyCapability;
+  can_author_questions: MethodologyCapability;
+  can_author_semantics: MethodologyCapability;
+  can_author_facts: MethodologyCapability;
+  can_author_parameters: MethodologyCapability;
+  requires_retirement_rationale: boolean;
+}
+
+export interface MethodologyValidationFinding {
+  code: string;
+  severity: 'BLOCKING' | 'ADVISORY' | string;
+  object: string;
+  subject: string | null;
+  count: number;
+  message: string;
+}
+
+export interface MethodologyValidation {
+  methodology_id: string;
+  status: MethodologyStatus;
+  origin: MethodologyOrigin;
+  generated_at: string;
+  blocking_count: number;
+  advisory_count: number;
+  findings: MethodologyValidationFinding[];
+  note: string;
+}
+
+/** Server-authoritative authoring capabilities. The screen never infers these. */
+export function useSupervisoryMethodologyStudioCapabilities(methodologyId?: string) {
+  return useQuery({
+    queryKey: ['supervisory_methodology_studio_capabilities', methodologyId],
+    queryFn: () => rpc<MethodologyStudioCapabilities>('supervisory_methodology_studio_capabilities', { _methodology_id: methodologyId }),
+    enabled: !!methodologyId,
+    staleTime: 15_000,
+  });
+}
+
+export function useSupervisoryMethodologyValidation(methodologyId?: string, enabled = true) {
+  return useQuery({
+    queryKey: ['supervisory_methodology_validate', methodologyId],
+    queryFn: () => rpc<MethodologyValidation>('supervisory_methodology_validate', { _methodology_id: methodologyId }),
+    enabled: !!methodologyId && enabled,
+    staleTime: 10_000,
+  });
+}
+
+function useStudioInvalidator() {
+  const qc = useQueryClient();
+  const invalidateGovernance = useMethodologyInvalidator();
+  return (methodologyId?: string) => {
+    invalidateGovernance(methodologyId);
+    [
+      'supervisory_methodology_dimension_list',
+      'supervisory_methodology_question_register',
+      'supervisory_methodology_question_detail',
+      'supervisory_methodology_fact_register',
+      'supervisory_methodology_fact_detail',
+      'supervisory_methodology_parameter_register',
+      'supervisory_methodology_semantic_register',
+      'supervisory_methodology_validate',
+      'supervisory_methodology_studio_capabilities',
+    ].forEach((key) => void qc.invalidateQueries({ queryKey: [key] }));
+  };
+}
+
+export interface QuestionSavePayload {
+  question_code: string;
+  dimension_code: string;
+  prompt: string;
+  guidance?: string | null;
+  supervisory_intent?: string | null;
+  question_class?: string | null;
+  mandatory?: boolean;
+  requires_observation?: boolean;
+  requires_evidence?: boolean;
+  min_evidence_count?: number;
+  allow_not_applicable?: boolean;
+  na_requires_rationale?: boolean;
+  sort_order?: number;
+  response_options?: string[];
+  expected_updated_at?: string | null;
+}
+
+/** Governed creation or update of one question. */
+export function useSaveMethodologyQuestion() {
+  const invalidate = useStudioInvalidator();
+  return useMutation({
+    mutationFn: (vars: { methodologyId: string; payload: QuestionSavePayload; rationale?: string }) =>
+      rpc<string>('supervisory_methodology_question_save', {
+        _methodology_id: vars.methodologyId,
+        _payload: vars.payload,
+        _rationale: vars.rationale ?? null,
+      }),
+    onSuccess: (_id, vars) => invalidate(vars.methodologyId),
+  });
+}
+
+export function useRetireMethodologyQuestion() {
+  const invalidate = useStudioInvalidator();
+  return useMutation({
+    mutationFn: (vars: { methodologyId: string; questionCode: string; rationale: string }) =>
+      rpc<string>('supervisory_methodology_question_retire', {
+        _methodology_id: vars.methodologyId,
+        _question_code: vars.questionCode,
+        _rationale: vars.rationale,
+      }),
+    onSuccess: (_id, vars) => invalidate(vars.methodologyId),
+  });
+}
+
+export function useSaveMethodologyDimension() {
+  const invalidate = useStudioInvalidator();
+  return useMutation({
+    mutationFn: (vars: { methodologyId: string; payload: Record<string, unknown> }) =>
+      rpc<string>('supervisory_methodology_dimension_save', {
+        _methodology_id: vars.methodologyId,
+        _payload: vars.payload,
+      }),
+    onSuccess: (_id, vars) => invalidate(vars.methodologyId),
+  });
+}
+
+export function useRetireMethodologyDimension() {
+  const invalidate = useStudioInvalidator();
+  return useMutation({
+    mutationFn: (vars: { methodologyId: string; dimensionCode: string; rationale: string }) =>
+      rpc<string>('supervisory_methodology_dimension_retire', {
+        _methodology_id: vars.methodologyId,
+        _dimension_code: vars.dimensionCode,
+        _rationale: vars.rationale,
+      }),
+    onSuccess: (_id, vars) => invalidate(vars.methodologyId),
+  });
+}
+
+export function useLinkQuestionFact() {
+  const invalidate = useStudioInvalidator();
+  return useMutation({
+    mutationFn: (vars: { methodologyId: string; questionCode: string; factCode: string; isRequired?: boolean }) =>
+      rpc<string>('supervisory_methodology_question_fact_link', {
+        _methodology_id: vars.methodologyId,
+        _question_code: vars.questionCode,
+        _fact_code: vars.factCode,
+        _is_required: vars.isRequired ?? true,
+      }),
+    onSuccess: (_id, vars) => invalidate(vars.methodologyId),
+  });
+}
+
+export function useUnlinkQuestionFact() {
+  const invalidate = useStudioInvalidator();
+  return useMutation({
+    mutationFn: (vars: { methodologyId: string; questionCode: string; factCode: string }) =>
+      rpc<number>('supervisory_methodology_question_fact_unlink', {
+        _methodology_id: vars.methodologyId,
+        _question_code: vars.questionCode,
+        _fact_code: vars.factCode,
+      }),
+    onSuccess: (_n, vars) => invalidate(vars.methodologyId),
+  });
+}
+
+export function useDeleteMethodologyFactRequirement() {
+  const invalidate = useStudioInvalidator();
+  return useMutation({
+    mutationFn: (vars: { methodologyId: string; factCode: string; rationale: string }) =>
+      rpc<string>('supervisory_methodology_fact_requirement_delete', {
+        _methodology_id: vars.methodologyId,
+        _fact_code: vars.factCode,
+        _rationale: vars.rationale,
+      }),
+    onSuccess: (_id, vars) => invalidate(vars.methodologyId),
+  });
+}
+
