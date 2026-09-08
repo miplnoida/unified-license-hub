@@ -122,6 +122,8 @@ export default function SupervisoryMethodologyDetailPage() {
         <TabsContent value="semantics" className="mt-4"><SemanticsTab methodologyId={m.id} /></TabsContent>
         <TabsContent value="facts" className="mt-4"><FactsTab methodologyId={m.id} /></TabsContent>
         <TabsContent value="parameters" className="mt-4"><ParametersTab methodologyId={m.id} /></TabsContent>
+        <TabsContent value="validation" className="mt-4"><ValidationTab methodologyId={m.id} /></TabsContent>
+
         <TabsContent value="decisions" className="mt-4"><ReferenceDecisionsTab methodologyId={m.id} /></TabsContent>
         <TabsContent value="approval" className="mt-4"><ApprovalsTab methodologyId={m.id} /></TabsContent>
         <TabsContent value="audit" className="mt-4"><AuditTab methodologyId={m.id} /></TabsContent>
