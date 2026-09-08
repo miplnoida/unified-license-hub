@@ -383,7 +383,27 @@ export function QuestionsTab({ methodologyId }: { methodologyId: string }) {
             />
           )}
       </div>
-      <QuestionDrawer questionId={openQuestion} onClose={() => setOpenQuestion(null)} />
+      <QuestionDrawer
+        questionId={openQuestion}
+        onClose={() => setOpenQuestion(null)}
+        canAuthor={canAuthor}
+        onEdit={(detail) => setEditing({ open: true, detail })}
+        onRetire={(code) => setRetiring(code)}
+      />
+      <QuestionEditorDialog
+        methodologyId={methodologyId}
+        open={editing.open}
+        onClose={() => setEditing({ open: false, detail: null })}
+        dimensions={dims.data ?? []}
+        existing={editing.detail}
+      />
+      <RetireQuestionDialog
+        methodologyId={methodologyId}
+        questionCode={retiring}
+        open={!!retiring}
+        onClose={(retired) => { setRetiring(null); if (retired) setOpenQuestion(null); }}
+      />
+
     </div>
   );
 }
