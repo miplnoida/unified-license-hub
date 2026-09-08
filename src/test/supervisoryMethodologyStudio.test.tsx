@@ -124,7 +124,7 @@ describe('METH-STUDIO-UI authoring surface', () => {
 
     await user.type(screen.getByLabelText('Question code'), 'TEST_Q_01');
     await user.type(screen.getByLabelText('Prompt'), 'Does the entity maintain a documented risk appetite?');
-    await user.click(screen.getByRole('button', { name: 'Add question' , exact: true }));
+    await user.click(screen.getAllByRole('button', { name: 'Add question' }).at(-1)!);
 
     await waitFor(() => expect(calls.some((c) => c.fn === 'supervisory_methodology_question_save')).toBe(true));
     const args = calls.find((c) => c.fn === 'supervisory_methodology_question_save')!.args;
