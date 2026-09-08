@@ -210,7 +210,13 @@ export function QuestionsTab({ methodologyId }: { methodologyId: string }) {
     filterKeys: FILTER_KEYS,
   });
   const [openQuestion, setOpenQuestion] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ open: boolean; detail: any | null }>({ open: false, detail: null });
+  const [retiring, setRetiring] = useState<string | null>(null);
   const dims = useSupervisoryMethodologyDimensions(methodologyId);
+  const caps = useSupervisoryMethodologyStudioCapabilities(methodologyId);
+  const canAuthor = caps.data?.can_author_questions?.allowed === true;
+  const authorReason = caps.data?.can_author_questions?.reason ?? null;
+
 
   const f = listing.filters;
   const query = useSupervisoryMethodologyQuestions({
