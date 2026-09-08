@@ -711,6 +711,8 @@ END $$;
 -- =====================================================================
 -- PROFILE-36 — audit trail written for governed policy operations
 -- =====================================================================
+-- read as the platform (audit log reads are themselves permission-gated)
+RESET ROLE;
 DO $$
 DECLARE n int;
 BEGIN
@@ -720,6 +722,9 @@ BEGIN
   IF n < 3 THEN RAISE EXCEPTION 'FAIL PROFILE-36: only % policy audit records written', n; END IF;
   RAISE NOTICE 'PASS PROFILE-36: % audit records written for governed policy operations', n;
 END $$;
+
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = :'APPROVER';
 
 -- =====================================================================
 -- PROFILE-37 — configuration-layer resolution only
