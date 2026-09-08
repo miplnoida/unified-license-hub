@@ -52,8 +52,64 @@ function TriSelect({ label, value, onChange }: { label: string; value: string; o
 const tri = (v: string) => (v === 'yes' ? true : v === 'no' ? false : null);
 const opt = (v: string) => (v === 'all' ? null : v);
 
-function QuestionDrawer({ questionId, onClose }: { questionId: string | null; onClose: () => void }) {
+function RetireQuestionDialog({
+  methodologyId, questionCode, open, onClose,
+}: { methodologyId: string; questionCode: string | null; open: boolean; onClose: (retired: boolean) => void }) {
+  const [rationale, setRationale] = useState('');
+  const retire = useRetireMethodologyQuestion();
+
+  const submit = async () => {
+    if (!questionCode) return;
+    try {
+      await retire.mutateAsync({ methodologyId, questionCode, rationale: rationale.trim() });
+      toast.success(`${questionCode} retired from this draft version`);
+      setRationale('');
+      onClose(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'The question could not be retired');
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => (o ? null : onClose(false))}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Retire {questionCode}</DialogTitle>
+          <DialogDescription>
+            The question stays in the record for history and comparison; it is no longer part of this version's active content.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-1.5">
+          <Label htmlFor="retire-rationale">Reason (at least 10 characters)</Label>
+          <Input id="retire-rationale" value={rationale} onChange={(e) => setRationale(e.target.value)} />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onClose(false)} disabled={retire.isPending}>Cancel</Button>
+          <Button
+            variant="destructive"
+            onClick={submit}
+            disabled={retire.isPending || rationale.trim().length < 10}
+            data-rbac="aml_supervision.manage_config"
+          >
+            {retire.isPending ? 'Retiring…' : 'Retire question'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function QuestionDrawer({
+  questionId, onClose, canAuthor, onEdit, onRetire,
+}: {
+  questionId: string | null;
+  onClose: () => void;
+  canAuthor: boolean;
+  onEdit: (detail: NonNullable<ReturnType<typeof useSupervisoryMethodologyQuestion>['data']>) => void;
+  onRetire: (questionCode: string) => void;
+}) {
   const { data, isLoading, error } = useSupervisoryMethodologyQuestion(questionId);
+
   return (
     <Sheet open={!!questionId} onOpenChange={(o) => (o ? null : onClose())}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
