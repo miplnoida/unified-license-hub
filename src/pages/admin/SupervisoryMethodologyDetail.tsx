@@ -29,6 +29,7 @@ import { ReferenceDecisionsTab } from '@/components/admin/supervisory-methodolog
 import { ApprovalsTab } from '@/components/admin/supervisory-methodology/tabs/ApprovalsTab';
 import { AuditTab } from '@/components/admin/supervisory-methodology/tabs/AuditTab';
 import { CompareTab } from '@/components/admin/supervisory-methodology/tabs/CompareTab';
+import { ValidationTab } from '@/components/admin/supervisory-methodology/tabs/ValidationTab';
 
 const TABS = [
   { value: 'overview', label: 'Overview' },
@@ -36,11 +37,13 @@ const TABS = [
   { value: 'semantics', label: 'Response Semantics' },
   { value: 'facts', label: 'Evidence & Facts' },
   { value: 'parameters', label: 'Parameters' },
+  { value: 'validation', label: 'Validation' },
   { value: 'decisions', label: 'Reference Decisions' },
   { value: 'approval', label: 'Regulator Approval' },
   { value: 'audit', label: 'Audit History' },
   { value: 'compare', label: 'Compare' },
 ];
+
 
 export default function SupervisoryMethodologyDetailPage() {
   const { methodologyId } = useParams<{ methodologyId: string }>();
