@@ -279,6 +279,19 @@ export function QuestionsTab({ methodologyId }: { methodologyId: string }) {
       </aside>
 
       <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-muted-foreground">
+            {canAuthor
+              ? 'This draft version may be authored. Every change is recorded in the version history.'
+              : authorReason ?? 'This version is read only.'}
+          </p>
+          {canAuthor ? (
+            <Button size="sm" onClick={() => setEditing({ open: true, detail: null })} data-rbac="aml_supervision.manage_config">
+              Add question
+            </Button>
+          ) : null}
+        </div>
+
         <RegisterToolbar
           search={listing.search}
           onSearchChange={listing.setSearch}
