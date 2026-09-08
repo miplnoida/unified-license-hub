@@ -190,7 +190,7 @@ BEGIN
 
   -- H: an override away from the calculated rating requires a rationale
   BEGIN
-    PERFORM public.supervisory_assessment_dimension_upsert(aid, 'SANCTIONS_SCREENING', 'CONTROL_EFFECTIVENESS',
+    PERFORM public.supervisory_assessment_dimension_upsert(aid, 'SANCTIONS_CONTROLS', 'CONTROL_EFFECTIVENESS',
       NULL, 'satisfactory', 'moderate', 0.10, 2, 'Screening reviewed.',
       NULL, NULL, NULL, NULL, NULL, 'STABLE', 'MEDIUM', 'MEDIUM', true,
       NULL, 'weak', 'high', 4, NULL, false);
@@ -199,7 +199,7 @@ BEGIN
     IF SQLERRM NOT LIKE '%override_reason_required%' THEN RAISE; END IF;
   END;
 
-  d := public.supervisory_assessment_dimension_upsert(aid, 'SANCTIONS_SCREENING', 'CONTROL_EFFECTIVENESS',
+  d := public.supervisory_assessment_dimension_upsert(aid, 'SANCTIONS_CONTROLS', 'CONTROL_EFFECTIVENESS',
       NULL, 'satisfactory', 'moderate', 0.10, 2, 'Screening reviewed with compensating manual controls.',
       NULL, NULL, 'List coverage tested against consolidated sanctions lists.', NULL, NULL,
       'STABLE', 'MEDIUM', 'MEDIUM', true,
@@ -263,13 +263,13 @@ BEGIN
 
   -- G: calculated vs judged stored separately
   IF NOT EXISTS (SELECT 1 FROM public.supervisory_assessment_dimension
-                  WHERE assessment_id = aid AND dimension_code = 'SANCTIONS_SCREENING'
+                  WHERE assessment_id = aid AND dimension_code = 'SANCTIONS_CONTROLS'
                     AND calculated_control_rating = 'weak' AND control_rating = 'satisfactory') THEN
     RAISE EXCEPTION 'FAIL G: calculated and judged ratings are not stored separately'; END IF;
 
   -- H: audit trail of the override
   IF NOT EXISTS (SELECT 1 FROM public.supervisory_assessment_dimension
-                  WHERE assessment_id = aid AND dimension_code = 'SANCTIONS_SCREENING'
+                  WHERE assessment_id = aid AND dimension_code = 'SANCTIONS_CONTROLS'
                     AND is_overridden AND override_reason IS NOT NULL
                     AND overridden_by IS NOT NULL AND overridden_at IS NOT NULL) THEN
     RAISE EXCEPTION 'FAIL H: override provenance incomplete'; END IF;
