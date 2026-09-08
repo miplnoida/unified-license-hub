@@ -45829,6 +45829,7 @@ export type Database = {
           manage_config_permission: string | null
           methodology_approval_permission: string | null
           notes: string | null
+          policy_approval_permission: string | null
           updated_at: string
         }
         Insert: {
@@ -45838,6 +45839,7 @@ export type Database = {
           manage_config_permission?: string | null
           methodology_approval_permission?: string | null
           notes?: string | null
+          policy_approval_permission?: string | null
           updated_at?: string
         }
         Update: {
@@ -45847,6 +45849,7 @@ export type Database = {
           manage_config_permission?: string | null
           methodology_approval_permission?: string | null
           notes?: string | null
+          policy_approval_permission?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -47916,6 +47919,306 @@ export type Database = {
             columns: ["sector_id"]
             isOneToOne: false
             referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_policy_component_type: {
+        Row: {
+          component_table: string | null
+          component_type: string
+          created_at: string
+          default_requirement: string
+          description: string | null
+          is_available: boolean
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          component_table?: string | null
+          component_type: string
+          created_at?: string
+          default_requirement?: string
+          description?: string | null
+          is_available?: boolean
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          component_table?: string | null
+          component_type?: string
+          created_at?: string
+          default_requirement?: string
+          description?: string | null
+          is_available?: boolean
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      supervisory_policy_profile: {
+        Row: {
+          activated_at: string | null
+          adopted_from_id: string | null
+          approved_at: string | null
+          approved_by: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          domain_code: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          name: string
+          notes: string | null
+          origin: string
+          profile_version: string
+          purpose: string | null
+          regulator_id: string | null
+          retired_at: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sector_id: string | null
+          status: string
+          superseded_at: string | null
+          supersedes_id: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          adopted_from_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          domain_code: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          origin?: string
+          profile_version: string
+          purpose?: string | null
+          regulator_id?: string | null
+          retired_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sector_id?: string | null
+          status?: string
+          superseded_at?: string | null
+          supersedes_id?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          adopted_from_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          domain_code?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          origin?: string
+          profile_version?: string
+          purpose?: string | null
+          regulator_id?: string | null
+          retired_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sector_id?: string | null
+          status?: string
+          superseded_at?: string | null
+          supersedes_id?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_policy_profile_adopted_from_id_fkey"
+            columns: ["adopted_from_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_policy_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_policy_profile_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_policy_profile_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_policy_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_policy_profile_binding: {
+        Row: {
+          bound_at: string
+          bound_by: string | null
+          component_code: string | null
+          component_id: string
+          component_status: string | null
+          component_table: string
+          component_type: string
+          component_version: string | null
+          created_at: string
+          id: string
+          profile_id: string
+          rationale: string | null
+          updated_at: string
+        }
+        Insert: {
+          bound_at?: string
+          bound_by?: string | null
+          component_code?: string | null
+          component_id: string
+          component_status?: string | null
+          component_table: string
+          component_type: string
+          component_version?: string | null
+          created_at?: string
+          id?: string
+          profile_id: string
+          rationale?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bound_at?: string
+          bound_by?: string | null
+          component_code?: string | null
+          component_id?: string
+          component_status?: string | null
+          component_table?: string
+          component_type?: string
+          component_version?: string | null
+          created_at?: string
+          id?: string
+          profile_id?: string
+          rationale?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_policy_profile_binding_component_type_fkey"
+            columns: ["component_type"]
+            isOneToOne: false
+            referencedRelation: "supervisory_policy_component_type"
+            referencedColumns: ["component_type"]
+          },
+          {
+            foreignKeyName: "supervisory_policy_profile_binding_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_policy_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_policy_profile_event: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          event_type: string
+          from_status: string | null
+          id: string
+          profile_id: string
+          rationale: string | null
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type: string
+          from_status?: string | null
+          id?: string
+          profile_id: string
+          rationale?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          profile_id?: string
+          rationale?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_policy_profile_event_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_policy_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_policy_profile_requirement: {
+        Row: {
+          component_type: string
+          created_at: string
+          id: string
+          profile_id: string
+          rationale: string | null
+          requirement: string
+          set_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          component_type: string
+          created_at?: string
+          id?: string
+          profile_id: string
+          rationale?: string | null
+          requirement?: string
+          set_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          component_type?: string
+          created_at?: string
+          id?: string
+          profile_id?: string
+          rationale?: string | null
+          requirement?: string
+          set_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_policy_profile_requirement_component_type_fkey"
+            columns: ["component_type"]
+            isOneToOne: false
+            referencedRelation: "supervisory_policy_component_type"
+            referencedColumns: ["component_type"]
+          },
+          {
+            foreignKeyName: "supervisory_policy_profile_requirement_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_policy_profile"
             referencedColumns: ["id"]
           },
         ]
@@ -67031,6 +67334,109 @@ export type Database = {
           _title: string
         }
         Returns: Json
+      }
+      supervisory_policy_component_probe: {
+        Args: { _component_id: string; _component_type: string }
+        Returns: Json
+      }
+      supervisory_policy_profile_action_capabilities: {
+        Args: { _profile_id: string }
+        Returns: Json
+      }
+      supervisory_policy_profile_adopt_reference: {
+        Args: {
+          _rationale: string
+          _reference_profile_id: string
+          _regulator_id: string
+        }
+        Returns: string
+      }
+      supervisory_policy_profile_binding_clear: {
+        Args: {
+          _component_type: string
+          _profile_id: string
+          _rationale: string
+        }
+        Returns: boolean
+      }
+      supervisory_policy_profile_binding_set: {
+        Args: { _payload: Json; _profile_id: string }
+        Returns: string
+      }
+      supervisory_policy_profile_compare: {
+        Args: { _baseline_id: string; _profile_id: string }
+        Returns: Json
+      }
+      supervisory_policy_profile_component_candidates: {
+        Args: { _component_type: string; _profile_id: string }
+        Returns: Json
+      }
+      supervisory_policy_profile_create: {
+        Args: { _payload: Json }
+        Returns: string
+      }
+      supervisory_policy_profile_detail: {
+        Args: { _profile_id: string }
+        Returns: Json
+      }
+      supervisory_policy_profile_event_register: {
+        Args: { _limit?: number; _offset?: number; _profile_id: string }
+        Returns: Json
+      }
+      supervisory_policy_profile_lifecycle: {
+        Args: { _profile_id: string; _rationale?: string; _to_status: string }
+        Returns: Json
+      }
+      supervisory_policy_profile_new_version: {
+        Args: { _new_version: string; _profile_id: string; _rationale: string }
+        Returns: string
+      }
+      supervisory_policy_profile_readiness: {
+        Args: { _profile_id: string }
+        Returns: Json
+      }
+      supervisory_policy_profile_register: {
+        Args: {
+          _dir?: string
+          _domain_code?: string
+          _limit?: number
+          _offset?: number
+          _origin?: string
+          _regulator_id?: string
+          _search?: string
+          _sort?: string
+          _status?: string
+        }
+        Returns: Json
+      }
+      supervisory_policy_profile_register_options: {
+        Args: never
+        Returns: Json
+      }
+      supervisory_policy_profile_require_approval: {
+        Args: { _profile_id: string }
+        Returns: string
+      }
+      supervisory_policy_profile_require_manage: {
+        Args: { _profile_id: string }
+        Returns: string
+      }
+      supervisory_policy_profile_requirement_set: {
+        Args: { _payload: Json; _profile_id: string }
+        Returns: string
+      }
+      supervisory_policy_profile_resolve: {
+        Args: {
+          _as_of?: string
+          _domain_code: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
+        Returns: Json
+      }
+      supervisory_policy_profile_save: {
+        Args: { _payload: Json; _profile_id: string }
+        Returns: string
       }
       supervisory_portfolio: {
         Args: {

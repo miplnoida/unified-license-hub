@@ -166,6 +166,7 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
 
   // ─── Supervisory methodology calculation governance ───────────────────
   ['/admin/supervisory-methodology', 'aml_supervision'],
+  ['/admin/supervisory-policy-profiles', 'aml_supervision'],
   ['/admin/supervisory-calculation/approvals', 'aml_supervision'],
   ['/admin/supervisory-calculation', 'aml_supervision'],
 
