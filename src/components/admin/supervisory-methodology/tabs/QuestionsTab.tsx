@@ -32,6 +32,7 @@ import {
 } from '@/hooks/useSupervisoryMethodologyAdmin';
 import { QuestionEditorDialog } from '../QuestionEditorDialog';
 import { DimensionStudio } from '../studio/DimensionStudio';
+import { QuestionRuleSection } from '../studio/QuestionRuleSection';
 import { EmptyPanel, ErrorPanel, Field, YesNo, humanize } from '../labels';
 
 const FILTER_KEYS = ['dimension', 'class', 'axis', 'focus', 'participation', 'sector', 'change', 'evidence', 'prefill', 'judgement', 'na'];
@@ -101,8 +102,9 @@ function RetireQuestionDialog({
 }
 
 function QuestionDrawer({
-  questionId, onClose, canAuthor, onEdit, onRetire,
+  methodologyId, questionId, onClose, canAuthor, onEdit, onRetire,
 }: {
+  methodologyId: string;
   questionId: string | null;
   onClose: () => void;
   canAuthor: boolean;
@@ -183,6 +185,13 @@ function QuestionDrawer({
                   </span>
                 </Field>
               ) : null}
+              <QuestionRuleSection
+                methodologyId={methodologyId}
+                questionId={data.id}
+                questionClass={data.question_class}
+                canAuthor={canAuthor}
+              />
+
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Linked fact requirements</p>
                 {data.fact_requirements?.length ? (
@@ -387,6 +396,7 @@ export function QuestionsTab({ methodologyId }: { methodologyId: string }) {
           )}
       </div>
       <QuestionDrawer
+        methodologyId={methodologyId}
         questionId={openQuestion}
         onClose={() => setOpenQuestion(null)}
         canAuthor={canAuthor}

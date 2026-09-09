@@ -1010,3 +1010,107 @@ export function useRecordMethodologyReferenceDecision() {
     onSuccess: (_n, vars) => invalidate(vars.methodologyId),
   });
 }
+
+/* ------------------------------------------- question applicability rules (AML-04)
+ * The rule vocabulary, the rule validator and the rule summary are all owned by
+ * the server (`supervisory_question_rule_vocabulary`, `_rule_check`,
+ * `supervisory_methodology_question_rule_save`). The browser only renders what
+ * the vocabulary offers and shows the findings the server returns; it never
+ * evaluates or interprets a rule.
+ */
+
+export interface RuleVocabularySource {
+  code: string;
+  label: string;
+  data_type: string;
+  available: boolean;
+  unavailable_reason?: string | null;
+  allowed_values?: (string | { label: string; value: string })[] | null;
+}
+
+export interface RuleVocabularyOperator {
+  code: string;
+  label: string;
+  arity: 'NONE' | 'VALUE' | 'VALUES' | string;
+  types: string[];
+}
+
+export interface RuleVocabulary {
+  note: string;
+  groups: string[];
+  sources: RuleVocabularySource[];
+  operators: RuleVocabularyOperator[];
+}
+
+export interface MethodologyQuestionRule {
+  id: string;
+  rule_kind: 'APPLICABILITY' | 'TRIGGER' | string;
+  rule_version: number;
+  rule_definition: Record<string, unknown>;
+  rule_summary: string | null;
+  provenance: string | null;
+  active: boolean;
+  created_at: string;
+  readiness: 'EXECUTABLE' | 'NOT_EXECUTABLE' | string;
+  findings: { code: string; message: string }[];
+}
+
+export function useQuestionRuleVocabulary() {
+  return useQuery({
+    queryKey: ['supervisory_question_rule_vocabulary'],
+    queryFn: () => rpc<RuleVocabulary>('supervisory_question_rule_vocabulary'),
+    staleTime: 300_000,
+  });
+}
+
+export function useMethodologyQuestionRules(questionId?: string | null) {
+  return useQuery({
+    queryKey: ['supervisory_methodology_question_rules', questionId],
+    queryFn: () => rpc<MethodologyQuestionRule[]>('supervisory_methodology_question_rules', { _question_id: questionId }),
+    enabled: !!questionId,
+    staleTime: 30_000,
+  });
+}
+
+export function useSaveQuestionRule() {
+  const invalidate = useStudioInvalidator();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      methodologyId: string;
+      questionId: string;
+      ruleKind: string;
+      ruleDefinition: Record<string, unknown>;
+      rationale: string;
+      provenance?: string | null;
+    }) =>
+      rpc<string>('supervisory_methodology_question_rule_save', {
+        _methodology_id: vars.methodologyId,
+        _question_id: vars.questionId,
+        _rule_kind: vars.ruleKind,
+        _rule_definition: vars.ruleDefinition,
+        _rationale: vars.rationale,
+        _provenance: vars.provenance ?? null,
+      }),
+    onSuccess: (_id, vars) => {
+      invalidate(vars.methodologyId);
+      void qc.invalidateQueries({ queryKey: ['supervisory_methodology_question_rules', vars.questionId] });
+    },
+  });
+}
+
+export function useRemoveQuestionRule() {
+  const invalidate = useStudioInvalidator();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { methodologyId: string; questionId: string; ruleId: string; rationale: string }) =>
+      rpc<string>('supervisory_methodology_question_rule_remove', {
+        _rule_id: vars.ruleId,
+        _rationale: vars.rationale,
+      }),
+    onSuccess: (_id, vars) => {
+      invalidate(vars.methodologyId);
+      void qc.invalidateQueries({ queryKey: ['supervisory_methodology_question_rules', vars.questionId] });
+    },
+  });
+}

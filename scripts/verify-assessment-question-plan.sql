@@ -140,14 +140,14 @@ INSERT INTO pl_id(k,v) SELECT 'meth_draft', id FROM public.supervisory_methodolo
 -- dimensions
 INSERT INTO public.supervisory_methodology_dimension(
   methodology_id, dimension_code, dimension_group, label, weight, sort_order, active, dimension_kind)
-SELECT m.v, x.code, 'INHERENT', x.code, x.w, x.o, true, 'INHERENT_RISK'
+SELECT m.v, x.code, 'INHERENT_RISK', x.code, x.w, x.o, true, 'INHERENT'
   FROM (SELECT v FROM pl_id WHERE k='meth') m,
        (VALUES ('PLANCERT_DIM_A', 50::numeric, 1), ('PLANCERT_DIM_B', 50::numeric, 2),
                ('PLANCERT_DIM_C', NULL::numeric, 3)) AS x(code, w, o);
 
 INSERT INTO public.supervisory_methodology_dimension(
   methodology_id, dimension_code, dimension_group, label, weight, sort_order, active, dimension_kind)
-SELECT m.v, 'PLANCERT_DIM_D', 'INHERENT', 'PLANCERT_DIM_D', 100, 1, true, 'INHERENT_RISK'
+SELECT m.v, 'PLANCERT_DIM_D', 'INHERENT_RISK', 'PLANCERT_DIM_D', 100, 1, true, 'INHERENT'
   FROM (SELECT v FROM pl_id WHERE k='meth_draft') m;
 
 -- questions
@@ -213,13 +213,14 @@ INSERT INTO public.supervisory_assessment_programme(
 SELECT (SELECT v FROM pl_id WHERE k='set'), x.code, x.code, 'PERIODIC', true, x.o,
        'TRAILING_DAYS', 365, 1, false, false, x.cls, x.inc, x.exc
   FROM (VALUES
-    ('PLANCERT_P_FULL',  1, ARRAY['CORE','CONDITIONAL','ENHANCED'], NULL::text[], ARRAY['PLANCERT_DIM_C']),
-    ('PLANCERT_P_NOENH', 2, ARRAY['CORE','CONDITIONAL'],            NULL::text[], ARRAY['PLANCERT_DIM_C']),
-    ('PLANCERT_P_DIMEX', 3, ARRAY['CORE','CONDITIONAL','ENHANCED'], NULL::text[], ARRAY['PLANCERT_DIM_B','PLANCERT_DIM_C']),
-    ('PLANCERT_P_DIMIN', 4, ARRAY['CORE','CONDITIONAL','ENHANCED'], ARRAY['PLANCERT_DIM_A'], NULL::text[]),
-    ('PLANCERT_P_UNRES', 5, ARRAY['CORE','CONDITIONAL','ENHANCED'], NULL::text[], NULL::text[]),
-    ('PLANCERT_P_BADDIM',6, ARRAY['CORE'],                          NULL::text[], ARRAY['PLANCERT_DIM_NOPE']),
-    ('PLANCERT_P_CONTRA',7, ARRAY['CORE'],                          ARRAY['PLANCERT_DIM_A'], ARRAY['PLANCERT_DIM_A'])
+    ('PLANCERT_P_FULL',  1, ARRAY['CORE','CONDITIONAL','ENHANCED'], '{}'::text[], ARRAY['PLANCERT_DIM_C']),
+    ('PLANCERT_P_NOENH', 2, ARRAY['CORE','CONDITIONAL'],            '{}'::text[], ARRAY['PLANCERT_DIM_C']),
+    ('PLANCERT_P_DIMEX', 3, ARRAY['CORE','CONDITIONAL','ENHANCED'], '{}'::text[], ARRAY['PLANCERT_DIM_B','PLANCERT_DIM_C']),
+    ('PLANCERT_P_DIMIN', 4, ARRAY['CORE','CONDITIONAL','ENHANCED'], ARRAY['PLANCERT_DIM_A'], '{}'::text[]),
+    ('PLANCERT_P_UNRES', 5, ARRAY['CORE','CONDITIONAL','ENHANCED'], '{}'::text[], '{}'::text[]),
+    ('PLANCERT_P_BADDIM',6, ARRAY['CORE'],                          '{}'::text[], ARRAY['PLANCERT_DIM_NOPE']),
+    ('PLANCERT_P_CONTRA',7, ARRAY['CORE'],                          ARRAY['PLANCERT_DIM_A'], ARRAY['PLANCERT_DIM_A']),
+    ('PLANCERT_P_LEGACY',8, ARRAY['CORE','CONDITIONAL','ENHANCED'], '{}'::text[], '{}'::text[])
   ) AS x(code, o, cls, inc, exc);
 
 INSERT INTO public.supervisory_assessment_programme_trigger(
@@ -574,16 +575,16 @@ END $$;
 -- PLAN-25 — methodology validation catches a missing conditional rule
 -- =====================================================================
 DO $$
-DECLARE v jsonb; found boolean;
+DECLARE res jsonb; found boolean;
 BEGIN
   -- retire the trigger rule just authored so the conditional question has none
   UPDATE public.supervisory_methodology_question_rule SET active=false
    WHERE question_id=(SELECT id FROM public.supervisory_methodology_question WHERE question_code='PLANCERT_Q_DRAFT');
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_methodology_validate((SELECT v FROM pl_id WHERE k='meth_draft'));
+  res := public.supervisory_methodology_validate((SELECT v FROM pl_id WHERE k='meth_draft'));
   RESET ROLE;
-  SELECT EXISTS (SELECT 1 FROM jsonb_array_elements(v->'findings') f
+  SELECT EXISTS (SELECT 1 FROM jsonb_array_elements(res->'findings') f
                   WHERE f->>'code'='CONDITIONAL_RULE_MISSING' AND f->>'severity'='BLOCKING') INTO found;
   IF NOT found THEN RAISE EXCEPTION 'FAIL PLAN-25: validation does not report CONDITIONAL_RULE_MISSING'; END IF;
   RAISE NOTICE 'PASS PLAN-25: methodology validation blocks on a conditional question without an executable rule';
@@ -774,7 +775,7 @@ BEGIN
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
   res := public.supervisory_assessment_create_programmed(
     (SELECT v FROM pl_id WHERE k='entity_v10'), 'AML_CFT',
-    (SELECT id FROM public.supervisory_assessment_programme WHERE programme_code='PLANCERT_P_FULL'),
+    (SELECT id FROM public.supervisory_assessment_programme WHERE programme_code='PLANCERT_P_LEGACY'),
     'PERIODIC', NULL, NULL, 'PLANCERT legacy compatibility');
   RESET ROLE;
   INSERT INTO pl_id(k,v) VALUES ('a_v10', (res->>'id')::uuid);
@@ -786,9 +787,9 @@ BEGIN
     FROM public.supervisory_assessment_question_plan WHERE assessment_id=(res->>'id')::uuid;
   IF total = 0 OR total <> legacy THEN
     RAISE EXCEPTION 'FAIL PLAN-41: v1.0 compatibility is not mechanical (% of % rows labelled)', legacy, total; END IF;
-  IF total <> (SELECT n FROM pl_n WHERE k='v10_questions') THEN
+  IF total <> (SELECT pl_n.n FROM pl_n WHERE k='v10_questions') THEN
     RAISE EXCEPTION 'FAIL PLAN-41: v1.0 plan holds % rows against % active questions',
-      total, (SELECT n FROM pl_n WHERE k='v10_questions'); END IF;
+      total, (SELECT pl_n.n FROM pl_n WHERE k='v10_questions'); END IF;
   RAISE NOTICE 'PASS PLAN-41: AML-CFT-RBA v1.0 keeps its existing behaviour under labelled legacy compatibility';
 END $$;
 
