@@ -371,19 +371,19 @@ END $$;
 
 -- POLICY-05 — an incomplete policy is reported and cannot be submitted.
 DO $$
-DECLARE v jsonb; refused boolean := false;
+DECLARE vres jsonb; refused boolean := false;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
   -- remove one question decision: coverage is then incomplete
   PERFORM public.supervisory_calculation_question_weights_set((SELECT v FROM c_id WHERE k='cfg'), jsonb_build_array(
     jsonb_build_object('question_code','AML06CERT_Q_I1','participation','SCORED','weight',3)));
-  v := public.supervisory_calculation_config_validate((SELECT v FROM c_id WHERE k='cfg'));
-  IF (v->>'ok')::boolean THEN
+  vres := public.supervisory_calculation_config_validate((SELECT v FROM c_id WHERE k='cfg'));
+  IF (vres->>'ok')::boolean THEN
     RAISE EXCEPTION 'FAIL POLICY-05: validation accepted a policy that does not decide every question';
   END IF;
-  IF NOT (v->'problems')::text ILIKE '%participation decision%' THEN
-    RAISE EXCEPTION 'FAIL POLICY-05: validation does not name the missing participation decisions: %', v->'problems';
+  IF NOT (vres->'problems')::text ILIKE '%participation decision%' THEN
+    RAISE EXCEPTION 'FAIL POLICY-05: validation does not name the missing participation decisions: %', vres->'problems';
   END IF;
   BEGIN
     PERFORM public.supervisory_calculation_config_lifecycle((SELECT v FROM c_id WHERE k='cfg'),'REVIEW',
@@ -396,7 +396,7 @@ END $$;
 
 -- POLICY-06 — a complete policy validates and reaches ACTIVE under maker/checker.
 DO $$
-DECLARE v jsonb; refused boolean := false;
+DECLARE vres jsonb; refused boolean := false;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
@@ -406,9 +406,9 @@ BEGIN
     jsonb_build_object('question_code','AML06CERT_Q_C1','participation','SCORED','weight',1),
     jsonb_build_object('question_code','AML06CERT_Q_X1','participation','SCORED','weight',1),
     jsonb_build_object('question_code','AML06CERT_Q_Z1','participation','SCORED','weight',1)));
-  v := public.supervisory_calculation_config_validate((SELECT v FROM c_id WHERE k='cfg'));
-  IF NOT (v->>'ok')::boolean THEN
-    RAISE EXCEPTION 'FAIL POLICY-06: a complete policy still reports problems: %', v->'problems';
+  vres := public.supervisory_calculation_config_validate((SELECT v FROM c_id WHERE k='cfg'));
+  IF NOT (vres->>'ok')::boolean THEN
+    RAISE EXCEPTION 'FAIL POLICY-06: a complete policy still reports problems: %', vres->'problems';
   END IF;
   PERFORM public.supervisory_calculation_config_lifecycle((SELECT v FROM c_id WHERE k='cfg'),'REVIEW',
     'AML06CERT complete policy submitted for approval');
@@ -1026,14 +1026,14 @@ END $$;
 
 -- SEC-05 — the read model serves the authorised officer.
 DO $$
-DECLARE v jsonb;
+DECLARE vres jsonb;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_assessment_calculation_view((SELECT v FROM c_id WHERE k='assessment'));
+  vres := public.supervisory_assessment_calculation_view((SELECT v FROM c_id WHERE k='assessment'));
   RESET ROLE;
-  IF v->'latest_run' IS NULL OR jsonb_array_length(v->'runs') < 2 OR jsonb_array_length(v->'overrides') < 1 THEN
-    RAISE EXCEPTION 'FAIL SEC-05: the read model does not serve runs and overrides: %', v;
+  IF vres->'latest_run' IS NULL OR jsonb_array_length(vres->'runs') < 2 OR jsonb_array_length(vres->'overrides') < 1 THEN
+    RAISE EXCEPTION 'FAIL SEC-05: the read model does not serve runs and overrides: %', vres;
   END IF;
   RAISE NOTICE 'PASS SEC-05: the authorised officer reads the latest run, the run history and the overrides';
 END $$;
