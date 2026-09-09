@@ -247,7 +247,10 @@ const mountDetail = () => mount(
 );
 
 afterEach(() => {
-  calls.length = 0; editable = true; canCreate = true; manualOverride = true; selectable = true; cleanup();
+  calls.length = 0; editable = true; canCreate = true; manualOverride = true; selectable = true;
+  cleanup();
+  // Radix locks the body while a dialog is open; clear it between cases.
+  document.body.style.pointerEvents = '';
 });
 
 describe('PROG-UI register and creation', () => {
