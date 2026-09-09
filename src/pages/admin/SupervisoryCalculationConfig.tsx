@@ -354,6 +354,10 @@ export default function SupervisoryCalculationConfig() {
                 <TabsList className="flex-wrap">
                   <TabsTrigger value="parameters">Parameters</TabsTrigger>
                   <TabsTrigger value="responses">Response scoring</TabsTrigger>
+                  <TabsTrigger value="questions">Question participation</TabsTrigger>
+                  <TabsTrigger value="dimensions">Dimension policy</TabsTrigger>
+                  <TabsTrigger value="facts">Fact transformation</TabsTrigger>
+                  <TabsTrigger value="materiality">Materiality</TabsTrigger>
                   <TabsTrigger value="bands">Bands</TabsTrigger>
                   <TabsTrigger value="matrix">Residual matrix</TabsTrigger>
                   <TabsTrigger value="history">History</TabsTrigger>
