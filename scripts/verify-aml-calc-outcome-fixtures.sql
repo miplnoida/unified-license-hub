@@ -202,11 +202,16 @@ BEGIN
   -- OUTC-09 exact half-open boundary
   _r := public.supervisory_calc_compute(_aEdge);
   PERFORM pg_temp.gate('OUTC-09','effective_to is exclusive at the exact boundary',
+    -- The engine reports the absence of a configuration in force as the governed
+    -- outcome NOT_CALCULABLE carrying reason_code NO_CONFIGURATION; the obsolete
+    -- top-level 'NO_CONFIGURATION' status is no longer part of the compute contract.
     public.supervisory_calc_config_for(_aEdge) IS NULL
-    AND _r->>'status' = 'NO_CONFIGURATION'
+    AND _r->>'status' = 'NOT_CALCULABLE'
+    AND _r->>'reason_code' = 'NO_CONFIGURATION'
+    AND length(btrim(COALESCE(_r->>'reason',''))) >= 5
     AND public.supervisory_calc_config_for(_aIn) = _cfgv,
-    format('as_of = effective_to (2026-06-30) -> %s; as_of = 2026-06-29 -> configuration v%s in force',
-      _r->>'status',
+    format('as_of = effective_to (2026-06-30) -> %s/%s; as_of = 2026-06-29 -> configuration v%s in force',
+      _r->>'status', _r->>'reason_code',
       (SELECT config_version FROM public.supervisory_calculation_config
         WHERE id = public.supervisory_calc_config_for(_aIn))));
 
