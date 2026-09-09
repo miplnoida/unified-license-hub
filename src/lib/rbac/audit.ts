@@ -336,8 +336,10 @@ function findWrappingGate(text: string, buttonIdx: number): string | '' {
   const window = text.slice(Math.max(0, buttonIdx - 1200), buttonIdx);
   // If the button IS a <GuardedButton itself
   if (/^<GuardedButton\b/.test(text.slice(buttonIdx))) return 'GuardedButton';
-  // Explicit rbac marker on the tag
-  const tagEnd = text.indexOf('>', buttonIdx);
+  // Explicit rbac marker on the tag. The opening tag must be delimited with the
+  // brace/quote-aware scanner: a naive indexOf('>') stops inside an arrow
+  // handler (`onClick={() => ...}`) and misses attributes written after it.
+  const tagEnd = findOpeningTagEnd(text, buttonIdx);
   if (tagEnd > buttonIdx) {
     const tag = text.slice(buttonIdx, tagEnd);
     if (/data-rbac\s*=/.test(tag)) return 'data-rbac';
