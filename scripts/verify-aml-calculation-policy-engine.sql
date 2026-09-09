@@ -560,7 +560,7 @@ BEGIN
   IF NOT refused THEN
     RAISE EXCEPTION 'FAIL POLICY-09: a policy using unpublished rating codes was allowed into review'; END IF;
 
-  RAISE NOTICE 'PASS POLICY-09: unknown inherent codes, unknown control codes, a missing control scale and incomplete matrix coverage are all refused';
+  RAISE NOTICE 'PASS POLICY-09: an unpublished inherent rating code and a methodology publishing no control-effectiveness scale are both refused, and the policy cannot enter review';
 END $$;
 
 -- POLICY-09B — a control band code outside a PUBLISHED control scale is refused
