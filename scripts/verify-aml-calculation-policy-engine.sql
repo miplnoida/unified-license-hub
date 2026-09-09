@@ -103,7 +103,7 @@ INSERT INTO public.supervisory_methodology_dimension(
   methodology_id, dimension_code, dimension_group, label, weight, sort_order, active, dimension_kind)
 VALUES
   ((SELECT v FROM c_id WHERE k='meth'),'AML06CERT_DIM_I','INHERENT_RISK','Inherent fixture',100,1,true,'INHERENT'),
-  ((SELECT v FROM c_id WHERE k='meth'),'AML06CERT_DIM_C','CONTROL','Control fixture',100,2,true,'CONTROL'),
+  ((SELECT v FROM c_id WHERE k='meth'),'AML06CERT_DIM_C','CONTROL_EFFECTIVENESS','Control fixture',100,2,true,'CONTROL'),
   -- declared INHERENT by the methodology; the policy reassigns it to the control side
   ((SELECT v FROM c_id WHERE k='meth'),'AML06CERT_DIM_X','INHERENT_RISK','Reassigned fixture',100,3,true,'INHERENT'),
   -- excluded by the calculation policy
