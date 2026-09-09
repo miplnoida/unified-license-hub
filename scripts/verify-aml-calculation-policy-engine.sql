@@ -203,9 +203,9 @@ BEGIN
   ELSE
     INSERT INTO public.supervisory_assessment_question_response(
       assessment_id, methodology_id, methodology_dimension_id, methodology_question_id,
-      assessment_dimension_id, dimension_code, question_code, response)
+      assessment_dimension_id, dimension_code, question_code, question_text, response)
     SELECT _aid, (SELECT v FROM c_id WHERE k='meth'), _q.methodology_dimension_id, _q.id,
-           sad.id, md.dimension_code, _qcode, _response
+           sad.id, md.dimension_code, _qcode, COALESCE(_q.prompt, _qcode), _response
       FROM public.supervisory_methodology_dimension md
       JOIN public.supervisory_assessment_dimension sad
         ON sad.assessment_id = _aid AND sad.methodology_dimension_id = md.id
