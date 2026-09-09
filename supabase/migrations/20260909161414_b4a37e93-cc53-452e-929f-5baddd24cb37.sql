@@ -1,0 +1,10 @@
+REVOKE ALL ON FUNCTION public.supervisory_calculation_question_weights_set(uuid, jsonb) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.supervisory_calculation_dimension_weights_set(uuid, jsonb) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.supervisory_calculation_fact_rules_set(uuid, jsonb) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.supervisory_calculation_materiality_set(uuid, jsonb) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.supervisory_calculation_policy_problems(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.supervisory_calculation_question_weights_set(uuid, jsonb) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.supervisory_calculation_dimension_weights_set(uuid, jsonb) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.supervisory_calculation_fact_rules_set(uuid, jsonb) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.supervisory_calculation_materiality_set(uuid, jsonb) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.supervisory_calculation_policy_problems(uuid) TO authenticated;

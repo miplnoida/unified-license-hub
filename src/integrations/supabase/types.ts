@@ -44533,6 +44533,205 @@ export type Database = {
         }
         Relationships: []
       }
+      supervisory_assessment_calculation_override: {
+        Row: {
+          assessment_id: string
+          computed_control_band: string | null
+          computed_inherent_band: string | null
+          computed_recommended_rating: string | null
+          computed_residual_rating: string | null
+          computed_result_hash: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          id: string
+          proposed_at: string
+          proposed_by: string | null
+          proposed_rating: string
+          rationale: string
+          run_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_id: string
+          computed_control_band?: string | null
+          computed_inherent_band?: string | null
+          computed_recommended_rating?: string | null
+          computed_residual_rating?: string | null
+          computed_result_hash: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          proposed_at?: string
+          proposed_by?: string | null
+          proposed_rating: string
+          rationale: string
+          run_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_id?: string
+          computed_control_band?: string | null
+          computed_inherent_band?: string | null
+          computed_recommended_rating?: string | null
+          computed_residual_rating?: string | null
+          computed_result_hash?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          id?: string
+          proposed_at?: string
+          proposed_by?: string | null
+          proposed_rating?: string
+          rationale?: string
+          run_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_calculation_override_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_calculation_override_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_calculation_override_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_calculation_run"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_assessment_calculation_run: {
+        Row: {
+          as_of: string | null
+          assessment_id: string
+          calculated_at: string
+          calculated_by: string | null
+          config_id: string | null
+          config_version: number | null
+          control_band: string | null
+          control_score: number | null
+          created_at: string
+          engine_version: string
+          event_reason: string
+          id: string
+          inherent_band: string | null
+          inherent_score: number | null
+          inputs: Json
+          inputs_hash: string
+          methodology_id: string | null
+          methodology_version: string | null
+          policy_snapshot: Json
+          programme_id: string | null
+          programme_version: string | null
+          question_plan_version: number | null
+          reason: string | null
+          reason_code: string | null
+          recommended_rating: string | null
+          residual_rating: string | null
+          result_hash: string
+          run_seq: number
+          status: string
+          trace: Json
+        }
+        Insert: {
+          as_of?: string | null
+          assessment_id: string
+          calculated_at?: string
+          calculated_by?: string | null
+          config_id?: string | null
+          config_version?: number | null
+          control_band?: string | null
+          control_score?: number | null
+          created_at?: string
+          engine_version: string
+          event_reason: string
+          id?: string
+          inherent_band?: string | null
+          inherent_score?: number | null
+          inputs?: Json
+          inputs_hash: string
+          methodology_id?: string | null
+          methodology_version?: string | null
+          policy_snapshot?: Json
+          programme_id?: string | null
+          programme_version?: string | null
+          question_plan_version?: number | null
+          reason?: string | null
+          reason_code?: string | null
+          recommended_rating?: string | null
+          residual_rating?: string | null
+          result_hash: string
+          run_seq: number
+          status: string
+          trace?: Json
+        }
+        Update: {
+          as_of?: string | null
+          assessment_id?: string
+          calculated_at?: string
+          calculated_by?: string | null
+          config_id?: string | null
+          config_version?: number | null
+          control_band?: string | null
+          control_score?: number | null
+          created_at?: string
+          engine_version?: string
+          event_reason?: string
+          id?: string
+          inherent_band?: string | null
+          inherent_score?: number | null
+          inputs?: Json
+          inputs_hash?: string
+          methodology_id?: string | null
+          methodology_version?: string | null
+          policy_snapshot?: Json
+          programme_id?: string | null
+          programme_version?: string | null
+          question_plan_version?: number | null
+          reason?: string | null
+          reason_code?: string | null
+          recommended_rating?: string | null
+          residual_rating?: string | null
+          result_hash?: string
+          run_seq?: number
+          status?: string
+          trace?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_calculation_run_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_calculation_run_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+        ]
+      }
       supervisory_assessment_dimension: {
         Row: {
           assessment_id: string
@@ -46442,6 +46641,60 @@ export type Database = {
           },
         ]
       }
+      supervisory_calculation_dimension_weight: {
+        Row: {
+          aggregation_method: string | null
+          config_id: string
+          contributes_to: string
+          created_at: string
+          dimension_code: string
+          id: string
+          methodology_dimension_id: string | null
+          min_completeness_pct: number | null
+          updated_at: string
+          weight: number | null
+        }
+        Insert: {
+          aggregation_method?: string | null
+          config_id: string
+          contributes_to: string
+          created_at?: string
+          dimension_code: string
+          id?: string
+          methodology_dimension_id?: string | null
+          min_completeness_pct?: number | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Update: {
+          aggregation_method?: string | null
+          config_id?: string
+          contributes_to?: string
+          created_at?: string
+          dimension_code?: string
+          id?: string
+          methodology_dimension_id?: string | null
+          min_completeness_pct?: number | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_calculation_dimension_methodology_dimension_id_fkey"
+            columns: ["methodology_dimension_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_dimension"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_calculation_dimension_weight_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_calculation_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supervisory_calculation_event: {
         Row: {
           actor_id: string | null
@@ -46486,6 +46739,172 @@ export type Database = {
           },
         ]
       }
+      supervisory_calculation_fact_rule: {
+        Row: {
+          config_id: string
+          created_at: string
+          data_type: string
+          direction: string
+          fact_code: string
+          fact_requirement_id: string | null
+          id: string
+          missing_handling: string
+          notes: string | null
+          requires_period: boolean
+          requires_ratio_provenance: boolean
+          target_dimension_code: string | null
+          unit: string | null
+          updated_at: string
+          weight: number | null
+        }
+        Insert: {
+          config_id: string
+          created_at?: string
+          data_type: string
+          direction: string
+          fact_code: string
+          fact_requirement_id?: string | null
+          id?: string
+          missing_handling: string
+          notes?: string | null
+          requires_period?: boolean
+          requires_ratio_provenance?: boolean
+          target_dimension_code?: string | null
+          unit?: string | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Update: {
+          config_id?: string
+          created_at?: string
+          data_type?: string
+          direction?: string
+          fact_code?: string
+          fact_requirement_id?: string | null
+          id?: string
+          missing_handling?: string
+          notes?: string | null
+          requires_period?: boolean
+          requires_ratio_provenance?: boolean
+          target_dimension_code?: string | null
+          unit?: string | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_calculation_fact_rule_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_calculation_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_calculation_fact_rule_fact_requirement_id_fkey"
+            columns: ["fact_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_fact_requirement"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_calculation_fact_threshold: {
+        Row: {
+          band_code: string
+          created_at: string
+          fact_rule_id: string
+          id: string
+          max_value: number | null
+          min_value: number | null
+          score: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          band_code: string
+          created_at?: string
+          fact_rule_id: string
+          id?: string
+          max_value?: number | null
+          min_value?: number | null
+          score: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          band_code?: string
+          created_at?: string
+          fact_rule_id?: string
+          id?: string
+          max_value?: number | null
+          min_value?: number | null
+          score?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_calculation_fact_threshold_fact_rule_id_fkey"
+            columns: ["fact_rule_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_calculation_fact_rule"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_calculation_materiality_rule: {
+        Row: {
+          adjustment_band: string | null
+          adjustment_kind: string
+          comparator: string
+          config_id: string
+          created_at: string
+          fact_code: string | null
+          id: string
+          parameter_code: string
+          rationale: string
+          threshold_value: number
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          adjustment_band?: string | null
+          adjustment_kind: string
+          comparator: string
+          config_id: string
+          created_at?: string
+          fact_code?: string | null
+          id?: string
+          parameter_code: string
+          rationale: string
+          threshold_value: number
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adjustment_band?: string | null
+          adjustment_kind?: string
+          comparator?: string
+          config_id?: string
+          created_at?: string
+          fact_code?: string | null
+          id?: string
+          parameter_code?: string
+          rationale?: string
+          threshold_value?: number
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_calculation_materiality_rule_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_calculation_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supervisory_calculation_matrix_cell: {
         Row: {
           config_id: string
@@ -46517,6 +46936,57 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "supervisory_calculation_matrix_cell_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_calculation_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_calculation_question_weight: {
+        Row: {
+          config_id: string
+          created_at: string
+          id: string
+          is_critical: boolean
+          methodology_question_id: string | null
+          participation: string
+          question_code: string
+          updated_at: string
+          weight: number | null
+        }
+        Insert: {
+          config_id: string
+          created_at?: string
+          id?: string
+          is_critical?: boolean
+          methodology_question_id?: string | null
+          participation?: string
+          question_code: string
+          updated_at?: string
+          weight?: number | null
+        }
+        Update: {
+          config_id?: string
+          created_at?: string
+          id?: string
+          is_critical?: boolean
+          methodology_question_id?: string | null
+          participation?: string
+          question_code?: string
+          updated_at?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_calculation_question_w_methodology_question_id_fkey"
+            columns: ["methodology_question_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_question"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_calculation_question_weight_config_id_fkey"
             columns: ["config_id"]
             isOneToOne: false
             referencedRelation: "supervisory_calculation_config"
@@ -67475,6 +67945,14 @@ export type Database = {
         Args: { _assessment_id: string }
         Returns: Json
       }
+      supervisory_assessment_calculation_run_record: {
+        Args: { _assessment_id: string; _event_reason?: string }
+        Returns: Json
+      }
+      supervisory_assessment_calculation_view: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_assessment_create: {
         Args: {
           _assessment_type?: string
@@ -67920,9 +68398,17 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_calc_config_draft_guard: {
+        Args: { _config_id: string; _what: string }
+        Returns: string
+      }
       supervisory_calc_config_for: {
         Args: { _assessment_id: string }
         Returns: string
+      }
+      supervisory_calc_inputs_snapshot: {
+        Args: { _assessment_id: string }
+        Returns: Json
       }
       supervisory_calc_materialise: {
         Args: {
@@ -67949,6 +68435,10 @@ export type Database = {
       supervisory_calc_round: {
         Args: { _decimals: number; _mode: string; _v: number }
         Returns: number
+      }
+      supervisory_calc_run_authority: {
+        Args: { _assessment_id: string }
+        Returns: string
       }
       supervisory_calc_simulate: {
         Args: { _domain_code: string; _entity_id?: string; _policy: Json }
@@ -67978,8 +68468,40 @@ export type Database = {
         Args: { _config_id: string }
         Returns: Json
       }
+      supervisory_calculation_dimension_weights_set: {
+        Args: { _config_id: string; _rows: Json }
+        Returns: number
+      }
+      supervisory_calculation_fact_rules_set: {
+        Args: { _config_id: string; _rows: Json }
+        Returns: number
+      }
+      supervisory_calculation_materiality_set: {
+        Args: { _config_id: string; _rows: Json }
+        Returns: number
+      }
       supervisory_calculation_matrix_set: {
         Args: { _cells: Json; _config_id: string }
+        Returns: number
+      }
+      supervisory_calculation_override_decide: {
+        Args: { _decision: string; _note?: string; _override_id: string }
+        Returns: string
+      }
+      supervisory_calculation_override_propose: {
+        Args: {
+          _assessment_id: string
+          _proposed_rating: string
+          _rationale: string
+        }
+        Returns: string
+      }
+      supervisory_calculation_policy_problems: {
+        Args: { _config_id: string }
+        Returns: string[]
+      }
+      supervisory_calculation_question_weights_set: {
+        Args: { _config_id: string; _rows: Json }
         Returns: number
       }
       supervisory_calculation_recalculate: {
