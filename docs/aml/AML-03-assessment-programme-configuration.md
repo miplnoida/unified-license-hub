@@ -46,12 +46,32 @@ event. Existing assessments are untouched; snapshot columns are NULL for them.
 
 The New AML/CFT Assessment dialog no longer contains any assessment type, trigger or 365-day default.
 
-## 6. Screens
+## 6. Screens (Programme Studio)
 
-`/admin/supervisory-assessment-programmes` (register, server-side filters and regulator scope
-contract) and `/:programmeSetId` (programmes, triggers, period rules, policy profile usage, versions,
-history, capability-gated lifecycle actions). Registered in `sec_routes`/`sec_navigation_items` and in
-the breadcrumb snapshot.
+`/admin/supervisory-assessment-programmes` — register with server-capability-driven **Create programme
+package** (regulator-authored draft only; origin and status server-set; sole active regulator resolved
+automatically, inactive regulators and "All regulators" never offered), plus the regulator scope contract.
+
+`/admin/supervisory-assessment-programmes/:programmeSetId` — governed authoring: package metadata
+editing (identity, version, origin, ownership and status excluded), Add/Edit/Retire Programme with
+server vocabularies for assessment type, period rule, question-class scope and dependencies,
+Add/Edit/Remove Trigger, a Validation tab rendering the server's structured findings, capability-gated
+lifecycle actions, New Version, Adopt Reference, exact Policy Profile binding versions, server-side
+Compare and append-only history. Dimension include/exclude is displayed but deferred (AML-04 owns
+question resolution). Every write is a governed RPC with a recorded rationale; refusals are shown verbatim.
+
+Runtime: the New AML/CFT Assessment flow shows the prior assessment, the required-signal condition, and
+disables programmes the server declares unselectable; where the programme fixes the review period, no
+editable dates are offered.
+
+## 7. Certification
+
+`src/test/supervisoryAssessmentProgrammeStudio.test.tsx` — PROG-UI-01…21 pass (21/21): creation
+authority and scope, programme/trigger authoring through governed operations only, server vocabularies,
+period-rule adaptation, retirement rationale, refusal wording, validation findings, exact bindings,
+compare, new version, lifecycle target status, and runtime convergence including the absence of any
+assessment-type, trigger or 365-day constant in the runtime source. Typecheck and build pass.
+
 
 ## 7. Security posture
 
