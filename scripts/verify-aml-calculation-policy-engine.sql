@@ -87,16 +87,26 @@ SELECT rs.id, 'regulator', (SELECT v FROM c_id WHERE k='regulator')
   JOIN public.sec_roles r ON r.id = rs.role_id AND r.key='aml_head'
   JOIN public.sec_modules m ON m.id = rs.module_id AND m.key='aml_supervision';
 
--- Fixture methodology (ACTIVE, sector + regulator scoped) with a 5-point scale.
+-- Fixture methodology (ACTIVE, sector + regulator scoped).
+--
+-- The fixture publishes BOTH vocabularies the calculation contract depends on:
+--   * the inherent-risk scale, in `scoring_scale` (code / label / ordinal), which
+--     is also the vocabulary residual ratings must come from;
+--   * the control-effectiveness scale, in `definition->control_scale`, which is a
+--     plain array of codes.
+-- Every band code and matrix cell below uses only codes these two scales publish.
+-- Both scales are synthetic AML06CERT certification content: they are rolled back
+-- and are not approved operational supervisory policy.
 INSERT INTO public.supervisory_methodology(
   id, code, domain_code, name, version, status, sector_id, regulator_id,
-  effective_from, origin, title, scoring_scale)
+  effective_from, origin, title, scoring_scale, definition)
 VALUES (gen_random_uuid(), 'AML06CERT-METH', 'AML_CFT', 'AML06CERT calculation fixture', '1.0',
   'ACTIVE', (SELECT v FROM c_id WHERE k='sector'), (SELECT v FROM c_id WHERE k='regulator'),
   current_date - 1, 'REGULATOR_AUTHORED', 'AML06CERT calculation fixture',
   '[{"code":"LOW","label":"Low","ordinal":1},{"code":"MODERATE","label":"Moderate","ordinal":2},
     {"code":"MEDIUM_HIGH","label":"Medium-High","ordinal":3},{"code":"HIGH","label":"High","ordinal":4},
-    {"code":"SEVERE","label":"Severe","ordinal":5}]'::jsonb);
+    {"code":"SEVERE","label":"Severe","ordinal":5}]'::jsonb,
+  '{"control_scale":["WEAK","STRONG"]}'::jsonb);
 INSERT INTO c_id(k,v) SELECT 'meth', id FROM public.supervisory_methodology WHERE code='AML06CERT-METH';
 
 INSERT INTO public.supervisory_methodology_dimension(
