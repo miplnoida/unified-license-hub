@@ -82,7 +82,7 @@ export function PolicyProfileActionBar({
 
   const submitAdopt = async () => {
     try {
-      const id = await adopt.mutateAsync({ referenceId: profile.id, regulatorId, rationale });
+      const id = await adopt.mutateAsync({ referenceId: profile.id, regulatorId: effectiveRegulatorId, rationale });
       toast({ title: 'Adopted for regulator', description: 'A regulator-owned draft profile has been created from this reference.' });
       close();
       if (id) onNavigate(id);
@@ -119,7 +119,11 @@ export function PolicyProfileActionBar({
   };
 
   const mc = capabilities?.maker_checker;
+  // Canonical effective-regulator contract: only active, authorised regulators
+  // are eligible owners. Exactly one is resolved automatically.
   const regulators = options.data?.regulators ?? [];
+  const soleRegulator = regulators.length === 1 ? regulators[0] : null;
+  const effectiveRegulatorId = soleRegulator ? soleRegulator.id : regulatorId;
   const blockers = profile.readiness?.blockers ?? [];
 
   return (
@@ -157,6 +161,15 @@ export function PolicyProfileActionBar({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            {regulators.length === 0 ? (
+              <p className="text-sm text-muted-foreground" data-testid="pp-adopt-no-regulator">
+                {options.data?.regulator_scope_reason ?? 'No active regulator is available in your authorised scope.'}
+              </p>
+            ) : soleRegulator ? (
+              <p className="text-sm font-medium" data-testid="pp-adopt-sole-regulator">
+                Adopt for {soleRegulator.name} ({soleRegulator.code})
+              </p>
+            ) : (
             <div className="space-y-1.5">
               <Label htmlFor="pp-adopt-regulator">Regulator</Label>
               <Select value={regulatorId} onValueChange={setRegulatorId}>
@@ -174,7 +187,7 @@ export function PolicyProfileActionBar({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={close}>Cancel</Button>
-            <Button onClick={submitAdopt} disabled={!regulatorId || shortRationale || adopt.isPending}>
+            <Button onClick={submitAdopt} disabled={!effectiveRegulatorId || shortRationale || adopt.isPending}>
               {adopt.isPending ? 'Adopting…' : 'Adopt for regulator'}
             </Button>
           </DialogFooter>
