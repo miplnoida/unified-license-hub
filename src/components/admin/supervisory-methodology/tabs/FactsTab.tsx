@@ -1,28 +1,161 @@
 /**
- * Evidence & Facts — the governed evidence basis plus the fact requirement
- * register. Review surface only: no evidence is uploaded and no fact attribute
- * is edited here. A fact whose attributes are not yet defined is reported
- * truthfully rather than shown as complete.
+ * Evidence & Facts — the governed evidence basis, the fact requirement register,
+ * governed fact-definition authoring and question/fact mapping.
+ *
+ * No evidence is uploaded here and no entity value is captured: this is the
+ * definition layer. A fact whose attributes are not yet defined is reported
+ * truthfully rather than shown as complete. Every write goes through a governed
+ * `supervisory_methodology_*` operation, and removal is refused by the server
+ * while a question link remains.
  */
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { RegisterToolbar } from '@/components/shared/RegisterToolbar';
 import { SupervisoryRegister } from '@/components/supervision/SupervisoryRegister';
 import { useListingState } from '@/components/shared/listing';
 import { useServerPageGuard } from '@/components/shared/listing/useServerPageGuard';
 import {
+  useDeleteMethodologyFactRequirement,
+  useLinkQuestionFact,
   useSupervisoryMethodologyFact,
   useSupervisoryMethodologyFacts,
+  useSupervisoryMethodologyQuestions,
+  useSupervisoryMethodologyStudioCapabilities,
+  useUnlinkQuestionFact,
   type MethodologyFactRow,
 } from '@/hooks/useSupervisoryMethodologyAdmin';
 import { EmptyPanel, ErrorPanel, Field, YesNo, humanize } from '../labels';
+import { FactEditorDialog } from '../studio/FactEditorDialog';
+import { AuthoringHeader } from '../studio/StudioKit';
 
-function FactDrawer({ factId, onClose }: { factId: string | null; onClose: () => void }) {
+function QuestionMapping({
+  methodologyId, factCode, linked,
+}: { methodologyId: string; factCode: string; linked: Array<{ id: string; question_code: string; prompt: string }> }) {
+  const [choice, setChoice] = useState('');
+  const questions = useSupervisoryMethodologyQuestions({ methodologyId, page: 1, pageSize: 200 });
+  const link = useLinkQuestionFact();
+  const unlink = useUnlinkQuestionFact();
+  const linkedCodes = linked.map((q) => q.question_code);
+  const options = (questions.data?.rows ?? []).filter((q) => !linkedCodes.includes(q.question_code));
+
+  const doLink = async () => {
+    if (!choice) return;
+    try {
+      await link.mutateAsync({ methodologyId, questionCode: choice, factCode });
+      toast.success(`${choice} now requires ${factCode}`);
+      setChoice('');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'The link could not be created');
+    }
+  };
+
+  const doUnlink = async (questionCode: string) => {
+    try {
+      await unlink.mutateAsync({ methodologyId, questionCode, factCode });
+      toast.success(`${factCode} removed from ${questionCode}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'The link could not be removed');
+    }
+  };
+
+  return (
+    <div className="mt-4 space-y-2 rounded-md border p-3">
+      <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        Link this fact to a question
+      </Label>
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={choice} onValueChange={setChoice}>
+          <SelectTrigger className="h-9 w-full sm:w-[18rem]" aria-label="Question to link"><SelectValue placeholder="Select a question" /></SelectTrigger>
+          <SelectContent>
+            {options.map((q) => (
+              <SelectItem key={q.id} value={q.question_code}>{q.question_code} — {q.prompt.slice(0, 60)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button size="sm" onClick={doLink} disabled={!choice || link.isPending} data-rbac="aml_supervision.manage_config">
+          {link.isPending ? 'Linking…' : 'Link question'}
+        </Button>
+      </div>
+      {linked.length ? (
+        <ul className="space-y-1 pt-1">
+          {linked.map((q) => (
+            <li key={q.id} className="flex items-center justify-between gap-2 text-sm">
+              <span><span className="font-mono">{q.question_code}</span> — {q.prompt}</span>
+              <Button size="sm" variant="ghost" className="text-destructive"
+                      onClick={() => doUnlink(q.question_code)} disabled={unlink.isPending}
+                      data-rbac="aml_supervision.manage_config">Unlink</Button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function RemoveFactDialog({
+  methodologyId, factCode, open, onClose,
+}: { methodologyId: string; factCode: string | null; open: boolean; onClose: (removed: boolean) => void }) {
+  const [rationale, setRationale] = useState('');
+  const remove = useDeleteMethodologyFactRequirement();
+
+  const submit = async () => {
+    if (!factCode) return;
+    try {
+      await remove.mutateAsync({ methodologyId, factCode, rationale: rationale.trim() });
+      toast.success(`${factCode} removed from this draft version`);
+      setRationale('');
+      onClose(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'The fact definition could not be removed');
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => (o ? null : onClose(false))}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Remove {factCode}</DialogTitle>
+          <DialogDescription>
+            Removal is refused while any question still links to this fact. Unlink those questions first.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-1.5">
+          <Label htmlFor="fact-remove-rationale">Reason (at least 10 characters)</Label>
+          <Input id="fact-remove-rationale" value={rationale} onChange={(e) => setRationale(e.target.value)} />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onClose(false)} disabled={remove.isPending}>Cancel</Button>
+          <Button variant="destructive" onClick={submit} data-rbac="aml_supervision.manage_config"
+                  disabled={remove.isPending || rationale.trim().length < 10}>
+            {remove.isPending ? 'Removing…' : 'Remove fact definition'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FactDrawer({
+  methodologyId, factId, onClose, canAuthor, onEdit, onRemove,
+}: {
+  methodologyId: string;
+  factId: string | null;
+  onClose: () => void;
+  canAuthor: boolean;
+  onEdit: (detail: Record<string, any>) => void;
+  onRemove: (factCode: string) => void;
+}) {
   const { data, isLoading, error } = useSupervisoryMethodologyFact(factId);
   return (
     <Sheet open={!!factId} onOpenChange={(o) => (o ? null : onClose())}>
@@ -33,6 +166,17 @@ function FactDrawer({ factId, onClose }: { factId: string | null; onClose: () =>
               <SheetTitle className="font-mono text-base">{data.fact_code}</SheetTitle>
               <SheetDescription className="text-foreground">{data.label ?? '—'}</SheetDescription>
             </SheetHeader>
+            {canAuthor ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => onEdit(data)} data-rbac="aml_supervision.manage_config">
+                  Edit fact definition
+                </Button>
+                <Button size="sm" variant="ghost" className="text-destructive"
+                        onClick={() => onRemove(data.fact_code)} data-rbac="aml_supervision.manage_config">
+                  Remove
+                </Button>
+              </div>
+            ) : null}
             <dl className="mt-4 grid grid-cols-2 gap-3">
               <Field label="Data type">{humanize(data.data_type)}</Field>
               <Field label="Unit">{data.unit ?? '—'}</Field>
@@ -47,6 +191,7 @@ function FactDrawer({ factId, onClose }: { factId: string | null; onClose: () =>
               <Field label="Attribute source">{data.attribute_source ?? '—'}</Field>
               <Field label="Provenance">{data.provenance ?? '—'}</Field>
             </dl>
+            {data.description ? <Field label="Description">{data.description}</Field> : null}
             <div className="mt-4 rounded-md border p-3">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Materiality parameter</p>
               {data.materiality_parameter ? (
@@ -72,6 +217,9 @@ function FactDrawer({ factId, onClose }: { factId: string | null; onClose: () =>
                 </ul>
               ) : <p className="mt-1 text-sm text-muted-foreground">No question links to this fact requirement.</p>}
             </div>
+            {canAuthor ? (
+              <QuestionMapping methodologyId={methodologyId} factCode={data.fact_code} linked={data.questions ?? []} />
+            ) : null}
           </>
         ) : null}
       </SheetContent>
@@ -86,6 +234,10 @@ export function FactsTab({ methodologyId }: { methodologyId: string }) {
     filterKeys: ['status', 'required'],
   });
   const [openFact, setOpenFact] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ open: boolean; fact: Record<string, any> | null }>({ open: false, fact: null });
+  const [removing, setRemoving] = useState<string | null>(null);
+  const caps = useSupervisoryMethodologyStudioCapabilities(methodologyId);
+  const canAuthor = caps.data?.can_author_facts?.allowed === true;
   const f = listing.filters;
 
   const query = useSupervisoryMethodologyFacts({
@@ -108,13 +260,20 @@ export function FactsTab({ methodologyId }: { methodologyId: string }) {
 
   return (
     <div className="space-y-4">
+      <AuthoringHeader
+        capability={caps.data?.can_author_facts}
+        label="Add fact definition"
+        onAdd={() => setEditing({ open: true, fact: null })}
+        note="Fact definitions and question mappings may be authored on this draft version."
+      />
+
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">Evidence basis</CardTitle></CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>
             Evidence expectations are part of the methodology: each question records whether evidence is required, the
             minimum number of items and the accepted evidence basis categories. Those categories are governed content and
-            are inspected on a question, in the Dimensions &amp; Questions tab.
+            are set on a question, in the Dimensions &amp; Questions tab.
           </p>
           <p>No document is uploaded or attached from this administration workspace — evidence is captured during an assessment.</p>
           {statuses.length ? (
@@ -180,7 +339,27 @@ export function FactsTab({ methodologyId }: { methodologyId: string }) {
             actions={(r) => <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setOpenFact(r.id); }}>View</Button>}
           />
         )}
-      <FactDrawer factId={openFact} onClose={() => setOpenFact(null)} />
+
+      <FactDrawer
+        methodologyId={methodologyId}
+        factId={openFact}
+        onClose={() => setOpenFact(null)}
+        canAuthor={canAuthor}
+        onEdit={(fact) => setEditing({ open: true, fact })}
+        onRemove={(code) => setRemoving(code)}
+      />
+      <FactEditorDialog
+        methodologyId={methodologyId}
+        open={editing.open}
+        existing={editing.fact}
+        onClose={() => setEditing({ open: false, fact: null })}
+      />
+      <RemoveFactDialog
+        methodologyId={methodologyId}
+        factCode={removing}
+        open={!!removing}
+        onClose={(removed) => { setRemoving(null); if (removed) setOpenFact(null); }}
+      />
     </div>
   );
 }

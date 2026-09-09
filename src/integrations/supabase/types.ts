@@ -46941,6 +46941,7 @@ export type Database = {
           data_type: string | null
           definition_status: string
           denominator_basis: string | null
+          description: string | null
           fact_code: string
           id: string
           is_required: boolean
@@ -46962,6 +46963,7 @@ export type Database = {
           data_type?: string | null
           definition_status?: string
           denominator_basis?: string | null
+          description?: string | null
           fact_code: string
           id?: string
           is_required?: boolean
@@ -46983,6 +46985,7 @@ export type Database = {
           data_type?: string | null
           definition_status?: string
           denominator_basis?: string | null
+          description?: string | null
           fact_code?: string
           id?: string
           is_required?: boolean
@@ -47009,10 +47012,13 @@ export type Database = {
       }
       supervisory_methodology_parameter: {
         Row: {
+          applicability_guidance: string | null
           approval_status: string
           created_at: string
           data_type: string | null
+          description: string | null
           id: string
+          intended_usage: string | null
           label: string | null
           methodology_id: string
           parameter_code: string
@@ -47024,10 +47030,13 @@ export type Database = {
           value_text: string | null
         }
         Insert: {
+          applicability_guidance?: string | null
           approval_status?: string
           created_at?: string
           data_type?: string | null
+          description?: string | null
           id?: string
+          intended_usage?: string | null
           label?: string | null
           methodology_id: string
           parameter_code: string
@@ -47039,10 +47048,13 @@ export type Database = {
           value_text?: string | null
         }
         Update: {
+          applicability_guidance?: string | null
           approval_status?: string
           created_at?: string
           data_type?: string | null
+          description?: string | null
           id?: string
+          intended_usage?: string | null
           label?: string | null
           methodology_id?: string
           parameter_code?: string
@@ -67047,6 +67059,10 @@ export type Database = {
         Args: { _as_of?: string; _domain_code: string; _entity_id: string }
         Returns: Json
       }
+      supervisory_methodology_create: {
+        Args: { _payload: Json }
+        Returns: string
+      }
       supervisory_methodology_detail: {
         Args: { _methodology_id: string }
         Returns: Json
@@ -67111,6 +67127,10 @@ export type Database = {
           _to_status: string
         }
         Returns: Json
+      }
+      supervisory_methodology_metadata_save: {
+        Args: { _methodology_id: string; _payload: Json }
+        Returns: string
       }
       supervisory_methodology_new_version: {
         Args: {
@@ -67278,6 +67298,14 @@ export type Database = {
         Args: { _methodology_id?: string; _payload: Json }
         Returns: string
       }
+      supervisory_methodology_semantic_profile_retire: {
+        Args: {
+          _methodology_id: string
+          _rationale: string
+          _semantic_code: string
+        }
+        Returns: string
+      }
       supervisory_methodology_semantic_profile_set: {
         Args: { _methodology_id: string; _payload: Json }
         Returns: number
@@ -67294,6 +67322,7 @@ export type Database = {
         Args: { _methodology_id: string }
         Returns: Json
       }
+      supervisory_methodology_vocabulary: { Args: never; Returns: Json }
       supervisory_monitoring_action_capabilities: {
         Args: { _domain_code: string; _entity_id: string }
         Returns: Json

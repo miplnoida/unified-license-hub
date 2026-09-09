@@ -1,15 +1,25 @@
 /**
- * MIPL reference decisions.
+ * MIPL reference decisions, with governed authoring where governance permits.
  *
  * A reference decision is a methodology-design decision recorded by the
  * reference author. It is never a regulator approval, and the two are shown as
- * separate columns so nobody can read one as the other.
+ * separate columns so nobody can read one as the other. The server accepts the
+ * reference approval scope only, and always requires a rationale.
  */
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useSupervisoryMethodologyReferenceDecisions } from '@/hooks/useSupervisoryMethodologyAdmin';
+import {
+  useSupervisoryMethodology,
+  useSupervisoryMethodologyReferenceDecisions,
+  useSupervisoryMethodologyStudioCapabilities,
+  type MethodologyReferenceDecisionRow,
+} from '@/hooks/useSupervisoryMethodologyAdmin';
 import { EmptyPanel, ErrorPanel, formatDate, humanize } from '../labels';
+import { ReferenceDecisionEditorDialog } from '../studio/ReferenceDecisionEditorDialog';
+import { AuthoringHeader } from '../studio/StudioKit';
 
 function ReferenceStatusBadge({ status }: { status: string }) {
   const key = (status ?? '').toUpperCase();
@@ -26,14 +36,47 @@ function ReferenceStatusBadge({ status }: { status: string }) {
 
 export function ReferenceDecisionsTab({ methodologyId }: { methodologyId: string }) {
   const { data, isLoading, error } = useSupervisoryMethodologyReferenceDecisions(methodologyId);
+  const detail = useSupervisoryMethodology(methodologyId);
+  const caps = useSupervisoryMethodologyStudioCapabilities(methodologyId);
+  const canAuthor = caps.data?.can_author_reference_decisions?.allowed === true;
+  const [editing, setEditing] = useState<{ open: boolean; row: MethodologyReferenceDecisionRow | null }>({ open: false, row: null });
+
   if (isLoading) return <Skeleton className="h-64 w-full" />;
   if (error) return <ErrorPanel error={error} />;
+
+  const header = (
+    <AuthoringHeader
+      capability={caps.data?.can_author_reference_decisions}
+      label="Record decision"
+      onAdd={() => setEditing({ open: true, row: null })}
+      note="A recorded decision explains a design choice. It never stands in for a regulator approval."
+    />
+  );
+  const dialog = detail.data ? (
+    <ReferenceDecisionEditorDialog
+      methodologyId={methodologyId}
+      domainCode={detail.data.domain_code}
+      methodologyCode={detail.data.code}
+      methodologyVersion={detail.data.version}
+      open={editing.open}
+      existing={editing.row}
+      onClose={() => setEditing({ open: false, row: null })}
+    />
+  ) : null;
+
   if (!data || data.total_count === 0) {
-    return <EmptyPanel title="No MIPL reference decision is recorded for this version." />;
+    return (
+      <div className="space-y-3">
+        {header}
+        <EmptyPanel title="No MIPL reference decision is recorded for this version." />
+        {dialog}
+      </div>
+    );
   }
 
   return (
     <div className="space-y-3">
+      {header}
       <p className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
         {data.total_count} reference {data.total_count === 1 ? 'decision' : 'decisions'} recorded.
         {' '}Reference approval is the methodology author's design decision. A regulator approval is a separate decision and is
@@ -57,6 +100,12 @@ export function ReferenceDecisionsTab({ methodologyId }: { methodologyId: string
                 </Badge>
               </div>
             </div>
+            {canAuthor ? (
+              <div className="pt-2">
+                <Button size="sm" variant="outline" onClick={() => setEditing({ open: true, row: d })}
+                        data-rbac="aml_supervision.manage_config">Edit decision</Button>
+              </div>
+            ) : null}
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {d.decision_text ? <p className="text-foreground">{d.decision_text}</p> : null}
@@ -82,6 +131,7 @@ export function ReferenceDecisionsTab({ methodologyId }: { methodologyId: string
           </CardContent>
         </Card>
       ))}
+      {dialog}
     </div>
   );
 }
