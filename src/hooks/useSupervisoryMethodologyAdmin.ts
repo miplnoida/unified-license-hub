@@ -702,11 +702,18 @@ export function useMethodologyLifecycleTransition() {
 
 export interface MethodologyStudioCapabilities extends MethodologyCapabilities {
   can_author: MethodologyCapability;
+  can_edit_metadata: MethodologyCapability;
   can_author_dimensions: MethodologyCapability;
   can_author_questions: MethodologyCapability;
   can_author_semantics: MethodologyCapability;
   can_author_facts: MethodologyCapability;
   can_author_parameters: MethodologyCapability;
+  can_author_reference_decisions: MethodologyCapability;
+  can_create_version: MethodologyCapability;
+  can_submit: MethodologyCapability;
+  can_validate: MethodologyCapability;
+  can_set_parameter_values: MethodologyCapability;
+  blocking_validation_count: number;
   requires_retirement_rationale: boolean;
 }
 
