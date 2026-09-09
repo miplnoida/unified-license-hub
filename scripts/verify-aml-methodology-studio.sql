@@ -152,11 +152,13 @@ SELECT pg_temp.gate('METH-STUDIO-17',
         WHERE n.nspname='public' AND p.proname='supervisory_methodology_validate')) LIKE '%'||c.code||'%') = 10,
    'all ten validation findings are implemented');
 
+-- Validation is not advice any more: the lifecycle operation executes it and
+-- refuses the transition, so enforcement is proven by that consumption.
 SELECT pg_temp.gate('METH-STUDIO-18',
-   pg_get_functiondef(p.oid) LIKE '%enforcement point%',
-   'validation states that the governed operations remain the enforcement point')
+   pg_get_functiondef(p.oid) LIKE '%supervisory_methodology_validate%',
+   'the governed lifecycle operation executes structural validation itself')
   FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
- WHERE n.nspname = 'public' AND p.proname = 'supervisory_methodology_validate';
+ WHERE n.nspname = 'public' AND p.proname = 'supervisory_methodology_lifecycle';
 
 SELECT pg_temp.gate('METH-STUDIO-19',
    NOT p.prosecdef, 'validation runs with the caller''s own visibility')
