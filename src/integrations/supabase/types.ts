@@ -45070,6 +45070,161 @@ export type Database = {
         }
         Relationships: []
       }
+      supervisory_assessment_question_plan: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          dimension_code: string | null
+          dimension_id: string | null
+          evaluated_inputs: Json
+          evaluation_hash: string
+          id: string
+          methodology_id: string
+          methodology_version: string | null
+          plan_state: string
+          programme_code: string | null
+          programme_id: string | null
+          programme_set_id: string | null
+          programme_version: string | null
+          question_class: string | null
+          question_code: string
+          question_id: string
+          reason_code: string
+          reason_text: string | null
+          resolution_mode: string
+          rule_id: string | null
+          rule_version: number | null
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          dimension_code?: string | null
+          dimension_id?: string | null
+          evaluated_inputs?: Json
+          evaluation_hash: string
+          id?: string
+          methodology_id: string
+          methodology_version?: string | null
+          plan_state: string
+          programme_code?: string | null
+          programme_id?: string | null
+          programme_set_id?: string | null
+          programme_version?: string | null
+          question_class?: string | null
+          question_code: string
+          question_id: string
+          reason_code: string
+          reason_text?: string | null
+          resolution_mode?: string
+          rule_id?: string | null
+          rule_version?: number | null
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          dimension_code?: string | null
+          dimension_id?: string | null
+          evaluated_inputs?: Json
+          evaluation_hash?: string
+          id?: string
+          methodology_id?: string
+          methodology_version?: string | null
+          plan_state?: string
+          programme_code?: string | null
+          programme_id?: string | null
+          programme_set_id?: string | null
+          programme_version?: string | null
+          question_class?: string | null
+          question_code?: string
+          question_id?: string
+          reason_code?: string
+          reason_text?: string | null
+          resolution_mode?: string
+          rule_id?: string | null
+          rule_version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_question_plan_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_question_plan_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_question_plan_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_question"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_assessment_question_plan_override: {
+        Row: {
+          actor_id: string | null
+          assessment_id: string
+          created_at: string
+          from_state: string
+          id: string
+          question_id: string
+          reason: string
+          status: string
+          to_state: string
+        }
+        Insert: {
+          actor_id?: string | null
+          assessment_id: string
+          created_at?: string
+          from_state: string
+          id?: string
+          question_id: string
+          reason: string
+          status?: string
+          to_state: string
+        }
+        Update: {
+          actor_id?: string | null
+          assessment_id?: string
+          created_at?: string
+          from_state?: string
+          id?: string
+          question_id?: string
+          reason?: string
+          status?: string
+          to_state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_question_plan_overrid_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_question_plan_overrid_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_question_plan_override_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_question"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supervisory_assessment_question_response: {
         Row: {
           assessment_dimension_id: string | null
@@ -47633,6 +47788,69 @@ export type Database = {
           },
           {
             foreignKeyName: "supervisory_methodology_question_fact_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_question"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_methodology_question_rule: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          methodology_id: string
+          provenance: string | null
+          question_id: string
+          rule_definition: Json
+          rule_kind: string
+          rule_summary: string | null
+          rule_version: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          methodology_id: string
+          provenance?: string | null
+          question_id: string
+          rule_definition: Json
+          rule_kind: string
+          rule_summary?: string | null
+          rule_version?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          methodology_id?: string
+          provenance?: string | null
+          question_id?: string
+          rule_definition?: Json
+          rule_kind?: string
+          rule_summary?: string | null
+          rule_version?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_methodology_question_rule_methodology_id_fkey"
+            columns: ["methodology_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_methodology_question_rule_question_id_fkey"
             columns: ["question_id"]
             isOneToOne: false
             referencedRelation: "supervisory_methodology_question"
@@ -67050,6 +67268,47 @@ export type Database = {
         Args: { _assessment_id: string }
         Returns: Json
       }
+      supervisory_assessment_question_plan: {
+        Args: {
+          _assessment_id: string
+          _dimension_id?: string
+          _limit?: number
+          _offset?: number
+          _plan_state?: string
+          _question_class?: string
+          _search?: string
+        }
+        Returns: Json
+      }
+      supervisory_assessment_question_plan_context: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_question_plan_materialise_internal: {
+        Args: { _assessment_id: string; _uid: string }
+        Returns: Json
+      }
+      supervisory_assessment_question_plan_materialize: {
+        Args: { _assessment_id: string; _rationale?: string }
+        Returns: Json
+      }
+      supervisory_assessment_question_plan_override_apply: {
+        Args: {
+          _assessment_id: string
+          _question_id: string
+          _reason: string
+          _to_state: string
+        }
+        Returns: Json
+      }
+      supervisory_assessment_question_plan_state: {
+        Args: { _assessment_id: string; _question_id: string }
+        Returns: string
+      }
+      supervisory_assessment_question_plan_summary: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_assessment_question_readable: {
         Args: { _assessment_id: string; _uid: string }
         Returns: boolean
@@ -67720,6 +67979,25 @@ export type Database = {
         }
         Returns: string
       }
+      supervisory_methodology_question_rule_remove: {
+        Args: { _rationale: string; _rule_id: string }
+        Returns: Json
+      }
+      supervisory_methodology_question_rule_save: {
+        Args: {
+          _methodology_id: string
+          _provenance?: string
+          _question_id: string
+          _rationale: string
+          _rule_definition: Json
+          _rule_kind: string
+        }
+        Returns: Json
+      }
+      supervisory_methodology_question_rules: {
+        Args: { _question_id: string }
+        Returns: Json
+      }
       supervisory_methodology_question_save: {
         Args: { _methodology_id: string; _payload: Json; _rationale?: string }
         Returns: string
@@ -67792,6 +68070,10 @@ export type Database = {
         Returns: Json
       }
       supervisory_methodology_review_readiness: {
+        Args: { _methodology_id: string }
+        Returns: Json
+      }
+      supervisory_methodology_rule_findings: {
         Args: { _methodology_id: string }
         Returns: Json
       }
@@ -68141,6 +68423,19 @@ export type Database = {
         Args: { _days?: number; _domain?: string; _limit?: number }
         Returns: Json
       }
+      supervisory_question_rule_check: {
+        Args: { _def: Json; _depth?: number }
+        Returns: Json
+      }
+      supervisory_question_rule_describe: {
+        Args: { _def: Json }
+        Returns: string
+      }
+      supervisory_question_rule_evaluate: {
+        Args: { _ctx: Json; _def: Json; _depth?: number }
+        Returns: string
+      }
+      supervisory_question_rule_vocabulary: { Args: never; Returns: Json }
       supervisory_rating_valid:
         | { Args: { _rating: string }; Returns: boolean }
         | { Args: { _domain_code?: string; _rating: string }; Returns: boolean }
