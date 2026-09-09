@@ -217,15 +217,8 @@ INSERT INTO public.supervisory_assessment_programme_trigger(
 SELECT p.id, 'PERIODIC', 'Periodic cycle', true, true, 1
   FROM public.supervisory_assessment_programme p WHERE p.programme_code='AML05CERT_P';
 
--- Governed source records the officer may or may not see.
-INSERT INTO public.supervisory_finding(
-  reference, entity_id, domain_code, title, source_kind, status)
-VALUES ('AML05CERT-FIND-OK', (SELECT v FROM ev_id WHERE k='entity'), 'AML_CFT',
-        'AML05CERT accessible finding', 'ASSESSMENT', 'DRAFT'),
-       ('AML05CERT-FIND-OTHER', (SELECT v FROM ev_id WHERE k='other_entity'), 'AML_CFT',
-        'AML05CERT finding for a different entity', 'ASSESSMENT', 'DRAFT');
-INSERT INTO ev_id(k,v) SELECT 'find_ok', id FROM public.supervisory_finding WHERE reference='AML05CERT-FIND-OK';
-INSERT INTO ev_id(k,v) SELECT 'find_other', id FROM public.supervisory_finding WHERE reference='AML05CERT-FIND-OTHER';
+
+
 
 -- ============================== runtime ==============================
 DO $$
