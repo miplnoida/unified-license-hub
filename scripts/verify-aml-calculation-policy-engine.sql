@@ -62,7 +62,7 @@ INSERT INTO c_n(k,n) VALUES
 
 INSERT INTO c_t(k,t) VALUES
   ('assess_digest',(SELECT md5(string_agg(a.id::text||':'||a.status||':'||COALESCE(a.methodology_id::text,'-'),'|' ORDER BY a.id))
-                      FROM public.supervisory_assessment a),
+                      FROM public.supervisory_assessment a)),
   ('risk_digest',  (SELECT md5(COALESCE(string_agg(r.entity_id::text||':'||COALESCE(r.residual_rating,'-'),'|' ORDER BY r.entity_id),''))
                       FROM public.entity_risk_state r));
 
