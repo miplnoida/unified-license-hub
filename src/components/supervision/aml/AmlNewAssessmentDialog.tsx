@@ -227,7 +227,7 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
               Cancel
             </Button>
             <Button
-              disabled={!chosenEntity || !methodology || ambiguous || resolving}
+              disabled={!targetEntity || !programme || !methodology || ambiguous || resolving || programmeOptions.isLoading}
               onClick={() => {
                 setPickerOpen(false);
                 setOpen(true);
