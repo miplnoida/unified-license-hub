@@ -540,7 +540,7 @@ END $$;
 -- PROG-25 — a second active default demotes the first; two defaults are refused
 -- =====================================================================
 DO $$
-DECLARE _id uuid; n int; v jsonb;
+DECLARE _id uuid; n int; vres jsonb;
 BEGIN
   _id := public.supervisory_assessment_programme_trigger_upsert((SELECT v FROM pg_id WHERE k='prog_periodic'),
           jsonb_build_object('id',(SELECT v FROM pg_id WHERE k='trig_periodic'),
@@ -569,8 +569,8 @@ BEGIN
    WHERE programme_id=(SELECT v FROM pg_id WHERE k='prog_periodic') AND is_default;
   IF n <> 1 THEN RAISE EXCEPTION 'FAIL PROG-25: % default triggers exist after setting a second default', n; END IF;
   -- and validation refuses the state outright if it were ever reached
-  v := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
-  IF EXISTS (SELECT 1 FROM jsonb_array_elements(v->'errors') e WHERE e->>'code'='MULTIPLE_DEFAULT_TRIGGERS') THEN
+  vres := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
+  IF EXISTS (SELECT 1 FROM jsonb_array_elements(vres->'errors') e WHERE e->>'code'='MULTIPLE_DEFAULT_TRIGGERS') THEN
     RAISE EXCEPTION 'FAIL PROG-25: multiple default triggers survived the governed write'; END IF;
   RAISE NOTICE 'PASS PROG-25: exactly one active default trigger is maintained per programme';
 END $$;
@@ -617,14 +617,14 @@ END $$;
 -- PROG-34 — an invalid question class is refused
 -- =====================================================================
 DO $$
-DECLARE v jsonb; codes text[];
+DECLARE vres jsonb; codes text[];
 BEGIN
   -- PROG-27: TRAILING_DAYS without a value
   PERFORM public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
     'programme_code','CERT_BAD','label','Bad period','assessment_type','PERIODIC',
     'period_rule','TRAILING_DAYS','question_class_scope',jsonb_build_array('CORE')));
-  v := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
-  SELECT array_agg(e->>'code') INTO codes FROM jsonb_array_elements(v->'errors') e
+  vres := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
+  SELECT array_agg(e->>'code') INTO codes FROM jsonb_array_elements(vres->'errors') e
    WHERE e->>'programme_code'='CERT_BAD';
   IF NOT (codes @> ARRAY['PERIOD_VALUE_REQUIRED']) THEN
     RAISE EXCEPTION 'FAIL PROG-27: TRAILING_DAYS without a positive period value was accepted (%)', codes; END IF;
@@ -636,8 +636,8 @@ BEGIN
     'period_rule','TRAILING_MONTHS','period_value',0,'question_class_scope',jsonb_build_array('CORE'),
     'id',(SELECT id FROM public.supervisory_assessment_programme
            WHERE programme_set_id=(SELECT v FROM pg_id WHERE k='set') AND programme_code='CERT_BAD')));
-  v := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
-  SELECT array_agg(e->>'code') INTO codes FROM jsonb_array_elements(v->'errors') e
+  vres := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
+  SELECT array_agg(e->>'code') INTO codes FROM jsonb_array_elements(vres->'errors') e
    WHERE e->>'programme_code'='CERT_BAD';
   IF NOT (codes @> ARRAY['PERIOD_VALUE_REQUIRED']) THEN
     RAISE EXCEPTION 'FAIL PROG-28: TRAILING_MONTHS with a non-positive period value was accepted (%)', codes; END IF;
@@ -649,8 +649,8 @@ BEGIN
     'period_rule','WHENEVER_WE_FEEL_LIKE_IT','question_class_scope',jsonb_build_array('CORE'),
     'id',(SELECT id FROM public.supervisory_assessment_programme
            WHERE programme_set_id=(SELECT v FROM pg_id WHERE k='set') AND programme_code='CERT_BAD')));
-  v := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
-  SELECT array_agg(e->>'code') INTO codes FROM jsonb_array_elements(v->'errors') e
+  vres := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
+  SELECT array_agg(e->>'code') INTO codes FROM jsonb_array_elements(vres->'errors') e
    WHERE e->>'programme_code'='CERT_BAD';
   IF NOT (codes @> ARRAY['PERIOD_RULE_INVALID']) THEN
     RAISE EXCEPTION 'FAIL PROG-30: an ungoverned period rule was accepted as policy (%)', codes; END IF;
@@ -663,8 +663,8 @@ BEGIN
     'question_class_scope',jsonb_build_array('CORE','MADE_UP_CLASS'),
     'id',(SELECT id FROM public.supervisory_assessment_programme
            WHERE programme_set_id=(SELECT v FROM pg_id WHERE k='set') AND programme_code='CERT_BAD')));
-  v := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
-  SELECT array_agg(e->>'code') INTO codes FROM jsonb_array_elements(v->'errors') e
+  vres := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
+  SELECT array_agg(e->>'code') INTO codes FROM jsonb_array_elements(vres->'errors') e
    WHERE e->>'programme_code'='CERT_BAD';
   IF NOT (codes @> ARRAY['QUESTION_CLASS_INVALID']) THEN
     RAISE EXCEPTION 'FAIL PROG-34: a question class outside the governed vocabulary was accepted (%)', codes; END IF;
@@ -681,8 +681,8 @@ BEGIN
     (SELECT id FROM public.supervisory_assessment_programme
       WHERE programme_set_id=(SELECT v FROM pg_id WHERE k='set') AND programme_code='CERT_BAD'),
     jsonb_build_object('trigger_code','PERIODIC','is_default',true));
-  v := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
-  IF EXISTS (SELECT 1 FROM jsonb_array_elements(v->'errors') e WHERE e->>'programme_code'='CERT_BAD') THEN
+  vres := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
+  IF EXISTS (SELECT 1 FROM jsonb_array_elements(vres->'errors') e WHERE e->>'programme_code'='CERT_BAD') THEN
     RAISE EXCEPTION 'FAIL PROG-29: MANUAL_REQUIRED was treated as needing a derived period value'; END IF;
   RAISE NOTICE 'PASS PROG-29: MANUAL_REQUIRED needs no derived period value';
 END $$;
@@ -716,17 +716,17 @@ END $$;
 -- PROG-37 — structural validation blocks DRAFT -> REVIEW while errors exist
 -- =====================================================================
 DO $$
-DECLARE ok boolean := false; v jsonb;
+DECLARE ok boolean := false; vres jsonb;
 BEGIN
   -- introduce one real structural error: a programme with no allowed trigger
   PERFORM public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
     'programme_code','CERT_NO_TRIGGER','label','No trigger','assessment_type','PERIODIC',
     'period_rule','MANUAL_REQUIRED','allow_manual_override',true,
     'question_class_scope',jsonb_build_array('CORE')));
-  v := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
-  IF (v->>'error_count')::int = 0 THEN
+  vres := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
+  IF (vres->>'error_count')::int = 0 THEN
     RAISE EXCEPTION 'FAIL PROG-37: validation did not detect a programme with no allowed trigger'; END IF;
-  IF COALESCE((v->>'ready_for_review')::boolean,true) THEN
+  IF COALESCE((vres->>'ready_for_review')::boolean,true) THEN
     RAISE EXCEPTION 'FAIL PROG-37: validation reports the set ready for review while errors exist'; END IF;
 
   BEGIN
@@ -735,20 +735,20 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN ok := SQLERRM LIKE '%validation_blocked%';
   END;
   IF NOT ok THEN RAISE EXCEPTION 'FAIL PROG-37: a structurally invalid set was submitted for review'; END IF;
-  RAISE NOTICE 'PASS PROG-37: DRAFT -> REVIEW blocked by structural validation (% error(s))', v->>'error_count';
+  RAISE NOTICE 'PASS PROG-37: DRAFT -> REVIEW blocked by structural validation (% error(s))', vres->>'error_count';
 END $$;
 
 -- remove the deliberate error and submit for review
 DO $$
-DECLARE v jsonb;
+DECLARE vres jsonb;
 BEGIN
   PERFORM public.supervisory_assessment_programme_retire(
     (SELECT id FROM public.supervisory_assessment_programme
       WHERE programme_set_id=(SELECT v FROM pg_id WHERE k='set') AND programme_code='CERT_NO_TRIGGER'),
     'Certification cleanup of the deliberate validation error');
-  v := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
-  IF (v->>'error_count')::int <> 0 THEN
-    RAISE EXCEPTION 'FAIL PROG-37: the certification package is still invalid: %', v->'errors'; END IF;
+  vres := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
+  IF (vres->>'error_count')::int <> 0 THEN
+    RAISE EXCEPTION 'FAIL PROG-37: the certification package is still invalid: %', vres->'errors'; END IF;
   PERFORM public.supervisory_assessment_programme_set_lifecycle(
     (SELECT v FROM pg_id WHERE k='set'),'REVIEW','Certification submission for review rationale');
   IF (SELECT status FROM public.supervisory_assessment_programme_set
@@ -786,12 +786,12 @@ SET LOCAL ROLE authenticated;
 SET LOCAL "request.jwt.claims" = :'APPROVER';
 
 DO $$
-DECLARE ok boolean := false; v jsonb;
+DECLARE ok boolean := false; vres jsonb;
 BEGIN
-  v := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
-  IF (v->>'error_count')::int = 0 THEN
+  vres := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
+  IF (vres->>'error_count')::int = 0 THEN
     RAISE EXCEPTION 'FAIL PROG-38: the injected structural error was not detected'; END IF;
-  IF COALESCE((v->>'ready_for_approval')::boolean,true) THEN
+  IF COALESCE((vres->>'ready_for_approval')::boolean,true) THEN
     RAISE EXCEPTION 'FAIL PROG-38: validation reports the set ready for approval while errors exist'; END IF;
   BEGIN
     PERFORM public.supervisory_assessment_programme_set_lifecycle(
@@ -1265,8 +1265,8 @@ BEGIN
   SELECT detail INTO ev FROM public.supervisory_policy_profile_event
    WHERE profile_id=pid AND event_type='COMPONENT_ADOPTED'
      AND detail->>'component_type'='ASSESSMENT_PROGRAMME' LIMIT 1;
-  IF (ev->>'via') <> 'supervisory_assessment_programme_adopt_reference' THEN
-    RAISE EXCEPTION 'FAIL PROG-48: profile adoption did not delegate to the governed programme adoption operation (via %)', ev->>'via'; END IF;
+  IF (evres->>'via') <> 'supervisory_assessment_programme_adopt_reference' THEN
+    RAISE EXCEPTION 'FAIL PROG-48: profile adoption did not delegate to the governed programme adoption operation (via %)', evres->>'via'; END IF;
   RAISE NOTICE 'PASS PROG-48: profile adoption delegated to supervisory_assessment_programme_adopt_reference and bound the regulator-owned set';
 END $$;
 
