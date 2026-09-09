@@ -300,3 +300,91 @@ describe('UI-PLAN-15 no client-side scope derivation exists in the frontend', ()
     expect(rules).not.toMatch(/evaluateRule|computeInclusion/);
   });
 });
+
+/* ---------------------------------------------- UI-PLAN-16…18 (final closure) */
+
+describe('UI-PLAN-16 the frontend holds no applicability policy', () => {
+  it('never decides inclusion from question class, trigger, sector, dimension or entity data', () => {
+    const files = [
+      'src/components/supervision/aml/AmlQuestionPlanPanel.tsx',
+      'src/hooks/useAmlQuestionPlan.ts',
+      'src/components/supervision/aml/AmlDimensionWorksheet.tsx',
+      'src/components/admin/supervisory-methodology/studio/QuestionRuleSection.tsx',
+    ].map((f) => [f, src(f)] as const);
+
+    for (const [file, code] of files) {
+      // No local evaluation of applicability facts.
+      expect(code, file).not.toMatch(/question_class\s*===\s*['"](CORE|CONDITIONAL|ENHANCED)['"]/);
+      expect(code, file).not.toMatch(/sector_id\s*===|entity_status\s*===|trigger_type\s*===/);
+      expect(code, file).not.toMatch(/evaluateRule|deriveState|computeInclusion/);
+      // NOT_APPLICABLE is never used as a scope state.
+      expect(code, file).not.toMatch(/plan_state[^\n]*NOT_APPLICABLE|NOT_APPLICABLE[^\n]*plan_state/);
+    }
+
+    // The working file's only scope input is the server's own inclusion result.
+    const worksheet = src('src/components/supervision/aml/AmlDimensionWorksheet.tsx');
+    expect(worksheet).toMatch(/planRows\.filter\(\(r\) => r\.included\)/);
+    expect(worksheet).toMatch(/useAmlQuestionPlan/);
+
+    // The canonical state list carries no response-level answer.
+    expect(PLAN_STATES).not.toContain('NOT_APPLICABLE');
+    expect(OVERRIDE_STATES).not.toContain('NOT_APPLICABLE');
+  });
+});
+
+describe('UI-PLAN-17 a newly created assessment plan arrives without a page reload', () => {
+  it('re-reads the governed plan after a governed resolve, and never reloads the browser', async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    await mountPanel();
+    const before = argsOf('supervisory_assessment_question_plan').length;
+
+    await user.click(screen.getByRole('button', { name: /question plan$/i }));
+    await user.type(await screen.findByLabelText(/^Reason/), 'Scope rebuilt for certification evidence');
+    const confirm = await screen.findByRole('button', { name: /^(Resolve|Rebuild) plan$/ });
+    await user.click(confirm);
+
+    await waitFor(() =>
+      expect(argsOf('supervisory_assessment_question_plan_materialize').length).toBeGreaterThan(0));
+    // React Query invalidation refetches the plan in place.
+    await waitFor(() =>
+      expect(argsOf('supervisory_assessment_question_plan').length).toBeGreaterThan(before));
+
+    // No surface in the creation/scope path forces a browser reload.
+    for (const f of [
+      'src/components/supervision/aml/AmlQuestionPlanPanel.tsx',
+      'src/hooks/useAmlQuestionPlan.ts',
+      'src/components/supervision/aml/AmlNewAssessmentDialog.tsx',
+    ]) {
+      expect(src(f), f).not.toMatch(/location\.reload|window\.location\.href\s*=/);
+    }
+    expect(src('src/hooks/useAmlQuestionPlan.ts')).toMatch(/invalidateQueries/);
+  });
+});
+
+describe('UI-PLAN-18 out-of-scope questions are not answerable', () => {
+  it('offers no answer control for NOT_TRIGGERED or OUT_OF_SCOPE questions', async () => {
+    await mountPanel();
+
+    const blocked = FIX.plan.rows.filter(
+      (r: any) => r.effective_state === 'NOT_TRIGGERED' || r.effective_state === 'OUT_OF_SCOPE');
+    expect(blocked.length).toBeGreaterThan(0);
+
+    for (const row of blocked) {
+      // The server states them as not answerable…
+      expect(row.included).toBe(false);
+      expect(row.response_status).toBe('NOT_REQUIRED');
+      // …and the scope view exposes them as read-only records only: no answer,
+      // submit or record control is rendered against them.
+      const cell = await screen.findByText(row.question_code);
+      const scope = cell.closest('tr') ?? cell.parentElement!;
+      expect(within(scope as HTMLElement).queryByRole('button', { name: /answer|record|submit/i })).toBeNull();
+      expect(within(scope as HTMLElement).queryByRole('textbox')).toBeNull();
+      expect(within(scope as HTMLElement).queryByRole('combobox')).toBeNull();
+    }
+
+    // The working file only ever renders server-included questions, so an
+    // out-of-scope question cannot be opened as an answerable question there.
+    const worksheet = src('src/components/supervision/aml/AmlDimensionWorksheet.tsx');
+    expect(worksheet).toMatch(/includedQuestionIds\.has\(q\.id\)/);
+  });
+});

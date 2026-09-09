@@ -41,6 +41,7 @@ import {
   type AmlMethodologyQuestion,
   type AmlQuestionResponse,
 } from '@/hooks/useAmlLifecycle';
+import { useAmlQuestionPlan } from '@/hooks/useAmlQuestionPlan';
 import {
   computeQuestionGaps,
   evidenceCount,
@@ -77,8 +78,22 @@ export function AmlDimensionWorksheet({ assessmentId, entityId, methodologyId, r
   const { data: dimensions, isLoading } = useAmlMethodologyDimensions(methodologyId);
   const { data: questionCatalogue } = useAmlMethodologyQuestions(methodologyId);
   const { data: questionResponses } = useAmlQuestionResponses(assessmentId);
+  // AML-04: the working file may only offer the questions the server placed in
+  // scope. The browser applies no applicability policy of its own — it reads the
+  // server's plan and keeps the questions the server marked included. An
+  // assessment with no resolved plan (legacy) keeps the full methodology set.
+  const { data: questionPlan } = useAmlQuestionPlan(assessmentId, { limit: 1000 });
   const dims = dimensions ?? [];
-  const questions = questionCatalogue ?? [];
+  const planRows = questionPlan?.rows ?? [];
+  const planScoped = !!questionPlan && !questionPlan.legacy_mode && planRows.length > 0;
+  const includedQuestionIds = useMemo(
+    () => new Set(planRows.filter((r) => r.included).map((r) => r.question_id)),
+    [planRows],
+  );
+  const questions = useMemo(
+    () => (questionCatalogue ?? []).filter((q) => !planScoped || includedQuestionIds.has(q.id)),
+    [questionCatalogue, planScoped, includedQuestionIds],
+  );
   const responses = questionResponses ?? [];
 
   const groups = useMemo(() => {

@@ -114,3 +114,43 @@ the transaction is rolled back.
 No AML table, function or business record was deleted, renamed or rewritten. Methodology v1.0
 remains ACTIVE, v1.1 remains DRAFT / MIPL_REFERENCE, and the 28 existing assessments are
 untouched apart from carrying `LEGACY_UNMATERIALISED` scope, which is a truthful absence.
+
+## 9. Final closure (action governance, UI-PLAN-16…18)
+
+| Gate | Result |
+|---|---|
+| Database certification PLAN-01…50 | 50/50 PASS, fixtures rolled back, 28 assessments unchanged |
+| Frontend boundary FE-01…07 | 7/7 PASS |
+| Question-plan UI, UI-PLAN-01…18 | 18/18 PASS |
+| Typecheck | PASS |
+
+Action governance:
+
+- `AmlQuestionPlanPanel.tsx` — "Adjust scope" and "Resolve/Rebuild question plan" already carried
+  `data-rbac` markers (`aml_supervision.approve` / `aml_supervision.edit`). The coverage scanner
+  missed them because `findWrappingGate` delimited the opening tag with a naive `indexOf('>')`,
+  which stops inside an arrow handler. The scanner now uses the brace/quote-aware
+  `findOpeningTagEnd`. This is a detector defect, not an AML-04 authorisation defect.
+- `QuestionRuleSection.tsx` — "Add rule", "Save rule", "Withdraw" carry
+  `aml_supervision.manage_config`. "Add condition" only appends an empty row to the unsaved rule
+  draft and is registered in the scoped classification register as `non-mutating`.
+
+New gates:
+
+- UI-PLAN-16 — no frontend applicability policy: no question-class, sector, trigger or entity
+  comparison, and no rule evaluation, in the panel, hook, working file or Studio rule surface.
+- UI-PLAN-17 — a governed resolve refetches the plan through React Query invalidation; no surface
+  in the creation or scope path reloads the browser.
+- UI-PLAN-18 — `NOT_TRIGGERED` and `OUT_OF_SCOPE` rows expose no answer control, and the working
+  file (`AmlDimensionWorksheet`) now offers only the questions the server marked `included`
+  (assessments with no resolved plan keep the full methodology set).
+
+Preservation: no assessment, plan, risk of record, methodology version, programme reference,
+calculation or materiality value was changed, invented or backfilled; no AML business data or
+regulator row was deleted.
+
+Remaining blockers are inherited and outside AML-04: unguarded action sites in the AML-03
+programme/Studio surfaces, monitoring and portfolio screens; two source-string assertions in
+`amlMethodologyAuthorityUx.test.ts` left stale by the AML-03 new-assessment refactor; two
+`actionNotificationsEditorCrud` failures; and 5s test timeouts in the methodology admin/Studio UI
+suites under full-suite load (both suites pass in isolation).
