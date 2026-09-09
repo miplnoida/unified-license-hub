@@ -72,7 +72,12 @@ export default function SupervisoryMethodologyDetailPage() {
         backHref="/admin/supervisory-methodology"
         backLabel="Supervisory Methodology"
         breadcrumbLabel={`${m.code} v${m.version}`}
-        actions={<MethodologyActionBar methodology={m} capabilities={capabilities.data} isLoading={capabilities.isLoading} />}
+        actions={(
+          <div className="flex flex-wrap items-center gap-2">
+            <MethodologyMetadataAction detail={m as unknown as Record<string, any>} />
+            <MethodologyActionBar methodology={m} capabilities={capabilities.data} isLoading={capabilities.isLoading} />
+          </div>
+        )}
       />
 
       <Card>
