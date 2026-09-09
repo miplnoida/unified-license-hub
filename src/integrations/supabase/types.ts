@@ -67166,6 +67166,10 @@ export type Database = {
         Args: { _capability?: string; _domain_code?: string }
         Returns: Json
       }
+      supervisory_authorised_regulator_options_any: {
+        Args: { _capability?: string }
+        Returns: Json
+      }
       supervisory_breach_issue_enforcement: {
         Args: {
           _breach_ids: string[]

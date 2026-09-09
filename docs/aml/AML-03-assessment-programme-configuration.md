@@ -87,3 +87,45 @@ Epic-3 G/H. `INHERITED_NON_AML_REGRESSION`: unapproved `ChartNetwork` nav icon, 
 Management Assurance breadcrumb sources.
 
 AML-04 (question applicability / assessment question plan) not started.
+
+## 9. Final certification (this pass)
+
+`scripts/verify-assessment-programme-configuration.sql` — transactional, rollback-safe, idempotent,
+`ON_ERROR_STOP`, behavioural (every governance gate calls the governed operation under a real
+authenticated persona). PROG-01…50 all pass, reported as **52 PASS notices** (PROG-13 reports its
+rationale gate and its adoption gate separately, PROG-49 reports options and creation separately).
+Post-run checks confirm zero surviving `PROGCERT%` packages and an unchanged assessment population (28).
+
+`src/test/supervisoryAssessmentProgrammeStudio.test.tsx` — 21/21 pass.
+
+### Defect found and fixed by certification
+
+`supervisory_assessment_programme_create_options()` and `..._register_options()` resolved regulator
+scope through `supervisory_authorised_regulator_options(NULL, NULL)`, which returned no selectable
+regulator for a domain-scoped administrator — the server declared `can_create = false` for a user whose
+write would in fact be accepted. Added `supervisory_authorised_regulator_options_any(text)`, which
+aggregates active authorised regulator scope across governed supervisory domains, and both option RPCs
+now use it. Write authority, inactive-regulator exclusion and the scope contract are unchanged.
+
+### Security posture
+
+Linter: 1701 findings, 6 types (1700 before this pass). The single delta is the new helper, in the
+pre-existing "signed-in users can execute SECURITY DEFINER" class; anonymous execute was revoked and the
+anon-executable count is unchanged. The `RLS enabled no policy` finding remains the inherited
+`email_provider_secrets` table.
+
+### Preservation
+
+Existing assessments (28, all legacy/unassigned — none retroactively given a programme identity), entity
+risk of record, methodology v1.0 (frozen ACTIVE) and v1.1 (DRAFT / MIPL_REFERENCE) with their question
+populations, calculation/banding/matrix/parameter policy (still empty — no policy invented), the
+regulator master including both inactive regulators, and the MIPL reference programme package are all
+byte-for-byte unchanged, asserted by PROG-50.
+
+### Inherited blockers (unchanged, not AML-03 regressions)
+
+`PRE_EXISTING_POLICY_OR_METHODOLOGY_BLOCKER`: CALC-05/06/09/11, AMLH-09, LINK-11 (22 legacy links),
+Epic-3 G/H. `INHERITED_NON_AML_REGRESSION`: unapproved `ChartNetwork` nav icon, Detection and Management
+Assurance breadcrumb sources.
+
+AML-04 (question applicability / assessment question plan) not started.
