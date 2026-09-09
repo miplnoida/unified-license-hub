@@ -149,8 +149,9 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
                   </SelectTrigger>
                   <SelectContent>
                     {programmes.map((p) => (
-                      <SelectItem key={p.programme_id} value={p.programme_id}>
+                      <SelectItem key={p.programme_id} value={p.programme_id} disabled={p.selectable === false}>
                         {p.label}
+                        {p.selectable === false ? ' — not available' : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -158,11 +159,33 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
                 {programme?.guidance ? (
                   <p className="text-xs text-muted-foreground">{programme.guidance}</p>
                 ) : null}
+                {programme && programme.selectable === false ? (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription data-testid="aml-programme-refusal">
+                      {programme.reason ?? 'This assessment cannot be started for this entity yet.'}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+                {programme?.requires_prior_assessment ? (
+                  <p className="text-xs text-muted-foreground" data-testid="aml-prior-assessment">
+                    {programme.prior_assessment_id
+                      ? `Builds on the previous assessment ${programme.prior_assessment_reference ?? programme.prior_assessment_id}.`
+                      : 'This assessment needs a previous assessment of this entity, and none was found.'}
+                  </p>
+                ) : null}
+                {programme?.requires_trigger_signal ? (
+                  <p className="text-xs text-muted-foreground" data-testid="aml-signal-required">
+                    The triggering signal or event must already be recorded for this entity; the platform will
+                    refuse to create the assessment otherwise.
+                  </p>
+                ) : null}
                 {programmeOptions.data?.compatibility_notice ? (
                   <p className="text-xs text-muted-foreground">{programmeOptions.data.compatibility_notice}</p>
                 ) : null}
               </div>
             )
+
           ) : null}
 
 
