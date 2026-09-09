@@ -339,6 +339,7 @@ describe('UI-PLAN-17 a newly created assessment plan arrives without a page relo
     const before = argsOf('supervisory_assessment_question_plan').length;
 
     await user.click(screen.getByRole('button', { name: /question plan$/i }));
+    await user.type(await screen.findByLabelText(/^Reason/), 'Scope rebuilt for certification evidence');
     const confirm = await screen.findByRole('button', { name: /^(Resolve|Rebuild) plan$/ });
     await user.click(confirm);
 
