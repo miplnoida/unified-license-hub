@@ -332,18 +332,32 @@ BEGIN
     jsonb_build_object('response_code','NO','score',100,'sort_order',3),
     jsonb_build_object('response_code','NOT_APPLICABLE','excluded_from_denominator',true,'sort_order',4)));
 
+  -- Bands must cover EVERY code the fixture scales publish, start at 0, be
+  -- contiguous and reach 100. Inherent bands therefore carry all five risk codes
+  -- in ordinal order; control bands carry both control codes.
   PERFORM public.supervisory_calculation_bands_set((SELECT v FROM c_id WHERE k='cfg'),'INHERENT', jsonb_build_array(
-    jsonb_build_object('band_code','LOW','min_score',0,'max_score',50,'sort_order',1),
-    jsonb_build_object('band_code','HIGH','min_score',50,'max_score',100,'sort_order',2)));
+    jsonb_build_object('band_code','LOW','min_score',0,'max_score',20,'sort_order',1),
+    jsonb_build_object('band_code','MODERATE','min_score',20,'max_score',40,'sort_order',2),
+    jsonb_build_object('band_code','MEDIUM_HIGH','min_score',40,'max_score',60,'sort_order',3),
+    jsonb_build_object('band_code','HIGH','min_score',60,'max_score',80,'sort_order',4),
+    jsonb_build_object('band_code','SEVERE','min_score',80,'max_score',100,'sort_order',5)));
   PERFORM public.supervisory_calculation_bands_set((SELECT v FROM c_id WHERE k='cfg'),'CONTROL', jsonb_build_array(
     jsonb_build_object('band_code','WEAK','min_score',0,'max_score',50,'sort_order',1),
     jsonb_build_object('band_code','STRONG','min_score',50,'max_score',100,'sort_order',2)));
 
+  -- The residual matrix must publish every inherent x control combination
+  -- (5 x 2 = 10 cells); each residual rating is a code from the inherent scale.
   PERFORM public.supervisory_calculation_matrix_set((SELECT v FROM c_id WHERE k='cfg'), jsonb_build_array(
     jsonb_build_object('inherent_band','LOW','control_band','WEAK','residual_rating','MODERATE'),
     jsonb_build_object('inherent_band','LOW','control_band','STRONG','residual_rating','LOW'),
+    jsonb_build_object('inherent_band','MODERATE','control_band','WEAK','residual_rating','MEDIUM_HIGH'),
+    jsonb_build_object('inherent_band','MODERATE','control_band','STRONG','residual_rating','LOW'),
+    jsonb_build_object('inherent_band','MEDIUM_HIGH','control_band','WEAK','residual_rating','HIGH'),
+    jsonb_build_object('inherent_band','MEDIUM_HIGH','control_band','STRONG','residual_rating','MODERATE'),
     jsonb_build_object('inherent_band','HIGH','control_band','WEAK','residual_rating','HIGH'),
-    jsonb_build_object('inherent_band','HIGH','control_band','STRONG','residual_rating','MEDIUM_HIGH')));
+    jsonb_build_object('inherent_band','HIGH','control_band','STRONG','residual_rating','MEDIUM_HIGH'),
+    jsonb_build_object('inherent_band','SEVERE','control_band','WEAK','residual_rating','HIGH'),
+    jsonb_build_object('inherent_band','SEVERE','control_band','STRONG','residual_rating','HIGH')));
 
   n := public.supervisory_calculation_question_weights_set((SELECT v FROM c_id WHERE k='cfg'), jsonb_build_array(
     jsonb_build_object('question_code','AML06CERT_Q_I1','participation','SCORED','weight',3),
