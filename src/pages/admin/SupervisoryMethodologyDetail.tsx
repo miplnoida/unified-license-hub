@@ -20,6 +20,7 @@ import {
   ErrorPanel, Field, OriginBadge, StatusBadge, formatDate,
 } from '@/components/admin/supervisory-methodology/labels';
 import { MethodologyActionBar } from '@/components/admin/supervisory-methodology/MethodologyActionBar';
+import { MethodologyMetadataAction } from '@/components/admin/supervisory-methodology/studio/MethodologyMetadataAction';
 import { OverviewTab } from '@/components/admin/supervisory-methodology/tabs/OverviewTab';
 import { QuestionsTab } from '@/components/admin/supervisory-methodology/tabs/QuestionsTab';
 import { SemanticsTab } from '@/components/admin/supervisory-methodology/tabs/SemanticsTab';
