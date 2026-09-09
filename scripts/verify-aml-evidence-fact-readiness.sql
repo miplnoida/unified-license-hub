@@ -830,9 +830,14 @@ BEGIN
   EXCEPTION WHEN others THEN refused := refused + 1; END;
   BEGIN UPDATE public.supervisory_assessment_fact SET value_numeric = 999
          WHERE id=(SELECT v FROM ev_id WHERE k='fact_count');
+        GET DIAGNOSTICS touched = ROW_COUNT;
+        IF touched = 0 THEN refused := refused + 1; END IF;
   EXCEPTION WHEN others THEN refused := refused + 1; END;
   BEGIN DELETE FROM public.supervisory_assessment_fact WHERE id=(SELECT v FROM ev_id WHERE k='fact_count');
+        GET DIAGNOSTICS touched = ROW_COUNT;
+        IF touched = 0 THEN refused := refused + 1; END IF;
   EXCEPTION WHEN others THEN refused := refused + 1; END;
+
   RESET ROLE;
   IF refused <> 3 THEN RAISE EXCEPTION 'FAIL FACT-12: only % of 3 direct fact writes refused', refused; END IF;
   IF (SELECT value_numeric FROM public.supervisory_assessment_fact
