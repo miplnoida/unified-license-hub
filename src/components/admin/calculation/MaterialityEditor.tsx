@@ -155,7 +155,7 @@ export function MaterialityEditor({ configId, methodologyId, canEdit, bandCodes 
       </div>
       <div className="flex gap-2">
         {canEdit && (
-          <Button variant="outline" onClick={addRow}><Plus className="h-4 w-4 mr-2" />Add rule</Button>
+          <Button data-rbac="aml_supervision.manage_config" variant="outline" onClick={addRow}><Plus className="h-4 w-4 mr-2" />Add rule</Button>
         )}
         <Button data-rbac="aml_supervision.manage_config" onClick={commit} disabled={!canEdit || save.isPending}>
           <Save className="h-4 w-4 mr-2" />Save materiality rules

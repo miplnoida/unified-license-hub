@@ -217,7 +217,7 @@ export function FactTransformEditor({ configId, methodologyId, canEdit, bandCode
               <div className="flex items-center justify-between">
                 <Label>Threshold bands</Label>
                 {canEdit && (
-                  <Button variant="outline" size="sm" onClick={() => addThreshold(r.fact_code)}>
+                  <Button data-rbac="aml_supervision.manage_config" variant="outline" size="sm" onClick={() => addThreshold(r.fact_code)}>
                     <Plus className="h-4 w-4 mr-2" />Add band
                   </Button>
                 )}

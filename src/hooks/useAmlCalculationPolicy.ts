@@ -228,21 +228,36 @@ export function useMethodologyDimensionCatalogue(methodologyId?: string) {
   });
 }
 
-/** Fact requirements a methodology declares, for fact transformation policy. */
+/**
+ * Fact requirements a methodology declares, for fact transformation policy.
+ * Read through the governed methodology fact register, never from the store.
+ */
 export function useMethodologyFactCatalogue(methodologyId?: string) {
   return useQuery({
     queryKey: [...POLICY_KEY, 'facts', methodologyId],
     enabled: !!methodologyId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('supervisory_methodology_fact_requirement')
-        .select('id, fact_code, label, data_type, unit')
-        .eq('methodology_id', methodologyId!)
-        .order('fact_code');
-      if (error) throw new Error(error.message);
-      return (data ?? []) as unknown as Array<{
-        id: string; fact_code: string; label: string | null; data_type: string | null; unit: string | null;
-      }>;
+      const result = await rpc<{ rows?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>>(
+        'supervisory_methodology_fact_register',
+        {
+          _methodology_id: methodologyId!,
+          _search: null,
+          _definition_status: null,
+          _required: null,
+          _sort: 'fact_code',
+          _dir: 'asc',
+          _limit: 500,
+          _offset: 0,
+        },
+      );
+      const rows = Array.isArray(result) ? result : (result?.rows ?? []);
+      return rows.map((r) => ({
+        id: String(r.id ?? r.fact_id ?? ''),
+        fact_code: String(r.fact_code ?? ''),
+        label: (r.label ?? null) as string | null,
+        data_type: (r.data_type ?? null) as string | null,
+        unit: (r.unit ?? null) as string | null,
+      }));
     },
   });
 }
@@ -389,5 +404,33 @@ export function useDecideCalculationOverride() {
         _note: input.note ?? null,
       }),
     onSuccess: invalidate,
+  });
+}
+
+/**
+ * The rating vocabulary a methodology publishes, read straight from the
+ * published methodology record. The browser never invents a rating code: an
+ * override may only propose a code the methodology itself publishes, and the
+ * server refuses anything else.
+ */
+export function useMethodologyRatingVocabulary(methodologyId?: string | null) {
+  return useQuery({
+    queryKey: [...POLICY_KEY, 'rating-vocabulary', methodologyId],
+    enabled: !!methodologyId,
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await supabase
+        .from('supervisory_methodology')
+        .select('scoring_scale')
+        .eq('id', methodologyId!)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      const scale = ((data?.scoring_scale ?? []) as Array<{ code?: string; ordinal?: number }>) || [];
+      return Array.isArray(scale)
+        ? scale
+            .filter((s) => !!s?.code)
+            .sort((a, b) => (a.ordinal ?? 0) - (b.ordinal ?? 0))
+            .map((s) => String(s.code))
+        : [];
+    },
   });
 }
