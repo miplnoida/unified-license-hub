@@ -68390,6 +68390,10 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_calc_config_draft_guard: {
+        Args: { _config_id: string; _what: string }
+        Returns: string
+      }
       supervisory_calc_config_for: {
         Args: { _assessment_id: string }
         Returns: string
@@ -68448,8 +68452,28 @@ export type Database = {
         Args: { _config_id: string }
         Returns: Json
       }
+      supervisory_calculation_dimension_weights_set: {
+        Args: { _config_id: string; _rows: Json }
+        Returns: number
+      }
+      supervisory_calculation_fact_rules_set: {
+        Args: { _config_id: string; _rows: Json }
+        Returns: number
+      }
+      supervisory_calculation_materiality_set: {
+        Args: { _config_id: string; _rows: Json }
+        Returns: number
+      }
       supervisory_calculation_matrix_set: {
         Args: { _cells: Json; _config_id: string }
+        Returns: number
+      }
+      supervisory_calculation_policy_problems: {
+        Args: { _config_id: string }
+        Returns: string[]
+      }
+      supervisory_calculation_question_weights_set: {
+        Args: { _config_id: string; _rows: Json }
         Returns: number
       }
       supervisory_calculation_recalculate: {
