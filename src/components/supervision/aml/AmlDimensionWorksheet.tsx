@@ -41,6 +41,7 @@ import {
   type AmlMethodologyQuestion,
   type AmlQuestionResponse,
 } from '@/hooks/useAmlLifecycle';
+import { useAmlQuestionPlan } from '@/hooks/useAmlQuestionPlan';
 import {
   computeQuestionGaps,
   evidenceCount,
