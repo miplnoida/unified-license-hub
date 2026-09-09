@@ -1210,7 +1210,7 @@ END $$;
 -- =====================================================================
 DO $$
 DECLARE pid uuid; b public.supervisory_policy_profile_binding; s public.supervisory_assessment_programme_set;
-        ev jsonb;
+        evres jsonb;
 BEGIN
   SELECT id INTO pid FROM public.supervisory_policy_profile
    WHERE code=(SELECT code FROM public.supervisory_policy_profile WHERE id=(SELECT v FROM pg_id WHERE k='ref_profile'))
