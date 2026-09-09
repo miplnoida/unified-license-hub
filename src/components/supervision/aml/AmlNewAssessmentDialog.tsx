@@ -48,8 +48,9 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
   const [open, setOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [chosenEntity, setChosenEntity] = useState<string>('');
+  const [chosenProgramme, setChosenProgramme] = useState<string>('');
   const navigate = useNavigate();
-  const create = useCreateAmlAssessment();
+  const createProgrammed = useCreateProgrammedAssessment();
   // Authority to initiate an assessment is a governed capability, not a screen
   // affordance. The server re-checks it; this only stops offering the control.
   const canCreate = useCan('aml_supervision', 'create');
@@ -61,6 +62,17 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
   const ambiguous = resolved?.status === 'AMBIGUOUS';
   const readiness = useCalculationReadiness('AML_CFT', methodology?.id ?? undefined);
 
+  // Which assessments may be started, their permitted triggers and how the
+  // review period is derived are all governed configuration resolved by the
+  // server for this entity. Nothing is defaulted in the browser.
+  const programmeOptions = useEntityProgrammeOptions(targetEntity || null, 'AML_CFT');
+  const programmes = programmeOptions.data?.programmes ?? [];
+  const programme = programmes.find((p) => p.programme_id === chosenProgramme) ?? null;
+  const defaultTrigger =
+    programme?.triggers.find((t) => t.is_default)?.trigger_code ??
+    programme?.triggers[0]?.trigger_code ??
+    '';
+  const programmeUnavailable = programmeOptions.data?.mode === 'UNAVAILABLE';
 
   const entityOptions = useMemo(
     () =>
@@ -70,16 +82,8 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
     [portfolio],
   );
 
-  const prior = useMemo(
-    () => (portfolio ?? []).find((r) => r.entity_id === targetEntity)?.last_assessment_id ?? null,
-    [portfolio, targetEntity],
-  );
-
   const startFlow = () => {
-    if (entityId) {
-      setOpen(true);
-      return;
-    }
+    setChosenProgramme('');
     setPickerOpen(true);
   };
 
@@ -92,32 +96,75 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
         {label}
       </Button>
 
-      {/* Entity is chosen first so the methodology can be resolved before the
-          working file is created — the officer never picks a version. */}
+      {/* Entity and programme are chosen first so the methodology and the governed
+          assessment behaviour are both resolved before the working file exists —
+          the officer never picks a methodology version. */}
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Select the supervised entity</DialogTitle>
+            <DialogTitle>{entityId ? 'Select the assessment to start' : 'Select the supervised entity'}</DialogTitle>
             <DialogDescription>
-              The platform resolves the currently effective AML/CFT methodology for this entity; the officer never picks a
-              version.
+              The platform resolves the currently effective AML/CFT methodology and the approved assessment programmes for
+              this entity; the officer never picks a version.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="aml-entity-pick">Supervised entity</Label>
-            <Select value={chosenEntity} onValueChange={setChosenEntity}>
-              <SelectTrigger id="aml-entity-pick">
-                <SelectValue placeholder="Select an entity…" />
-              </SelectTrigger>
-              <SelectContent>
-                {entityOptions.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {!entityId ? (
+            <div className="space-y-2">
+              <Label htmlFor="aml-entity-pick">Supervised entity</Label>
+              <Select
+                value={chosenEntity}
+                onValueChange={(v) => {
+                  setChosenEntity(v);
+                  setChosenProgramme('');
+                }}
+              >
+                <SelectTrigger id="aml-entity-pick">
+                  <SelectValue placeholder="Select an entity…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {entityOptions.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+
+          {targetEntity ? (
+            programmeOptions.isLoading ? (
+              <p className="text-sm text-muted-foreground">Resolving the approved assessment programmes…</p>
+            ) : programmeUnavailable ? (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{programmeOptions.data?.reason}</AlertDescription>
+              </Alert>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="aml-programme-pick">Assessment</Label>
+                <Select value={chosenProgramme} onValueChange={setChosenProgramme}>
+                  <SelectTrigger id="aml-programme-pick">
+                    <SelectValue placeholder="Select the assessment to start…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {programmes.map((p) => (
+                      <SelectItem key={p.programme_id} value={p.programme_id}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {programme?.guidance ? (
+                  <p className="text-xs text-muted-foreground">{programme.guidance}</p>
+                ) : null}
+                {programmeOptions.data?.compatibility_notice ? (
+                  <p className="text-xs text-muted-foreground">{programmeOptions.data.compatibility_notice}</p>
+                ) : null}
+              </div>
+            )
+          ) : null}
+
 
           {chosenEntity ? (
             resolving ? (
