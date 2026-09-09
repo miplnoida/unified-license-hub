@@ -119,7 +119,18 @@ function mount(node: React.ReactNode) {
 
 afterEach(() => { calls.length = 0; authoring = true; cleanup(); });
 
-describe('METH-STUDIO-UI authoring surface', () => {
+/**
+ * Every gate here mounts a complete authoring screen: the dimension studio, the
+ * server-paged question register and eleven Radix filter selects. Measured in
+ * isolation over three runs the heaviest read-only gate takes 1.8–3.3s, which
+ * leaves no headroom under the default five seconds once the bounded pool runs
+ * four files at once. The group therefore carries a 15s budget — roughly four
+ * times the measured worst case — and the one gate that opens the full question
+ * editor (about forty controlled fields; measured 19.6s, 21.2s, 19.6s) carries
+ * 45s, a little over twice its stable duration. No assertion is relaxed and no
+ * other file changes its timeout.
+ */
+describe('METH-STUDIO-UI authoring surface', { timeout: 15_000 }, () => {
   it('METH-STUDIO-UI-01 asks the server which authoring actions are permitted', async () => {
     mount(<QuestionsTab methodologyId={METH} />);
     await waitFor(() => expect(calls.some((c) => c.fn === 'supervisory_methodology_studio_capabilities')).toBe(true));
