@@ -141,11 +141,18 @@ BEGIN
   SELECT array_agg(component_type ORDER BY component_type) INTO avail
     FROM public.supervisory_policy_component_type WHERE is_available;
   SELECT count(*) INTO unavail FROM public.supervisory_policy_component_type WHERE NOT is_available;
-  IF avail IS DISTINCT FROM ARRAY['CALCULATION_CONFIG','METHODOLOGY'] THEN
-    RAISE EXCEPTION 'FAIL PROFILE-02: available component types are % — only the two implemented types may be available', avail; END IF;
-  IF unavail < 5 THEN
+  -- The available set grows only when a component type is genuinely implemented:
+  -- METHODOLOGY (AML-02), ASSESSMENT_PROGRAMME (AML-03), CALCULATION_CONFIG (AML-06).
+  IF avail IS DISTINCT FROM ARRAY['ASSESSMENT_PROGRAMME','CALCULATION_CONFIG','METHODOLOGY'] THEN
+    RAISE EXCEPTION 'FAIL PROFILE-02: available component types are % — only implemented types may be available', avail; END IF;
+  -- strengthened: every available type must have a real backing store
+  IF to_regclass('public.supervisory_methodology') IS NULL
+     OR to_regclass('public.supervisory_assessment_programme') IS NULL
+     OR to_regclass('public.supervisory_calculation_config') IS NULL THEN
+    RAISE EXCEPTION 'FAIL PROFILE-02: an available component type has no backing implementation'; END IF;
+  IF unavail < 4 THEN
     RAISE EXCEPTION 'FAIL PROFILE-02: future component types are not registered as unavailable'; END IF;
-  RAISE NOTICE 'PASS PROFILE-02: 2 implemented component types available, % future types registered unavailable', unavail;
+  RAISE NOTICE 'PASS PROFILE-02: 3 implemented component types available and backed, % future types registered unavailable', unavail;
 END $$;
 
 -- =====================================================================
