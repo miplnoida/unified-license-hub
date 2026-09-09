@@ -72,7 +72,15 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
     programme?.triggers.find((t) => t.is_default)?.trigger_code ??
     programme?.triggers[0]?.trigger_code ??
     '';
+  // Where the approved programme derives the period and forbids adjustment, the
+  // officer is shown the derived dates instead of editable date fields.
+  const periodFixed = Boolean(
+    programme &&
+      !programme.period.manual_entry_required &&
+      !programme.period.allow_manual_override,
+  );
   const programmeUnavailable = programmeOptions.data?.mode === 'UNAVAILABLE';
+
 
   const entityOptions = useMemo(
     () =>
@@ -149,8 +157,9 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
                   </SelectTrigger>
                   <SelectContent>
                     {programmes.map((p) => (
-                      <SelectItem key={p.programme_id} value={p.programme_id}>
+                      <SelectItem key={p.programme_id} value={p.programme_id} disabled={p.selectable === false}>
                         {p.label}
+                        {p.selectable === false ? ' — not available' : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -158,11 +167,33 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
                 {programme?.guidance ? (
                   <p className="text-xs text-muted-foreground">{programme.guidance}</p>
                 ) : null}
+                {programme && programme.selectable === false ? (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription data-testid="aml-programme-refusal">
+                      {programme.reason ?? 'This assessment cannot be started for this entity yet.'}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+                {programme?.requires_prior_assessment ? (
+                  <p className="text-xs text-muted-foreground" data-testid="aml-prior-assessment">
+                    {programme.prior_assessment_id
+                      ? `Builds on the previous assessment ${programme.prior_assessment_reference ?? programme.prior_assessment_id}.`
+                      : 'This assessment needs a previous assessment of this entity, and none was found.'}
+                  </p>
+                ) : null}
+                {programme?.requires_trigger_signal ? (
+                  <p className="text-xs text-muted-foreground" data-testid="aml-signal-required">
+                    The triggering signal or event must already be recorded for this entity; the platform will
+                    refuse to create the assessment otherwise.
+                  </p>
+                ) : null}
                 {programmeOptions.data?.compatibility_notice ? (
                   <p className="text-xs text-muted-foreground">{programmeOptions.data.compatibility_notice}</p>
                 ) : null}
               </div>
             )
+
           ) : null}
 
 
@@ -227,7 +258,7 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
               Cancel
             </Button>
             <Button
-              disabled={!targetEntity || !programme || !methodology || ambiguous || resolving || programmeOptions.isLoading}
+              disabled={!targetEntity || !programme || programme.selectable === false || !methodology || ambiguous || resolving || programmeOptions.isLoading}
               onClick={() => {
                 setPickerOpen(false);
                 setOpen(true);
@@ -244,9 +275,14 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
         onOpenChange={setOpen}
         title="Start an AML/CFT risk assessment"
         description={
-          methodology
-            ? `The assessment is created in draft on ${methodology.code} v${methodology.version}, ready for its risk and control ratings.`
-            : 'The assessment is created in draft against the applicable AML/CFT methodology.'
+          [
+            methodology
+              ? `The assessment is created in draft on ${methodology.code} v${methodology.version}, ready for its risk and control ratings.`
+              : 'The assessment is created in draft against the applicable AML/CFT methodology.',
+            periodFixed
+              ? `The review period is set by the approved programme: ${fmtDate(programme?.period.suggested_period_start ?? null)} to ${fmtDate(programme?.period.suggested_period_end ?? null)}.`
+              : null,
+          ].filter(Boolean).join(' ')
         }
 
         fields={[
@@ -256,25 +292,32 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
             kind: 'select',
             required: true,
             defaultValue: defaultTrigger,
-            options: (programme?.triggers ?? []).map((t) => ({
-              value: t.trigger_code,
-              label: t.label || t.trigger_code,
-            })),
+            options: (programme?.triggers ?? [])
+              .filter((t) => t.is_active !== false)
+              .map((t) => ({
+                value: t.trigger_code,
+                label: t.label || t.trigger_code,
+              })),
           },
-          {
-            name: 'period_start',
-            label: 'Review period from',
-            kind: 'date',
-            required: true,
-            defaultValue: programme?.period.suggested_period_start ?? '',
-          },
-          {
-            name: 'period_end',
-            label: 'Review period to',
-            kind: 'date',
-            required: true,
-            defaultValue: programme?.period.suggested_period_end ?? '',
-          },
+          // The dates are only asked for where the approved programme permits the
+          // officer to set or adjust them. Where the programme fixes the period,
+          // the derived dates are stated above and sent as resolved by the server.
+          ...(periodFixed ? [] : [
+            {
+              name: 'period_start' as const,
+              label: 'Review period from',
+              kind: 'date' as const,
+              required: true,
+              defaultValue: programme?.period.suggested_period_start ?? '',
+            },
+            {
+              name: 'period_end' as const,
+              label: 'Review period to',
+              kind: 'date' as const,
+              required: true,
+              defaultValue: programme?.period.suggested_period_end ?? '',
+            },
+          ]),
           {
             name: 'summary',
             label: 'Scope and summary',
@@ -292,9 +335,10 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
             domainCode: 'AML_CFT',
             programmeId: programme!.programme_id,
             triggerType: v.trigger_type,
-            periodStart: v.period_start || null,
-            periodEnd: v.period_end || null,
+            periodStart: periodFixed ? null : v.period_start || null,
+            periodEnd: periodFixed ? null : v.period_end || null,
             summary: v.summary,
+            triggerSignalId: null,
           });
           const id = result?.id ?? null;
           const boundVersion = result?.methodology_version ?? null;
@@ -306,6 +350,7 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
           if (id) navigate(`/supervision/aml/assessments/${id}`);
           return result;
         }}
+
 
       />
 

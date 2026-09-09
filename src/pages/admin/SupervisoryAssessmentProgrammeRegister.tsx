@@ -22,9 +22,11 @@ import {
   useAssessmentProgrammeSets,
   type ProgrammeSetRow,
 } from '@/hooks/useSupervisoryAssessmentProgrammes';
+import { ProgrammeSetCreateAction } from '@/components/admin/supervisory-assessment-programme/ProgrammeSetFormDialog';
 import {
   EmptyPanel, ErrorPanel, ProfileOriginBadge, ProfileStatusBadge, formatDate, humanize,
 } from '@/components/admin/supervisory-policy-profile/labels';
+
 
 const FILTER_KEYS = ['domain', 'origin', 'status', 'regulator'];
 const opt = (v: string) => (v === 'all' ? null : v);
@@ -63,7 +65,9 @@ export default function SupervisoryAssessmentProgrammeRegisterPage() {
       <PageHeader
         title="Supervisory Assessment Programmes"
         description="The governed configuration that states which assessments a regulator runs in a supervisory domain, how each one derives its review period, which triggers it accepts and which question classes are in scope."
+        actions={<ProgrammeSetCreateAction onCreated={(id) => navigate(`/admin/supervisory-assessment-programmes/${id}`)} />}
       />
+
 
       <RegisterToolbar
         search={listing.search}

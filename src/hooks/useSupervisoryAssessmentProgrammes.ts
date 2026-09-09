@@ -8,8 +8,9 @@
  *
  * Every read goes through a `supervisory_assessment_programme_*` read model and
  * every write through a governed RPC. Nothing here decides authority — the
- * server does, and `supervisory_assessment_programme_action_capabilities` is the
- * only source of what the signed-in officer may do.
+ * server does, and `supervisory_assessment_programme_action_capabilities` (with
+ * `..._create_options` for creation) is the only source of what the signed-in
+ * officer may do.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -49,6 +50,7 @@ export interface ProgrammeTrigger {
   id?: string;
   trigger_code: string;
   label: string | null;
+  description?: string | null;
   is_default: boolean;
   is_active?: boolean;
   requires_signal?: boolean;
@@ -63,6 +65,7 @@ export interface Programme {
   label: string;
   description: string | null;
   assessment_type: string;
+  recurrence_months?: number | null;
   period_rule: string;
   period_value: number | null;
   end_offset_days: number | null;
@@ -71,18 +74,31 @@ export interface Programme {
   requires_trigger_signal: boolean;
   summary_required: boolean;
   question_class_scope: string[] | null;
+  included_dimension_codes?: string[] | null;
+  excluded_dimension_codes?: string[] | null;
   guidance: string | null;
   is_active: boolean;
   retired_at: string | null;
+  retirement_rationale?: string | null;
   sort_order: number | null;
   triggers: ProgrammeTrigger[];
+}
+
+/** A single structural finding produced by the server's own validator. */
+export interface ProgrammeFinding {
+  area: string;
+  code: string;
+  message: string;
+  programme_code?: string | null;
 }
 
 export interface ProgrammeValidation {
   error_count: number;
   warning_count?: number;
-  errors?: string[];
-  warnings?: string[];
+  errors?: ProgrammeFinding[];
+  warnings?: ProgrammeFinding[];
+  ready_for_review?: boolean;
+  ready_for_approval?: boolean;
   [k: string]: unknown;
 }
 
@@ -120,6 +136,13 @@ export interface ProgrammeCapabilities {
   reason: string | null;
 }
 
+export interface ProgrammeVocabularyEntry {
+  code: string;
+  label: string;
+  description?: string | null;
+  requires_value?: boolean;
+}
+
 export interface ProgrammeRegisterOptions {
   domains: string[];
   origins: string[];
@@ -129,10 +152,24 @@ export interface ProgrammeRegisterOptions {
   cross_regulator_allowed?: boolean;
   active_regulator?: { id: string; code: string; name: string } | null;
   regulator_scope_reason?: string | null;
-  period_rules: Array<{ code: string; label: string; description: string | null }>;
-  question_classes: Array<{ code: string; label: string }>;
-  assessment_types: Array<{ code: string; label: string }>;
-  trigger_codes: Array<{ code: string; label: string }>;
+  period_rules: ProgrammeVocabularyEntry[];
+  question_classes: ProgrammeVocabularyEntry[];
+  assessment_types: ProgrammeVocabularyEntry[];
+  trigger_codes: ProgrammeVocabularyEntry[];
+}
+
+/** Server answer to "may this officer create a programme package, and where?" */
+export interface ProgrammeCreateOptions {
+  can_create: boolean;
+  reason: string | null;
+  domains: string[];
+  origin: string;
+  status: string;
+  regulators: Array<{ id: string; code: string; name: string; status?: string }>;
+  selectable_regulator_count?: number;
+  cross_regulator_allowed?: boolean;
+  active_regulator?: { id: string; code: string; name: string } | null;
+  regulator_scope_reason?: string | null;
 }
 
 /* --------------------------------------------------------------- reads */
@@ -141,6 +178,14 @@ export function useAssessmentProgrammeOptions() {
   return useQuery({
     queryKey: ['assessment-programme-options'],
     queryFn: () => rpc<ProgrammeRegisterOptions>('supervisory_assessment_programme_register_options'),
+    staleTime: 60_000,
+  });
+}
+
+export function useAssessmentProgrammeCreateOptions() {
+  return useQuery({
+    queryKey: ['assessment-programme-create-options'],
+    queryFn: () => rpc<ProgrammeCreateOptions>('supervisory_assessment_programme_create_options'),
     staleTime: 60_000,
   });
 }
@@ -207,9 +252,17 @@ function useProgrammeMutation<TArgs>(fn: string, build: (a: TArgs) => Record<str
       qc.invalidateQueries({ queryKey: ['assessment-programme-detail'] });
       qc.invalidateQueries({ queryKey: ['assessment-programme-capabilities'] });
       qc.invalidateQueries({ queryKey: ['assessment-programme-history'] });
+      qc.invalidateQueries({ queryKey: ['assessment-programme-compare'] });
+      // Runtime assessment choices follow configuration immediately.
+      qc.invalidateQueries({ queryKey: ['assessment-programme-entity-options'] });
     },
   });
 }
+
+/** Creates a regulator-authored DRAFT package; origin and status are server-set. */
+export const useCreateProgrammeSet = () =>
+  useProgrammeMutation<{ payload: Record<string, unknown> }>(
+    'supervisory_assessment_programme_set_create', (a) => ({ _payload: a.payload }));
 
 export const useSaveProgrammeSet = () =>
   useProgrammeMutation<{ setId: string; payload: Record<string, unknown> }>(
@@ -228,18 +281,19 @@ export const useUpsertProgrammeTrigger = () =>
     'supervisory_assessment_programme_trigger_upsert', (a) => ({ _programme_id: a.programmeId, _payload: a.payload }));
 
 export const useRemoveProgrammeTrigger = () =>
-  useProgrammeMutation<{ programmeId: string; triggerCode: string }>(
-    'supervisory_assessment_programme_trigger_remove', (a) => ({ _programme_id: a.programmeId, _trigger_code: a.triggerCode }));
+  useProgrammeMutation<{ triggerId: string; rationale: string }>(
+    'supervisory_assessment_programme_trigger_remove',
+    (a) => ({ _trigger_id: a.triggerId, _rationale: a.rationale }));
 
 export const useProgrammeSetLifecycle = () =>
-  useProgrammeMutation<{ setId: string; action: string; rationale: string }>(
+  useProgrammeMutation<{ setId: string; toStatus: string; rationale: string }>(
     'supervisory_assessment_programme_set_lifecycle',
-    (a) => ({ _set_id: a.setId, _action: a.action, _rationale: a.rationale }));
+    (a) => ({ _set_id: a.setId, _to_status: a.toStatus, _rationale: a.rationale }));
 
 export const useProgrammeSetNewVersion = () =>
-  useProgrammeMutation<{ setId: string; setVersion: string; rationale: string }>(
+  useProgrammeMutation<{ setId: string; newVersion: string; rationale: string }>(
     'supervisory_assessment_programme_set_new_version',
-    (a) => ({ _set_id: a.setId, _set_version: a.setVersion, _rationale: a.rationale }));
+    (a) => ({ _set_id: a.setId, _new_version: a.newVersion, _rationale: a.rationale }));
 
 export const useAdoptProgrammeSet = () =>
   useProgrammeMutation<{ referenceSetId: string; regulatorId: string; rationale: string }>(
@@ -260,6 +314,9 @@ export interface EntityProgrammeOption {
   requires_prior_assessment: boolean;
   requires_trigger_signal: boolean;
   prior_assessment_id: string | null;
+  prior_assessment_reference?: string | null;
+  selectable?: boolean;
+  reason?: string | null;
   period: {
     period_rule: string;
     period_value: number | null;

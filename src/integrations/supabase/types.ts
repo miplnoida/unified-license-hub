@@ -66952,6 +66952,10 @@ export type Database = {
         Args: { _baseline_id: string; _set_id: string }
         Returns: Json
       }
+      supervisory_assessment_programme_create_options: {
+        Args: never
+        Returns: Json
+      }
       supervisory_assessment_programme_detail: {
         Args: { _set_id: string }
         Returns: Json
