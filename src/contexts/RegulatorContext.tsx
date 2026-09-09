@@ -85,10 +85,15 @@ export function RegulatorProvider({ children }: { children: ReactNode }) {
     [regulators, activeRegulatorId],
   );
 
+  // localStorage remembers a preference only; it is never authority. Every
+  // server read and write re-derives the actor's regulator authority, so a
+  // tampered stored id cannot widen scope. A stored id that is not an active
+  // regulator is discarded here as well.
   const setActiveRegulator = useCallback((id: string) => {
+    if (!regulators.some(r => r.id === id)) return;
     setActiveRegulatorId(id);
     persistRegulatorId(id);
-  }, []);
+  }, [regulators]);
 
   const clearActiveRegulator = useCallback(() => {
     setActiveRegulatorId(null);

@@ -127,7 +127,11 @@ export default function SupervisoryPolicyProfileRegisterPage() {
             { id: 'profile_version', header: 'Version', sortable: true, sortKey: 'profile_version', cell: (r) => <span className="font-mono text-xs">{r.profile_version}</span> },
             { id: 'origin', header: 'Origin', sortable: true, sortKey: 'origin', cell: (r) => <ProfileOriginBadge origin={r.origin} label={r.origin_label} /> },
             { id: 'regulator', header: 'Regulator', cell: (r) => (
-              <span className="text-sm">{r.regulator_name ?? <span className="text-muted-foreground">Not regulator-owned</span>}</span>) },
+              <span className="text-sm">{r.regulator_name ?? (
+                <span className="text-muted-foreground">
+                  {r.origin === 'MIPL_REFERENCE' ? 'MIPL Reference — not regulator-owned' : 'Not regulator-owned'}
+                </span>
+              )}</span>) },
             { id: 'status', header: 'Status', sortable: true, sortKey: 'status', cell: (r) => <ProfileStatusBadge status={r.status} /> },
             { id: 'components', header: 'Components bound', align: 'right', cell: (r) => (
               <span className="font-mono text-xs">{r.bound_components} / {r.required_components}</span>) },

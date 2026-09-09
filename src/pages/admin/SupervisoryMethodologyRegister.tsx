@@ -146,7 +146,11 @@ export default function SupervisoryMethodologyRegisterPage() {
             { id: 'version', header: 'Version', sortable: true, sortKey: 'version', cell: (r) => <span className="font-mono text-xs">{r.version}</span> },
             { id: 'origin', header: 'Origin', sortable: true, sortKey: 'origin', cell: (r) => <OriginBadge origin={r.origin} label={r.origin_label} /> },
             { id: 'regulator', header: 'Regulator', sortable: true, sortKey: 'regulator', cell: (r) => (
-              <span className="text-sm">{r.regulator_name ?? <span className="text-muted-foreground">Not regulator-owned</span>}</span>) },
+              <span className="text-sm">{r.regulator_name ?? (
+                <span className="text-muted-foreground">
+                  {r.origin === 'MIPL_REFERENCE' ? 'MIPL Reference — not regulator-owned' : 'Not regulator-owned'}
+                </span>
+              )}</span>) },
             { id: 'applicability', header: 'Applicability', priority: 3, cell: (r) => (
               <span className="text-xs">{r.sector_summary ?? <span className="text-muted-foreground">All sectors</span>}</span>) },
             { id: 'status', header: 'Status', sortable: true, sortKey: 'status', cell: (r) => <StatusBadge status={r.status} /> },
