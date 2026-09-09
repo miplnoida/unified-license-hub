@@ -72,7 +72,15 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
     programme?.triggers.find((t) => t.is_default)?.trigger_code ??
     programme?.triggers[0]?.trigger_code ??
     '';
+  // Where the approved programme derives the period and forbids adjustment, the
+  // officer is shown the derived dates instead of editable date fields.
+  const periodFixed = Boolean(
+    programme &&
+      !programme.period.manual_entry_required &&
+      !programme.period.allow_manual_override,
+  );
   const programmeUnavailable = programmeOptions.data?.mode === 'UNAVAILABLE';
+
 
   const entityOptions = useMemo(
     () =>
