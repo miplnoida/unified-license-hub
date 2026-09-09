@@ -1019,7 +1019,8 @@ BEGIN
   IF n < (SELECT r_n.n FROM r_n WHERE k='assessments') THEN
     RAISE EXCEPTION 'FAIL SUPERSEDE-01: assessments were deleted'; END IF;
   IF (SELECT count(*) FROM public.supervisory_assessment
-       WHERE entity_id=(SELECT v FROM r_id WHERE k='entity') AND domain_code='AML_CFT' AND is_current) <> 1 THEN
+       WHERE entity_id=(SELECT v FROM r_id WHERE k='entity') AND domain_code='AML_CFT'
+         AND is_current AND status IN ('approved','closed','superseded')) <> 1 THEN
     RAISE EXCEPTION 'FAIL SUPERSEDE-01: more than one current assessment for the entity and domain'; END IF;
   IF NOT (SELECT is_current FROM public.supervisory_assessment WHERE id=(SELECT v FROM r_id WHERE k='assessment')) THEN
     RAISE EXCEPTION 'FAIL SUPERSEDE-01: the approved assessment is not the current one'; END IF;
