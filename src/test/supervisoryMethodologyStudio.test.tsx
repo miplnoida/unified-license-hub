@@ -108,6 +108,9 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const { QuestionsTab } = await import('@/components/admin/supervisory-methodology/tabs/QuestionsTab');
 const { ValidationTab } = await import('@/components/admin/supervisory-methodology/tabs/ValidationTab');
+const { MethodologyActionBar } = await import('@/components/admin/supervisory-methodology/MethodologyActionBar');
+const { MethodologyMetadataAction } = await import(
+  '@/components/admin/supervisory-methodology/studio/MethodologyMetadataAction');
 
 function mount(node: React.ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
