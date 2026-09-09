@@ -129,3 +129,42 @@ concurrency, server-enforced validation gating, capability contract, hardened wr
 Studio UI.
 Not started: assessment programme / applicability architecture, bulk import authoring, and any
 calculation or materiality policy.
+
+## 13. Regulator context & selection contract (AML-02 addition)
+
+Three concepts were previously conflated in supervisory configuration screens. They are now
+distinct, and the distinction is owned by the server, not by React:
+
+| Concept | Meaning | Source |
+| --- | --- | --- |
+| Regulator master / history | every regulator row ever recorded, including inactive ones | `useRegulatorMaster`, Regulator Management only |
+| Authorised active scope | regulators the signed-in officer may configure or adopt for | `public.supervisory_authorised_regulator_options(_domain_code, _capability)` |
+| Platform / MIPL reference | content with `regulator_id = NULL` | rendered as "MIPL Reference — not regulator-owned" |
+
+`supervisory_authorised_regulator_options` is generic (domain + optional capability, usable by
+Prudential and Market Conduct later) and returns only regulators whose `status = 'active'` that pass
+`user_has_regulator_authority`, plus `selectable_count`, `active_regulator`,
+`cross_regulator_allowed` and an explicit empty-scope `reason`. `supervisory_methodology_register_options`
+and `supervisory_policy_profile_register_options` embed that same contract instead of listing the
+regulators table, and `supervisory_methodology_adoption_targets` filters to active regulators.
+`supervisory_domain_require_manage_for_regulator` now refuses an inactive or retired regulator as the
+owner of new supervisory configuration, so adoption cannot create work for a non-operational
+regulator, while historical rows and their lineage are preserved untouched.
+
+UI behaviour (`RegulatorScopeFilter`, `useAuthorisedRegulatorOptions`):
+
+- 0 selectable — "No active regulator is available in your authorised scope." Never widened.
+- 1 selectable — contextual `Regulator: <name>` badge, no dropdown; adoption dialogs resolve the sole
+  target automatically and read "Adopt for <name> (<code>)".
+- 2+ selectable — a real selector; "All regulators" appears only when the server grants
+  cross-regulator oversight. It is an enterprise-oversight value, never a configuration owner and
+  never a label for platform reference content.
+
+`RegulatorContext` treats `localStorage` as a preference only and ignores any stored id outside the
+active regulator set; every read and write is re-authorised server-side.
+
+Verification: `scripts/verify-regulator-scope-contract.sql` (REG-SCOPE-01, 01b, 02, 02b, 03, 04, 09,
+10, 12, 13, 14 — all PASS, transactional and rolled back) and
+`src/test/regulatorScopeContract.test.tsx` (REG-SCOPE-05, 06, 07, 08, 09, 11, 14 — 7/7 pass).
+Current environment: 3 regulator rows, 1 active (`FSRA`), 2 inactive retained for history.
+No regulator row, methodology, policy profile, assessment or AML business record was changed.

@@ -66,7 +66,12 @@ export interface MethodologyRegisterOptions {
   domains: string[];
   origins: Array<{ value: string; label: string }>;
   statuses: string[];
-  regulators: Array<{ id: string; code: string; name: string }>;
+  regulators: Array<{ id: string; code: string; name: string; status?: string }>;
+  /** Canonical effective-regulator contract (active + authorised only). */
+  selectable_regulator_count?: number;
+  cross_regulator_allowed?: boolean;
+  active_regulator?: { id: string; code: string; name: string } | null;
+  regulator_scope_reason?: string | null;
   sectors: Array<{ id: string; name: string }>;
   approval_states: string[];
 }

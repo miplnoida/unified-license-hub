@@ -3,7 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Regulator } from '@/contexts/RegulatorContext';
 import { configRetire, configSave } from '@/lib/configWriter';
 
-export function useAllRegulators() {
+/**
+ * Regulator MASTER (Administration → Regulator Management only).
+ *
+ * Returns every regulator row including inactive and retired ones so the master
+ * and its history can be administered. Operational/configuration selectors must
+ * use `useAuthorisedRegulatorOptions` instead — see `useRegulatorScope.ts`.
+ */
+export function useRegulatorMaster() {
   return useQuery({
     queryKey: ['regulators', 'all'],
     queryFn: async () => {

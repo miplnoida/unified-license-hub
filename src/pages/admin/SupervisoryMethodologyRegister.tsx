@@ -16,6 +16,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { RegisterToolbar } from '@/components/shared/RegisterToolbar';
 import { SupervisoryRegister } from '@/components/supervision/SupervisoryRegister';
 import { useListingState } from '@/components/shared/listing';
+import { RegulatorScopeFilter } from '@/components/supervision/RegulatorScopeFilter';
 import { useServerPageGuard } from '@/components/shared/listing/useServerPageGuard';
 import {
   useSupervisoryMethodologies,
@@ -93,13 +94,7 @@ export default function SupervisoryMethodologyRegisterPage() {
             {(o?.statuses ?? []).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={f.regulator} onValueChange={(v) => listing.setFilter('regulator', v)}>
-          <SelectTrigger className="h-9 w-[13rem]" aria-label="Regulator"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All regulators</SelectItem>
-            {(o?.regulators ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <RegulatorScopeFilter options={o} value={f.regulator} onChange={(v) => listing.setFilter('regulator', v)} />
         <Select value={f.sector} onValueChange={(v) => listing.setFilter('sector', v)}>
           <SelectTrigger className="h-9 w-[13rem]" aria-label="Sector"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -151,7 +146,11 @@ export default function SupervisoryMethodologyRegisterPage() {
             { id: 'version', header: 'Version', sortable: true, sortKey: 'version', cell: (r) => <span className="font-mono text-xs">{r.version}</span> },
             { id: 'origin', header: 'Origin', sortable: true, sortKey: 'origin', cell: (r) => <OriginBadge origin={r.origin} label={r.origin_label} /> },
             { id: 'regulator', header: 'Regulator', sortable: true, sortKey: 'regulator', cell: (r) => (
-              <span className="text-sm">{r.regulator_name ?? <span className="text-muted-foreground">Not regulator-owned</span>}</span>) },
+              <span className="text-sm">{r.regulator_name ?? (
+                <span className="text-muted-foreground">
+                  {r.origin === 'MIPL_REFERENCE' ? 'MIPL Reference — not regulator-owned' : 'Not regulator-owned'}
+                </span>
+              )}</span>) },
             { id: 'applicability', header: 'Applicability', priority: 3, cell: (r) => (
               <span className="text-xs">{r.sector_summary ?? <span className="text-muted-foreground">All sectors</span>}</span>) },
             { id: 'status', header: 'Status', sortable: true, sortKey: 'status', cell: (r) => <StatusBadge status={r.status} /> },

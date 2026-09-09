@@ -87,7 +87,7 @@ export function MethodologyActionBar({
 
   const submitAdopt = async () => {
     try {
-      await adopt.mutateAsync({ referenceId: methodology.id, regulatorId, rationale });
+      await adopt.mutateAsync({ referenceId: methodology.id, regulatorId: effectiveRegulatorId, rationale });
       toast({ title: 'Adopted for regulator', description: 'A regulator-owned draft version has been created from this reference.' });
       close();
     } catch (e) {
@@ -106,7 +106,12 @@ export function MethodologyActionBar({
   };
 
   const mc = capabilities?.maker_checker;
-  const selected = targets.data?.rows.find((r) => r.id === regulatorId);
+  const targetRows = targets.data?.rows ?? [];
+  // One eligible regulator is context, not a question. It is resolved
+  // automatically and only the rationale is asked for.
+  const soleTarget = targetRows.length === 1 ? targetRows[0] : null;
+  const effectiveRegulatorId = soleTarget ? soleTarget.id : regulatorId;
+  const selected = targetRows.find((r) => r.id === effectiveRegulatorId);
 
   // Readiness summary only. The server runs the same validation inside the
   // lifecycle operation and refuses the transition itself.
@@ -178,6 +183,11 @@ export function MethodologyActionBar({
             <p className="text-sm text-muted-foreground">{targets.data?.reason ?? 'No regulator is available to you for adoption.'}</p>
           ) : (
             <div className="space-y-3">
+              {soleTarget ? (
+                <p className="text-sm font-medium" data-testid="adopt-sole-regulator">
+                  Adopt for {soleTarget.name} ({soleTarget.code})
+                </p>
+              ) : (
               <div className="space-y-1.5">
                 <Label htmlFor="adopt-regulator">Regulator</Label>
                 <Select value={regulatorId} onValueChange={setRegulatorId}>
@@ -190,10 +200,11 @@ export function MethodologyActionBar({
                     ))}
                   </SelectContent>
                 </Select>
-                {selected?.already_adopted ? (
-                  <p className="text-xs text-warning">This regulator already holds a version adopted from this reference.</p>
-                ) : null}
               </div>
+              )}
+              {selected?.already_adopted ? (
+                <p className="text-xs text-warning">This regulator already holds a version adopted from this reference.</p>
+              ) : null}
               <dl className="grid grid-cols-2 gap-3 rounded-md border bg-muted/40 p-3 text-sm">
                 <div>
                   <dt className="text-xs text-muted-foreground">Reference methodology</dt>
@@ -219,7 +230,7 @@ export function MethodologyActionBar({
             <Button variant="outline" onClick={close}>Cancel</Button>
             <Button
               onClick={submitAdopt}
-              disabled={!regulatorId || rationale.trim().length < 10 || adopt.isPending}
+              disabled={!effectiveRegulatorId || rationale.trim().length < 10 || adopt.isPending}
             >
               {adopt.isPending ? 'Adopting…' : 'Adopt for regulator'}
             </Button>

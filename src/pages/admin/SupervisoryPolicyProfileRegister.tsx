@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { RegisterToolbar } from '@/components/shared/RegisterToolbar';
 import { SupervisoryRegister } from '@/components/supervision/SupervisoryRegister';
 import { useListingState } from '@/components/shared/listing';
+import { RegulatorScopeFilter } from '@/components/supervision/RegulatorScopeFilter';
 import { useServerPageGuard } from '@/components/shared/listing/useServerPageGuard';
 import {
   useSupervisoryPolicyProfileOptions,
@@ -92,13 +93,7 @@ export default function SupervisoryPolicyProfileRegisterPage() {
             {(o?.statuses ?? []).map((s) => <SelectItem key={s} value={s}>{humanize(s)}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={f.regulator} onValueChange={(v) => listing.setFilter('regulator', v)}>
-          <SelectTrigger className="h-9 w-[13rem]" aria-label="Regulator"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All regulators</SelectItem>
-            {(o?.regulators ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <RegulatorScopeFilter options={o} value={f.regulator} onChange={(v) => listing.setFilter('regulator', v)} />
       </RegisterToolbar>
 
       {query.error ? <ErrorPanel error={query.error} /> : query.isLoading || options.isLoading ? (
@@ -132,7 +127,11 @@ export default function SupervisoryPolicyProfileRegisterPage() {
             { id: 'profile_version', header: 'Version', sortable: true, sortKey: 'profile_version', cell: (r) => <span className="font-mono text-xs">{r.profile_version}</span> },
             { id: 'origin', header: 'Origin', sortable: true, sortKey: 'origin', cell: (r) => <ProfileOriginBadge origin={r.origin} label={r.origin_label} /> },
             { id: 'regulator', header: 'Regulator', cell: (r) => (
-              <span className="text-sm">{r.regulator_name ?? <span className="text-muted-foreground">Not regulator-owned</span>}</span>) },
+              <span className="text-sm">{r.regulator_name ?? (
+                <span className="text-muted-foreground">
+                  {r.origin === 'MIPL_REFERENCE' ? 'MIPL Reference — not regulator-owned' : 'Not regulator-owned'}
+                </span>
+              )}</span>) },
             { id: 'status', header: 'Status', sortable: true, sortKey: 'status', cell: (r) => <ProfileStatusBadge status={r.status} /> },
             { id: 'components', header: 'Components bound', align: 'right', cell: (r) => (
               <span className="font-mono text-xs">{r.bound_components} / {r.required_components}</span>) },
