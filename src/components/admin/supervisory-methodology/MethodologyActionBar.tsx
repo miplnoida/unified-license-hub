@@ -153,7 +153,7 @@ export function MethodologyActionBar({
           onClick={() => setDialog('draft')}
         />
         <GuardedAction
-          capability={capabilities?.can_approve}
+          capability={gate(capabilities?.can_approve)}
           label="Approve Methodology"
           icon={<CheckCircle2 className="h-4 w-4" />}
           onClick={() => setDialog('approve')}
