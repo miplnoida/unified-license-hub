@@ -439,10 +439,15 @@ export function useSupervisoryMethodology(methodologyId?: string) {
   });
 }
 
-export function useSupervisoryMethodologyDimensions(methodologyId?: string, enabled = true) {
+export function useSupervisoryMethodologyDimensions(
+  methodologyId?: string, enabled = true, includeRetired = false,
+) {
   return useQuery({
-    queryKey: ['supervisory_methodology_dimension_list', methodologyId],
-    queryFn: () => rpc<MethodologyDimension[]>('supervisory_methodology_dimension_list', { _methodology_id: methodologyId }),
+    queryKey: ['supervisory_methodology_dimension_list', methodologyId, includeRetired],
+    queryFn: () => rpc<MethodologyDimension[]>('supervisory_methodology_dimension_list', {
+      _methodology_id: methodologyId,
+      _include_retired: includeRetired,
+    }),
     enabled: !!methodologyId && enabled,
     staleTime: 60_000,
   });
