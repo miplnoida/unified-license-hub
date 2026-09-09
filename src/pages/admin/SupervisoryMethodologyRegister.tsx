@@ -16,6 +16,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { RegisterToolbar } from '@/components/shared/RegisterToolbar';
 import { SupervisoryRegister } from '@/components/supervision/SupervisoryRegister';
 import { useListingState } from '@/components/shared/listing';
+import { RegulatorScopeFilter } from '@/components/supervision/RegulatorScopeFilter';
 import { useServerPageGuard } from '@/components/shared/listing/useServerPageGuard';
 import {
   useSupervisoryMethodologies,
@@ -93,13 +94,7 @@ export default function SupervisoryMethodologyRegisterPage() {
             {(o?.statuses ?? []).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={f.regulator} onValueChange={(v) => listing.setFilter('regulator', v)}>
-          <SelectTrigger className="h-9 w-[13rem]" aria-label="Regulator"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All regulators</SelectItem>
-            {(o?.regulators ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <RegulatorScopeFilter options={o} value={f.regulator} onChange={(v) => listing.setFilter('regulator', v)} />
         <Select value={f.sector} onValueChange={(v) => listing.setFilter('sector', v)}>
           <SelectTrigger className="h-9 w-[13rem]" aria-label="Sector"><SelectValue /></SelectTrigger>
           <SelectContent>

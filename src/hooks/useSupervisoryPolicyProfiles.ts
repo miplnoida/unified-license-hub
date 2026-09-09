@@ -78,7 +78,12 @@ export interface PolicyProfileRegisterOptions {
     is_available: boolean;
     default_requirement: ComponentRequirement;
   }>;
-  regulators: Array<{ id: string; code: string; name: string }>;
+  regulators: Array<{ id: string; code: string; name: string; status?: string }>;
+  /** Canonical effective-regulator contract (active + authorised only). */
+  selectable_regulator_count?: number;
+  cross_regulator_allowed?: boolean;
+  active_regulator?: { id: string; code: string; name: string } | null;
+  regulator_scope_reason?: string | null;
 }
 
 export interface PolicyComponentReadiness {

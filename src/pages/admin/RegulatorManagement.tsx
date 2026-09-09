@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Edit, Trash2, Building2, Layers, FormInput, GitBranch, DollarSign } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { useToast } from '@/hooks/use-toast';
-import { useAllRegulators, useRegulatorMutations } from '@/hooks/useRegulators';
+import { useRegulatorMaster, useRegulatorMutations } from '@/hooks/useRegulators';
 import { useSectors, useMasterMutations } from '@/hooks/useMasterConfig';
 import { useForms } from '@/hooks/useForms';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -83,7 +83,7 @@ function RegulatorDetail({ regulator }: { regulator: Regulator }) {
 export default function RegulatorManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: regulators = [], isLoading } = useAllRegulators();
+  const { data: regulators = [], isLoading } = useRegulatorMaster();
   const { upsert, remove } = useRegulatorMutations();
   const { data: allSectors = [] } = useSectors(); // all sectors, unfiltered
   // GAP-F1-08: regulator identity is governed configuration — `settings.edit`
