@@ -206,8 +206,8 @@ describe('METH-STUDIO-UI authoring surface', () => {
 
   it('METH-STUDIO-UI-11 offers metadata editing only on the server capability', async () => {
     mount(<MethodologyMetadataAction detail={{ ...FIX.detail, id: METH }} />);
-    await waitFor(() => expect(screen.getByRole('button', { name: /Edit details/i })).toBeTruthy());
-    expect(screen.getByRole('button', { name: /Edit details/i }).getAttribute('aria-disabled')).toBe('false');
+    await waitFor(() => expect(
+      screen.getByRole('button', { name: /Edit details/i }).getAttribute('aria-disabled')).toBe('false'));
   });
 
   it('METH-STUDIO-UI-12 keeps Edit details visible but refused with the server reason', async () => {
