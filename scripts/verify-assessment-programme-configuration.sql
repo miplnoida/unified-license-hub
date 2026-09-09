@@ -1231,7 +1231,7 @@ BEGIN
   IF s.adopted_from_id IS DISTINCT FROM (SELECT v FROM pg_id WHERE k='ref_set') THEN
     RAISE EXCEPTION 'FAIL PROG-48: the bound package was not produced by adopting the reference package'; END IF;
 
-  SELECT detail INTO ev FROM public.supervisory_policy_profile_event
+  SELECT detail INTO evres FROM public.supervisory_policy_profile_event
    WHERE profile_id=pid AND event_type='COMPONENT_ADOPTED'
      AND detail->>'component_type'='ASSESSMENT_PROGRAMME' LIMIT 1;
   IF (evres->>'via') <> 'supervisory_assessment_programme_adopt_reference' THEN
