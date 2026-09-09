@@ -47,6 +47,18 @@ const typeHint = (row: AssessmentFactRow): string => {
   return 'Enter the recorded value.';
 };
 
+/**
+ * The value the platform proposed, exactly as the platform recorded it. This is
+ * never recomputed here: it is kept so the officer's change and the original
+ * proposal are both visible.
+ */
+const proposedValue = (row: AssessmentFactRow): string | null => {
+  const sv = row.system_value;
+  if (!sv || typeof sv !== 'object') return null;
+  const v = (sv as Record<string, unknown>).value;
+  return v == null ? null : String(v);
+};
+
 export function AmlFactRegisterPanel({ assessmentId, editable }: Props) {
   const { data, isLoading } = useAssessmentFactRegister(assessmentId);
   const [target, setTarget] = useState<AssessmentFactRow | null>(null);
@@ -105,6 +117,11 @@ export function AmlFactRegisterPanel({ assessmentId, editable }: Props) {
                   ) : (
                     <p className="mt-1 text-xs text-muted-foreground">{r.description || 'Not recorded yet.'}</p>
                   )}
+                  {r.officer_overridden ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Platform proposed: {proposedValue(r) ?? 'not stated'} · officer value: {r.value ?? '—'}
+                    </p>
+                  ) : null}
                   {r.officer_overridden && r.override_reason ? (
                     <p className="mt-1 text-xs text-muted-foreground">Change explained: {r.override_reason}</p>
                   ) : null}
@@ -263,7 +280,13 @@ function FactDialog({
         </div>
 
         <DialogFooter>
-          <Button data-rbac="aml_supervision.edit" type="button" size="sm" disabled={busy} onClick={submit}>
+          <Button
+            data-rbac="aml_supervision.edit"
+            type="button"
+            size="sm"
+            disabled={busy || (overriding && !reason.trim())}
+            onClick={submit}
+          >
             {busy ? 'Saving…' : overriding ? 'Record my value' : 'Record fact'}
           </Button>
         </DialogFooter>
