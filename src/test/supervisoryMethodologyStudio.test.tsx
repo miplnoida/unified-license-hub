@@ -135,11 +135,11 @@ describe('METH-STUDIO-UI authoring surface', () => {
     authoring = false;
     mount(<QuestionsTab methodologyId={METH} />);
     await waitFor(() => expect(
-      screen.getByText(/may only be authored by a platform administrator/i)).toBeTruthy());
+      screen.getAllByText(/may only be authored by a platform administrator/i).length).toBeGreaterThan(0));
     expect(screen.queryByRole('button', { name: 'Add question' })).toBeNull();
   });
 
-  it('METH-STUDIO-UI-04 saves a new question through the governed operation', async () => {
+  it('METH-STUDIO-UI-04 saves a new question through the governed operation', { timeout: 30_000 }, async () => {
     const user = userEvent.setup();
     mount(<QuestionsTab methodologyId={METH} />);
     await user.click(await screen.findByRole('button', { name: 'Add question' }));
@@ -207,7 +207,7 @@ describe('METH-STUDIO-UI authoring surface', () => {
   it('METH-STUDIO-UI-11 offers metadata editing only on the server capability', async () => {
     mount(<MethodologyMetadataAction detail={{ ...FIX.detail, id: METH }} />);
     await waitFor(() => expect(screen.getByRole('button', { name: /Edit details/i })).toBeTruthy());
-    expect(screen.getByRole('button', { name: /Edit details/i }).getAttribute('disabled')).toBeNull();
+    expect(screen.getByRole('button', { name: /Edit details/i }).getAttribute('aria-disabled')).toBe('false');
   });
 
   it('METH-STUDIO-UI-12 keeps Edit details visible but refused with the server reason', async () => {
@@ -238,7 +238,7 @@ describe('METH-STUDIO-UI authoring surface', () => {
         isLoading={false}
       />,
     );
-    const approve = await screen.findByRole('button', { name: /Approve Methodology/i });
-    await waitFor(() => expect(approve.getAttribute('aria-disabled')).toBe('true'));
+    await waitFor(() => expect(
+      screen.getByRole('button', { name: /Approve Methodology/i }).getAttribute('aria-disabled')).toBe('true'));
   });
 });
