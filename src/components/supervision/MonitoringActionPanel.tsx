@@ -86,7 +86,7 @@ function ActionRow({
         </div>
         <div className="shrink-0">
           {action.kind === 'COMMAND' ? (
-            <Button size="sm" disabled={!action.allowed || busy} onClick={() => onRun(action)}>
+            <Button size="sm" data-rbac="supervisory_spine.workflow_action" disabled={!action.allowed || busy} onClick={() => onRun(action)}>
               {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden /> : null}
               Record
             </Button>

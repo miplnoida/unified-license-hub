@@ -174,6 +174,18 @@ export const SCOPED_ACTION_CLASSES: Array<{ file: string; kind: ActionClassKind;
   // AML-04: appends an empty condition row to the unsaved rule draft inside the
   // authoring dialog. The governed write is "Save rule", which carries data-rbac.
   { file: "src/components/admin/supervisory-methodology/studio/QuestionRuleSection.tsx", kind: 'non-mutating', labels: ["add condition"] },
+  // AML baseline stabilisation: appends an empty response/meaning row to the
+  // unsaved semantic-profile draft. The governed write is the dialog's save.
+  { file: "src/components/admin/supervisory-methodology/studio/SemanticProfileEditorDialog.tsx", kind: 'non-mutating', labels: ["add a response"] },
+  // Re-runs the read-only structural validation query; changes nothing.
+  { file: "src/components/admin/supervisory-methodology/tabs/ValidationTab.tsx", kind: 'non-mutating', labels: ["re-run"] },
+  // Navigation back to the policy-profile register.
+  { file: "src/pages/admin/SupervisoryPolicyProfileDetail.tsx", kind: 'non-mutating', labels: ["all policy profiles"] },
+  // Opens the read-only next-steps panel; each governed command inside it is
+  // marked separately in MonitoringActionPanel.
+  { file: "src/pages/supervision/ContinuousMonitoring.tsx", kind: 'non-mutating', labels: ["next steps"] },
+  // Read-only drill-down: theme evidence drawer and entity navigation.
+  { file: "src/pages/supervision/PortfolioIntelligence.tsx", kind: 'non-mutating', labels: ["evidence", "entity"] },
   { file: "src/components/entity-detail/Entity360Header.tsx", kind: 'non-mutating', labels: ["public register", "structure workspace"] },
   { file: "src/components/entity-detail/Entity360TimelinePanel.tsx", kind: 'non-mutating', labels: ["show all domains"] },
   { file: "src/components/form-builder/VersionDiffViewer.tsx", kind: 'non-mutating', labels: ["list", "side by side"] },

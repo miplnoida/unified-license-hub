@@ -144,10 +144,10 @@ export default function SupervisoryAssessmentProgrammeDetailPage() {
           {actionButton('ACTIVATE', c?.can_activate)}
           {actionButton('RETIRE', c?.can_retire)}
           {c?.can_new_version ? (
-            <Button size="sm" variant="outline" onClick={() => setVersionOpen(true)}>New version</Button>
+            <Button size="sm" variant="outline" data-rbac="aml_supervision.manage_config" onClick={() => setVersionOpen(true)}>New version</Button>
           ) : null}
           {c?.can_adopt ? (
-            <Button size="sm" variant="outline" onClick={() => setAdoptOpen(true)}>Adopt for my regulator</Button>
+            <Button size="sm" variant="outline" data-rbac="aml_supervision.manage_config" onClick={() => setAdoptOpen(true)}>Adopt for my regulator</Button>
           ) : null}
         </span>
       </div>
@@ -188,7 +188,7 @@ export default function SupervisoryAssessmentProgrammeDetailPage() {
         <TabsContent value="programmes" className="space-y-3 pt-3">
           {editable ? (
             <div className="flex justify-end">
-              <Button size="sm" onClick={() => setProgrammeEditor({ open: true, programme: null })}>
+              <Button size="sm" data-rbac="aml_supervision.manage_config" onClick={() => setProgrammeEditor({ open: true, programme: null })}>
                 Add programme
               </Button>
             </div>
@@ -206,12 +206,12 @@ export default function SupervisoryAssessmentProgrammeDetailPage() {
                   {!p.is_active || p.retired_at ? <Badge variant="secondary">Retired</Badge> : null}
                   {editable ? (
                     <span className="ml-auto flex gap-2">
-                      <Button size="sm" variant="outline"
+                      <Button size="sm" variant="outline" data-rbac="aml_supervision.manage_config"
                         onClick={() => setProgrammeEditor({ open: true, programme: p })}>
                         Edit programme
                       </Button>
                       {!p.retired_at ? (
-                        <Button size="sm" variant="outline" onClick={() => setRetiring(p)}>Retire</Button>
+                        <Button size="sm" variant="outline" data-rbac="aml_supervision.manage_config" onClick={() => setRetiring(p)}>Retire</Button>
                       ) : null}
                     </span>
                   ) : null}
@@ -240,7 +240,7 @@ export default function SupervisoryAssessmentProgrammeDetailPage() {
                   <p className="mb-2 flex items-center gap-2 text-sm font-medium">
                     Triggers accepted
                     {editable ? (
-                      <Button size="sm" variant="ghost" className="ml-auto"
+                      <Button size="sm" variant="ghost" className="ml-auto" data-rbac="aml_supervision.manage_config"
                         onClick={() => setTriggerEditor({ open: true, programme: p, trigger: null })}>
                         Add trigger
                       </Button>
@@ -259,11 +259,11 @@ export default function SupervisoryAssessmentProgrammeDetailPage() {
                           {t.requires_signal ? <span className="text-xs text-muted-foreground">Signal required</span> : null}
                           {editable ? (
                             <span className="ml-auto flex gap-1">
-                              <Button size="sm" variant="ghost"
+                              <Button size="sm" variant="ghost" data-rbac="aml_supervision.manage_config"
                                 onClick={() => setTriggerEditor({ open: true, programme: p, trigger: t })}>
                                 Edit
                               </Button>
-                              <Button size="sm" variant="ghost"
+                              <Button size="sm" variant="ghost" data-rbac="aml_supervision.manage_config"
                                 onClick={() => setRemoving({ programme: p, trigger: t })}>
                                 Remove
                               </Button>

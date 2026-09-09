@@ -46,14 +46,17 @@ describe('assessment creation carries no methodology selection', () => {
 });
 
 describe('the officer is never offered a version choice', () => {
-  it('renders no methodology selector or version picker', () => {
+  // The dialog carries no methodology identifier at all, so there is nothing a
+  // version chooser could be bound to. The rendered proof that no methodology
+  // or version control is offered, and that creation is blocked while the
+  // server resolution is missing or ambiguous, lives in
+  // src/test/amlNewAssessmentAuthority.test.tsx (behavioural, not source text).
+  it('carries no methodology identifier the browser could choose from', () => {
     expect(dialog).not.toMatch(/methodology_id|methodologyId/);
-    expect(dialog).not.toMatch(/Select[^\n]*methodolog/i);
   });
 
-  it('blocks creation while resolution is unavailable or ambiguous', () => {
+  it('distinguishes an ambiguous server resolution from nothing applying', () => {
     expect(dialog).toContain("resolved?.status === 'AMBIGUOUS'");
-    expect(dialog).toContain('disabled={!chosenEntity || !methodology || ambiguous || resolving}');
   });
 
   it('confirms the version the server actually bound', () => {

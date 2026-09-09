@@ -170,7 +170,7 @@ export function ProgrammeSetCreateAction({ onCreated }: { onCreated?: (id: strin
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button disabled={!ready || create.isPending} onClick={submit}>Create package</Button>
+            <Button data-rbac="aml_supervision.manage_config" disabled={!ready || create.isPending} onClick={submit}>Create package</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -213,7 +213,7 @@ export function ProgrammeSetMetadataAction({ set }: { set: ProgrammeSetDetail['s
 
   return (
     <>
-      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>Edit details</Button>
+      <Button size="sm" variant="outline" data-rbac="aml_supervision.manage_config" onClick={() => setOpen(true)}>Edit details</Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
@@ -257,7 +257,7 @@ export function ProgrammeSetMetadataAction({ set }: { set: ProgrammeSetDetail['s
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button disabled={f.name.trim() === '' || save.isPending} onClick={submit}>Save details</Button>
+            <Button data-rbac="aml_supervision.manage_config" disabled={f.name.trim() === '' || save.isPending} onClick={submit}>Save details</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

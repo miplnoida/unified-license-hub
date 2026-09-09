@@ -254,7 +254,7 @@ export default function DetectionGovernance() {
               <RefreshCw className={`mr-2 h-4 w-4 ${register.isFetching ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <Button size="sm" onClick={onRun} disabled={run.isPending}>
+            <Button size="sm" data-rbac="supervisory_spine.workflow_action" onClick={onRun} disabled={run.isPending}>
               <PlayCircle className={`mr-2 h-4 w-4 ${run.isPending ? 'animate-pulse' : ''}`} />
               Run detection now
             </Button>

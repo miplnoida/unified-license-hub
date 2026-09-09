@@ -86,6 +86,11 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 
+/* One user-event session per interaction with no artificial inter-event delay:
+ * the default API schedules a macrotask between keystrokes, which pushed these
+ * heavy register renders past the five-second budget under full-suite load. */
+const ue = () => userEvent.setup({ delay: null, pointerEventsCheck: 0 });
+
 const argsOf = (fn: string) => calls.filter((c) => c.fn === fn).map((c) => c.args);
 const lastArgs = (fn: string) => argsOf(fn).at(-1);
 
@@ -166,15 +171,18 @@ describe('UI-METH-02 no direct governance-table reads', () => {
   });
 });
 
+/* The question register renders a full bounded page of governed rows; each
+ * interaction below re-renders it in jsdom and legitimately needs more than the
+ * five-second default under full-suite load. Assertions are unchanged. */
 describe('UI-METH-03 server pagination', () => {
-  it('asks the server for one bounded page and moves the offset', async () => {
+  it('asks the server for one bounded page and moves the offset', { timeout: 20_000 }, async () => {
     await mountDetailTab(<QuestionsTab methodologyId={MID} />);
     await waitFor(() => expect(lastArgs('supervisory_methodology_question_register')).toBeTruthy());
     expect(lastArgs('supervisory_methodology_question_register')._limit).toBe(25);
     expect(lastArgs('supervisory_methodology_question_register')._offset).toBe(0);
 
     const next = await screen.findByRole('button', { name: /next/i });
-    await userEvent.click(next);
+    await ue().click(next);
     await waitFor(() =>
       expect(lastArgs('supervisory_methodology_question_register')._offset).toBe(25),
     );
@@ -183,16 +191,16 @@ describe('UI-METH-03 server pagination', () => {
 });
 
 describe('UI-METH-04 sort cycle', () => {
-  it('cycles a sortable column through the server sort contract', async () => {
+  it('cycles a sortable column through the server sort contract', { timeout: 20_000 }, async () => {
     await mountDetailTab(<QuestionsTab methodologyId={MID} />);
     const header = await screen.findByRole('button', { name: /^Class:/i });
-    await userEvent.click(header);
+    await ue().click(header);
     await waitFor(() => {
       const a = lastArgs('supervisory_methodology_question_register');
       expect(a._sort).toBe('class');
       expect(a._dir).toBe('asc');
     });
-    await userEvent.click(await screen.findByRole('button', { name: /^Class:/i }));
+    await ue().click(await screen.findByRole('button', { name: /^Class:/i }));
     await waitFor(
       () => expect(lastArgs('supervisory_methodology_question_register')._dir).toBe('desc'),
       { timeout: 4000 },
@@ -201,17 +209,17 @@ describe('UI-METH-04 sort cycle', () => {
 });
 
 describe('UI-METH-05 filters and search reach the server', () => {
-  it('sends search text and a filter value as RPC arguments', async () => {
+  it('sends search text and a filter value as RPC arguments', { timeout: 20_000 }, async () => {
     await mountDetailTab(<QuestionsTab methodologyId={MID} />);
     const search = await screen.findByPlaceholderText(/Search question code or prompt/i);
-    await userEvent.type(search, 'IR-GEO');
+    await ue().type(search, 'IR-GEO');
     await waitFor(
       () => expect(lastArgs('supervisory_methodology_question_register')._search).toBe('IR-GEO'),
       { timeout: 4000 },
     );
 
-    await userEvent.click(screen.getByLabelText('Question class'));
-    await userEvent.click(await screen.findByRole('option', { name: 'CONDITIONAL' }));
+    await ue().click(screen.getByLabelText('Question class'));
+    await ue().click(await screen.findByRole('option', { name: 'CONDITIONAL' }));
     await waitFor(() =>
       expect(lastArgs('supervisory_methodology_question_register')._question_class).toBe('CONDITIONAL'),
     );
@@ -238,10 +246,10 @@ describe('UI-METH-07 seventy live v1.1 questions', () => {
 });
 
 describe('UI-METH-08 question detail drawer', () => {
-  it('opens one question from the server detail model', async () => {
+  it('opens one question from the server detail model', { timeout: 20_000 }, async () => {
     await mountDetailTab(<QuestionsTab methodologyId={MID} />);
     const view = await screen.findAllByRole('button', { name: /^View$/ });
-    await userEvent.click(view[0]);
+    await ue().click(view[0]);
     await waitFor(() => expect(argsOf('supervisory_methodology_question_detail').length).toBe(1));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText(FIX.question_detail.question_code)).toBeTruthy();
@@ -253,7 +261,7 @@ describe('UI-METH-09 IR-GEO-03 semantics are rendered truthfully', () => {
     expect(FIX.question_detail.question_code).toBe('IR-GEO-03');
     expect(FIX.question_detail.calculation_participation).toBe('CONTEXTUAL_NOT_SCORED');
     await mountDetailTab(<QuestionsTab methodologyId={MID} />);
-    await userEvent.click((await screen.findAllByRole('button', { name: /^View$/ }))[0]);
+    await ue().click((await screen.findAllByRole('button', { name: /^View$/ }))[0]);
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getAllByText(/Contextual, not scored|Contextual not scored/i).length).toBeGreaterThan(0);
     expect(within(dialog).queryByText('CONTEXTUAL_NOT_SCORED')).toBeNull();
@@ -328,7 +336,7 @@ describe('UI-METH-15 layered readiness', () => {
 describe('UI-METH-16 regulator-scoped adoption targets', () => {
   it('offers only the regulators the server returned', async () => {
     wrap(<MethodologyActionBar methodology={FIX.detail} capabilities={FIX.capabilities} isLoading={false} />);
-    await userEvent.click(await screen.findByRole('button', { name: /adopt/i }));
+    await ue().click(await screen.findByRole('button', { name: /adopt/i }));
     await waitFor(() => expect(argsOf('supervisory_methodology_adoption_targets').length).toBe(1));
     const dialog = await screen.findByRole('dialog');
     const rows = FIX.adoption_targets.rows;
@@ -340,7 +348,7 @@ describe('UI-METH-16 regulator-scoped adoption targets', () => {
       expect(within(dialog).getByTestId('adopt-sole-regulator')).toHaveTextContent(rows[0].name);
       expect(within(dialog).queryByLabelText('Regulator')).toBeNull();
     } else {
-      await userEvent.click(within(dialog).getByLabelText('Regulator'));
+      await ue().click(within(dialog).getByLabelText('Regulator'));
       const options = await screen.findAllByRole('option');
       expect(options).toHaveLength(rows.length);
       for (const r of rows) {
@@ -366,7 +374,7 @@ describe('UI-METH-17 assessment approval is not methodology approval', () => {
     wrap(<MethodologyActionBar methodology={FIX.detail} capabilities={capabilitiesOverride} isLoading={false} />);
     const approve = await screen.findByRole('button', { name: /approve/i });
     expect(approve).toBeDisabled();
-    await userEvent.setup({ pointerEventsCheck: 0 }).hover(approve.parentElement as HTMLElement);
+    await ue().hover(approve.parentElement as HTMLElement);
     expect((await screen.findAllByText(capabilitiesOverride.can_approve.reason)).length).toBeGreaterThan(0);
   });
 });
@@ -387,7 +395,7 @@ describe('UI-METH-18 maker/checker block reason', () => {
     wrap(<MethodologyActionBar methodology={FIX.detail} capabilities={capabilitiesOverride} isLoading={false} />);
     const approve = await screen.findByRole('button', { name: /approve/i });
     expect(approve).toBeDisabled();
-    await userEvent.setup({ pointerEventsCheck: 0 }).hover(approve.parentElement as HTMLElement);
+    await ue().hover(approve.parentElement as HTMLElement);
     expect((await screen.findAllByText(capabilitiesOverride.can_approve.reason)).length).toBeGreaterThan(0);
   });
 });

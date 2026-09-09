@@ -188,7 +188,7 @@ describe('UI-PLAN-07 NOT_APPLICABLE is never a scope state', () => {
 
 describe('UI-PLAN-08 the scope filters delegate to the server', () => {
   it('passes the chosen scope state to the plan RPC', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await mountPanel();
     await user.click(screen.getByLabelText('Filter by scope state'));
     await user.click(await screen.findByRole('option', { name: /not triggered/i }));
@@ -198,7 +198,7 @@ describe('UI-PLAN-08 the scope filters delegate to the server', () => {
 
 describe('UI-PLAN-09 search is a server argument', () => {
   it('sends the typed term to the plan RPC', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await mountPanel();
     await user.type(screen.getByLabelText('Search questions'), 'CORE');
     await waitFor(() =>
@@ -208,7 +208,7 @@ describe('UI-PLAN-09 search is a server argument', () => {
 
 describe('UI-PLAN-10 resolving the plan calls the governed materialisation RPC', () => {
   it('sends the assessment and the reason', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await mountPanel();
     await user.click(screen.getByRole('button', { name: /question plan$/i }));
     await user.type(await screen.findByLabelText(/^Reason/), 'Methodology version rebound after adoption');
@@ -220,7 +220,7 @@ describe('UI-PLAN-10 resolving the plan calls the governed materialisation RPC',
 
 describe('UI-PLAN-11 a scope override requires a justification and a governed RPC', () => {
   it('refuses a short reason and then calls the override RPC', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     await mountPanel('draft');
     const row = FIX.plan.rows[0];
     const cell = (await screen.findByText(row.question_code)).closest('tr')!;
@@ -263,7 +263,7 @@ describe('UI-PLAN-13 an unmaterialised legacy plan is stated, never invented', (
 
 describe('UI-PLAN-14 Studio rule authoring uses only the server vocabulary', () => {
   it('renders the captured rule and saves through the governed RPC', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     wrap(
       <QuestionRuleSection
         methodologyId={METHODOLOGY}
@@ -334,7 +334,7 @@ describe('UI-PLAN-16 the frontend holds no applicability policy', () => {
 
 describe('UI-PLAN-17 a newly created assessment plan arrives without a page reload', () => {
   it('re-reads the governed plan after a governed resolve, and never reloads the browser', async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    const user = userEvent.setup({ delay: null, pointerEventsCheck: 0 });
     await mountPanel();
     const before = argsOf('supervisory_assessment_question_plan').length;
 
