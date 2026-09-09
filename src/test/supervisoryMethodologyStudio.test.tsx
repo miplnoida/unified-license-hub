@@ -88,7 +88,15 @@ vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     rpc: (fn: string, args: any) => {
       calls.push({ fn, args });
-      return Promise.resolve({ data: respond(fn), error: null });
+      const data = respond(fn);
+      // The server refuses some operations; the screen must show its wording.
+      if (data === 'REFUSE') {
+        return Promise.resolve({
+          data: null,
+          error: { message: '6 active question(s) still belong to this dimension' },
+        });
+      }
+      return Promise.resolve({ data, error: null });
     },
     from: () => {
       throw new Error('METH-STUDIO: the studio must not read or write tables directly');
