@@ -179,6 +179,7 @@ export function PolicyProfileActionBar({
                 </SelectContent>
               </Select>
             </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="pp-adopt-rationale">Adoption rationale</Label>
               <Textarea id="pp-adopt-rationale" rows={3} value={rationale} onChange={(e) => setRationale(e.target.value)}
