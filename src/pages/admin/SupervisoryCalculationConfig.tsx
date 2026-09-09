@@ -34,6 +34,10 @@ import {
   riskScaleCodes, controlScaleCodes, calcErrorMessage, supervisoryDomainModule,
   type CalculationConfig, type ResponseScoreRow, type BandRow, type MatrixCell,
 } from '@/hooks/useSupervisoryCalculationConfig';
+import { QuestionParticipationEditor } from '@/components/admin/calculation/QuestionParticipationEditor';
+import { DimensionPolicyEditor } from '@/components/admin/calculation/DimensionPolicyEditor';
+import { FactTransformEditor } from '@/components/admin/calculation/FactTransformEditor';
+import { MaterialityEditor } from '@/components/admin/calculation/MaterialityEditor';
 
 
 // Option lists mirror the server contract exactly (see the CHECK constraints on
@@ -354,6 +358,10 @@ export default function SupervisoryCalculationConfig() {
                 <TabsList className="flex-wrap">
                   <TabsTrigger value="parameters">Parameters</TabsTrigger>
                   <TabsTrigger value="responses">Response scoring</TabsTrigger>
+                  <TabsTrigger value="questions">Question participation</TabsTrigger>
+                  <TabsTrigger value="dimensions">Dimension policy</TabsTrigger>
+                  <TabsTrigger value="facts">Fact transformation</TabsTrigger>
+                  <TabsTrigger value="materiality">Materiality</TabsTrigger>
                   <TabsTrigger value="bands">Bands</TabsTrigger>
                   <TabsTrigger value="matrix">Residual matrix</TabsTrigger>
                   <TabsTrigger value="history">History</TabsTrigger>
@@ -478,6 +486,22 @@ export default function SupervisoryCalculationConfig() {
                       <Save className="h-4 w-4 mr-2" />Save response scoring
                     </Button>
                   )}
+                </TabsContent>
+
+                <TabsContent value="questions" className="pt-4">
+                  <QuestionParticipationEditor configId={config.id} methodologyId={config.methodology_id} canEdit={canEdit} />
+                </TabsContent>
+
+                <TabsContent value="dimensions" className="pt-4">
+                  <DimensionPolicyEditor configId={config.id} methodologyId={config.methodology_id} canEdit={canEdit} />
+                </TabsContent>
+
+                <TabsContent value="facts" className="pt-4">
+                  <FactTransformEditor configId={config.id} methodologyId={config.methodology_id} canEdit={canEdit} bandCodes={risk} />
+                </TabsContent>
+
+                <TabsContent value="materiality" className="pt-4">
+                  <MaterialityEditor configId={config.id} methodologyId={config.methodology_id} canEdit={canEdit} bandCodes={risk} />
                 </TabsContent>
 
                 <TabsContent value="bands" className="space-y-6 pt-4">

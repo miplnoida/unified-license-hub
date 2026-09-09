@@ -44641,7 +44641,7 @@ export type Database = {
           policy_snapshot: Json
           programme_id: string | null
           programme_version: string | null
-          question_plan_version: number | null
+          question_plan_version: string | null
           reason: string | null
           reason_code: string | null
           recommended_rating: string | null
@@ -44673,7 +44673,7 @@ export type Database = {
           policy_snapshot?: Json
           programme_id?: string | null
           programme_version?: string | null
-          question_plan_version?: number | null
+          question_plan_version?: string | null
           reason?: string | null
           reason_code?: string | null
           recommended_rating?: string | null
@@ -44705,7 +44705,7 @@ export type Database = {
           policy_snapshot?: Json
           programme_id?: string | null
           programme_version?: string | null
-          question_plan_version?: number | null
+          question_plan_version?: string | null
           reason?: string | null
           reason_code?: string | null
           recommended_rating?: string | null

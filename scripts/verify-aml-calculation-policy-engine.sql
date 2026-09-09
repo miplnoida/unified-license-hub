@@ -87,16 +87,26 @@ SELECT rs.id, 'regulator', (SELECT v FROM c_id WHERE k='regulator')
   JOIN public.sec_roles r ON r.id = rs.role_id AND r.key='aml_head'
   JOIN public.sec_modules m ON m.id = rs.module_id AND m.key='aml_supervision';
 
--- Fixture methodology (ACTIVE, sector + regulator scoped) with a 5-point scale.
+-- Fixture methodology (ACTIVE, sector + regulator scoped).
+--
+-- The fixture publishes BOTH vocabularies the calculation contract depends on:
+--   * the inherent-risk scale, in `scoring_scale` (code / label / ordinal), which
+--     is also the vocabulary residual ratings must come from;
+--   * the control-effectiveness scale, in `definition->control_scale`, which is a
+--     plain array of codes.
+-- Every band code and matrix cell below uses only codes these two scales publish.
+-- Both scales are synthetic AML06CERT certification content: they are rolled back
+-- and are not approved operational supervisory policy.
 INSERT INTO public.supervisory_methodology(
   id, code, domain_code, name, version, status, sector_id, regulator_id,
-  effective_from, origin, title, scoring_scale)
+  effective_from, origin, title, scoring_scale, definition)
 VALUES (gen_random_uuid(), 'AML06CERT-METH', 'AML_CFT', 'AML06CERT calculation fixture', '1.0',
   'ACTIVE', (SELECT v FROM c_id WHERE k='sector'), (SELECT v FROM c_id WHERE k='regulator'),
   current_date - 1, 'REGULATOR_AUTHORED', 'AML06CERT calculation fixture',
   '[{"code":"LOW","label":"Low","ordinal":1},{"code":"MODERATE","label":"Moderate","ordinal":2},
     {"code":"MEDIUM_HIGH","label":"Medium-High","ordinal":3},{"code":"HIGH","label":"High","ordinal":4},
-    {"code":"SEVERE","label":"Severe","ordinal":5}]'::jsonb);
+    {"code":"SEVERE","label":"Severe","ordinal":5}]'::jsonb,
+  '{"control_scale":["WEAK","STRONG"]}'::jsonb);
 INSERT INTO c_id(k,v) SELECT 'meth', id FROM public.supervisory_methodology WHERE code='AML06CERT-METH';
 
 INSERT INTO public.supervisory_methodology_dimension(
@@ -322,18 +332,32 @@ BEGIN
     jsonb_build_object('response_code','NO','score',100,'sort_order',3),
     jsonb_build_object('response_code','NOT_APPLICABLE','excluded_from_denominator',true,'sort_order',4)));
 
+  -- Bands must cover EVERY code the fixture scales publish, start at 0, be
+  -- contiguous and reach 100. Inherent bands therefore carry all five risk codes
+  -- in ordinal order; control bands carry both control codes.
   PERFORM public.supervisory_calculation_bands_set((SELECT v FROM c_id WHERE k='cfg'),'INHERENT', jsonb_build_array(
-    jsonb_build_object('band_code','LOW','min_score',0,'max_score',50,'sort_order',1),
-    jsonb_build_object('band_code','HIGH','min_score',50,'max_score',100,'sort_order',2)));
+    jsonb_build_object('band_code','LOW','min_score',0,'max_score',20,'sort_order',1),
+    jsonb_build_object('band_code','MODERATE','min_score',20,'max_score',40,'sort_order',2),
+    jsonb_build_object('band_code','MEDIUM_HIGH','min_score',40,'max_score',60,'sort_order',3),
+    jsonb_build_object('band_code','HIGH','min_score',60,'max_score',80,'sort_order',4),
+    jsonb_build_object('band_code','SEVERE','min_score',80,'max_score',100,'sort_order',5)));
   PERFORM public.supervisory_calculation_bands_set((SELECT v FROM c_id WHERE k='cfg'),'CONTROL', jsonb_build_array(
     jsonb_build_object('band_code','WEAK','min_score',0,'max_score',50,'sort_order',1),
     jsonb_build_object('band_code','STRONG','min_score',50,'max_score',100,'sort_order',2)));
 
+  -- The residual matrix must publish every inherent x control combination
+  -- (5 x 2 = 10 cells); each residual rating is a code from the inherent scale.
   PERFORM public.supervisory_calculation_matrix_set((SELECT v FROM c_id WHERE k='cfg'), jsonb_build_array(
     jsonb_build_object('inherent_band','LOW','control_band','WEAK','residual_rating','MODERATE'),
     jsonb_build_object('inherent_band','LOW','control_band','STRONG','residual_rating','LOW'),
+    jsonb_build_object('inherent_band','MODERATE','control_band','WEAK','residual_rating','MEDIUM_HIGH'),
+    jsonb_build_object('inherent_band','MODERATE','control_band','STRONG','residual_rating','LOW'),
+    jsonb_build_object('inherent_band','MEDIUM_HIGH','control_band','WEAK','residual_rating','HIGH'),
+    jsonb_build_object('inherent_band','MEDIUM_HIGH','control_band','STRONG','residual_rating','MODERATE'),
     jsonb_build_object('inherent_band','HIGH','control_band','WEAK','residual_rating','HIGH'),
-    jsonb_build_object('inherent_band','HIGH','control_band','STRONG','residual_rating','MEDIUM_HIGH')));
+    jsonb_build_object('inherent_band','HIGH','control_band','STRONG','residual_rating','MEDIUM_HIGH'),
+    jsonb_build_object('inherent_band','SEVERE','control_band','WEAK','residual_rating','HIGH'),
+    jsonb_build_object('inherent_band','SEVERE','control_band','STRONG','residual_rating','HIGH')));
 
   n := public.supervisory_calculation_question_weights_set((SELECT v FROM c_id WHERE k='cfg'), jsonb_build_array(
     jsonb_build_object('question_code','AML06CERT_Q_I1','participation','SCORED','weight',3),
@@ -466,6 +490,135 @@ BEGIN
   RAISE NOTICE 'PASS POLICY-08: the engine receives response scoring, weights, fact rules, thresholds and materiality';
 END $$;
 
+-- POLICY-09 — the rating vocabulary contract is enforced, not assumed.
+--   A deliberately invalid secondary fixture proves that:
+--     (a) an inherent band code the methodology does not publish is refused;
+--     (b) a control band code the methodology does not publish is refused;
+--     (c) a methodology that publishes no control-effectiveness scale cannot validate;
+--     (d) incomplete residual-matrix coverage is refused.
+--   The valid AML06CERT policy above is untouched and continues through the
+--   remaining gates.
+DO $$
+DECLARE bad_meth uuid; bad_cfg uuid; vres jsonb; probs text; refused boolean;
+BEGIN
+  -- (c) a methodology with a risk scale but NO control scale
+  INSERT INTO public.supervisory_methodology(
+    id, code, domain_code, name, version, status, sector_id, regulator_id,
+    effective_from, origin, title, scoring_scale, definition)
+  VALUES (gen_random_uuid(),'AML06CERT-METH-NOCTRL','AML_CFT','AML06CERT no-control-scale fixture','1.0',
+    'ACTIVE',(SELECT v FROM c_id WHERE k='sector'),(SELECT v FROM c_id WHERE k='regulator'),
+    current_date - 1,'REGULATOR_AUTHORED','AML06CERT no-control-scale fixture',
+    '[{"code":"LOW","label":"Low","ordinal":1},{"code":"HIGH","label":"High","ordinal":2}]'::jsonb,
+    '{}'::jsonb)
+  RETURNING id INTO bad_meth;
+  INSERT INTO c_id(k,v) VALUES ('bad_meth', bad_meth);
+
+  SET LOCAL ROLE authenticated;
+  PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
+  bad_cfg := public.supervisory_calculation_config_upsert(bad_meth, jsonb_build_object(
+    'effective_from', (current_date - 1)::text,
+    'aggregation_method','UNWEIGHTED_MEAN','min_answered_questions',1,
+    'na_denominator_handling','EXCLUDE','evidence_insufficiency_handling','FLAG_ONLY',
+    'critical_question_handling','NONE','rounding_mode','HALF_UP','rounding_decimals',2,
+    'inherent_direction','DIRECT','recommendation_policy','WEIGHTED_SCORE'));
+  INSERT INTO c_id(k,v) VALUES ('bad_cfg', bad_cfg);
+
+  -- (a) an inherent band code outside the published risk scale
+  PERFORM public.supervisory_calculation_bands_set(bad_cfg,'INHERENT', jsonb_build_array(
+    jsonb_build_object('band_code','LOW','min_score',0,'max_score',50,'sort_order',1),
+    jsonb_build_object('band_code','AML06CERT_NOT_A_RATING','min_score',50,'max_score',100,'sort_order',2)));
+  -- (b) a control band code, on a methodology publishing no control scale at all
+  PERFORM public.supervisory_calculation_bands_set(bad_cfg,'CONTROL', jsonb_build_array(
+    jsonb_build_object('band_code','AML06CERT_NOT_A_CONTROL_GRADE','min_score',0,'max_score',100,'sort_order',1)));
+  -- (d) a single matrix cell, far short of full coverage
+  PERFORM public.supervisory_calculation_matrix_set(bad_cfg, jsonb_build_array(
+    jsonb_build_object('inherent_band','LOW','control_band','AML06CERT_NOT_A_CONTROL_GRADE','residual_rating','LOW')));
+  RESET ROLE;
+
+  vres := public.supervisory_calculation_config_validate(bad_cfg);
+  probs := vres->>'problems';
+  IF (vres->>'ok')::boolean THEN
+    RAISE EXCEPTION 'FAIL POLICY-09: an invalid vocabulary policy validated cleanly';
+  END IF;
+  IF probs NOT LIKE '%inherent bands use a code outside the published vocabulary%' THEN
+    RAISE EXCEPTION 'FAIL POLICY-09(a): an unknown inherent rating code was not refused: %', probs; END IF;
+  IF probs NOT LIKE '%no control effectiveness scale%' THEN
+    RAISE EXCEPTION 'FAIL POLICY-09(c): a methodology with no control scale still validated: %', probs; END IF;
+  -- Residual-matrix coverage cannot be judged at all on this methodology: with no
+  -- published control vocabulary there is no complete grid to compare against, so
+  -- the validator correctly reports the missing scale first. Matrix coverage is
+  -- certified in POLICY-09C, on the methodology that publishes both scales.
+
+  -- the invalid policy can never be submitted for approval
+  refused := false;
+  SET LOCAL ROLE authenticated;
+  PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
+  BEGIN
+    PERFORM public.supervisory_calculation_config_lifecycle(bad_cfg,'REVIEW','AML06CERT invalid vocabulary submission');
+  EXCEPTION WHEN others THEN refused := true; END;
+  RESET ROLE;
+  IF NOT refused THEN
+    RAISE EXCEPTION 'FAIL POLICY-09: a policy using unpublished rating codes was allowed into review'; END IF;
+
+  RAISE NOTICE 'PASS POLICY-09: an unpublished inherent rating code and a methodology publishing no control-effectiveness scale are both refused, and the policy cannot enter review';
+END $$;
+
+-- POLICY-09B — a control band code outside a PUBLISHED control scale is refused
+--              (the valid fixture methodology publishes WEAK/STRONG).
+DO $$
+DECLARE cfg2 uuid; vres jsonb;
+BEGIN
+  SET LOCAL ROLE authenticated;
+  PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
+  cfg2 := public.supervisory_calculation_config_upsert((SELECT v FROM c_id WHERE k='meth'), jsonb_build_object(
+    'effective_from', (current_date + 30)::text,
+    'aggregation_method','UNWEIGHTED_MEAN','min_answered_questions',1,
+    'na_denominator_handling','EXCLUDE','evidence_insufficiency_handling','FLAG_ONLY',
+    'critical_question_handling','NONE','rounding_mode','HALF_UP','rounding_decimals',2,
+    'inherent_direction','DIRECT','recommendation_policy','WEIGHTED_SCORE'));
+  PERFORM public.supervisory_calculation_bands_set(cfg2,'CONTROL', jsonb_build_array(
+    jsonb_build_object('band_code','ADEQUATE','min_score',0,'max_score',100,'sort_order',1)));
+  RESET ROLE;
+  INSERT INTO c_id(k,v) VALUES ('cfg2', cfg2);
+  vres := public.supervisory_calculation_config_validate(cfg2);
+  IF (vres->>'problems') NOT LIKE '%control bands use a code outside the published vocabulary%' THEN
+    RAISE EXCEPTION 'FAIL POLICY-09B: an unknown control-effectiveness code was accepted: %', vres->'problems';
+  END IF;
+  RAISE NOTICE 'PASS POLICY-09B: a control band code the methodology does not publish is refused';
+END $$;
+
+-- POLICY-09C — incomplete residual-matrix coverage is refused on a methodology
+--              that publishes both vocabularies (5 risk x 2 control = 10 cells).
+DO $$
+DECLARE vres jsonb;
+BEGIN
+  SET LOCAL ROLE authenticated;
+  PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
+  PERFORM public.supervisory_calculation_bands_set((SELECT v FROM c_id WHERE k='cfg2'),'INHERENT', jsonb_build_array(
+    jsonb_build_object('band_code','LOW','min_score',0,'max_score',20,'sort_order',1),
+    jsonb_build_object('band_code','MODERATE','min_score',20,'max_score',40,'sort_order',2),
+    jsonb_build_object('band_code','MEDIUM_HIGH','min_score',40,'max_score',60,'sort_order',3),
+    jsonb_build_object('band_code','HIGH','min_score',60,'max_score',80,'sort_order',4),
+    jsonb_build_object('band_code','SEVERE','min_score',80,'max_score',100,'sort_order',5)));
+  PERFORM public.supervisory_calculation_bands_set((SELECT v FROM c_id WHERE k='cfg2'),'CONTROL', jsonb_build_array(
+    jsonb_build_object('band_code','WEAK','min_score',0,'max_score',50,'sort_order',1),
+    jsonb_build_object('band_code','STRONG','min_score',50,'max_score',100,'sort_order',2)));
+  -- only 2 of the 10 required cells
+  PERFORM public.supervisory_calculation_matrix_set((SELECT v FROM c_id WHERE k='cfg2'), jsonb_build_array(
+    jsonb_build_object('inherent_band','LOW','control_band','WEAK','residual_rating','MODERATE'),
+    jsonb_build_object('inherent_band','LOW','control_band','STRONG','residual_rating','LOW')));
+  RESET ROLE;
+  vres := public.supervisory_calculation_config_validate((SELECT v FROM c_id WHERE k='cfg2'));
+  IF (vres->>'ok')::boolean THEN
+    RAISE EXCEPTION 'FAIL POLICY-09C: a partial residual matrix validated cleanly'; END IF;
+  IF (vres->>'problems') NOT LIKE '%residual matrix%' THEN
+    RAISE EXCEPTION 'FAIL POLICY-09C: incomplete residual-matrix coverage was not refused: %', vres->'problems';
+  END IF;
+  RAISE NOTICE 'PASS POLICY-09C: a residual matrix that does not cover every published inherent x control combination is refused';
+END $$;
+
+
+
 -- ===================== SCORE / DIMCALC / bands ========================
 DO $$
 DECLARE r jsonb;
@@ -581,7 +734,8 @@ DO $$
 DECLARE r jsonb;
 BEGIN
   r := (SELECT t FROM c_t WHERE k='base')::jsonb;
-  IF r->>'inherent_band' <> 'HIGH' THEN
+  -- inherent score 100 falls in the top published band of the fixture scale
+  IF r->>'inherent_band' <> 'SEVERE' THEN
     RAISE EXCEPTION 'FAIL INHERENT-01: inherent band % with score %', r->>'inherent_band', r->>'inherent_score'; END IF;
   RAISE NOTICE 'PASS INHERENT-01: the inherent side aggregates to score % and band %', r->>'inherent_score', r->>'inherent_band';
   IF r->>'control_band' <> 'WEAK' THEN
@@ -721,13 +875,13 @@ DO $$
 DECLARE r jsonb;
 BEGIN
   DELETE FROM public.supervisory_calculation_matrix_cell
-   WHERE config_id=(SELECT v FROM c_id WHERE k='cfg') AND inherent_band='HIGH' AND control_band='WEAK';
+   WHERE config_id=(SELECT v FROM c_id WHERE k='cfg') AND inherent_band='SEVERE' AND control_band='WEAK';
   r := public.supervisory_calc_compute((SELECT v FROM c_id WHERE k='assessment'));
   IF r->>'status' <> 'NOT_CALCULABLE' OR r->>'reason_code' <> 'NO_MATRIX_CELL' THEN
     RAISE EXCEPTION 'FAIL RESIDUAL-03: a missing matrix cell produced % / %', r->>'status', r->>'reason_code';
   END IF;
   INSERT INTO public.supervisory_calculation_matrix_cell(config_id, inherent_band, control_band, residual_rating)
-  VALUES ((SELECT v FROM c_id WHERE k='cfg'),'HIGH','WEAK','HIGH');
+  VALUES ((SELECT v FROM c_id WHERE k='cfg'),'SEVERE','WEAK','HIGH');
   RAISE NOTICE 'PASS RESIDUAL-03: without a published matrix cell the engine refuses instead of inventing a rating';
 END $$;
 
@@ -924,7 +1078,11 @@ BEGIN
     'recommendation_policy','HIGHEST_DIMENSION'));
   RESET ROLE;
   SELECT config_version INTO ver FROM public.supervisory_calculation_config WHERE id=cfg2;
-  IF ver <> 2 THEN RAISE EXCEPTION 'LIFECYCLE-01: the successor policy took version %', ver; END IF;
+  -- A successor takes the next unused version number for the methodology. Earlier
+  -- POLICY-09B/09C drafts also consumed numbers, so the contract asserted here is
+  -- "strictly later than the version in force", not a fixed literal.
+  IF ver IS NULL OR ver <= 1 THEN
+    RAISE EXCEPTION 'LIFECYCLE-01: the successor policy took version %, which does not follow the version in force', ver; END IF;
   IF (SELECT config_version FROM public.supervisory_assessment_calculation_run
        WHERE id=(SELECT v FROM c_id WHERE k='run1')) <> 1 THEN
     RAISE EXCEPTION 'FAIL LIFECYCLE-01: an earlier run no longer names the policy version it used'; END IF;
@@ -1054,12 +1212,13 @@ END $$;
 -- ============================= LEGACY gates ===========================
 -- LEGACY-01 — nothing outside the fixture was calculated or published.
 DO $$
-DECLARE n int;
+DECLARE other_runs int; baseline_runs int;
 BEGIN
-  SELECT count(*) INTO n FROM public.supervisory_assessment_calculation_run
+  SELECT count(*) INTO other_runs FROM public.supervisory_assessment_calculation_run
    WHERE assessment_id <> (SELECT v FROM c_id WHERE k='assessment');
-  IF n <> (SELECT n FROM c_n WHERE k='runs') THEN
-    RAISE EXCEPTION 'FAIL LEGACY-01: % run(s) appeared outside the fixture assessment', n; END IF;
+  SELECT c.n INTO baseline_runs FROM c_n c WHERE c.k='runs';
+  IF other_runs <> baseline_runs THEN
+    RAISE EXCEPTION 'FAIL LEGACY-01: % run(s) exist outside the fixture assessment, baseline was %', other_runs, baseline_runs; END IF;
   IF (SELECT md5(COALESCE(string_agg(r.entity_id::text||':'||COALESCE(r.residual_rating,'-'),'|' ORDER BY r.entity_id),''))
         FROM public.entity_risk_state r) <> (SELECT t FROM c_t WHERE k='risk_digest') THEN
     RAISE EXCEPTION 'FAIL LEGACY-01: the risk-of-record was changed by a calculation or an override'; END IF;
