@@ -587,6 +587,36 @@ BEGIN
   RAISE NOTICE 'PASS POLICY-09B: a control band code the methodology does not publish is refused';
 END $$;
 
+-- POLICY-09C — incomplete residual-matrix coverage is refused on a methodology
+--              that publishes both vocabularies (5 risk x 2 control = 10 cells).
+DO $$
+DECLARE vres jsonb;
+BEGIN
+  SET LOCAL ROLE authenticated;
+  PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
+  PERFORM public.supervisory_calculation_bands_set((SELECT v FROM c_id WHERE k='cfg2'),'INHERENT', jsonb_build_array(
+    jsonb_build_object('band_code','LOW','min_score',0,'max_score',20,'sort_order',1),
+    jsonb_build_object('band_code','MODERATE','min_score',20,'max_score',40,'sort_order',2),
+    jsonb_build_object('band_code','MEDIUM_HIGH','min_score',40,'max_score',60,'sort_order',3),
+    jsonb_build_object('band_code','HIGH','min_score',60,'max_score',80,'sort_order',4),
+    jsonb_build_object('band_code','SEVERE','min_score',80,'max_score',100,'sort_order',5)));
+  PERFORM public.supervisory_calculation_bands_set((SELECT v FROM c_id WHERE k='cfg2'),'CONTROL', jsonb_build_array(
+    jsonb_build_object('band_code','WEAK','min_score',0,'max_score',50,'sort_order',1),
+    jsonb_build_object('band_code','STRONG','min_score',50,'max_score',100,'sort_order',2)));
+  -- only 2 of the 10 required cells
+  PERFORM public.supervisory_calculation_matrix_set((SELECT v FROM c_id WHERE k='cfg2'), jsonb_build_array(
+    jsonb_build_object('inherent_band','LOW','control_band','WEAK','residual_rating','MODERATE'),
+    jsonb_build_object('inherent_band','LOW','control_band','STRONG','residual_rating','LOW')));
+  RESET ROLE;
+  vres := public.supervisory_calculation_config_validate((SELECT v FROM c_id WHERE k='cfg2'));
+  IF (vres->>'ok')::boolean THEN
+    RAISE EXCEPTION 'FAIL POLICY-09C: a partial residual matrix validated cleanly'; END IF;
+  IF (vres->>'problems') NOT LIKE '%residual matrix%' THEN
+    RAISE EXCEPTION 'FAIL POLICY-09C: incomplete residual-matrix coverage was not refused: %', vres->'problems';
+  END IF;
+  RAISE NOTICE 'PASS POLICY-09C: a residual matrix that does not cover every published inherent x control combination is refused';
+END $$;
+
 
 
 -- ===================== SCORE / DIMCALC / bands ========================
