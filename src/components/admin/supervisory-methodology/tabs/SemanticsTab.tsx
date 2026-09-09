@@ -135,7 +135,7 @@ export function SemanticsTab({ methodologyId }: { methodologyId: string }) {
     <div className="space-y-3">
       {header}
       <p className="text-sm text-muted-foreground">
-        {data.length} response semantics {data.length === 1 ? 'profile is' : 'profiles are'} owned by this methodology version.
+        {data.length} version-owned response semantics {data.length === 1 ? 'profile' : 'profiles'}: each one belongs to this methodology version.
       </p>
       {data.map((p) => (
         <Card key={p.id}>
