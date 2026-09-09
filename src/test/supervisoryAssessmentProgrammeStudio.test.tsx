@@ -458,12 +458,11 @@ describe('PROG-UI runtime convergence', () => {
     const user = userEvent.setup();
     mount(<AmlNewAssessmentDialog entityId={ENTITY} />);
     await user.click(screen.getByRole('button', { name: /New AML\/CFT assessment/i }));
+    // Nothing may be started while the server refuses the programme.
+    expect((await screen.findByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(true);
     await user.click(await screen.findByLabelText('Assessment'));
     const refused = await screen.findByRole('option', { name: /Periodic AML\/CFT review — not available/ });
     expect(refused.getAttribute('aria-disabled')).toBe('true');
-    await user.keyboard('{Escape}');
-    await waitFor(() => expect(
-      (screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(true));
   });
 
   it('PROG-UI-20 does not offer editable dates when the programme fixes the review period', async () => {
