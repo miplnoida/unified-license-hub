@@ -378,15 +378,15 @@ END $$;
 -- PROG-12 — a regulator-authored DRAFT set is created through governance
 -- =====================================================================
 DO $$
-DECLARE id uuid; s public.supervisory_assessment_programme_set;
+DECLARE _id uuid; s public.supervisory_assessment_programme_set;
 BEGIN
-  id := public.supervisory_assessment_programme_set_create(jsonb_build_object(
+  _id := public.supervisory_assessment_programme_set_create(jsonb_build_object(
           'code','PROGCERT-PACKAGE','set_version','1.0','name','PROGCERT package',
           'description','Certification package','domain_code','AML_CFT',
           'regulator_id',(SELECT v FROM pg_id WHERE k='regulator'),
           'rationale','Certification fixture creation rationale'));
-  INSERT INTO pg_id(k,v) VALUES ('set', id);
-  SELECT * INTO s FROM public.supervisory_assessment_programme_set WHERE id=id;
+  INSERT INTO pg_id(k,v) VALUES ('set', _id);
+  SELECT * INTO s FROM public.supervisory_assessment_programme_set WHERE id=_id;
   IF s.origin <> 'REGULATOR_AUTHORED' OR s.status <> 'DRAFT'
      OR s.regulator_id IS DISTINCT FROM (SELECT v FROM pg_id WHERE k='regulator') THEN
     RAISE EXCEPTION 'FAIL PROG-12: created set is origin=% status=% regulator=%', s.origin, s.status, s.regulator_id; END IF;
@@ -401,21 +401,21 @@ END $$;
 -- PROG-33 — the governed question classes are accepted
 -- =====================================================================
 DO $$
-DECLARE id uuid; p public.supervisory_assessment_programme; classes text[];
+DECLARE _id uuid; p public.supervisory_assessment_programme; classes text[];
 BEGIN
   SELECT array_agg(code ORDER BY sort_order) INTO classes
     FROM public.supervisory_assessment_programme_vocabulary WHERE kind='QUESTION_CLASS' AND is_active;
   IF NOT (classes @> ARRAY['CORE','CONDITIONAL','ENHANCED']) THEN
     RAISE EXCEPTION 'FAIL PROG-33: the server question-class vocabulary is % , expected CORE/CONDITIONAL/ENHANCED', classes; END IF;
 
-  id := public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
+  _id := public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
           'programme_code','CERT_PERIODIC','label','Certification periodic review',
           'assessment_type','PERIODIC','period_rule','TRAILING_MONTHS','period_value',12,
           'end_offset_days',1,'allow_manual_override',false,'summary_required',true,
           'question_class_scope', to_jsonb(classes),
           'rationale','Certification programme creation rationale'));
-  INSERT INTO pg_id(k,v) VALUES ('prog_periodic', id);
-  SELECT * INTO p FROM public.supervisory_assessment_programme WHERE id=id;
+  INSERT INTO pg_id(k,v) VALUES ('prog_periodic', _id);
+  SELECT * INTO p FROM public.supervisory_assessment_programme WHERE id=_id;
   IF p.assessment_type <> 'PERIODIC' OR p.period_rule <> 'TRAILING_MONTHS' OR p.period_value <> 12
      OR p.allow_manual_override THEN
     RAISE EXCEPTION 'FAIL PROG-16: the programme was not persisted as configured'; END IF;
@@ -432,17 +432,17 @@ END $$;
 -- PROG-17 — programme update works
 -- =====================================================================
 DO $$
-DECLARE id uuid; p public.supervisory_assessment_programme;
+DECLARE _id uuid; p public.supervisory_assessment_programme;
 BEGIN
-  id := public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
+  _id := public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
           'id',(SELECT v FROM pg_id WHERE k='prog_periodic'),
           'programme_code','CERT_PERIODIC','label','Certification periodic review (revised)',
           'assessment_type','PERIODIC','period_rule','TRAILING_MONTHS','period_value',24,
           'allow_manual_override',false,'question_class_scope',jsonb_build_array('CORE'),
           'rationale','Certification programme update rationale'));
-  IF id IS DISTINCT FROM (SELECT v FROM pg_id WHERE k='prog_periodic') THEN
+  IF _id IS DISTINCT FROM (SELECT v FROM pg_id WHERE k='prog_periodic') THEN
     RAISE EXCEPTION 'FAIL PROG-17: the update created a second programme instead of editing one'; END IF;
-  SELECT * INTO p FROM public.supervisory_assessment_programme WHERE id=id;
+  SELECT * INTO p FROM public.supervisory_assessment_programme WHERE id=_id;
   IF p.period_value <> 24 OR p.label <> 'Certification periodic review (revised)' THEN
     RAISE EXCEPTION 'FAIL PROG-17: the programme edit did not persist'; END IF;
   IF p.question_class_scope IS DISTINCT FROM ARRAY['CORE']::text[] THEN
@@ -467,30 +467,30 @@ END $$;
 
 -- the remaining certification programmes
 DO $$
-DECLARE id uuid;
+DECLARE _id uuid;
 BEGIN
-  id := public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
+  _id := public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
           'programme_code','CERT_MANUAL','label','Certification manual-period review',
           'assessment_type','THEMATIC','period_rule','MANUAL_REQUIRED','allow_manual_override',true,
           'question_class_scope',jsonb_build_array('CORE'),'summary_required',false,
           'rationale','Certification manual period programme'));
-  INSERT INTO pg_id(k,v) VALUES ('prog_manual', id);
+  INSERT INTO pg_id(k,v) VALUES ('prog_manual', _id);
 
-  id := public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
+  _id := public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
           'programme_code','CERT_FOLLOW_UP','label','Certification follow-up',
           'assessment_type','FOLLOW_UP','period_rule','TRAILING_DAYS','period_value',180,
           'allow_manual_override',false,'requires_prior_assessment',true,
           'question_class_scope',jsonb_build_array('CORE'),'summary_required',false,
           'rationale','Certification prior-assessment dependency programme'));
-  INSERT INTO pg_id(k,v) VALUES ('prog_follow', id);
+  INSERT INTO pg_id(k,v) VALUES ('prog_follow', _id);
 
-  id := public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
+  _id := public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
           'programme_code','CERT_EVENT','label','Certification event-driven',
           'assessment_type','EVENT_DRIVEN','period_rule','EVENT_WINDOW','period_value',90,
           'allow_manual_override',false,'requires_trigger_signal',true,
           'question_class_scope',jsonb_build_array('CORE'),'summary_required',false,
           'rationale','Certification signal dependency programme'));
-  INSERT INTO pg_id(k,v) VALUES ('prog_event', id);
+  INSERT INTO pg_id(k,v) VALUES ('prog_event', _id);
 END $$;
 
 -- =====================================================================
@@ -498,12 +498,12 @@ END $$;
 -- PROG-26 — an invalid trigger code is refused
 -- =====================================================================
 DO $$
-DECLARE id uuid; t public.supervisory_assessment_programme_trigger; ok boolean := false;
+DECLARE _id uuid; t public.supervisory_assessment_programme_trigger; ok boolean := false;
 BEGIN
-  id := public.supervisory_assessment_programme_trigger_upsert((SELECT v FROM pg_id WHERE k='prog_periodic'),
+  _id := public.supervisory_assessment_programme_trigger_upsert((SELECT v FROM pg_id WHERE k='prog_periodic'),
           jsonb_build_object('trigger_code','PERIODIC','is_default',true,'sort_order',10));
-  INSERT INTO pg_id(k,v) VALUES ('trig_periodic', id);
-  SELECT * INTO t FROM public.supervisory_assessment_programme_trigger WHERE id=id;
+  INSERT INTO pg_id(k,v) VALUES ('trig_periodic', _id);
+  SELECT * INTO t FROM public.supervisory_assessment_programme_trigger WHERE id=_id;
   IF t.trigger_code <> 'PERIODIC' OR NOT t.is_default OR NOT t.is_active THEN
     RAISE EXCEPTION 'FAIL PROG-21: the trigger was not persisted as configured'; END IF;
   IF t.label IS NULL THEN
@@ -540,14 +540,14 @@ END $$;
 -- PROG-25 — a second active default demotes the first; two defaults are refused
 -- =====================================================================
 DO $$
-DECLARE id uuid; n int; v jsonb;
+DECLARE _id uuid; n int; v jsonb;
 BEGIN
-  id := public.supervisory_assessment_programme_trigger_upsert((SELECT v FROM pg_id WHERE k='prog_periodic'),
+  _id := public.supervisory_assessment_programme_trigger_upsert((SELECT v FROM pg_id WHERE k='prog_periodic'),
           jsonb_build_object('id',(SELECT v FROM pg_id WHERE k='trig_periodic'),
             'trigger_code','PERIODIC','description','Annual cycle','sort_order',5,'is_default',true));
-  IF id IS DISTINCT FROM (SELECT v FROM pg_id WHERE k='trig_periodic') THEN
+  IF _id IS DISTINCT FROM (SELECT v FROM pg_id WHERE k='trig_periodic') THEN
     RAISE EXCEPTION 'FAIL PROG-22: the trigger edit created a new trigger'; END IF;
-  IF (SELECT description FROM public.supervisory_assessment_programme_trigger WHERE id=id) <> 'Annual cycle' THEN
+  IF (SELECT description FROM public.supervisory_assessment_programme_trigger WHERE id=_id) <> 'Annual cycle' THEN
     RAISE EXCEPTION 'FAIL PROG-22: the trigger edit did not persist'; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.supervisory_assessment_programme_event
                   WHERE programme_set_id=(SELECT v FROM pg_id WHERE k='set') AND event_type='TRIGGER_UPDATED') THEN
@@ -618,7 +618,6 @@ END $$;
 -- =====================================================================
 DO $$
 DECLARE v jsonb; codes text[];
-  FUNCTION_MARKER text;
 BEGIN
   -- PROG-27: TRAILING_DAYS without a value
   PERFORM public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
