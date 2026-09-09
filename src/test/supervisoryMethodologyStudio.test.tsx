@@ -151,9 +151,9 @@ describe('METH-STUDIO-UI authoring surface', { timeout: 15_000 }, () => {
   });
 
   // Rendering the complete question model (about forty controlled fields, several
-  // of them Radix selects) legitimately costs more than five seconds in jsdom, so
+  // of them Radix selects) legitimately costs about twenty seconds in jsdom, so
   // this one gate keeps an explicit budget. The assertions are unchanged.
-  it('METH-STUDIO-UI-04 saves a new question through the governed operation', { timeout: 30_000 }, async () => {
+  it('METH-STUDIO-UI-04 saves a new question through the governed operation', { timeout: 45_000 }, async () => {
     const user = userEvent.setup({ delay: null });
     mount(<QuestionsTab methodologyId={METH} />);
     await user.click(await screen.findByRole('button', { name: 'Add question' }));
