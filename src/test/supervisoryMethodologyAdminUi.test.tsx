@@ -331,13 +331,22 @@ describe('UI-METH-16 regulator-scoped adoption targets', () => {
     await userEvent.click(await screen.findByRole('button', { name: /adopt/i }));
     await waitFor(() => expect(argsOf('supervisory_methodology_adoption_targets').length).toBe(1));
     const dialog = await screen.findByRole('dialog');
-    await userEvent.click(within(dialog).getByLabelText('Regulator'));
-    const options = await screen.findAllByRole('option');
-    expect(options).toHaveLength(FIX.adoption_targets.rows.length);
-    for (const r of FIX.adoption_targets.rows) {
-      expect(options.some((o) => o.textContent?.includes(r.name))).toBe(true);
+    const rows = FIX.adoption_targets.rows;
+    expect(rows.length).toBe(FIX.capabilities.can_adopt.target_count);
+
+    if (rows.length === 1) {
+      // A single eligible regulator is context, not a question: it is resolved
+      // automatically and no regulator selector is rendered.
+      expect(within(dialog).getByTestId('adopt-sole-regulator')).toHaveTextContent(rows[0].name);
+      expect(within(dialog).queryByLabelText('Regulator')).toBeNull();
+    } else {
+      await userEvent.click(within(dialog).getByLabelText('Regulator'));
+      const options = await screen.findAllByRole('option');
+      expect(options).toHaveLength(rows.length);
+      for (const r of rows) {
+        expect(options.some((o) => o.textContent?.includes(r.name))).toBe(true);
+      }
     }
-    expect(FIX.adoption_targets.rows.length).toBe(FIX.capabilities.can_adopt.target_count);
     expect(calls.some((c) => c.fn === 'supervisory_methodology_adopt_reference')).toBe(false);
   });
 });
