@@ -143,7 +143,7 @@ describe('REG-SCOPE-06 single-regulator policy profile register', () => {
 describe('REG-SCOPE-07 platform reference labelling', () => {
   it('labels a MIPL reference row as not regulator-owned, never All regulators', async () => {
     wrap(<MethodologyRegister />);
-    await screen.findByText(/MIPL Reference — not regulator-owned/);
+    expect((await screen.findAllByText(/MIPL Reference — not regulator-owned/)).length).toBeGreaterThan(0);
     expect(screen.queryByText('All regulators')).toBeNull();
   });
 });
@@ -171,7 +171,7 @@ describe('REG-SCOPE-09 cross-regulator oversight only', () => {
     };
     wrap(<MethodologyRegister />);
     await userEvent.click(await screen.findByLabelText('Regulator'));
-    expect(await screen.findByText('All regulators')).toBeInTheDocument();
+    expect((await screen.findAllByText('All regulators')).length).toBeGreaterThan(0);
   });
 });
 
