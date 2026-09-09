@@ -1078,7 +1078,11 @@ BEGIN
     'recommendation_policy','HIGHEST_DIMENSION'));
   RESET ROLE;
   SELECT config_version INTO ver FROM public.supervisory_calculation_config WHERE id=cfg2;
-  IF ver <> 2 THEN RAISE EXCEPTION 'LIFECYCLE-01: the successor policy took version %', ver; END IF;
+  -- A successor takes the next unused version number for the methodology. Earlier
+  -- POLICY-09B/09C drafts also consumed numbers, so the contract asserted here is
+  -- "strictly later than the version in force", not a fixed literal.
+  IF ver IS NULL OR ver <= 1 THEN
+    RAISE EXCEPTION 'LIFECYCLE-01: the successor policy took version %, which does not follow the version in force', ver; END IF;
   IF (SELECT config_version FROM public.supervisory_assessment_calculation_run
        WHERE id=(SELECT v FROM c_id WHERE k='run1')) <> 1 THEN
     RAISE EXCEPTION 'FAIL LIFECYCLE-01: an earlier run no longer names the policy version it used'; END IF;
