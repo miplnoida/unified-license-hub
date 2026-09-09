@@ -605,7 +605,8 @@ DO $$
 DECLARE r jsonb;
 BEGIN
   r := (SELECT t FROM c_t WHERE k='base')::jsonb;
-  IF r->>'inherent_band' <> 'HIGH' THEN
+  -- inherent score 100 falls in the top published band of the fixture scale
+  IF r->>'inherent_band' <> 'SEVERE' THEN
     RAISE EXCEPTION 'FAIL INHERENT-01: inherent band % with score %', r->>'inherent_band', r->>'inherent_score'; END IF;
   RAISE NOTICE 'PASS INHERENT-01: the inherent side aggregates to score % and band %', r->>'inherent_score', r->>'inherent_band';
   IF r->>'control_band' <> 'WEAK' THEN
