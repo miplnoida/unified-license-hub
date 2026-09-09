@@ -31,6 +31,7 @@ import {
   type MethodologyQuestionRow,
 } from '@/hooks/useSupervisoryMethodologyAdmin';
 import { QuestionEditorDialog } from '../QuestionEditorDialog';
+import { DimensionStudio } from '../studio/DimensionStudio';
 import { EmptyPanel, ErrorPanel, Field, YesNo, humanize } from '../labels';
 
 const FILTER_KEYS = ['dimension', 'class', 'axis', 'focus', 'participation', 'sector', 'change', 'evidence', 'prefill', 'judgement', 'na'];
@@ -263,6 +264,8 @@ export function QuestionsTab({ methodologyId }: { methodologyId: string }) {
   );
 
   return (
+    <div className="space-y-4">
+    <DimensionStudio methodologyId={methodologyId} />
     <div className="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
       <aside className="space-y-3">
         <div className="rounded-md border p-2">
@@ -404,6 +407,7 @@ export function QuestionsTab({ methodologyId }: { methodologyId: string }) {
         onClose={(retired) => { setRetiring(null); if (retired) setOpenQuestion(null); }}
       />
 
+    </div>
     </div>
   );
 }

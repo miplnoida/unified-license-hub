@@ -20,6 +20,7 @@ import {
   ErrorPanel, Field, OriginBadge, StatusBadge, formatDate,
 } from '@/components/admin/supervisory-methodology/labels';
 import { MethodologyActionBar } from '@/components/admin/supervisory-methodology/MethodologyActionBar';
+import { MethodologyMetadataAction } from '@/components/admin/supervisory-methodology/studio/MethodologyMetadataAction';
 import { OverviewTab } from '@/components/admin/supervisory-methodology/tabs/OverviewTab';
 import { QuestionsTab } from '@/components/admin/supervisory-methodology/tabs/QuestionsTab';
 import { SemanticsTab } from '@/components/admin/supervisory-methodology/tabs/SemanticsTab';
@@ -72,7 +73,12 @@ export default function SupervisoryMethodologyDetailPage() {
         backHref="/admin/supervisory-methodology"
         backLabel="Supervisory Methodology"
         breadcrumbLabel={`${m.code} v${m.version}`}
-        actions={<MethodologyActionBar methodology={m} capabilities={capabilities.data} isLoading={capabilities.isLoading} />}
+        actions={(
+          <div className="flex flex-wrap items-center gap-2">
+            <MethodologyMetadataAction detail={m as unknown as Record<string, any>} />
+            <MethodologyActionBar methodology={m} capabilities={capabilities.data} isLoading={capabilities.isLoading} />
+          </div>
+        )}
       />
 
       <Card>

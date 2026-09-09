@@ -67067,10 +67067,12 @@ export type Database = {
         Args: { _methodology_id: string }
         Returns: Json
       }
-      supervisory_methodology_dimension_list: {
-        Args: { _methodology_id: string }
-        Returns: Json
-      }
+      supervisory_methodology_dimension_list:
+        | { Args: { _methodology_id: string }; Returns: Json }
+        | {
+            Args: { _include_retired?: boolean; _methodology_id: string }
+            Returns: Json
+          }
       supervisory_methodology_dimension_resolve: {
         Args: { _dimension_code: string; _methodology_id: string }
         Returns: string
