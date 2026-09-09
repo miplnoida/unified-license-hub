@@ -701,13 +701,13 @@ END $$;
 -- OVERRIDE-01 — an undecided override blocks approval.
 -- =====================================================================
 DO $$
-DECLARE res jsonb; refused boolean := false; msg text;
+DECLARE res uuid; refused boolean := false; msg text;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
   res := public.supervisory_calculation_override_propose((SELECT v FROM r_id WHERE k='assessment'),'LOW',
     'AML07CERT first override proposal, expected to be rejected');
-  INSERT INTO r_id(k,v) VALUES ('ovr1', (res->>'override_id')::uuid);
+  INSERT INTO r_id(k,v) VALUES ('ovr1', res);
   RESET ROLE;
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"0b522724-adcb-48bf-b21d-175339479616","role":"authenticated"}', true);
@@ -752,13 +752,13 @@ END $$;
 --               when it refers to the submitted run.
 -- =====================================================================
 DO $$
-DECLARE res jsonb; o public.supervisory_assessment_calculation_override;
+DECLARE res uuid; o public.supervisory_assessment_calculation_override;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
   res := public.supervisory_calculation_override_propose((SELECT v FROM r_id WHERE k='assessment'),'MEDIUM_HIGH',
     'AML07CERT supervisory override reflecting qualitative concerns');
-  INSERT INTO r_id(k,v) VALUES ('ovr2', (res->>'override_id')::uuid);
+  INSERT INTO r_id(k,v) VALUES ('ovr2', res);
   RESET ROLE;
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"0b522724-adcb-48bf-b21d-175339479616","role":"authenticated"}', true);
