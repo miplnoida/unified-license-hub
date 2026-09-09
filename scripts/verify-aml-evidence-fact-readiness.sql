@@ -249,6 +249,19 @@ BEGIN
   RAISE NOTICE 'FIXTURE: two AML05CERT assessments created under the fixture programme and methodology';
 END $$;
 
+-- Governed source records: one the officer may see (it belongs to the
+-- assessment's own entity) and one they may not (a different entity).
+INSERT INTO public.supervisory_finding(
+  reference, entity_id, domain_code, title, source_kind, status, assessment_id, origin_provenance)
+VALUES ('AML05CERT-FIND-OK', (SELECT v FROM ev_id WHERE k='entity'), 'AML_CFT',
+        'AML05CERT accessible finding', 'ASSESSMENT', 'DRAFT',
+        (SELECT v FROM ev_id WHERE k='assessment'), 'GOVERNED'),
+       ('AML05CERT-FIND-OTHER', (SELECT v FROM ev_id WHERE k='other_entity'), 'AML_CFT',
+        'AML05CERT finding for a different entity', 'ASSESSMENT', 'DRAFT', NULL, 'LEGACY_UNKNOWN');
+INSERT INTO ev_id(k,v) SELECT 'find_ok', id FROM public.supervisory_finding WHERE reference='AML05CERT-FIND-OK';
+INSERT INTO ev_id(k,v) SELECT 'find_other', id FROM public.supervisory_finding WHERE reference='AML05CERT-FIND-OTHER';
+
+
 -- =====================================================================
 -- EV-01 — the governed evidence-kind catalogue
 -- =====================================================================
