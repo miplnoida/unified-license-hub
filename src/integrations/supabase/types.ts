@@ -44160,6 +44160,11 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           assessment_date: string | null
+          assessment_programme_code: string | null
+          assessment_programme_id: string | null
+          assessment_programme_provenance: string | null
+          assessment_programme_set_id: string | null
+          assessment_programme_version: string | null
           assessment_type: string
           closed_at: string | null
           confidentiality: string
@@ -44200,6 +44205,11 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           assessment_date?: string | null
+          assessment_programme_code?: string | null
+          assessment_programme_id?: string | null
+          assessment_programme_provenance?: string | null
+          assessment_programme_set_id?: string | null
+          assessment_programme_version?: string | null
           assessment_type?: string
           closed_at?: string | null
           confidentiality?: string
@@ -44240,6 +44250,11 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           assessment_date?: string | null
+          assessment_programme_code?: string | null
+          assessment_programme_id?: string | null
+          assessment_programme_provenance?: string | null
+          assessment_programme_set_id?: string | null
+          assessment_programme_version?: string | null
           assessment_type?: string
           closed_at?: string | null
           confidentiality?: string
@@ -44277,6 +44292,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_assessment_programme_id_fkey"
+            columns: ["assessment_programme_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_programme"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_assessment_programme_set_id_fkey"
+            columns: ["assessment_programme_set_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_programme_set"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supervisory_assessment_entity_id_fkey"
             columns: ["entity_id"]
@@ -44697,6 +44726,349 @@ export type Database = {
             referencedColumns: ["assessment_id"]
           },
         ]
+      }
+      supervisory_assessment_programme: {
+        Row: {
+          allow_manual_override: boolean
+          assessment_type: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_offset_days: number
+          excluded_dimension_codes: string[]
+          guidance: string | null
+          id: string
+          included_dimension_codes: string[]
+          is_active: boolean
+          label: string
+          period_rule: string
+          period_value: number | null
+          programme_code: string
+          programme_set_id: string
+          provenance: string
+          question_class_scope: string[]
+          recurrence_months: number | null
+          requires_prior_assessment: boolean
+          requires_trigger_signal: boolean
+          retired_at: string | null
+          retired_by: string | null
+          retirement_rationale: string | null
+          rule_detail: Json
+          sort_order: number
+          summary_required: boolean
+          updated_at: string
+        }
+        Insert: {
+          allow_manual_override?: boolean
+          assessment_type: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_offset_days?: number
+          excluded_dimension_codes?: string[]
+          guidance?: string | null
+          id?: string
+          included_dimension_codes?: string[]
+          is_active?: boolean
+          label: string
+          period_rule?: string
+          period_value?: number | null
+          programme_code: string
+          programme_set_id: string
+          provenance?: string
+          question_class_scope?: string[]
+          recurrence_months?: number | null
+          requires_prior_assessment?: boolean
+          requires_trigger_signal?: boolean
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_rationale?: string | null
+          rule_detail?: Json
+          sort_order?: number
+          summary_required?: boolean
+          updated_at?: string
+        }
+        Update: {
+          allow_manual_override?: boolean
+          assessment_type?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_offset_days?: number
+          excluded_dimension_codes?: string[]
+          guidance?: string | null
+          id?: string
+          included_dimension_codes?: string[]
+          is_active?: boolean
+          label?: string
+          period_rule?: string
+          period_value?: number | null
+          programme_code?: string
+          programme_set_id?: string
+          provenance?: string
+          question_class_scope?: string[]
+          recurrence_months?: number | null
+          requires_prior_assessment?: boolean
+          requires_trigger_signal?: boolean
+          retired_at?: string | null
+          retired_by?: string | null
+          retirement_rationale?: string | null
+          rule_detail?: Json
+          sort_order?: number
+          summary_required?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_programme_programme_set_id_fkey"
+            columns: ["programme_set_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_programme_set"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_assessment_programme_event: {
+        Row: {
+          actor_id: string | null
+          after_state: Json | null
+          before_state: Json | null
+          created_at: string
+          detail: Json
+          event_type: string
+          from_status: string | null
+          id: string
+          programme_set_id: string
+          rationale: string | null
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          detail?: Json
+          event_type: string
+          from_status?: string | null
+          id?: string
+          programme_set_id: string
+          rationale?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          detail?: Json
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          programme_set_id?: string
+          rationale?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_programme_event_programme_set_id_fkey"
+            columns: ["programme_set_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_programme_set"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_assessment_programme_set: {
+        Row: {
+          adopted_from_id: string | null
+          approved_at: string | null
+          approved_by: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          domain_code: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          name: string
+          notes: string | null
+          origin: string
+          regulator_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          set_version: string
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          supersedes_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          adopted_from_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          domain_code: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          origin?: string
+          regulator_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          set_version: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          supersedes_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adopted_from_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          domain_code?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          origin?: string
+          regulator_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          set_version?: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          supersedes_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_programme_set_adopted_from_id_fkey"
+            columns: ["adopted_from_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_programme_set"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_programme_set_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_programme_set_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_programme_set"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_assessment_programme_trigger: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          guidance: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          label: string
+          programme_id: string
+          requires_prior_assessment: boolean
+          requires_signal: boolean
+          sort_order: number
+          trigger_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          guidance?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          label: string
+          programme_id: string
+          requires_prior_assessment?: boolean
+          requires_signal?: boolean
+          sort_order?: number
+          trigger_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          guidance?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          label?: string
+          programme_id?: string
+          requires_prior_assessment?: boolean
+          requires_signal?: boolean
+          sort_order?: number
+          trigger_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_programme_trigger_programme_id_fkey"
+            columns: ["programme_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_programme"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_assessment_programme_vocabulary: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          is_active: boolean
+          kind: string
+          label: string
+          requires_value: boolean
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          kind: string
+          label: string
+          requires_value?: boolean
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          kind?: string
+          label?: string
+          requires_value?: boolean
+          sort_order?: number
+        }
+        Relationships: []
       }
       supervisory_assessment_question_response: {
         Row: {
@@ -66506,6 +66878,19 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_assessment_create_programmed: {
+        Args: {
+          _domain_code: string
+          _entity_id: string
+          _period_end?: string
+          _period_start?: string
+          _programme_id: string
+          _summary?: string
+          _trigger_signal_id?: string
+          _trigger_type?: string
+        }
+        Returns: Json
+      }
       supervisory_assessment_dimension_materialise_internal: {
         Args: { _actor?: string; _assessment_id: string }
         Returns: Json
@@ -66550,6 +66935,108 @@ export type Database = {
           _record_id: string
         }
         Returns: Json
+      }
+      supervisory_assessment_programme_action_capabilities: {
+        Args: { _set_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_programme_adopt_reference: {
+        Args: {
+          _rationale: string
+          _reference_set_id: string
+          _regulator_id: string
+        }
+        Returns: string
+      }
+      supervisory_assessment_programme_compare: {
+        Args: { _baseline_id: string; _set_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_programme_detail: {
+        Args: { _set_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_programme_event_register: {
+        Args: { _limit?: number; _offset?: number; _set_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_programme_options_for_entity: {
+        Args: { _as_of?: string; _domain_code: string; _entity_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_programme_period_for: {
+        Args: {
+          _as_of: string
+          _prior_period_end: string
+          _programme: Database["public"]["Tables"]["supervisory_assessment_programme"]["Row"]
+        }
+        Returns: Json
+      }
+      supervisory_assessment_programme_register: {
+        Args: {
+          _dir?: string
+          _domain_code?: string
+          _limit?: number
+          _offset?: number
+          _origin?: string
+          _regulator_id?: string
+          _search?: string
+          _sort?: string
+          _status?: string
+        }
+        Returns: Json
+      }
+      supervisory_assessment_programme_register_options: {
+        Args: never
+        Returns: Json
+      }
+      supervisory_assessment_programme_retire: {
+        Args: { _programme_id: string; _rationale: string }
+        Returns: string
+      }
+      supervisory_assessment_programme_set_create: {
+        Args: { _payload: Json }
+        Returns: string
+      }
+      supervisory_assessment_programme_set_lifecycle: {
+        Args: { _rationale: string; _set_id: string; _to_status: string }
+        Returns: string
+      }
+      supervisory_assessment_programme_set_new_version: {
+        Args: { _new_version: string; _rationale: string; _set_id: string }
+        Returns: string
+      }
+      supervisory_assessment_programme_set_require_approval: {
+        Args: { _set_id: string }
+        Returns: string
+      }
+      supervisory_assessment_programme_set_require_draft: {
+        Args: { _set_id: string }
+        Returns: string
+      }
+      supervisory_assessment_programme_set_require_manage: {
+        Args: { _set_id: string }
+        Returns: string
+      }
+      supervisory_assessment_programme_set_save: {
+        Args: { _payload: Json; _set_id: string }
+        Returns: string
+      }
+      supervisory_assessment_programme_set_validate: {
+        Args: { _set_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_programme_trigger_remove: {
+        Args: { _rationale: string; _trigger_id: string }
+        Returns: boolean
+      }
+      supervisory_assessment_programme_trigger_upsert: {
+        Args: { _payload: Json; _programme_id: string }
+        Returns: string
+      }
+      supervisory_assessment_programme_upsert: {
+        Args: { _payload: Json; _set_id: string }
+        Returns: string
       }
       supervisory_assessment_question_gaps: {
         Args: { _assessment_id: string }
