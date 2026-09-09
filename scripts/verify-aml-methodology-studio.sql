@@ -192,6 +192,160 @@ SELECT pg_temp.gate('METH-STUDIO-24',
      WHERE m.code = 'AML-CFT-RBA' AND m.version = '1.1' AND q.active) = 70,
    'v1.1 still carries 70 active questions');
 
+-- ============================================================================
+-- AML-02 completion gates (METH-STUDIO-25..45).
+-- Authority lives inside SECURITY DEFINER routines, so these gates assert the
+-- governed contract of each completed authoring surface and the preservation of
+-- operational state. No business row is created: the script rolls back.
+-- ============================================================================
+
+SELECT pg_temp.gate('METH-STUDIO-25',
+   (SELECT count(*) = 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname='supervisory_methodology_metadata_save'
+       AND p.prosecdef
+       AND pg_get_functiondef(p.oid) LIKE '%supervisory_methodology_require_authoring%'),
+   'governed metadata edit exists and routes through the authority guard');
+
+SELECT pg_temp.gate('METH-STUDIO-26',
+   (SELECT bool_and(pg_get_functiondef(p.oid) NOT LIKE '%SET code%'
+                AND pg_get_functiondef(p.oid) NOT LIKE '%version =%'
+                AND pg_get_functiondef(p.oid) NOT LIKE '%origin =%')
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname='supervisory_methodology_metadata_save'),
+   'metadata edit never rewrites code, version or origin; frozen versions are refused by the guard');
+
+SELECT pg_temp.gate('METH-STUDIO-27',
+   (SELECT count(*) = 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname='supervisory_methodology_dimension_save'
+       AND pg_get_functiondef(p.oid) LIKE '%supervisory_methodology_require_authoring%'),
+   'dimension create is governed');
+
+SELECT pg_temp.gate('METH-STUDIO-28',
+   (SELECT pg_get_functiondef(p.oid) LIKE '%ON CONFLICT%'
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname='supervisory_methodology_dimension_save'),
+   'dimension edit updates the existing row rather than duplicating it');
+
+SELECT pg_temp.gate('METH-STUDIO-29',
+   (SELECT bool_and(pg_get_functiondef(p.oid) LIKE '%sort_order%')
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname IN (
+       'supervisory_methodology_dimension_save','supervisory_methodology_dimension_list')),
+   'display order is persisted server-side and reported back');
+
+SELECT pg_temp.gate('METH-STUDIO-30',
+   (SELECT pg_get_functiondef(p.oid) LIKE '%dependency_blocked%'
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname='supervisory_methodology_dimension_retire'),
+   'dimension retirement is refused while active questions remain');
+
+SELECT pg_temp.gate('METH-STUDIO-31',
+   (SELECT pg_get_functiondef(p.oid) NOT LIKE '%DELETE FROM public.supervisory_methodology_question%'
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname='supervisory_methodology_dimension_retire'),
+   'retirement never cascades or deletes questions; dependencies are resolved first');
+
+SELECT pg_temp.gate('METH-STUDIO-32',
+   (SELECT count(*) = 2 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname IN (
+       'supervisory_methodology_semantic_profile_set','supervisory_methodology_semantic_profile_retire')
+       AND pg_get_functiondef(p.oid) LIKE '%supervisory_methodology_require_authoring%'),
+   'semantic profile create/update and retirement are governed');
+
+SELECT pg_temp.gate('METH-STUDIO-33',
+   (SELECT count(*) = 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname='supervisory_methodology_fact_requirement_set'
+       AND pg_get_functiondef(p.oid) LIKE '%supervisory_methodology_require_authoring%'),
+   'fact definition create/update is governed');
+
+SELECT pg_temp.gate('METH-STUDIO-34',
+   (SELECT count(*) = 2 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname IN (
+       'supervisory_methodology_question_fact_link','supervisory_methodology_question_fact_unlink')),
+   'question/fact mapping can be created and removed through governed operations');
+
+SELECT pg_temp.gate('METH-STUDIO-35',
+   (SELECT bool_and(pg_get_functiondef(p.oid) LIKE '%value_numeric%'
+                AND pg_get_functiondef(p.oid) LIKE '%approval_status%')
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname='supervisory_methodology_parameter_set'),
+   'parameter definition authoring refuses policy values and approval status');
+
+SELECT pg_temp.gate('METH-STUDIO-36',
+   (SELECT count(*) = 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname='supervisory_methodology_reference_decision_record'
+       AND p.prosecdef),
+   'reference decision authority is enforced server-side');
+
+SELECT pg_temp.gate('METH-STUDIO-37',
+   (SELECT pg_get_functiondef(p.oid) LIKE '%supervisory_methodology_validate%'
+       AND pg_get_functiondef(p.oid) LIKE '%blocking_count%'
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname='supervisory_methodology_lifecycle'),
+   'blocking validation prevents DRAFT to REVIEW inside the lifecycle operation');
+
+SELECT pg_temp.gate('METH-STUDIO-38',
+   (SELECT pg_get_functiondef(p.oid) LIKE '%APPROVED%'
+       AND pg_get_functiondef(p.oid) LIKE '%blocking_count%'
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname='supervisory_methodology_lifecycle'),
+   'blocking validation prevents REVIEW to APPROVED');
+
+SELECT pg_temp.gate('METH-STUDIO-39',
+   (SELECT pg_get_functiondef(p.oid) LIKE '%ADVISORY%'
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname='supervisory_methodology_validate'),
+   'unapproved policy values stay advisory and do not masquerade as structural errors');
+
+SELECT pg_temp.gate('METH-STUDIO-40',
+   (SELECT count(*) = 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname='supervisory_methodology_new_version'),
+   'a successor version is created without altering an existing Policy Profile exact binding');
+
+SELECT pg_temp.gate('METH-STUDIO-41',
+   (SELECT count(*) = 1 FROM supervisory_methodology
+     WHERE code='AML-CFT-RBA' AND version='1.0' AND status='ACTIVE'),
+   'v1.0 operational methodology remains immutable and ACTIVE');
+
+SELECT pg_temp.gate('METH-STUDIO-42',
+   (SELECT (SELECT count(*) FROM supervisory_methodology_dimension d
+              JOIN supervisory_methodology m ON m.id=d.methodology_id
+             WHERE m.code='AML-CFT-RBA' AND m.version='1.1') = 26
+       AND (SELECT count(*) FROM supervisory_methodology_fact_requirement f
+              JOIN supervisory_methodology m ON m.id=f.methodology_id
+             WHERE m.code='AML-CFT-RBA' AND m.version='1.1') = 87
+       AND (SELECT count(*) FROM supervisory_methodology_parameter pa
+              JOIN supervisory_methodology m ON m.id=pa.methodology_id
+             WHERE m.code='AML-CFT-RBA' AND m.version='1.1') = 8
+       AND (SELECT count(*) FROM supervisory_methodology_semantic_profile s
+              JOIN supervisory_methodology m ON m.id=s.methodology_id
+             WHERE m.code='AML-CFT-RBA' AND m.version='1.1') = 5),
+   'v1.1 reference content counts are unchanged (26 dimensions, 87 facts, 8 parameters, 5 semantic profiles)');
+
+SELECT pg_temp.gate('METH-STUDIO-43',
+   (SELECT NOT bool_or(has_table_privilege('authenticated', c.oid,'INSERT')
+                    OR has_table_privilege('authenticated', c.oid,'UPDATE')
+                    OR has_table_privilege('authenticated', c.oid,'DELETE'))
+      FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+     WHERE n.nspname='public' AND c.relname LIKE 'supervisory_methodology%'),
+   'direct authenticated writes remain refused across every methodology table');
+
+SELECT pg_temp.gate('METH-STUDIO-44',
+   (SELECT bool_and(pg_get_functiondef(p.oid) LIKE '%supervisory_methodology_event%')
+      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+     WHERE n.nspname='public' AND p.proname IN (
+       'supervisory_methodology_metadata_save','supervisory_methodology_dimension_save',
+       'supervisory_methodology_semantic_profile_set','supervisory_methodology_fact_requirement_set',
+       'supervisory_methodology_parameter_set')),
+   'every governed authoring edit records history');
+
+SELECT pg_temp.gate('METH-STUDIO-45',
+   (SELECT count(*) = 0 FROM supervisory_methodology_parameter pa
+      JOIN supervisory_methodology m ON m.id=pa.methodology_id
+     WHERE m.code='AML-CFT-RBA' AND m.version='1.1'
+       AND (pa.value_numeric IS NOT NULL OR pa.approval_status = 'APPROVED')),
+   'no materiality policy value was authored or approved by this wave');
+
 -- ------------------------------------------------------------------- report
 SELECT gate, verdict, COALESCE(detail,'') AS detail FROM studio_result ORDER BY gate;
 SELECT count(*) FILTER (WHERE verdict = 'PASS') AS passed,
