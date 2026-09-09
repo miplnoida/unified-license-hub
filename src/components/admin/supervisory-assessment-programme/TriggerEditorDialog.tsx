@@ -45,7 +45,7 @@ export function TriggerEditorDialog({
   const upsert = useUpsertProgrammeTrigger();
   const [f, setF] = useState(blank);
   const [error, setError] = useState<string | null>(null);
-  const vocabulary = options?.trigger_types ?? [];
+  const vocabulary = options?.trigger_codes ?? [];
 
   useEffect(() => {
     if (!open) return;
@@ -53,8 +53,9 @@ export function TriggerEditorDialog({
     setF(trigger ? {
       trigger_code: trigger.trigger_code, label: trigger.label ?? '',
       description: trigger.description ?? '', is_default: trigger.is_default,
-      is_active: trigger.is_active, sort_order: String(trigger.sort_order ?? 100),
-      requires_signal: trigger.requires_signal, requires_prior_assessment: trigger.requires_prior_assessment,
+      is_active: trigger.is_active ?? true, sort_order: String(trigger.sort_order ?? 100),
+      requires_signal: trigger.requires_signal ?? false,
+      requires_prior_assessment: trigger.requires_prior_assessment ?? false,
       guidance: trigger.guidance ?? '', rationale: '',
     } : { ...blank, trigger_code: vocabulary[0]?.code ?? '' });
   }, [open, trigger, vocabulary.length]);
