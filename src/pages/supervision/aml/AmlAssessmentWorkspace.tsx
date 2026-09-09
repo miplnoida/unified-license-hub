@@ -16,6 +16,8 @@ import { useAmlAssessment } from '@/hooks/useAmlSupervision';
 import { AmlAssessmentGovernance } from '@/components/supervision/aml/AmlAssessmentGovernance';
 import { AmlAssessmentCalculation } from '@/components/supervision/aml/AmlAssessmentCalculation';
 import { AmlQuestionPlanPanel } from '@/components/supervision/aml/AmlQuestionPlanPanel';
+import { AmlAssessmentReviewPanel } from '@/components/supervision/aml/AmlAssessmentReviewPanel';
+import { AmlEntityRiskHistory } from '@/components/supervision/aml/AmlEntityRiskHistory';
 
 import { AmlSupervisoryActivity } from '@/components/supervision/aml/AmlSupervisoryActivity';
 import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, statusTone, titleCase, trendTone } from '@/lib/amlLabels';
@@ -267,6 +269,7 @@ export default function AmlAssessmentWorkspace() {
             <TabsTrigger value="control">Control effectiveness ({control.length})</TabsTrigger>
             {other.length > 0 ? <TabsTrigger value="other">Other dimensions ({other.length})</TabsTrigger> : null}
             <TabsTrigger value="calculation">Calculation</TabsTrigger>
+            <TabsTrigger value="review">Review &amp; decision</TabsTrigger>
             <TabsTrigger value="provenance">Attention, plan & examination</TabsTrigger>
             <TabsTrigger value="findings">Findings ({(data.findings as any[]).length})</TabsTrigger>
             <TabsTrigger value="history">Approval history</TabsTrigger>
@@ -278,6 +281,11 @@ export default function AmlAssessmentWorkspace() {
 
           <TabsContent value="calculation" className="mt-4">
             <AmlAssessmentCalculation assessmentId={h.id} />
+          </TabsContent>
+
+          <TabsContent value="review" className="mt-4 space-y-4">
+            <AmlAssessmentReviewPanel assessmentId={h.id} />
+            <AmlEntityRiskHistory entityId={h.entity_id} />
           </TabsContent>
 
 

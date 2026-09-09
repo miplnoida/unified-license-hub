@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAmlEntityPanel } from '@/hooks/useAmlSupervision';
 import { fmtDate, ratingTone, statusTone, titleCase, trendTone } from '@/lib/amlLabels';
+import { AmlEntityRiskHistory } from '@/components/supervision/aml/AmlEntityRiskHistory';
 
 function Tile({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return (
@@ -95,6 +96,8 @@ export function EntityAmlPanel({ entityId }: { entityId: string }) {
           />
         </CardContent>
       </Card>
+
+      <AmlEntityRiskHistory entityId={entityId} />
 
       <Card>
         <CardHeader className="pb-3">
