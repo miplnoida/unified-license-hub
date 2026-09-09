@@ -1209,12 +1209,11 @@ END $$;
 -- DOWNSTREAM-01 — supervisory read models consume the published record.
 -- =====================================================================
 DO $$
-DECLARE panel jsonb; portfolio jsonb;
+DECLARE panel jsonb;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"0b522724-adcb-48bf-b21d-175339479616","role":"authenticated"}', true);
   panel := public.aml_entity_panel((SELECT v FROM r_id WHERE k='entity'));
-  portfolio := public.aml_portfolio(50);
   RESET ROLE;
   IF panel IS NULL THEN RAISE EXCEPTION 'FAIL DOWNSTREAM-01: the entity AML panel is unavailable'; END IF;
   IF panel::text NOT LIKE '%MEDIUM_HIGH%' THEN
@@ -1254,11 +1253,11 @@ END $$;
 -- DOWNSTREAM-03 — monitoring and work-queue read models stay consistent.
 -- =====================================================================
 DO $$
-DECLARE wq jsonb; ov jsonb;
+DECLARE wq int; ov jsonb;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"0b522724-adcb-48bf-b21d-175339479616","role":"authenticated"}', true);
-  wq := public.aml_work_queue(25);
+  SELECT count(*) INTO wq FROM public.aml_work_queue(25);
   ov := public.aml_overview_metrics();
   RESET ROLE;
   IF wq IS NULL OR ov IS NULL THEN
