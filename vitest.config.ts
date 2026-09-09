@@ -9,15 +9,16 @@ import path from "path";
  * dialogs, selects, sheets and server-paged registers). Each worker builds its
  * own jsdom environment, so an unbounded pool on a 16-CPU host oversubscribes
  * CPU and memory: measured on this repository, the unbounded default produced 13
- * five-second timeouts at 248s wall, 4 workers produced 3 at 270s and 2 workers
- * produced 1 at 306s. Four workers is the highest concurrency that keeps the
- * suite stable (~4.0 GB peak resident) without losing wall-clock time, so it is
- * the canonical bound for both local and CI runs — no extra flags to remember.
+ * five-second timeouts, 4 workers produced 3 failures and later an unstable
+ * certification run, and 2 workers produced the fewest failures at ~3.3 GB peak
+ * resident. Two workers is therefore the canonical default bound for both local
+ * and CI runs — no extra flags to remember.
  *
  * Override with VITEST_MAX_WORKERS when a machine warrants it, e.g.
  * `VITEST_MAX_WORKERS=8 npm test`.
  */
-const workers = Number(process.env.VITEST_MAX_WORKERS ?? 4);
+const workers = Number(process.env.VITEST_MAX_WORKERS ?? 2);
+
 
 export default defineConfig({
   plugins: [react()],
