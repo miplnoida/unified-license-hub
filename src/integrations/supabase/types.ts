@@ -44676,6 +44676,68 @@ export type Database = {
           },
         ]
       }
+      supervisory_assessment_dimension_evidence: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          dimension_code: string | null
+          evidence_id: string
+          id: string
+          linked_by: string | null
+          methodology_dimension_id: string
+          relevance_note: string | null
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          dimension_code?: string | null
+          evidence_id: string
+          id?: string
+          linked_by?: string | null
+          methodology_dimension_id: string
+          relevance_note?: string | null
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          dimension_code?: string | null
+          evidence_id?: string
+          id?: string
+          linked_by?: string | null
+          methodology_dimension_id?: string
+          relevance_note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_dimension__methodology_dimension_id_fkey"
+            columns: ["methodology_dimension_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_dimension"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_dimension_evidence_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_dimension_evidence_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_dimension_evidence_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_evidence_basis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supervisory_assessment_event: {
         Row: {
           actor_id: string | null
@@ -44724,6 +44786,236 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supervisory_management_assurance_matter"
             referencedColumns: ["assessment_id"]
+          },
+        ]
+      }
+      supervisory_assessment_evidence_basis: {
+        Row: {
+          as_of_date: string | null
+          assessment_id: string
+          confidentiality: string | null
+          created_at: string
+          entity_id: string | null
+          evidence_type: string
+          id: string
+          methodology_id: string | null
+          note: string | null
+          origin: string
+          period_end: string | null
+          period_start: string | null
+          provenance: Json
+          recorded_by: string | null
+          retrieved_at: string | null
+          source_object_id: string | null
+          source_object_type: string | null
+          source_reference: string | null
+          source_timestamp: string | null
+          source_version: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          as_of_date?: string | null
+          assessment_id: string
+          confidentiality?: string | null
+          created_at?: string
+          entity_id?: string | null
+          evidence_type: string
+          id?: string
+          methodology_id?: string | null
+          note?: string | null
+          origin?: string
+          period_end?: string | null
+          period_start?: string | null
+          provenance?: Json
+          recorded_by?: string | null
+          retrieved_at?: string | null
+          source_object_id?: string | null
+          source_object_type?: string | null
+          source_reference?: string | null
+          source_timestamp?: string | null
+          source_version?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          as_of_date?: string | null
+          assessment_id?: string
+          confidentiality?: string | null
+          created_at?: string
+          entity_id?: string | null
+          evidence_type?: string
+          id?: string
+          methodology_id?: string | null
+          note?: string | null
+          origin?: string
+          period_end?: string | null
+          period_start?: string | null
+          provenance?: Json
+          recorded_by?: string | null
+          retrieved_at?: string | null
+          source_object_id?: string | null
+          source_object_type?: string | null
+          source_reference?: string | null
+          source_timestamp?: string | null
+          source_version?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_evidence_basis_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_evidence_basis_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_evidence_basis_evidence_type_fkey"
+            columns: ["evidence_type"]
+            isOneToOne: false
+            referencedRelation: "supervisory_evidence_basis_type"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      supervisory_assessment_fact: {
+        Row: {
+          as_of_date: string | null
+          assessment_id: string
+          auto_prefilled: boolean
+          created_at: string
+          data_type: string
+          denominator: number | null
+          entity_id: string | null
+          extraction_timestamp: string | null
+          fact_code: string
+          fact_requirement_id: string | null
+          id: string
+          methodology_id: string | null
+          note: string | null
+          numerator: number | null
+          officer_overridden: boolean
+          overridden_at: string | null
+          overridden_by: string | null
+          override_reason: string | null
+          period_end: string | null
+          period_start: string | null
+          provenance: Json
+          recorded_by: string | null
+          source_object_id: string | null
+          source_object_type: string | null
+          source_reference: string | null
+          source_timestamp: string | null
+          source_type: string
+          system_value: Json | null
+          unit: string | null
+          updated_at: string
+          value_boolean: boolean | null
+          value_date: string | null
+          value_numeric: number | null
+          value_text: string | null
+        }
+        Insert: {
+          as_of_date?: string | null
+          assessment_id: string
+          auto_prefilled?: boolean
+          created_at?: string
+          data_type: string
+          denominator?: number | null
+          entity_id?: string | null
+          extraction_timestamp?: string | null
+          fact_code: string
+          fact_requirement_id?: string | null
+          id?: string
+          methodology_id?: string | null
+          note?: string | null
+          numerator?: number | null
+          officer_overridden?: boolean
+          overridden_at?: string | null
+          overridden_by?: string | null
+          override_reason?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          provenance?: Json
+          recorded_by?: string | null
+          source_object_id?: string | null
+          source_object_type?: string | null
+          source_reference?: string | null
+          source_timestamp?: string | null
+          source_type: string
+          system_value?: Json | null
+          unit?: string | null
+          updated_at?: string
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_numeric?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          as_of_date?: string | null
+          assessment_id?: string
+          auto_prefilled?: boolean
+          created_at?: string
+          data_type?: string
+          denominator?: number | null
+          entity_id?: string | null
+          extraction_timestamp?: string | null
+          fact_code?: string
+          fact_requirement_id?: string | null
+          id?: string
+          methodology_id?: string | null
+          note?: string | null
+          numerator?: number | null
+          officer_overridden?: boolean
+          overridden_at?: string | null
+          overridden_by?: string | null
+          override_reason?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          provenance?: Json
+          recorded_by?: string | null
+          source_object_id?: string | null
+          source_object_type?: string | null
+          source_reference?: string | null
+          source_timestamp?: string | null
+          source_type?: string
+          system_value?: Json | null
+          unit?: string | null
+          updated_at?: string
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_numeric?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_fact_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_fact_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_fact_fact_requirement_id_fkey"
+            columns: ["fact_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_fact_requirement"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -45069,6 +45361,68 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      supervisory_assessment_question_evidence: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          evidence_id: string
+          id: string
+          linked_by: string | null
+          methodology_question_id: string
+          question_code: string | null
+          relevance_note: string | null
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          evidence_id: string
+          id?: string
+          linked_by?: string | null
+          methodology_question_id: string
+          question_code?: string | null
+          relevance_note?: string | null
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          evidence_id?: string
+          id?: string
+          linked_by?: string | null
+          methodology_question_id?: string
+          question_code?: string | null
+          relevance_note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_question_ev_methodology_question_id_fkey"
+            columns: ["methodology_question_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_question"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_question_evidence_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_question_evidence_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_question_evidence_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_evidence_basis"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       supervisory_assessment_question_plan: {
         Row: {
@@ -46468,6 +46822,48 @@ export type Database = {
             referencedColumns: ["licensee_id"]
           },
         ]
+      }
+      supervisory_evidence_basis_type: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          description: string | null
+          entity_column: string | null
+          label: string
+          reference_column: string | null
+          requires_source_object: boolean
+          sort_order: number
+          source_table: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          description?: string | null
+          entity_column?: string | null
+          label: string
+          reference_column?: string | null
+          requires_source_object?: boolean
+          sort_order?: number
+          source_table?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          description?: string | null
+          entity_column?: string | null
+          label?: string
+          reference_column?: string | null
+          requires_source_object?: boolean
+          sort_order?: number
+          source_table?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       supervisory_finding: {
         Row: {
@@ -67146,6 +67542,46 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_assessment_evidence_link: {
+        Args: { _assessment_id: string; _payload: Json }
+        Returns: Json
+      }
+      supervisory_assessment_evidence_register: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_evidence_unlink: {
+        Args: {
+          _dimension_id?: string
+          _evidence_id: string
+          _question_id?: string
+        }
+        Returns: Json
+      }
+      supervisory_assessment_execution_require_edit: {
+        Args: { _assessment_id: string }
+        Returns: string
+      }
+      supervisory_assessment_fact_gaps_internal: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_fact_override: {
+        Args: { _fact_id: string; _payload: Json; _reason: string }
+        Returns: Json
+      }
+      supervisory_assessment_fact_register: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_fact_set: {
+        Args: { _assessment_id: string; _payload: Json }
+        Returns: Json
+      }
+      supervisory_assessment_fact_typed_value: {
+        Args: { _data_type: string; _payload: Json }
+        Returns: Json
+      }
       supervisory_assessment_link_domain_record: {
         Args: {
           _assessment_id: string
@@ -67260,6 +67696,14 @@ export type Database = {
         Args: { _payload: Json; _set_id: string }
         Returns: string
       }
+      supervisory_assessment_question_evidence_count: {
+        Args: { _assessment_id: string; _question_id: string }
+        Returns: number
+      }
+      supervisory_assessment_question_execution: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_assessment_question_gaps: {
         Args: { _assessment_id: string }
         Returns: Json
@@ -67321,6 +67765,14 @@ export type Database = {
           _question_id: string
           _response: string
         }
+        Returns: Json
+      }
+      supervisory_assessment_readiness: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_readiness_internal: {
+        Args: { _assessment_id: string }
         Returns: Json
       }
       supervisory_assessment_structure_backfill: {
@@ -67649,6 +68101,15 @@ export type Database = {
       supervisory_entity_scope_permits: {
         Args: { _entity_id: string; _uid: string }
         Returns: boolean
+      }
+      supervisory_evidence_source_resolve: {
+        Args: {
+          _entity_id: string
+          _evidence_type: string
+          _source_object_id: string
+          _uid: string
+        }
+        Returns: Json
       }
       supervisory_examination_open: {
         Args: {
