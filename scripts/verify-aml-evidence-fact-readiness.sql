@@ -902,13 +902,17 @@ END $$;
 DO $$
 DECLARE rd jsonb; ev jsonb;
 BEGIN
-  -- remove the governed evidence from the evidence-based question
+  -- answer both questions, then remove the governed evidence from the
+  -- evidence-based question so only that requirement is outstanding
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
   PERFORM public.supervisory_assessment_question_upsert((SELECT v FROM ev_id WHERE k='assessment'),
     (SELECT v FROM ev_id WHERE k='q_plain'), 'YES', 'Fixture observation for the plain question.');
+  PERFORM public.supervisory_assessment_question_upsert((SELECT v FROM ev_id WHERE k='assessment'),
+    (SELECT v FROM ev_id WHERE k='q_ev'), 'YES', 'Fixture observation for the evidence question.');
   PERFORM public.supervisory_assessment_evidence_unlink((SELECT v FROM ev_id WHERE k='evidence'),
     (SELECT v FROM ev_id WHERE k='q_ev'), NULL);
+
   rd := public.supervisory_assessment_readiness((SELECT v FROM ev_id WHERE k='assessment'));
   RESET ROLE;
   SELECT c INTO ev FROM jsonb_array_elements(rd->'checks') c WHERE c->>'key'='EVIDENCE';
