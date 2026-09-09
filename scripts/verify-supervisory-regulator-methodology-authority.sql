@@ -1,5 +1,5 @@
 -- ============================================================================
--- Regulator-scoped methodology authority verifier — REG-AUTH-01 … REG-AUTH-16
+-- Regulator-scoped methodology authority verifier — REG-AUTH-01 … REG-AUTH-17
 --
 -- Proves, by execution, that:
 --   * the target regulator of an adoption is authorised server-side and the
@@ -60,6 +60,7 @@ DECLARE
   _actors uuid[];
 
   _v11 uuid; _bVersion uuid; _sa uuid;
+  _aComplete uuid; _prof uuid; _dim uuid;
 BEGIN
   INSERT INTO public.regulators(name, code, status)
   VALUES ('ZZ Regulator A (fixture)','ZZREGA','active') RETURNING id INTO _regA;
@@ -141,9 +142,42 @@ BEGIN
           _regB, _v11, _uAdminB, _uAdminB, now())
   RETURNING id INTO _bVersion;
 
+  -- A structurally complete regulator-A version, authored by admin A, used for the
+  -- lifecycle and approval-authority gates. Its content is synthetic certification
+  -- structure only (one group weighted 100, one dimension, one scored question with
+  -- version-owned semantics) and never regulator policy. The adopted copy of the
+  -- MIPL reference cannot be used here: the reference deliberately carries open
+  -- policy blockers (structured triggers, dimension weights, N/A configuration),
+  -- and the server correctly refuses to review or approve it — asserted by
+  -- REG-AUTH-17 instead of being worked around.
+  INSERT INTO public.supervisory_methodology(
+    domain_code, code, version, name, status, origin, regulator_id, adopted_from_id, created_by)
+  VALUES ('AML_CFT','ZZ-REGA-METH','9.9','ZZ Regulator A methodology','DRAFT','REGULATOR_ADOPTED',
+          _regA, _v11, _uAdminA)
+  RETURNING id INTO _aComplete;
+
+  INSERT INTO public.supervisory_methodology_semantic_profile(
+    domain_code, semantic_code, label, response_meaning, methodology_id, active)
+  VALUES ('AML_CFT','ZZ-SEM-1','ZZ fixture response semantics',
+          jsonb_build_object('YES','fixture affirmative','NO','fixture negative'), _aComplete, true)
+  RETURNING id INTO _prof;
+
+  INSERT INTO public.supervisory_methodology_dimension(
+    methodology_id, dimension_code, dimension_group, label, weight, dimension_kind, sort_order)
+  VALUES (_aComplete,'ZZ-DIM-1','INHERENT_RISK','ZZ fixture dimension',100,'INHERENT',1)
+  RETURNING id INTO _dim;
+
+  INSERT INTO public.supervisory_methodology_question(
+    methodology_id, methodology_dimension_id, question_code, prompt, response_options,
+    question_class, calculation_participation, axis, response_semantics_profile_id,
+    allow_not_applicable, na_conditions, sort_order)
+  VALUES (_aComplete,_dim,'ZZ-Q-1','ZZ fixture question', ARRAY['YES','NO'],
+          'CORE','SCORED','INHERENT_EXPOSURE',_prof,false,NULL,1);
+
   INSERT INTO reg_fixture(k,v) VALUES
     ('regA',_regA),('regB',_regB),('adminA',_uAdminA),('adminB',_uAdminB),
-    ('methA',_uMethA),('assessA',_uAssessA),('v11',_v11),('bVersion',_bVersion),('sa',_sa);
+    ('methA',_uMethA),('assessA',_uAssessA),('v11',_v11),('bVersion',_bVersion),('sa',_sa),
+    ('aComplete',_aComplete);
 END $$;
 
 -- ---------------------------------------------------------------------------
@@ -217,16 +251,55 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
+-- REG-AUTH-17  an adopted copy of the MIPL reference cannot be reviewed or
+--              approved while its policy blockers remain open (executed).
+--              Engineering may not clear those blockers to obtain a green gate.
+-- ---------------------------------------------------------------------------
+DO $$
+DECLARE _a uuid := pg_temp.fx('aVersion'); _rev text; _appr text;
+        _okRev boolean := false; _okAppr boolean := false; _st text;
+BEGIN
+  IF _a IS NULL THEN
+    PERFORM pg_temp.gate('REG-AUTH-17',
+      'an adopted reference copy is refused review and approval while policy blockers remain',
+      false,'no adopted reference fixture'); RETURN; END IF;
+
+  PERFORM pg_temp.act_as(pg_temp.fx('adminA'));
+  BEGIN
+    PERFORM public.supervisory_methodology_lifecycle(_a,'REVIEW',
+      'Fixture: submit an adopted copy that still carries open methodology policy blockers.');
+    _rev := 'no error raised — an incomplete adopted copy entered REVIEW';
+  EXCEPTION WHEN others THEN _rev := SQLERRM;
+            _okRev := _rev LIKE 'validation_blocked%';
+  END;
+
+  BEGIN
+    PERFORM public.supervisory_methodology_lifecycle(_a,'APPROVED',
+      'Fixture: approve an adopted copy that still carries open methodology policy blockers.');
+    _appr := 'no error raised — an incomplete adopted copy was approved';
+  EXCEPTION WHEN others THEN _appr := SQLERRM; _okAppr := true;
+  END;
+
+  SELECT status INTO _st FROM public.supervisory_methodology WHERE id = _a;
+
+  PERFORM pg_temp.gate('REG-AUTH-17',
+    'an adopted copy of the MIPL reference is refused review and approval while its methodology policy blockers remain open',
+    _okRev AND _okAppr AND _st = 'DRAFT',
+    format('status=%s | REVIEW: %s | APPROVED: %s', _st, _rev, _appr));
+END $$;
+
+-- ---------------------------------------------------------------------------
 -- REG-AUTH-04  assessment approval is not methodology approval (executed)
 -- ---------------------------------------------------------------------------
 DO $$
-DECLARE _a uuid := pg_temp.fx('aVersion'); _err text; _ok boolean := false; _holds boolean;
+DECLARE _a uuid := pg_temp.fx('aComplete'); _err text; _ok boolean := false; _holds boolean;
 BEGIN
   IF _a IS NULL THEN
     PERFORM pg_temp.gate('REG-AUTH-04','assessment approval does not authorise methodology approval',
       false,'no regulator-A version fixture'); RETURN; END IF;
 
-  -- move A's version to REVIEW as its author, so the approval gate is the only obstacle
+  -- move A's structurally complete version to REVIEW as its author, through the
+  -- governed operation, so the approval gate is the only remaining obstacle
   PERFORM pg_temp.act_as(pg_temp.fx('adminA'));
   PERFORM public.supervisory_methodology_lifecycle(_a,'REVIEW','Fixture: submit regulator A version for approval.');
 
@@ -251,7 +324,7 @@ END $$;
 --              correct regulator scope (executed)
 -- ---------------------------------------------------------------------------
 DO $$
-DECLARE _a uuid := pg_temp.fx('aVersion'); _err text; _ok boolean := false; _st text; _appr int;
+DECLARE _a uuid := pg_temp.fx('aComplete'); _err text; _ok boolean := false; _st text; _appr int;
 BEGIN
   PERFORM pg_temp.act_as(pg_temp.fx('methA'));
   BEGIN
@@ -445,7 +518,7 @@ END $$;
 -- REG-AUTH-13  a revoked current approval cannot satisfy activation (executed)
 -- ---------------------------------------------------------------------------
 DO $$
-DECLARE _a uuid := pg_temp.fx('aVersion'); _err text; _ok boolean := false;
+DECLARE _a uuid := pg_temp.fx('aComplete'); _err text; _ok boolean := false;
         _immutable boolean := false; _st text;
 BEGIN
   -- a recorded decision cannot be rewritten
@@ -488,7 +561,7 @@ DECLARE _ids uuid[]; _adopted int; _appr int; _regs int;
 BEGIN
   PERFORM pg_temp.act_as_none();
   SELECT array_agg(v) INTO _ids FROM reg_fixture
-   WHERE k IN ('aVersion','bVersion','selfVersion','bApprovedVersion');
+   WHERE k IN ('aVersion','aComplete','bVersion','selfVersion','bApprovedVersion');
 
   -- the freeze also guards deletion, so relax the fixtures before discarding them
   UPDATE public.supervisory_methodology SET status = 'DRAFT' WHERE id = ANY(_ids);

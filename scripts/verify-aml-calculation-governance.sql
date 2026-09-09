@@ -147,9 +147,15 @@ BEGIN
   -- CALCG-03 no calculation without a recorded domain effective-date rule
   DELETE FROM public.supervisory_domain_calculation_rule WHERE domain_code = 'AML_CFT';
   r := public.supervisory_calc_compute(_aJan);
+  -- The refusal is reported as the governed outcome NOT_CALCULABLE carrying
+  -- reason_code NO_EFFECTIVE_DATE_RULE; the obsolete top-level status of the same
+  -- name is no longer part of the compute contract.
   PERFORM pg_temp.gate('CALCG-03','no calculation without an effective-date decision',
-    r->>'status' = 'NO_EFFECTIVE_DATE_RULE' AND public.supervisory_calc_config_for(_aJan) IS NULL,
-    format('status=%s', r->>'status'));
+    r->>'status' = 'NOT_CALCULABLE'
+    AND r->>'reason_code' = 'NO_EFFECTIVE_DATE_RULE'
+    AND length(btrim(COALESCE(r->>'reason',''))) >= 5
+    AND public.supervisory_calc_config_for(_aJan) IS NULL,
+    format('status=%s/%s', r->>'status', r->>'reason_code'));
   INSERT INTO public.supervisory_domain_calculation_rule(domain_code, effective_date_rule, rationale)
   VALUES ('AML_CFT','PERIOD_END','synthetic verifier fixture: period end');
 
@@ -444,9 +450,13 @@ BEGIN
   UPDATE public.supervisory_calculation_config
      SET recommendation_policy = 'HIGHEST_DIMENSION'
    WHERE id = (SELECT fx FROM calcg_fx WHERE k='v2');
+  -- The recommendation engine itself must carry no materiality semantics. The
+  -- governed materiality POLICY surface (supervisory_calculation_materiality_*)
+  -- is a separate, authorised policy record and legitimately names materiality.
   SELECT string_agg(p.proname, ',') INTO s
     FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
    WHERE n.nspname='public' AND p.proname LIKE 'supervisory_calc%'
+     AND p.proname NOT LIKE '%materiality%'
      AND p.prosrc LIKE '%MATERIAL%';
   PERFORM pg_temp.gate('CALCG-20','recommendation-policy label matches implemented semantics',
     ok AND s IS NULL
