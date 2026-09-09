@@ -44157,8 +44157,11 @@ export type Database = {
       }
       supervisory_assessment: {
         Row: {
+          approval_decision_id: string | null
           approved_at: string | null
           approved_by: string | null
+          approved_rating: string | null
+          approved_rating_source: string | null
           assessment_date: string | null
           assessment_programme_code: string | null
           assessment_programme_id: string | null
@@ -44187,12 +44190,17 @@ export type Database = {
           reference: string
           regulator_id: string | null
           residual_rating: string | null
+          review_round_seq: number
           reviewed_at: string | null
           reviewed_by: string | null
+          reviewer_id: string | null
+          risk_publication_id: string | null
+          risk_published_at: string | null
           sector_id: string | null
           status: string
           submitted_at: string | null
           submitted_by: string | null
+          submitted_run_id: string | null
           summary: string | null
           supersedes_id: string | null
           team_id: string | null
@@ -44202,8 +44210,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approval_decision_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          approved_rating?: string | null
+          approved_rating_source?: string | null
           assessment_date?: string | null
           assessment_programme_code?: string | null
           assessment_programme_id?: string | null
@@ -44232,12 +44243,17 @@ export type Database = {
           reference: string
           regulator_id?: string | null
           residual_rating?: string | null
+          review_round_seq?: number
           reviewed_at?: string | null
           reviewed_by?: string | null
+          reviewer_id?: string | null
+          risk_publication_id?: string | null
+          risk_published_at?: string | null
           sector_id?: string | null
           status?: string
           submitted_at?: string | null
           submitted_by?: string | null
+          submitted_run_id?: string | null
           summary?: string | null
           supersedes_id?: string | null
           team_id?: string | null
@@ -44247,8 +44263,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approval_decision_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          approved_rating?: string | null
+          approved_rating_source?: string | null
           assessment_date?: string | null
           assessment_programme_code?: string | null
           assessment_programme_id?: string | null
@@ -44277,12 +44296,17 @@ export type Database = {
           reference?: string
           regulator_id?: string | null
           residual_rating?: string | null
+          review_round_seq?: number
           reviewed_at?: string | null
           reviewed_by?: string | null
+          reviewer_id?: string | null
+          risk_publication_id?: string | null
+          risk_published_at?: string | null
           sector_id?: string | null
           status?: string
           submitted_at?: string | null
           submitted_by?: string | null
+          submitted_run_id?: string | null
           summary?: string | null
           supersedes_id?: string | null
           team_id?: string | null
@@ -44292,6 +44316,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sa_submitted_run_fk"
+            columns: ["submitted_run_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_calculation_run"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supervisory_assessment_assessment_programme_id_fkey"
             columns: ["assessment_programme_id"]
@@ -44374,6 +44405,135 @@ export type Database = {
             columns: ["trigger_signal_id"]
             isOneToOne: false
             referencedRelation: "supervisory_signal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_assessment_approval_decision: {
+        Row: {
+          assessment_id: string
+          calculation_basis: string
+          calculation_inputs_hash: string | null
+          calculation_result_hash: string | null
+          calculation_run_id: string | null
+          calculation_run_seq: number | null
+          computed_rating: string | null
+          created_at: string
+          decided_at: string
+          decided_by: string | null
+          decision: string
+          effective_date: string
+          evidence_fact_state: Json
+          final_rating: string | null
+          final_rating_source: string
+          id: string
+          methodology_id: string | null
+          methodology_version: string | null
+          override_id: string | null
+          override_rating: string | null
+          programme_id: string | null
+          programme_version: string | null
+          question_plan_snapshot: Json
+          question_plan_version: string | null
+          rationale: string
+          review_history: Json
+          review_round_id: string | null
+          round_seq: number | null
+        }
+        Insert: {
+          assessment_id: string
+          calculation_basis?: string
+          calculation_inputs_hash?: string | null
+          calculation_result_hash?: string | null
+          calculation_run_id?: string | null
+          calculation_run_seq?: number | null
+          computed_rating?: string | null
+          created_at?: string
+          decided_at?: string
+          decided_by?: string | null
+          decision: string
+          effective_date?: string
+          evidence_fact_state?: Json
+          final_rating?: string | null
+          final_rating_source: string
+          id?: string
+          methodology_id?: string | null
+          methodology_version?: string | null
+          override_id?: string | null
+          override_rating?: string | null
+          programme_id?: string | null
+          programme_version?: string | null
+          question_plan_snapshot?: Json
+          question_plan_version?: string | null
+          rationale: string
+          review_history?: Json
+          review_round_id?: string | null
+          round_seq?: number | null
+        }
+        Update: {
+          assessment_id?: string
+          calculation_basis?: string
+          calculation_inputs_hash?: string | null
+          calculation_result_hash?: string | null
+          calculation_run_id?: string | null
+          calculation_run_seq?: number | null
+          computed_rating?: string | null
+          created_at?: string
+          decided_at?: string
+          decided_by?: string | null
+          decision?: string
+          effective_date?: string
+          evidence_fact_state?: Json
+          final_rating?: string | null
+          final_rating_source?: string
+          id?: string
+          methodology_id?: string | null
+          methodology_version?: string | null
+          override_id?: string | null
+          override_rating?: string | null
+          programme_id?: string | null
+          programme_version?: string | null
+          question_plan_snapshot?: Json
+          question_plan_version?: string | null
+          rationale?: string
+          review_history?: Json
+          review_round_id?: string | null
+          round_seq?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_approval_decisio_calculation_run_id_fkey"
+            columns: ["calculation_run_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_calculation_run"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_approval_decision_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_approval_decision_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_approval_decision_override_id_fkey"
+            columns: ["override_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_calculation_override"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_approval_decision_review_round_id_fkey"
+            columns: ["review_round_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_review_round"
             referencedColumns: ["id"]
           },
         ]
@@ -45863,6 +46023,267 @@ export type Database = {
           },
           {
             foreignKeyName: "supervisory_assessment_question_response_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+        ]
+      }
+      supervisory_assessment_review_challenge: {
+        Row: {
+          assessment_id: string
+          calculation_run_id: string | null
+          category: string
+          challenge_code: string
+          created_at: string
+          dimension_code: string | null
+          evidence_id: string | null
+          fact_code: string | null
+          id: string
+          narrative: string
+          question_code: string | null
+          raised_at: string
+          raised_by: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          review_round_id: string
+          round_seq: number
+          status: string
+        }
+        Insert: {
+          assessment_id: string
+          calculation_run_id?: string | null
+          category: string
+          challenge_code: string
+          created_at?: string
+          dimension_code?: string | null
+          evidence_id?: string | null
+          fact_code?: string | null
+          id?: string
+          narrative: string
+          question_code?: string | null
+          raised_at?: string
+          raised_by?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          review_round_id: string
+          round_seq: number
+          status?: string
+        }
+        Update: {
+          assessment_id?: string
+          calculation_run_id?: string | null
+          category?: string
+          challenge_code?: string
+          created_at?: string
+          dimension_code?: string | null
+          evidence_id?: string | null
+          fact_code?: string | null
+          id?: string
+          narrative?: string
+          question_code?: string | null
+          raised_at?: string
+          raised_by?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          review_round_id?: string
+          round_seq?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_review_challenge_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_review_challenge_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_review_challenge_review_round_id_fkey"
+            columns: ["review_round_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_review_round"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_assessment_review_round: {
+        Row: {
+          assessment_id: string
+          calculation_basis: string
+          calculation_inputs_hash: string | null
+          calculation_result_hash: string | null
+          calculation_run_id: string | null
+          calculation_run_seq: number | null
+          change_summary: string | null
+          computed_rating: string | null
+          created_at: string
+          id: string
+          outcome: string
+          outcome_at: string | null
+          outcome_by: string | null
+          outcome_reason: string | null
+          readiness_snapshot: Json
+          reviewer_assigned_at: string | null
+          reviewer_assigned_by: string | null
+          reviewer_id: string | null
+          round_seq: number
+          submission_rationale: string | null
+          submission_snapshot: Json
+          submitted_at: string
+          submitted_by: string | null
+        }
+        Insert: {
+          assessment_id: string
+          calculation_basis?: string
+          calculation_inputs_hash?: string | null
+          calculation_result_hash?: string | null
+          calculation_run_id?: string | null
+          calculation_run_seq?: number | null
+          change_summary?: string | null
+          computed_rating?: string | null
+          created_at?: string
+          id?: string
+          outcome?: string
+          outcome_at?: string | null
+          outcome_by?: string | null
+          outcome_reason?: string | null
+          readiness_snapshot?: Json
+          reviewer_assigned_at?: string | null
+          reviewer_assigned_by?: string | null
+          reviewer_id?: string | null
+          round_seq: number
+          submission_rationale?: string | null
+          submission_snapshot?: Json
+          submitted_at?: string
+          submitted_by?: string | null
+        }
+        Update: {
+          assessment_id?: string
+          calculation_basis?: string
+          calculation_inputs_hash?: string | null
+          calculation_result_hash?: string | null
+          calculation_run_id?: string | null
+          calculation_run_seq?: number | null
+          change_summary?: string | null
+          computed_rating?: string | null
+          created_at?: string
+          id?: string
+          outcome?: string
+          outcome_at?: string | null
+          outcome_by?: string | null
+          outcome_reason?: string | null
+          readiness_snapshot?: Json
+          reviewer_assigned_at?: string | null
+          reviewer_assigned_by?: string | null
+          reviewer_id?: string | null
+          round_seq?: number
+          submission_rationale?: string | null
+          submission_snapshot?: Json
+          submitted_at?: string
+          submitted_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_review_round_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_review_round_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_review_round_calculation_run_id_fkey"
+            columns: ["calculation_run_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_calculation_run"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_assessment_risk_publication: {
+        Row: {
+          approval_decision_id: string
+          assessment_id: string
+          created_at: string
+          domain_code: string
+          effective_from: string
+          entity_id: string
+          id: string
+          movement_id: string | null
+          previous_assessment_id: string | null
+          previous_rating: string | null
+          published_at: string
+          published_by: string | null
+          published_rating: string | null
+          reason: string
+        }
+        Insert: {
+          approval_decision_id: string
+          assessment_id: string
+          created_at?: string
+          domain_code: string
+          effective_from?: string
+          entity_id: string
+          id?: string
+          movement_id?: string | null
+          previous_assessment_id?: string | null
+          previous_rating?: string | null
+          published_at?: string
+          published_by?: string | null
+          published_rating?: string | null
+          reason: string
+        }
+        Update: {
+          approval_decision_id?: string
+          assessment_id?: string
+          created_at?: string
+          domain_code?: string
+          effective_from?: string
+          entity_id?: string
+          id?: string
+          movement_id?: string | null
+          previous_assessment_id?: string | null
+          previous_rating?: string | null
+          published_at?: string
+          published_by?: string | null
+          published_rating?: string | null
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_risk_publicati_approval_decision_id_fkey"
+            columns: ["approval_decision_id"]
+            isOneToOne: true
+            referencedRelation: "supervisory_assessment_approval_decision"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_risk_publication_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_risk_publication_assessment_id_fkey"
             columns: ["assessment_id"]
             isOneToOne: false
             referencedRelation: "supervisory_management_assurance_matter"
@@ -67941,6 +68362,16 @@ export type Database = {
         Args: { _entity_id: string; _module: string; _record_id: string }
         Returns: string
       }
+      supervisory_assessment_approve: {
+        Args: {
+          _assessment_id: string
+          _effective_date?: string
+          _next_review_date?: string
+          _publish?: boolean
+          _rationale: string
+        }
+        Returns: Json
+      }
       supervisory_assessment_calculate: {
         Args: { _assessment_id: string }
         Returns: Json
@@ -67951,6 +68382,24 @@ export type Database = {
       }
       supervisory_assessment_calculation_view: {
         Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_challenge_raise: {
+        Args: {
+          _assessment_id: string
+          _category: string
+          _challenge_code: string
+          _narrative: string
+          _refs?: Json
+        }
+        Returns: Json
+      }
+      supervisory_assessment_challenge_resolve: {
+        Args: {
+          _challenge_id: string
+          _outcome?: string
+          _resolution_note: string
+        }
         Returns: Json
       }
       supervisory_assessment_create: {
@@ -68058,6 +68507,10 @@ export type Database = {
       }
       supervisory_assessment_fact_typed_value: {
         Args: { _data_type: string; _payload: Json }
+        Returns: Json
+      }
+      supervisory_assessment_lifecycle_state: {
+        Args: { _assessment_id: string }
         Returns: Json
       }
       supervisory_assessment_link_domain_record: {
@@ -68174,6 +68627,19 @@ export type Database = {
         Args: { _payload: Json; _set_id: string }
         Returns: string
       }
+      supervisory_assessment_publish_internal: {
+        Args: {
+          _assessment_id: string
+          _decision_id: string
+          _reason: string
+          _uid: string
+        }
+        Returns: Json
+      }
+      supervisory_assessment_publish_risk_of_record: {
+        Args: { _assessment_id: string; _reason: string }
+        Returns: Json
+      }
       supervisory_assessment_question_evidence_count: {
         Args: { _assessment_id: string; _question_id: string }
         Returns: number
@@ -68253,8 +68719,50 @@ export type Database = {
         Args: { _assessment_id: string }
         Returns: Json
       }
+      supervisory_assessment_review_assign: {
+        Args: {
+          _assessment_id: string
+          _rationale: string
+          _reviewer_id: string
+        }
+        Returns: Json
+      }
+      supervisory_assessment_review_blockers_internal: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_review_config_internal: {
+        Args: { _assessment_id: string }
+        Returns: string
+      }
+      supervisory_assessment_review_register: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_review_reject: {
+        Args: { _assessment_id: string; _reason: string }
+        Returns: Json
+      }
+      supervisory_assessment_review_return: {
+        Args: { _assessment_id: string; _reason: string }
+        Returns: Json
+      }
+      supervisory_assessment_risk_lineage: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_assessment_structure_backfill: {
         Args: { _domain_code: string; _dry_run?: boolean; _rationale?: string }
+        Returns: Json
+      }
+      supervisory_assessment_submit_for_review: {
+        Args: {
+          _assessment_id: string
+          _change_summary?: string
+          _expected_result_hash?: string
+          _rationale: string
+          _run_id?: string
+        }
         Returns: Json
       }
       supervisory_assessment_transition: {
@@ -68614,6 +69122,10 @@ export type Database = {
       supervisory_engagement_types: { Args: never; Returns: Json }
       supervisory_entity_detected_conditions: {
         Args: { _domain?: string; _entity_id: string }
+        Returns: Json
+      }
+      supervisory_entity_risk_history: {
+        Args: { _domain_code: string; _entity_id: string }
         Returns: Json
       }
       supervisory_entity_scope_check: {
