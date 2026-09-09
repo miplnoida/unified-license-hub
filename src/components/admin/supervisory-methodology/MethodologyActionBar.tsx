@@ -108,10 +108,30 @@ export function MethodologyActionBar({
   const mc = capabilities?.maker_checker;
   const selected = targets.data?.rows.find((r) => r.id === regulatorId);
 
+  // Readiness summary only. The server runs the same validation inside the
+  // lifecycle operation and refuses the transition itself.
+  const validation = useSupervisoryMethodologyValidation(methodology.id);
+  const errors = validation.data?.blocking_count ?? 0;
+  const warnings = validation.data?.advisory_count ?? 0;
+  const blockedReason = errors > 0
+    ? `${errors} blocking methodology ${errors === 1 ? 'error' : 'errors'} must be resolved. See the Validation tab.`
+    : null;
+
+  const gate = (capability?: MethodologyCapability): MethodologyCapability | undefined => {
+    if (!capability) return capability;
+    if (blockedReason && capability.allowed) return { ...capability, allowed: false, reason: blockedReason };
+    return capability;
+  };
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
         {isLoading ? <span className="text-xs text-muted-foreground">Checking your authority…</span> : null}
+        {validation.data ? (
+          <Badge variant={errors ? 'destructive' : 'secondary'} className="gap-1">
+            Validation: {errors} {errors === 1 ? 'error' : 'errors'}, {warnings} {warnings === 1 ? 'warning' : 'warnings'}
+          </Badge>
+        ) : null}
         <GuardedAction
           capability={capabilities?.can_adopt}
           label="Adopt for Regulator"
