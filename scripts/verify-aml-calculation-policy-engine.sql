@@ -490,6 +490,103 @@ BEGIN
   RAISE NOTICE 'PASS POLICY-08: the engine receives response scoring, weights, fact rules, thresholds and materiality';
 END $$;
 
+-- POLICY-09 — the rating vocabulary contract is enforced, not assumed.
+--   A deliberately invalid secondary fixture proves that:
+--     (a) an inherent band code the methodology does not publish is refused;
+--     (b) a control band code the methodology does not publish is refused;
+--     (c) a methodology that publishes no control-effectiveness scale cannot validate;
+--     (d) incomplete residual-matrix coverage is refused.
+--   The valid AML06CERT policy above is untouched and continues through the
+--   remaining gates.
+DO $$
+DECLARE bad_meth uuid; bad_cfg uuid; vres jsonb; probs text; refused boolean;
+BEGIN
+  -- (c) a methodology with a risk scale but NO control scale
+  INSERT INTO public.supervisory_methodology(
+    id, code, domain_code, name, version, status, sector_id, regulator_id,
+    effective_from, origin, title, scoring_scale, definition)
+  VALUES (gen_random_uuid(),'AML06CERT-METH-NOCTRL','AML_CFT','AML06CERT no-control-scale fixture','1.0',
+    'ACTIVE',(SELECT v FROM c_id WHERE k='sector'),(SELECT v FROM c_id WHERE k='regulator'),
+    current_date - 1,'REGULATOR_AUTHORED','AML06CERT no-control-scale fixture',
+    '[{"code":"LOW","label":"Low","ordinal":1},{"code":"HIGH","label":"High","ordinal":2}]'::jsonb,
+    '{}'::jsonb)
+  RETURNING id INTO bad_meth;
+  INSERT INTO c_id(k,v) VALUES ('bad_meth', bad_meth);
+
+  SET LOCAL ROLE authenticated;
+  PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
+  bad_cfg := public.supervisory_calculation_config_upsert(bad_meth, jsonb_build_object(
+    'effective_from', (current_date - 1)::text,
+    'aggregation_method','UNWEIGHTED_MEAN','min_answered_questions',1,
+    'na_denominator_handling','EXCLUDE','evidence_insufficiency_handling','FLAG_ONLY',
+    'critical_question_handling','NONE','rounding_mode','HALF_UP','rounding_decimals',2,
+    'inherent_direction','DIRECT','recommendation_policy','WEIGHTED_SCORE'));
+  INSERT INTO c_id(k,v) VALUES ('bad_cfg', bad_cfg);
+
+  -- (a) an inherent band code outside the published risk scale
+  PERFORM public.supervisory_calculation_bands_set(bad_cfg,'INHERENT', jsonb_build_array(
+    jsonb_build_object('band_code','LOW','min_score',0,'max_score',50,'sort_order',1),
+    jsonb_build_object('band_code','AML06CERT_NOT_A_RATING','min_score',50,'max_score',100,'sort_order',2)));
+  -- (b) a control band code, on a methodology publishing no control scale at all
+  PERFORM public.supervisory_calculation_bands_set(bad_cfg,'CONTROL', jsonb_build_array(
+    jsonb_build_object('band_code','AML06CERT_NOT_A_CONTROL_GRADE','min_score',0,'max_score',100,'sort_order',1)));
+  -- (d) a single matrix cell, far short of full coverage
+  PERFORM public.supervisory_calculation_matrix_set(bad_cfg, jsonb_build_array(
+    jsonb_build_object('inherent_band','LOW','control_band','AML06CERT_NOT_A_CONTROL_GRADE','residual_rating','LOW')));
+  RESET ROLE;
+
+  vres := public.supervisory_calculation_config_validate(bad_cfg);
+  probs := vres->>'problems';
+  IF (vres->>'ok')::boolean THEN
+    RAISE EXCEPTION 'FAIL POLICY-09: an invalid vocabulary policy validated cleanly';
+  END IF;
+  IF probs NOT LIKE '%inherent bands use a code outside the published vocabulary%' THEN
+    RAISE EXCEPTION 'FAIL POLICY-09(a): an unknown inherent rating code was not refused: %', probs; END IF;
+  IF probs NOT LIKE '%no control effectiveness scale%' THEN
+    RAISE EXCEPTION 'FAIL POLICY-09(c): a methodology with no control scale still validated: %', probs; END IF;
+  IF probs NOT LIKE '%residual matrix%' THEN
+    RAISE EXCEPTION 'FAIL POLICY-09(d): incomplete residual-matrix coverage was not refused: %', probs; END IF;
+
+  -- the invalid policy can never be submitted for approval
+  refused := false;
+  SET LOCAL ROLE authenticated;
+  PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
+  BEGIN
+    PERFORM public.supervisory_calculation_config_lifecycle(bad_cfg,'REVIEW','AML06CERT invalid vocabulary submission');
+  EXCEPTION WHEN others THEN refused := true; END;
+  RESET ROLE;
+  IF NOT refused THEN
+    RAISE EXCEPTION 'FAIL POLICY-09: a policy using unpublished rating codes was allowed into review'; END IF;
+
+  RAISE NOTICE 'PASS POLICY-09: unknown inherent codes, unknown control codes, a missing control scale and incomplete matrix coverage are all refused';
+END $$;
+
+-- POLICY-09B — a control band code outside a PUBLISHED control scale is refused
+--              (the valid fixture methodology publishes WEAK/STRONG).
+DO $$
+DECLARE cfg2 uuid; vres jsonb;
+BEGIN
+  SET LOCAL ROLE authenticated;
+  PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
+  cfg2 := public.supervisory_calculation_config_upsert((SELECT v FROM c_id WHERE k='meth'), jsonb_build_object(
+    'effective_from', (current_date + 30)::text,
+    'aggregation_method','UNWEIGHTED_MEAN','min_answered_questions',1,
+    'na_denominator_handling','EXCLUDE','evidence_insufficiency_handling','FLAG_ONLY',
+    'critical_question_handling','NONE','rounding_mode','HALF_UP','rounding_decimals',2,
+    'inherent_direction','DIRECT','recommendation_policy','WEIGHTED_SCORE'));
+  PERFORM public.supervisory_calculation_bands_set(cfg2,'CONTROL', jsonb_build_array(
+    jsonb_build_object('band_code','ADEQUATE','min_score',0,'max_score',100,'sort_order',1)));
+  RESET ROLE;
+  INSERT INTO c_id(k,v) VALUES ('cfg2', cfg2);
+  vres := public.supervisory_calculation_config_validate(cfg2);
+  IF (vres->>'problems') NOT LIKE '%control bands use a code outside the published vocabulary%' THEN
+    RAISE EXCEPTION 'FAIL POLICY-09B: an unknown control-effectiveness code was accepted: %', vres->'problems';
+  END IF;
+  RAISE NOTICE 'PASS POLICY-09B: a control band code the methodology does not publish is refused';
+END $$;
+
+
+
 -- ===================== SCORE / DIMCALC / bands ========================
 DO $$
 DECLARE r jsonb;
