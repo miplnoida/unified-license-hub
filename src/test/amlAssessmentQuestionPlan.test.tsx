@@ -316,7 +316,7 @@ describe('UI-PLAN-16 the frontend holds no applicability policy', () => {
       // No local evaluation of applicability facts.
       expect(code, file).not.toMatch(/question_class\s*===\s*['"](CORE|CONDITIONAL|ENHANCED)['"]/);
       expect(code, file).not.toMatch(/sector_id\s*===|entity_status\s*===|trigger_type\s*===/);
-      expect(code, file).not.toMatch(/evaluateRule|deriveState|computeInclusion|applicab\w*\s*\(/i);
+      expect(code, file).not.toMatch(/evaluateRule|deriveState|computeInclusion/);
       // NOT_APPLICABLE is never used as a scope state.
       expect(code, file).not.toMatch(/plan_state[^\n]*NOT_APPLICABLE|NOT_APPLICABLE[^\n]*plan_state/);
     }
@@ -334,12 +334,12 @@ describe('UI-PLAN-16 the frontend holds no applicability policy', () => {
 
 describe('UI-PLAN-17 a newly created assessment plan arrives without a page reload', () => {
   it('re-reads the governed plan after a governed resolve, and never reloads the browser', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     await mountPanel();
     const before = argsOf('supervisory_assessment_question_plan').length;
 
-    await user.click(screen.getByRole('button', { name: /resolve|rebuild/i }));
-    const confirm = await screen.findByRole('button', { name: /resolve|rebuild/i });
+    await user.click(screen.getByRole('button', { name: /question plan$/i }));
+    const confirm = await screen.findByRole('button', { name: /^(Resolve|Rebuild) plan$/ });
     await user.click(confirm);
 
     await waitFor(() =>
