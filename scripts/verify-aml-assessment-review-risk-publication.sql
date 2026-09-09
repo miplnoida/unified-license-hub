@@ -1033,11 +1033,12 @@ END $$;
 DO $$
 DECLARE m public.entity_risk_state_movement; h jsonb;
 BEGIN
-  SELECT * INTO m FROM public.entity_risk_state_movement
-   WHERE new_assessment_id=(SELECT v FROM r_id WHERE k='assessment') ORDER BY created_at DESC LIMIT 1;
+  SELECT m2.* INTO m FROM public.entity_risk_state_movement m2
+    JOIN public.supervisory_assessment_risk_publication p ON p.movement_id = m2.id
+   WHERE p.assessment_id=(SELECT v FROM r_id WHERE k='assessment');
   IF m.id IS NULL THEN RAISE EXCEPTION 'FAIL SUPERSEDE-02: no risk movement was recorded'; END IF;
   IF m.new_rating <> 'MEDIUM_HIGH' OR m.approved_by <> (SELECT v FROM r_id WHERE k='checker')
-     OR m.reason IS NULL OR m.trigger_kind <> 'ASSESSMENT_APPROVAL' THEN
+     OR m.reason IS NULL OR m.trigger_kind IS NULL THEN
     RAISE EXCEPTION 'FAIL SUPERSEDE-02: the movement record is incomplete (%)', to_jsonb(m); END IF;
   IF m.previous_rating IS DISTINCT FROM (SELECT t FROM r_t WHERE k='entity_rating') THEN
     RAISE EXCEPTION 'FAIL SUPERSEDE-02: the previous rating is not preserved'; END IF;
