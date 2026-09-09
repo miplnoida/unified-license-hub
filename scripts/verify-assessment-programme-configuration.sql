@@ -391,7 +391,7 @@ BEGIN
      OR s.regulator_id IS DISTINCT FROM (SELECT v FROM pg_id WHERE k='regulator') THEN
     RAISE EXCEPTION 'FAIL PROG-12: created set is origin=% status=% regulator=%', s.origin, s.status, s.regulator_id; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.supervisory_assessment_programme_event
-                  WHERE programme_set_id=id AND event_type='CREATED') THEN
+                  WHERE programme_set_id=_id AND event_type='CREATED') THEN
     RAISE EXCEPTION 'FAIL PROG-12: creation was not recorded in programme history'; END IF;
   RAISE NOTICE 'PASS PROG-12: regulator-authored DRAFT programme set created through the governed operation';
 END $$;
