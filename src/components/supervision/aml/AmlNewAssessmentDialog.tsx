@@ -166,7 +166,7 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
           ) : null}
 
 
-          {chosenEntity ? (
+          {targetEntity ? (
             resolving ? (
               <p className="text-sm text-muted-foreground">Resolving the applicable methodology…</p>
             ) : ambiguous ? (
