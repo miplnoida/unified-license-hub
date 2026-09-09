@@ -125,6 +125,10 @@ export interface MethodologyDimension {
   evidence_required: boolean | null;
   sort_order: number | null;
   question_count: number;
+  /** Reported by the register so the Studio can show retired structure honestly. */
+  active?: boolean;
+  /** Used for optimistic concurrency when reordering or editing. */
+  updated_at?: string | null;
 }
 
 export interface MethodologyQuestionRow {
