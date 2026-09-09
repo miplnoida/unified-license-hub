@@ -630,18 +630,23 @@ BEGIN
     RAISE EXCEPTION 'FAIL PROG-27: TRAILING_DAYS without a positive period value was accepted (%)', codes; END IF;
   RAISE NOTICE 'PASS PROG-27: TRAILING_DAYS requires a positive period value';
 
-  -- PROG-28: TRAILING_MONTHS with a non-positive value
-  PERFORM public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
-    'programme_code','CERT_BAD','label','Bad period','assessment_type','PERIODIC',
-    'period_rule','TRAILING_MONTHS','period_value',0,'question_class_scope',jsonb_build_array('CORE'),
-    'id',(SELECT id FROM public.supervisory_assessment_programme
-           WHERE programme_set_id=(SELECT v FROM pg_id WHERE k='set') AND programme_code='CERT_BAD')));
-  vres := public.supervisory_assessment_programme_set_validate((SELECT v FROM pg_id WHERE k='set'));
-  SELECT array_agg(e->>'code') INTO codes FROM jsonb_array_elements(vres->'errors') e
-   WHERE e->>'programme_code'='CERT_BAD';
-  IF NOT (codes @> ARRAY['PERIOD_VALUE_REQUIRED']) THEN
-    RAISE EXCEPTION 'FAIL PROG-28: TRAILING_MONTHS with a non-positive period value was accepted (%)', codes; END IF;
-  RAISE NOTICE 'PASS PROG-28: TRAILING_MONTHS requires a positive period value';
+  -- PROG-28: TRAILING_MONTHS with a non-positive value is refused outright
+  ok := false;
+  BEGIN
+    PERFORM public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
+      'programme_code','CERT_BAD','label','Bad period','assessment_type','PERIODIC',
+      'period_rule','TRAILING_MONTHS','period_value',0,'question_class_scope',jsonb_build_array('CORE'),
+      'id',(SELECT id FROM public.supervisory_assessment_programme
+             WHERE programme_set_id=(SELECT v FROM pg_id WHERE k='set') AND programme_code='CERT_BAD')));
+  EXCEPTION WHEN OTHERS THEN ok := true;
+  END;
+  IF NOT ok THEN
+    RAISE EXCEPTION 'FAIL PROG-28: TRAILING_MONTHS with a non-positive period value was accepted'; END IF;
+  IF EXISTS (SELECT 1 FROM public.supervisory_assessment_programme
+              WHERE programme_set_id=(SELECT v FROM pg_id WHERE k='set') AND period_value = 0) THEN
+    RAISE EXCEPTION 'FAIL PROG-28: a non-positive period value persisted'; END IF;
+  RAISE NOTICE 'PASS PROG-28: a non-positive period value is refused at write time (database invariant)';
+
 
   -- PROG-30: an invalid period rule
   PERFORM public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
