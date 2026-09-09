@@ -71,10 +71,16 @@ function respond(fn: string) {
         can_author_semantics: capability(authoring),
         can_author_facts: capability(authoring),
         can_author_parameters: capability(authoring),
+        can_author_reference_decisions: capability(authoring),
+        can_edit_metadata: capability(authoring),
         requires_retirement_rationale: true,
       };
     case 'supervisory_methodology_question_save': return METH;
     case 'supervisory_methodology_question_retire': return METH;
+    case 'supervisory_methodology_dimension_save': return METH;
+    case 'supervisory_methodology_dimension_retire':
+      throw new Error('ERROR: 6 active question(s) still belong to this dimension');
+    case 'supervisory_methodology_metadata_save': return METH;
     default: return null;
   }
 }
