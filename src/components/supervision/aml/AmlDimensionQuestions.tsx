@@ -17,7 +17,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, CheckCircle2, Circle } from 'lucide-react';
-import { AmlEvidenceLinker, type AmlEvidenceRef } from '@/components/supervision/aml/AmlEvidenceLinker';
+import { AmlQuestionEvidencePanel } from '@/components/supervision/aml/AmlQuestionEvidencePanel';
+import { useAssessmentQuestionExecution } from '@/hooks/useAssessmentEvidenceBasis';
 import {
   amlErrorMessage,
   useSaveAmlQuestionResponse,
@@ -59,6 +60,10 @@ export function AmlDimensionQuestions({
   }
 
   const byQuestion = new Map(responses.map((r) => [r.methodology_question_id, r]));
+  // Evidence counts and permitted evidence kinds are read from the platform,
+  // never recomputed here, so the officer sees the same position as submission.
+  const { data: execution } = useAssessmentQuestionExecution(assessmentId);
+  const byExecution = new Map((execution ?? []).map((e) => [e.question_id, e]));
 
   return (
     <div className="space-y-3">
@@ -71,6 +76,9 @@ export function AmlDimensionQuestions({
           index={index + 1}
           question={q}
           recorded={byQuestion.get(q.id)}
+          evidenceCount={byExecution.get(q.id)?.evidence_count ?? null}
+          legacyEvidenceCount={byExecution.get(q.id)?.legacy_evidence_count ?? null}
+          permittedEvidenceTypes={byExecution.get(q.id)?.permitted_evidence_types ?? null}
           assessmentId={assessmentId}
           entityId={entityId}
           editable={editable}
@@ -85,6 +93,9 @@ function QuestionRow({
   index,
   question,
   recorded,
+  evidenceCount,
+  legacyEvidenceCount,
+  permittedEvidenceTypes,
   assessmentId,
   entityId,
   editable,
@@ -93,6 +104,9 @@ function QuestionRow({
   index: number;
   question: AmlMethodologyQuestion;
   recorded?: AmlQuestionResponse;
+  evidenceCount: number | null;
+  legacyEvidenceCount: number | null;
+  permittedEvidenceTypes: string[] | null;
   assessmentId: string;
   entityId: string;
   editable: boolean;
@@ -101,9 +115,6 @@ function QuestionRow({
   const save = useSaveAmlQuestionResponse();
   const [response, setResponse] = useState<string>(recorded?.response ?? '');
   const [observation, setObservation] = useState<string>(recorded?.observation ?? '');
-  const [evidence, setEvidence] = useState<AmlEvidenceRef[]>(
-    Array.isArray(recorded?.evidence_refs) ? (recorded?.evidence_refs as AmlEvidenceRef[]) : [],
-  );
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -115,14 +126,14 @@ function QuestionRow({
   const na = response === 'NOT_APPLICABLE';
   const requiredEvidence = question.requires_evidence ? Math.max(1, question.min_evidence_count ?? 1) : 0;
   const observationRequired = na ? question.na_requires_rationale : question.requires_observation;
+  const legacyRefs = Array.isArray(recorded?.evidence_refs) ? (recorded?.evidence_refs as unknown[]).length : 0;
+  const onFile = evidenceCount ?? legacyRefs;
   const answered =
     !!recorded &&
     (recorded.response === 'NOT_APPLICABLE'
       ? !question.na_requires_rationale || String(recorded.observation ?? '').trim().length >= 10
       : (!question.requires_observation || String(recorded.observation ?? '').trim().length >= 10) &&
-        (!question.requires_evidence ||
-          (Array.isArray(recorded.evidence_refs) ? recorded.evidence_refs.length : 0) >=
-            Math.max(1, question.min_evidence_count ?? 1)));
+        (!question.requires_evidence || onFile >= requiredEvidence));
 
   const submit = async () => {
     if (!response) {
@@ -137,9 +148,9 @@ function QuestionRow({
       );
       return;
     }
-    if (!na && requiredEvidence > 0 && evidence.length < requiredEvidence) {
+    if (!na && requiredEvidence > 0 && onFile < requiredEvidence) {
       setError(
-        `This question requires at least ${requiredEvidence} governed evidence reference${requiredEvidence === 1 ? '' : 's'}.`,
+        `This question requires at least ${requiredEvidence} governed evidence reference${requiredEvidence === 1 ? '' : 's'}. Link the evidence below, then save.`,
       );
       return;
     }
@@ -151,7 +162,8 @@ function QuestionRow({
         questionId: question.id,
         response,
         observation: observation.trim() || null,
-        evidenceRefs: evidence.length ? evidence : null,
+        // Evidence recorded before the register existed is preserved exactly.
+        evidenceRefs: (recorded?.evidence_refs as unknown[] | null) ?? null,
       });
       toast.success(`${question.question_code} recorded.`);
       onChanged();
@@ -227,13 +239,15 @@ function QuestionRow({
         </div>
 
         {!na ? (
-          <AmlEvidenceLinker
+          <AmlQuestionEvidencePanel
+            assessmentId={assessmentId}
             entityId={entityId}
-            value={evidence}
-            onChange={setEvidence}
-            disabled={!editable}
+            questionId={question.id}
+            questionCode={question.question_code}
+            permittedTypes={permittedEvidenceTypes}
             requiredCount={requiredEvidence}
-            label="Question evidence"
+            legacyCount={legacyEvidenceCount ?? legacyRefs}
+            editable={editable}
           />
         ) : null}
 

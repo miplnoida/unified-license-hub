@@ -31,6 +31,7 @@ import {
   useTransitionAmlAssessment,
 } from '@/hooks/useAmlLifecycle';
 import { useCan } from '@/hooks/useCan';
+import { useAssessmentReadiness } from '@/hooks/useAssessmentEvidenceBasis';
 import type { AssessmentReadiness } from '@/lib/amlAssessmentReadiness';
 
 type DialogKind =
@@ -89,6 +90,10 @@ export function AmlAssessmentActions({
   const canApprove = useCan('aml_supervision', 'approve');
   const canCreate = useCan('aml_supervision', 'create');
 
+  /* Submission readiness is the platform's decision, not this screen's. */
+  const serverReadiness = useAssessmentReadiness(assessmentId);
+  const submissionReady = serverReadiness.data ? serverReadiness.data.can_submit : false;
+
   const st = (status ?? '').toLowerCase();
   const editable = st === 'draft' || st === 'returned_for_revision';
   const highDimensions = dimensions.filter((d) =>
@@ -142,8 +147,8 @@ export function AmlAssessmentActions({
                 data-rbac="aml_supervision.submit"
                 size="sm"
                 onClick={() => setDialog('submit')}
-                disabled={!readiness.ready}
-                title={readiness.ready ? undefined : 'Complete the working file before submitting.'}
+                disabled={!submissionReady}
+                title={submissionReady ? undefined : 'The platform still lists outstanding items for this assessment.'}
               >
                 Submit for supervisory review
               </Button>

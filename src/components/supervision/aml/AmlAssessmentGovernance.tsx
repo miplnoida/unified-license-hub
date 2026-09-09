@@ -13,6 +13,8 @@ import {
 } from '@/hooks/useAmlLifecycle';
 import { AmlAssessmentActions } from '@/components/supervision/aml/AmlAssessmentActions';
 import { AmlDimensionWorksheet } from '@/components/supervision/aml/AmlDimensionWorksheet';
+import { AmlFactRegisterPanel } from '@/components/supervision/aml/AmlFactRegisterPanel';
+import { AmlReadinessPanel } from '@/components/supervision/aml/AmlReadinessPanel';
 import { computeAssessmentReadiness, type RecordedDimension } from '@/lib/amlAssessmentReadiness';
 
 
@@ -71,6 +73,8 @@ export function AmlAssessmentGovernance({
             </CardContent>
           </Card>
         ) : null}
+        <AmlReadinessPanel assessmentId={assessmentId} />
+        <AmlFactRegisterPanel assessmentId={assessmentId} editable={editable} />
         <AmlDimensionWorksheet
           assessmentId={assessmentId}
           entityId={entityId}
