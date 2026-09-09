@@ -67945,6 +67945,14 @@ export type Database = {
         Args: { _assessment_id: string }
         Returns: Json
       }
+      supervisory_assessment_calculation_run_record: {
+        Args: { _assessment_id: string; _event_reason?: string }
+        Returns: Json
+      }
+      supervisory_assessment_calculation_view: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_assessment_create: {
         Args: {
           _assessment_type?: string
@@ -68398,6 +68406,10 @@ export type Database = {
         Args: { _assessment_id: string }
         Returns: string
       }
+      supervisory_calc_inputs_snapshot: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_calc_materialise: {
         Args: {
           _actor_id?: string
@@ -68423,6 +68435,10 @@ export type Database = {
       supervisory_calc_round: {
         Args: { _decimals: number; _mode: string; _v: number }
         Returns: number
+      }
+      supervisory_calc_run_authority: {
+        Args: { _assessment_id: string }
+        Returns: string
       }
       supervisory_calc_simulate: {
         Args: { _domain_code: string; _entity_id?: string; _policy: Json }
@@ -68467,6 +68483,18 @@ export type Database = {
       supervisory_calculation_matrix_set: {
         Args: { _cells: Json; _config_id: string }
         Returns: number
+      }
+      supervisory_calculation_override_decide: {
+        Args: { _decision: string; _note?: string; _override_id: string }
+        Returns: string
+      }
+      supervisory_calculation_override_propose: {
+        Args: {
+          _assessment_id: string
+          _proposed_rating: string
+          _rationale: string
+        }
+        Returns: string
       }
       supervisory_calculation_policy_problems: {
         Args: { _config_id: string }
