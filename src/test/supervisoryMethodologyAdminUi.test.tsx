@@ -256,17 +256,25 @@ describe('UI-METH-08 question detail drawer', () => {
   });
 });
 
+/**
+ * The register row action is found by its visible text rather than by role and
+ * accessible name: a document-wide role+name query computes an accessible name
+ * for every control on a full page of register rows, which is what pushed this
+ * gate to 3.2–3.7s in isolation and over the five-second default under load.
+ * The same visible control is clicked and the same assertions run.
+ */
 describe('UI-METH-09 IR-GEO-03 semantics are rendered truthfully', () => {
   it('shows the contextual, not-scored participation the server records', async () => {
     expect(FIX.question_detail.question_code).toBe('IR-GEO-03');
     expect(FIX.question_detail.calculation_participation).toBe('CONTEXTUAL_NOT_SCORED');
     await mountDetailTab(<QuestionsTab methodologyId={MID} />);
-    await ue().click((await screen.findAllByRole('button', { name: /^View$/ }))[0]);
+    await ue().click((await screen.findAllByText('View'))[0]);
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getAllByText(/Contextual, not scored|Contextual not scored/i).length).toBeGreaterThan(0);
     expect(within(dialog).queryByText('CONTEXTUAL_NOT_SCORED')).toBeNull();
   });
 });
+
 
 describe('UI-METH-10 five version-owned semantic profiles', () => {
   it('renders every profile and states version ownership', async () => {

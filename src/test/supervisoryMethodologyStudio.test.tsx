@@ -7,7 +7,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
@@ -125,10 +125,8 @@ afterEach(() => { calls.length = 0; authoring = true; cleanup(); });
  * isolation over three runs the heaviest read-only gate takes 1.8–3.3s, which
  * leaves no headroom under the default five seconds once the bounded pool runs
  * four files at once. The group therefore carries a 15s budget — roughly four
- * times the measured worst case — and the one gate that opens the full question
- * editor (about forty controlled fields; measured 19.6s, 21.2s, 19.6s) carries
- * 45s, a little over twice its stable duration. No assertion is relaxed and no
- * other file changes its timeout.
+ * times the measured worst case. No assertion is relaxed and no other file
+ * changes its timeout.
  */
 describe('METH-STUDIO-UI authoring surface', { timeout: 15_000 }, () => {
   it('METH-STUDIO-UI-01 asks the server which authoring actions are permitted', async () => {
@@ -150,22 +148,29 @@ describe('METH-STUDIO-UI authoring surface', { timeout: 15_000 }, () => {
     expect(screen.queryByRole('button', { name: 'Add question' })).toBeNull();
   });
 
-  // Rendering the complete question model (about forty controlled fields, several
-  // of them Radix selects) legitimately costs about twenty seconds in jsdom, so
-  // this one gate keeps an explicit budget. The assertions are unchanged.
-  it('METH-STUDIO-UI-04 saves a new question through the governed operation', { timeout: 45_000 }, async () => {
+  /**
+   * The question editor is asserted through its own dialog, not through the
+   * whole document. A document-wide `getByLabelText` / `getByRole` here has to
+   * compute an accessible name for every control on the mounted screen — the
+   * dimension studio, a full page of register rows and eleven Radix selects —
+   * which measured 5–7s per query and made this the slowest gate in the suite
+   * (20.1s) purely in Testing Library, not in React. Scoping to the dialog
+   * subtree asserts exactly the same behaviour in about 4.5s.
+   */
+  it('METH-STUDIO-UI-04 saves a new question through the governed operation', async () => {
     const user = userEvent.setup({ delay: null });
     mount(<QuestionsTab methodologyId={METH} />);
     await user.click(await screen.findByRole('button', { name: 'Add question' }));
+    const editor = within(await screen.findByRole('dialog'));
 
     // This gate is about the governed save contract, so the field values are set
     // with one change event each. Character-by-character entry through the
     // register search box is covered by UI-METH-05.
-    fireEvent.change(screen.getByLabelText('Question code'), { target: { value: 'TEST_Q_01' } });
-    fireEvent.change(screen.getByLabelText('Prompt'), {
+    fireEvent.change(editor.getByLabelText('Question code'), { target: { value: 'TEST_Q_01' } });
+    fireEvent.change(editor.getByLabelText('Prompt'), {
       target: { value: 'Does the entity maintain a documented risk appetite?' },
     });
-    await user.click(screen.getAllByRole('button', { name: 'Add question' }).at(-1)!);
+    await user.click(editor.getAllByRole('button', { name: 'Add question' }).at(-1)!);
 
     await waitFor(() => expect(calls.some((c) => c.fn === 'supervisory_methodology_question_save')).toBe(true));
     const args = calls.find((c) => c.fn === 'supervisory_methodology_question_save')!.args;
@@ -173,6 +178,7 @@ describe('METH-STUDIO-UI authoring surface', { timeout: 15_000 }, () => {
     expect(args._payload.question_code).toBe('TEST_Q_01');
     expect(args._payload.dimension_code).toBeTruthy();
   });
+
 
   it('METH-STUDIO-UI-05 renders validation findings from the server only', async () => {
     mount(<ValidationTab methodologyId={METH} />);
