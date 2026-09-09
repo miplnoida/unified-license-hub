@@ -127,8 +127,7 @@ INSERT INTO public.supervisory_methodology(
   effective_from, origin, title)
 VALUES (gen_random_uuid(), 'PLANCERT-METH', 'AML_CFT', 'PLANCERT applicability fixture', '1.0',
   'ACTIVE', (SELECT v FROM pl_id WHERE k='sector'), (SELECT v FROM pl_id WHERE k='regulator'),
-  current_date - 1, 'REGULATOR_AUTHORED', 'PLANCERT applicability fixture')
-RETURNING id INTO STRICT NULL;
+  current_date - 1, 'REGULATOR_AUTHORED', 'PLANCERT applicability fixture');
 
 INSERT INTO pl_id(k,v) SELECT 'meth', id FROM public.supervisory_methodology WHERE code='PLANCERT-METH';
 
