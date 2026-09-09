@@ -34,6 +34,10 @@ import {
   riskScaleCodes, controlScaleCodes, calcErrorMessage, supervisoryDomainModule,
   type CalculationConfig, type ResponseScoreRow, type BandRow, type MatrixCell,
 } from '@/hooks/useSupervisoryCalculationConfig';
+import { QuestionParticipationEditor } from '@/components/admin/calculation/QuestionParticipationEditor';
+import { DimensionPolicyEditor } from '@/components/admin/calculation/DimensionPolicyEditor';
+import { FactTransformEditor } from '@/components/admin/calculation/FactTransformEditor';
+import { MaterialityEditor } from '@/components/admin/calculation/MaterialityEditor';
 
 
 // Option lists mirror the server contract exactly (see the CHECK constraints on
