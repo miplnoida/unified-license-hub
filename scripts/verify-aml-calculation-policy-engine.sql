@@ -202,8 +202,11 @@ BEGIN
      WHERE assessment_id=_aid AND question_code=_qcode;
   ELSE
     INSERT INTO public.supervisory_assessment_question_response(
-      assessment_id, methodology_id, methodology_dimension_id, methodology_question_id, question_code, response)
-    VALUES (_aid, (SELECT v FROM c_id WHERE k='meth'), _q.methodology_dimension_id, _q.id, _qcode, _response);
+      assessment_id, methodology_id, methodology_dimension_id, methodology_question_id,
+      dimension_code, question_code, response)
+    SELECT _aid, (SELECT v FROM c_id WHERE k='meth'), _q.methodology_dimension_id, _q.id,
+           md.dimension_code, _qcode, _response
+      FROM public.supervisory_methodology_dimension md WHERE md.id = _q.methodology_dimension_id;
   END IF;
 END $$;
 
