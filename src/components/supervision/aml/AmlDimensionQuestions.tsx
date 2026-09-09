@@ -51,6 +51,11 @@ export function AmlDimensionQuestions({
   editable,
   onChanged,
 }: Props) {
+  // Evidence counts and permitted evidence kinds are read from the platform,
+  // never recomputed here, so the officer sees the same position as submission.
+  const { data: execution } = useAssessmentQuestionExecution(assessmentId);
+  const byExecution = new Map((execution ?? []).map((e) => [e.question_id, e]));
+
   if (!questions.length) {
     return (
       <p className="text-xs text-muted-foreground">
@@ -60,10 +65,7 @@ export function AmlDimensionQuestions({
   }
 
   const byQuestion = new Map(responses.map((r) => [r.methodology_question_id, r]));
-  // Evidence counts and permitted evidence kinds are read from the platform,
-  // never recomputed here, so the officer sees the same position as submission.
-  const { data: execution } = useAssessmentQuestionExecution(assessmentId);
-  const byExecution = new Map((execution ?? []).map((e) => [e.question_id, e]));
+
 
   return (
     <div className="space-y-3">

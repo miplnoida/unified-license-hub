@@ -1,0 +1,317 @@
+{
+  "_provenance": "Payload shapes captured from the live database on 2026-09-09 by calling public.supervisory_assessment_readiness, supervisory_assessment_question_execution, supervisory_assessment_evidence_register, supervisory_assessment_fact_register and supervisory_evidence_basis_type under the authenticated supervisory officer persona inside a rolled-back transaction. Values for the blocked/override cases are the same server shapes with the fields the governed operations populate.",
+  "assessment_id": "219e68df-f799-4cc6-9004-f07a94a8621c",
+  "methodology_id": "1e248dc0-c559-48d7-bcf3-70d6ec5db99a",
+  "question_id": "d9959a80-426e-4299-9d71-56353f2ef026",
+  "question_code": "Q1",
+  "dimension_id": "9703ec43-b0aa-4c28-b6a0-ffe6bfeb7499",
+  "readiness_ready": {
+    "assessment_id": "219e68df-f799-4cc6-9004-f07a94a8621c",
+    "status": "draft",
+    "methodology_id": "1e248dc0-c559-48d7-bcf3-70d6ec5db99a",
+    "plan_mode": "LEGACY_ALL_MANDATORY",
+    "checks": [
+      {
+        "key": "METHODOLOGY_BINDING",
+        "label": "Methodology version attached",
+        "status": "OK",
+        "blocking": false,
+        "count": 0,
+        "detail": "Bound to the exact methodology version used at creation.",
+        "items": []
+      },
+      {
+        "key": "EVIDENCE",
+        "label": "Governed evidence basis",
+        "status": "OK",
+        "blocking": false,
+        "count": 0,
+        "detail": "Questions the methodology marks as evidence-based must cite governed evidence.",
+        "items": []
+      },
+      {
+        "key": "REQUIRED_FACTS",
+        "label": "Required structured facts",
+        "status": "OK",
+        "blocking": false,
+        "count": 0,
+        "detail": "Facts the methodology requires for questions in scope must be recorded with provenance.",
+        "items": []
+      }
+    ],
+    "blocking_check_count": 0,
+    "outstanding_question_count": 0,
+    "outstanding_fact_count": 0,
+    "can_submit": true,
+    "submission_gate": "READY",
+    "evaluated_at": "2026-09-09T15:06:08.35135+00:00"
+  },
+  "readiness_blocked": {
+    "assessment_id": "219e68df-f799-4cc6-9004-f07a94a8621c",
+    "status": "draft",
+    "methodology_id": "1e248dc0-c559-48d7-bcf3-70d6ec5db99a",
+    "plan_mode": "GOVERNED_PLAN",
+    "checks": [
+      {
+        "key": "QUESTION_PLAN",
+        "label": "Governed question plan",
+        "status": "OK",
+        "blocking": false,
+        "count": 0,
+        "detail": "A governed question plan is resolved for this assessment.",
+        "items": []
+      },
+      {
+        "key": "EVIDENCE",
+        "label": "Governed evidence basis",
+        "status": "BLOCKING",
+        "blocking": true,
+        "count": 2,
+        "detail": "Questions the methodology marks as evidence-based must cite governed evidence.",
+        "items": [
+          {
+            "question_id": "d9959a80-426e-4299-9d71-56353f2ef026",
+            "question_code": "Q1",
+            "dimension_code": "ALERT_INVESTIGATION",
+            "reason": "EVIDENCE_BELOW_MINIMUM"
+          },
+          {
+            "question_id": "b12ecf97-920d-4a84-a9dc-54f4cb22a9eb",
+            "question_code": "Q2",
+            "dimension_code": "ALERT_INVESTIGATION",
+            "reason": "EVIDENCE_MISSING"
+          }
+        ]
+      },
+      {
+        "key": "REQUIRED_FACTS",
+        "label": "Required structured facts",
+        "status": "BLOCKING",
+        "blocking": true,
+        "count": 1,
+        "detail": "Facts the methodology requires for questions in scope must be recorded with provenance.",
+        "items": [
+          {
+            "fact_requirement_id": "f0000000-0000-4000-8000-00000000f001",
+            "fact_code": "SAR_FILED_COUNT",
+            "dimension_code": "SAR_GOVERNANCE",
+            "reason": "FACT_NOT_RECORDED"
+          }
+        ]
+      }
+    ],
+    "blocking_check_count": 2,
+    "outstanding_question_count": 2,
+    "outstanding_fact_count": 1,
+    "can_submit": false,
+    "submission_gate": "BLOCKED",
+    "evaluated_at": "2026-09-09T15:06:08.35135+00:00"
+  },
+  "evidence_types": [
+    {
+      "code": "ENTERPRISE_DOCUMENT",
+      "label": "Registered document",
+      "description": "A document already registered in the central document register.",
+      "requires_source_object": true,
+      "source_table": "document_groups",
+      "sort_order": 10
+    },
+    {
+      "code": "REGULATORY_RETURN",
+      "label": "Regulatory return",
+      "description": "A submitted regulatory return or filing held by the platform.",
+      "requires_source_object": true,
+      "source_table": "return_filings",
+      "sort_order": 20
+    },
+    {
+      "code": "PRIOR_EXAMINATION",
+      "label": "Prior examination",
+      "description": "An examination record already held by the platform.",
+      "requires_source_object": true,
+      "source_table": "examinations",
+      "sort_order": 30
+    },
+    {
+      "code": "OFFICER_SAMPLE_REVIEW",
+      "label": "Officer sample review",
+      "description": "A governed sample review recorded with its own reference and date.",
+      "requires_source_object": false,
+      "source_table": null,
+      "sort_order": 60
+    }
+  ],
+  "documents": [
+    {
+      "id": "dddd0000-0000-4000-8000-0000000000d1",
+      "display_name": "AML/CFT policy manual 2026",
+      "file_name": "aml-policy-2026.pdf",
+      "document_reference": "DOC-2026-0041",
+      "category_name": "Policies",
+      "document_date": "2026-03-31"
+    }
+  ],
+  "evidence_register": [
+    {
+      "id": "eeee0000-0000-4000-8000-0000000000e1",
+      "evidence_type": "ENTERPRISE_DOCUMENT",
+      "type_label": "Registered document",
+      "source_object_type": "document_groups",
+      "source_object_id": "dddd0000-0000-4000-8000-0000000000d1",
+      "source_reference": "DOC-2026-0041",
+      "title": "AML/CFT policy manual 2026",
+      "note": "Alert closure standard set out at section 7.",
+      "period_start": null,
+      "period_end": null,
+      "as_of_date": "2026-03-31",
+      "retrieved_at": "2026-09-09T14:20:00+00:00",
+      "source_timestamp": "2026-03-31T00:00:00+00:00",
+      "origin": "GOVERNED",
+      "created_at": "2026-09-09T14:20:00+00:00",
+      "source_accessible": true,
+      "questions": [
+        {
+          "link_id": "aaaa0000-0000-4000-8000-0000000000a1",
+          "question_id": "d9959a80-426e-4299-9d71-56353f2ef026",
+          "question_code": "Q1",
+          "relevance_note": "Alert closure rationale requirement."
+        },
+        {
+          "link_id": "aaaa0000-0000-4000-8000-0000000000a2",
+          "question_id": "b12ecf97-920d-4a84-a9dc-54f4cb22a9eb",
+          "question_code": "Q2",
+          "relevance_note": null
+        }
+      ],
+      "dimensions": [
+        {
+          "link_id": "bbbb0000-0000-4000-8000-0000000000b1",
+          "dimension_id": "9703ec43-b0aa-4c28-b6a0-ffe6bfeb7499",
+          "dimension_code": "ALERT_INVESTIGATION"
+        }
+      ]
+    },
+    {
+      "id": "eeee0000-0000-4000-8000-0000000000e2",
+      "evidence_type": "PRIOR_EXAMINATION",
+      "type_label": "Prior examination",
+      "source_object_type": "examinations",
+      "source_object_id": "cccc0000-0000-4000-8000-0000000000c9",
+      "source_reference": null,
+      "title": null,
+      "note": null,
+      "period_start": null,
+      "period_end": null,
+      "as_of_date": null,
+      "retrieved_at": "2026-09-09T14:22:00+00:00",
+      "source_timestamp": null,
+      "origin": "GOVERNED",
+      "created_at": "2026-09-09T14:22:00+00:00",
+      "source_accessible": false,
+      "questions": [
+        {
+          "link_id": "aaaa0000-0000-4000-8000-0000000000a3",
+          "question_id": "d9959a80-426e-4299-9d71-56353f2ef026",
+          "question_code": "Q1",
+          "relevance_note": null
+        }
+      ],
+      "dimensions": []
+    }
+  ],
+  "fact_register": [
+    {
+      "fact_requirement_id": "f0000000-0000-4000-8000-00000000f001",
+      "fact_code": "SAR_FILED_COUNT",
+      "label": "Suspicious activity reports filed",
+      "description": "Reports filed with the financial intelligence unit in the period.",
+      "data_type": "INTEGER",
+      "unit": "reports",
+      "is_required": true,
+      "auto_prefill_allowed": false,
+      "officer_edit_allowed": true,
+      "numerator_basis": null,
+      "denominator_basis": null,
+      "source_type_expectation": ["REGULATORY_RETURN", "OFFICER_ENTERED"],
+      "definition_status": "ACTIVE",
+      "fact_id": null,
+      "recorded": false,
+      "value": null,
+      "numerator": null,
+      "denominator": null,
+      "period_start": null,
+      "period_end": null,
+      "as_of_date": null,
+      "source_type": null,
+      "source_reference": null,
+      "extraction_timestamp": null,
+      "auto_prefilled": false,
+      "system_value": null,
+      "officer_overridden": false,
+      "override_reason": null,
+      "overridden_at": null,
+      "note": null
+    },
+    {
+      "fact_requirement_id": "f0000000-0000-4000-8000-00000000f002",
+      "fact_code": "ALERT_CLEARANCE_RATE",
+      "label": "Alert clearance rate",
+      "description": "Alerts closed within the defined timeframe as a share of alerts raised.",
+      "data_type": "PERCENTAGE",
+      "unit": "%",
+      "is_required": false,
+      "auto_prefill_allowed": true,
+      "officer_edit_allowed": true,
+      "numerator_basis": "Alerts closed within timeframe",
+      "denominator_basis": "Alerts raised in period",
+      "source_type_expectation": ["REGULATORY_RETURN"],
+      "definition_status": "ACTIVE",
+      "fact_id": "fac10000-0000-4000-8000-0000000000f9",
+      "recorded": true,
+      "value": "82.5",
+      "numerator": 330,
+      "denominator": 400,
+      "period_start": "2026-01-01",
+      "period_end": "2026-06-30",
+      "as_of_date": "2026-06-30",
+      "source_type": "REGULATORY_RETURN",
+      "source_reference": "RET-2026-Q2-0114",
+      "extraction_timestamp": "2026-09-09T14:25:11+00:00",
+      "auto_prefilled": true,
+      "system_value": {
+        "value": "76.0",
+        "numerator": 304,
+        "denominator": 400,
+        "source_type": "REGULATORY_RETURN",
+        "computed_at": "2026-09-09T14:24:02+00:00"
+      },
+      "officer_overridden": true,
+      "override_reason": "Return understated closures; corrected against the sampled alert log.",
+      "overridden_at": "2026-09-09T14:25:11+00:00",
+      "note": null
+    }
+  ],
+  "question_execution": [
+    {
+      "question_id": "d9959a80-426e-4299-9d71-56353f2ef026",
+      "question_code": "Q1",
+      "prompt": "Are alerts investigated within defined timeframes with a documented rationale for closure?",
+      "dimension_id": "9703ec43-b0aa-4c28-b6a0-ffe6bfeb7499",
+      "dimension_code": "ALERT_INVESTIGATION",
+      "dimension_group": "CONTROL_EFFECTIVENESS",
+      "mandatory": true,
+      "requires_observation": true,
+      "requires_evidence": true,
+      "min_evidence_count": 1,
+      "permitted_evidence_types": ["ENTERPRISE_DOCUMENT", "OFFICER_SAMPLE_REVIEW"],
+      "plan_state": "INCLUDED_CORE",
+      "response": "NO",
+      "observation": "Assessed against the ALERT_INVESTIGATION criteria (Q1).",
+      "legacy_evidence_count": 1,
+      "governed_evidence_count": 2,
+      "evidence_count": 3,
+      "answerable": true,
+      "required_facts": []
+    }
+  ]
+}
