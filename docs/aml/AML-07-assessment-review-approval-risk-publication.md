@@ -168,3 +168,41 @@ regulator record is modified or deleted.
 3. Confirm the retention and reversal policy for legally invalidated approvals.
 4. Confirm reviewer independence scope for small regulator teams
    (single-reviewer divisions).
+
+## Final certification lock (HEAD 2a9edb988, clean tree)
+
+Preservation census: identical before and after the gate chain (28 assessments,
+25 current, 984 responses, 21 AML entity risk states, 25 movements, 4 programmes,
+v1.0 ACTIVE/REGULATOR_AUTHORED, v1.1 DRAFT/MIPL_REFERENCE, 0 live calculation
+policies). Canonical AML-07 risk digest (defined in
+`scripts/aml07-preservation-census.sql`): `8385b6c8f7ba2b4102ab054c8f5ac686`,
+unchanged across the run. The digest string quoted in the request
+(`d74db7c3fa59b511cb8cfb682f68c38b`) was never recorded in the repository with a
+column/order/hash definition, so it cannot be reproduced or claimed; the
+definition above is now canonical and versioned.
+
+Gates:
+- AML-07 review/approval/publication SQL: 47/47 (46 family gates + rollback), 0 fail, 0 AML07CERT survivors.
+- Rollback sweep: 0 rows for AML07CERT / AML06CERT / AML05CERT / PLANCERT across assessments, rounds, challenges, decisions, publications, plans, responses, evidence, facts, events, risk state, regulators, roles.
+- Predecessors: policy-profile kernel 32/32, methodology studio 45/45, v1.1 reference draft 18/18, programme configuration 52/52, question plan 50/50, evidence/fact readiness 58/58, calculation policy engine 50/50, regulator scope 11/11, route register 6/6, structural integrity 14/14, dimension linkage 11 pass/1 fail, calculation governance 18/2, calculation integrity 7/4, full-module hardening 53/8, epic-3 closed loop 21/21.
+- Hardening SQL: 31/0/0 plus F5-B1 4/0. RBAC parity OK, authorization centralised, action governance 2289/2289 protected, RBAC/authorize tests 14 files / 119 tests.
+- UI: review surface 25/25, risk history 10/10, frontend boundary 17/17 (React displays server decisions only).
+- Security scan: 5 findings, all inherited platform/public-registration items; none in AML-07 surfaces.
+- Full suite, canonical two workers, three consecutive runs: 170 files / 1604 tests / 0 failed / 0 skipped each. Typecheck and build pass.
+
+Corrections made: `scripts/verify-aml-policy-profile-kernel.sql` PROFILE-02 was
+asserting an obsolete two-type catalogue; updated to the three genuinely
+implemented component types and strengthened to require a backing store for each.
+No production behaviour was changed to satisfy a verifier.
+
+Outstanding, all classified as pre-existing policy/configuration blockers outside
+AML-07: CALC-05/06/09/11, CALCG-03, CALCG-20, OUTC-09, AMLH-09 and LINK-11 depend
+on a regulator-authored ACTIVE calculation policy, materiality naming decision and
+methodology dimension-code decision. Operational calculation correctly remains
+NOT_CALCULABLE. The AML-02-era methodology-authority verifier still aborts on its
+structurally invalid v1.1 reference fixture (test fixture defect, not AML-07).
+
+Verdict: AML-07 review, approval and risk-of-record publication is certified for
+its own scope. The AML baseline is not declared fully green, because inherited
+calculation-policy and methodology-fixture gates remain red pending regulator
+decisions.
