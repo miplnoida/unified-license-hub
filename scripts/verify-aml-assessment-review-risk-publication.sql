@@ -1162,7 +1162,9 @@ END $$;
 -- =====================================================================
 DO $$
 BEGIN
-  IF (SELECT count(*) FROM public.supervisory_assessment_calculation) <> (SELECT n FROM r_n WHERE k='calc_hist') THEN
+  IF (SELECT count(*) FROM public.supervisory_assessment_calculation
+       WHERE assessment_id NOT IN (SELECT v FROM r_id WHERE k IN ('assessment','assessment_b')))
+     <> (SELECT n FROM r_n WHERE k='calc_hist') THEN
     RAISE EXCEPTION 'FAIL LEGACY-02: historical calculation results changed'; END IF;
   IF (SELECT count(*) FROM public.supervisory_assessment_question_response
        WHERE assessment_id NOT IN (SELECT v FROM r_id WHERE k IN ('assessment','assessment_b')))
