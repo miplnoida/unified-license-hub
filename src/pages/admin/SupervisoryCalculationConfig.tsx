@@ -484,6 +484,22 @@ export default function SupervisoryCalculationConfig() {
                   )}
                 </TabsContent>
 
+                <TabsContent value="questions" className="pt-4">
+                  <QuestionParticipationEditor configId={config.id} methodologyId={config.methodology_id} canEdit={canEdit} />
+                </TabsContent>
+
+                <TabsContent value="dimensions" className="pt-4">
+                  <DimensionPolicyEditor configId={config.id} methodologyId={config.methodology_id} canEdit={canEdit} />
+                </TabsContent>
+
+                <TabsContent value="facts" className="pt-4">
+                  <FactTransformEditor configId={config.id} methodologyId={config.methodology_id} canEdit={canEdit} bandCodes={risk} />
+                </TabsContent>
+
+                <TabsContent value="materiality" className="pt-4">
+                  <MaterialityEditor configId={config.id} methodologyId={config.methodology_id} canEdit={canEdit} bandCodes={risk} />
+                </TabsContent>
+
                 <TabsContent value="bands" className="space-y-6 pt-4">
                   {([['INHERENT', 'Inherent risk bands', inherentBands, setInherentBands],
                      ['CONTROL', 'Control effectiveness bands', controlBands, setControlBands]] as const).map(([kind, title, rows, setRows]) => (
