@@ -97,7 +97,7 @@ INSERT INTO pg_t(k,t) VALUES
                                           COALESCE(a.period_start::text,'-')||':'||COALESCE(a.period_end::text,'-'), '|'
                                           ORDER BY a.id))
                       FROM public.supervisory_assessment a)),
-  ('risk_digest',  (SELECT md5(COALESCE(string_agg(r.entity_id::text||':'||COALESCE(r.risk_band,'-'), '|' ORDER BY r.entity_id),'')) 
+  ('risk_digest',  (SELECT md5(COALESCE(string_agg(r.entity_id::text||':'||COALESCE(r.residual_rating,'-'), '|' ORDER BY r.entity_id),'')) 
                       FROM public.entity_risk_state r));
 
 -- -------------------------------------------------------------- fixtures ----
@@ -1340,7 +1340,7 @@ BEGIN
     RAISE EXCEPTION 'FAIL PROG-50: % legacy assessment(s) were retroactively given a programme identity', n; END IF;
 
   -- risk of record
-  SELECT md5(COALESCE(string_agg(r.entity_id::text||':'||COALESCE(r.risk_band,'-'), '|' ORDER BY r.entity_id),'')) INTO d
+  SELECT md5(COALESCE(string_agg(r.entity_id::text||':'||COALESCE(r.residual_rating,'-'), '|' ORDER BY r.entity_id),'')) INTO d
     FROM public.entity_risk_state r;
   IF d IS DISTINCT FROM (SELECT t FROM pg_t WHERE k='risk_digest') THEN
     RAISE EXCEPTION 'FAIL PROG-50: the entity risk of record changed'; END IF;
