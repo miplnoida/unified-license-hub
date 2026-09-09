@@ -404,8 +404,14 @@ export function QuestionsTab({ methodologyId }: { methodologyId: string }) {
         questionCode={retiring}
         open={!!retiring}
         onClose={(retired) => { setRetiring(null); if (retired) setOpenQuestion(null); }}
+      <RetireQuestionDialog
+        methodologyId={methodologyId}
+        questionCode={retiring}
+        open={!!retiring}
+        onClose={(retired) => { setRetiring(null); if (retired) setOpenQuestion(null); }}
       />
 
+    </div>
     </div>
   );
 }
