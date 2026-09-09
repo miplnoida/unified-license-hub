@@ -102,10 +102,30 @@ supervisory-owner decision.
 `INHERITED_NON_AML_REGRESSION`: unapproved `ChartNetwork` icon, missing Detection and Management
 Assurance breadcrumbs, Portfolio Intelligence action coverage.
 
-## 11. AML-03 readiness
+## 11. Completed authoring surfaces
+
+Every methodology authoring action is available in the product; no SQL is required:
+
+- methodology details (code, version, origin, ownership and approval status are never editable);
+- dimensions: add, edit, reorder (display order is persisted server-side), retire with rationale and
+  a server refusal while active questions remain;
+- questions: add, edit, retire, with classification, semantics, applicability, evidence, N/A rules,
+  standards and lineage;
+- response semantics: add, edit, retire (refused while active questions depend on the profile);
+- facts: definitions plus question/fact linking and unlinking;
+- parameter definitions only — values and approval status stay outside the Studio and remain a
+  regulator policy decision in the calculation and materiality layer;
+- reference decisions, where governance permits.
+
+Structural validation is server-owned and is executed inside the lifecycle operation, so blocking
+errors genuinely refuse DRAFT to REVIEW and REVIEW to APPROVED. Unapproved materiality values are
+advisory, not structural defects. The Validation tab groups errors, warnings and information, names
+the affected object, explains remediation and links to the tab that fixes it.
+
+## 12. AML-03 readiness
 
 Ready: single authoring authority boundary, governed content operations with dependency guards and
-concurrency, validation service, capability contract, hardened write paths, Studio UI.
-Not started: assessment programme / applicability architecture, bulk import authoring, semantic
-profile and parameter authoring forms (backend writers exist; only the Studio forms are pending),
-and any calculation or materiality policy.
+concurrency, server-enforced validation gating, capability contract, hardened write paths, complete
+Studio UI.
+Not started: assessment programme / applicability architecture, bulk import authoring, and any
+calculation or materiality policy.
