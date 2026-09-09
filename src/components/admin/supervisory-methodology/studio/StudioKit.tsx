@@ -7,7 +7,7 @@
  *  - governed vocabulary comes only from `supervisory_methodology_vocabulary`;
  *    no supervisory classification list is hard-coded in the browser.
  */
-import { type ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -45,7 +45,7 @@ export function AuthoringHeader({
   );
 }
 
-export function TextField({
+function TextFieldBase({
   id, label, value, onChange, mono, disabled, placeholder, hint, type,
 }: {
   id: string; label: string; value: string; onChange: (v: string) => void;
@@ -62,7 +62,7 @@ export function TextField({
   );
 }
 
-export function AreaField({
+function AreaFieldBase({
   id, label, value, onChange, rows = 2, hint,
 }: { id: string; label: string; value: string; onChange: (v: string) => void; rows?: number; hint?: string }) {
   return (
@@ -74,7 +74,7 @@ export function AreaField({
   );
 }
 
-export function PickField({
+function PickFieldBase({
   id, label, value, onChange, options, allowNone, noneLabel,
 }: {
   id: string; label: string; value: string; onChange: (v: string) => void;
@@ -97,7 +97,7 @@ export function PickField({
   );
 }
 
-export function CheckField({
+function CheckFieldBase({
   id, label, checked, onChange, hint,
 }: { id: string; label: string; checked: boolean; onChange: (v: boolean) => void; hint?: string }) {
   return (
@@ -111,7 +111,7 @@ export function CheckField({
   );
 }
 
-export function MultiCheckField({
+function MultiCheckFieldBase({
   label, options, selected, onToggle, hint,
 }: {
   label: string; options: string[]; selected: string[];
@@ -134,6 +134,35 @@ export function MultiCheckField({
     </div>
   );
 }
+
+
+/**
+ * The authoring dialogs hold one form object in state, so a single keystroke
+ * re-renders every field. Each field's `onChange` is a fresh closure that only
+ * calls the functional state setter, so it carries no state of its own and can
+ * safely be excluded from the comparison: a field re-renders when its own value,
+ * options or labels change, and not when a sibling field is edited.
+ */
+function sameProps(a: Record<string, any>, b: Record<string, any>) {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const k of keys) {
+    const x = a[k];
+    const y = b[k];
+    if (typeof x === 'function' && typeof y === 'function') continue;
+    if (Array.isArray(x) && Array.isArray(y)) {
+      if (x.length !== y.length || x.some((v, i) => v !== y[i])) return false;
+      continue;
+    }
+    if (x !== y) return false;
+  }
+  return true;
+}
+
+export const TextField = memo(TextFieldBase, sameProps);
+export const AreaField = memo(AreaFieldBase, sameProps);
+export const PickField = memo(PickFieldBase, sameProps);
+export const CheckField = memo(CheckFieldBase, sameProps);
+export const MultiCheckField = memo(MultiCheckFieldBase, sameProps);
 
 export function SectionTitle({ children }: { children: ReactNode }) {
   return (

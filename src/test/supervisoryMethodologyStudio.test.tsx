@@ -7,7 +7,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
@@ -139,13 +139,21 @@ describe('METH-STUDIO-UI authoring surface', () => {
     expect(screen.queryByRole('button', { name: 'Add question' })).toBeNull();
   });
 
+  // Rendering the complete question model (about forty controlled fields, several
+  // of them Radix selects) legitimately costs more than five seconds in jsdom, so
+  // this one gate keeps an explicit budget. The assertions are unchanged.
   it('METH-STUDIO-UI-04 saves a new question through the governed operation', { timeout: 30_000 }, async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mount(<QuestionsTab methodologyId={METH} />);
     await user.click(await screen.findByRole('button', { name: 'Add question' }));
 
-    await user.type(screen.getByLabelText('Question code'), 'TEST_Q_01');
-    await user.type(screen.getByLabelText('Prompt'), 'Does the entity maintain a documented risk appetite?');
+    // This gate is about the governed save contract, so the field values are set
+    // with one change event each. Character-by-character entry through the
+    // register search box is covered by UI-METH-05.
+    fireEvent.change(screen.getByLabelText('Question code'), { target: { value: 'TEST_Q_01' } });
+    fireEvent.change(screen.getByLabelText('Prompt'), {
+      target: { value: 'Does the entity maintain a documented risk appetite?' },
+    });
     await user.click(screen.getAllByRole('button', { name: 'Add question' }).at(-1)!);
 
     await waitFor(() => expect(calls.some((c) => c.fn === 'supervisory_methodology_question_save')).toBe(true));
@@ -184,7 +192,7 @@ describe('METH-STUDIO-UI authoring surface', () => {
   });
 
   it('METH-STUDIO-UI-09 persists a new display order through the governed operation', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mount(<QuestionsTab methodologyId={METH} />);
     const down = await screen.findByRole('button', { name: /Move CUSTOMER_RISK down/i });
     await user.click(down);
@@ -195,7 +203,7 @@ describe('METH-STUDIO-UI authoring surface', () => {
   });
 
   it('METH-STUDIO-UI-10 shows the server reason when retirement is refused', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mount(<QuestionsTab methodologyId={METH} />);
     await user.click((await screen.findAllByRole('button', { name: 'Retire' }))[0]);
     await user.type(screen.getByLabelText(/Reason/i), 'Superseded by the revised control dimension set');

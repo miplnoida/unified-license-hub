@@ -269,7 +269,7 @@ describe('PROG-UI register and creation', () => {
   });
 
   it('PROG-UI-03 resolves the sole active regulator and offers no cross-regulator scope', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mount(<Register />);
     await user.click(await screen.findByRole('button', { name: 'Create programme package' }));
     expect(await screen.findByTestId('programme-create-regulator')).toBeTruthy();
@@ -277,7 +277,7 @@ describe('PROG-UI register and creation', () => {
   });
 
   it('PROG-UI-04 creates a package through the governed operation only', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mount(<Register />);
     await user.click(await screen.findByRole('button', { name: 'Create programme package' }));
     const dialog = await screen.findByRole('dialog');
@@ -315,7 +315,7 @@ describe('PROG-UI programme and trigger authoring', () => {
   });
 
   it('PROG-UI-07 builds the programme form from the server vocabulary only', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mountDetail();
     await user.click(await screen.findByRole('button', { name: 'Add programme' }));
     await user.click(await screen.findByLabelText('Assessment type'));
@@ -326,7 +326,7 @@ describe('PROG-UI programme and trigger authoring', () => {
   });
 
   it('PROG-UI-08 saves a programme through the governed operation with the chosen scope', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mountDetail();
     await user.click(await screen.findByRole('button', { name: 'Edit programme' }));
     await user.click(await screen.findByRole('checkbox', { name: 'Enhanced' }));
@@ -339,7 +339,7 @@ describe('PROG-UI programme and trigger authoring', () => {
   });
 
   it('PROG-UI-09 adapts the period fields to the chosen period rule', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mountDetail();
     await user.click(await screen.findByRole('button', { name: 'Add programme' }));
     expect(await screen.findByLabelText('Number of days')).toBeTruthy();
@@ -350,7 +350,7 @@ describe('PROG-UI programme and trigger authoring', () => {
   });
 
   it('PROG-UI-10 retires a programme with a reason and keeps its history', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mountDetail();
     await user.click(await screen.findByRole('button', { name: 'Retire' }));
     await user.type(screen.getByLabelText('Reason'), 'Superseded by the revised cycle programme.');
@@ -361,7 +361,7 @@ describe('PROG-UI programme and trigger authoring', () => {
   });
 
   it('PROG-UI-11 saves a trigger through the governed operation', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mountDetail();
     await user.click(await screen.findByRole('button', { name: 'Add trigger' }));
     await user.click(await screen.findByLabelText('Trigger'));
@@ -375,7 +375,7 @@ describe('PROG-UI programme and trigger authoring', () => {
   });
 
   it('PROG-UI-12 shows the server refusal when a trigger cannot be removed', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mountDetail();
     await user.click(await screen.findByRole('button', { name: 'Remove' }));
     await user.type(screen.getByLabelText('Reason'), 'No longer an accepted trigger.');
@@ -386,7 +386,7 @@ describe('PROG-UI programme and trigger authoring', () => {
 
 describe('PROG-UI governance surfaces', () => {
   it('PROG-UI-13 reports the server validation findings and states that review stays blocked', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mountDetail();
     await user.click(await screen.findByRole('tab', { name: 'Validation' }));
     expect(await screen.findByText('No default trigger is configured.')).toBeTruthy();
@@ -395,7 +395,7 @@ describe('PROG-UI governance surfaces', () => {
   });
 
   it('PROG-UI-14 shows the exact policy profile binding and the server comparison', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mountDetail();
     await user.click(await screen.findByRole('tab', { name: 'Policy profiles' }));
     expect(await screen.findByText(/FSRA-AML-CFT-POLICY/)).toBeTruthy();
@@ -410,7 +410,7 @@ describe('PROG-UI governance surfaces', () => {
   });
 
   it('PROG-UI-15 creates a new version with a rationale through the governed operation', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mountDetail();
     await user.click(await screen.findByRole('button', { name: 'New version' }));
     await user.type(screen.getByLabelText('New version number'), '1.1');
@@ -422,7 +422,7 @@ describe('PROG-UI governance surfaces', () => {
   });
 
   it('PROG-UI-16 records a lifecycle decision as a target status with a rationale', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mountDetail();
     await user.click(await screen.findByRole('button', { name: 'Submit for review' }));
     await user.type(screen.getByLabelText('Reason'), 'Ready for supervisory review by the AML lead.');
@@ -442,7 +442,7 @@ describe('PROG-UI runtime convergence', () => {
   });
 
   it('PROG-UI-18 resolves the assessment choices, prior assessment and signal need from the server', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mount(<AmlNewAssessmentDialog entityId={ENTITY} />);
     await user.click(screen.getByRole('button', { name: /New AML\/CFT assessment/i }));
     await waitFor(() => expect(
@@ -455,7 +455,7 @@ describe('PROG-UI runtime convergence', () => {
 
   it('PROG-UI-19 refuses an unselectable programme with the server reason', async () => {
     selectable = false;
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mount(<AmlNewAssessmentDialog entityId={ENTITY} />);
     await user.click(screen.getByRole('button', { name: /New AML\/CFT assessment/i }));
     // Nothing may be started while the server refuses the programme.
@@ -467,7 +467,7 @@ describe('PROG-UI runtime convergence', () => {
 
   it('PROG-UI-20 does not offer editable dates when the programme fixes the review period', async () => {
     manualOverride = false;
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mount(<AmlNewAssessmentDialog entityId={ENTITY} />);
     await user.click(screen.getByRole('button', { name: /New AML\/CFT assessment/i }));
     await user.click(await screen.findByLabelText('Assessment'));
@@ -478,7 +478,7 @@ describe('PROG-UI runtime convergence', () => {
   });
 
   it('PROG-UI-21 creates the assessment through the programmed server operation', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mount(<AmlNewAssessmentDialog entityId={ENTITY} />);
     await user.click(screen.getByRole('button', { name: /New AML\/CFT assessment/i }));
     await user.click(await screen.findByLabelText('Assessment'));

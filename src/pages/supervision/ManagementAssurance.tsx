@@ -258,6 +258,7 @@ function MatterDetail({ matter }: { matter: AssuranceMatter }) {
           )}
           <Button
             size="sm"
+            data-rbac="supervisory_spine.review"
             onClick={submit}
             disabled={record.isPending
               || (needsRationale && rationale.trim().length < 10)
