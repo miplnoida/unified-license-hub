@@ -216,13 +216,13 @@ export function useMethodologyDimensionCatalogue(methodologyId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('supervisory_methodology_dimension')
-        .select('id, dimension_code, name, dimension_group')
+        .select('id, dimension_code, label, dimension_group')
         .eq('methodology_id', methodologyId!)
         .eq('active', true)
         .order('dimension_code');
       if (error) throw new Error(error.message);
       return (data ?? []) as unknown as Array<{
-        id: string; dimension_code: string; name: string | null; dimension_group: string | null;
+        id: string; dimension_code: string; label: string | null; dimension_group: string | null;
       }>;
     },
   });
