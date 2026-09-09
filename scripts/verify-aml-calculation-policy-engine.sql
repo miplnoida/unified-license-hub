@@ -746,13 +746,13 @@ DO $$
 DECLARE r jsonb;
 BEGIN
   DELETE FROM public.supervisory_calculation_matrix_cell
-   WHERE config_id=(SELECT v FROM c_id WHERE k='cfg') AND inherent_band='HIGH' AND control_band='WEAK';
+   WHERE config_id=(SELECT v FROM c_id WHERE k='cfg') AND inherent_band='SEVERE' AND control_band='WEAK';
   r := public.supervisory_calc_compute((SELECT v FROM c_id WHERE k='assessment'));
   IF r->>'status' <> 'NOT_CALCULABLE' OR r->>'reason_code' <> 'NO_MATRIX_CELL' THEN
     RAISE EXCEPTION 'FAIL RESIDUAL-03: a missing matrix cell produced % / %', r->>'status', r->>'reason_code';
   END IF;
   INSERT INTO public.supervisory_calculation_matrix_cell(config_id, inherent_band, control_band, residual_rating)
-  VALUES ((SELECT v FROM c_id WHERE k='cfg'),'HIGH','WEAK','HIGH');
+  VALUES ((SELECT v FROM c_id WHERE k='cfg'),'SEVERE','WEAK','HIGH');
   RAISE NOTICE 'PASS RESIDUAL-03: without a published matrix cell the engine refuses instead of inventing a rating';
 END $$;
 
