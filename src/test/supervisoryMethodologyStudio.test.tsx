@@ -26,20 +26,26 @@ const METH = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 const calls: Array<{ fn: string; args: any }> = [];
 let authoring = true;
 
+/**
+ * A genuine structural error blocks the lifecycle; an unapproved materiality
+ * value is a later policy decision and stays advisory.
+ */
 const VALIDATION = {
   methodology_id: METH,
   status: 'DRAFT',
   origin: 'REGULATOR_ADOPTED',
   generated_at: new Date().toISOString(),
   blocking_count: 1,
-  advisory_count: 1,
+  advisory_count: 2,
   findings: [
-    { code: 'PARAMETER_UNAPPROVED', severity: 'BLOCKING', object: 'PARAMETER', subject: null, count: 8,
+    { code: 'QUESTION_WITHOUT_SEMANTICS', severity: 'BLOCKING', object: 'QUESTION', subject: 'Q_TEST_01', count: 1,
+      message: '1 question has no response-semantic profile.' },
+    { code: 'PARAMETER_UNAPPROVED', severity: 'ADVISORY', object: 'PARAMETER', subject: null, count: 8,
       message: '8 parameter(s) are not approved supervisory policy values.' },
     { code: 'FACT_DEFINITION_INCOMPLETE', severity: 'ADVISORY', object: 'FACT', subject: null, count: 87,
       message: '87 fact requirement(s) have incomplete attribute definitions.' },
   ],
-  note: 'Validation is informational. The governed action operations remain the enforcement point.',
+  note: 'Blocking findings refuse submission for review and approval.',
 };
 
 function capability(allowed: boolean) {
