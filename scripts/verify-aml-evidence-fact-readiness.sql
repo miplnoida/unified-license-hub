@@ -470,21 +470,29 @@ END $$;
 -- EV-13 — direct uncontrolled writes are denied
 -- =====================================================================
 DO $$
-DECLARE refused int := 0;
+DECLARE refused int := 0; touched int;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
   BEGIN INSERT INTO public.supervisory_assessment_evidence_basis(assessment_id, evidence_type)
         VALUES ((SELECT v FROM ev_id WHERE k='assessment'),'FINDING');
   EXCEPTION WHEN others THEN refused := refused + 1; END;
+  -- an uncontrolled change is denied either by an error or by the row being
+  -- invisible to the writer; both leave the governed record untouched.
   BEGIN UPDATE public.supervisory_assessment_evidence_basis SET note='tampered'
          WHERE id=(SELECT v FROM ev_id WHERE k='evidence');
+        GET DIAGNOSTICS touched = ROW_COUNT;
+        IF touched = 0 THEN refused := refused + 1; END IF;
   EXCEPTION WHEN others THEN refused := refused + 1; END;
   BEGIN DELETE FROM public.supervisory_assessment_evidence_basis
          WHERE id=(SELECT v FROM ev_id WHERE k='evidence');
+        GET DIAGNOSTICS touched = ROW_COUNT;
+        IF touched = 0 THEN refused := refused + 1; END IF;
   EXCEPTION WHEN others THEN refused := refused + 1; END;
   BEGIN DELETE FROM public.supervisory_assessment_question_evidence
          WHERE evidence_id=(SELECT v FROM ev_id WHERE k='evidence');
+        GET DIAGNOSTICS touched = ROW_COUNT;
+        IF touched = 0 THEN refused := refused + 1; END IF;
   EXCEPTION WHEN others THEN refused := refused + 1; END;
   BEGIN INSERT INTO public.supervisory_evidence_basis_type(code,label) VALUES ('AML05CERT_FAKE','fake');
   EXCEPTION WHEN others THEN refused := refused + 1; END;
@@ -493,8 +501,15 @@ BEGIN
   IF (SELECT note FROM public.supervisory_assessment_evidence_basis
        WHERE id=(SELECT v FROM ev_id WHERE k='evidence')) = 'tampered' THEN
     RAISE EXCEPTION 'FAIL EV-13: a direct update changed a governed evidence record'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.supervisory_assessment_evidence_basis
+                  WHERE id=(SELECT v FROM ev_id WHERE k='evidence')) THEN
+    RAISE EXCEPTION 'FAIL EV-13: a direct delete removed a governed evidence record'; END IF;
+  IF (SELECT count(*) FROM public.supervisory_assessment_question_evidence
+       WHERE evidence_id=(SELECT v FROM ev_id WHERE k='evidence')) <> 2 THEN
+    RAISE EXCEPTION 'FAIL EV-13: a direct delete removed governed evidence links'; END IF;
   RAISE NOTICE 'PASS EV-13: direct writes to evidence, links and the catalogue are denied';
 END $$;
+
 
 -- =====================================================================
 -- EV-14 — governed operations write audit events with the real actor
