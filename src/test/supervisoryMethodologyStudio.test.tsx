@@ -78,8 +78,7 @@ function respond(fn: string) {
     case 'supervisory_methodology_question_save': return METH;
     case 'supervisory_methodology_question_retire': return METH;
     case 'supervisory_methodology_dimension_save': return METH;
-    case 'supervisory_methodology_dimension_retire':
-      throw new Error('ERROR: 6 active question(s) still belong to this dimension');
+    case 'supervisory_methodology_dimension_retire': return 'REFUSE';
     case 'supervisory_methodology_metadata_save': return METH;
     default: return null;
   }
