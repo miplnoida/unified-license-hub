@@ -771,6 +771,8 @@ function useStudioInvalidator() {
       'supervisory_methodology_semantic_register',
       'supervisory_methodology_validate',
       'supervisory_methodology_studio_capabilities',
+      'supervisory_methodology_reference_decision_register',
+      'supervisory_methodology_vocabulary',
     ].forEach((key) => void qc.invalidateQueries({ queryKey: [key] }));
   };
 }
@@ -989,11 +991,8 @@ export function useSaveMethodologyParameter() {
 export function useRecordMethodologyReferenceDecision() {
   const invalidate = useStudioInvalidator();
   return useMutation({
-    mutationFn: (vars: { methodologyId: string; payload: Record<string, unknown> }) =>
-      rpc<string>('supervisory_methodology_reference_decision_record', {
-        _methodology_id: vars.methodologyId,
-        _payload: vars.payload,
-      }),
-    onSuccess: (_id, vars) => invalidate(vars.methodologyId),
+    mutationFn: (vars: { methodologyId: string; decisions: Array<Record<string, unknown>> }) =>
+      rpc<number>('supervisory_methodology_reference_decision_record', { _payload: vars.decisions }),
+    onSuccess: (_n, vars) => invalidate(vars.methodologyId),
   });
 }
