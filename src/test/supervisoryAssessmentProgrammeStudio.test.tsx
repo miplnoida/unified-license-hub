@@ -284,7 +284,7 @@ describe('PROG-UI register and creation', () => {
     await user.type(within(dialog).getByLabelText('Package code'), 'FSRA-AML-PROGRAMMES');
     await user.type(within(dialog).getByLabelText('Name'), 'FSRA AML/CFT assessment programmes');
     await user.click(within(dialog).getByLabelText('Supervisory domain'));
-    await user.click(await screen.findByRole('option', { name: 'Aml Cft' }));
+    await user.click(await screen.findByRole('option', { name: /aml.?cft/i }));
     await user.click(within(dialog).getByRole('button', { name: 'Create package' }));
     await waitFor(() => expect(
       calls.some((c) => c.fn === 'supervisory_assessment_programme_set_create')).toBe(true));
@@ -461,7 +461,9 @@ describe('PROG-UI runtime convergence', () => {
     await user.click(await screen.findByLabelText('Assessment'));
     const refused = await screen.findByRole('option', { name: /Periodic AML\/CFT review — not available/ });
     expect(refused.getAttribute('aria-disabled')).toBe('true');
-    expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(true);
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(
+      (screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(true));
   });
 
   it('PROG-UI-20 does not offer editable dates when the programme fixes the review period', async () => {
