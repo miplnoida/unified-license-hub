@@ -44160,6 +44160,11 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           assessment_date: string | null
+          assessment_programme_code: string | null
+          assessment_programme_id: string | null
+          assessment_programme_provenance: string | null
+          assessment_programme_set_id: string | null
+          assessment_programme_version: string | null
           assessment_type: string
           closed_at: string | null
           confidentiality: string
@@ -44200,6 +44205,11 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           assessment_date?: string | null
+          assessment_programme_code?: string | null
+          assessment_programme_id?: string | null
+          assessment_programme_provenance?: string | null
+          assessment_programme_set_id?: string | null
+          assessment_programme_version?: string | null
           assessment_type?: string
           closed_at?: string | null
           confidentiality?: string
@@ -44240,6 +44250,11 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           assessment_date?: string | null
+          assessment_programme_code?: string | null
+          assessment_programme_id?: string | null
+          assessment_programme_provenance?: string | null
+          assessment_programme_set_id?: string | null
+          assessment_programme_version?: string | null
           assessment_type?: string
           closed_at?: string | null
           confidentiality?: string
@@ -44277,6 +44292,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_assessment_programme_id_fkey"
+            columns: ["assessment_programme_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_programme"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_assessment_programme_set_id_fkey"
+            columns: ["assessment_programme_set_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_programme_set"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supervisory_assessment_entity_id_fkey"
             columns: ["entity_id"]
@@ -66849,6 +66878,19 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_assessment_create_programmed: {
+        Args: {
+          _domain_code: string
+          _entity_id: string
+          _period_end?: string
+          _period_start?: string
+          _programme_id: string
+          _summary?: string
+          _trigger_signal_id?: string
+          _trigger_type?: string
+        }
+        Returns: Json
+      }
       supervisory_assessment_dimension_materialise_internal: {
         Args: { _actor?: string; _assessment_id: string }
         Returns: Json
@@ -66894,6 +66936,10 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_assessment_programme_action_capabilities: {
+        Args: { _set_id: string }
+        Returns: Json
+      }
       supervisory_assessment_programme_adopt_reference: {
         Args: {
           _rationale: string
@@ -66901,6 +66947,48 @@ export type Database = {
           _regulator_id: string
         }
         Returns: string
+      }
+      supervisory_assessment_programme_compare: {
+        Args: { _baseline_id: string; _set_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_programme_detail: {
+        Args: { _set_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_programme_event_register: {
+        Args: { _limit?: number; _offset?: number; _set_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_programme_options_for_entity: {
+        Args: { _as_of?: string; _domain_code: string; _entity_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_programme_period_for: {
+        Args: {
+          _as_of: string
+          _prior_period_end: string
+          _programme: Database["public"]["Tables"]["supervisory_assessment_programme"]["Row"]
+        }
+        Returns: Json
+      }
+      supervisory_assessment_programme_register: {
+        Args: {
+          _dir?: string
+          _domain_code?: string
+          _limit?: number
+          _offset?: number
+          _origin?: string
+          _regulator_id?: string
+          _search?: string
+          _sort?: string
+          _status?: string
+        }
+        Returns: Json
+      }
+      supervisory_assessment_programme_register_options: {
+        Args: never
+        Returns: Json
       }
       supervisory_assessment_programme_retire: {
         Args: { _programme_id: string; _rationale: string }
