@@ -885,3 +885,115 @@ export function useDeleteMethodologyFactRequirement() {
   });
 }
 
+
+/* --------------------------------------- AML-02 completion: authoring layer */
+
+export interface MethodologyVocabulary {
+  question_class: string[];
+  axis: string[];
+  effectiveness_focus: string[];
+  calculation_participation: string[];
+  change_classification: string[];
+  evidence_basis: string[];
+  dimension_group: string[];
+  dimension_kind: string[];
+  fact_data_type: string[];
+  fact_definition_status: string[];
+  fact_attribute_source: string[];
+  parameter_kind: string[];
+  parameter_data_type: string[];
+}
+
+/** Governed vocabulary. No supervisory classification list is hard-coded in the browser. */
+export function useSupervisoryMethodologyVocabulary(enabled = true) {
+  return useQuery({
+    queryKey: ['supervisory_methodology_vocabulary'],
+    queryFn: () => rpc<MethodologyVocabulary>('supervisory_methodology_vocabulary'),
+    enabled,
+    staleTime: 300_000,
+  });
+}
+
+/** Governed creation of a new methodology version. Always produces a DRAFT. */
+export function useCreateMethodology() {
+  const invalidate = useStudioInvalidator();
+  return useMutation({
+    mutationFn: (payload: Record<string, unknown>) =>
+      rpc<string>('supervisory_methodology_create', { _payload: payload }),
+    onSuccess: (id) => invalidate(id),
+  });
+}
+
+export function useSaveMethodologyMetadata() {
+  const invalidate = useStudioInvalidator();
+  return useMutation({
+    mutationFn: (vars: { methodologyId: string; payload: Record<string, unknown> }) =>
+      rpc<string>('supervisory_methodology_metadata_save', {
+        _methodology_id: vars.methodologyId,
+        _payload: vars.payload,
+      }),
+    onSuccess: (_id, vars) => invalidate(vars.methodologyId),
+  });
+}
+
+export function useSaveMethodologySemanticProfile() {
+  const invalidate = useStudioInvalidator();
+  return useMutation({
+    mutationFn: (vars: { methodologyId: string; profiles: Array<Record<string, unknown>> }) =>
+      rpc<number>('supervisory_methodology_semantic_profile_set', {
+        _methodology_id: vars.methodologyId,
+        _payload: vars.profiles,
+      }),
+    onSuccess: (_n, vars) => invalidate(vars.methodologyId),
+  });
+}
+
+export function useRetireMethodologySemanticProfile() {
+  const invalidate = useStudioInvalidator();
+  return useMutation({
+    mutationFn: (vars: { methodologyId: string; semanticCode: string; rationale: string }) =>
+      rpc<string>('supervisory_methodology_semantic_profile_retire', {
+        _methodology_id: vars.methodologyId,
+        _semantic_code: vars.semanticCode,
+        _rationale: vars.rationale,
+      }),
+    onSuccess: (_id, vars) => invalidate(vars.methodologyId),
+  });
+}
+
+export function useSaveMethodologyFactRequirement() {
+  const invalidate = useStudioInvalidator();
+  return useMutation({
+    mutationFn: (vars: { methodologyId: string; facts: Array<Record<string, unknown>> }) =>
+      rpc<number>('supervisory_methodology_fact_requirement_set', {
+        _methodology_id: vars.methodologyId,
+        _payload: vars.facts,
+      }),
+    onSuccess: (_n, vars) => invalidate(vars.methodologyId),
+  });
+}
+
+/** Definition authoring only — a policy value is never sent from this screen. */
+export function useSaveMethodologyParameter() {
+  const invalidate = useStudioInvalidator();
+  return useMutation({
+    mutationFn: (vars: { methodologyId: string; parameters: Array<Record<string, unknown>> }) =>
+      rpc<number>('supervisory_methodology_parameter_set', {
+        _methodology_id: vars.methodologyId,
+        _payload: vars.parameters,
+      }),
+    onSuccess: (_n, vars) => invalidate(vars.methodologyId),
+  });
+}
+
+export function useRecordMethodologyReferenceDecision() {
+  const invalidate = useStudioInvalidator();
+  return useMutation({
+    mutationFn: (vars: { methodologyId: string; payload: Record<string, unknown> }) =>
+      rpc<string>('supervisory_methodology_reference_decision_record', {
+        _methodology_id: vars.methodologyId,
+        _payload: vars.payload,
+      }),
+    onSuccess: (_id, vars) => invalidate(vars.methodologyId),
+  });
+}
