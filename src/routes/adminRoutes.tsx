@@ -55,6 +55,8 @@ const SupervisoryCalculationApprovals = lazy(() => import('@/pages/admin/Supervi
 const SupervisoryMethodologyRegisterPage = lazy(() => import('@/pages/admin/SupervisoryMethodologyRegister'));
 const SupervisoryMethodologyDetailPage = lazy(() => import('@/pages/admin/SupervisoryMethodologyDetail'));
 const SupervisoryPolicyProfileRegisterPage = lazy(() => import('@/pages/admin/SupervisoryPolicyProfileRegister'));
+const SupervisoryAssessmentProgrammeRegisterPage = lazy(() => import('@/pages/admin/SupervisoryAssessmentProgrammeRegister'));
+const SupervisoryAssessmentProgrammeDetailPage = lazy(() => import('@/pages/admin/SupervisoryAssessmentProgrammeDetail'));
 const SupervisoryPolicyProfileDetailPage = lazy(() => import('@/pages/admin/SupervisoryPolicyProfileDetail'));
 const FpCommittees = lazy(() => import('@/pages/admin/FpCommittees'));
 const RuleOverrides = lazy(() => import('@/pages/admin/RuleOverrides'));
@@ -208,6 +210,8 @@ export const adminRoutes = (
     <Route path="/admin/supervisory-methodology/:methodologyId" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryMethodologyDetailPage /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-policy-profiles" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryPolicyProfileRegisterPage /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-policy-profiles/:profileId" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryPolicyProfileDetailPage /></PermissionRoute></P>} />
+    <Route path="/admin/supervisory-assessment-programmes" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryAssessmentProgrammeRegisterPage /></PermissionRoute></P>} />
+    <Route path="/admin/supervisory-assessment-programmes/:programmeSetId" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryAssessmentProgrammeDetailPage /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-calculation" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryCalculationConfig /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-calculation/approvals" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryCalculationApprovals /></PermissionRoute></P>} />
     <Route path="/admin/fp-screening-configs" element={<M module="fit_and_proper_screening"><FpScreeningConfigs /></M>} />

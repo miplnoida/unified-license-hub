@@ -96,7 +96,6 @@ export default function SupervisoryAssessmentProgrammeDetailPage() {
       <PageHeader
         title={`${d.set.code} ${d.set.set_version}`}
         description={d.set.name}
-        backTo="/admin/supervisory-assessment-programmes"
       />
 
       <div className="flex flex-wrap items-center gap-2">
