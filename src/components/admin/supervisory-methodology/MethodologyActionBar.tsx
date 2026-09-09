@@ -22,6 +22,7 @@ import { toast } from '@/hooks/use-toast';
 import {
   useAdoptMethodologyReference,
   useMethodologyLifecycleTransition,
+  useSupervisoryMethodologyValidation,
   useSupervisoryMethodologyAdoptionTargets,
   type MethodologyCapabilities,
   type MethodologyCapability,
