@@ -195,13 +195,14 @@ export function useMethodologyQuestionCatalogue(methodologyId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('supervisory_methodology_question')
-        .select('id, question_code, prompt, dimension_code')
+        .select('id, question_code, prompt, calculation_participation, methodology_dimension_id')
         .eq('methodology_id', methodologyId!)
         .eq('active', true)
         .order('question_code');
       if (error) throw new Error(error.message);
       return (data ?? []) as unknown as Array<{
-        id: string; question_code: string; prompt: string | null; dimension_code: string | null;
+        id: string; question_code: string; prompt: string | null;
+        calculation_participation: string | null; methodology_dimension_id: string | null;
       }>;
     },
   });
