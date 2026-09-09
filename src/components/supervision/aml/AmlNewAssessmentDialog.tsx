@@ -201,48 +201,50 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
 
         fields={[
           {
-            name: 'assessment_type',
-            label: 'Assessment type',
-            kind: 'select',
-            required: true,
-            defaultValue: 'PERIODIC',
-            options: [
-              { value: 'PERIODIC', label: 'Periodic' },
-              { value: 'INITIAL_BASELINE', label: 'Initial baseline' },
-              { value: 'FOLLOW_UP', label: 'Follow-up' },
-              { value: 'EVENT_DRIVEN', label: 'Event driven' },
-            ],
-          },
-          {
             name: 'trigger_type',
             label: 'Trigger',
             kind: 'select',
-            defaultValue: 'PERIODIC',
-            options: [
-              { value: 'PERIODIC', label: 'Periodic cycle' },
-              { value: 'REASSESSMENT', label: 'Reassessment requirement' },
-              { value: 'EVENT_DRIVEN', label: 'Event or intelligence' },
-              { value: 'FOLLOW_UP', label: 'Follow-up of prior assessment' },
-              { value: 'THEMATIC', label: 'Thematic review' },
-            ],
+            required: true,
+            defaultValue: defaultTrigger,
+            options: (programme?.triggers ?? []).map((t) => ({
+              value: t.trigger_code,
+              label: t.label || t.trigger_code,
+            })),
           },
-          { name: 'period_start', label: 'Review period from', kind: 'date', required: true, defaultValue: isoDaysAgo(365) },
-          { name: 'period_end', label: 'Review period to', kind: 'date', required: true, defaultValue: isoDaysAgo(1) },
-          { name: 'summary', label: 'Scope and summary', kind: 'textarea', required: true },
+          {
+            name: 'period_start',
+            label: 'Review period from',
+            kind: 'date',
+            required: true,
+            defaultValue: programme?.period.suggested_period_start ?? '',
+          },
+          {
+            name: 'period_end',
+            label: 'Review period to',
+            kind: 'date',
+            required: true,
+            defaultValue: programme?.period.suggested_period_end ?? '',
+          },
+          {
+            name: 'summary',
+            label: 'Scope and summary',
+            kind: 'textarea',
+            required: Boolean(programme?.summary_required),
+          },
         ]}
         submitLabel="Create assessment"
         onSubmit={async (v) => {
-          // The preview is informational. The server resolves the methodology at
-          // submission time and is authoritative if the configuration changed in
-          // between, so no preview id is sent and staleness is not an error here.
-          const result: any = await create.mutateAsync({
+          // The programme decides the assessment type, the permitted triggers and
+          // how the review period is derived. The server re-applies every one of
+          // those rules and is authoritative if the configuration changed.
+          const result: any = await createProgrammed.mutateAsync({
             entityId: targetEntity,
-            assessmentType: v.assessment_type,
+            domainCode: 'AML_CFT',
+            programmeId: programme!.programme_id,
             triggerType: v.trigger_type,
             periodStart: v.period_start || null,
             periodEnd: v.period_end || null,
             summary: v.summary,
-            supersedesId: v.assessment_type === 'FOLLOW_UP' ? prior : null,
           });
           const id = result?.id ?? null;
           const boundVersion = result?.methodology_version ?? null;
@@ -256,6 +258,7 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
         }}
 
       />
+
     </>
   );
 }
