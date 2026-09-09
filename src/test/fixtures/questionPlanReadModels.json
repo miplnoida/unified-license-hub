@@ -1,0 +1,493 @@
+{
+  "plan": {
+    "note": "Question scope is resolved by the server from the exact methodology version and assessment programme bound to this assessment.",
+    "rows": [
+      {
+        "prompt": "Are trust structures subject to enhanced due diligence?",
+        "included": false,
+        "response": null,
+        "overridden": false,
+        "plan_state": "NOT_TRIGGERED",
+        "question_id": "51453476-bd09-472d-8362-efb023650115",
+        "reason_code": "CONDITIONAL_TRIGGER_FALSE",
+        "reason_text": "Conditional trigger did not apply: ENTITY.SECTOR_ID = 17a9fbec-5377-4f3d-a7b8-e2c357966d23.",
+        "dimension_id": "1ed350c5-41ed-4358-9e3c-bf2a73c0d129",
+        "rule_summary": "ENTITY.SECTOR_ID = 17a9fbec-5377-4f3d-a7b8-e2c357966d23",
+        "question_code": "PLANCAP_Q_COND_F",
+        "dimension_code": "PLANCAP_DIM_A",
+        "question_class": "CONDITIONAL",
+        "dimension_label": "PLANCAP_DIM_A",
+        "effective_state": "NOT_TRIGGERED",
+        "override_reason": null,
+        "response_status": "NOT_REQUIRED",
+        "evaluated_inputs": {
+          "result": "FALSE",
+          "rule_id": "ab84c6fa-b28b-4ba8-9054-680551668956",
+          "sector_id": "48c4caeb-3c31-408e-9cac-778e3e8fe7c6",
+          "rule_version": 1,
+          "trigger_type": "PERIODIC",
+          "entity_status": "active",
+          "programme_code": "PLANCAP_PERIODIC",
+          "assessment_type": "PERIODIC"
+        },
+        "requires_evidence": false,
+        "allow_not_applicable": false,
+        "na_requires_rationale": false
+      },
+      {
+        "prompt": "Are correspondent banking relationships risk assessed?",
+        "included": true,
+        "response": null,
+        "overridden": false,
+        "plan_state": "INCLUDED_CONDITIONAL",
+        "question_id": "2ce184db-a5f9-460f-a050-1661a3fe7bab",
+        "reason_code": "CONDITIONAL_TRIGGER_TRUE",
+        "reason_text": "Conditional trigger applied: ENTITY.SECTOR_ID = 48c4caeb-3c31-408e-9cac-778e3e8fe7c6.",
+        "dimension_id": "1ed350c5-41ed-4358-9e3c-bf2a73c0d129",
+        "rule_summary": "ENTITY.SECTOR_ID = 48c4caeb-3c31-408e-9cac-778e3e8fe7c6",
+        "question_code": "PLANCAP_Q_COND_T",
+        "dimension_code": "PLANCAP_DIM_A",
+        "question_class": "CONDITIONAL",
+        "dimension_label": "PLANCAP_DIM_A",
+        "effective_state": "INCLUDED_CONDITIONAL",
+        "override_reason": null,
+        "response_status": "UNANSWERED",
+        "evaluated_inputs": {
+          "result": "TRUE",
+          "rule_id": "57cfde91-be79-4cb6-8aba-b1797f68ad92",
+          "sector_id": "48c4caeb-3c31-408e-9cac-778e3e8fe7c6",
+          "rule_version": 1,
+          "trigger_type": "PERIODIC",
+          "entity_status": "active",
+          "programme_code": "PLANCAP_PERIODIC",
+          "assessment_type": "PERIODIC"
+        },
+        "requires_evidence": false,
+        "allow_not_applicable": false,
+        "na_requires_rationale": false
+      },
+      {
+        "prompt": "Are customer risk ratings reviewed on a documented cycle?",
+        "included": true,
+        "response": null,
+        "overridden": false,
+        "plan_state": "INCLUDED_CORE",
+        "question_id": "4fd30d7d-0c60-4f7d-aa06-0e9083d3c5f0",
+        "reason_code": "CORE_INCLUDED",
+        "reason_text": "Core question included: all structural applicability conditions pass.",
+        "dimension_id": "1ed350c5-41ed-4358-9e3c-bf2a73c0d129",
+        "rule_summary": null,
+        "question_code": "PLANCAP_Q_CORE",
+        "dimension_code": "PLANCAP_DIM_A",
+        "question_class": "CORE",
+        "dimension_label": "PLANCAP_DIM_A",
+        "effective_state": "INCLUDED_CORE",
+        "override_reason": null,
+        "response_status": "UNANSWERED",
+        "evaluated_inputs": {
+          "sector_id": "48c4caeb-3c31-408e-9cac-778e3e8fe7c6",
+          "trigger_type": "PERIODIC",
+          "entity_status": "active",
+          "programme_code": "PLANCAP_PERIODIC",
+          "assessment_type": "PERIODIC"
+        },
+        "requires_evidence": true,
+        "allow_not_applicable": false,
+        "na_requires_rationale": false
+      },
+      {
+        "prompt": "Is transaction monitoring independently tested?",
+        "included": true,
+        "response": null,
+        "overridden": false,
+        "plan_state": "INCLUDED_ENHANCED",
+        "question_id": "9a9b45a6-d65f-45da-aa1e-635f38e73f26",
+        "reason_code": "ENHANCED_INCLUDED",
+        "reason_text": "Enhanced question included because programme PLANCAP_PERIODIC assesses enhanced questions.",
+        "dimension_id": "1ed350c5-41ed-4358-9e3c-bf2a73c0d129",
+        "rule_summary": null,
+        "question_code": "PLANCAP_Q_ENH",
+        "dimension_code": "PLANCAP_DIM_A",
+        "question_class": "ENHANCED",
+        "dimension_label": "PLANCAP_DIM_A",
+        "effective_state": "INCLUDED_ENHANCED",
+        "override_reason": null,
+        "response_status": "UNANSWERED",
+        "evaluated_inputs": {
+          "sector_id": "48c4caeb-3c31-408e-9cac-778e3e8fe7c6",
+          "trigger_type": "PERIODIC",
+          "entity_status": "active",
+          "programme_code": "PLANCAP_PERIODIC",
+          "assessment_type": "PERIODIC"
+        },
+        "requires_evidence": false,
+        "allow_not_applicable": false,
+        "na_requires_rationale": false
+      },
+      {
+        "prompt": "Are group-wide AML policies applied to subsidiaries?",
+        "included": true,
+        "response": null,
+        "overridden": false,
+        "plan_state": "INCLUDED_CORE",
+        "question_id": "ef17bd6a-2477-4ab3-aa69-b738d8779564",
+        "reason_code": "CORE_INCLUDED",
+        "reason_text": "Core question included: all structural applicability conditions pass.",
+        "dimension_id": "69bccb0b-e032-4972-9df8-deeaef5a6646",
+        "rule_summary": null,
+        "question_code": "PLANCAP_Q_NA",
+        "dimension_code": "PLANCAP_DIM_B",
+        "question_class": "CORE",
+        "dimension_label": "PLANCAP_DIM_B",
+        "effective_state": "INCLUDED_CORE",
+        "override_reason": null,
+        "response_status": "UNANSWERED",
+        "evaluated_inputs": {
+          "sector_id": "48c4caeb-3c31-408e-9cac-778e3e8fe7c6",
+          "trigger_type": "PERIODIC",
+          "entity_status": "active",
+          "programme_code": "PLANCAP_PERIODIC",
+          "assessment_type": "PERIODIC"
+        },
+        "requires_evidence": false,
+        "allow_not_applicable": true,
+        "na_requires_rationale": true
+      }
+    ],
+    "summary": {
+      "mode": "STRUCTURED",
+      "answered": 0,
+      "legacy_mode": false,
+      "out_of_scope": 0,
+      "assessment_id": "24dd090d-4a5d-4c40-81c9-9f72b54b8b7d",
+      "included_core": 2,
+      "not_triggered": 1,
+      "planned_total": 5,
+      "included_total": 4,
+      "included_enhanced": 1,
+      "methodology_total": 5,
+      "unanswered_in_scope": 4,
+      "included_conditional": 1
+    },
+    "row_count": 5,
+    "validation": {
+      "findings": []
+    },
+    "legacy_mode": false
+  },
+  "question_id": "2ce184db-a5f9-460f-a050-1661a3fe7bab",
+  "plan_context": {
+    "ENTITY.SECTOR_ID": "48c4caeb-3c31-408e-9cac-778e3e8fe7c6",
+    "ENTITY.CATEGORY_ID": null,
+    "ENTITY.ENTITY_STATUS": "active",
+    "ENTITY.SUB_SECTOR_ID": null,
+    "ASSESSMENT.TRIGGER_TYPE": "PERIODIC",
+    "ASSESSMENT.PROGRAMME_CODE": "PLANCAP_PERIODIC",
+    "ENTITY.LIFECYCLE_STAGE_ID": null,
+    "ASSESSMENT.ASSESSMENT_TYPE": "PERIODIC",
+    "ENTITY.SYSTEMIC_IMPORTANCE": null
+  },
+  "plan_summary": {
+    "mode": "STRUCTURED",
+    "answered": 0,
+    "legacy_mode": false,
+    "out_of_scope": 0,
+    "assessment_id": "24dd090d-4a5d-4c40-81c9-9f72b54b8b7d",
+    "included_core": 2,
+    "not_triggered": 1,
+    "planned_total": 5,
+    "included_total": 4,
+    "included_enhanced": 1,
+    "methodology_total": 5,
+    "unanswered_in_scope": 4,
+    "included_conditional": 1
+  },
+  "assessment_id": "24dd090d-4a5d-4c40-81c9-9f72b54b8b7d",
+  "methodology_id": "b814b3cd-9238-4ce1-b83a-e4e87a8b94eb",
+  "question_rules": [
+    {
+      "id": "57cfde91-be79-4cb6-8aba-b1797f68ad92",
+      "active": true,
+      "findings": [],
+      "readiness": "EXECUTABLE",
+      "rule_kind": "TRIGGER",
+      "created_at": "2026-09-09T09:31:24.525607+00:00",
+      "provenance": null,
+      "rule_summary": "ENTITY.SECTOR_ID = 48c4caeb-3c31-408e-9cac-778e3e8fe7c6",
+      "rule_version": 1,
+      "rule_definition": {
+        "op": "EQ",
+        "value": "48c4caeb-3c31-408e-9cac-778e3e8fe7c6",
+        "source": "ENTITY.SECTOR_ID"
+      }
+    }
+  ],
+  "rule_vocabulary": {
+    "note": "React must render this vocabulary. Applicability sources and operators are server-owned.",
+    "groups": [
+      "ALL",
+      "ANY",
+      "NOT"
+    ],
+    "sources": [
+      {
+        "code": "ASSESSMENT.PROGRAMME_CODE",
+        "label": "Assessment programme code",
+        "available": true,
+        "data_type": "text",
+        "allowed_values": [
+          "EVENT_DRIVEN",
+          "FOLLOW_UP",
+          "INITIAL_BASELINE",
+          "PERIODIC",
+          "PLANCAP_PERIODIC"
+        ]
+      },
+      {
+        "code": "ASSESSMENT.ASSESSMENT_TYPE",
+        "label": "Assessment type",
+        "available": true,
+        "data_type": "text",
+        "allowed_values": [
+          "EVENT_DRIVEN",
+          "FOLLOW_UP",
+          "INITIAL_BASELINE",
+          "PERIODIC"
+        ]
+      },
+      {
+        "code": "ASSESSMENT.TRIGGER_TYPE",
+        "label": "Assessment trigger",
+        "available": true,
+        "data_type": "text",
+        "allowed_values": [
+          "EVENT_DRIVEN",
+          "FOLLOW_UP",
+          "PERIODIC",
+          "REASSESSMENT",
+          "THEMATIC"
+        ]
+      },
+      {
+        "code": "ENTITY.SECTOR_ID",
+        "label": "Entity sector",
+        "available": true,
+        "data_type": "uuid",
+        "allowed_values": [
+          {
+            "label": "Building Society",
+            "value": "641bdf7f-005a-47b8-83f5-8894fdc6c073"
+          },
+          {
+            "label": "Commercial Bank",
+            "value": "d90ffa53-709b-41e8-a6d9-efd1bbac69bc"
+          },
+          {
+            "label": "Credit Unions",
+            "value": "17a9fbec-5377-4f3d-a7b8-e2c357966d23"
+          },
+          {
+            "label": "Domestic Insurance & Pension",
+            "value": "d6daa71a-35c0-4987-ac9a-a73a94bcdbc8"
+          },
+          {
+            "label": "Financial Group",
+            "value": "4446f087-15d9-4c31-824d-b28177517d24"
+          },
+          {
+            "label": "Financial Holding Company",
+            "value": "86935244-95e5-49e2-b772-de509fce7e82"
+          },
+          {
+            "label": "General Insurance",
+            "value": "1ea22781-fee7-4a26-b382-09f0477485d5"
+          },
+          {
+            "label": "International Banks",
+            "value": "6e089cf6-975e-4f55-982f-bc75bf54b896"
+          },
+          {
+            "label": "International Insurance",
+            "value": "22b408cf-3748-4f0e-9752-31fee3cd17e8"
+          },
+          {
+            "label": "International Mutual Funds",
+            "value": "875deb8f-b392-412e-949c-264ea535c92d"
+          },
+          {
+            "label": "Life Insurance",
+            "value": "a9698ca9-655d-46ff-afee-d5bfb978eb01"
+          },
+          {
+            "label": "Merchant Bank",
+            "value": "87ecc596-e045-4001-ab95-853cc71a9d4b"
+          },
+          {
+            "label": "Micro-credit Institution",
+            "value": "7bc82eb6-357b-474d-9d91-b9bbad6b6753"
+          },
+          {
+            "label": "Money Service Business",
+            "value": "79bdf821-4ba0-4b59-9b46-0c1c6f1373e9"
+          },
+          {
+            "label": "Money Services Business",
+            "value": "48c4caeb-3c31-408e-9cac-778e3e8fe7c6"
+          },
+          {
+            "label": "Payment Service Provider",
+            "value": "b1000000-0000-4000-8000-000000000001"
+          },
+          {
+            "label": "Pension Fund Administrator",
+            "value": "b2000000-0000-4000-8000-000000000001"
+          },
+          {
+            "label": "Registered Agents & Trustees",
+            "value": "b1a44f80-9c68-4039-acac-f31e2067cb40"
+          },
+          {
+            "label": "Saint Lucia Development Bank",
+            "value": "f8a4a4d6-a94d-4d62-9ed1-d8161c6cc00e"
+          },
+          {
+            "label": "Securities Dealer",
+            "value": "7171f40e-19cd-4a0c-be3d-6f13e7cd9213"
+          },
+          {
+            "label": "Virtual Asset Business",
+            "value": "ba6f00d3-b9c2-4c7a-94ce-11181db69a99"
+          }
+        ]
+      },
+      {
+        "code": "ENTITY.SUB_SECTOR_ID",
+        "label": "Entity sub-sector",
+        "available": true,
+        "data_type": "uuid",
+        "allowed_values": []
+      },
+      {
+        "code": "ENTITY.CATEGORY_ID",
+        "label": "Entity category",
+        "available": true,
+        "data_type": "uuid",
+        "allowed_values": []
+      },
+      {
+        "code": "ENTITY.ENTITY_STATUS",
+        "label": "Entity regulatory status",
+        "available": true,
+        "data_type": "text",
+        "allowed_values": []
+      },
+      {
+        "code": "ENTITY.SYSTEMIC_IMPORTANCE",
+        "label": "Systemic importance",
+        "available": true,
+        "data_type": "text",
+        "allowed_values": []
+      },
+      {
+        "code": "ENTITY.LIFECYCLE_STAGE_ID",
+        "label": "Entity lifecycle stage",
+        "available": true,
+        "data_type": "uuid",
+        "allowed_values": []
+      },
+      {
+        "code": "ENTITY.JURISDICTION",
+        "label": "Entity jurisdiction",
+        "available": false,
+        "data_type": "text",
+        "allowed_values": [],
+        "unavailable_reason": "REGISTERED_BUT_UNAVAILABLE: no canonical jurisdiction attribute is bound to the entity context yet."
+      },
+      {
+        "code": "ENTITY.REGULATED_ACTIVITY",
+        "label": "Regulated activity",
+        "available": false,
+        "data_type": "text",
+        "allowed_values": [],
+        "unavailable_reason": "REGISTERED_BUT_UNAVAILABLE: regulated-activity applicability is not yet a canonical resolvable source."
+      },
+      {
+        "code": "FACT",
+        "label": "Methodology fact observation",
+        "prefix": true,
+        "available": false,
+        "data_type": "text",
+        "allowed_values": [],
+        "unavailable_reason": "REGISTERED_BUT_UNAVAILABLE: fact observations arrive with the Fact Registry (AML-05)."
+      }
+    ],
+    "operators": [
+      {
+        "code": "EQ",
+        "arity": "VALUE",
+        "label": "equals",
+        "types": [
+          "text",
+          "uuid"
+        ]
+      },
+      {
+        "code": "NEQ",
+        "arity": "VALUE",
+        "label": "does not equal",
+        "types": [
+          "text",
+          "uuid"
+        ]
+      },
+      {
+        "code": "IN",
+        "arity": "VALUES",
+        "label": "is one of",
+        "types": [
+          "text",
+          "uuid"
+        ]
+      },
+      {
+        "code": "NOT_IN",
+        "arity": "VALUES",
+        "label": "is not one of",
+        "types": [
+          "text",
+          "uuid"
+        ]
+      },
+      {
+        "code": "EXISTS",
+        "arity": "NONE",
+        "label": "is recorded",
+        "types": [
+          "text",
+          "uuid"
+        ]
+      },
+      {
+        "code": "NOT_EXISTS",
+        "arity": "NONE",
+        "label": "is not recorded",
+        "types": [
+          "text",
+          "uuid"
+        ]
+      },
+      {
+        "code": "TRUE",
+        "arity": "NONE",
+        "label": "always true",
+        "types": []
+      },
+      {
+        "code": "FALSE",
+        "arity": "NONE",
+        "label": "always false",
+        "types": []
+      }
+    ]
+  }
+}

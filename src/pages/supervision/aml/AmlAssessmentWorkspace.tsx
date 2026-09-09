@@ -15,6 +15,7 @@ import { ariaSortOf } from '@/components/shared/listing/sorting';
 import { useAmlAssessment } from '@/hooks/useAmlSupervision';
 import { AmlAssessmentGovernance } from '@/components/supervision/aml/AmlAssessmentGovernance';
 import { AmlAssessmentCalculation } from '@/components/supervision/aml/AmlAssessmentCalculation';
+import { AmlQuestionPlanPanel } from '@/components/supervision/aml/AmlQuestionPlanPanel';
 
 import { AmlSupervisoryActivity } from '@/components/supervision/aml/AmlSupervisoryActivity';
 import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, statusTone, titleCase, trendTone } from '@/lib/amlLabels';
@@ -261,6 +262,7 @@ export default function AmlAssessmentWorkspace() {
         <Tabs defaultValue="worksheet">
           <TabsList className="flex-wrap">
             <TabsTrigger value="worksheet">Working file</TabsTrigger>
+            <TabsTrigger value="scope">Question scope</TabsTrigger>
             <TabsTrigger value="inherent">Inherent risk ({inherent.length})</TabsTrigger>
             <TabsTrigger value="control">Control effectiveness ({control.length})</TabsTrigger>
             {other.length > 0 ? <TabsTrigger value="other">Other dimensions ({other.length})</TabsTrigger> : null}
@@ -269,6 +271,10 @@ export default function AmlAssessmentWorkspace() {
             <TabsTrigger value="findings">Findings ({(data.findings as any[]).length})</TabsTrigger>
             <TabsTrigger value="history">Approval history</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="scope" className="mt-4">
+            <AmlQuestionPlanPanel assessmentId={h.id} status={h.status} />
+          </TabsContent>
 
           <TabsContent value="calculation" className="mt-4">
             <AmlAssessmentCalculation assessmentId={h.id} />
