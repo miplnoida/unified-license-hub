@@ -280,11 +280,12 @@ describe('PROG-UI register and creation', () => {
     const user = userEvent.setup();
     mount(<Register />);
     await user.click(await screen.findByRole('button', { name: 'Create programme package' }));
-    await user.type(screen.getByLabelText('Package code'), 'FSRA-AML-PROGRAMMES');
-    await user.type(screen.getByLabelText('Name'), 'FSRA AML/CFT assessment programmes');
-    await user.click(screen.getByLabelText('Supervisory domain'));
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Package code'), 'FSRA-AML-PROGRAMMES');
+    await user.type(within(dialog).getByLabelText('Name'), 'FSRA AML/CFT assessment programmes');
+    await user.click(within(dialog).getByLabelText('Supervisory domain'));
     await user.click(await screen.findByRole('option', { name: 'Aml Cft' }));
-    await user.click(screen.getByRole('button', { name: 'Create package' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Create package' }));
     await waitFor(() => expect(
       calls.some((c) => c.fn === 'supervisory_assessment_programme_set_create')).toBe(true));
     const payload = calls.find((c) => c.fn === 'supervisory_assessment_programme_set_create')!.args._payload;
@@ -458,8 +459,8 @@ describe('PROG-UI runtime convergence', () => {
     mount(<AmlNewAssessmentDialog entityId={ENTITY} />);
     await user.click(screen.getByRole('button', { name: /New AML\/CFT assessment/i }));
     await user.click(await screen.findByLabelText('Assessment'));
-    await user.click(await screen.findByRole('option', { name: /Periodic AML\/CFT review/ }));
-    expect(await screen.findByTestId('aml-programme-refusal')).toBeTruthy();
+    const refused = await screen.findByRole('option', { name: /Periodic AML\/CFT review — not available/ });
+    expect(refused.getAttribute('aria-disabled')).toBe('true');
     expect((screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
@@ -482,8 +483,9 @@ describe('PROG-UI runtime convergence', () => {
     await user.click(await screen.findByLabelText('Assessment'));
     await user.click(await screen.findByRole('option', { name: /Periodic AML\/CFT review/ }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    const dialog = await screen.findByRole('dialog');
-    await user.type(within(dialog).getByLabelText('Scope and summary'), 'Scheduled cycle review of the entity.');
+    const action = await screen.findByText('Start an AML/CFT risk assessment');
+    const dialog = action.closest('[role="dialog"]') as HTMLElement;
+    await user.type(within(dialog).getByLabelText(/Scope and summary/), 'Scheduled cycle review of the entity.');
     await user.click(within(dialog).getByRole('button', { name: 'Create assessment' }));
     await waitFor(() => expect(
       calls.some((c) => c.fn === 'supervisory_assessment_create_programmed')).toBe(true));
