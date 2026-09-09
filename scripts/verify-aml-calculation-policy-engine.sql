@@ -1212,12 +1212,13 @@ END $$;
 -- ============================= LEGACY gates ===========================
 -- LEGACY-01 — nothing outside the fixture was calculated or published.
 DO $$
-DECLARE n int;
+DECLARE other_runs int; baseline_runs int;
 BEGIN
-  SELECT count(*) INTO n FROM public.supervisory_assessment_calculation_run
+  SELECT count(*) INTO other_runs FROM public.supervisory_assessment_calculation_run
    WHERE assessment_id <> (SELECT v FROM c_id WHERE k='assessment');
-  IF n <> (SELECT n FROM c_n WHERE k='runs') THEN
-    RAISE EXCEPTION 'FAIL LEGACY-01: % run(s) appeared outside the fixture assessment', n; END IF;
+  SELECT c.n INTO baseline_runs FROM c_n c WHERE c.k='runs';
+  IF other_runs <> baseline_runs THEN
+    RAISE EXCEPTION 'FAIL LEGACY-01: % run(s) exist outside the fixture assessment, baseline was %', other_runs, baseline_runs; END IF;
   IF (SELECT md5(COALESCE(string_agg(r.entity_id::text||':'||COALESCE(r.residual_rating,'-'),'|' ORDER BY r.entity_id),''))
         FROM public.entity_risk_state r) <> (SELECT t FROM c_t WHERE k='risk_digest') THEN
     RAISE EXCEPTION 'FAIL LEGACY-01: the risk-of-record was changed by a calculation or an override'; END IF;
