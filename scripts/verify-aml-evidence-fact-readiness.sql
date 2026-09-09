@@ -789,7 +789,7 @@ END $$;
 -- idempotency and non-disclosure
 -- =====================================================================
 DO $$
-DECLARE refused int := 0; n int; before numeric;
+DECLARE refused int := 0; n int; touched int;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
