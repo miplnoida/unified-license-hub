@@ -171,6 +171,9 @@ export const SCOPED_ACTION_CLASSES: Array<{ file: string; kind: ActionClassKind;
   { file: "src/components/conduct/three-sixty/advisory/AdvisoryCard.tsx", kind: 'non-mutating', labels: ["check freshness", "decision history ( )"] },
   { file: "src/components/conduct/three-sixty/advisory/AdvisoryProvenance.tsx", kind: 'non-mutating', labels: ["technical provenance"] },
   { file: "src/components/data-grid/EnterpriseDataGrid.tsx", kind: 'non-mutating', labels: ["columns"] },
+  // AML-04: appends an empty condition row to the unsaved rule draft inside the
+  // authoring dialog. The governed write is "Save rule", which carries data-rbac.
+  { file: "src/components/admin/supervisory-methodology/studio/QuestionRuleSection.tsx", kind: 'non-mutating', labels: ["add condition"] },
   { file: "src/components/entity-detail/Entity360Header.tsx", kind: 'non-mutating', labels: ["public register", "structure workspace"] },
   { file: "src/components/entity-detail/Entity360TimelinePanel.tsx", kind: 'non-mutating', labels: ["show all domains"] },
   { file: "src/components/form-builder/VersionDiffViewer.tsx", kind: 'non-mutating', labels: ["list", "side by side"] },
