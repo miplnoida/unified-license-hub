@@ -132,3 +132,93 @@ question participation and weights, dimension sides, weights and minimum
 completeness, fact transformations and bands, materiality rules, inherent and
 control bands, and the residual matrix. Until an approved version exists, every
 run is correctly recorded as `NOT_CALCULABLE`.
+
+## 11. Final certification record (AML-06 lock)
+
+Final code state: HEAD `027a96a7f`, clean tree. No functional change was made
+during the certification lock.
+
+### 11.1 SQL, UI and boundary results
+
+| Gate | Result |
+| --- | --- |
+| `scripts/verify-aml-calculation-policy-engine.sql` | 50 / 50 PASS, rollback-only |
+| `src/test/amlCalculationPolicyAdminUi.test.tsx` | 14 / 14 PASS |
+| `src/test/amlAssessmentCalculationWorkspace.test.tsx` | 15 / 15 PASS |
+| `scripts/verify-calculation-frontend-boundary.mjs` | CFB-01…12, 12 passed / 0 failed |
+| `scripts/verify-evidence-fact-frontend-boundary.mjs` (AML-05) | FEB-01…12, 12 passed / 0 failed |
+
+### 11.2 RBAC defect and correction
+
+The first full-suite run failed `src/test/rbac/actionCoverage.test.ts` because the
+local "Add band" control in `FactTransformEditor.tsx` and the "Add rule" control in
+`MaterialityEditor.tsx` carried no canonical permission marker. Both now carry
+`data-rbac="aml_supervision.manage_config"`. Action governance is 2283 / 2283
+protected (100.0%). No file was allowlisted to silence the scanner.
+
+### 11.3 Security results
+
+| Gate | Result |
+| --- | --- |
+| RBAC action coverage | 2283 / 2283 protected |
+| `verify-rbac-parity.mjs` | PASS |
+| `verify-authz-centralized.mjs` | PASS — all decisions in `src/lib/rbac/authorize.ts` |
+| `verify-hardening.mjs` | PASS — 4 passed / 0 failed |
+| `verify-anon-execute.sql` | PASS — 7 allowlisted, 0 defects |
+| Internal calculation helpers | not executable by `anon` or `authenticated` |
+
+### 11.4 Three consecutive full regressions
+
+| Run | Files | Passed | Failed | Skipped | Duration | Code state |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 168 | 1569 | 0 | 0 | ~276 s | unchanged |
+| 2 | 168 | 1569 | 0 | 0 | 228.64 s | unchanged |
+| 3 | 168 | 1569 | 0 | 0 | 222.17 s | unchanged |
+
+Canonical two-worker configuration; no retries, skips, quarantine, weakened
+assertions or timeout increases.
+
+### 11.5 Typecheck and production build
+
+`npx tsgo --noEmit` — PASS. `npm run build` — success, built in 58.50 s. Warnings
+are advisory only (a Tailwind ambiguous-utility notice and the chunk-size notice);
+neither blocks production readiness.
+
+### 11.6 Preservation census
+
+| Measure | Value |
+| --- | --- |
+| Supervisory assessments | 28 |
+| Programme-driven assessments | 0 |
+| Question-plan rows | 0 |
+| Question responses | 984 |
+| Evidence basis rows | 0 |
+| Fact rows | 0 |
+| Calculation policies | 0 |
+| Question-policy rows | 0 |
+| Dimension-policy rows | 0 |
+| Fact-transformation rules | 0 |
+| Threshold bands | 0 |
+| Rating bands | 0 |
+| Residual-matrix rows | 0 |
+| Materiality rules | 0 |
+| Response scores | 0 |
+| Calculation runs | 0 |
+| Historical calculation results | 2 |
+| Overrides | 0 |
+| Risk-of-record rated assessments | 25 |
+| Risk-of-record digest | `3d9da4836a8ce2583b22293d1dbf705a` |
+| Regulators | 3 |
+| AML-CFT-RBA v1.0 | ACTIVE, REGULATOR_AUTHORED |
+| AML-CFT-RBA v1.1 | DRAFT, MIPL_REFERENCE |
+| Reference programme sets / programmes | 1 / 4 |
+| Surviving `AML06CERT%` records | 0 |
+
+Every preservation question — assessments, question plans, responses, evidence,
+facts, historical calculation results, risk-of-record, v1.0, v1.1, v1.1
+activation, reference programmes, live calculation policy, live bands, live
+residual matrix, live materiality, AML business data deletion, regulator record
+deletion — answers NO.
+
+No AML06CERT synthetic value has been written as live regulator policy. The live
+policy decisions listed in section 10 remain open.
