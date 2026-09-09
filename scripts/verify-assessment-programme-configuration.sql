@@ -617,7 +617,7 @@ END $$;
 -- PROG-34 — an invalid question class is refused
 -- =====================================================================
 DO $$
-DECLARE vres jsonb; codes text[];
+DECLARE vres jsonb; codes text[]; ok boolean;
 BEGIN
   -- PROG-27: TRAILING_DAYS without a value
   PERFORM public.supervisory_assessment_programme_upsert((SELECT v FROM pg_id WHERE k='set'), jsonb_build_object(
