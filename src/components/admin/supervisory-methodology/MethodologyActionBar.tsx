@@ -140,7 +140,7 @@ export function MethodologyActionBar({
           onClick={() => setDialog('adopt')}
         />
         <GuardedAction
-          capability={capabilities?.can_submit_review}
+          capability={gate(capabilities?.can_submit_review)}
           label="Submit for Review"
           variant={methodology.origin !== 'MIPL_REFERENCE' && methodology.status === 'DRAFT' ? 'default' : 'outline'}
           icon={<Send className="h-4 w-4" />}
