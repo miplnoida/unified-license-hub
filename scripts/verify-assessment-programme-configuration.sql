@@ -1385,8 +1385,17 @@ BEGIN
   IF (SELECT count(*) FROM public.supervisory_methodology_question
        WHERE methodology_id=(SELECT v FROM pg_id WHERE k='meth_v11')) <> (SELECT pg_n.n FROM pg_n WHERE k='v11_questions') THEN
     RAISE EXCEPTION 'FAIL PROG-50: the v1.1 question population changed'; END IF;
-  IF (SELECT count(*) FROM public.supervisory_methodology) <> (SELECT pg_n.n FROM pg_n WHERE k='methodologies') THEN
-    RAISE EXCEPTION 'FAIL PROG-50: the methodology population changed'; END IF;
+  -- no existing methodology was removed or replaced; any additional row is an
+  -- adopted regulator copy produced by the governed profile adoption above
+  IF (SELECT count(*) FROM public.supervisory_methodology
+       WHERE adopted_from_id IS NULL OR adopted_from_id IS NOT NULL) < (SELECT pg_n.n FROM pg_n WHERE k='methodologies') THEN
+    RAISE EXCEPTION 'FAIL PROG-50: methodology rows were removed'; END IF;
+  IF EXISTS (SELECT 1 FROM public.supervisory_methodology m
+              WHERE m.created_at > (SELECT created_at FROM public.supervisory_assessment_programme_set
+                                     WHERE id=(SELECT v FROM pg_id WHERE k='set'))
+                AND m.adopted_from_id IS NULL) THEN
+    RAISE EXCEPTION 'FAIL PROG-50: a methodology was authored rather than adopted through governance'; END IF;
+
 
   -- no calculation or materiality policy invented
   IF (SELECT count(*) FROM public.supervisory_calculation_config) <> (SELECT pg_n.n FROM pg_n WHERE k='calc_config')
