@@ -1122,58 +1122,22 @@ BEGIN
 END $$;
 
 -- =====================================================================
--- PROG-13 / PROG-14 / PROG-15 — MIPL reference adoption
--- PROG-09 — the reference package is unchanged after adoption
+-- PROG-13 (part 1) — adoption requires a recorded rationale
 -- =====================================================================
 DO $$
-DECLARE nid uuid; s public.supervisory_assessment_programme_set; ok boolean := false; digest text;
+DECLARE ok boolean := false;
 BEGIN
   BEGIN PERFORM public.supervisory_assessment_programme_adopt_reference(
           (SELECT v FROM pg_id WHERE k='ref_set'),(SELECT v FROM pg_id WHERE k='regulator'),'short');
   EXCEPTION WHEN OTHERS THEN ok := SQLERRM LIKE '%rationale%'; END;
   IF NOT ok THEN RAISE EXCEPTION 'FAIL PROG-13: adoption was accepted without a rationale'; END IF;
-
-  nid := public.supervisory_assessment_programme_adopt_reference(
-           (SELECT v FROM pg_id WHERE k='ref_set'),(SELECT v FROM pg_id WHERE k='regulator'),
-           'Certification adoption of the MIPL reference package');
-  INSERT INTO pg_id(k,v) VALUES ('adopted', nid);
-  SELECT * INTO s FROM public.supervisory_assessment_programme_set WHERE id=nid;
-
-  IF s.id = (SELECT v FROM pg_id WHERE k='ref_set') THEN
-    RAISE EXCEPTION 'FAIL PROG-13: adoption mutated the reference package instead of creating a copy'; END IF;
-  IF s.origin <> 'REGULATOR_ADOPTED' OR s.status <> 'DRAFT' THEN
-    RAISE EXCEPTION 'FAIL PROG-13: the adopted set is origin=% status=%', s.origin, s.status; END IF;
-  RAISE NOTICE 'PASS PROG-13: adoption created a separate REGULATOR_ADOPTED / DRAFT programme set';
-
-  IF s.regulator_id IS DISTINCT FROM (SELECT v FROM pg_id WHERE k='regulator') THEN
-    RAISE EXCEPTION 'FAIL PROG-14: the adopted set is owned by % instead of the adopting regulator', s.regulator_id; END IF;
-  RAISE NOTICE 'PASS PROG-14: the adopted set is owned by the adopting regulator';
-
-  IF s.adopted_from_id IS DISTINCT FROM (SELECT v FROM pg_id WHERE k='ref_set') THEN
-    RAISE EXCEPTION 'FAIL PROG-15: adoption lineage does not point at the MIPL reference source'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.supervisory_assessment_programme_event
-                  WHERE programme_set_id=nid AND event_type='ADOPTED') THEN
-    RAISE EXCEPTION 'FAIL PROG-15: adoption was not recorded in history'; END IF;
-  IF (SELECT count(*) FROM public.supervisory_assessment_programme WHERE programme_set_id=nid)
-     <> (SELECT n FROM pg_n WHERE k='ref_programmes') THEN
-    RAISE EXCEPTION 'FAIL PROG-15: the adopted set does not carry the reference programmes'; END IF;
-  RAISE NOTICE 'PASS PROG-15: adoption lineage points at the MIPL reference source and clones its content';
-
-  -- PROG-09
-  SELECT md5(string_agg(p.programme_code||':'||p.assessment_type||':'||p.period_rule||':'||
-                        COALESCE(p.period_value::text,'-')||':'||p.question_class_scope::text, '|'
-                        ORDER BY p.programme_code)) INTO digest
-    FROM public.supervisory_assessment_programme p
-   WHERE p.programme_set_id=(SELECT v FROM pg_id WHERE k='ref_set');
-  IF digest IS DISTINCT FROM (SELECT t FROM pg_t WHERE k='ref_digest') THEN
-    RAISE EXCEPTION 'FAIL PROG-09: the reference package content changed during adoption'; END IF;
-  IF (SELECT status FROM public.supervisory_assessment_programme_set WHERE id=(SELECT v FROM pg_id WHERE k='ref_set'))
-     IS DISTINCT FROM (SELECT t FROM pg_t WHERE k='ref_status')
-     OR (SELECT origin FROM public.supervisory_assessment_programme_set WHERE id=(SELECT v FROM pg_id WHERE k='ref_set'))
-     IS DISTINCT FROM (SELECT t FROM pg_t WHERE k='ref_origin') THEN
-    RAISE EXCEPTION 'FAIL PROG-09: the reference package lifecycle changed during adoption'; END IF;
-  RAISE NOTICE 'PASS PROG-09: the MIPL reference package is byte-for-byte unchanged after adoption';
+  IF EXISTS (SELECT 1 FROM public.supervisory_assessment_programme_set
+              WHERE adopted_from_id=(SELECT v FROM pg_id WHERE k='ref_set')) THEN
+    RAISE EXCEPTION 'FAIL PROG-13: an adopted copy was created by the refused call'; END IF;
+  RAISE NOTICE 'PASS PROG-13 (rationale): reference adoption refuses to proceed without a recorded rationale';
 END $$;
+
+
 
 -- =====================================================================
 -- PROG-10 — an inactive regulator can neither own nor adopt a programme set
@@ -1273,6 +1237,64 @@ BEGIN
   IF (evres->>'via') <> 'supervisory_assessment_programme_adopt_reference' THEN
     RAISE EXCEPTION 'FAIL PROG-48: profile adoption did not delegate to the governed programme adoption operation (via %)', evres->>'via'; END IF;
   RAISE NOTICE 'PASS PROG-48: profile adoption delegated to supervisory_assessment_programme_adopt_reference and bound the regulator-owned set';
+END $$;
+
+-- =====================================================================
+-- PROG-13 / PROG-14 / PROG-15 — MIPL reference adoption (through governance)
+-- PROG-09 — the reference package is unchanged after adoption
+-- =====================================================================
+DO $$
+DECLARE nid uuid; s public.supervisory_assessment_programme_set; ok boolean := false; digest text;
+BEGIN
+  -- the adopted copy produced by the governed adoption performed above
+  SELECT id INTO nid FROM public.supervisory_assessment_programme_set
+   WHERE adopted_from_id=(SELECT v FROM pg_id WHERE k='ref_set')
+   ORDER BY created_at DESC LIMIT 1;
+  IF nid IS NULL THEN RAISE EXCEPTION 'FAIL PROG-13: no adopted copy of the reference package exists'; END IF;
+  INSERT INTO pg_id(k,v) VALUES ('adopted', nid);
+  SELECT * INTO s FROM public.supervisory_assessment_programme_set WHERE id=nid;
+
+  -- adoption is not repeatable: the same reference cannot be adopted twice by one regulator
+  BEGIN PERFORM public.supervisory_assessment_programme_adopt_reference(
+          (SELECT v FROM pg_id WHERE k='ref_set'),(SELECT v FROM pg_id WHERE k='regulator'),
+          'Certification duplicate adoption attempt');
+  EXCEPTION WHEN OTHERS THEN ok := SQLERRM LIKE '%already_adopted%'; END;
+  IF NOT ok THEN RAISE EXCEPTION 'FAIL PROG-13: the same reference package was adopted twice'; END IF;
+
+  IF s.id = (SELECT v FROM pg_id WHERE k='ref_set') THEN
+    RAISE EXCEPTION 'FAIL PROG-13: adoption mutated the reference package instead of creating a copy'; END IF;
+  IF s.origin <> 'REGULATOR_ADOPTED' OR s.status <> 'DRAFT' THEN
+    RAISE EXCEPTION 'FAIL PROG-13: the adopted set is origin=% status=%', s.origin, s.status; END IF;
+  RAISE NOTICE 'PASS PROG-13: adoption created a separate REGULATOR_ADOPTED / DRAFT programme set';
+
+  IF s.regulator_id IS DISTINCT FROM (SELECT v FROM pg_id WHERE k='regulator') THEN
+    RAISE EXCEPTION 'FAIL PROG-14: the adopted set is owned by % instead of the adopting regulator', s.regulator_id; END IF;
+  RAISE NOTICE 'PASS PROG-14: the adopted set is owned by the adopting regulator';
+
+  IF s.adopted_from_id IS DISTINCT FROM (SELECT v FROM pg_id WHERE k='ref_set') THEN
+    RAISE EXCEPTION 'FAIL PROG-15: adoption lineage does not point at the MIPL reference source'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.supervisory_assessment_programme_event
+                  WHERE programme_set_id=nid AND event_type='ADOPTED') THEN
+    RAISE EXCEPTION 'FAIL PROG-15: adoption was not recorded in history'; END IF;
+  IF (SELECT count(*) FROM public.supervisory_assessment_programme WHERE programme_set_id=nid)
+     <> (SELECT n FROM pg_n WHERE k='ref_programmes') THEN
+    RAISE EXCEPTION 'FAIL PROG-15: the adopted set does not carry the reference programmes'; END IF;
+  RAISE NOTICE 'PASS PROG-15: adoption lineage points at the MIPL reference source and clones its content';
+
+  -- PROG-09
+  SELECT md5(string_agg(p.programme_code||':'||p.assessment_type||':'||p.period_rule||':'||
+                        COALESCE(p.period_value::text,'-')||':'||p.question_class_scope::text, '|'
+                        ORDER BY p.programme_code)) INTO digest
+    FROM public.supervisory_assessment_programme p
+   WHERE p.programme_set_id=(SELECT v FROM pg_id WHERE k='ref_set');
+  IF digest IS DISTINCT FROM (SELECT t FROM pg_t WHERE k='ref_digest') THEN
+    RAISE EXCEPTION 'FAIL PROG-09: the reference package content changed during adoption'; END IF;
+  IF (SELECT status FROM public.supervisory_assessment_programme_set WHERE id=(SELECT v FROM pg_id WHERE k='ref_set'))
+     IS DISTINCT FROM (SELECT t FROM pg_t WHERE k='ref_status')
+     OR (SELECT origin FROM public.supervisory_assessment_programme_set WHERE id=(SELECT v FROM pg_id WHERE k='ref_set'))
+     IS DISTINCT FROM (SELECT t FROM pg_t WHERE k='ref_origin') THEN
+    RAISE EXCEPTION 'FAIL PROG-09: the reference package lifecycle changed during adoption'; END IF;
+  RAISE NOTICE 'PASS PROG-09: the MIPL reference package is byte-for-byte unchanged after adoption';
 END $$;
 
 -- =====================================================================
