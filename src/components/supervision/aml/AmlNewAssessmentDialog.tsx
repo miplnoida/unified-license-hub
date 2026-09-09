@@ -25,14 +25,17 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle, Plus } from 'lucide-react';
 import { AmlActionDialog } from '@/components/supervision/aml/AmlActionDialog';
-import { useCreateAmlAssessment, useResolvedAmlMethodology } from '@/hooks/useAmlLifecycle';
+import { useResolvedAmlMethodology } from '@/hooks/useAmlLifecycle';
 import { useAmlPortfolio } from '@/hooks/useAmlSupervision';
 import { useCan } from '@/hooks/useCan';
 import { useCalculationReadiness } from '@/hooks/useSupervisoryCalculationConfig';
+import {
+  useCreateProgrammedAssessment,
+  useEntityProgrammeOptions,
+} from '@/hooks/useSupervisoryAssessmentProgrammes';
 
 import { BLUE, fmtDate } from '@/lib/amlLabels';
 
-const isoDaysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
 
 interface Props {
   entityId?: string;
