@@ -219,6 +219,82 @@ SELECT 0, 'methodology', m.id
 ON CONFLICT (case_no, k) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
+-- 3c. Canonical licence foundation (DEMO DATA INTEGRITY ADDENDUM)
+--
+-- Every supervised demo entity must be a real licence holder, exactly as a
+-- genuine record is: public.entity_licenses is the ONLY authority for the
+-- entity-to-licence relationship (licensees.license_id is deprecated and is
+-- deliberately NOT written). No application is invented; the live licence
+-- decision gate and the append-only original-term trigger stay enabled and
+-- must accept these rows unchanged.
+--
+-- Case 21 (Morne Fortune Holdings Ltd) is a deliberate negative control: it is
+-- the entity a governed determination placed OUTSIDE the AML/CFT perimeter and
+-- it holds no licence, proving the "not licensed" presentation.
+-- ---------------------------------------------------------------------------
+DO $$
+DECLARE c record; v_lic uuid; v_conflict int; v_type text;
+BEGIN
+  FOR c IN SELECT * FROM aml_case WHERE case_no <> 21 ORDER BY case_no LOOP
+    v_lic := ('aa330000-0000-4000-8000-0000000000' || lpad(c.case_no::text,2,'0'))::uuid;
+    v_type := CASE c.sector
+                WHEN 'MONEY_SERVICES_BUSINESS' THEN 'Money services business'
+                WHEN 'CREDIT_UNIONS'           THEN 'Credit union'
+                WHEN 'VIRTUAL_ASSET_BUSINESS'  THEN 'Virtual asset service provider'
+                ELSE c.sector END;
+
+    SELECT count(*) INTO v_conflict
+      FROM public.licenses
+     WHERE license_number = 'FSRA-DEMO-AML-' || lpad(c.case_no::text,2,'0')
+       AND id <> v_lic;
+    IF v_conflict > 0 THEN
+      RAISE EXCEPTION 'DEMO AML seed blocked: licence number FSRA-DEMO-AML-% already used elsewhere',
+        lpad(c.case_no::text,2,'0');
+    END IF;
+
+    INSERT INTO public.licenses
+      (id, application_id, holder_id, license_number, license_type,
+       sector_id, sub_sector_id, category_id, status,
+       issued_at, valid_from, valid_until, conditions)
+    SELECT v_lic, NULL, l.id,
+           'FSRA-DEMO-AML-' || lpad(c.case_no::text,2,'0'), v_type,
+           l.sector_id, l.sub_sector_id, l.category_id, 'active',
+           '2023-03-01 00:00:00+00', '2023-03-01 00:00:00+00', '2027-12-31 00:00:00+00',
+           'Controlled demonstration record (DEMO AML dataset).'
+      FROM public.licensees l
+     WHERE l.id = ('aa220000-0000-4000-8000-0000000000' || lpad(c.case_no::text,2,'0'))::uuid
+    ON CONFLICT (id) DO UPDATE
+      SET holder_id      = EXCLUDED.holder_id,
+          license_number = EXCLUDED.license_number,
+          license_type   = EXCLUDED.license_type,
+          sector_id      = EXCLUDED.sector_id,
+          status         = 'active',
+          valid_from     = EXCLUDED.valid_from,
+          valid_until    = EXCLUDED.valid_until;
+
+    INSERT INTO public.entity_licenses
+      (id, entity_id, license_id, effective_from, effective_to, is_primary, source)
+    VALUES (('aa340000-0000-4000-8000-0000000000' || lpad(c.case_no::text,2,'0'))::uuid,
+            ('aa220000-0000-4000-8000-0000000000' || lpad(c.case_no::text,2,'0'))::uuid,
+            v_lic, '2023-03-01 00:00:00+00', NULL, true, 'SEED')
+    ON CONFLICT (id) DO UPDATE SET effective_to = NULL, is_primary = true;
+
+    -- the append-only term mechanism owns terms; assert its invariant only
+    SELECT count(*) INTO v_conflict
+      FROM public.license_terms WHERE license_id = v_lic AND is_current;
+    IF v_conflict <> 1 THEN
+      RAISE EXCEPTION 'DEMO AML seed: expected exactly 1 current term for %, found %', v_lic, v_conflict;
+    END IF;
+  END LOOP;
+
+  IF EXISTS (SELECT 1 FROM public.entity_licenses
+              WHERE entity_id = 'aa220000-0000-4000-8000-000000000021'
+                AND (effective_to IS NULL OR effective_to > now())) THEN
+    RAISE EXCEPTION 'DEMO AML seed: out-of-perimeter holding company must not hold a licence';
+  END IF;
+END $$;
+
+-- ---------------------------------------------------------------------------
 -- 4. Governed pipeline, executed as the real personas
 -- ---------------------------------------------------------------------------
 SET LOCAL ROLE authenticated;
