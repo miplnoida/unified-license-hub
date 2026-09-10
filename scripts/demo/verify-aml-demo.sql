@@ -235,10 +235,22 @@ BEGIN
       metrics->>'entities_outside_perimeter', m);
   ELSE RAISE NOTICE 'INTEGRITY-17 PASS derived AML overview metrics reconcile with canonical tables'; END IF;
 
-  -- 18 no live AML/CFT calculation policy was created or activated by the demo
-  SELECT count(*) INTO n FROM public.supervisory_calculation_config;
-  IF n > 0 THEN fails := fails || format('INTEGRITY-18 live calculation policy present: %s', n);
-  ELSE RAISE NOTICE 'INTEGRITY-18 PASS no live AML/CFT calculation policy exists'; END IF;
+  -- 18 every AML/CFT calculation configuration is governed: attached to an ACTIVE
+  -- regulator-authored methodology and, when ACTIVE, submitted and approved by
+  -- two distinct identities.
+  SELECT count(*) INTO n
+    FROM public.supervisory_calculation_config c
+    LEFT JOIN public.supervisory_methodology m ON m.id = c.methodology_id
+   WHERE m.id IS NULL
+      OR (c.status = 'ACTIVE'
+          AND (m.status <> 'ACTIVE'
+               OR c.submitted_by IS NULL OR c.approved_by IS NULL
+               OR c.submitted_by = c.approved_by));
+  IF n > 0 THEN fails := fails || format('INTEGRITY-18 ungoverned calculation configuration: %s', n);
+  ELSE
+    SELECT count(*) INTO m FROM public.supervisory_calculation_config WHERE status = 'ACTIVE';
+    RAISE NOTICE 'INTEGRITY-18 PASS every calculation configuration is governed (ACTIVE: %)', m;
+  END IF;
 
   -- ---------------------------------------------------------------------------
   -- CURRENT-workflow additive scenarios
