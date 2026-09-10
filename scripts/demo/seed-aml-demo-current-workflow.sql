@@ -124,7 +124,7 @@ BEGIN
         ELSE
           PERFORM public.supervisory_assessment_question_upsert(
             aid, q.question_id,
-            CASE WHEN answered % 5 = 0 THEN 'PARTIAL' ELSE 'YES' END,
+            CASE WHEN answered % 5 = 0 THEN q.last_option ELSE q.first_option END,
             'Supervisory conclusion recorded from the file review, walkthroughs and sample testing performed for the assessed period.',
             CASE WHEN q.requires_evidence THEN
               jsonb_build_array(jsonb_build_object('kind','WORKPAPER','label','Assessment workpaper and sample testing record'))
