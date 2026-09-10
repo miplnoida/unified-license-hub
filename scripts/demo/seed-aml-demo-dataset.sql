@@ -107,7 +107,8 @@ BEGIN
   -- the authoritative risk state is trigger-protected; removing demo fixtures is
   -- the only place this deployment-local seed asserts the writer marker.
   PERFORM set_config('app.supervisory_risk_state_writer','assessment_transition', true);
-  DELETE FROM public.entity_risk_state_movement           WHERE entity_id = ANY(ents);
+  -- entity_risk_state_movement is immutable and is never deleted; this branch
+  -- only runs when no movement exists for the demo entities.
   DELETE FROM public.supervisory_reassessment_requirement WHERE entity_id = ANY(ents);
   DELETE FROM public.entity_risk_state                    WHERE entity_id = ANY(ents);
   DELETE FROM public.enforcement_actions                  WHERE entity_id = ANY(ents);
@@ -343,10 +344,16 @@ DECLARE
   meth     uuid;
   claim_off  text := '{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}';
   claim_sup  text := '{"sub":"0b522724-adcb-48bf-b21d-175339479616","role":"authenticated"}';
+  claim_locked text;
   claim_sup2 text := '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
   claim_pru  text := '{"sub":"ef43e80a-e17e-4f26-aa91-bcf0d99e3d89","role":"authenticated"}';
   claim_enf  text := '{"sub":"7190c434-24c1-47dc-a2fb-c3cbad5bfaf3","role":"authenticated"}';
 BEGIN
+  claim_locked := coalesce(current_setting('app.demo_aml_dataset_locked', true), '0');
+  IF claim_locked = '1' THEN
+    RAISE NOTICE 'DEMO AML governed pipeline skipped: dataset already carries immutable published decisions';
+    RETURN;
+  END IF;
 -- Every AML/CFT rating must be attributable to a published methodology version.
 meth := (SELECT v FROM aml_ref WHERE case_no = 0 AND k = 'methodology');
 IF meth IS NULL THEN
