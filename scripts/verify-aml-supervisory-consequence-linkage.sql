@@ -1007,9 +1007,9 @@ DO $$
 DECLARE res jsonb; d public.supervisory_consequence_decision; n_before int; pre uuid;
 BEGIN
   INSERT INTO public.supervisory_finding(
-    reference, entity_id, domain_code, title, source_kind, status, origin_provenance)
+    reference, entity_id, domain_code, title, source_kind, status, origin_provenance, assessment_id)
   VALUES ('AML08CERT-FIND-PREEXISTING',(SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
-          'AML08CERT pre-existing AML/CFT finding','ASSESSMENT','DRAFT','GOVERNED')
+          'AML08CERT pre-existing AML/CFT finding','ASSESSMENT','DRAFT','GOVERNED',(SELECT v FROM c_id WHERE k='assessment'))
   RETURNING id INTO pre;
   INSERT INTO c_id(k,v) VALUES ('find_pre', pre);
   SELECT count(*) INTO n_before FROM public.supervisory_finding;
@@ -1041,9 +1041,9 @@ DO $$
 DECLARE refused boolean := false; msg text; other uuid;
 BEGIN
   INSERT INTO public.supervisory_finding(
-    reference, entity_id, domain_code, title, source_kind, status, origin_provenance)
+    reference, entity_id, domain_code, title, source_kind, status, origin_provenance, assessment_id)
   VALUES ('AML08CERT-FIND-OTHER',(SELECT v FROM c_id WHERE k='other_entity'),'AML_CFT',
-          'AML08CERT other-entity finding','ASSESSMENT','DRAFT','GOVERNED')
+          'AML08CERT other-entity finding','ASSESSMENT','DRAFT','GOVERNED',(SELECT v FROM c_id WHERE k='assessment'))
   RETURNING id INTO other;
   INSERT INTO c_id(k,v) VALUES ('find_other', other);
   SET LOCAL ROLE authenticated;
@@ -1070,9 +1070,9 @@ DO $$
 DECLARE refused boolean := false; msg text; other uuid;
 BEGIN
   INSERT INTO public.supervisory_finding(
-    reference, entity_id, domain_code, title, source_kind, status, origin_provenance)
+    reference, entity_id, domain_code, title, source_kind, status, origin_provenance, assessment_id)
   VALUES ('AML08CERT-FIND-PRUD',(SELECT v FROM c_id WHERE k='entity'),'PRUDENTIAL',
-          'AML08CERT prudential finding','ASSESSMENT','DRAFT','GOVERNED')
+          'AML08CERT prudential finding','ASSESSMENT','DRAFT','GOVERNED',(SELECT v FROM c_id WHERE k='assessment'))
   RETURNING id INTO other;
   INSERT INTO c_id(k,v) VALUES ('find_prud', other);
   SET LOCAL ROLE authenticated;
