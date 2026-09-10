@@ -50889,6 +50889,159 @@ export type Database = {
           },
         ]
       }
+      supervisory_risk_monitoring_decision: {
+        Row: {
+          assessment_id: string | null
+          basis_source_id: string | null
+          basis_source_kind: string | null
+          created_at: string
+          decided_at: string
+          decided_by: string | null
+          decision_kind: string
+          disposition: string | null
+          domain_code: string
+          due_date_basis: string | null
+          entity_id: string
+          event_date: string | null
+          event_source_id: string | null
+          event_source_kind: string | null
+          event_type: string | null
+          id: string
+          idempotency_key: string
+          lineage: Json
+          monitoring_state: string | null
+          original_due_date: string | null
+          programme_code: string | null
+          programme_id: string | null
+          programme_version: string | null
+          publication_id: string | null
+          rationale: string
+          reassessment_requirement_id: string | null
+          regulator_id: string | null
+          revised_due_date: string | null
+          risk_state_id: string | null
+        }
+        Insert: {
+          assessment_id?: string | null
+          basis_source_id?: string | null
+          basis_source_kind?: string | null
+          created_at?: string
+          decided_at?: string
+          decided_by?: string | null
+          decision_kind: string
+          disposition?: string | null
+          domain_code: string
+          due_date_basis?: string | null
+          entity_id: string
+          event_date?: string | null
+          event_source_id?: string | null
+          event_source_kind?: string | null
+          event_type?: string | null
+          id?: string
+          idempotency_key: string
+          lineage?: Json
+          monitoring_state?: string | null
+          original_due_date?: string | null
+          programme_code?: string | null
+          programme_id?: string | null
+          programme_version?: string | null
+          publication_id?: string | null
+          rationale: string
+          reassessment_requirement_id?: string | null
+          regulator_id?: string | null
+          revised_due_date?: string | null
+          risk_state_id?: string | null
+        }
+        Update: {
+          assessment_id?: string | null
+          basis_source_id?: string | null
+          basis_source_kind?: string | null
+          created_at?: string
+          decided_at?: string
+          decided_by?: string | null
+          decision_kind?: string
+          disposition?: string | null
+          domain_code?: string
+          due_date_basis?: string | null
+          entity_id?: string
+          event_date?: string | null
+          event_source_id?: string | null
+          event_source_kind?: string | null
+          event_type?: string | null
+          id?: string
+          idempotency_key?: string
+          lineage?: Json
+          monitoring_state?: string | null
+          original_due_date?: string | null
+          programme_code?: string | null
+          programme_id?: string | null
+          programme_version?: string | null
+          publication_id?: string | null
+          rationale?: string
+          reassessment_requirement_id?: string | null
+          regulator_id?: string | null
+          revised_due_date?: string | null
+          risk_state_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_risk_monitoring_de_reassessment_requirement_id_fkey"
+            columns: ["reassessment_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["entity_reassessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_risk_monitoring_de_reassessment_requirement_id_fkey"
+            columns: ["reassessment_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["reassessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_risk_monitoring_de_reassessment_requirement_id_fkey"
+            columns: ["reassessment_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_reassessment_requirement"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_risk_monitoring_decision_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_risk_monitoring_decision_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_risk_monitoring_decision_programme_id_fkey"
+            columns: ["programme_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_programme"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_risk_monitoring_decision_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_risk_publication"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_risk_monitoring_decision_risk_state_id_fkey"
+            columns: ["risk_state_id"]
+            isOneToOne: false
+            referencedRelation: "entity_risk_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supervisory_signal: {
         Row: {
           comparator: string | null
@@ -70205,6 +70358,30 @@ export type Database = {
           _residual_materiality: string
         }
         Returns: string
+      }
+      supervisory_risk_monitoring_due_list: {
+        Args: { _domain_code?: string; _limit?: number; _state?: string }
+        Returns: Json
+      }
+      supervisory_risk_monitoring_events_internal: {
+        Args: { _domain_code?: string; _entity_id: string; _since?: string }
+        Returns: Json
+      }
+      supervisory_risk_monitoring_require_reassessment: {
+        Args: { _payload: Json }
+        Returns: Json
+      }
+      supervisory_risk_monitoring_reschedule: {
+        Args: { _payload: Json }
+        Returns: Json
+      }
+      supervisory_risk_monitoring_schedule_internal: {
+        Args: { _domain_code?: string; _entity_id: string }
+        Returns: Json
+      }
+      supervisory_risk_monitoring_view: {
+        Args: { _domain_code?: string; _entity_id: string }
+        Returns: Json
       }
       supervisory_sector_overview: { Args: { _domain?: string }; Returns: Json }
       supervisory_signal_record: {
