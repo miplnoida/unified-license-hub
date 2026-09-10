@@ -1169,7 +1169,10 @@ BEGIN
   SELECT count(*) INTO n_after FROM public.supervisory_consequence_decision;
   IF n_after <> n_before THEN
     RAISE EXCEPTION 'FAIL LINK-06: a repeated identical link created another decision row'; END IF;
-  IF NOT COALESCE((res->>'duplicate')::boolean,false) OR res->>'reason_code' <> 'DUPLICATE_EXISTS' THEN
+  -- the same supervisor repeating the same link is told it is idempotent; a
+  -- different supervisor is told the linkage already exists (LINK-07).
+  IF NOT (COALESCE((res->>'idempotent')::boolean,false)
+          OR (COALESCE((res->>'duplicate')::boolean,false) AND res->>'reason_code' = 'DUPLICATE_EXISTS')) THEN
     RAISE EXCEPTION 'FAIL LINK-06: the repeat was not reported as an existing linkage (%)', res; END IF;
   IF (res->>'decision_id')::uuid <> (SELECT v FROM c_id WHERE k='dec_link') THEN
     RAISE EXCEPTION 'FAIL LINK-06: the existing decision was not returned'; END IF;
