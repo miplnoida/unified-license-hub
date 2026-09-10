@@ -366,6 +366,33 @@ export function AmlPortfolioReport({ domainCode = 'AML_CFT' }: { domainCode?: st
             </CardContent>
           </Card>
 
+          {/* -------------------------------- AML-11 outcome effectiveness counts */}
+          <Card data-testid="port-outcome-summary">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Supervisory outcome and effectiveness</CardTitle>
+              <CardDescription>
+                {dash(data.outcome_summary?.note)}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                ['completed', 'Completed actions', data.outcome_summary?.completed_actions_total],
+                ['pending', 'Evaluations pending', data.outcome_summary?.evaluations_pending_total],
+                ['effective', 'Effective', data.outcome_summary?.effective_total],
+                ['partial', 'Partially effective', data.outcome_summary?.partially_effective_total],
+                ['ineffective', 'Ineffective', data.outcome_summary?.ineffective_total],
+                ['inconclusive', 'Inconclusive', data.outcome_summary?.inconclusive_total],
+                ['unevaluated', 'Unevaluated actions', data.outcome_summary?.unevaluated_actions_total],
+                ['legacy', 'Legacy lineage actions', data.outcome_summary?.legacy_lineage_actions_total],
+              ].map(([k, label, value]) => (
+                <div key={String(k)} data-testid={`port-outcome-${k}`} className="rounded-md border p-3">
+                  <p className="text-sm text-muted-foreground">{String(label)}</p>
+                  <p className="font-mono text-xl">{dash(value)}</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
           {/* --------------------------------------------------- trends */}
           <Card data-testid="port-trends">
             <CardHeader className="pb-3">
