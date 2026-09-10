@@ -1979,7 +1979,8 @@ BEGIN
        + (SELECT count(*) FROM public.examinations WHERE COALESCE(title,'') LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.supervisory_finding WHERE COALESCE(reference,'') LIKE 'AML08CERT%'
             OR COALESCE(title,'') LIKE 'AML08CERT%')
-       + (SELECT count(*) FROM public.enforcement_actions WHERE COALESCE(title,'') LIKE 'AML08CERT%')
+       + (SELECT count(*) FROM public.enforcement_actions WHERE COALESCE(description,'') LIKE '%AML08CERT%'
+            OR COALESCE(remediation_bypass_reason,'') LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.supervisory_calculation_config c
             JOIN public.supervisory_methodology m ON m.id = c.methodology_id WHERE m.code LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.compliance_audit_logs
