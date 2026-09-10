@@ -13,6 +13,7 @@ import { AlertTriangle, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { useAmlPortfolioPage, useAmlPortfolioRatings } from '@/hooks/useAmlSupervision';
 import { useListingState, useServerPageGuard } from '@/components/shared/listing';
 import { AmlNewAssessmentDialog } from '@/components/supervision/aml/AmlNewAssessmentDialog';
+import { AmlDueReviewList } from '@/components/supervision/aml/AmlDueReviewList';
 import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, titleCase, trendTone } from '@/lib/amlLabels';
 
 export default function AmlSupervisedEntities() {
@@ -78,6 +79,8 @@ export default function AmlSupervisedEntities() {
             <AlertDescription>{(error as Error).message}</AlertDescription>
           </Alert>
         ) : null}
+
+        <AmlDueReviewList />
 
         <Card>
           <CardContent className="space-y-3 pt-4">
