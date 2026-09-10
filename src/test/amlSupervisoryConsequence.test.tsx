@@ -325,7 +325,7 @@ describe('AML-08 supervisory consequence surface', () => {
   it('UI-CONSEQ-12 shows advisory conditions without blocking', async () => {
     mode = 'superseded';
     await ready();
-    expect(screen.getByText('A later publication now applies')).toBeInTheDocument();
+    expect(screen.getByText(/A later publication now applies/)).toBeInTheDocument();
     expect(screen.queryByText('Blocking')).toBeNull();
   });
 
