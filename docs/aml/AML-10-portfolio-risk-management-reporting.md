@@ -78,3 +78,16 @@ work queue, the AML-09 due review list and the entity AML view.
 Risk ratings, risk history, publications, monitoring decisions, consequence decisions, programme
 configuration and v1.0 / v1.1 methodology state are untouched. No calculation policy, risk band,
 review interval or portfolio threshold was authored.
+
+## Final certification evidence (fast certification lock)
+
+- SQL behavioural verifier `scripts/verify-aml-portfolio-reporting.sql`, one transaction, `ON_ERROR_STOP`, AML10CERT fixtures, final ROLLBACK: **46/46 passed, 0 failed** — PORT 8, EXPO 7, TREND 5, FILTER 9, EXPORT 7, SEC 8, ROLLBACK 2.
+- Rollback proof: zero surviving AML10CERT consequence decisions, monitoring decisions, reassessments, findings, plans, assessments, methodologies, risk movements and audit events; zero older certification fixtures. Assessments, risk states/movements, monitoring schedules, consequences, supervisory actions, policies and regulators unchanged.
+- Genuine defects corrected during certification: server-side spreadsheet-formula neutralisation for governed exports (`supervisory_export_text_safe`, `csv_injection_neutralised`).
+- Frontend gates: AML-10 UI 27/27; AML-10 boundary 33/33. React calculates no totals, buckets, trends, monitoring states, exposure, filter results or export values.
+- RBAC and security: backend hardening verifier passed; RBAC parity OK (46 scope tuples); authorisation/RBAC suites 14 files / 119 tests; action governance 11/11. No new AML-10 finding; remaining advisories are inherited/shared.
+- One canonical two-worker integration suite: 173 files, 1678 passed, 0 failed, 0 skipped, 315.9s.
+- Typecheck clean; production build `build OK`. No new warnings.
+- Preservation: risk rating changed NO; risk history rewritten NO; assessment changed NO; monitoring schedule changed NO; supervisory action created NO; calculation policy authored NO; portfolio threshold invented NO; cross-regulator data exposed NO; v1.0 changed NO; v1.1 changed or activated NO; LINK-11 rewritten NO; AML data deleted NO. Canonical digest remains `8385b6c8f7ba2b4102ab054c8f5ac686`.
+- Final three-run release certification: deferred to the AML module release lock.
+- AML-11 readiness: YES.
