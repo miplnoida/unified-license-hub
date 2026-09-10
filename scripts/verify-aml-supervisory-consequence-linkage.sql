@@ -57,9 +57,8 @@ SELECT 'other_entity', l.id FROM public.licensees l
 -- fallback: if every same-scope entity already carries an AML/CFT
 -- risk-of-record, any other supervised entity serves the cross-entity gates.
 INSERT INTO c_id(k,v)
-SELECT 'other_entity', l.id FROM public.licensees l
+SELECT 'xentity', l.id FROM public.licensees l
  WHERE l.id <> (SELECT v FROM c_id WHERE k='entity')
-   AND NOT EXISTS (SELECT 1 FROM c_id WHERE k='other_entity')
  ORDER BY l.id LIMIT 1;
 
 -- ---------------------------------------------------------------- census ----
@@ -1049,7 +1048,7 @@ DECLARE refused boolean := false; msg text; other uuid;
 BEGIN
   INSERT INTO public.supervisory_finding(
     reference, entity_id, domain_code, title, source_kind, status, origin_provenance, assessment_id)
-  VALUES ('AML08CERT-FIND-OTHER',(SELECT v FROM c_id WHERE k='other_entity'),'AML_CFT',
+  VALUES ('AML08CERT-FIND-OTHER',(SELECT COALESCE((SELECT v FROM c_id WHERE k='other_entity'),(SELECT v FROM c_id WHERE k='xentity'))),'AML_CFT',
           'AML08CERT other-entity finding','ASSESSMENT','DRAFT','GOVERNED',(SELECT v FROM c_id WHERE k='assessment'))
   RETURNING id INTO other;
   INSERT INTO c_id(k,v) VALUES ('find_other', other);
