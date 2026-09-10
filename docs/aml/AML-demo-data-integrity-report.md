@@ -243,3 +243,30 @@ re-provenanced.
 The current-workflow provenance the demonstration was missing now exists for question
 plans, responses, evidence and review history. Approval and publication provenance cannot
 be produced without a signed calculation policy, and inventing one is prohibited.
+
+## Addendum — downstream supervisory demonstration content (AML-DEMO-03)
+
+`scripts/demo/seed-aml-demo-downstream.sql` adds the post-assessment half of the story through
+governed operations only: nine consequence decisions, two review-cycle decisions, one reassessment
+requirement pair, a plan → endorsed intervention → examination → issued high finding chain, and one
+outcome evaluation concluded PARTIALLY_EFFECTIVE and independently approved.
+
+Verified properties:
+
+- Convergent: a second and third run created zero business records (9 consequence decisions,
+  2 review-cycle decisions, 1 outcome evaluation, 1 evidence basis both before and after).
+- Risk history untouched: 22 risk states and 25 risk movements before and after.
+- No rating published, no calculation policy created.
+- Every prerequisite was satisfied through the product, not around it: the examination could only be
+  opened after a supervisor endorsed the intervention, and the finding had to pass through REVIEW
+  before ISSUED.
+- New behavioural gates `DOWNSTREAM-01 … DOWNSTREAM-06` in `scripts/demo/verify-aml-demo.sql` all pass.
+- The two historical gates `INTEGRITY-14B` (21 legacy risk states without an AML-07 publication) and
+  `INTEGRITY-15` (984 legacy responses without a question plan) still fail, unchanged and honestly
+  reported: the historical baseline predates the current architecture and is never backfilled.
+
+Browser rehearsal: all nine AML supervisory routes plus one assessment workspace deep link loaded as
+an internal supervisory user with no HTTP response of 400 or above and with real seeded content.
+
+Verdict for this addendum: `DOWNSTREAM DEMO CONTENT — PASS` / `RISK HISTORY CHANGED — NO` /
+`RATING PUBLISHED — NO` / `SECOND RUN DUPLICATES — 0`.
