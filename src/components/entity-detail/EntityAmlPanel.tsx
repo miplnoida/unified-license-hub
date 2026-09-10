@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAmlEntityPanel } from '@/hooks/useAmlSupervision';
 import { fmtDate, ratingTone, statusTone, titleCase, trendTone } from '@/lib/amlLabels';
 import { AmlEntityRiskHistory } from '@/components/supervision/aml/AmlEntityRiskHistory';
+import { AmlSupervisoryConsequencePanel } from '@/components/supervision/aml/AmlSupervisoryConsequencePanel';
 
 function Tile({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return (
@@ -206,6 +207,8 @@ export function EntityAmlPanel({ entityId }: { entityId: string }) {
           </CardContent>
         </Card>
       </div>
+
+      <AmlSupervisoryConsequencePanel entityId={entityId} />
     </div>
   );
 }
