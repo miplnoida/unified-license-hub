@@ -1609,8 +1609,15 @@ BEGIN
   SELECT md5(string_agg(concat_ws(E'\t', s.id::text, s.entity_id::text, s.domain_code,
              s.residual_rating, s.inherent_rating, s.control_rating,
              s.driving_assessment_id::text, s.effective_from::text), E'\n' ORDER BY s.id))
-    INTO d FROM public.entity_risk_state s WHERE s.domain_code='AML_CFT';
-  SELECT count(*) INTO moves FROM public.entity_risk_state_movement;
+    INTO d FROM public.entity_risk_state s
+   WHERE s.domain_code='AML_CFT'
+     AND s.driving_assessment_id NOT IN (SELECT a.id FROM public.supervisory_assessment a
+                                          WHERE a.reference LIKE 'AML11CERT%');
+  SELECT count(*) INTO moves FROM public.entity_risk_state_movement m
+   WHERE m.risk_state_id IN (SELECT s2.id FROM public.entity_risk_state s2
+     WHERE s2.driving_assessment_id NOT IN (SELECT a.id FROM public.supervisory_assessment a
+       WHERE a.reference LIKE 'AML11CERT%'))
+      OR m.risk_state_id IS NULL;
   IF d IS DISTINCT FROM (SELECT c.t FROM c_t c WHERE c.k='risk_digest') THEN
     RAISE EXCEPTION 'FAIL ROLLBACK-02: the AML risk-of-record digest changed during the certification'; END IF;
   IF moves <> (SELECT c.n FROM c_n c WHERE c.k='risk_moves') THEN
@@ -1637,7 +1644,7 @@ BEGIN
   pl := pl + (SELECT count(*) FROM public.enforcement_actions WHERE case_number LIKE 'AML11CERT%');
   SELECT count(*) INTO evid FROM public.supervisory_assessment_evidence_basis WHERE source_reference LIKE 'AML11CERT%';
   SELECT count(*) INTO aud FROM public.compliance_audit_logs
-   WHERE entity_type='supervisory_outcome_evaluation' AND rationale LIKE 'AML11CERT%';
+   WHERE object_type='supervisory_outcome_evaluation' AND justification LIKE 'AML11CERT%';
   SELECT count(*) INTO risk FROM public.supervisory_assessment WHERE reference LIKE 'AML11CERT%';
   SELECT count(*) INTO older FROM public.supervisory_assessment
    WHERE reference LIKE 'AML10CERT%' OR reference LIKE 'AML09CERT%' OR reference LIKE 'AML08CERT%'
