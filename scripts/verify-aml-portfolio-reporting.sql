@@ -1557,18 +1557,27 @@ BEGIN
 END $$;
 
 DO $$
-DECLARE stored text[];
+DECLARE stored text[]; lower_hist bigint;
 BEGIN
-  SELECT array_agg(DISTINCT new_rating ORDER BY new_rating) INTO stored
+  -- the three stored variants must still be exactly as written: reporting
+  -- normalises presentation, it never rewrites the immutable ledger.
+  SELECT array_agg(DISTINCT new_rating) INTO stored
     FROM public.entity_risk_state_movement WHERE reason = 'AML10CERT mixed-case rating fixture';
-  IF stored <> ARRAY['HIGH','High','high'] THEN
+  IF NOT ('HIGH' = ANY(stored) AND 'High' = ANY(stored) AND 'high' = ANY(stored))
+     OR array_length(stored,1) <> 3 THEN
     RAISE EXCEPTION 'FAIL CASE-03: the stored risk history was rewritten to %', stored; END IF;
   IF EXISTS (SELECT 1 FROM public.entity_risk_state_movement
-              WHERE reason <> 'AML10CERT mixed-case rating fixture'
-                AND new_rating IS NOT NULL AND new_rating = upper(new_rating)
-                AND false) THEN NULL; END IF;
-  RAISE NOTICE 'PASS CASE-03: the immutable history keeps its stored values exactly (%)', stored;
+              WHERE reason = 'AML10CERT mixed-case rating fixture'
+                AND previous_rating NOT IN ('moderate','Moderate','MODERATE')) THEN
+    RAISE EXCEPTION 'FAIL CASE-03: a stored previous rating was rewritten'; END IF;
+  -- the pre-existing operational lower-case history is also still lower case
+  SELECT count(*) INTO lower_hist FROM public.entity_risk_state_movement
+   WHERE reason IS DISTINCT FROM 'AML10CERT mixed-case rating fixture'
+     AND new_rating IS NOT NULL AND new_rating <> upper(new_rating);
+  RAISE NOTICE 'PASS CASE-03: the immutable history keeps its stored values exactly (% ; % pre-existing lower-case rows untouched)',
+    stored, lower_hist;
 END $$;
+
 
 DO $$
 DECLARE r jsonb; hi int; mo int;
