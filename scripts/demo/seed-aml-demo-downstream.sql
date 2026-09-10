@@ -98,19 +98,23 @@ BEGIN
   --        examination -> finding -> enforcement referral.
   -- =========================================================================
   PERFORM set_config('request.jwt.claims', claim_off, true);
-  res := public.supervisory_consequence_record(jsonb_build_object(
-    'entity_id', e07, 'domain_code','AML_CFT',
-    'action_type','OPEN_SUPERVISORY_PLAN','linkage_mode','CREATE',
-    'title','DEMO AML 07 — AML/CFT engagement plan',
-    'supervisory_objective','Verify virtual asset customer identification and sanctions screening controls through an on-site engagement.',
-    'priority','HIGH','due_date',(current_date + 60)::text,
-    'idempotency_key','DEMO-AML-DS-02-PLAN',
-    'rationale','The deterioration recorded in this virtual asset provider''s AML/CFT risk of record warrants a planned on-site engagement.'));
-  plan_id := NULLIF(res->>'target_id','')::uuid;
-  IF NOT (COALESCE((res->>'duplicate')::boolean,false)
-          OR COALESCE((res->>'idempotent')::boolean,false)
-          OR COALESCE((res->>'reused')::boolean,false)
-          OR COALESCE((res->>'existing')::boolean,false)) THEN created := created + 1; END IF;
+  SELECT target_id INTO plan_id
+    FROM public.supervisory_consequence_decision
+   WHERE entity_id = e07 AND domain_code = 'AML_CFT'
+     AND action_type = 'OPEN_SUPERVISORY_PLAN' AND withdrawn_at IS NULL
+   ORDER BY decided_at LIMIT 1;
+  IF plan_id IS NULL THEN
+    res := public.supervisory_consequence_record(jsonb_build_object(
+      'entity_id', e07, 'domain_code','AML_CFT',
+      'action_type','OPEN_SUPERVISORY_PLAN','linkage_mode','CREATE',
+      'title','DEMO AML 07 — AML/CFT engagement plan',
+      'supervisory_objective','Verify virtual asset customer identification and sanctions screening controls through an on-site engagement.',
+      'priority','HIGH','due_date',(current_date + 60)::text,
+      'idempotency_key','DEMO-AML-DS-02-PLAN',
+      'rationale','The deterioration recorded in this virtual asset provider''s AML/CFT risk of record warrants a planned on-site engagement.'));
+    plan_id := NULLIF(res->>'target_id','')::uuid;
+    created := created + 1;
+  END IF;
 
   BEGIN
     IF plan_id IS NOT NULL THEN
