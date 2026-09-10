@@ -1614,10 +1614,9 @@ BEGIN
      AND s.driving_assessment_id NOT IN (SELECT a.id FROM public.supervisory_assessment a
                                           WHERE a.reference LIKE 'AML11CERT%');
   SELECT count(*) INTO moves FROM public.entity_risk_state_movement m
-   WHERE m.risk_state_id IN (SELECT s2.id FROM public.entity_risk_state s2
-     WHERE s2.driving_assessment_id NOT IN (SELECT a.id FROM public.supervisory_assessment a
-       WHERE a.reference LIKE 'AML11CERT%'))
-      OR m.risk_state_id IS NULL;
+   WHERE COALESCE(m.new_assessment_id, m.previous_assessment_id) IS NULL
+      OR COALESCE(m.new_assessment_id, m.previous_assessment_id)
+         NOT IN (SELECT a.id FROM public.supervisory_assessment a WHERE a.reference LIKE 'AML11CERT%');
   IF d IS DISTINCT FROM (SELECT c.t FROM c_t c WHERE c.k='risk_digest') THEN
     RAISE EXCEPTION 'FAIL ROLLBACK-02: the AML risk-of-record digest changed during the certification'; END IF;
   IF moves <> (SELECT c.n FROM c_n c WHERE c.k='risk_moves') THEN
