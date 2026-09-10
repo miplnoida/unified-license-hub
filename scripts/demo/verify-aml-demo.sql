@@ -303,10 +303,65 @@ BEGIN
   IF n > 0 THEN fails := fails || format('CURRENT-06 additive scenario published a risk of record without a calculation basis: %s', n);
   ELSE RAISE NOTICE 'CURRENT-06 PASS the additive wave published no risk of record (policy blocked)'; END IF;
 
+  -- ==========================================================================
+  -- DOWNSTREAM-01 … 06  post-publication supervisory consequence, review-cycle
+  -- and outcome-effectiveness content added through the governed operations
+  -- ==========================================================================
+
+  -- DOWNSTREAM-01 governed consequence decisions exist for demo entities
+  SELECT count(*) INTO n
+    FROM public.supervisory_consequence_decision d
+    JOIN public.licensees l ON l.id = d.entity_id
+   WHERE l.name LIKE 'DEMO AML %';
+  IF n = 0 THEN fails := fails || 'DOWNSTREAM-01 no governed consequence decision exists for any demo entity';
+  ELSE RAISE NOTICE 'DOWNSTREAM-01 PASS governed consequence decisions on demo entities: %', n; END IF;
+
+  -- DOWNSTREAM-02 every consequence decision carries a rationale and lineage
+  SELECT count(*) INTO n
+    FROM public.supervisory_consequence_decision d
+    JOIN public.licensees l ON l.id = d.entity_id
+   WHERE l.name LIKE 'DEMO AML %'
+     AND (COALESCE(btrim(d.rationale),'') = '' OR d.lineage IS NULL);
+  IF n > 0 THEN fails := fails || format('DOWNSTREAM-02 consequence decision without rationale or lineage: %s', n);
+  ELSE RAISE NOTICE 'DOWNSTREAM-02 PASS every demo consequence decision carries rationale and lineage'; END IF;
+
+  -- DOWNSTREAM-03 no consequence decision points at another entity's record
+  SELECT count(*) INTO n
+    FROM public.supervisory_consequence_decision d
+    JOIN public.licensees l ON l.id = d.entity_id
+    LEFT JOIN public.supervisory_plan p
+           ON d.target_kind = 'SUPERVISORY_PLAN' AND p.id = d.target_id
+   WHERE l.name LIKE 'DEMO AML %'
+     AND d.target_kind = 'SUPERVISORY_PLAN'
+     AND (p.id IS NULL OR NOT (d.entity_id = ANY (COALESCE(p.entity_ids,'{}'::uuid[]))));
+  IF n > 0 THEN fails := fails || format('DOWNSTREAM-03 consequence decision linked to a plan of another entity: %s', n);
+  ELSE RAISE NOTICE 'DOWNSTREAM-03 PASS every demo plan consequence targets its own entity'; END IF;
+
+  -- DOWNSTREAM-04 review-cycle decisions carry a written reason
+  SELECT count(*) INTO n
+    FROM public.supervisory_risk_monitoring_decision d
+    JOIN public.licensees l ON l.id = d.entity_id
+   WHERE l.name LIKE 'DEMO AML %' AND COALESCE(btrim(d.rationale),'') = '';
+  IF n > 0 THEN fails := fails || format('DOWNSTREAM-04 review-cycle decision without a reason: %s', n);
+  ELSE RAISE NOTICE 'DOWNSTREAM-04 PASS every demo review-cycle decision carries a written reason'; END IF;
+
+  -- DOWNSTREAM-05 outcome evaluations are independently reviewed (maker/checker)
+  SELECT count(*) INTO n
+    FROM public.supervisory_outcome_evaluation e
+   WHERE e.review_status = 'APPROVED' AND e.reviewed_by IS NOT NULL AND e.reviewed_by = e.prepared_by;
+  IF n > 0 THEN fails := fails || format('DOWNSTREAM-05 self-approved outcome evaluation: %s', n);
+  ELSE RAISE NOTICE 'DOWNSTREAM-05 PASS no outcome evaluation was approved by its own author'; END IF;
+
+  -- DOWNSTREAM-06 the downstream wave published no risk rating and created no
+  -- calculation policy: risk history is untouched by supervisory consequence
+  SELECT count(*) INTO n FROM public.entity_risk_state_movement;
+  IF n <> 25 THEN fails := fails || format('DOWNSTREAM-06 risk movement history changed: %s (expected 25)', n);
+  ELSE RAISE NOTICE 'DOWNSTREAM-06 PASS risk movement history unchanged at 25 rows'; END IF;
+
   IF array_length(fails,1) > 0 THEN
     RAISE EXCEPTION E'DEMO AML DATA INTEGRITY FAILED:\n  %', array_to_string(fails, E'\n  ');
   END IF;
-  RAISE NOTICE 'DEMO AML DATA INTEGRITY PASSED (INTEGRITY-00 … INTEGRITY-18, CURRENT-01 … CURRENT-06)';
+  RAISE NOTICE 'DEMO AML DATA INTEGRITY PASSED (INTEGRITY-00 … INTEGRITY-18, CURRENT-01 … CURRENT-06, DOWNSTREAM-01 … DOWNSTREAM-06)';
 END $$;
 
 ROLLBACK;
