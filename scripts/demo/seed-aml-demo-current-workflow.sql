@@ -100,7 +100,12 @@ BEGIN
     IF scen.target <> 'PLAN_ONLY' THEN
       answered := 0;
       FOR q IN
-        SELECT p.question_id, mq.requires_evidence, mq.allow_not_applicable, mq.na_requires_rationale
+        SELECT p.question_id, mq.requires_evidence, mq.allow_not_applicable, mq.na_requires_rationale,
+               -- only responses the methodology itself permits are ever recorded
+               (SELECT o FROM unnest(mq.response_options) o
+                 WHERE o <> 'NOT_APPLICABLE' ORDER BY o LIMIT 1) AS first_option,
+               (SELECT o FROM unnest(mq.response_options) o
+                 WHERE o <> 'NOT_APPLICABLE' ORDER BY o DESC LIMIT 1) AS last_option
           FROM public.supervisory_assessment_question_plan p
           JOIN public.supervisory_methodology_question mq ON mq.id = p.question_id
          WHERE p.assessment_id = aid AND p.plan_state LIKE 'INCLUDED%'
