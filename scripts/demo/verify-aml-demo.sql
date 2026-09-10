@@ -348,7 +348,7 @@ BEGIN
   -- DOWNSTREAM-05 outcome evaluations are independently reviewed (maker/checker)
   SELECT count(*) INTO n
     FROM public.supervisory_outcome_evaluation e
-   WHERE e.status = 'APPROVED' AND e.reviewed_by IS NOT NULL AND e.reviewed_by = e.evaluated_by;
+   WHERE e.review_status = 'APPROVED' AND e.reviewed_by IS NOT NULL AND e.reviewed_by = e.prepared_by;
   IF n > 0 THEN fails := fails || format('DOWNSTREAM-05 self-approved outcome evaluation: %s', n);
   ELSE RAISE NOTICE 'DOWNSTREAM-05 PASS no outcome evaluation was approved by its own author'; END IF;
 
