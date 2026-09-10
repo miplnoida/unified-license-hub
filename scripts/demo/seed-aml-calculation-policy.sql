@@ -169,16 +169,17 @@ BEGIN
       'meaning','The requirement does not apply to this institution in the assessed period; it carries no score and leaves the denominator.')
   ));
 
-  -- DEC-03 — question participation and weighting: every active question scored,
-  -- with unit weight. Nothing is implicit.
-  PERFORM public.supervisory_calculation_question_weights_set(cfg, (
-    SELECT COALESCE(jsonb_agg(jsonb_build_object(
-             'question_code', q.question_code,
-             'participation', 'SCORED',
-             'weight', 1,
-             'is_critical', false)), '[]'::jsonb)
-      FROM public.supervisory_methodology_question q
-     WHERE q.methodology_id = v12 AND q.active));
+  -- DEC-03 — question participation. The decision is that every active question
+  -- participates with equal weight, which is exactly the engine's stated default
+  -- for a configuration with no per-question row (SCORED, weight 1). No row is
+  -- written, because writing "weight 1" for every question would assert a
+  -- weighting decision that this policy deliberately does not make.
+  --
+  -- A per-question weighting policy is not expressible for this methodology
+  -- today: the governed operation keys on question_code, and AML-CFT-RBA reuses
+  -- codes such as Q1 across dimensions. That is recorded as a product defect in
+  -- docs/aml/AML-calculation-policy-decision-register.md; it does not affect an
+  -- unweighted policy.
 
   -- DEC-03 — dimension policy: a dimension contributes to the side its kind
   -- declares, carrying the weight the methodology itself publishes. A dimension
