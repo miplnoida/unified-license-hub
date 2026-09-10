@@ -70248,12 +70248,17 @@ export type Database = {
         Args: { _detector_code: string; _from: string; _to: string }
         Returns: Json
       }
+      supervisory_portfolio_export: { Args: { _payload?: Json }; Returns: Json }
       supervisory_portfolio_group_intelligence: {
         Args: { _domain?: string }
         Returns: Json
       }
       supervisory_portfolio_intelligence_overview: {
         Args: { _days?: number; _domain?: string }
+        Returns: Json
+      }
+      supervisory_portfolio_internal: {
+        Args: { _payload: Json }
         Returns: Json
       }
       supervisory_portfolio_peer_view: {
@@ -70265,6 +70270,7 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_portfolio_report: { Args: { _payload?: Json }; Returns: Json }
       supervisory_portfolio_theme_detail: {
         Args: { _domain?: string; _limit?: number; _theme_key: string }
         Returns: Json
