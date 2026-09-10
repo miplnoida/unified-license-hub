@@ -1162,15 +1162,15 @@ BEGIN
   res := public.supervisory_consequence_record(jsonb_build_object(
     'entity_id',(SELECT v FROM c_id WHERE k='entity'),'domain_code','AML_CFT',
     'assessment_id',(SELECT v FROM c_id WHERE k='assessment'),
-    'action_type','OPEN_EXAMINATION','linkage_mode','LINK',
-    'target_id',(SELECT v FROM c_id WHERE k='examination'),
-    'rationale','AML08CERT: the existing AML/CFT examination is linked as the consequence of this outcome.'));
+    'action_type','RAISE_FINDING','linkage_mode','LINK',
+    'target_id',(SELECT v FROM c_id WHERE k='find_pre'),
+    'rationale','AML08CERT: the existing AML/CFT finding is linked as the consequence of this outcome.'));
   RESET ROLE;
   SELECT count(*) INTO n_after FROM public.supervisory_consequence_decision;
   IF n_after <> n_before THEN
     RAISE EXCEPTION 'FAIL LINK-06: a repeated identical link created another decision row'; END IF;
-  IF NOT COALESCE((res->>'idempotent')::boolean,false) THEN
-    RAISE EXCEPTION 'FAIL LINK-06: the repeat was not reported as idempotent (%)', res; END IF;
+  IF NOT COALESCE((res->>'duplicate')::boolean,false) OR res->>'reason_code' <> 'DUPLICATE_EXISTS' THEN
+    RAISE EXCEPTION 'FAIL LINK-06: the repeat was not reported as an existing linkage (%)', res; END IF;
   IF (res->>'decision_id')::uuid <> (SELECT v FROM c_id WHERE k='dec_link') THEN
     RAISE EXCEPTION 'FAIL LINK-06: the existing decision was not returned'; END IF;
   RAISE NOTICE 'PASS LINK-06: a repeated identical link converges on the existing decision';
