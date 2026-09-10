@@ -46967,7 +46967,7 @@ export type Database = {
           aggregation_method: string | null
           approved_at: string | null
           approved_by: string | null
-          completeness_mode: string
+          completeness_mode: string | null
           config_version: number
           created_at: string
           created_by: string | null
@@ -46997,7 +46997,7 @@ export type Database = {
           aggregation_method?: string | null
           approved_at?: string | null
           approved_by?: string | null
-          completeness_mode?: string
+          completeness_mode?: string | null
           config_version?: number
           created_at?: string
           created_by?: string | null
@@ -47027,7 +47027,7 @@ export type Database = {
           aggregation_method?: string | null
           approved_at?: string | null
           approved_by?: string | null
-          completeness_mode?: string
+          completeness_mode?: string | null
           config_version?: number
           created_at?: string
           created_by?: string | null

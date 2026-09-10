@@ -44,6 +44,10 @@ import { MaterialityEditor } from '@/components/admin/calculation/MaterialityEdi
 // supervisory_calculation_config). An option with no distinct implemented
 // semantics is deliberately absent rather than offered and ignored.
 const AGGREGATION = ['UNWEIGHTED_MEAN', 'WORST_RESPONSE'];
+// The completeness rule decides when a dimension has enough answers to be rated.
+// MIN_ANSWERED cannot be validated for a methodology whose dimensions publish
+// differing mandatory-question counts; the server says so on validation.
+const COMPLETENESS = ['MIN_ANSWERED', 'ALL_MANDATORY_APPLICABLE'];
 const NA_HANDLING = ['EXCLUDE', 'INCLUDE_AS_ZERO', 'INCLUDE_AS_FULL'];
 const EVIDENCE_HANDLING = ['FLAG_ONLY', 'NOT_CALCULABLE', 'CAP_AT_MIDPOINT'];
 const CRITICAL_HANDLING = ['NONE'];
@@ -173,7 +177,7 @@ export default function SupervisoryCalculationConfig() {
       notes: params.notes ?? '',
     };
     ([
-      'effective_from', 'aggregation_method', 'min_answered_questions',
+      'effective_from', 'aggregation_method', 'completeness_mode', 'min_answered_questions',
       'na_denominator_handling', 'evidence_insufficiency_handling',
       'critical_question_handling', 'rounding_mode', 'rounding_decimals',
       'inherent_direction', 'recommendation_policy',
@@ -390,6 +394,7 @@ export default function SupervisoryCalculationConfig() {
                     </div>
                     {([
                       ['aggregation_method', 'Dimension aggregation', AGGREGATION],
+                      ['completeness_mode', 'Dimension completeness rule', COMPLETENESS],
                       ['na_denominator_handling', 'Not-applicable responses', NA_HANDLING],
                       ['evidence_insufficiency_handling', 'Insufficient evidence', EVIDENCE_HANDLING],
                       ['critical_question_handling', 'Critical question failure', CRITICAL_HANDLING],
