@@ -48,7 +48,7 @@ SELECT 'sector', l.sector_id FROM public.licensees l WHERE l.id=(SELECT v FROM c
 INSERT INTO c_id(k,v)
 SELECT 'other_entity', l.id FROM public.licensees l
  WHERE l.id <> (SELECT v FROM c_id WHERE k='entity')
-   AND l.regulator_id = (SELECT l2.regulator_id FROM public.licensees l2
+   AND l.lead_regulator_id = (SELECT l2.lead_regulator_id FROM public.licensees l2
                           WHERE l2.id = (SELECT v FROM c_id WHERE k='entity'))
    AND NOT EXISTS (SELECT 1 FROM public.entity_risk_state s
                     WHERE s.entity_id = l.id AND s.domain_code='AML_CFT')
@@ -1764,7 +1764,7 @@ DO $$
 DECLARE refused int := 0; other uuid;
 BEGIN
   SELECT l.id INTO other FROM public.licensees l
-   WHERE l.regulator_id IS DISTINCT FROM (SELECT v FROM c_id WHERE k='regulator') ORDER BY l.id LIMIT 1;
+   WHERE l.lead_regulator_id IS DISTINCT FROM (SELECT v FROM c_id WHERE k='regulator') ORDER BY l.id LIMIT 1;
   IF other IS NULL THEN
     RAISE NOTICE 'SKIP-CONTEXT SEC-05: no entity outside the fixture regulator exists';
   ELSE
