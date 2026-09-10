@@ -1520,9 +1520,8 @@ BEGIN
   SELECT array_agg(DISTINCT m->>'new_rating'), array_agg(DISTINCT m->>'previous_rating'), count(*)
     INTO ks, ps, n
     FROM jsonb_array_elements(r->'trends'->'movements') m
-   WHERE m->>'reason' = 'AML10CERT mixed-case rating fixture'
-      OR (m->>'entity_id' = (SELECT c.v::text FROM c_id c WHERE c.k='entity')
-          AND m->>'new_rating' IN ('HIGH','high','High'));
+   WHERE (m->>'movement_id')::uuid IN (SELECT v.id FROM public.entity_risk_state_movement v
+                                        WHERE v.reason = 'AML10CERT mixed-case rating fixture');
   IF n < 3 THEN
     RAISE EXCEPTION 'FAIL CASE-01: only % of the three mixed-case movements are reported', n; END IF;
   IF ks <> ARRAY['HIGH'] THEN
