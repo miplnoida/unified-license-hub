@@ -47,16 +47,18 @@ Narration for these routes: [`AML-policy-methodology-configuration-scene.md`](./
 |--------|-----------------|--------|
 | DEMO AML 06 Rodney Bay Payments Ltd | supervisory plan opened | plan `3867aebc-a3d9-491f-9d5a-7fa952031a05` |
 | DEMO AML 06 | reassessment required | requirement `e9676a14-7667-4cb1-80fd-d0309cc4eda5` |
-| DEMO AML 07 Gros Islet Virtual Assets Ltd | plan → intervention → endorsement → examination → high finding issued | examination `d100da97-5afb-4756-9d21-6c51abe524e9`, finding `661dbc40-b72a-4874-bbf5-6e1af11ead9a` |
+| DEMO AML 07 Gros Islet Virtual Assets Ltd | plan → intervention → endorsement → examination; high finding issued with source recorded as ASSESSMENT (not examination-linked) | examination `d100da97-5afb-4756-9d21-6c51abe524e9`, finding `661dbc40-b72a-4874-bbf5-6e1af11ead9a` |
 | DEMO AML 08 Choiseul Cash Services Ltd | monitoring recorded, review rescheduled | review-cycle decisions |
 | DEMO AML 05 | remediation plan completed, outcome evaluated PARTIALLY_EFFECTIVE and independently approved | plan `458783fc-3feb-48db-852c-90588f078bb5` |
 | DEMO AML 09 Anse La Raye Remittance Ltd | plan deliberately left open | plan `e37777ac-c43c-4043-8e66-c853629c8e39` |
 
 ## What must not be shown as available
 
-No approved rating publication and no live calculation policy exist. DEC-01…DEC-08 are unsigned,
-so the calculation screens correctly report `NOT_CALCULABLE` and the approval queue is empty.
-Historical ratings on cases 06–24 are labelled officer-recorded legacy ratings.
+One demonstration calculation configuration is active and exactly one rating (SCEN-06) has been
+calculated, independently approved and published. Every other assessment resolves no policy for its
+period and correctly reports `NOT_CALCULABLE`; the regulator decisions DEC-01…DEC-08 remain unsigned,
+so the active configuration must be described on camera as demonstration policy values, not regulator
+policy. Historical ratings on cases 06–24 remain officer-recorded legacy ratings.
 
 
 ## Calculation policy and published rating (added with the calculation-policy wave)
@@ -65,7 +67,7 @@ Historical ratings on cases 06–24 are labelled officer-recorded legacy ratings
 |---|---|---|
 | Calculation policy parameters, scoring, bands, residual matrix, history | `/admin/supervisory-calculation` | configuration `daf7d06e-1876-45bc-8a14-6869545f65a5` on AML-CFT-RBA v1.0 |
 | Configuration approval queue and maker/checker history | `/admin/supervisory-calculation/approvals` | same configuration |
-| Calculated, approved and published assessment | `/aml/assessments/c3e16863-60d8-4c6e-8650-3f0eefcbc0cf` | SCEN-06, entity `aa220000-0000-4000-8000-000000000006` (DEMO AML 06 Rodney Bay Payments Ltd) |
+| Calculated, approved and published assessment | `/supervision/aml/assessments/c3e16863-60d8-4c6e-8650-3f0eefcbc0cf` | SCEN-06, entity `aa220000-0000-4000-8000-000000000006` (DEMO AML 06 Rodney Bay Payments Ltd) |
 
 Personas: maker `aml_supervision_officer@mishainfotech.com` (configure, validate, submit, answer,
 calculate, submit for review); checker `aml_supervision_supervisor@mishainfotech.com` (approve the

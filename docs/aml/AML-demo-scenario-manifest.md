@@ -26,12 +26,13 @@ submission, return, resubmission). Stable fixture key is carried in each assessm
 
 Generated identifiers change on a fresh bootstrap; the fixture keys do not.
 
-## Not present, and why
+## Additive approval and publication
 
-No additive **approval** or **risk-of-record publication** exists. See the blocker recorded in
-`docs/aml/AML-demo-data-integrity-report.md`: with no live AML/CFT calculation policy published, an
-approval would carry a NULL rating, and the governed rating-override operation refuses with
-`no_calculation`. Fabricating a rating is prohibited.
+SCEN-06 (below) is the one additive assessment carried through calculation, independent approval and
+risk-of-record publication, on the demonstration calculation configuration
+`daf7d06e-1876-45bc-8a14-6869545f65a5`. SCEN-01…SCEN-05 deliberately stop short of a rating: they
+resolve no calculation policy for their periods, so the platform reports `NOT_CALCULABLE` and refuses
+to publish. No rating was ever fabricated to close that gap.
 
 
 ## SCEN-06 — calculated, approved and published rating

@@ -110,9 +110,10 @@ record did not appear on its own — we can trace the decision that caused it."
 **16. Examination.** "The intervention required further assurance, so the matter became an examination.
 We can trace backwards: examination → intervention → plan → concern → institution."
 
-**17. Finding.** "The examination identified a material issue and this high-severity finding was
-formally issued. Years later the regulator can still establish why it exists, which examination found
-it, and why that examination was opened."
+**17. Finding.** "This high-severity finding was formally issued against the institution and is
+recorded as arising from the risk assessment itself — the platform stores the source of every finding
+rather than assuming it. Years later the regulator can still establish why the finding exists, where it
+came from, and what was required in response."
 
 **18. Remediation.** "The institution completed its remediation activities. The platform deliberately
 separates activity completed from risk effectively remediated."

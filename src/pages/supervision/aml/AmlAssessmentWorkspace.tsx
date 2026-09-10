@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { SortableHeader, sortRows, type ListingSort } from '@/components/shared/listing';
 import { ariaSortOf } from '@/components/shared/listing/sorting';
 import { useAmlAssessment } from '@/hooks/useAmlSupervision';
+import { useAssessmentCalculationView } from '@/hooks/useAmlCalculationPolicy';
 import { AmlAssessmentGovernance } from '@/components/supervision/aml/AmlAssessmentGovernance';
 import { AmlAssessmentCalculation } from '@/components/supervision/aml/AmlAssessmentCalculation';
 import { AmlQuestionPlanPanel } from '@/components/supervision/aml/AmlQuestionPlanPanel';
@@ -38,6 +39,14 @@ export default function AmlAssessmentWorkspace() {
   const { data, isLoading, error, refetch, isFetching } = useAmlAssessment(id);
   // Methodology dimension lists are small and bounded — sortable columns, no pager.
   const [dimSort, setDimSort] = useState<ListingSort | null>({ key: 'dimension', direction: 'asc' });
+  // Display-only: when the working file carries no manually recorded inherent or
+  // control rating, show the bands from the server's own latest calculation run so
+  // the header agrees with the approved residual rating. The server stays the sole
+  // authority — nothing here computes or persists a rating.
+  const calcView = useAssessmentCalculationView(id);
+  const latestRun = calcView.data?.latest_run ?? null;
+  const calculatedInherent = latestRun?.status === 'CALCULATED' ? latestRun.inherent_band : null;
+  const calculatedControl = latestRun?.status === 'CALCULATED' ? latestRun.control_band : null;
 
   if (isLoading) {
     return (
@@ -243,8 +252,32 @@ export default function AmlAssessmentWorkspace() {
             <Field label="Assessment type" value={titleCase(h.assessment_type)} />
             <Field label="Trigger" value={titleCase(h.trigger_type)} />
             <Field label="Review period" value={`${fmtDate(h.period_start)} → ${fmtDate(h.period_end)}`} />
-            <Field label="Inherent rating" value={<Badge variant="outline" className={ratingTone(h.inherent_rating)}>{titleCase(h.inherent_rating)}</Badge>} />
-            <Field label="Control effectiveness" value={<Badge variant="outline" className={ratingTone(h.control_rating)}>{titleCase(h.control_rating)}</Badge>} />
+            <Field
+              label="Inherent rating"
+              value={
+                <span className="inline-flex items-center gap-2">
+                  <Badge variant="outline" className={ratingTone(h.inherent_rating ?? calculatedInherent)}>
+                    {titleCase(h.inherent_rating ?? calculatedInherent)}
+                  </Badge>
+                  {!h.inherent_rating && calculatedInherent ? (
+                    <span className="text-xs text-muted-foreground">calculated</span>
+                  ) : null}
+                </span>
+              }
+            />
+            <Field
+              label="Control effectiveness"
+              value={
+                <span className="inline-flex items-center gap-2">
+                  <Badge variant="outline" className={ratingTone(h.control_rating ?? calculatedControl)}>
+                    {titleCase(h.control_rating ?? calculatedControl)}
+                  </Badge>
+                  {!h.control_rating && calculatedControl ? (
+                    <span className="text-xs text-muted-foreground">calculated</span>
+                  ) : null}
+                </span>
+              }
+            />
             <Field label="Next review" value={fmtDate(h.next_review_date)} />
             <Field label="Confidentiality" value={titleCase(h.confidentiality)} />
           </CardContent>
