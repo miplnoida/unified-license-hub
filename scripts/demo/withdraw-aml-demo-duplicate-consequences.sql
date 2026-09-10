@@ -65,7 +65,28 @@ BEGIN
     withdrawn := withdrawn + 1;
   END LOOP;
 
-  RAISE NOTICE 'DEMO AML 06 duplicate consequence decisions withdrawn: %', withdrawn;
+  -- The withdrawal closes the supervisory judgment; the duplicate plan record it
+  -- created is closed through the governed plan lifecycle so the plan list shows
+  -- one operative DEMO AML 06 plan.
+  FOR d IN
+    SELECT sp.id, sp.status::text AS action_type
+      FROM public.supervisory_consequence_decision d2
+      JOIN public.supervisory_plan sp ON sp.id = d2.target_id
+     WHERE d2.entity_id = e06
+       AND d2.action_type = 'OPEN_SUPERVISORY_PLAN'
+       AND d2.withdrawn_at IS NOT NULL
+       AND sp.status NOT IN ('CANCELLED','COMPLETED')
+  LOOP
+    PERFORM public.supervisory_plan_lifecycle(d.id, 'CANCELLED',
+      'Cancelled during golden demo certification: this plan duplicated an existing DEMO AML 06 supervisory plan and its recording decision has been withdrawn.');
+    cancelled := cancelled + 1;
+  END LOOP;
+
+  -- Note: reassessment requirements have no governed cancellation operation, so a
+  -- duplicate REQUIRED requirement is left in place rather than bypassing the
+  -- architecture. It remains a coherent record against the republished rating.
+
+  RAISE NOTICE 'DEMO AML 06 duplicate consequence decisions withdrawn: %, duplicate plans cancelled: %', withdrawn, cancelled;
 END $$;
 
 COMMIT;
