@@ -22,13 +22,22 @@ Target length: 12–14 minutes. One continuous supervisory story, no mock screen
 | 16 | Portfolio report and export | `/supervision/aml/portfolio` | 1:00 | READY |
 | 17 | Close: governance, immutability, honest gaps | — | 0:30 | READY |
 
-## Scene 10 handling
+## Scene 10 — calculation policy governance, and one published rating
 
-Scene 10 is the only scene that cannot be completed live. The eight calculation policy decisions
-DEC-01…DEC-08 are unsigned, so no live AML/CFT calculation policy exists, every rating is reported as
-`NOT_CALCULABLE`, and the rating override operation refuses with `no_calculation`. The scene shows the
-configuration screens and the empty approval queue, and states plainly that publication is waiting on
-signed regulator policy decisions rather than on software.
+Scene 10 can now be recorded in full, because a **demonstration** calculation configuration has been
+authored, independently approved and activated through the product's own workflow.
+
+| Beat | Route | Record | Narration point |
+|---|---|---|---|
+| 10a | `/admin/supervisory-calculation` | AML-CFT-RBA v1.0 configuration `daf7d06e-1876-45bc-8a14-6869545f65a5` | The methodology publishes questions and scales; it does not by itself produce a rating. Scoring, weighting, bands, the residual matrix and the recommendation rule are policy, authored here and visible in full. |
+| 10b | `/admin/supervisory-calculation` | validation panel | The server, not the screen, decides whether the policy is complete. An incomplete policy cannot be submitted. |
+| 10c | `/admin/supervisory-calculation/approvals` | same configuration | Maker/checker: the officer who authored the policy cannot approve it. A different authorised approver does, with a recorded rationale, and only then does it take effect. |
+| 10d | `/aml/assessments/c3e16863-60d8-4c6e-8650-3f0eefcbc0cf` | SCEN-06, DEMO AML 06 Rodney Bay Payments Ltd | With a policy in force the assessment moves from NOT CALCULABLE to a calculated recommendation, and the explanation shows the answers, weights, bands and matrix cell that produced it. |
+| 10e | same | approval and publication | Calculation is not approval. The rating is reviewed, approved by a second authorised person, and only then published as the entity's operative risk of record — with the previous rating retained in history. |
+
+Say plainly on camera: these are demonstration policy values, authored for the demonstration
+environment. The regulator decisions DEC-01…DEC-08 remain open, and assessments of earlier periods
+resolve no policy and are deliberately left exactly as recorded.
 
 ## Recording rules
 
