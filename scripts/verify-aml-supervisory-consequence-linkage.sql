@@ -54,6 +54,12 @@ SELECT 'other_entity', l.id FROM public.licensees l
    AND NOT EXISTS (SELECT 1 FROM public.entity_risk_state s
                     WHERE s.entity_id = l.id AND s.domain_code='AML_CFT')
  ORDER BY l.id LIMIT 1;
+-- fallback: if every same-scope entity already carries an AML/CFT
+-- risk-of-record, any other supervised entity serves the cross-entity gates.
+INSERT INTO c_id(k,v)
+SELECT 'xentity', l.id FROM public.licensees l
+ WHERE l.id <> (SELECT v FROM c_id WHERE k='entity')
+ ORDER BY l.id LIMIT 1;
 
 -- ---------------------------------------------------------------- census ----
 INSERT INTO c_n(k,n) VALUES
@@ -913,6 +919,22 @@ BEGIN
   RESET ROLE;
   IF NOT refused THEN
     RAISE EXCEPTION 'FAIL CREATE-09: a risk rating alone was accepted as a basis for enforcement'; END IF;
+  -- the canonical enforcement operation additionally requires an explicit
+  -- remediation-bypass rationale when the finding carries no corrective action.
+  -- That control must hold through the consequence operation too.
+  refused := false;
+  SET LOCAL ROLE authenticated;
+  PERFORM set_config('request.jwt.claims','{"sub":"0b522724-adcb-48bf-b21d-175339479616","role":"authenticated"}', true);
+  BEGIN PERFORM public.supervisory_consequence_record(jsonb_build_object(
+    'entity_id',(SELECT v FROM c_id WHERE k='entity'),'domain_code','AML_CFT',
+    'assessment_id',(SELECT v FROM c_id WHERE k='assessment'),
+    'action_type','REFER_TO_ENFORCEMENT','linkage_mode','CREATE',
+    'source_finding_id',(SELECT v FROM c_id WHERE k='finding'),
+    'rationale','AML08CERT: referral attempted with no remediation bypass rationale stated.'));
+  EXCEPTION WHEN others THEN refused := true; END;
+  RESET ROLE;
+  IF NOT refused THEN
+    RAISE EXCEPTION 'FAIL CREATE-09: a finding with no corrective action was referred without a stated remediation bypass rationale'; END IF;
   SELECT count(*) INTO n_before FROM public.enforcement_actions;
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"0b522724-adcb-48bf-b21d-175339479616","role":"authenticated"}', true);
@@ -921,6 +943,7 @@ BEGIN
     'assessment_id',(SELECT v FROM c_id WHERE k='assessment'),
     'action_type','REFER_TO_ENFORCEMENT','linkage_mode','CREATE',
     'source_finding_id',(SELECT v FROM c_id WHERE k='finding'),
+    'remediation_bypass_rationale','AML08CERT: the AML/CFT breach is referred immediately without a remediation window.',
     'rationale','AML08CERT: the canonical AML/CFT finding is referred to enforcement for consideration.'));
   RESET ROLE;
   INSERT INTO c_id(k,v) VALUES ('dec_enf', (res->>'decision_id')::uuid), ('enforcement', (res->>'target_id')::uuid);
@@ -980,27 +1003,40 @@ BEGIN
 END $$;
 
 -- =====================================================================
--- LINK-01 — a visible same-entity record can be linked.
+-- LINK-01 — a visible same-entity record that is not already linked can be
+--           linked without creating anything new. (The examination created by
+--           CREATE-07 is deliberately NOT reused here: the server correctly
+--           treats re-linking an already-linked target as the DUPLICATE_EXISTS
+--           case, which DUP-01 certifies separately.)
 -- =====================================================================
 DO $$
-DECLARE res jsonb; d public.supervisory_consequence_decision; n_before int;
+DECLARE res jsonb; d public.supervisory_consequence_decision; n_before int; pre uuid;
 BEGIN
+  INSERT INTO public.supervisory_finding(
+    reference, entity_id, domain_code, title, source_kind, status, origin_provenance, assessment_id)
+  VALUES ('AML08CERT-FIND-PREEXISTING',(SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+          'AML08CERT pre-existing AML/CFT finding','ASSESSMENT','DRAFT','GOVERNED',(SELECT v FROM c_id WHERE k='assessment'))
+  RETURNING id INTO pre;
+  INSERT INTO c_id(k,v) VALUES ('find_pre', pre);
   SELECT count(*) INTO n_before FROM public.supervisory_finding;
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
   res := public.supervisory_consequence_record(jsonb_build_object(
     'entity_id',(SELECT v FROM c_id WHERE k='entity'),'domain_code','AML_CFT',
     'assessment_id',(SELECT v FROM c_id WHERE k='assessment'),
-    'action_type','OPEN_EXAMINATION','linkage_mode','LINK',
-    'target_id',(SELECT v FROM c_id WHERE k='examination'),
-    'rationale','AML08CERT: the existing AML/CFT examination is linked as the consequence of this outcome.'));
+    'action_type','RAISE_FINDING','linkage_mode','LINK',
+    'target_id', pre,
+    'rationale','AML08CERT: the existing AML/CFT finding is linked as the consequence of this outcome.'));
   RESET ROLE;
+  IF COALESCE((res->>'duplicate')::boolean,false) THEN
+    RAISE EXCEPTION 'FAIL LINK-01: a record that was never linked was reported as a duplicate: %', res; END IF;
   INSERT INTO c_id(k,v) VALUES ('dec_link', (res->>'decision_id')::uuid);
   SELECT * INTO d FROM public.supervisory_consequence_decision WHERE id=(SELECT v FROM c_id WHERE k='dec_link');
   IF (SELECT count(*) FROM public.supervisory_finding) <> n_before THEN
     RAISE EXCEPTION 'FAIL LINK-01: linking created a duplicate downstream record'; END IF;
-  IF d.linkage_mode <> 'LINK' OR d.target_id <> (SELECT v FROM c_id WHERE k='examination') THEN
-    RAISE EXCEPTION 'FAIL LINK-01: the link does not reference the existing record'; END IF;
+  IF d.linkage_mode <> 'LINK' OR d.target_id <> pre THEN
+    RAISE EXCEPTION 'FAIL LINK-01: the link does not reference the existing record (mode=%, target=%, expected=%)',
+      d.linkage_mode, d.target_id, pre; END IF;
   RAISE NOTICE 'PASS LINK-01: an existing same-entity record is linked without creating anything new';
 END $$;
 
@@ -1011,9 +1047,9 @@ DO $$
 DECLARE refused boolean := false; msg text; other uuid;
 BEGIN
   INSERT INTO public.supervisory_finding(
-    reference, entity_id, domain_code, title, source_kind, status, origin_provenance)
-  VALUES ('AML08CERT-FIND-OTHER',(SELECT v FROM c_id WHERE k='other_entity'),'AML_CFT',
-          'AML08CERT other-entity finding','ASSESSMENT','DRAFT','GOVERNED')
+    reference, entity_id, domain_code, title, source_kind, status, origin_provenance, assessment_id)
+  VALUES ('AML08CERT-FIND-OTHER',(SELECT COALESCE((SELECT v FROM c_id WHERE k='other_entity'),(SELECT v FROM c_id WHERE k='xentity'))),'AML_CFT',
+          'AML08CERT other-entity finding','ASSESSMENT','DRAFT','GOVERNED',(SELECT v FROM c_id WHERE k='assessment'))
   RETURNING id INTO other;
   INSERT INTO c_id(k,v) VALUES ('find_other', other);
   SET LOCAL ROLE authenticated;
@@ -1040,9 +1076,9 @@ DO $$
 DECLARE refused boolean := false; msg text; other uuid;
 BEGIN
   INSERT INTO public.supervisory_finding(
-    reference, entity_id, domain_code, title, source_kind, status, origin_provenance)
+    reference, entity_id, domain_code, title, source_kind, status, origin_provenance, assessment_id)
   VALUES ('AML08CERT-FIND-PRUD',(SELECT v FROM c_id WHERE k='entity'),'PRUDENTIAL',
-          'AML08CERT prudential finding','ASSESSMENT','DRAFT','GOVERNED')
+          'AML08CERT prudential finding','ASSESSMENT','DRAFT','GOVERNED',(SELECT v FROM c_id WHERE k='assessment'))
   RETURNING id INTO other;
   INSERT INTO c_id(k,v) VALUES ('find_prud', other);
   SET LOCAL ROLE authenticated;
@@ -1126,15 +1162,18 @@ BEGIN
   res := public.supervisory_consequence_record(jsonb_build_object(
     'entity_id',(SELECT v FROM c_id WHERE k='entity'),'domain_code','AML_CFT',
     'assessment_id',(SELECT v FROM c_id WHERE k='assessment'),
-    'action_type','OPEN_EXAMINATION','linkage_mode','LINK',
-    'target_id',(SELECT v FROM c_id WHERE k='examination'),
-    'rationale','AML08CERT: the existing AML/CFT examination is linked as the consequence of this outcome.'));
+    'action_type','RAISE_FINDING','linkage_mode','LINK',
+    'target_id',(SELECT v FROM c_id WHERE k='find_pre'),
+    'rationale','AML08CERT: the existing AML/CFT finding is linked as the consequence of this outcome.'));
   RESET ROLE;
   SELECT count(*) INTO n_after FROM public.supervisory_consequence_decision;
   IF n_after <> n_before THEN
     RAISE EXCEPTION 'FAIL LINK-06: a repeated identical link created another decision row'; END IF;
-  IF NOT COALESCE((res->>'idempotent')::boolean,false) THEN
-    RAISE EXCEPTION 'FAIL LINK-06: the repeat was not reported as idempotent (%)', res; END IF;
+  -- the same supervisor repeating the same link is told it is idempotent; a
+  -- different supervisor is told the linkage already exists (LINK-07).
+  IF NOT (COALESCE((res->>'idempotent')::boolean,false)
+          OR (COALESCE((res->>'duplicate')::boolean,false) AND res->>'reason_code' = 'DUPLICATE_EXISTS')) THEN
+    RAISE EXCEPTION 'FAIL LINK-06: the repeat was not reported as an existing linkage (%)', res; END IF;
   IF (res->>'decision_id')::uuid <> (SELECT v FROM c_id WHERE k='dec_link') THEN
     RAISE EXCEPTION 'FAIL LINK-06: the existing decision was not returned'; END IF;
   RAISE NOTICE 'PASS LINK-06: a repeated identical link converges on the existing decision';
@@ -1163,7 +1202,8 @@ BEGIN
   IF (SELECT count(*) FROM public.supervisory_consequence_decision
        WHERE target_id=(SELECT v FROM c_id WHERE k='examination') AND status='RECORDED') <> n_before THEN
     RAISE EXCEPTION 'FAIL LINK-07: a duplicate linkage row survived'; END IF;
-  IF (res->>'decision_id')::uuid <> (SELECT v FROM c_id WHERE k='dec_link') THEN
+  IF (res->>'decision_id')::uuid <> (SELECT id FROM public.supervisory_consequence_decision
+        WHERE target_id=(SELECT v FROM c_id WHERE k='examination') AND status='RECORDED' LIMIT 1) THEN
     RAISE EXCEPTION 'FAIL LINK-07: the existing record was not identified to an authorised viewer'; END IF;
   RAISE NOTICE 'PASS LINK-07: an equivalent link is detected and the existing record is identified, not duplicated';
 END $$;
@@ -1265,7 +1305,8 @@ DO $$
 DECLARE res1 jsonb; res2 jsonb; n int;
 BEGIN
   SET LOCAL ROLE authenticated;
-  PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
+  -- a deferred / monitoring judgment is a review-authority decision
+  PERFORM set_config('request.jwt.claims','{"sub":"0b522724-adcb-48bf-b21d-175339479616","role":"authenticated"}', true);
   res1 := public.supervisory_consequence_record(jsonb_build_object(
     'entity_id',(SELECT v FROM c_id WHERE k='entity'),'domain_code','AML_CFT',
     'assessment_id',(SELECT v FROM c_id WHERE k='assessment'),
@@ -1933,12 +1974,13 @@ BEGIN
        + (SELECT count(*) FROM public.entity_risk_state_movement WHERE COALESCE(reason,'') LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.supervisory_consequence_decision)
        + (SELECT count(*) FROM public.supervisory_plan WHERE COALESCE(title,'') LIKE 'AML08CERT%')
-       + (SELECT count(*) FROM public.supervisory_reassessment_requirement WHERE COALESCE(rationale,'') LIKE 'AML08CERT%')
+       + (SELECT count(*) FROM public.supervisory_reassessment_requirement WHERE COALESCE(trigger_rationale,'') LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.supervisory_intervention WHERE COALESCE(title,'') LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.examinations WHERE COALESCE(title,'') LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.supervisory_finding WHERE COALESCE(reference,'') LIKE 'AML08CERT%'
             OR COALESCE(title,'') LIKE 'AML08CERT%')
-       + (SELECT count(*) FROM public.enforcement_actions WHERE COALESCE(title,'') LIKE 'AML08CERT%')
+       + (SELECT count(*) FROM public.enforcement_actions WHERE COALESCE(description,'') LIKE '%AML08CERT%'
+            OR COALESCE(remediation_bypass_reason,'') LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.supervisory_calculation_config c
             JOIN public.supervisory_methodology m ON m.id = c.methodology_id WHERE m.code LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.compliance_audit_logs
