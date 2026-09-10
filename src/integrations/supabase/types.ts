@@ -49497,6 +49497,182 @@ export type Database = {
           },
         ]
       }
+      supervisory_outcome_evaluation: {
+        Row: {
+          action_completed_at: string | null
+          action_objective: string
+          action_status: string | null
+          action_type: string
+          assessment_id: string | null
+          conclusion: string
+          consequence_decision_id: string
+          created_at: string
+          domain_code: string
+          entity_id: string
+          evidence: Json
+          evidence_snapshot: Json | null
+          followups: Json
+          id: string
+          idempotency_key: string
+          legacy_lineage: boolean
+          limitations: string | null
+          lineage: Json
+          prepared_at: string
+          prepared_by: string | null
+          publication_id: string | null
+          rating_provenance: string
+          rationale: string
+          recommended_next_step: string | null
+          regulator_id: string | null
+          review_note: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          risk_state_id: string | null
+          sector_id: string | null
+          source_kind: string
+          source_rating: string | null
+          superseded_by_id: string | null
+          supersedes_id: string | null
+          target_id: string
+          target_kind: string
+          target_reference: string | null
+          version: number
+        }
+        Insert: {
+          action_completed_at?: string | null
+          action_objective: string
+          action_status?: string | null
+          action_type: string
+          assessment_id?: string | null
+          conclusion: string
+          consequence_decision_id: string
+          created_at?: string
+          domain_code: string
+          entity_id: string
+          evidence?: Json
+          evidence_snapshot?: Json | null
+          followups?: Json
+          id?: string
+          idempotency_key: string
+          legacy_lineage?: boolean
+          limitations?: string | null
+          lineage?: Json
+          prepared_at?: string
+          prepared_by?: string | null
+          publication_id?: string | null
+          rating_provenance: string
+          rationale: string
+          recommended_next_step?: string | null
+          regulator_id?: string | null
+          review_note?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_state_id?: string | null
+          sector_id?: string | null
+          source_kind: string
+          source_rating?: string | null
+          superseded_by_id?: string | null
+          supersedes_id?: string | null
+          target_id: string
+          target_kind: string
+          target_reference?: string | null
+          version?: number
+        }
+        Update: {
+          action_completed_at?: string | null
+          action_objective?: string
+          action_status?: string | null
+          action_type?: string
+          assessment_id?: string | null
+          conclusion?: string
+          consequence_decision_id?: string
+          created_at?: string
+          domain_code?: string
+          entity_id?: string
+          evidence?: Json
+          evidence_snapshot?: Json | null
+          followups?: Json
+          id?: string
+          idempotency_key?: string
+          legacy_lineage?: boolean
+          limitations?: string | null
+          lineage?: Json
+          prepared_at?: string
+          prepared_by?: string | null
+          publication_id?: string | null
+          rating_provenance?: string
+          rationale?: string
+          recommended_next_step?: string | null
+          regulator_id?: string | null
+          review_note?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          risk_state_id?: string | null
+          sector_id?: string | null
+          source_kind?: string
+          source_rating?: string | null
+          superseded_by_id?: string | null
+          supersedes_id?: string | null
+          target_id?: string
+          target_kind?: string
+          target_reference?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_outcome_evaluation_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_outcome_evaluation_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_outcome_evaluation_consequence_decision_id_fkey"
+            columns: ["consequence_decision_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_consequence_decision"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_outcome_evaluation_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_risk_publication"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_outcome_evaluation_risk_state_id_fkey"
+            columns: ["risk_state_id"]
+            isOneToOne: false
+            referencedRelation: "entity_risk_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_outcome_evaluation_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_outcome_evaluation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_outcome_evaluation_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_outcome_evaluation"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supervisory_plan: {
         Row: {
           activated_at: string | null
@@ -70022,6 +70198,25 @@ export type Database = {
           _uid: string
         }
         Returns: boolean
+      }
+      supervisory_outcome_action_internal: {
+        Args: { _decision_id: string }
+        Returns: Json
+      }
+      supervisory_outcome_evaluate: { Args: { _payload: Json }; Returns: Json }
+      supervisory_outcome_evidence_internal: {
+        Args: { _ids: string[]; _uid: string }
+        Returns: Json
+      }
+      supervisory_outcome_followup: { Args: { _payload: Json }; Returns: Json }
+      supervisory_outcome_portfolio_totals_internal: {
+        Args: { _payload?: Json }
+        Returns: Json
+      }
+      supervisory_outcome_review: { Args: { _payload: Json }; Returns: Json }
+      supervisory_outcome_view: {
+        Args: { _domain_code?: string; _entity_id: string }
+        Returns: Json
       }
       supervisory_plan_action_create: {
         Args: {
