@@ -101,12 +101,6 @@ BEGIN
   DELETE FROM public.entity_licenses WHERE entity_id = ANY(ents);
   DELETE FROM public.licenses WHERE license_number LIKE 'FSRA-DEMO-AML-%' OR holder_id = ANY(ents);
 
-  IF locked > 0 THEN
-    RAISE NOTICE 'DEMO AML content removed; % immutable risk movement(s) and their % demo entities are retained (append-only architecture, deleting the entities would orphan the movements)',
-      locked, array_length(ents,1);
-    RETURN;
-  END IF;
-
   DELETE FROM public.licensees WHERE id = ANY(ents);
   DELETE FROM public.organizations o
    WHERE o.party_id IN (SELECT id FROM public.parties WHERE display_name LIKE 'DEMO AML %');
