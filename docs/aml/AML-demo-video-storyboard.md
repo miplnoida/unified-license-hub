@@ -6,7 +6,7 @@ Target length: 12–14 minutes. One continuous supervisory story, no mock screen
 |---|-------|----------------|----------|-----------|
 | 1 | Framing: risk-based AML/CFT supervision end to end | `/supervision/aml` | 0:45 | READY |
 | 2 | Methodology governance: v1.0 ACTIVE regulator-authored, v1.1 DRAFT reference | `/admin/supervisory-methodology` | 1:00 | READY |
-| 3 | Programme configuration that drives the question plan | `/admin/supervisory-methodology/assessment-programmes` | 0:45 | READY |
+| 3 | Programme configuration that drives the question plan | `/admin/supervisory-assessment-programmes` | 0:45 | READY |
 | 4 | Supervised population and risk of record | `/supervision/aml/entities` | 0:45 | READY |
 | 5 | New assessment prepared from the programme (41-question plan) | SCEN-01 | 1:15 | READY |
 | 6 | Working the file: responses, justified not-applicable, workpaper evidence | SCEN-02 | 1:30 | READY |
