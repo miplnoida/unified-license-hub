@@ -178,3 +178,68 @@ correctly under the platform's append-only architecture. The dataset is **not ye
 demonstration-complete**: it does not carry AML-05/AML-07 question-plan, review,
 approval and publication provenance (B-01), which requires an additive governed
 re-assessment wave before the demo can be declared ready.
+
+## 7. Additive current-workflow wave (AML-DEMO-02)
+
+Artefacts added:
+
+| Artefact | Path |
+| --- | --- |
+| Additive governed scenarios (REFRESH) | `scripts/demo/seed-aml-demo-current-workflow.sql` |
+| Scenario manifest | `docs/aml/AML-demo-scenario-manifest.md` |
+| Demo runbook (BOOTSTRAP / REFRESH / VERIFY / CLEANUP-PREFLIGHT / CLEANUP) | `docs/aml/AML-demo-data-runbook.md` |
+
+Five new assessments were created **through the live governed operations only**
+(`supervisory_assessment_create_programmed` → server-materialised question plan →
+`supervisory_assessment_question_upsert` with workpaper evidence →
+`supervisory_assessment_submit_for_review` / `_review_return` / resubmission), giving the
+demonstration genuine question-plan snapshots (205 plan rows), 135 in-scope responses,
+one justified Not Applicable response, three review rounds including a real return and a
+real resubmission, and two in-progress files. See the manifest for the fixture keys and
+references.
+
+Convergence: a second run reported `0 created, 5 already present`. Nothing existing was
+modified — risk states remained 22, risk movements 25, publications 0, live calculation
+policies 0, licensees 89.
+
+New behavioural gates in `scripts/demo/verify-aml-demo.sql`: `CURRENT-01 … CURRENT-06`,
+all passing (scenario ownership, question plan present, responses in scope, governed
+review history, maker/checker separation, and no unsupported publication).
+
+### B-04 Approval and publication are blocked by absent calculation policy (open, reported)
+
+The current governed path can approve and publish, but the approved rating can come only
+from (a) a calculation run, or (b) an approved calculation override — and
+`supervisory_calculation_override_propose` itself refuses with
+`no_calculation: record a calculation run before proposing an override`. With no live
+AML/CFT calculation policy published (DEC-01…DEC-08 unsigned), an approval would publish a
+**NULL** rating into the entity risk of record. That is invalid data, so the additive wave
+deliberately stops at review state. No rating was invented, no override forged and no
+publication fabricated.
+
+A related product observation for the owner: `supervisory_assessment_approve` currently
+permits approval and publication with a NULL final rating. It is not exercised by any demo
+or certified path, and it is recorded here rather than changed under a demo-data wave.
+
+### Remaining open gates (unchanged, never weakened)
+
+* `INTEGRITY-14B` — 21 historical risk states carry no AML-07 publication decision.
+* `INTEGRITY-15` — 984 historical responses sit outside any question plan.
+
+Both belong exclusively to the **historical officer-recorded demonstration baseline**
+created before the current governed publication workflow existed. They are immutable and
+are described honestly as historical; they were not backfilled, retro-approved or
+re-provenanced.
+
+## 8. Verdict (after the additive wave)
+
+**DEMO DATA INTEGRITY — FAIL (2 open historical gates + 1 policy blocker, all reported, none bypassed)**
+
+* `ORPHAN RECORDS — 0`
+* `CROSS-REGULATOR/ENTITY VIOLATIONS — 0`
+* `NON-DEMO DATA CHANGED — NO`
+* `DEMO SEED AND CLEANUP — NOT FULLY REVERSIBLE (append-only risk history; cleanup refuses atomically)`
+
+The current-workflow provenance the demonstration was missing now exists for question
+plans, responses, evidence and review history. Approval and publication provenance cannot
+be produced without a signed calculation policy, and inventing one is prohibited.
