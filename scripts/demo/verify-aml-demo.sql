@@ -180,21 +180,32 @@ BEGIN
    WHERE s.entity_id = ANY(ents)
      AND (a.id IS NULL
        OR a.approved_at IS NULL
-       OR a.approved_rating IS NULL
-       OR upper(coalesce(s.residual_rating,'')) <> upper(coalesce(a.approved_rating,''))
+       OR a.residual_rating IS NULL
+       OR upper(coalesce(s.residual_rating,'')) <> upper(coalesce(a.residual_rating,''))
        OR s.effective_from < a.approved_at);
   IF n > 0 THEN fails := fails || format('INTEGRITY-13 risk of record without approved published provenance: %s', n);
   ELSE RAISE NOTICE 'INTEGRITY-13 PASS every demo risk of record derives from its approved assessment'; END IF;
 
-  -- 14 risk movement lineage: each publication has a matching movement
+  -- 14a publication lineage: every publication carries its risk movement
   SELECT count(*) INTO n
     FROM public.supervisory_assessment_risk_publication p
    WHERE p.entity_id = ANY(ents)
      AND (p.movement_id IS NULL
        OR NOT EXISTS (SELECT 1 FROM public.entity_risk_state_movement mv
                        WHERE mv.id = p.movement_id AND mv.entity_id = p.entity_id));
-  IF n > 0 THEN fails := fails || format('INTEGRITY-14 publication without matching risk movement: %s', n);
-  ELSE RAISE NOTICE 'INTEGRITY-14 PASS every demo publication carries its risk movement lineage'; END IF;
+  IF n > 0 THEN fails := fails || format('INTEGRITY-14A publication without matching risk movement: %s', n);
+  ELSE RAISE NOTICE 'INTEGRITY-14A PASS every demo publication carries its risk movement lineage'; END IF;
+
+  -- 14b AML-07 publication provenance: a live risk of record must be backed by a
+  -- recorded approval decision and publication ledger entry, exactly as a
+  -- genuine record produced by the current governed path is.
+  SELECT count(*) INTO n
+    FROM public.entity_risk_state s
+   WHERE s.entity_id = ANY(ents)
+     AND NOT EXISTS (SELECT 1 FROM public.supervisory_assessment_risk_publication p
+                      WHERE p.assessment_id = s.driving_assessment_id);
+  IF n > 0 THEN fails := fails || format('INTEGRITY-14B risk of record without an AML-07 publication decision: %s', n);
+  ELSE RAISE NOTICE 'INTEGRITY-14B PASS every demo risk of record has an AML-07 publication decision'; END IF;
 
   -- 15 question-plan / response coherence
   SELECT count(*) INTO n
@@ -203,7 +214,7 @@ BEGIN
    WHERE a.entity_id = ANY(ents)
      AND NOT EXISTS (SELECT 1 FROM public.supervisory_assessment_question_plan q
                       WHERE q.assessment_id = r.assessment_id
-                        AND q.question_id = r.question_id);
+                        AND q.question_id = r.methodology_question_id);
   IF n > 0 THEN fails := fails || format('INTEGRITY-15 demo response outside the assessment question plan: %s', n);
   ELSE RAISE NOTICE 'INTEGRITY-15 PASS every demo response belongs to its assessment question plan'; END IF;
 
