@@ -37,3 +37,19 @@
 | No approved rating publication | No live calculation policy; DEC-01…DEC-08 unsigned |
 | Historical ratings labelled legacy | Recorded before the current governed publication workflow existed |
 | Demo dataset not removable | Append-only risk history and audit evidence by design |
+
+
+## Preparing the calculation-policy scene
+
+Run once, in this order, against a non-production environment:
+
+1. `psql "$SUPABASE_DB_URL" -X -q -f scripts/demo/seed-aml-calculation-policy.sql` — authors, validates,
+   approves and activates the demonstration calculation configuration through the governed workflow.
+   Idempotent: an existing ACTIVE configuration is left alone.
+2. `psql "$SUPABASE_DB_URL" -X -q -f scripts/demo/seed-aml-demo-rating-case.sql` — creates SCEN-06 and
+   carries it through calculation, approval and publication. Idempotent.
+3. `psql "$SUPABASE_DB_URL" -X -q -f scripts/verify-aml-calculation-governance.sql` — 14 behavioural
+   gates (rollback only). All must read PASS before recording.
+
+Do not activate a policy on camera and do not edit the configuration while it is approved: the server
+refuses, and the refusal is part of the story.

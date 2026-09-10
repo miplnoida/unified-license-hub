@@ -57,3 +57,23 @@ browser, so what is exported is exactly what was authorised and seen."
 
 **Scene 17 — Close.** "Risk history is append-only, every decision carries a maker and a checker, and
 the one gap in this demonstration is a policy signature, not a missing capability."
+
+
+## Calculation policy and rating publication (Scene 10)
+
+"An assessment with answers is not a supervisory rating. The methodology tells us what to ask; a
+separate, approved calculation policy tells us how the answers become a rating. Here is that policy —
+what each response is worth, how dimensions combine, where the band boundaries sit, and how inherent
+risk and control strength meet in the residual matrix. Nothing here is hidden in code.
+
+The officer who wrote this policy could not approve it. A second authorised person reviewed and
+approved it, with a recorded reason, and only then did it take effect — from that date forward, which is
+why every earlier assessment on file still resolves no policy and stays exactly as it was recorded.
+
+Now the same assessment that reported 'not calculable' returns a calculated recommendation, and the
+system shows why: the answers, the weights, the bands and the matrix cell it landed in. Calculation is
+still not a decision. A supervisor reviews it, a second authorised person approves it, and publication
+is what makes it the entity's operative risk of record — with the previous rating kept in history.
+
+These policy values are demonstration values for this environment. The real ones are eight regulator
+decisions that remain open, and the platform is deliberately unwilling to invent them."

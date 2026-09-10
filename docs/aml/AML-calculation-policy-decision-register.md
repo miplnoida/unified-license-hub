@@ -1,6 +1,10 @@
 # AML/CFT calculation, materiality and linkage — regulator policy decision register
 
-Status: OPEN — 8 decisions required from parties outside engineering.
+Status: OPEN for regulator policy — 8 decisions still require an authorised
+regulator answer. A parallel set of **demonstration values** has been authored,
+approved and activated in the demonstration environment only; see
+"Demonstration configuration" at the end of this register. Those values are not
+regulator policy and must not be presented as such.
 
 This register exists because a set of certification gates cannot legitimately turn
 green without an authorised policy answer. Engineering has proved the engine
@@ -164,3 +168,58 @@ AML-08 may begin on engine capability, because every blocked gate above is an
 absence of external policy, not an engineering defect. Any AML-08 work that
 depends on a produced residual rating, a published risk of record derived from
 calculation, or a remediated legacy linkage must wait for the decisions above.
+
+
+---
+
+## Demonstration configuration (demonstration environment only)
+
+A complete calculation configuration was authored through the product's own
+governed workflow so that the calculated → reviewed → approved → published rating
+lifecycle can be demonstrated end to end. It does not answer DEC-01…DEC-08: each
+value below is an explicitly labelled demonstration value, recorded with its own
+rationale, and every one remains replaceable by a regulator decision through the
+same screens.
+
+| Decision | Demonstration value | Recorded where |
+|---|---|---|
+| DEC-01 | `PERIOD_END` | `supervisory_domain_calculation_rule` (AML_CFT) |
+| DEC-02 | YES 100 / PARTIALLY 50 / NO 0; NOT_APPLICABLE excluded from the denominator | `supervisory_calculation_response_score` |
+| DEC-03 | Every active question participates equally (engine default: `SCORED`, weight 1). Dimensions carry the weight the methodology publishes; a dimension with no active question is recorded `EXCLUDED` | `supervisory_calculation_dimension_weight` |
+| DEC-04 | `UNWEIGHTED_MEAN`, `ALL_MANDATORY_APPLICABLE`, N/A `EXCLUDE`, evidence `FLAG_ONLY`, critical `NONE`, `HALF_UP` to 2 decimals, inherent direction `INVERTED` | `supervisory_calculation_config` |
+| DEC-05 | Inherent bands at 0/20/40/60/80 across the published 5-point scale; control bands WEAK 0–40, NEEDS_IMPROVEMENT 40–60, SATISFACTORY 60–80, STRONG 80–100 | `supervisory_calculation_band` |
+| DEC-06 | Residual = inherent band adjusted by control strength: STRONG −1, SATISFACTORY 0, NEEDS_IMPROVEMENT +1, WEAK +2, clamped to the scale. All 20 cells explicit | `supervisory_calculation_matrix_cell` |
+| DEC-07 | `HIGHEST_DIMENSION` — the worst residual dimension drives the recommendation | `supervisory_calculation_config` |
+| DEC-08 | Override threshold `MEDIUM_HIGH` | `supervisory_calculation_config` |
+
+Authored by `scripts/demo/seed-aml-calculation-policy.sql` under two identities
+(AML/CFT Methodology Configuration Officer as maker, Head of AML/CFT as checker),
+validated by the server, and activated with effect from its activation date only.
+
+### Why the configuration attaches to methodology v1.0
+
+Publishing it as a new methodology version was attempted first and was refused:
+v1.0 carries four structural findings that predate the current methodology quality
+rules and that any clone inherits — control-group weights not totalling 100, six
+active dimensions with no active question, two duplicated question codes, and 41
+active questions with no response semantics profile. Clearing them is substantive
+methodology authoring and needs regulator decisions on question content. A
+calculation configuration is versioned, validated and approved in its own right,
+so it was attached to the live version instead, with no change to methodology
+content. **Open item:** the four structural findings still block any future
+AML-CFT-RBA version, including v1.1.
+
+### Product limitations recorded, not worked around
+
+1. **Per-question weighting is not expressible for this methodology.**
+   `supervisory_calculation_question_weight` is unique on
+   `(config_id, question_code)`, but AML-CFT-RBA reuses codes such as `Q1` across
+   dimensions. An unweighted policy is unaffected; a weighted one cannot be
+   authored until the key is dimension-aware or the codes are made unique.
+2. **Dimension completeness was previously unreachable.** The governed upsert did
+   not accept `completeness_mode` and silently defaulted to `MIN_ANSWERED`, which
+   validation then rejects for this methodology. The field is now explicit,
+   undecided by default, and settable in the configuration screen.
+3. **The rating store rejected the engine's own vocabulary.** A dimension the
+   policy excludes is reported `NOT_APPLICABLE`, which the persistence constraint
+   did not permit, aborting the whole calculation. The constraint now accepts it.
