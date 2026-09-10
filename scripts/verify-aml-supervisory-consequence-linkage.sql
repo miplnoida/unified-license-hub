@@ -88,16 +88,13 @@ END $$;
 -- FIXTURE — a governed, published AML/CFT risk-of-record (AML08CERT).
 -- Built only through canonical AML-01..AML-07 operations.
 -- =====================================================================
-INSERT INTO public.sec_user_roles(user_id, role_id, status, assigned_by)
-SELECT u, r.id, 'active', u
-  FROM (VALUES ('b8eaf680-fe66-4d49-b816-1c087f511235'::uuid),
-               ('0b522724-adcb-48bf-b21d-175339479616'::uuid)) AS x(u),
-       public.sec_roles r
- WHERE r.key = 'aml_head'
-ON CONFLICT DO NOTHING;
-
--- the checker also carries enforcement referral authority for the AML-08
--- enforcement gate; assigned inside the transaction only.
+-- The personas keep their own operational authority: the officer can create
+-- and examine but cannot review; the checker reviews and approves but cannot
+-- create. Nothing is widened, so the maker-checker separation the gates
+-- certify is the real production separation.
+--
+-- The one exception is enforcement referral authority, which the checker needs
+-- for CREATE-09 and which is granted inside this transaction only.
 INSERT INTO public.sec_user_roles(user_id, role_id, status, assigned_by)
 SELECT '0b522724-adcb-48bf-b21d-175339479616'::uuid, r.id, 'active',
        '0b522724-adcb-48bf-b21d-175339479616'::uuid
@@ -107,14 +104,15 @@ ON CONFLICT DO NOTHING;
 INSERT INTO public.sec_role_scopes(role_id, module_id, scope_type_id)
 SELECT r.id, m.id, st.id
   FROM public.sec_roles r, public.sec_modules m, public.sec_scope_types st
- WHERE r.key='aml_head' AND m.key='aml_supervision' AND st.key='regulator'
+ WHERE r.key='enforcement_officer' AND m.key='enforcement_management' AND st.key='regulator'
 ON CONFLICT (role_id, module_id) DO UPDATE SET scope_type_id = EXCLUDED.scope_type_id;
 
 INSERT INTO public.sec_role_scope_values(role_scope_id, value_kind, value_id)
 SELECT rs.id, 'regulator', (SELECT v FROM c_id WHERE k='regulator')
   FROM public.sec_role_scopes rs
-  JOIN public.sec_roles r ON r.id = rs.role_id AND r.key='aml_head'
-  JOIN public.sec_modules m ON m.id = rs.module_id AND m.key='aml_supervision';
+  JOIN public.sec_roles r ON r.id = rs.role_id AND r.key='enforcement_officer'
+  JOIN public.sec_modules m ON m.id = rs.module_id AND m.key='enforcement_management'
+ON CONFLICT DO NOTHING;
 
 INSERT INTO public.supervisory_methodology(
   id, code, domain_code, name, version, status, sector_id, regulator_id,
