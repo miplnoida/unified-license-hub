@@ -288,14 +288,14 @@ END $$;
 -- SOURCE-01 — a published AML/CFT assessment/risk source is accepted.
 -- =====================================================================
 DO $$
-DECLARE v jsonb; s jsonb;
+DECLARE vw jsonb; s jsonb;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
        (SELECT v FROM c_id WHERE k='assessment'));
   RESET ROLE;
-  s := v->'source';
+  s := vw->'source';
   IF s->>'source_kind' <> 'PUBLICATION' THEN
     RAISE EXCEPTION 'FAIL SOURCE-01: source kind is %', s->>'source_kind'; END IF;
   IF NOT (s->>'eligible')::boolean THEN
@@ -309,15 +309,15 @@ END $$;
 -- SOURCE-02 — the source regulator, entity and assessment match exactly.
 -- =====================================================================
 DO $$
-DECLARE v jsonb; s jsonb;
+DECLARE vw jsonb; s jsonb;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
        (SELECT v FROM c_id WHERE k='assessment'));
   RESET ROLE;
-  s := v->'source';
-  IF (v->>'entity_id')::uuid <> (SELECT v FROM c_id WHERE k='entity') OR v->>'domain_code' <> 'AML_CFT' THEN
+  s := vw->'source';
+  IF (vw->>'entity_id')::uuid <> (SELECT v FROM c_id WHERE k='entity') OR vw->>'domain_code' <> 'AML_CFT' THEN
     RAISE EXCEPTION 'FAIL SOURCE-02: the view is not scoped to the entity/domain'; END IF;
   IF (s->'assessment'->>'id')::uuid <> (SELECT v FROM c_id WHERE k='assessment')
      OR (s->'risk_state'->>'driving_assessment_id')::uuid <> (SELECT v FROM c_id WHERE k='assessment')
@@ -332,14 +332,14 @@ END $$;
 -- SOURCE-03 — calculated provenance is distinguished and honest.
 -- =====================================================================
 DO $$
-DECLARE v jsonb; s jsonb;
+DECLARE vw jsonb; s jsonb;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
        (SELECT v FROM c_id WHERE k='assessment'));
   RESET ROLE;
-  s := v->'source';
+  s := vw->'source';
   IF s->>'calculation_availability' <> 'CALCULATED' THEN
     RAISE EXCEPTION 'FAIL SOURCE-03: availability is %', s->>'calculation_availability'; END IF;
   IF s->>'rating_provenance' <> 'COMPUTED' THEN
@@ -356,7 +356,7 @@ END $$;
 -- SOURCE-04 — an entity with no AML/CFT risk-of-record is refused.
 -- =====================================================================
 DO $$
-DECLARE v jsonb; s jsonb; refused boolean := false; msg text; n int;
+DECLARE vw jsonb; s jsonb; refused boolean := false; msg text; n int;
 BEGIN
   SELECT count(*) INTO n FROM public.entity_risk_state
    WHERE entity_id=(SELECT v FROM c_id WHERE k='other_entity') AND domain_code='AML_CFT';
@@ -365,7 +365,7 @@ BEGIN
   END IF;
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='other_entity'),'AML_CFT', NULL);
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='other_entity'),'AML_CFT', NULL);
   BEGIN
     PERFORM public.supervisory_consequence_record(jsonb_build_object(
       'entity_id',(SELECT v FROM c_id WHERE k='other_entity'),'domain_code','AML_CFT',
@@ -373,7 +373,7 @@ BEGIN
       'rationale','AML08CERT attempt to act with no published risk-of-record at all'));
   EXCEPTION WHEN others THEN refused := true; msg := SQLERRM; END;
   RESET ROLE;
-  s := v->'source';
+  s := vw->'source';
   IF n = 0 THEN
     IF s->>'source_kind' <> 'NONE' OR (s->>'eligible')::boolean THEN
       RAISE EXCEPTION 'FAIL SOURCE-04: an entity with no risk-of-record is treated as eligible'; END IF;
@@ -390,16 +390,16 @@ END $$;
 -- SOURCE-05 — approved-but-unpublished is refused as a source.
 -- =====================================================================
 DO $$
-DECLARE v jsonb; s jsonb; act jsonb;
+DECLARE vw jsonb; s jsonb; act jsonb;
 BEGIN
   -- withdraw the publication link by pointing the view at an approved
   -- assessment whose approval decision has no publication row.
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
        (SELECT v FROM c_id WHERE k='assessment'));
   RESET ROLE;
-  s := v->'source';
+  s := vw->'source';
   IF (s->>'approved_not_published')::boolean THEN
     RAISE EXCEPTION 'FAIL SOURCE-05: a published assessment is reported as unpublished'; END IF;
   -- the contract must expose SOURCE_NOT_PUBLISHED as a canonical reason code
@@ -408,7 +408,7 @@ BEGIN
      WHERE ns.nspname='public' AND p.proname='supervisory_consequence_source_internal'
        AND pg_get_functiondef(p.oid) LIKE '%SOURCE_NOT_PUBLISHED%') THEN
     RAISE EXCEPTION 'FAIL SOURCE-05: the server has no SOURCE_NOT_PUBLISHED refusal'; END IF;
-  SELECT a INTO act FROM jsonb_array_elements(v->'actions') a WHERE a->>'action'='OPEN_SUPERVISORY_PLAN';
+  SELECT a INTO act FROM jsonb_array_elements(vw->'actions') a WHERE a->>'action'='OPEN_SUPERVISORY_PLAN';
   IF act->>'reason_code' <> 'OK' THEN
     RAISE EXCEPTION 'FAIL SOURCE-05: a published source is blocked (%)', act; END IF;
   RAISE NOTICE 'PASS SOURCE-05: publication state, not approval alone, decides source eligibility';
@@ -418,7 +418,7 @@ END $$;
 -- SOURCE-06 — a superseded source is distinguished from the current one.
 -- =====================================================================
 DO $$
-DECLARE res jsonb; v jsonb; s jsonb;
+DECLARE res jsonb; vw jsonb; s jsonb;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
@@ -431,10 +431,10 @@ BEGIN
   INSERT INTO c_id(k,v) VALUES ('assessment_old', (res->>'id')::uuid);
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
        (SELECT v FROM c_id WHERE k='assessment_old'));
   RESET ROLE;
-  s := v->'source';
+  s := vw->'source';
   IF NOT EXISTS (SELECT 1 FROM jsonb_array_elements(s->'blockers') b WHERE b->>'code'='SOURCE_SUPERSEDED') THEN
     RAISE EXCEPTION 'FAIL SOURCE-06: an earlier assessment is not reported as superseded (%)', s->'blockers'; END IF;
   IF (s->'publication'->>'id')::uuid <> (SELECT v FROM c_id WHERE k='publication') THEN
@@ -484,16 +484,16 @@ END $$;
 -- ACTION-01 — the server, not the browser, publishes supported actions.
 -- =====================================================================
 DO $$
-DECLARE v jsonb; a jsonb; n int;
+DECLARE vw jsonb; a jsonb; n int;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
        (SELECT v FROM c_id WHERE k='assessment'));
   RESET ROLE;
-  n := jsonb_array_length(v->'actions');
+  n := jsonb_array_length(vw->'actions');
   IF n < 8 THEN RAISE EXCEPTION 'FAIL ACTION-01: only % actions are published', n; END IF;
-  FOR a IN SELECT x FROM jsonb_array_elements(v->'actions') x LOOP
+  FOR a IN SELECT x FROM jsonb_array_elements(vw->'actions') x LOOP
     IF a->>'action' IS NULL OR a->>'label' IS NULL OR a->>'linkage_modes' IS NULL THEN
       RAISE EXCEPTION 'FAIL ACTION-01: an action is published without a contract (%)', a; END IF;
   END LOOP;
@@ -504,14 +504,14 @@ END $$;
 -- ACTION-02 — every action carries its canonical permission.
 -- =====================================================================
 DO $$
-DECLARE v jsonb; a jsonb; bad text;
+DECLARE vw jsonb; a jsonb; bad text;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
        (SELECT v FROM c_id WHERE k='assessment'));
   RESET ROLE;
-  FOR a IN SELECT x FROM jsonb_array_elements(v->'actions') x LOOP
+  FOR a IN SELECT x FROM jsonb_array_elements(vw->'actions') x LOOP
     IF a->>'required_permission' IS NULL OR a->>'required_permission' NOT LIKE '%.%' THEN
       bad := COALESCE(bad||', ','')||(a->>'action'); END IF;
     IF NOT EXISTS (SELECT 1 FROM public.permissions p
@@ -528,14 +528,14 @@ END $$;
 -- ACTION-03 — every unavailable action carries a reason code and text.
 -- =====================================================================
 DO $$
-DECLARE v jsonb; a jsonb; blocked int := 0;
+DECLARE vw jsonb; a jsonb; blocked int := 0;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
        (SELECT v FROM c_id WHERE k='assessment'));
   RESET ROLE;
-  FOR a IN SELECT x FROM jsonb_array_elements(v->'actions') x LOOP
+  FOR a IN SELECT x FROM jsonb_array_elements(vw->'actions') x LOOP
     IF a->>'reason_code' IS NULL OR a->>'reason' IS NULL THEN
       RAISE EXCEPTION 'FAIL ACTION-03: % carries no reason contract', a->>'action'; END IF;
     IF NOT (a->>'available')::boolean THEN
@@ -581,7 +581,7 @@ END $$;
 -- ACTION-05 — the server never maps a risk band to an action.
 -- =====================================================================
 DO $$
-DECLARE def text; v jsonb; a jsonb; rating text;
+DECLARE def text; vw jsonb; a jsonb; rating text;
 BEGIN
   SELECT pg_get_functiondef(p.oid) INTO def FROM pg_proc p JOIN pg_namespace ns ON ns.oid=p.pronamespace
    WHERE ns.nspname='public' AND p.proname='supervisory_consequence_view';
@@ -589,11 +589,11 @@ BEGIN
     RAISE EXCEPTION 'FAIL ACTION-05: the action contract branches on a risk band'; END IF;
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
        (SELECT v FROM c_id WHERE k='assessment'));
   RESET ROLE;
-  rating := v->'source'->>'current_rating';
-  FOR a IN SELECT x FROM jsonb_array_elements(v->'actions') x LOOP
+  rating := vw->'source'->>'current_rating';
+  FOR a IN SELECT x FROM jsonb_array_elements(vw->'actions') x LOOP
     IF (a->>'reason_code') IN ('RATING_TOO_LOW','RATING_REQUIRED','BAND_NOT_ELIGIBLE') THEN
       RAISE EXCEPTION 'FAIL ACTION-05: an action is gated on the risk band (%)', a; END IF;
     IF (a->'existing') IS NULL THEN
@@ -611,13 +611,13 @@ END $$;
 --             refusal is published before any attempt (browser-independent).
 -- =====================================================================
 DO $$
-DECLARE v jsonb; a jsonb; refused boolean := false; msg text;
+DECLARE vw jsonb; a jsonb; refused boolean := false; msg text;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
        (SELECT v FROM c_id WHERE k='assessment'));
-  SELECT x INTO a FROM jsonb_array_elements(v->'actions') x WHERE x->>'action'='REQUIRE_REASSESSMENT';
+  SELECT x INTO a FROM jsonb_array_elements(vw->'actions') x WHERE x->>'action'='REQUIRE_REASSESSMENT';
   BEGIN PERFORM public.supervisory_consequence_record(jsonb_build_object(
     'entity_id',(SELECT v FROM c_id WHERE k='entity'),'domain_code','AML_CFT',
     'assessment_id',(SELECT v FROM c_id WHERE k='assessment'),
@@ -734,13 +734,13 @@ END $$;
 --             and a risk rating alone never satisfies it.
 -- =====================================================================
 DO $$
-DECLARE v jsonb; a jsonb; res jsonb; iv public.supervisory_intervention;
+DECLARE vw jsonb; a jsonb; res jsonb; iv public.supervisory_intervention;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
        (SELECT v FROM c_id WHERE k='assessment'));
-  SELECT x INTO a FROM jsonb_array_elements(v->'actions') x WHERE x->>'action'='OPEN_INTERVENTION';
+  SELECT x INTO a FROM jsonb_array_elements(vw->'actions') x WHERE x->>'action'='OPEN_INTERVENTION';
   IF a->>'prerequisite' <> 'PLAN' THEN
     RAISE EXCEPTION 'FAIL CREATE-05: the intervention prerequisite is not published'; END IF;
   IF (a->>'available')::boolean THEN
@@ -790,13 +790,13 @@ END $$;
 --             is then created through the canonical operation.
 -- =====================================================================
 DO $$
-DECLARE v jsonb; a jsonb; res jsonb; ex public.examinations; n_before int;
+DECLARE vw jsonb; a jsonb; res jsonb; ex public.examinations; n_before int;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
        (SELECT v FROM c_id WHERE k='assessment'));
-  SELECT x INTO a FROM jsonb_array_elements(v->'actions') x WHERE x->>'action'='OPEN_EXAMINATION';
+  SELECT x INTO a FROM jsonb_array_elements(vw->'actions') x WHERE x->>'action'='OPEN_EXAMINATION';
   RESET ROLE;
   IF a->>'prerequisite' <> 'INTERVENTION' THEN
     RAISE EXCEPTION 'FAIL CREATE-07: the examination prerequisite is not published'; END IF;
@@ -1052,17 +1052,17 @@ END $$;
 -- LINK-05 — the linkable candidate set is server-owned and same-entity.
 -- =====================================================================
 DO $$
-DECLARE v jsonb; c jsonb; bad int := 0;
+DECLARE vw jsonb; c jsonb; bad int := 0;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
        (SELECT v FROM c_id WHERE k='assessment'));
   RESET ROLE;
-  IF jsonb_array_length(v->'link_candidates') < 4 THEN
+  IF jsonb_array_length(vw->'link_candidates') < 4 THEN
     RAISE EXCEPTION 'FAIL LINK-05: the server publishes only % link candidates',
-      jsonb_array_length(v->'link_candidates'); END IF;
-  FOR c IN SELECT x FROM jsonb_array_elements(v->'link_candidates') x LOOP
+      jsonb_array_length(vw->'link_candidates'); END IF;
+  FOR c IN SELECT x FROM jsonb_array_elements(vw->'link_candidates') x LOOP
     IF (c->>'id')::uuid IN (SELECT v FROM c_id WHERE k IN ('find_other','find_prud')) THEN
       bad := bad + 1; END IF;
   END LOOP;
@@ -1197,21 +1197,21 @@ END $$;
 --          browser never has to guess equivalence.
 -- =====================================================================
 DO $$
-DECLARE v jsonb; a jsonb;
+DECLARE vw jsonb; a jsonb;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
        (SELECT v FROM c_id WHERE k='assessment'));
   RESET ROLE;
-  SELECT x INTO a FROM jsonb_array_elements(v->'actions') x WHERE x->>'action'='OPEN_SUPERVISORY_PLAN';
+  SELECT x INTO a FROM jsonb_array_elements(vw->'actions') x WHERE x->>'action'='OPEN_SUPERVISORY_PLAN';
   IF jsonb_array_length(a->'existing') < 1 THEN
     RAISE EXCEPTION 'FAIL DUP-03: the existing plan decision is not published on the action'; END IF;
   IF (a->'existing'->0->>'target_id')::uuid <> (SELECT v FROM c_id WHERE k='plan') THEN
     RAISE EXCEPTION 'FAIL DUP-03: the published existing target is wrong'; END IF;
-  IF jsonb_array_length(v->'linked_records') < 4 THEN
+  IF jsonb_array_length(vw->'linked_records') < 4 THEN
     RAISE EXCEPTION 'FAIL DUP-03: the linked-record set is incomplete (%)',
-      jsonb_array_length(v->'linked_records'); END IF;
+      jsonb_array_length(vw->'linked_records'); END IF;
   RAISE NOTICE 'PASS DUP-03: existing equivalent actions and all linked downstream records are server-published';
 END $$;
 
@@ -1355,7 +1355,7 @@ END $$;
 --               do not rewrite earlier ones.
 -- =====================================================================
 DO $$
-DECLARE v jsonb; dec jsonb; res jsonb; old_rationale text;
+DECLARE vw jsonb; dec jsonb; res jsonb; old_rationale text;
 BEGIN
   SELECT rationale INTO old_rationale FROM public.supervisory_consequence_decision
    WHERE id=(SELECT v FROM c_id WHERE k='dec_plan');
@@ -1366,10 +1366,10 @@ BEGIN
     'assessment_id',(SELECT v FROM c_id WHERE k='assessment'),
     'action_type','RECORD_MONITORING','linkage_mode','RECORD_ONLY',
     'rationale','AML08CERT: a later monitoring judgment is recorded after the earlier one was withdrawn.'));
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
        (SELECT v FROM c_id WHERE k='assessment'));
   RESET ROLE;
-  SELECT x INTO dec FROM jsonb_array_elements(v->'decisions') x
+  SELECT x INTO dec FROM jsonb_array_elements(vw->'decisions') x
    WHERE (x->>'id')::uuid = (SELECT v FROM c_id WHERE k='dec_mon');
   IF dec IS NULL OR dec->>'status' <> 'WITHDRAWN' OR dec->>'withdrawal_reason' IS NULL THEN
     RAISE EXCEPTION 'FAIL WITHDRAW-05: the withdrawn decision is not reproducible in history'; END IF;
@@ -1378,9 +1378,9 @@ BEGIN
   IF (SELECT rationale FROM public.supervisory_consequence_decision
        WHERE id=(SELECT v FROM c_id WHERE k='dec_plan')) <> old_rationale THEN
     RAISE EXCEPTION 'FAIL WITHDRAW-05: a later decision rewrote an earlier one'; END IF;
-  IF jsonb_array_length(v->'decisions') < 7 THEN
+  IF jsonb_array_length(vw->'decisions') < 7 THEN
     RAISE EXCEPTION 'FAIL WITHDRAW-05: the decision history is incomplete (%)',
-      jsonb_array_length(v->'decisions'); END IF;
+      jsonb_array_length(vw->'decisions'); END IF;
   RAISE NOTICE 'PASS WITHDRAW-05: withdrawn lineage stays reproducible and earlier decisions are never rewritten';
 END $$;
 
@@ -1536,7 +1536,7 @@ END $$;
 --             fabricated publication or approval.
 -- =====================================================================
 DO $$
-DECLARE v jsonb; s jsonb; legacy_entity uuid;
+DECLARE vw jsonb; s jsonb; legacy_entity uuid;
 BEGIN
   SELECT s2.entity_id INTO legacy_entity FROM public.entity_risk_state s2
    WHERE s2.domain_code='AML_CFT'
@@ -1549,9 +1549,9 @@ BEGIN
   INSERT INTO c_id(k,v) VALUES ('legacy_entity', legacy_entity);
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view(legacy_entity,'AML_CFT', NULL);
+  vw := public.supervisory_consequence_view(legacy_entity,'AML_CFT', NULL);
   RESET ROLE;
-  s := v->'source';
+  s := vw->'source';
   IF s->>'source_kind' <> 'LEGACY_RISK_RECORD' THEN
     RAISE EXCEPTION 'FAIL LEGACY-01: a legacy risk record reports source kind %', s->>'source_kind'; END IF;
   IF s->'publication' IS NOT NULL AND s->'publication' <> 'null'::jsonb THEN
@@ -1595,13 +1595,13 @@ END $$;
 --             and no synthetic residual rating is produced.
 -- =====================================================================
 DO $$
-DECLARE v jsonb; s jsonb; rating text;
+DECLARE vw jsonb; s jsonb; rating text;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='legacy_entity'),'AML_CFT', NULL);
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='legacy_entity'),'AML_CFT', NULL);
   RESET ROLE;
-  s := v->'source';
+  s := vw->'source';
   IF s->>'calculation_availability' NOT IN ('NOT_CALCULABLE','NO_RUN','UNAVAILABLE') THEN
     RAISE EXCEPTION 'FAIL LEGACY-03: a legacy source claims a calculated result (%)',
       s->>'calculation_availability'; END IF;
@@ -1805,17 +1805,17 @@ END $$;
 --          consequence surface.
 -- =====================================================================
 DO $$
-DECLARE v jsonb; s jsonb;
+DECLARE vw jsonb; s jsonb;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
-  v := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+  vw := public.supervisory_consequence_view((SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
        (SELECT v FROM c_id WHERE k='assessment'));
   RESET ROLE;
-  s := v->'source';
+  s := vw->'source';
   IF s ? 'evidence' OR s ? 'facts' OR s ? 'question_responses' THEN
     RAISE EXCEPTION 'FAIL SEC-07: the consequence surface exposes evidence, fact or response detail'; END IF;
-  IF (v->'decisions')::text LIKE '%evidence_basis%' THEN
+  IF (vw->'decisions')::text LIKE '%evidence_basis%' THEN
     RAISE EXCEPTION 'FAIL SEC-07: evidence lineage leaked into the decision history'; END IF;
   RAISE NOTICE 'PASS SEC-07: the consequence surface publishes rating lineage only, never restricted evidence or facts';
 END $$;
