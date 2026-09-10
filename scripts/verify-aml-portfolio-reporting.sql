@@ -864,11 +864,13 @@ BEGIN
   IF r->'trends'->>'source' <> 'entity_risk_state_movement' THEN
     RAISE EXCEPTION 'FAIL TREND-01: the trend source is declared as %', r->'trends'->>'source'; END IF;
   FOR m IN SELECT x FROM jsonb_array_elements(r->'trends'->'movements') x LOOP
+    -- the report emits canonical upper-case rating codes; the ledger keeps its
+    -- own stored value untouched, so the comparison is made canonically.
     IF NOT EXISTS (SELECT 1 FROM public.entity_risk_state_movement v
                     WHERE v.id = (m->>'movement_id')::uuid
                       AND v.entity_id = (m->>'entity_id')::uuid
-                      AND v.new_rating IS NOT DISTINCT FROM m->>'new_rating'
-                      AND v.previous_rating IS NOT DISTINCT FROM m->>'previous_rating') THEN
+                      AND upper(NULLIF(v.new_rating,'')) IS NOT DISTINCT FROM m->>'new_rating'
+                      AND upper(NULLIF(v.previous_rating,'')) IS NOT DISTINCT FROM m->>'previous_rating') THEN
       RAISE EXCEPTION 'FAIL TREND-01: movement % is not an immutable risk-history record', m->>'movement_id'; END IF;
     IF NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r->'entities') e
                     WHERE e->>'entity_id' = m->>'entity_id') THEN
@@ -894,7 +896,7 @@ BEGIN
   r := pg_temp.c_report('0b522724-adcb-48bf-b21d-175339479616','{}'::jsonb);
   pf := (r->'trends'->>'period_from')::date; pt := (r->'trends'->>'period_to')::date;
   FOR x IN SELECT e FROM jsonb_array_elements(r->'entities') e LOOP
-    SELECT COALESCE((SELECT v.previous_rating FROM public.entity_risk_state_movement v
+    SELECT COALESCE((SELECT upper(NULLIF(v.previous_rating,'')) FROM public.entity_risk_state_movement v
                       WHERE v.entity_id=(x->>'entity_id')::uuid
                         AND upper(COALESCE(v.domain_code,''))='AML_CFT'
                         AND COALESCE(v.approved_at,v.created_at)::date BETWEEN pf AND pt
@@ -907,7 +909,7 @@ BEGIN
       r->'trends'->'opening', expected; END IF;
   expected := '{}'::jsonb;
   FOR x IN SELECT e FROM jsonb_array_elements(r->'entities') e LOOP
-    SELECT COALESCE((SELECT v.new_rating FROM public.entity_risk_state_movement v
+    SELECT COALESCE((SELECT upper(NULLIF(v.new_rating,'')) FROM public.entity_risk_state_movement v
                       WHERE v.entity_id=(x->>'entity_id')::uuid
                         AND upper(COALESCE(v.domain_code,''))='AML_CFT'
                         AND COALESCE(v.approved_at,v.created_at)::date BETWEEN pf AND pt
