@@ -22,10 +22,14 @@ No route returned an HTTP status of 400 or above and every screen rendered real 
 | Route | Purpose |
 |-------|---------|
 | `/admin/supervisory-methodology` | v1.0 ACTIVE regulator-authored, v1.1 DRAFT / MIPL_REFERENCE |
-| `/admin/supervisory-methodology/policy-profiles` | Policy profile kernel |
-| `/admin/supervisory-methodology/assessment-programmes` | Programme configuration |
-| `/admin/supervisory-methodology/calculation` | Calculation configuration — no live policy exists |
-| `/admin/supervisory-methodology/calculation/approvals` | Calculation approvals — deliberately empty |
+| `/admin/supervisory-methodology/:methodologyId` | Version workspace: dimensions, questions, applicability |
+| `/admin/supervisory-policy-profiles` | Policy profile kernel |
+| `/admin/supervisory-assessment-programmes` | Programme configuration |
+| `/admin/supervisory-calculation` | Calculation configuration — active demonstration policy `daf7d06e-1876-45bc-8a14-6869545f65a5` |
+| `/admin/supervisory-calculation/approvals` | Calculation configuration approvals — maker/checker history |
+
+Narration for these routes: [`AML-policy-methodology-configuration-scene.md`](./AML-policy-methodology-configuration-scene.md).
+
 
 ## Current-workflow assessment records
 

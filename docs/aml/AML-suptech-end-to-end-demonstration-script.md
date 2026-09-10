@@ -7,6 +7,9 @@ screen is mocked and no rating is invented on camera.
 Anchor institution: **DEMO AML 06 Rodney Bay Payments Ltd** — entity `aa220000-0000-4000-8000-000000000006`.
 Personas: maker `aml_supervision_officer@mishainfotech.com`, checker `aml_supervision_supervisor@mishainfotech.com`.
 
+Optional 4–5 minute prelude before scene 3: [policy and methodology configuration](./AML-policy-methodology-configuration-scene.md) —
+regulator-owned methodology, questions, calculation policy, versioning, maker-checker and effective dates.
+
 ## Running order
 
 | # | Scene | Route | Record | Duration |
