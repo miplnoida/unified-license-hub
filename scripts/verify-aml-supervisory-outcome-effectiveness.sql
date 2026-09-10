@@ -1482,11 +1482,19 @@ BEGIN
   BEGIN
     UPDATE public.supervisory_outcome_evaluation SET review_note='AML11CERT direct update'
      WHERE id=(SELECT c.v FROM c_id c WHERE c.k='eval2');
+    -- a refusal may also present as zero affected rows under row level security
+    IF NOT FOUND THEN n := n + 1; END IF;
   EXCEPTION WHEN OTHERS THEN n := n + 1; END;
   BEGIN
     DELETE FROM public.supervisory_outcome_evaluation WHERE id=(SELECT c.v FROM c_id c WHERE c.k='eval2');
+    IF NOT FOUND THEN n := n + 1; END IF;
   EXCEPTION WHEN OTHERS THEN n := n + 1; END;
   RESET ROLE;
+  IF NOT EXISTS (SELECT 1 FROM public.supervisory_outcome_evaluation
+                  WHERE id=(SELECT c.v FROM c_id c WHERE c.k='eval2')
+                    AND COALESCE(review_note,'') <> 'AML11CERT direct update') THEN
+    RAISE EXCEPTION 'FAIL SEC-03: a signed-in user altered or removed an evaluation directly';
+  END IF;
   IF n <> 3 THEN RAISE EXCEPTION 'FAIL SEC-03: only % of 3 direct mutations were refused', n; END IF;
   RAISE NOTICE 'PASS SEC-03: signed-in users cannot insert, update or delete an outcome evaluation';
 END $$;
