@@ -201,8 +201,8 @@ vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     rpc: async (fn: string, args: any) => {
       calls.push({ fn, args });
-      if (rpcError) return { data: null, error: { message: rpcError } };
       if (fn === 'supervisory_consequence_view') return { data: view(), error: null };
+      if (rpcError) return { data: null, error: { message: rpcError } };
       return { data: rpcResult, error: null };
     },
     from: (table: string) => {
