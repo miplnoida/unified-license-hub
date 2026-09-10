@@ -157,3 +157,44 @@ activated NO; LINK-11 rewritten NO; AML data deleted NO.
 
 Final three-run release certification remains deferred to the AML module release lock.
 AML-12 live policy activation stays blocked until authorised answers to DEC-01…DEC-08 are supplied.
+
+## Omitted certification evidence (completed 2026-09-10)
+
+Rebaseline: HEAD `d2a221406ed96b0af857881154e59929d53f912c`, clean tree; no functional
+change since the 41/41 SQL result other than the two corrections recorded below.
+
+### A. Action and RBAC
+- `src/test/rbac/**` + `src/test/authorize.test.ts`: **12 files / 84 tests passed / 0 failed**.
+- Action-governance coverage: unguarded action sites **0** (100% hard floor held).
+- RBAC parity (`scripts/verify-rbac-parity.mjs`): **PASS** — 0 violations, scope tuples 46/46
+  (expected 46, actual 46, none missing in DB or UI).
+- Centralised authorisation: **PASS** — no role-name checks, no local permission constants,
+  no allowlisting introduced by AML-11.
+- Two genuine defects found and corrected:
+  1. `AmlOutcomeEffectivenessPanel.tsx` — the Submit-for-review, Approve, Return and
+     Follow-up buttons carried no canonical permission marker. Now annotated
+     `aml_supervision.review`, `aml_supervision.approve` (x2) and `aml_supervision.create`,
+     matching the permissions the server RPCs enforce.
+  2. `docs/rbac/permission-disposition.json` — `supervisory_spine.approve` and
+     `supervisory_spine.create` were stale orphan dispositions; both are now enforced by the
+     AML-11 evaluate/review/follow-up RPCs and the rows were removed.
+
+### B. Affected regression
+`amlSupervisoryConsequence`, `amlRiskMonitoring`, `amlPortfolioReporting`,
+`amlOutcomeEffectiveness`: **4 files / 99 tests passed / 0 failed / 0 skipped**.
+AML-11 frontend boundary re-run: **39 passed / 0 failed**.
+
+### C. One full integration suite (two workers)
+Files 174 · passed 1703 · failed 0 · skipped 0 · duration 250.76s.
+Typecheck clean; production build succeeded (inherited chunk-size warning only, no new warnings).
+
+### D. Preservation
+Canonical digest re-read from `scripts/aml07-preservation-census.sql`:
+`8385b6c8f7ba2b4102ab054c8f5ac686` — unchanged.
+entity_risk_state 22 (AML 21), risk ratings 3, methodology v1.0 ACTIVE/REGULATOR_AUTHORED,
+v1.1 DRAFT/MIPL_REFERENCE, zero surviving certification fixtures, zero outcome evaluations.
+Risk ratings/history unchanged; historical actions unchanged; evidence unchanged;
+no automatic follow-up created; no policy authored; LINK-11 unchanged.
+
+Final three-run release certification remains deferred to the AML module release lock.
+AML-12 live policy activation stays blocked pending authorised DEC-01…DEC-08 decisions.
