@@ -115,6 +115,31 @@ SELECT rs.id, 'regulator', (SELECT v FROM c_id WHERE k='regulator')
   JOIN public.sec_modules m ON m.id = rs.module_id AND m.key='enforcement_management'
 ON CONFLICT DO NOTHING;
 
+-- Calculation-policy authority (aml_supervision.manage_config) belongs to the
+-- policy administrator and, for the second pair of hands the policy lifecycle
+-- requires, to the reviewing supervisor. The officer is deliberately NOT given
+-- review or policy authority, so the maker-checker gates test the real split.
+INSERT INTO public.sec_user_roles(user_id, role_id, status, assigned_by)
+SELECT u, r.id, 'active', u
+  FROM (VALUES ('cbce55aa-4310-4dc9-a4e1-dcf1bc71b5e9'::uuid),
+               ('0b522724-adcb-48bf-b21d-175339479616'::uuid)) AS x(u),
+       public.sec_roles r
+ WHERE r.key = 'aml_head'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO public.sec_role_scopes(role_id, module_id, scope_type_id)
+SELECT r.id, m.id, st.id
+  FROM public.sec_roles r, public.sec_modules m, public.sec_scope_types st
+ WHERE r.key='aml_head' AND m.key='aml_supervision' AND st.key='regulator'
+ON CONFLICT (role_id, module_id) DO UPDATE SET scope_type_id = EXCLUDED.scope_type_id;
+
+INSERT INTO public.sec_role_scope_values(role_scope_id, value_kind, value_id)
+SELECT rs.id, 'regulator', (SELECT v FROM c_id WHERE k='regulator')
+  FROM public.sec_role_scopes rs
+  JOIN public.sec_roles r ON r.id = rs.role_id AND r.key='aml_head'
+  JOIN public.sec_modules m ON m.id = rs.module_id AND m.key='aml_supervision'
+ON CONFLICT DO NOTHING;
+
 INSERT INTO public.supervisory_methodology(
   id, code, domain_code, name, version, status, sector_id, regulator_id,
   effective_from, origin, title, scoring_scale, definition)
