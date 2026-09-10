@@ -53,3 +53,16 @@ No route returned an HTTP status of 400 or above and every screen rendered real 
 No approved rating publication and no live calculation policy exist. DEC-01…DEC-08 are unsigned,
 so the calculation screens correctly report `NOT_CALCULABLE` and the approval queue is empty.
 Historical ratings on cases 06–24 are labelled officer-recorded legacy ratings.
+
+
+## Calculation policy and published rating (added with the calculation-policy wave)
+
+| Purpose | Route | Record |
+|---|---|---|
+| Calculation policy parameters, scoring, bands, residual matrix, history | `/admin/supervisory-calculation` | configuration `daf7d06e-1876-45bc-8a14-6869545f65a5` on AML-CFT-RBA v1.0 |
+| Configuration approval queue and maker/checker history | `/admin/supervisory-calculation/approvals` | same configuration |
+| Calculated, approved and published assessment | `/aml/assessments/c3e16863-60d8-4c6e-8650-3f0eefcbc0cf` | SCEN-06, entity `aa220000-0000-4000-8000-000000000006` (DEMO AML 06 Rodney Bay Payments Ltd) |
+
+Personas: maker `aml_supervision_officer@mishainfotech.com` (configure, validate, submit, answer,
+calculate, submit for review); checker `aml_supervision_supervisor@mishainfotech.com` (approve the
+configuration, approve and publish the rating).

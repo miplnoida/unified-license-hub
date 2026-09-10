@@ -270,3 +270,17 @@ an internal supervisory user with no HTTP response of 400 or above and with real
 
 Verdict for this addendum: `DOWNSTREAM DEMO CONTENT — PASS` / `RISK HISTORY CHANGED — NO` /
 `RATING PUBLISHED — NO` / `SECOND RUN DUPLICATES — 0`.
+
+
+## Calculation policy and published rating (added after the integrity report was first issued)
+
+* A demonstration calculation configuration for AML-CFT-RBA v1.0 was authored, validated, independently
+  approved and activated entirely through governed operations under two distinct identities.
+* One new assessment (SCEN-06, DEMO AML 06) was created, answered, calculated, submitted, approved and
+  published through the same governed path. It is the only assessment with calculated dimensions.
+* Preservation confirmed after the wave: 22 entity risk states, 27 movement rows, 31 historical dimension
+  rows still recorded as `NO_EFFECTIVE_DATE_RULE` (unchanged), no historical rating altered, no record
+  deleted, methodology v1.0 ACTIVE and v1.1 DRAFT / MIPL_REFERENCE untouched.
+* Governance verifier `scripts/verify-aml-calculation-governance.sql`: 14 gates, 14 PASS, 0 FAIL.
+* Still open: the eight regulator policy decisions DEC-01…DEC-08, and the four structural findings on
+  AML-CFT-RBA v1.0 that block publication of any new methodology version.

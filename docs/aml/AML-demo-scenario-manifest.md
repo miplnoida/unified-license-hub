@@ -32,3 +32,18 @@ No additive **approval** or **risk-of-record publication** exists. See the block
 `docs/aml/AML-demo-data-integrity-report.md`: with no live AML/CFT calculation policy published, an
 approval would carry a NULL rating, and the governed rating-override operation refuses with
 `no_calculation`. Fabricating a rating is prohibited.
+
+
+## SCEN-06 — calculated, approved and published rating
+
+| Field | Value |
+|---|---|
+| Entity | DEMO AML 06 Rodney Bay Payments Ltd (`aa220000-0000-4000-8000-000000000006`) |
+| Assessment | `c3e16863-60d8-4c6e-8650-3f0eefcbc0cf`, periodic, period ending on the activation date |
+| Questions | 41 answered (a recurring partial finding among otherwise met requirements) |
+| Calculation | 1 recorded run, status CALCULATED, hash `22ef382593b79db559563072bd70fb90`; 20 dimensions calculated, 6 not applicable |
+| Rating | residual LOW, driven by the worst residual dimension under the HIGHEST_DIMENSION rule |
+| Publication | operative risk of record for the entity, source assessment recorded, previous rating retained in movement history |
+| Seed | `scripts/demo/seed-aml-demo-rating-case.sql` (idempotent) |
+
+Preceding scenarios SCEN-01…SCEN-05 are unchanged, and no historical assessment was recalculated.
