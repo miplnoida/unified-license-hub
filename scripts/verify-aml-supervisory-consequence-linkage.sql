@@ -1305,7 +1305,8 @@ DO $$
 DECLARE res1 jsonb; res2 jsonb; n int;
 BEGIN
   SET LOCAL ROLE authenticated;
-  PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
+  -- a deferred / monitoring judgment is a review-authority decision
+  PERFORM set_config('request.jwt.claims','{"sub":"0b522724-adcb-48bf-b21d-175339479616","role":"authenticated"}', true);
   res1 := public.supervisory_consequence_record(jsonb_build_object(
     'entity_id',(SELECT v FROM c_id WHERE k='entity'),'domain_code','AML_CFT',
     'assessment_id',(SELECT v FROM c_id WHERE k='assessment'),
