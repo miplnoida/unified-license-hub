@@ -39,7 +39,8 @@ INSERT INTO c_id(k,v) VALUES
   ('entity',    'aa220000-0000-4000-8000-000000000001'),
   ('officer',   'b8eaf680-fe66-4d49-b816-1c087f511235'),
   ('checker',   '0b522724-adcb-48bf-b21d-175339479616'),
-  ('outsider',  '411dd06d-648b-4f32-82cc-897902c0c0b6');
+  ('outsider',  '411dd06d-648b-4f32-82cc-897902c0c0b6'),
+  ('policyadmin','cbce55aa-4310-4dc9-a4e1-dcf1bc71b5e9');
 
 INSERT INTO c_id(k,v)
 SELECT 'sector', l.sector_id FROM public.licensees l WHERE l.id=(SELECT v FROM c_id WHERE k='entity');
