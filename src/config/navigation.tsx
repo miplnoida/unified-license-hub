@@ -367,6 +367,7 @@ export const mainNavSections: NavSection[] = [
       { label: 'Supervised Entities', href: '/supervision/aml/entities', icon: <Building2 className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
       { label: 'Risk Assessments', href: '/supervision/aml/assessments', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
       { label: 'Risk Heatmap', href: '/supervision/aml/heatmap', icon: <FileBarChart className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
+      { label: 'Portfolio Risk Report', href: '/supervision/aml/portfolio', icon: <FileBarChart className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
       { label: 'Examinations', href: '/supervision/aml/examinations', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
       { label: 'Findings & Remediation', href: '/supervision/aml/findings', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'aml_supervision' },
     ],
