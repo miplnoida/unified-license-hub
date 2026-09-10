@@ -55,32 +55,42 @@ BEGIN
   -- =========================================================================
   -- DS-01  DEMO AML 06 — supervisory plan opened, reassessment required
   -- =========================================================================
+  -- Business-record guard. The governed idempotency key is derived from the
+  -- current risk basis, so it correctly stops matching once a new risk of record
+  -- is published for the entity. The demonstration content must still converge,
+  -- so each step is skipped when the business record it creates already exists.
   PERFORM set_config('request.jwt.claims', claim_off, true);
-  res := public.supervisory_consequence_record(jsonb_build_object(
-    'entity_id', e06, 'domain_code','AML_CFT',
-    'action_type','OPEN_SUPERVISORY_PLAN','linkage_mode','CREATE',
-    'title','DEMO AML 06 — AML/CFT supervisory plan',
-    'supervisory_objective','Close the customer due diligence and transaction monitoring weaknesses identified for this money services business.',
-    'priority','HIGH','due_date',(current_date + 90)::text,
-    'idempotency_key','DEMO-AML-DS-01-PLAN',
-    'rationale','The current AML/CFT risk of record for this money services business warrants a formal supervisory plan covering customer due diligence and transaction monitoring.'));
-  IF NOT (COALESCE((res->>'duplicate')::boolean,false)
-          OR COALESCE((res->>'idempotent')::boolean,false)
-          OR COALESCE((res->>'reused')::boolean,false)
-          OR COALESCE((res->>'existing')::boolean,false)) THEN created := created + 1; END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.supervisory_consequence_decision
+     WHERE entity_id = e06 AND domain_code = 'AML_CFT'
+       AND action_type = 'OPEN_SUPERVISORY_PLAN' AND withdrawn_at IS NULL
+  ) THEN
+    res := public.supervisory_consequence_record(jsonb_build_object(
+      'entity_id', e06, 'domain_code','AML_CFT',
+      'action_type','OPEN_SUPERVISORY_PLAN','linkage_mode','CREATE',
+      'title','DEMO AML 06 — AML/CFT supervisory plan',
+      'supervisory_objective','Close the customer due diligence and transaction monitoring weaknesses identified for this money services business.',
+      'priority','HIGH','due_date',(current_date + 90)::text,
+      'idempotency_key','DEMO-AML-DS-01-PLAN',
+      'rationale','The current AML/CFT risk of record for this money services business warrants a formal supervisory plan covering customer due diligence and transaction monitoring.'));
+    created := created + 1;
+  END IF;
 
   PERFORM set_config('request.jwt.claims', claim_sup, true);
-  res := public.supervisory_consequence_record(jsonb_build_object(
-    'entity_id', e06, 'domain_code','AML_CFT',
-    'action_type','REQUIRE_REASSESSMENT','linkage_mode','CREATE',
-    'requested_type','TARGETED','due_date',(current_date + 120)::text,
-    'supervisory_objective','Re-establish the AML/CFT risk of record once the planned remediation has been delivered.',
-    'idempotency_key','DEMO-AML-DS-01-REASSESS',
-    'rationale','A targeted AML/CFT reassessment is required once the supervisory plan has run, so that the risk of record reflects the remediated position.'));
-  IF NOT (COALESCE((res->>'duplicate')::boolean,false)
-          OR COALESCE((res->>'idempotent')::boolean,false)
-          OR COALESCE((res->>'reused')::boolean,false)
-          OR COALESCE((res->>'existing')::boolean,false)) THEN created := created + 1; END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.supervisory_consequence_decision
+     WHERE entity_id = e06 AND domain_code = 'AML_CFT'
+       AND action_type = 'REQUIRE_REASSESSMENT' AND withdrawn_at IS NULL
+  ) THEN
+    res := public.supervisory_consequence_record(jsonb_build_object(
+      'entity_id', e06, 'domain_code','AML_CFT',
+      'action_type','REQUIRE_REASSESSMENT','linkage_mode','CREATE',
+      'requested_type','TARGETED','due_date',(current_date + 120)::text,
+      'supervisory_objective','Re-establish the AML/CFT risk of record once the planned remediation has been delivered.',
+      'idempotency_key','DEMO-AML-DS-01-REASSESS',
+      'rationale','A targeted AML/CFT reassessment is required once the supervisory plan has run, so that the risk of record reflects the remediated position.'));
+    created := created + 1;
+  END IF;
 
   -- =========================================================================
   -- DS-02  DEMO AML 07 — the full governed engagement chain on the
