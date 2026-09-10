@@ -520,6 +520,31 @@ BEGIN
   PERFORM pg_temp.pass('UAT-11-B', 'a governed reschedule decision is recorded with rationale');
 END $$;
 
+-- a canonical issued AML/CFT finding: the provenance a reassessment requires
+DO $$
+DECLARE fid uuid;
+BEGIN
+  SET LOCAL ROLE authenticated;
+  PERFORM pg_temp.as_user((SELECT v FROM u_id WHERE k='officer'));
+  fid := public.supervisory_finding_create(jsonb_build_object(
+    'entity_id',(SELECT v FROM u_id WHERE k='entity'),'domain_code','AML_CFT',
+    'assessment_id',(SELECT v FROM u_id WHERE k='assessment'),
+    'severity','HIGH','title','AMLUAT customer due diligence failure',
+    'observation','AMLUAT: acceptance observation recorded against the journey assessment.',
+    'required_action','AMLUAT: acceptance required action.'));
+  PERFORM public.supervisory_finding_lifecycle(fid,'REVIEW','AMLUAT: the finding is submitted for review.');
+  RESET ROLE;
+  SET LOCAL ROLE authenticated;
+  PERFORM pg_temp.as_user((SELECT v FROM u_id WHERE k='checker'));
+  PERFORM public.supervisory_finding_lifecycle(fid,'ISSUED','AMLUAT: the finding is issued to the entity.');
+  RESET ROLE;
+  UPDATE public.supervisory_finding
+     SET created_at = created_at + interval '1 day', issued_at = issued_at + interval '1 day'
+   WHERE id = fid;
+  INSERT INTO u_id(k,v) VALUES ('finding', fid);
+  PERFORM pg_temp.pass('UAT-11-D', 'a governed finding was issued through the real maker-checker lifecycle');
+END $$;
+
 DO $$
 DECLARE r jsonb; before_rating text; after_rating text;
 BEGIN
@@ -529,7 +554,9 @@ BEGIN
   PERFORM pg_temp.as_user((SELECT v FROM u_id WHERE k='checker'));
   r := public.supervisory_risk_monitoring_require_reassessment(jsonb_build_object(
         'entity_id',(SELECT v FROM u_id WHERE k='entity'),'domain_code','AML_CFT',
-        'rationale','AMLUAT: a reassessment is required following the acceptance journey.'));
+        'event_type','FINDING_RAISED','event_source_id',(SELECT v FROM u_id WHERE k='finding'),
+        'requested_type','TARGETED','due_date',(current_date + 30)::text,
+        'rationale','AMLUAT: the issued high severity finding requires a targeted AML/CFT reassessment.'));
   RESET ROLE;
   SELECT residual_rating INTO after_rating FROM public.entity_risk_state
    WHERE entity_id=(SELECT v FROM u_id WHERE k='entity') AND domain_code='AML_CFT';
