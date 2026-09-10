@@ -232,7 +232,7 @@ DO $$
 DECLARE cfg uuid; vres jsonb;
 BEGIN
   SET LOCAL ROLE authenticated;
-  PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
+  PERFORM set_config('request.jwt.claims','{"sub":"cbce55aa-4310-4dc9-a4e1-dcf1bc71b5e9","role":"authenticated"}', true);
   cfg := public.supervisory_calculation_config_upsert((SELECT v FROM c_id WHERE k='meth'), jsonb_build_object(
     'effective_from', (current_date - 1)::text,
     'aggregation_method','UNWEIGHTED_MEAN','min_answered_questions',1,
