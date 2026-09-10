@@ -1618,6 +1618,11 @@ BEGIN
       OR COALESCE(m.new_assessment_id, m.previous_assessment_id)
          NOT IN (SELECT a.id FROM public.supervisory_assessment a WHERE a.reference LIKE 'AML11CERT%');
   IF d IS DISTINCT FROM (SELECT c.t FROM c_t c WHERE c.k='risk_digest') THEN
+    RAISE NOTICE 'DEBUG rows %', (SELECT jsonb_agg(to_jsonb(x)) FROM (
+        SELECT s.id, s.entity_id, s.driving_assessment_id, s.residual_rating, s.effective_from
+          FROM public.entity_risk_state s WHERE s.domain_code='AML_CFT'
+           AND s.driving_assessment_id NOT IN (SELECT a.id FROM public.supervisory_assessment a WHERE a.reference LIKE 'AML11CERT%')
+           AND s.created_at > now() - interval '1 hour') x);
     RAISE EXCEPTION 'FAIL ROLLBACK-02: the AML risk-of-record digest changed during the certification'; END IF;
   IF moves <> (SELECT c.n FROM c_n c WHERE c.k='risk_moves') THEN
     RAISE EXCEPTION 'FAIL ROLLBACK-02: risk movement history changed (% vs %)',
