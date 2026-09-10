@@ -368,7 +368,9 @@ async function enrichExaminations(rows: any[]) {
           .select('examination_id, status, severity')
           .eq('domain_code', 'AML_CFT')
           .in('examination_id', ids),
-        sb.from('examination_team_members').select('examination_id, user_id, ended_at').in('examination_id', ids),
+        // Canonical case-team membership has no end-dating column: a row is a
+        // current member. Do not select or filter a non-existent `ended_at`.
+        sb.from('examination_team_members').select('examination_id, user_id, team_role').in('examination_id', ids),
         sb
           .from('supervisory_plan')
           .select('id, reference, status')
