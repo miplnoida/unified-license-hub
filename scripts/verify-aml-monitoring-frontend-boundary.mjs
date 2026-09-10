@@ -112,8 +112,10 @@ const gate = (family, name, ok, detail = '') => gates.push({ family, name, ok, d
     /view\.monitoring_state/.test(panel) && /view\.reason_code/.test(panel));
 }
 {
-  const offenders = appFiles.filter((f) => f !== HOOK && /DUE_SOON/.test(read(f)));
-  gate('STATE', 'No ungoverned DUE_SOON state is invented', offenders.length === 0, offenders.join('; '));
+  // Scoped to the AML-09 monitoring surfaces: other modules have their own
+  // governed vocabularies and are out of scope for this boundary.
+  const invented = surfaces.some((s) => /DUE_SOON/.test(s));
+  gate('STATE', 'No ungoverned DUE_SOON state is invented on the AML monitoring surfaces', !invented);
 }
 
 /* --------------------------------------------------------- 4. events */
