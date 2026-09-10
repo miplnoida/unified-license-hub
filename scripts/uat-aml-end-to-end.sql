@@ -604,17 +604,22 @@ BEGIN
 END $$;
 
 DO $$
-DECLARE exp jsonb;
+DECLARE exp jsonb; rep jsonb;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM pg_temp.as_user((SELECT v FROM u_id WHERE k='checker'));
-  exp := public.supervisory_portfolio_export(jsonb_build_object('domain_code','AML_CFT','format','CSV'));
+  rep := public.supervisory_portfolio_report(jsonb_build_object('domain_code','AML_CFT'));
+  exp := public.supervisory_portfolio_export(jsonb_build_object('domain_code','AML_CFT'));
   RESET ROLE;
-  IF exp IS NULL OR (exp->>'csv') IS NULL THEN
-    RAISE EXCEPTION 'UAT-13: the governed export returned no content (%)', exp - 'csv'; END IF;
+  IF exp IS NULL OR jsonb_typeof(exp->'entities') <> 'array' THEN
+    RAISE EXCEPTION 'UAT-13: the governed export returned no rows'; END IF;
+  IF exp->'summary' <> rep->'summary'
+     OR jsonb_array_length(exp->'entities') <> jsonb_array_length(rep->'entities') THEN
+    RAISE EXCEPTION 'UAT-13: the export does not reconcile with the screen report'; END IF;
   IF NOT COALESCE((exp->>'csv_injection_neutralised')::boolean,false) THEN
     RAISE EXCEPTION 'UAT-13: the export does not report formula neutralisation'; END IF;
-  PERFORM pg_temp.pass('UAT-13-B', 'the governed export is server-generated and formula-neutralised');
+  PERFORM pg_temp.pass('UAT-13-B',
+    'the governed export reconciles with the screen and is formula-neutralised');
 END $$;
 
 -- =====================================================================
