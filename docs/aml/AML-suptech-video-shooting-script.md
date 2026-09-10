@@ -15,7 +15,7 @@ script for the full-length business video.
 | Methodology | AML/CFT Risk-Based Supervision Methodology v1.0 (ACTIVE); v1.1 exists as a later draft version |
 | Active calculation configuration | `daf7d06e-1876-45bc-8a14-6869545f65a5` (on v1.0) |
 | Published result | inherent Low, control Strong, residual **Low**, 20 elements calculated, 6 not applicable |
-| Escalation chain institution | DEMO AML 07 Gros Islet Virtual Assets Ltd — `/entities/aa220000-0000-4000-8000-000000000007` |
+| Escalation chain institution | DEMO AML 07 — `/entities/aa220000-0000-4000-8000-000000000007` (plan `8499e40f-d2b4-4b70-9563-e83bfc1bf751`, examination `d100da97-5afb-4756-9d21-6c51abe524e9`, finding `SF-AML-2026-00327` / `661dbc40-b72a-4874-bbf5-6e1af11ead9a`) |
 | Remediation / effectiveness institution | DEMO AML 05 — `/entities/aa220000-0000-4000-8000-000000000005` |
 | Review-cycle institution | DEMO AML 08 — `/entities/aa220000-0000-4000-8000-000000000008` |
 
@@ -318,8 +318,9 @@ beside the retained risk history.
 
 ## SCENE 22 — SUPERVISORY PLAN
 
-**[ACTION]** Same tab — the supervisory plan opened for DEMO AML 06
-(`3867aebc-a3d9-491f-9d5a-7fa952031a05`). Show its objective, priority and due date.
+**[ACTION]** Same tab — the prepared supervisory plan for DEMO AML 06
+(`3867aebc-a3d9-491f-9d5a-7fa952031a05`, in preparation). Show its objective, priority and due date. The
+active plan on the escalation chain is `8499e40f-d2b4-4b70-9563-e83bfc1bf751` on DEMO AML 07.
 
 **[SAY]**
 "The concern also moves into supervisory planning." *[PAUSE]*
@@ -381,8 +382,9 @@ and the recorded source of the finding.
 
 ## SCENE 26 — REMEDIATION
 
-**[ACTION]** `/entities/aa220000-0000-4000-8000-000000000005` (DEMO AML 05) — the completed remediation
-plan `458783fc-3feb-48db-852c-90588f078bb5` and its completed actions.
+**[ACTION]** `/entities/aa220000-0000-4000-8000-000000000005` (DEMO AML 05) — the completed supervisory
+plan carrying the remediation activity (`458783fc-3feb-48db-852c-90588f078bb5`, status Completed) and its
+completed actions.
 
 **[SAY]**
 "Issuing the finding, however, is not the end of supervision." *[PAUSE]*
