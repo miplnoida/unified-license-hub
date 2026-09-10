@@ -177,7 +177,7 @@ export default function SupervisoryCalculationConfig() {
       notes: params.notes ?? '',
     };
     ([
-      'effective_from', 'aggregation_method', 'min_answered_questions',
+      'effective_from', 'aggregation_method', 'completeness_mode', 'min_answered_questions',
       'na_denominator_handling', 'evidence_insufficiency_handling',
       'critical_question_handling', 'rounding_mode', 'rounding_decimals',
       'inherent_direction', 'recommendation_policy',
@@ -394,6 +394,7 @@ export default function SupervisoryCalculationConfig() {
                     </div>
                     {([
                       ['aggregation_method', 'Dimension aggregation', AGGREGATION],
+                      ['completeness_mode', 'Dimension completeness rule', COMPLETENESS],
                       ['na_denominator_handling', 'Not-applicable responses', NA_HANDLING],
                       ['evidence_insufficiency_handling', 'Insufficient evidence', EVIDENCE_HANDLING],
                       ['critical_question_handling', 'Critical question failure', CRITICAL_HANDLING],
