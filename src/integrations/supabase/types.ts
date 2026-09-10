@@ -69517,6 +69517,7 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_export_text_safe: { Args: { _v: string }; Returns: string }
       supervisory_finding_can_read: {
         Args: { _f: Database["public"]["Tables"]["supervisory_finding"]["Row"] }
         Returns: boolean
