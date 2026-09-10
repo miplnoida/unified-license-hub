@@ -212,6 +212,8 @@ export function EntityAmlPanel({ entityId }: { entityId: string }) {
       <AmlRiskMonitoringPanel entityId={entityId} />
 
       <AmlSupervisoryConsequencePanel entityId={entityId} />
+
+      <AmlOutcomeEffectivenessPanel entityId={entityId} />
     </div>
   );
 }

@@ -202,6 +202,26 @@ export interface PortfolioEntityRow {
   routes: { entity: string; assessment: string | null; findings: string; examinations: string };
 }
 
+/** AML-11 factual outcome counts. Every value is computed by the server. */
+export interface PortfolioOutcomeSummary {
+  source: string;
+  linked_actions_total: number;
+  completed_actions_total: number;
+  open_actions_total: number;
+  cancelled_actions_total: number;
+  evaluations_pending_total: number;
+  evaluations_awaiting_review_total: number;
+  effective_total: number;
+  partially_effective_total: number;
+  ineffective_total: number;
+  inconclusive_total: number;
+  not_assessed_total: number;
+  unevaluated_actions_total: number;
+  legacy_lineage_actions_total: number;
+  evaluated_total: number;
+  note: string;
+}
+
 export interface PortfolioReport {
   generated_at: string;
   as_of: string;
@@ -212,6 +232,7 @@ export interface PortfolioReport {
   risk_distribution: PortfolioDistributionRow[];
   review_distribution: PortfolioReviewDistributionRow[];
   trends: PortfolioTrends;
+  outcome_summary: PortfolioOutcomeSummary;
   entities: PortfolioEntityRow[];
   row_count: number;
   truncated: boolean;
