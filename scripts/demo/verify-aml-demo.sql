@@ -305,15 +305,24 @@ BEGIN
   IF n > 0 THEN fails := fails || format('CURRENT-05 self-reviewed additive review round: %s', n);
   ELSE RAISE NOTICE 'CURRENT-05 PASS no additive review round was decided by its own submitter'; END IF;
 
-  -- CURRENT-06 the additive wave published no risk of record
-  -- (approval and publication remain blocked: no live calculation policy, and the
-  --  rating override operation refuses without a calculation run)
+  -- CURRENT-06 every additive publication rests on a completed calculation run of
+  -- its own assessment and was published by someone other than the submitter.
   SELECT count(*) INTO n
     FROM public.supervisory_assessment_risk_publication pub
     JOIN public.supervisory_assessment a ON a.id = pub.assessment_id
-   WHERE a.summary LIKE 'DEMO AML CURRENT%';
-  IF n > 0 THEN fails := fails || format('CURRENT-06 additive scenario published a risk of record without a calculation basis: %s', n);
-  ELSE RAISE NOTICE 'CURRENT-06 PASS the additive wave published no risk of record (policy blocked)'; END IF;
+   WHERE a.summary LIKE 'DEMO AML CURRENT%'
+     AND (NOT EXISTS (SELECT 1 FROM public.supervisory_assessment_calculation_run r
+                       WHERE r.assessment_id = a.id AND r.status = 'CALCULATED')
+          OR pub.published_by IS NULL
+          OR pub.published_by = a.submitted_by);
+  IF n > 0 THEN fails := fails || format('CURRENT-06 additive publication without a calculation basis or independent publisher: %s', n);
+  ELSE
+    SELECT count(*) INTO m
+      FROM public.supervisory_assessment_risk_publication pub
+      JOIN public.supervisory_assessment a ON a.id = pub.assessment_id
+     WHERE a.summary LIKE 'DEMO AML CURRENT%';
+    RAISE NOTICE 'CURRENT-06 PASS additive publications rest on a calculation run and an independent publisher: %', m;
+  END IF;
 
   -- ==========================================================================
   -- DOWNSTREAM-01 … 06  post-publication supervisory consequence, review-cycle
