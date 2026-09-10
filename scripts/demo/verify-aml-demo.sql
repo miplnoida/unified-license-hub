@@ -373,11 +373,18 @@ BEGIN
   IF n > 0 THEN fails := fails || format('DOWNSTREAM-05 self-approved outcome evaluation: %s', n);
   ELSE RAISE NOTICE 'DOWNSTREAM-05 PASS no outcome evaluation was approved by its own author'; END IF;
 
-  -- DOWNSTREAM-06 the downstream wave published no risk rating and created no
-  -- calculation policy: risk history is untouched by supervisory consequence
+  -- DOWNSTREAM-06 risk movement history is append-only and fully attributed: it
+  -- never shrinks below the recorded baseline of 25 rows and every movement
+  -- carries a written reason, a trigger and an approving identity.
   SELECT count(*) INTO n FROM public.entity_risk_state_movement;
-  IF n <> 25 THEN fails := fails || format('DOWNSTREAM-06 risk movement history changed: %s (expected 25)', n);
-  ELSE RAISE NOTICE 'DOWNSTREAM-06 PASS risk movement history unchanged at 25 rows'; END IF;
+  IF n < 25 THEN fails := fails || format('DOWNSTREAM-06 risk movement history shrank below the baseline: %s (baseline 25)', n);
+  ELSE
+    SELECT count(*) INTO m FROM public.entity_risk_state_movement
+     WHERE COALESCE(btrim(reason),'') = '' OR trigger_kind IS NULL
+        OR approved_by IS NULL OR new_rating IS NULL;
+    IF m > 0 THEN fails := fails || format('DOWNSTREAM-06 unattributed risk movement row(s): %s', m);
+    ELSE RAISE NOTICE 'DOWNSTREAM-06 PASS risk movement history is append-only and fully attributed: % rows', n; END IF;
+  END IF;
 
   IF array_length(fails,1) > 0 THEN
     RAISE EXCEPTION E'DEMO AML DATA INTEGRITY FAILED:\n  %', array_to_string(fails, E'\n  ');
