@@ -44,20 +44,46 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
--- 1. Remove any previous DEMO AML dataset (makes the script idempotent)
+-- 1. Idempotency: append-only-safe rebuild decision
 -- ---------------------------------------------------------------------------
--- Rebuild semantics: the demo entities themselves are stable (deterministic ids)
--- and are never deleted. All governed supervisory content raised by a previous
--- run is removed, except supervisory interventions: their event log is
--- append-only by design and cannot be deleted, so a previous run's interventions
--- are cancelled and detached instead. Running the script twice therefore leaves
--- the same live dataset.
+-- Rebuild semantics (corrected under the demo data-integrity addendum):
+--
+--   * The demo entities themselves are stable (deterministic ids) and are never
+--     deleted. Registry and licence fixtures (sections 3 and 3c) are pure
+--     upserts and always re-run safely.
+--   * Records the platform declares IMMUTABLE — entity_risk_state_movement,
+--     supervisory_assessment_approval_decision,
+--     supervisory_assessment_risk_publication and the supervisory intervention
+--     event log — are append-only by architecture. This script therefore never
+--     attempts to delete them. Deleting them is architecturally impossible and
+--     bypassing the guard is forbidden.
+--   * Consequence: once a governed AML/CFT decision has been published for a
+--     demo entity, the dataset for that entity is permanent. Re-running the
+--     seed then leaves the existing dataset exactly as it is (governed pipeline
+--     skipped) instead of duplicating it.
+--   * When no immutable record exists yet, a previous partial run is removed in
+--     full and the dataset is rebuilt deterministically.
 
 DO $$
 DECLARE ents uuid[]; asmts uuid[]; exams uuid[]; finds uuid[]; atts uuid[]; plans uuid[];
+        locked int;
 BEGIN
   SELECT coalesce(array_agg(id), '{}') INTO ents
     FROM public.licensees WHERE name LIKE 'DEMO AML %';
+  IF array_length(ents,1) IS NULL THEN
+    PERFORM set_config('app.demo_aml_dataset_locked','0', true);
+    RETURN;
+  END IF;
+
+  SELECT count(*) INTO locked
+    FROM public.entity_risk_state_movement WHERE entity_id = ANY(ents);
+  IF locked > 0 THEN
+    PERFORM set_config('app.demo_aml_dataset_locked','1', true);
+    RAISE NOTICE 'DEMO AML dataset already published (% immutable risk movements): governed pipeline skipped, registry and licence fixtures refreshed', locked;
+    RETURN;
+  END IF;
+  PERFORM set_config('app.demo_aml_dataset_locked','0', true);
+
   IF array_length(ents,1) IS NULL THEN RETURN; END IF;
 
   SELECT coalesce(array_agg(id),'{}') INTO asmts
@@ -81,7 +107,8 @@ BEGIN
   -- the authoritative risk state is trigger-protected; removing demo fixtures is
   -- the only place this deployment-local seed asserts the writer marker.
   PERFORM set_config('app.supervisory_risk_state_writer','assessment_transition', true);
-  DELETE FROM public.entity_risk_state_movement           WHERE entity_id = ANY(ents);
+  -- entity_risk_state_movement is immutable and is never deleted; this branch
+  -- only runs when no movement exists for the demo entities.
   DELETE FROM public.supervisory_reassessment_requirement WHERE entity_id = ANY(ents);
   DELETE FROM public.entity_risk_state                    WHERE entity_id = ANY(ents);
   DELETE FROM public.enforcement_actions                  WHERE entity_id = ANY(ents);
@@ -176,9 +203,11 @@ BEGIN
     INSERT INTO public.parties(id, party_kind, display_name)
     VALUES (p,'ORGANIZATION', c.name)
     ON CONFLICT (id) DO UPDATE SET display_name = EXCLUDED.display_name;
-    INSERT INTO public.licensees(id, name, party_id, sector_id, status)
-    VALUES (ent, c.name, p, sect, 'active')
-    ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, sector_id = EXCLUDED.sector_id, status = 'active';
+    INSERT INTO public.licensees(id, name, party_id, sector_id, status, identity_status_id)
+    VALUES (ent, c.name, p, sect, 'active',
+            (SELECT id FROM public.entity_identity_statuses WHERE key = 'verified'))
+    ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, sector_id = EXCLUDED.sector_id, status = 'active',
+                                   identity_status_id = COALESCE(licensees.identity_status_id, EXCLUDED.identity_status_id);
     INSERT INTO aml_ref(case_no,k,v) VALUES (c.case_no,'ent',ent);
 
     FOR u IN SELECT * FROM (VALUES
@@ -217,6 +246,82 @@ SELECT 0, 'methodology', m.id
 ON CONFLICT (case_no, k) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
+-- 3c. Canonical licence foundation (DEMO DATA INTEGRITY ADDENDUM)
+--
+-- Every supervised demo entity must be a real licence holder, exactly as a
+-- genuine record is: public.entity_licenses is the ONLY authority for the
+-- entity-to-licence relationship (licensees.license_id is deprecated and is
+-- deliberately NOT written). No application is invented; the live licence
+-- decision gate and the append-only original-term trigger stay enabled and
+-- must accept these rows unchanged.
+--
+-- Case 21 (Morne Fortune Holdings Ltd) is a deliberate negative control: it is
+-- the entity a governed determination placed OUTSIDE the AML/CFT perimeter and
+-- it holds no licence, proving the "not licensed" presentation.
+-- ---------------------------------------------------------------------------
+DO $$
+DECLARE c record; v_lic uuid; v_conflict int; v_type text;
+BEGIN
+  FOR c IN SELECT * FROM aml_case WHERE case_no <> 21 ORDER BY case_no LOOP
+    v_lic := ('aa330000-0000-4000-8000-0000000000' || lpad(c.case_no::text,2,'0'))::uuid;
+    v_type := CASE c.sector
+                WHEN 'MONEY_SERVICES_BUSINESS' THEN 'Money services business'
+                WHEN 'CREDIT_UNIONS'           THEN 'Credit union'
+                WHEN 'VIRTUAL_ASSET_BUSINESS'  THEN 'Virtual asset service provider'
+                ELSE c.sector END;
+
+    SELECT count(*) INTO v_conflict
+      FROM public.licenses
+     WHERE license_number = 'FSRA-DEMO-AML-' || lpad(c.case_no::text,2,'0')
+       AND id <> v_lic;
+    IF v_conflict > 0 THEN
+      RAISE EXCEPTION 'DEMO AML seed blocked: licence number FSRA-DEMO-AML-% already used elsewhere',
+        lpad(c.case_no::text,2,'0');
+    END IF;
+
+    INSERT INTO public.licenses
+      (id, application_id, holder_id, license_number, license_type,
+       sector_id, sub_sector_id, category_id, status,
+       issued_at, valid_from, valid_until, conditions)
+    SELECT v_lic, NULL, l.id,
+           'FSRA-DEMO-AML-' || lpad(c.case_no::text,2,'0'), v_type,
+           l.sector_id, l.sub_sector_id, l.category_id, 'active',
+           '2023-03-01 00:00:00+00', '2023-03-01 00:00:00+00', '2027-12-31 00:00:00+00',
+           'Controlled demonstration record (DEMO AML dataset).'
+      FROM public.licensees l
+     WHERE l.id = ('aa220000-0000-4000-8000-0000000000' || lpad(c.case_no::text,2,'0'))::uuid
+    ON CONFLICT (id) DO UPDATE
+      SET holder_id      = EXCLUDED.holder_id,
+          license_number = EXCLUDED.license_number,
+          license_type   = EXCLUDED.license_type,
+          sector_id      = EXCLUDED.sector_id,
+          status         = 'active',
+          valid_from     = EXCLUDED.valid_from,
+          valid_until    = EXCLUDED.valid_until;
+
+    INSERT INTO public.entity_licenses
+      (id, entity_id, license_id, effective_from, effective_to, is_primary, source)
+    VALUES (('aa340000-0000-4000-8000-0000000000' || lpad(c.case_no::text,2,'0'))::uuid,
+            ('aa220000-0000-4000-8000-0000000000' || lpad(c.case_no::text,2,'0'))::uuid,
+            v_lic, '2023-03-01 00:00:00+00', NULL, true, 'SEED')
+    ON CONFLICT (id) DO UPDATE SET effective_to = NULL, is_primary = true;
+
+    -- the append-only term mechanism owns terms; assert its invariant only
+    SELECT count(*) INTO v_conflict
+      FROM public.license_terms WHERE license_id = v_lic AND is_current;
+    IF v_conflict <> 1 THEN
+      RAISE EXCEPTION 'DEMO AML seed: expected exactly 1 current term for %, found %', v_lic, v_conflict;
+    END IF;
+  END LOOP;
+
+  IF EXISTS (SELECT 1 FROM public.entity_licenses
+              WHERE entity_id = 'aa220000-0000-4000-8000-000000000021'
+                AND (effective_to IS NULL OR effective_to > now())) THEN
+    RAISE EXCEPTION 'DEMO AML seed: out-of-perimeter holding company must not hold a licence';
+  END IF;
+END $$;
+
+-- ---------------------------------------------------------------------------
 -- 4. Governed pipeline, executed as the real personas
 -- ---------------------------------------------------------------------------
 SET LOCAL ROLE authenticated;
@@ -239,10 +344,16 @@ DECLARE
   meth     uuid;
   claim_off  text := '{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}';
   claim_sup  text := '{"sub":"0b522724-adcb-48bf-b21d-175339479616","role":"authenticated"}';
+  claim_locked text;
   claim_sup2 text := '{"sub":"021f95d9-7da6-4ded-9b13-d2c8a6b8c3ce","role":"authenticated"}';
   claim_pru  text := '{"sub":"ef43e80a-e17e-4f26-aa91-bcf0d99e3d89","role":"authenticated"}';
   claim_enf  text := '{"sub":"7190c434-24c1-47dc-a2fb-c3cbad5bfaf3","role":"authenticated"}';
 BEGIN
+  claim_locked := coalesce(current_setting('app.demo_aml_dataset_locked', true), '0');
+  IF claim_locked = '1' THEN
+    RAISE NOTICE 'DEMO AML governed pipeline skipped: dataset already carries immutable published decisions';
+    RETURN;
+  END IF;
 -- Every AML/CFT rating must be attributable to a published methodology version.
 meth := (SELECT v FROM aml_ref WHERE case_no = 0 AND k = 'methodology');
 IF meth IS NULL THEN

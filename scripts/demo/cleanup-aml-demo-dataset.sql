@@ -30,7 +30,7 @@ BEGIN
 END $$;
 
 DO $$
-DECLARE ents uuid[]; asmts uuid[]; exams uuid[]; finds uuid[]; atts uuid[]; plans uuid[];
+DECLARE ents uuid[]; asmts uuid[]; exams uuid[]; finds uuid[]; atts uuid[]; plans uuid[]; locked int := 0;
 BEGIN
   SELECT coalesce(array_agg(id), '{}') INTO ents
     FROM public.licensees WHERE name LIKE 'DEMO AML %';
@@ -57,8 +57,22 @@ BEGIN
       OR a.id IN (SELECT attention_id FROM public.supervisory_attention_origin
                    WHERE assessment_id = ANY(asmts) OR examination_id = ANY(exams));
 
+  -- entity_risk_state_movement is IMMUTABLE by platform design (ersm_immutable)
+  -- and is additionally the FK parent-side reference for reassessment
+  -- requirements, assessments and publications. Once an AML/CFT risk movement
+  -- has been recorded for a demo entity the dataset is PERMANENT: it cannot be
+  -- removed without either bypassing the immutability guard or leaving orphaned
+  -- records, both of which are forbidden. In that case this script refuses to
+  -- run rather than leaving a half-removed dataset behind.
+  SELECT count(*) INTO locked FROM public.entity_risk_state_movement WHERE entity_id = ANY(ents);
+  IF locked > 0 THEN
+    RAISE NOTICE 'DEMO AML cleanup refused: % immutable risk movement(s) exist for the demo entities. The dataset is permanent by architecture (append-only risk history); nothing was removed.', locked;
+    RETURN;
+  END IF;
+
+
+
   PERFORM set_config('app.supervisory_risk_state_writer','assessment_transition', true);
-  DELETE FROM public.entity_risk_state_movement           WHERE entity_id = ANY(ents);
   DELETE FROM public.supervisory_reassessment_requirement WHERE entity_id = ANY(ents);
   DELETE FROM public.entity_risk_state                    WHERE entity_id = ANY(ents);
   DELETE FROM public.enforcement_actions                  WHERE entity_id = ANY(ents);
@@ -81,6 +95,12 @@ BEGIN
   PERFORM set_config('app.supervisory_risk_state_writer','', true);
 
   DELETE FROM public.entity_supervision_assignments WHERE entity_id = ANY(ents);
+
+  -- canonical licence attachments and the demo licences themselves
+  -- (license_terms / certificates cascade from public.licenses)
+  DELETE FROM public.entity_licenses WHERE entity_id = ANY(ents);
+  DELETE FROM public.licenses WHERE license_number LIKE 'FSRA-DEMO-AML-%' OR holder_id = ANY(ents);
+
   DELETE FROM public.licensees WHERE id = ANY(ents);
   DELETE FROM public.organizations o
    WHERE o.party_id IN (SELECT id FROM public.parties WHERE display_name LIKE 'DEMO AML %');
