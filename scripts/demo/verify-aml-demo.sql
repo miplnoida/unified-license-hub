@@ -24,7 +24,6 @@ DECLARE
   ents  uuid[];
   metrics jsonb;
 
-  PROCEDURE_note text;
 BEGIN
   SELECT coalesce(array_agg(id),'{}') INTO ents
     FROM public.licensees WHERE name LIKE 'DEMO AML %';
