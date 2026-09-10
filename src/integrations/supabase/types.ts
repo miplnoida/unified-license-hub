@@ -50898,6 +50898,7 @@ export type Database = {
           decided_at: string
           decided_by: string | null
           decision_kind: string
+          decision_seq: number
           disposition: string | null
           domain_code: string
           due_date_basis: string | null
@@ -50929,6 +50930,7 @@ export type Database = {
           decided_at?: string
           decided_by?: string | null
           decision_kind: string
+          decision_seq?: number
           disposition?: string | null
           domain_code: string
           due_date_basis?: string | null
@@ -50960,6 +50962,7 @@ export type Database = {
           decided_at?: string
           decided_by?: string | null
           decision_kind?: string
+          decision_seq?: number
           disposition?: string | null
           domain_code?: string
           due_date_basis?: string | null
