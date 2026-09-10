@@ -193,6 +193,7 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   { pattern: '/supervision/aml/examinations', label: 'Examinations', parent: '/supervision/aml' },
   { pattern: '/supervision/aml/findings', label: 'Findings', parent: '/supervision/aml' },
   { pattern: '/supervision/aml/heatmap', label: 'Risk heatmap', parent: '/supervision/aml' },
+  { pattern: '/supervision/aml/portfolio', label: 'Portfolio risk report', parent: '/supervision/aml' },
 
   // ----------------------------------------------------------- documents
   { pattern: '/documents/registry', label: 'Document registry', parent: '/dashboard' },

@@ -83,6 +83,7 @@ const AmlAssessmentWorkspace = lazy(() => import('@/pages/supervision/aml/AmlAss
 const AmlRiskHeatmap = lazy(() => import('@/pages/supervision/aml/AmlRiskHeatmap'));
 const AmlExaminations = lazy(() => import('@/pages/supervision/aml/AmlExaminations'));
 const AmlFindings = lazy(() => import('@/pages/supervision/aml/AmlFindings'));
+const AmlPortfolio = lazy(() => import('@/pages/supervision/aml/AmlPortfolio'));
 // Canonical, domain-neutral finding workspace shared by every supervisory domain.
 const FindingWorkspace = lazy(() => import('@/pages/supervision/FindingWorkspace'));
 
@@ -421,6 +422,7 @@ export const dashboardRoutes = (
     <Route path="/supervision/aml/heatmap" element={<M module="aml_supervision"><AmlRiskHeatmap /></M>} />
     <Route path="/supervision/aml/examinations" element={<M module="aml_supervision"><AmlExaminations /></M>} />
     <Route path="/supervision/aml/findings" element={<M module="aml_supervision"><AmlFindings /></M>} />
+    <Route path="/supervision/aml/portfolio" element={<M module="aml_supervision"><AmlPortfolio /></M>} />
 
     {/* Canonical enterprise examination workspace — authorization derives from
         the examination's real supervisory domain (AML/CFT, prudential, conduct).
