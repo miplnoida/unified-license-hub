@@ -118,3 +118,42 @@ Three consecutive full repository suites remain deferred to the final AML module
 ## AML-12 readiness
 
 Not yet — AML-11 behavioural SQL certification and the remaining regression gates must pass first.
+
+## Certification evidence (this pass)
+
+Behavioural SQL — `scripts/verify-aml-supervisory-outcome-effectiveness.sql`, one transaction,
+`ON_ERROR_STOP`, authenticated personas, AML11CERT fixtures, final `ROLLBACK`:
+**41 passed / 0 failed** — ELIG 6, EVAL 8, REVIEW 6, FOLLOW 5, REPORT 6, SEC 7, ROLLBACK 2,
+plus the post-rollback survivor proof.
+
+Rollback proof: after `ROLLBACK`, zero surviving AML11CERT evaluations, versions, review decisions,
+evidence snapshots/links, follow-up links/actions, consequence records, risk records, plans,
+enforcement records or audit events; no AML06–AML10 certification fixture survives; the AML
+risk-of-record digest and movement history are unchanged at
+`8385b6c8f7ba2b4102ab054c8f5ac686`.
+
+Genuine defects corrected by certification (server-side only, no redesign):
+
+1. `supervisory_outcome_evaluate` / `supervisory_outcome_review` called `log_compliance_audit`
+   with an `inet` argument that matches no overload, so every governed evaluation and review
+   aborted. Corrected to the canonical signature.
+2. `supervisory_outcome_action_internal` derived `action_completed_at` from target fields that the
+   shared AML-08 target helper never returns, so completion was always null. Completion is now read
+   from the owning record (`completed_at` / `closed_at` / `fulfilled_at`, falling back to
+   `updated_at`) and is null unless the action is complete.
+
+Frontend gates: UI-OUTCOME-01…25 **25 passed / 0 failed**; AML-11 frontend boundary
+**39 passed / 0 failed**. React decides no eligibility, conclusion, evidence sufficiency,
+maker-checker, approval, follow-up availability, portfolio total or risk change.
+
+Security: inherited advisories remain **1756**, unchanged before and after both corrective
+migrations; no new advisory class. Internal helpers stay revoked from `anon`/`authenticated`;
+every AML-11 definer routine pins `search_path`.
+
+Preservation: risk rating changed NO; risk history rewritten NO; historical action changed NO;
+closure treated as effectiveness NO; automatic follow-up created NO; evidence fabricated NO;
+approved evaluation rewritten NO; calculation policy authored NO; v1.0 changed NO; v1.1 changed or
+activated NO; LINK-11 rewritten NO; AML data deleted NO.
+
+Final three-run release certification remains deferred to the AML module release lock.
+AML-12 live policy activation stays blocked until authorised answers to DEC-01…DEC-08 are supplied.
