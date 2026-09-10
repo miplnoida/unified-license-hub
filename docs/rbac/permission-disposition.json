@@ -1111,12 +1111,6 @@
     },
     {
       "module": "supervisory_spine",
-      "action": "review",
-      "disposition": "reserved-granular",
-      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
-    },
-    {
-      "module": "supervisory_spine",
       "action": "submit",
       "disposition": "reserved-granular",
       "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
