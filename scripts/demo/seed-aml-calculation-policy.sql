@@ -7,30 +7,44 @@
 -- The AML/CFT methodology publishes dimensions, questions and rating scales, but
 -- no calculation policy has ever been approved, so the engine correctly reports
 -- every rating as NOT_CALCULABLE. This script authors a *demonstration*
--- calculation policy for a NEW methodology version (v1.2) and takes it through
--- the real maker/checker lifecycle:
+-- calculation policy for the live methodology AML-CFT-RBA v1.0 and takes it
+-- through the real maker/checker lifecycle:
 --
 --   DRAFT -> (validate) -> REVIEW -> APPROVED -> ACTIVE
 --
--- Nothing is inserted directly. Every value below is written through the
--- governed operations (supervisory_calculation_config_upsert,
--- _response_scores_set, _question_weights_set, _dimension_weights_set,
--- _bands_set, _matrix_set, _config_validate, _config_lifecycle,
--- supervisory_domain_calculation_rule_set, supervisory_methodology_new_version,
--- supervisory_methodology_lifecycle), under two distinct identities:
+-- Nothing is inserted directly. Every value below is written through the governed
+-- operations (supervisory_calculation_config_upsert, _response_scores_set,
+-- _dimension_weights_set, _bands_set, _matrix_set, _config_validate,
+-- _config_lifecycle, supervisory_domain_calculation_rule_set) under two distinct
+-- identities:
 --
 --   maker   = AML/CFT Methodology Configuration Officer  (manage_config only)
 --   checker = Head of AML/CFT                            (methodology_approve)
 --
 -- The server refuses self-approval, so both identities are genuinely required.
 --
+-- Why the policy attaches to v1.0 rather than to a new version
+-- -----------------------------------------------------------
+-- A calculation configuration is versioned, validated and approved in its own
+-- right, independently of methodology content. Publishing it as a new
+-- methodology version (v1.2) was attempted first and was refused by the server:
+-- v1.0 carries four structural findings that predate the current methodology
+-- quality rules (control-group weights not totalling 100, six dimensions with no
+-- active question, two duplicated question codes, 41 questions without a response
+-- semantics profile), and any new version inherits them. Clearing those findings
+-- is substantive methodology authoring — it requires regulator decisions on
+-- question content — so the calculation policy is attached to the live version
+-- instead. No methodology content is changed by this script.
+--
 -- What this script does NOT do
 -- ----------------------------
---  * It does not touch v1.0 (ACTIVE, REGULATOR_AUTHORED) content or v1.1
---    (DRAFT, MIPL_REFERENCE). v1.0 is superseded by the activation of v1.2 with
---    effective_from = today, so every historical assessment continues to resolve
---    and reproduce under v1.0.
+--  * It does not alter any methodology dimension, question, scale or status.
+--    v1.1 (DRAFT, MIPL_REFERENCE) is untouched.
 --  * It does not modify any existing assessment, rating, risk state or movement.
+--  * It does not re-date history. The configuration takes effect from today and
+--    the domain resolves policy as at the end of the assessed period, so every
+--    assessment of an earlier period continues to resolve no configuration and
+--    stays exactly as recorded.
 --  * It does not claim to be regulator policy. The parameter values are
 --    DEMONSTRATION values authorised for the demonstration environment; the real
 --    decisions DEC-01…DEC-08 remain a supervisory matter and are documented in
@@ -41,8 +55,9 @@
 --  DEC-01 effective-date rule ......... PERIOD_END
 --  DEC-02 response scoring ............ YES 100 / PARTIALLY 50 / NO 0,
 --                                       NOT_APPLICABLE excluded from denominator
---  DEC-03 weighting ................... every scored question weight 1;
---                                       dimensions carry their methodology weight
+--  DEC-03 weighting ................... questions participate equally (engine
+--                                       default, no per-question row written);
+--                                       dimensions carry the methodology weight
 --  DEC-04 aggregation ................. UNWEIGHTED_MEAN, ALL_MANDATORY_APPLICABLE,
 --                                       NOT_APPLICABLE EXCLUDE, evidence FLAG_ONLY,
 --                                       critical NONE, HALF_UP to 2 decimals,
@@ -54,7 +69,7 @@
 --  DEC-07 recommendation policy ....... HIGHEST_DIMENSION (worst residual dimension)
 --  DEC-08 override threshold .......... MEDIUM_HIGH
 --
--- Idempotent: an existing v1.2 with an ACTIVE configuration is left untouched.
+-- Idempotent: an existing ACTIVE configuration is left untouched.
 -- Non-production only.
 --
 -- Run: psql "$SUPABASE_DB_URL" -X -q -f scripts/demo/seed-aml-calculation-policy.sql
@@ -78,8 +93,7 @@ DO $$
 DECLARE
   claim_maker   text := '{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}';
   claim_checker text := '{"sub":"0b522724-adcb-48bf-b21d-175339479616","role":"authenticated"}';
-  v10  uuid;
-  v12  uuid;
+  meth uuid;
   cfg  uuid;
   risk text[];
   ctrl text[];
@@ -93,55 +107,40 @@ BEGIN
   -- does to the officer using the screen.
   PERFORM set_config('request.jwt.claims', claim_maker, true);
 
-  SELECT id INTO v10 FROM public.supervisory_methodology
+  SELECT id INTO meth FROM public.supervisory_methodology
    WHERE code = 'AML-CFT-RBA' AND version = '1.0' AND status = 'ACTIVE';
-  IF v10 IS NULL THEN
+  IF meth IS NULL THEN
     RAISE EXCEPTION 'the ACTIVE AML-CFT-RBA v1.0 methodology was not found: refusing to author a calculation policy against an unknown baseline';
   END IF;
 
-  SELECT id INTO v12 FROM public.supervisory_methodology
-   WHERE code = 'AML-CFT-RBA' AND version = '1.2';
-
-  IF v12 IS NOT NULL AND EXISTS (
-    SELECT 1 FROM public.supervisory_calculation_config
-     WHERE methodology_id = v12 AND status = 'ACTIVE') THEN
-    RAISE NOTICE 'AML-CFT-RBA v1.2 already carries an ACTIVE calculation configuration — nothing to do';
+  IF EXISTS (SELECT 1 FROM public.supervisory_calculation_config
+              WHERE methodology_id = meth AND status = 'ACTIVE') THEN
+    RAISE NOTICE 'AML-CFT-RBA v1.0 already carries an ACTIVE calculation configuration — nothing to do';
     RETURN;
   END IF;
 
   -- ------------------------------------------- DEC-01: effective-date rule ---
-  PERFORM set_config('request.jwt.claims', claim_maker, true);
   IF NOT EXISTS (SELECT 1 FROM public.supervisory_domain_calculation_rule
                   WHERE upper(domain_code) = 'AML_CFT') THEN
     PERFORM public.supervisory_domain_calculation_rule_set('AML_CFT', 'PERIOD_END',
       'Demonstration decision DEC-01: the methodology and calculation policy in force are resolved as at the end of the assessed period, so a supervisory conclusion is always measured against the policy that applied to the period under assessment.');
   END IF;
 
-  -- ------------------------------------------------- new methodology version --
-  IF v12 IS NULL THEN
-    v12 := public.supervisory_methodology_new_version(v10, '1.2',
-      'Demonstration version carrying the first complete AML/CFT calculation policy. Content is unchanged from v1.0; the change is the addition of an approved calculation configuration.');
-    PERFORM public.supervisory_methodology_metadata_save(v12, jsonb_build_object(
-      'effective_from', eff::text,
-      'change_summary', 'Adds a complete calculation policy (response scoring, weighting, bands, residual matrix, aggregation and recommendation policy). Dimensions and questions are identical to v1.0.',
-      'rationale', 'Version dated from today so that every assessment of an earlier period continues to resolve and reproduce under v1.0.'));
-  END IF;
-
   SELECT array_agg(x->>'code' ORDER BY (x->>'ordinal')::int)
     INTO risk FROM public.supervisory_methodology m,
-    jsonb_array_elements(m.scoring_scale) x WHERE m.id = v12;
+    jsonb_array_elements(m.scoring_scale) x WHERE m.id = meth;
   SELECT array_agg(v) INTO ctrl FROM public.supervisory_methodology m,
-    jsonb_array_elements_text(COALESCE(m.definition->'control_scale','[]'::jsonb)) v WHERE m.id = v12;
+    jsonb_array_elements_text(COALESCE(m.definition->'control_scale','[]'::jsonb)) v WHERE m.id = meth;
   IF risk IS NULL OR ctrl IS NULL THEN
     RAISE EXCEPTION 'the methodology publishes no risk or control scale: a calculation policy cannot be authored';
   END IF;
 
   -- --------------------------------------------------- draft configuration ---
   SELECT id INTO cfg FROM public.supervisory_calculation_config
-   WHERE methodology_id = v12 AND status = 'DRAFT' ORDER BY config_version DESC LIMIT 1;
+   WHERE methodology_id = meth AND status = 'DRAFT' ORDER BY config_version DESC LIMIT 1;
 
   -- DEC-04, DEC-07, DEC-08 — parameters
-  cfg := public.supervisory_calculation_config_upsert(v12, jsonb_build_object(
+  cfg := public.supervisory_calculation_config_upsert(meth, jsonb_build_object(
     'effective_from', eff::text,
     'aggregation_method', 'UNWEIGHTED_MEAN',
     'completeness_mode', 'ALL_MANDATORY_APPLICABLE',
@@ -153,7 +152,7 @@ BEGIN
     'inherent_direction', 'INVERTED',
     'recommendation_policy', 'HIGHEST_DIMENSION',
     'override_threshold', 'MEDIUM_HIGH',
-    'notes', 'DEMONSTRATION calculation policy for AML-CFT-RBA v1.2. Every value here is a demonstration decision authorised for the demonstration environment, not a regulator determination. Inherent questions are assurance statements, so the inherent score is inverted: weak assurance produces high inherent risk. Not-applicable answers leave the denominator. A dimension is rated only when every mandatory applicable question is answered.'
+    'notes', 'DEMONSTRATION calculation policy for AML-CFT-RBA v1.0, effective from its activation date only. Every value here is a demonstration decision authorised for the demonstration environment, not a regulator determination. Inherent questions are assurance statements, so the inherent score is inverted: weak assurance produces high inherent risk. Not-applicable answers leave the denominator. A dimension is rated only when every mandatory applicable question is answered.'
   ), cfg);
 
   -- DEC-02 — response scoring
@@ -191,12 +190,12 @@ BEGIN
                WHEN NOT EXISTS (SELECT 1 FROM public.supervisory_methodology_question q
                                  WHERE q.methodology_dimension_id = d.id AND q.active)
                  THEN 'EXCLUDED'
-               WHEN upper(COALESCE(d.dimension_kind,'')) LIKE '%CONTROL%' THEN 'CONTROL'
+               WHEN upper(COALESCE(d.dimension_kind,'')) = 'CONTROL' THEN 'CONTROL'
                ELSE 'INHERENT' END,
              'weight', COALESCE(d.weight, 1),
              'aggregation_method', 'UNWEIGHTED_MEAN')), '[]'::jsonb)
       FROM public.supervisory_methodology_dimension d
-     WHERE d.methodology_id = v12 AND d.active));
+     WHERE d.methodology_id = meth AND d.active));
 
   -- DEC-05 — bands. Inherent: the inverted score rises with risk, so the lowest
   -- interval is the lowest risk. Control: the score rises with control strength.
@@ -245,29 +244,12 @@ BEGIN
 
   PERFORM set_config('request.jwt.claims', claim_checker, true);
   PERFORM public.supervisory_calculation_config_lifecycle(cfg, 'APPROVED',
-    'Approved as the demonstration calculation policy for AML-CFT-RBA v1.2: scoring, weighting, bands, residual matrix and recommendation policy are internally consistent with the published risk and control scales.');
+    'Approved as the demonstration calculation policy for AML-CFT-RBA v1.0: scoring, weighting, bands, residual matrix and recommendation policy are internally consistent with the published risk and control scales.');
   PERFORM public.supervisory_calculation_config_lifecycle(cfg, 'ACTIVE',
-    'Activated with effect from today. Assessments of earlier periods continue to resolve the policy that applied to their period.');
-
-  -- --------------------------------------------- methodology version lifecycle
-  PERFORM set_config('request.jwt.claims', claim_maker, true);
-  IF (SELECT status FROM public.supervisory_methodology WHERE id = v12) = 'DRAFT' THEN
-    PERFORM public.supervisory_methodology_lifecycle(v12, 'REVIEW',
-      'Submitted for approval with a complete, approved calculation configuration attached.');
-  END IF;
-
-  PERFORM set_config('request.jwt.claims', claim_checker, true);
-  IF (SELECT status FROM public.supervisory_methodology WHERE id = v12) = 'REVIEW' THEN
-    PERFORM public.supervisory_methodology_lifecycle(v12, 'APPROVED',
-      'Approved: content is carried unchanged from v1.0 and the attached calculation policy has itself been independently approved.');
-  END IF;
-  IF (SELECT status FROM public.supervisory_methodology WHERE id = v12) = 'APPROVED' THEN
-    PERFORM public.supervisory_methodology_lifecycle(v12, 'ACTIVE',
-      'Activated from today so that AML/CFT assessments of current periods can produce a calculated rating.');
-  END IF;
+    'Activated with effect from today. Assessments of earlier periods resolve no calculation policy and remain exactly as recorded.');
 
   PERFORM set_config('request.jwt.claims', '', true);
-  RAISE NOTICE 'AML-CFT-RBA v1.2 methodology % with calculation configuration % is active from %', v12, cfg, eff;
+  RAISE NOTICE 'AML-CFT-RBA v1.0 calculation configuration % is ACTIVE from %', cfg, eff;
 END $$;
 
 COMMIT;
