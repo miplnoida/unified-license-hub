@@ -15,7 +15,7 @@ Target length: 12–14 minutes. One continuous supervisory story, no mock screen
 | 9 | Partly worked file: 12 of 41 answered | SCEN-05 | 0:30 | READY |
 | 10 | Calculation policy governance, approval and rating publication | calculation screens + SCEN-06 | 1:00 | READY — demonstration policy values, stated on camera |
 | 11 | Consequence: plan opened and reassessment required | DEMO AML 06 | 1:00 | READY |
-| 12 | Escalation chain: plan → intervention endorsed → examination → high finding issued | DEMO AML 07 | 1:30 | READY |
+| 12 | Escalation chain: plan → intervention endorsed → examination; plus a separately sourced high finding issued | DEMO AML 07 | 1:30 | READY |
 | 13 | Review-cycle governance: monitoring recorded, review brought forward | DEMO AML 08 | 0:45 | READY |
 | 14 | Effectiveness: completed plan evaluated PARTIALLY_EFFECTIVE, independently approved | DEMO AML 05 | 1:15 | READY |
 | 15 | Server refusal: an open plan cannot be evaluated | DEMO AML 09 | 0:30 | READY |

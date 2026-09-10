@@ -42,8 +42,9 @@ to make a demonstration look complete."
 targeted reassessment. Each carries a written rationale and full lineage back to the risk record."
 
 **Scene 12 — Escalation.** "The chain is enforced: a plan, an intervention endorsed by a supervisor, an
-examination authorised by that endorsement, and a high severity finding issued to the institution. The
-examination could not be opened before the endorsement existed."
+examination authorised by that endorsement, and — recorded separately, as arising from the risk
+assessment — a high severity finding issued to the institution. The examination could not be opened
+before the endorsement existed, and a finding always carries its own recorded source."
 
 **Scene 13 — Review cycle.** "Monitoring is recorded and the next review is brought forward, with the
 reason stored on the decision."
