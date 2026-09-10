@@ -180,7 +180,7 @@ BEGIN
     VALUES (ent, c.name, p, sect, 'active',
             (SELECT id FROM public.entity_identity_statuses WHERE key = 'verified'))
     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, sector_id = EXCLUDED.sector_id, status = 'active',
-                                   identity_status_id = COALESCE(public.licensees.identity_status_id, EXCLUDED.identity_status_id);
+                                   identity_status_id = COALESCE(licensees.identity_status_id, EXCLUDED.identity_status_id);
     INSERT INTO aml_ref(case_no,k,v) VALUES (c.case_no,'ent',ent);
 
     FOR u IN SELECT * FROM (VALUES
