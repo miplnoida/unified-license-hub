@@ -43,9 +43,16 @@ INSERT INTO c_id(k,v) VALUES
 
 INSERT INTO c_id(k,v)
 SELECT 'sector', l.sector_id FROM public.licensees l WHERE l.id=(SELECT v FROM c_id WHERE k='entity');
+-- a second entity inside the same supervisory scope that carries no AML/CFT
+-- risk-of-record: used for the "no source" and cross-entity linkage gates.
 INSERT INTO c_id(k,v)
 SELECT 'other_entity', l.id FROM public.licensees l
- WHERE l.id <> (SELECT v FROM c_id WHERE k='entity') ORDER BY l.id LIMIT 1;
+ WHERE l.id <> (SELECT v FROM c_id WHERE k='entity')
+   AND l.regulator_id = (SELECT l2.regulator_id FROM public.licensees l2
+                          WHERE l2.id = (SELECT v FROM c_id WHERE k='entity'))
+   AND NOT EXISTS (SELECT 1 FROM public.entity_risk_state s
+                    WHERE s.entity_id = l.id AND s.domain_code='AML_CFT')
+ ORDER BY l.id LIMIT 1;
 
 -- ---------------------------------------------------------------- census ----
 INSERT INTO c_n(k,n) VALUES
