@@ -431,8 +431,9 @@ describe('AML-10 portfolio reporting — server-authoritative reading', () => {
     renderReport();
     await waitFor(() => expect(screen.getByTestId('port-summary')).toBeInTheDocument());
     calls.length = 0;
-    await userEvent.click(screen.getByLabelText('Review status'));
-    await userEvent.click(await screen.findByText('Review overdue'));
+    const user = userEvent.setup({ delay: null, pointerEventsCheck: 0 });
+    await user.click(screen.getByTestId('port-state'));
+    await user.click(await screen.findByRole('option', { name: 'Review overdue' }));
     await waitFor(() => expect(
       calls.some((c) => c.fn === 'supervisory_portfolio_report'
         && c.args._payload.monitoring_state === 'OVERDUE'),

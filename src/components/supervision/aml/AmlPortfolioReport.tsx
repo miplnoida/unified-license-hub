@@ -104,7 +104,7 @@ export function AmlPortfolioReport({ domainCode = 'AML_CFT' }: { domainCode?: st
             <div className="space-y-1">
               <Label htmlFor="port-state">Review status</Label>
               <Select value={state} onValueChange={setState}>
-                <SelectTrigger id="port-state" className="h-9"><SelectValue /></SelectTrigger>
+                <SelectTrigger id="port-state" data-testid="port-state" className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All review statuses</SelectItem>
                   {REVIEW_STATES.map((v) => (
