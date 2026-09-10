@@ -30,7 +30,7 @@ BEGIN
 END $$;
 
 DO $$
-DECLARE ents uuid[]; asmts uuid[]; exams uuid[]; finds uuid[]; atts uuid[]; plans uuid[];
+DECLARE ents uuid[]; asmts uuid[]; exams uuid[]; finds uuid[]; atts uuid[]; plans uuid[]; locked int := 0;
 BEGIN
   SELECT coalesce(array_agg(id), '{}') INTO ents
     FROM public.licensees WHERE name LIKE 'DEMO AML %';
@@ -57,8 +57,14 @@ BEGIN
       OR a.id IN (SELECT attention_id FROM public.supervisory_attention_origin
                    WHERE assessment_id = ANY(asmts) OR examination_id = ANY(exams));
 
+  -- entity_risk_state_movement is IMMUTABLE by platform design (ersm_immutable):
+  -- it can never be deleted. Because the demo entities are referenced by these
+  -- permanent movements, the entities themselves must be retained too, otherwise
+  -- the movements would become orphans. Removal is therefore scoped to every
+  -- record class the architecture allows to be removed.
+  SELECT count(*) INTO locked FROM public.entity_risk_state_movement WHERE entity_id = ANY(ents);
+
   PERFORM set_config('app.supervisory_risk_state_writer','assessment_transition', true);
-  DELETE FROM public.entity_risk_state_movement           WHERE entity_id = ANY(ents);
   DELETE FROM public.supervisory_reassessment_requirement WHERE entity_id = ANY(ents);
   DELETE FROM public.entity_risk_state                    WHERE entity_id = ANY(ents);
   DELETE FROM public.enforcement_actions                  WHERE entity_id = ANY(ents);
@@ -86,6 +92,12 @@ BEGIN
   -- (license_terms / certificates cascade from public.licenses)
   DELETE FROM public.entity_licenses WHERE entity_id = ANY(ents);
   DELETE FROM public.licenses WHERE license_number LIKE 'FSRA-DEMO-AML-%' OR holder_id = ANY(ents);
+
+  IF locked > 0 THEN
+    RAISE NOTICE 'DEMO AML content removed; % immutable risk movement(s) and their % demo entities are retained (append-only architecture, deleting the entities would orphan the movements)',
+      locked, array_length(ents,1);
+    RETURN;
+  END IF;
 
   DELETE FROM public.licensees WHERE id = ANY(ents);
   DELETE FROM public.organizations o
