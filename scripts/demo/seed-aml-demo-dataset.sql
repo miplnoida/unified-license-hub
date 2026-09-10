@@ -176,9 +176,11 @@ BEGIN
     INSERT INTO public.parties(id, party_kind, display_name)
     VALUES (p,'ORGANIZATION', c.name)
     ON CONFLICT (id) DO UPDATE SET display_name = EXCLUDED.display_name;
-    INSERT INTO public.licensees(id, name, party_id, sector_id, status)
-    VALUES (ent, c.name, p, sect, 'active')
-    ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, sector_id = EXCLUDED.sector_id, status = 'active';
+    INSERT INTO public.licensees(id, name, party_id, sector_id, status, identity_status_id)
+    VALUES (ent, c.name, p, sect, 'active',
+            (SELECT id FROM public.entity_identity_statuses WHERE key = 'verified'))
+    ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, sector_id = EXCLUDED.sector_id, status = 'active',
+                                   identity_status_id = COALESCE(public.licensees.identity_status_id, EXCLUDED.identity_status_id);
     INSERT INTO aml_ref(case_no,k,v) VALUES (c.case_no,'ent',ent);
 
     FOR u IN SELECT * FROM (VALUES
