@@ -89,6 +89,10 @@ DECLARE
   eff  date := current_date;
 BEGIN
   -- ---------------------------------------------------------------- baseline --
+  -- Read as the maker: row-level security applies to this session exactly as it
+  -- does to the officer using the screen.
+  PERFORM set_config('request.jwt.claims', claim_maker, true);
+
   SELECT id INTO v10 FROM public.supervisory_methodology
    WHERE code = 'AML-CFT-RBA' AND version = '1.0' AND status = 'ACTIVE';
   IF v10 IS NULL THEN
