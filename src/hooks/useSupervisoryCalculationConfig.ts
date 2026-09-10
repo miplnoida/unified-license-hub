@@ -64,6 +64,12 @@ export interface CalculationConfig {
   /** Exclusive end of the effective window: [effective_from, effective_to). */
   effective_to: string | null;
   aggregation_method: string | null;
+  /**
+   * Dimension completeness rule. `MIN_ANSWERED` requires the configured minimum
+   * count; `ALL_MANDATORY_APPLICABLE` requires every mandatory applicable
+   * question of the dimension to be answered. Undecided until an owner chooses.
+   */
+  completeness_mode: string | null;
   min_answered_questions: number | null;
   na_denominator_handling: string | null;
   evidence_insufficiency_handling: string | null;
