@@ -793,10 +793,19 @@ END $$;
 DO $$
 DECLARE res jsonb; iv public.supervisory_intervention; n_before int;
 BEGIN
-  -- promote the AML08CERT plan through its own governed lifecycle
-  PERFORM set_config('app.supervisory_plan_writer','governed', true);
-  UPDATE public.supervisory_plan SET status='ACTIVE' WHERE id=(SELECT v FROM c_id WHERE k='plan');
-  PERFORM set_config('app.supervisory_plan_writer','', true);
+  -- promote the AML08CERT plan through its own governed lifecycle: the officer
+  -- submits, the reviewing supervisor approves and activates.
+  SET LOCAL ROLE authenticated;
+  PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
+  PERFORM public.supervisory_plan_lifecycle((SELECT v FROM c_id WHERE k='plan'), 'SUBMITTED',
+    'AML08CERT: submitting the consequence plan for supervisory approval.');
+  PERFORM set_config('request.jwt.claims','{"sub":"0b522724-adcb-48bf-b21d-175339479616","role":"authenticated"}', true);
+  PERFORM public.supervisory_plan_lifecycle((SELECT v FROM c_id WHERE k='plan'), 'APPROVED',
+    'AML08CERT: approving the consequence plan as reviewing supervisor.');
+  PERFORM public.supervisory_plan_lifecycle((SELECT v FROM c_id WHERE k='plan'), 'ACTIVE',
+    'AML08CERT: activating the approved consequence plan.');
+  RESET ROLE;
+
   SELECT count(*) INTO n_before FROM public.supervisory_intervention;
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
