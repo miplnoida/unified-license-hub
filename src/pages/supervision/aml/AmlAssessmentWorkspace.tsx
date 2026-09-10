@@ -21,6 +21,7 @@ import { AmlEntityRiskHistory } from '@/components/supervision/aml/AmlEntityRisk
 
 import { AmlSupervisoryActivity } from '@/components/supervision/aml/AmlSupervisoryActivity';
 import { AmlSupervisoryConsequencePanel } from '@/components/supervision/aml/AmlSupervisoryConsequencePanel';
+import { AmlOutcomeEffectivenessPanel } from '@/components/supervision/aml/AmlOutcomeEffectivenessPanel';
 import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, statusTone, titleCase, trendTone } from '@/lib/amlLabels';
 
 
@@ -290,8 +291,9 @@ export default function AmlAssessmentWorkspace() {
             <AmlEntityRiskHistory entityId={h.entity_id} />
           </TabsContent>
 
-          <TabsContent value="consequence" className="mt-4">
+          <TabsContent value="consequence" className="mt-4 space-y-4">
             <AmlSupervisoryConsequencePanel entityId={h.entity_id} assessmentId={h.id} />
+            <AmlOutcomeEffectivenessPanel entityId={h.entity_id} />
           </TabsContent>
 
 
