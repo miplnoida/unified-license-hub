@@ -17,6 +17,7 @@ import { useAmlEntityPanel } from '@/hooks/useAmlSupervision';
 import { fmtDate, ratingTone, statusTone, titleCase, trendTone } from '@/lib/amlLabels';
 import { AmlEntityRiskHistory } from '@/components/supervision/aml/AmlEntityRiskHistory';
 import { AmlSupervisoryConsequencePanel } from '@/components/supervision/aml/AmlSupervisoryConsequencePanel';
+import { AmlOutcomeEffectivenessPanel } from '@/components/supervision/aml/AmlOutcomeEffectivenessPanel';
 import { AmlRiskMonitoringPanel } from '@/components/supervision/aml/AmlRiskMonitoringPanel';
 
 function Tile({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {

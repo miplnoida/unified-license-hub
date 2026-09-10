@@ -21,6 +21,7 @@ import { AmlEntityRiskHistory } from '@/components/supervision/aml/AmlEntityRisk
 
 import { AmlSupervisoryActivity } from '@/components/supervision/aml/AmlSupervisoryActivity';
 import { AmlSupervisoryConsequencePanel } from '@/components/supervision/aml/AmlSupervisoryConsequencePanel';
+import { AmlOutcomeEffectivenessPanel } from '@/components/supervision/aml/AmlOutcomeEffectivenessPanel';
 import { AMBER, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, statusTone, titleCase, trendTone } from '@/lib/amlLabels';
 
 
