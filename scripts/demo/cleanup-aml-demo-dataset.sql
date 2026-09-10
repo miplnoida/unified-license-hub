@@ -57,12 +57,20 @@ BEGIN
       OR a.id IN (SELECT attention_id FROM public.supervisory_attention_origin
                    WHERE assessment_id = ANY(asmts) OR examination_id = ANY(exams));
 
-  -- entity_risk_state_movement is IMMUTABLE by platform design (ersm_immutable):
-  -- it can never be deleted. Because the demo entities are referenced by these
-  -- permanent movements, the entities themselves must be retained too, otherwise
-  -- the movements would become orphans. Removal is therefore scoped to every
-  -- record class the architecture allows to be removed.
+  -- entity_risk_state_movement is IMMUTABLE by platform design (ersm_immutable)
+  -- and is additionally the FK parent-side reference for reassessment
+  -- requirements, assessments and publications. Once an AML/CFT risk movement
+  -- has been recorded for a demo entity the dataset is PERMANENT: it cannot be
+  -- removed without either bypassing the immutability guard or leaving orphaned
+  -- records, both of which are forbidden. In that case this script refuses to
+  -- run rather than leaving a half-removed dataset behind.
   SELECT count(*) INTO locked FROM public.entity_risk_state_movement WHERE entity_id = ANY(ents);
+  IF locked > 0 THEN
+    RAISE NOTICE 'DEMO AML cleanup refused: % immutable risk movement(s) exist for the demo entities. The dataset is permanent by architecture (append-only risk history); nothing was removed.', locked;
+    RETURN;
+  END IF;
+
+
 
   PERFORM set_config('app.supervisory_risk_state_writer','assessment_transition', true);
   DELETE FROM public.supervisory_reassessment_requirement WHERE entity_id = ANY(ents);
