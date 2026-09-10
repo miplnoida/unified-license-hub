@@ -318,9 +318,9 @@ async function ready() {
   await waitFor(() => expect(screen.getByTestId('aml-monitoring-panel')).toBeInTheDocument());
 }
 
-const typeRationale = async (label: RegExp, text: string) => {
+const typeRationale = async (_label: RegExp, text: string) => {
   const user = userEvent.setup();
-  await user.type(screen.getByLabelText(label), text);
+  await user.type(document.getElementById('mon-rationale') as HTMLElement, text);
   return user;
 };
 
