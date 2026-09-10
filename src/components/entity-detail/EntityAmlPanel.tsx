@@ -17,6 +17,7 @@ import { useAmlEntityPanel } from '@/hooks/useAmlSupervision';
 import { fmtDate, ratingTone, statusTone, titleCase, trendTone } from '@/lib/amlLabels';
 import { AmlEntityRiskHistory } from '@/components/supervision/aml/AmlEntityRiskHistory';
 import { AmlSupervisoryConsequencePanel } from '@/components/supervision/aml/AmlSupervisoryConsequencePanel';
+import { AmlRiskMonitoringPanel } from '@/components/supervision/aml/AmlRiskMonitoringPanel';
 
 function Tile({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return (
@@ -207,6 +208,8 @@ export function EntityAmlPanel({ entityId }: { entityId: string }) {
           </CardContent>
         </Card>
       </div>
+
+      <AmlRiskMonitoringPanel entityId={entityId} />
 
       <AmlSupervisoryConsequencePanel entityId={entityId} />
     </div>
