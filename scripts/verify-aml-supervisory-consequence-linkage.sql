@@ -1974,7 +1974,7 @@ BEGIN
        + (SELECT count(*) FROM public.entity_risk_state_movement WHERE COALESCE(reason,'') LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.supervisory_consequence_decision)
        + (SELECT count(*) FROM public.supervisory_plan WHERE COALESCE(title,'') LIKE 'AML08CERT%')
-       + (SELECT count(*) FROM public.supervisory_reassessment_requirement WHERE COALESCE(rationale,'') LIKE 'AML08CERT%')
+       + (SELECT count(*) FROM public.supervisory_reassessment_requirement WHERE COALESCE(trigger_rationale,'') LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.supervisory_intervention WHERE COALESCE(title,'') LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.examinations WHERE COALESCE(title,'') LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.supervisory_finding WHERE COALESCE(reference,'') LIKE 'AML08CERT%'
