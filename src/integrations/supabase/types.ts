@@ -70209,6 +70209,10 @@ export type Database = {
         Returns: Json
       }
       supervisory_outcome_followup: { Args: { _payload: Json }; Returns: Json }
+      supervisory_outcome_may_prepare: {
+        Args: { _uid: string }
+        Returns: boolean
+      }
       supervisory_outcome_portfolio_totals_internal: {
         Args: { _payload?: Json }
         Returns: Json
