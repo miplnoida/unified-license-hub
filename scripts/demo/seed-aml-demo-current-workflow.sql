@@ -62,8 +62,9 @@ BEGIN
   -- the governed programme the server itself offers for these demo entities
   SELECT p.id INTO prog
     FROM public.supervisory_assessment_programme p
-   WHERE p.domain_code = 'AML_CFT' AND p.trigger_type = 'PERIODIC' AND p.is_active
-   ORDER BY p.created_at LIMIT 1;
+    JOIN public.supervisory_assessment_programme_set s ON s.id = p.programme_set_id
+   WHERE s.domain_code = 'AML_CFT' AND p.assessment_type = 'PERIODIC' AND p.is_active
+   ORDER BY p.sort_order, p.created_at LIMIT 1;
   IF prog IS NULL THEN
     RAISE EXCEPTION 'no active AML/CFT PERIODIC assessment programme: additive demo assessments cannot be created through the governed path';
   END IF;
