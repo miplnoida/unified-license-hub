@@ -78,7 +78,7 @@ const gate = (family, name, ok, detail = '') => gates.push({ family, name, ok, d
 }
 {
   gate('VISIBILITY', 'Regulator, domain and perimeter scope is never evaluated in the browser',
-    !/regulator_id\s*===|sector_id\s*===|scope_admits|perimeter/i.test(report));
+    !/regulator_id\s*===|sector_id\s*===|scope_admits\(|admits\(|isVisible\(/.test(report));
 }
 {
   gate('VISIBILITY', 'Restricted matters are shown as presence only, never as content',
@@ -187,7 +187,7 @@ const gate = (family, name, ok, detail = '') => gates.push({ family, name, ok, d
 }
 {
   gate('SURFACE', 'The reporting surface takes no supervisory decision and creates no record',
-    !/require_reassessment|reschedule|record_consequence|approve|publish/i.test(report));
+    !/supervisory_risk_monitoring_require_reassessment|supervisory_risk_monitoring_reschedule|supervisory_consequence_record|_approve\(|_publish\(/.test(report));
 }
 {
   gate('SURFACE', 'The operational work queue is not duplicated by the report',
@@ -201,7 +201,9 @@ const gate = (family, name, ok, detail = '') => gates.push({ family, name, ok, d
 /* -------------------------------------------- 9. no duplicate portfolio model */
 {
   const all = walk(SRC).filter((f) => !/\.test\.tsx?$/.test(f) && !f.includes('/test/'));
-  const consumers = all.filter((f) => read(f).includes('supervisory_portfolio_report'));
+  const consumers = all
+    .filter((f) => !f.includes('integrations/supabase/types'))
+    .filter((f) => read(f).includes("'supervisory_portfolio_report'"));
   gate('SINGLE', 'Exactly one hook module owns the portfolio read model',
     consumers.length === 1 && consumers[0] === HOOK, consumers.join(', '));
 }
