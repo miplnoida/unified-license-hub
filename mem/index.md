@@ -28,3 +28,4 @@
 - [Returns Filing Workspace](mem://features/returns/filing-workspace-and-financial-rules) — Form-level navigator, Review & Submit, configurable balance-sheet equation
 - [Methodology Approval Layers](mem://features/methodology/reference-vs-regulator-approval) — MIPL reference approval never counts as regulator approval
 - [Methodology Authority](mem://features/methodology/regulator-scoped-authority) — Regulator scope, methodology vs assessment approval, technical vs substantive authority
+- [Demo Data Integrity](mem://demo/demo-data-integrity-rule) — Mandatory canonical/governed demo seeding rules, integrity gates, reversible cleanup
