@@ -913,6 +913,22 @@ BEGIN
   RESET ROLE;
   IF NOT refused THEN
     RAISE EXCEPTION 'FAIL CREATE-09: a risk rating alone was accepted as a basis for enforcement'; END IF;
+  -- the canonical enforcement operation additionally requires an explicit
+  -- remediation-bypass rationale when the finding carries no corrective action.
+  -- That control must hold through the consequence operation too.
+  refused := false;
+  SET LOCAL ROLE authenticated;
+  PERFORM set_config('request.jwt.claims','{"sub":"0b522724-adcb-48bf-b21d-175339479616","role":"authenticated"}', true);
+  BEGIN PERFORM public.supervisory_consequence_record(jsonb_build_object(
+    'entity_id',(SELECT v FROM c_id WHERE k='entity'),'domain_code','AML_CFT',
+    'assessment_id',(SELECT v FROM c_id WHERE k='assessment'),
+    'action_type','REFER_TO_ENFORCEMENT','linkage_mode','CREATE',
+    'source_finding_id',(SELECT v FROM c_id WHERE k='finding'),
+    'rationale','AML08CERT: referral attempted with no remediation bypass rationale stated.'));
+  EXCEPTION WHEN others THEN refused := true; END;
+  RESET ROLE;
+  IF NOT refused THEN
+    RAISE EXCEPTION 'FAIL CREATE-09: a finding with no corrective action was referred without a stated remediation bypass rationale'; END IF;
   SELECT count(*) INTO n_before FROM public.enforcement_actions;
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"0b522724-adcb-48bf-b21d-175339479616","role":"authenticated"}', true);
@@ -921,6 +937,7 @@ BEGIN
     'assessment_id',(SELECT v FROM c_id WHERE k='assessment'),
     'action_type','REFER_TO_ENFORCEMENT','linkage_mode','CREATE',
     'source_finding_id',(SELECT v FROM c_id WHERE k='finding'),
+    'remediation_bypass_rationale','AML08CERT: the AML/CFT breach is referred immediately without a remediation window.',
     'rationale','AML08CERT: the canonical AML/CFT finding is referred to enforcement for consideration.'));
   RESET ROLE;
   INSERT INTO c_id(k,v) VALUES ('dec_enf', (res->>'decision_id')::uuid), ('enforcement', (res->>'target_id')::uuid);
