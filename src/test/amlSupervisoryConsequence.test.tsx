@@ -238,7 +238,13 @@ async function ready() {
   await waitFor(() => expect(screen.getByTestId('aml-consequence-panel')).toBeInTheDocument());
 }
 
+// jsdom lacks the pointer-capture APIs the Radix select primitive calls.
 beforeEach(() => {
+  const proto = window.HTMLElement.prototype as any;
+  proto.hasPointerCapture = () => false;
+  proto.setPointerCapture = () => {};
+  proto.releasePointerCapture = () => {};
+  proto.scrollIntoView = () => {};
   cleanup();
   mode = 'published';
   rpcError = null;
