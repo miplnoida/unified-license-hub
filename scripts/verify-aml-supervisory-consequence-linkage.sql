@@ -1017,7 +1017,8 @@ BEGIN
   IF (SELECT count(*) FROM public.supervisory_finding) <> n_before THEN
     RAISE EXCEPTION 'FAIL LINK-01: linking created a duplicate downstream record'; END IF;
   IF d.linkage_mode <> 'LINK' OR d.target_id <> (SELECT v FROM c_id WHERE k='examination') THEN
-    RAISE EXCEPTION 'FAIL LINK-01: the link does not reference the existing record'; END IF;
+    RAISE EXCEPTION 'FAIL LINK-01: the link does not reference the existing record (mode=%, target=%, expected=%, returned=%)',
+      d.linkage_mode, d.target_id, (SELECT v FROM c_id WHERE k='examination'), res; END IF;
   RAISE NOTICE 'PASS LINK-01: an existing same-entity record is linked without creating anything new';
 END $$;
 
