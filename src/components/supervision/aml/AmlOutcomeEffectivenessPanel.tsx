@@ -288,6 +288,7 @@ export function AmlOutcomeEffectivenessPanel({
               </div>
 
               <Button
+                data-rbac="aml_supervision.review"
                 data-testid="outcome-submit"
                 disabled={!decisionId || !conclusion || evaluate.isPending}
                 onClick={() =>
@@ -398,6 +399,7 @@ export function AmlOutcomeEffectivenessPanel({
                       <div className="flex gap-2">
                         <Button
                           size="sm"
+                          data-rbac="aml_supervision.approve"
                           data-testid={`outcome-approve-${e.id}`}
                           disabled={review.isPending}
                           onClick={() =>
@@ -415,6 +417,7 @@ export function AmlOutcomeEffectivenessPanel({
                         <Button
                           size="sm"
                           variant="outline"
+                          data-rbac="aml_supervision.approve"
                           data-testid={`outcome-return-${e.id}`}
                           disabled={review.isPending}
                           onClick={() =>
@@ -501,6 +504,7 @@ export function AmlOutcomeEffectivenessPanel({
               />
             </div>
             <Button
+              data-rbac="aml_supervision.create"
               data-testid="outcome-followup-submit"
               disabled={!followupId || !followupAction || !followupTarget || followup.isPending}
               onClick={() =>

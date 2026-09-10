@@ -1075,12 +1075,6 @@
     },
     {
       "module": "supervisory_spine",
-      "action": "approve",
-      "disposition": "reserved-granular",
-      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
-    },
-    {
-      "module": "supervisory_spine",
       "action": "assign",
       "disposition": "reserved-granular",
       "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
@@ -1094,12 +1088,6 @@
     {
       "module": "supervisory_spine",
       "action": "close",
-      "disposition": "reserved-granular",
-      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
-    },
-    {
-      "module": "supervisory_spine",
-      "action": "create",
       "disposition": "reserved-granular",
       "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
     },
