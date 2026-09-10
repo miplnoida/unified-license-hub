@@ -698,8 +698,8 @@ DECLARE n bigint;
 BEGIN
   SELECT count(*) INTO n FROM public.compliance_audit_logs
    WHERE created_at >= now() - interval '10 minutes'
-     AND (record_id = (SELECT v FROM u_id WHERE k='assessment')
-       OR record_id = (SELECT v FROM u_id WHERE k='dec_plan'));
+     AND (object_id = (SELECT v FROM u_id WHERE k='assessment')::text
+       OR object_id = (SELECT v FROM u_id WHERE k='dec_plan')::text);
   IF n = 0 THEN RAISE EXCEPTION 'UAT-15: the journey produced no audit records'; END IF;
   PERFORM pg_temp.pass('UAT-15-A', format('the journey produced %s audit records', n));
 END $$;
