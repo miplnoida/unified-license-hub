@@ -44,20 +44,46 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
--- 1. Remove any previous DEMO AML dataset (makes the script idempotent)
+-- 1. Idempotency: append-only-safe rebuild decision
 -- ---------------------------------------------------------------------------
--- Rebuild semantics: the demo entities themselves are stable (deterministic ids)
--- and are never deleted. All governed supervisory content raised by a previous
--- run is removed, except supervisory interventions: their event log is
--- append-only by design and cannot be deleted, so a previous run's interventions
--- are cancelled and detached instead. Running the script twice therefore leaves
--- the same live dataset.
+-- Rebuild semantics (corrected under the demo data-integrity addendum):
+--
+--   * The demo entities themselves are stable (deterministic ids) and are never
+--     deleted. Registry and licence fixtures (sections 3 and 3c) are pure
+--     upserts and always re-run safely.
+--   * Records the platform declares IMMUTABLE — entity_risk_state_movement,
+--     supervisory_assessment_approval_decision,
+--     supervisory_assessment_risk_publication and the supervisory intervention
+--     event log — are append-only by architecture. This script therefore never
+--     attempts to delete them. Deleting them is architecturally impossible and
+--     bypassing the guard is forbidden.
+--   * Consequence: once a governed AML/CFT decision has been published for a
+--     demo entity, the dataset for that entity is permanent. Re-running the
+--     seed then leaves the existing dataset exactly as it is (governed pipeline
+--     skipped) instead of duplicating it.
+--   * When no immutable record exists yet, a previous partial run is removed in
+--     full and the dataset is rebuilt deterministically.
 
 DO $$
 DECLARE ents uuid[]; asmts uuid[]; exams uuid[]; finds uuid[]; atts uuid[]; plans uuid[];
+        locked int;
 BEGIN
   SELECT coalesce(array_agg(id), '{}') INTO ents
     FROM public.licensees WHERE name LIKE 'DEMO AML %';
+  IF array_length(ents,1) IS NULL THEN
+    PERFORM set_config('app.demo_aml_dataset_locked','0', true);
+    RETURN;
+  END IF;
+
+  SELECT count(*) INTO locked
+    FROM public.entity_risk_state_movement WHERE entity_id = ANY(ents);
+  IF locked > 0 THEN
+    PERFORM set_config('app.demo_aml_dataset_locked','1', true);
+    RAISE NOTICE 'DEMO AML dataset already published (% immutable risk movements): governed pipeline skipped, registry and licence fixtures refreshed', locked;
+    RETURN;
+  END IF;
+  PERFORM set_config('app.demo_aml_dataset_locked','0', true);
+
   IF array_length(ents,1) IS NULL THEN RETURN; END IF;
 
   SELECT coalesce(array_agg(id),'{}') INTO asmts
