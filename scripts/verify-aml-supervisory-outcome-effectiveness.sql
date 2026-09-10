@@ -1016,7 +1016,6 @@ BEGIN
     RAISE EXCEPTION 'FAIL EVAL-08: publication, assessment or risk lineage is missing'; END IF;
   IF e.source_rating IS NULL OR e.rating_provenance IS NULL THEN
     RAISE EXCEPTION 'FAIL EVAL-08: the source rating and its provenance are not retained'; END IF;
-  RAISE NOTICE 'DEBUG %/%/%', e.target_kind, e.target_id, e.action_completed_at;
   IF e.target_kind <> 'SUPERVISORY_PLAN' OR e.target_id <> (SELECT c.v FROM c_id c WHERE c.k='plan')
      OR e.action_completed_at IS NULL THEN
     RAISE EXCEPTION 'FAIL EVAL-08: the evaluated action and its completion are not retained'; END IF;
