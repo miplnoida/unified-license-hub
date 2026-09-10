@@ -173,9 +173,12 @@ DO $$
 DECLARE res jsonb;
 BEGIN
   SET LOCAL ROLE authenticated;
-  PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
+  -- the domain effective-date rule is policy configuration, so the policy
+  -- administrator sets it; the officer then creates the assessment.
+  PERFORM set_config('request.jwt.claims','{"sub":"cbce55aa-4310-4dc9-a4e1-dcf1bc71b5e9","role":"authenticated"}', true);
   PERFORM public.supervisory_domain_calculation_rule_set('AML_CFT','EXECUTION_DATE',
     'AML08CERT fixture rule, discarded on rollback');
+  PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
   res := public.supervisory_assessment_create(
     _entity_id => (SELECT v FROM c_id WHERE k='entity'), _domain_code => 'AML_CFT',
     _assessment_type => 'PERIODIC', _period_start => current_date - 365, _period_end => current_date - 1,
