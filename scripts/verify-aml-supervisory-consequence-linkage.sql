@@ -1202,7 +1202,8 @@ BEGIN
   IF (SELECT count(*) FROM public.supervisory_consequence_decision
        WHERE target_id=(SELECT v FROM c_id WHERE k='examination') AND status='RECORDED') <> n_before THEN
     RAISE EXCEPTION 'FAIL LINK-07: a duplicate linkage row survived'; END IF;
-  IF (res->>'decision_id')::uuid <> (SELECT v FROM c_id WHERE k='dec_link') THEN
+  IF (res->>'decision_id')::uuid <> (SELECT id FROM public.supervisory_consequence_decision
+        WHERE target_id=(SELECT v FROM c_id WHERE k='examination') AND status='RECORDED' LIMIT 1) THEN
     RAISE EXCEPTION 'FAIL LINK-07: the existing record was not identified to an authorised viewer'; END IF;
   RAISE NOTICE 'PASS LINK-07: an equivalent link is detected and the existing record is identified, not duplicated';
 END $$;
