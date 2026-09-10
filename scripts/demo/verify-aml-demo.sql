@@ -240,10 +240,73 @@ BEGIN
   IF n > 0 THEN fails := fails || format('INTEGRITY-18 live calculation policy present: %s', n);
   ELSE RAISE NOTICE 'INTEGRITY-18 PASS no live AML/CFT calculation policy exists'; END IF;
 
+  -- ---------------------------------------------------------------------------
+  -- CURRENT-workflow additive scenarios
+  -- (scripts/demo/seed-aml-demo-current-workflow.sql)
+  -- ---------------------------------------------------------------------------
+
+  -- CURRENT-01 the additive scenarios exist and belong to demo entities only
+  SELECT count(*) INTO n FROM public.supervisory_assessment
+   WHERE summary LIKE 'DEMO AML CURRENT%' AND NOT (entity_id = ANY(ents));
+  IF n > 0 THEN fails := fails || format('CURRENT-01 additive scenario on a non-demo entity: %s', n);
+  ELSE RAISE NOTICE 'CURRENT-01 PASS every additive scenario belongs to a demo entity'; END IF;
+
+  -- CURRENT-02 every additive assessment carries a server-materialised question plan
+  SELECT count(*) INTO n FROM public.supervisory_assessment a
+   WHERE a.summary LIKE 'DEMO AML CURRENT%'
+     AND NOT EXISTS (SELECT 1 FROM public.supervisory_assessment_question_plan p
+                      WHERE p.assessment_id = a.id);
+  IF n > 0 THEN fails := fails || format('CURRENT-02 additive assessment without a question plan: %s', n);
+  ELSE RAISE NOTICE 'CURRENT-02 PASS every additive assessment carries a governed question plan'; END IF;
+
+  -- CURRENT-03 every additive response sits inside its own plan and in scope
+  SELECT count(*) INTO n
+    FROM public.supervisory_assessment_question_response r
+    JOIN public.supervisory_assessment a ON a.id = r.assessment_id
+   WHERE a.summary LIKE 'DEMO AML CURRENT%'
+     AND NOT EXISTS (SELECT 1 FROM public.supervisory_assessment_question_plan p
+                      WHERE p.assessment_id = r.assessment_id
+                        AND p.question_id = r.methodology_question_id
+                        AND p.plan_state LIKE 'INCLUDED%');
+  IF n > 0 THEN fails := fails || format('CURRENT-03 additive response outside the in-scope plan: %s', n);
+  ELSE RAISE NOTICE 'CURRENT-03 PASS every additive response is in scope in its question plan'; END IF;
+
+  -- CURRENT-04 review history: submitted / returned / resubmitted rounds exist
+  SELECT count(DISTINCT a.id) INTO n
+    FROM public.supervisory_assessment a
+    JOIN public.supervisory_assessment_review_round rr ON rr.assessment_id = a.id
+   WHERE a.summary LIKE 'DEMO AML CURRENT%';
+  IF n = 0 THEN fails := fails || 'CURRENT-04 no additive assessment carries governed review history';
+  ELSE RAISE NOTICE 'CURRENT-04 PASS additive assessments carry governed review rounds: %', n; END IF;
+
+  SELECT count(*) INTO m FROM public.supervisory_assessment
+   WHERE summary LIKE 'DEMO AML CURRENT%' AND status = 'returned_for_revision';
+  IF m = 0 THEN fails := fails || 'CURRENT-04b no returned-for-revision additive scenario present';
+  ELSE RAISE NOTICE 'CURRENT-04b PASS a returned-for-revision scenario is present: %', m; END IF;
+
+  -- CURRENT-05 maker/checker separation on every recorded review outcome
+  SELECT count(*) INTO n
+    FROM public.supervisory_assessment_review_round rr
+    JOIN public.supervisory_assessment a ON a.id = rr.assessment_id
+   WHERE a.summary LIKE 'DEMO AML CURRENT%'
+     AND rr.outcome_by IS NOT NULL AND rr.outcome_by = rr.submitted_by;
+  IF n > 0 THEN fails := fails || format('CURRENT-05 self-reviewed additive review round: %s', n);
+  ELSE RAISE NOTICE 'CURRENT-05 PASS no additive review round was decided by its own submitter'; END IF;
+
+  -- CURRENT-06 the additive wave published no risk of record
+  -- (approval and publication remain blocked: no live calculation policy, and the
+  --  rating override operation refuses without a calculation run)
+  SELECT count(*) INTO n
+    FROM public.supervisory_assessment_risk_publication pub
+    JOIN public.supervisory_assessment a ON a.id = pub.assessment_id
+   WHERE a.summary LIKE 'DEMO AML CURRENT%';
+  IF n > 0 THEN fails := fails || format('CURRENT-06 additive scenario published a risk of record without a calculation basis: %s', n);
+  ELSE RAISE NOTICE 'CURRENT-06 PASS the additive wave published no risk of record (policy blocked)'; END IF;
+
   IF array_length(fails,1) > 0 THEN
     RAISE EXCEPTION E'DEMO AML DATA INTEGRITY FAILED:\n  %', array_to_string(fails, E'\n  ');
   END IF;
-  RAISE NOTICE 'DEMO AML DATA INTEGRITY PASSED (INTEGRITY-00 … INTEGRITY-18)';
+  RAISE NOTICE 'DEMO AML DATA INTEGRITY PASSED (INTEGRITY-00 … INTEGRITY-18, CURRENT-01 … CURRENT-06)';
 END $$;
 
 ROLLBACK;
