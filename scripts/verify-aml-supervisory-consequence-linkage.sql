@@ -54,6 +54,13 @@ SELECT 'other_entity', l.id FROM public.licensees l
    AND NOT EXISTS (SELECT 1 FROM public.entity_risk_state s
                     WHERE s.entity_id = l.id AND s.domain_code='AML_CFT')
  ORDER BY l.id LIMIT 1;
+-- fallback: if every same-scope entity already carries an AML/CFT
+-- risk-of-record, any other supervised entity serves the cross-entity gates.
+INSERT INTO c_id(k,v)
+SELECT 'other_entity', l.id FROM public.licensees l
+ WHERE l.id <> (SELECT v FROM c_id WHERE k='entity')
+   AND NOT EXISTS (SELECT 1 FROM c_id WHERE k='other_entity')
+ ORDER BY l.id LIMIT 1;
 
 -- ---------------------------------------------------------------- census ----
 INSERT INTO c_n(k,n) VALUES
