@@ -431,7 +431,7 @@ async function enrichExaminations(rows: any[]) {
       const rfis = requestByExam.get(r.id) ?? [];
       const wps = workpaperByExam.get(r.id) ?? [];
       const fnds = findingByExam.get(r.id) ?? [];
-      const members = (teamByExam.get(r.id) ?? []).filter((m: any) => !m.ended_at);
+      const members = teamByExam.get(r.id) ?? [];
       const drivingAssessment = driving?.assessment_id
         ? assessmentById.get(driving.assessment_id) ?? null
         : null;
