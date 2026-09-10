@@ -31,10 +31,12 @@ on the record."
 **Scene 9 — Work in progress.** "Twelve of forty-one questions answered — supervision in progress, not
 a gap in the system."
 
-**Scene 10 — Approval and publication.** "Here I stop deliberately. Publishing a rating requires a live
-calculation policy, and that policy depends on eight regulator decisions that are not yet signed. The
-platform therefore reports the rating as not calculable and refuses to publish. That is the control
-working. We will not invent a rating to make a demonstration look complete."
+**Scene 10 — Approval and publication.** "A calculation policy has been authored, independently
+approved and activated through the platform's own workflow — with demonstration values, because the
+eight regulator decisions behind a real policy are not yet signed. On that policy this assessment
+calculates, is independently approved and is published as the entity's operative risk of record. Every
+earlier period resolves no policy and is still reported as not calculable — we did not invent a rating
+to make a demonstration look complete."
 
 **Scene 11 — Consequence.** "From the recorded risk position, supervision opened a plan and required a
 targeted reassessment. Each carries a written rationale and full lineage back to the risk record."
@@ -70,7 +72,7 @@ The officer who wrote this policy could not approve it. A second authorised pers
 approved it, with a recorded reason, and only then did it take effect — from that date forward, which is
 why every earlier assessment on file still resolves no policy and stays exactly as it was recorded.
 
-Now the same assessment that reported 'not calculable' returns a calculated recommendation, and the
+Now the assessment that would otherwise report 'not calculable' returns a calculated recommendation, and the
 system shows why: the answers, the weights, the bands and the matrix cell it landed in. Calculation is
 still not a decision. A supervisor reviews it, a second authorised person approves it, and publication
 is what makes it the entity's operative risk of record — with the previous rating kept in history.

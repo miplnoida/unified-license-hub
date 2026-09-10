@@ -21,7 +21,7 @@
 - Follow `docs/aml/AML-demo-video-storyboard.md` scene order and read
   `docs/aml/AML-demo-presenter-script.md`.
 - Do not create, edit or delete records outside the seeded scenarios.
-- Do not activate a calculation policy, answer DEC-01…DEC-08, or attempt to publish a rating.
+- Do not author, edit or re-activate a calculation policy, answer DEC-01…DEC-08, or publish a further rating. The active demonstration configuration and the published SCEN-06 rating are walked through read-only.
 - If the platform refuses an action, show the refusal and move on.
 
 ## After recording
@@ -34,7 +34,7 @@
 
 | Limitation | Reason |
 |------------|--------|
-| No approved rating publication | No live calculation policy; DEC-01…DEC-08 unsigned |
+| Only one published rating (SCEN-06) | Other periods resolve no calculation policy; DEC-01…DEC-08 unsigned, so the active configuration carries demonstration values |
 | Historical ratings labelled legacy | Recorded before the current governed publication workflow existed |
 | Demo dataset not removable | Append-only risk history and audit evidence by design |
 

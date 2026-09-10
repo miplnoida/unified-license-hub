@@ -13,7 +13,7 @@ Target length: 12–14 minutes. One continuous supervisory story, no mock screen
 | 7 | Independent review returning a file with a written reason | SCEN-03 | 1:00 | READY |
 | 8 | Return, correction and resubmission — two review rounds | SCEN-04 | 1:00 | READY |
 | 9 | Partly worked file: 12 of 41 answered | SCEN-05 | 0:30 | READY |
-| 10 | Approval and rating publication | calculation screens | 1:00 | **POLICY BLOCKED** — shown as an explained gap |
+| 10 | Calculation policy governance, approval and rating publication | calculation screens + SCEN-06 | 1:00 | READY — demonstration policy values, stated on camera |
 | 11 | Consequence: plan opened and reassessment required | DEMO AML 06 | 1:00 | READY |
 | 12 | Escalation chain: plan → intervention endorsed → examination → high finding issued | DEMO AML 07 | 1:30 | READY |
 | 13 | Review-cycle governance: monitoring recorded, review brought forward | DEMO AML 08 | 0:45 | READY |
@@ -32,7 +32,7 @@ authored, independently approved and activated through the product's own workflo
 | 10a | `/admin/supervisory-calculation` | AML-CFT-RBA v1.0 configuration `daf7d06e-1876-45bc-8a14-6869545f65a5` | The methodology publishes questions and scales; it does not by itself produce a rating. Scoring, weighting, bands, the residual matrix and the recommendation rule are policy, authored here and visible in full. |
 | 10b | `/admin/supervisory-calculation` | validation panel | The server, not the screen, decides whether the policy is complete. An incomplete policy cannot be submitted. |
 | 10c | `/admin/supervisory-calculation/approvals` | same configuration | Maker/checker: the officer who authored the policy cannot approve it. A different authorised approver does, with a recorded rationale, and only then does it take effect. |
-| 10d | `/aml/assessments/c3e16863-60d8-4c6e-8650-3f0eefcbc0cf` | SCEN-06, DEMO AML 06 Rodney Bay Payments Ltd | With a policy in force the assessment moves from NOT CALCULABLE to a calculated recommendation, and the explanation shows the answers, weights, bands and matrix cell that produced it. |
+| 10d | `/supervision/aml/assessments/c3e16863-60d8-4c6e-8650-3f0eefcbc0cf` | SCEN-06, DEMO AML 06 Rodney Bay Payments Ltd | With a policy in force the assessment moves from NOT CALCULABLE to a calculated recommendation, and the explanation shows the answers, weights, bands and matrix cell that produced it. |
 | 10e | same | approval and publication | Calculation is not approval. The rating is reviewed, approved by a second authorised person, and only then published as the entity's operative risk of record — with the previous rating retained in history. |
 
 Say plainly on camera: these are demonstration policy values, authored for the demonstration
@@ -43,5 +43,5 @@ resolve no policy and are deliberately left exactly as recorded.
 
 - Internal supervisory user only; no screen may show another regulator's data.
 - Never edit data on camera outside the seeded scenarios.
-- Do not activate a calculation policy, approve a rating or bypass any refusal.
+- Do not author, edit or activate a calculation policy on camera, publish a further rating, or bypass any refusal. The active configuration and the published SCEN-06 rating are already in place — walk through them read-only.
 - Refusals are part of the story: show the message, do not work around it.
