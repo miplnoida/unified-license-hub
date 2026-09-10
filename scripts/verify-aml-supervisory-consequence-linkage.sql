@@ -727,8 +727,8 @@ DO $$
 DECLARE n int;
 BEGIN
   SELECT count(*) INTO n FROM public.compliance_audit_logs
-   WHERE record_id = (SELECT v FROM c_id WHERE k='dec_plan')::text
-     AND table_name = 'supervisory_consequence_decision'
+   WHERE object_id = (SELECT v FROM c_id WHERE k='dec_plan')::text
+     AND object_type = 'supervisory_consequence_decision'
      AND user_id = (SELECT v FROM c_id WHERE k='officer');
   IF n < 1 THEN
     RAISE EXCEPTION 'FAIL CREATE-03: the consequence create was not audited to the acting persona'; END IF;
@@ -1864,13 +1864,14 @@ BEGIN
   SELECT count(*) INTO bad FROM public.supervisory_consequence_decision d
    WHERE d.decided_by IS NULL
       OR NOT EXISTS (SELECT 1 FROM public.compliance_audit_logs l
-                      WHERE l.table_name='supervisory_consequence_decision'
-                        AND l.record_id = d.id::text AND l.user_id = d.decided_by);
+                      WHERE l.object_type='supervisory_consequence_decision'
+                        AND l.object_id = d.id::text AND l.user_id = d.decided_by);
   IF bad > 0 THEN
     RAISE EXCEPTION 'FAIL SEC-08: % of % decisions are unattributed or unaudited', bad, n; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.compliance_audit_logs
-                  WHERE table_name='supervisory_consequence_decision' AND action='OVERRIDE'
-                    AND record_id = (SELECT v FROM c_id WHERE k='dec_mon')::text) THEN
+                  WHERE object_type='supervisory_consequence_decision'
+                    AND action_type='OVERRIDE'
+                    AND object_id = (SELECT v FROM c_id WHERE k='dec_mon')::text) THEN
     RAISE EXCEPTION 'FAIL SEC-08: the withdrawal was not audited'; END IF;
   RAISE NOTICE 'PASS SEC-08: every one of % decisions and the withdrawal are audited to the authenticated actor', n;
 END $$;
@@ -1932,7 +1933,7 @@ BEGIN
        + (SELECT count(*) FROM public.supervisory_calculation_config c
             JOIN public.supervisory_methodology m ON m.id = c.methodology_id WHERE m.code LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.compliance_audit_logs
-            WHERE table_name='supervisory_consequence_decision')
+            WHERE object_type='supervisory_consequence_decision')
     INTO n;
   IF n <> 0 THEN RAISE EXCEPTION 'FAIL ROLLBACK: % AML08CERT records survived', n; END IF;
   RAISE NOTICE 'PASS ROLLBACK: no AML08CERT assessment, approval, publication, risk movement, consequence decision, plan, reassessment, intervention, examination, finding, enforcement case or audit row survived';
