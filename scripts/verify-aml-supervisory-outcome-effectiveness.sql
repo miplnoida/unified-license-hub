@@ -1571,16 +1571,16 @@ DO $$
 DECLARE created int; approved int; returned int;
 BEGIN
   SELECT count(*) INTO created FROM public.compliance_audit_logs
-   WHERE entity_type='supervisory_outcome_evaluation' AND action='CREATE'
-     AND record_id = (SELECT c.v FROM c_id c WHERE c.k='eval2')::text
+   WHERE object_type='supervisory_outcome_evaluation' AND action_type='CREATE'::public.compliance_audit_action
+     AND object_id = (SELECT c.v FROM c_id c WHERE c.k='eval2')::text
      AND user_id = 'b8eaf680-fe66-4d49-b816-1c087f511235'::uuid;
   SELECT count(*) INTO approved FROM public.compliance_audit_logs
-   WHERE entity_type='supervisory_outcome_evaluation' AND action='APPROVE'
-     AND record_id = (SELECT c.v FROM c_id c WHERE c.k='eval2')::text
+   WHERE object_type='supervisory_outcome_evaluation' AND action_type='APPROVE'
+     AND object_id = (SELECT c.v FROM c_id c WHERE c.k='eval2')::text
      AND user_id = '0b522724-adcb-48bf-b21d-175339479616'::uuid;
   SELECT count(*) INTO returned FROM public.compliance_audit_logs
-   WHERE entity_type='supervisory_outcome_evaluation' AND action='REJECT'
-     AND record_id = (SELECT c.v FROM c_id c WHERE c.k='eval1')::text;
+   WHERE object_type='supervisory_outcome_evaluation' AND action_type='REJECT'
+     AND object_id = (SELECT c.v FROM c_id c WHERE c.k='eval1')::text;
   IF created < 1 OR approved < 1 OR returned < 1 THEN
     RAISE EXCEPTION 'FAIL SEC-07: audit rows create=% approve=% return=%', created, approved, returned; END IF;
   RAISE NOTICE 'PASS SEC-07: preparation, return and approval are audited with their actors';
