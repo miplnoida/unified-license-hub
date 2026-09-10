@@ -47459,6 +47459,177 @@ export type Database = {
           },
         ]
       }
+      supervisory_consequence_decision: {
+        Row: {
+          action_type: string
+          approval_decision_id: string | null
+          assessment_id: string | null
+          calculation_availability: string
+          calculation_run_id: string | null
+          created_at: string
+          decided_at: string
+          decided_by: string | null
+          domain_code: string
+          due_date: string | null
+          entity_id: string
+          id: string
+          idempotency_key: string
+          lineage: Json
+          linkage_mode: string
+          override_id: string | null
+          owner_id: string | null
+          priority: string | null
+          publication_id: string | null
+          rating_provenance: string
+          rationale: string
+          regulator_id: string | null
+          risk_state_id: string | null
+          sector_id: string | null
+          source_kind: string
+          source_rating: string | null
+          status: string
+          superseded_by_id: string | null
+          supervisory_objective: string | null
+          target_id: string | null
+          target_kind: string | null
+          target_reference: string | null
+          withdrawal_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          action_type: string
+          approval_decision_id?: string | null
+          assessment_id?: string | null
+          calculation_availability?: string
+          calculation_run_id?: string | null
+          created_at?: string
+          decided_at?: string
+          decided_by?: string | null
+          domain_code: string
+          due_date?: string | null
+          entity_id: string
+          id?: string
+          idempotency_key: string
+          lineage?: Json
+          linkage_mode: string
+          override_id?: string | null
+          owner_id?: string | null
+          priority?: string | null
+          publication_id?: string | null
+          rating_provenance: string
+          rationale: string
+          regulator_id?: string | null
+          risk_state_id?: string | null
+          sector_id?: string | null
+          source_kind: string
+          source_rating?: string | null
+          status?: string
+          superseded_by_id?: string | null
+          supervisory_objective?: string | null
+          target_id?: string | null
+          target_kind?: string | null
+          target_reference?: string | null
+          withdrawal_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          action_type?: string
+          approval_decision_id?: string | null
+          assessment_id?: string | null
+          calculation_availability?: string
+          calculation_run_id?: string | null
+          created_at?: string
+          decided_at?: string
+          decided_by?: string | null
+          domain_code?: string
+          due_date?: string | null
+          entity_id?: string
+          id?: string
+          idempotency_key?: string
+          lineage?: Json
+          linkage_mode?: string
+          override_id?: string | null
+          owner_id?: string | null
+          priority?: string | null
+          publication_id?: string | null
+          rating_provenance?: string
+          rationale?: string
+          regulator_id?: string | null
+          risk_state_id?: string | null
+          sector_id?: string | null
+          source_kind?: string
+          source_rating?: string | null
+          status?: string
+          superseded_by_id?: string | null
+          supervisory_objective?: string | null
+          target_id?: string | null
+          target_kind?: string | null
+          target_reference?: string | null
+          withdrawal_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_consequence_decision_approval_decision_id_fkey"
+            columns: ["approval_decision_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_approval_decision"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_consequence_decision_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_consequence_decision_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_consequence_decision_calculation_run_id_fkey"
+            columns: ["calculation_run_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_calculation_run"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_consequence_decision_override_id_fkey"
+            columns: ["override_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_calculation_override"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_consequence_decision_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment_risk_publication"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_consequence_decision_risk_state_id_fkey"
+            columns: ["risk_state_id"]
+            isOneToOne: false
+            referencedRelation: "entity_risk_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_consequence_decision_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_consequence_decision"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supervisory_detector: {
         Row: {
           auto_resolve: boolean
@@ -69025,6 +69196,34 @@ export type Database = {
       supervisory_calculation_response_scores_set: {
         Args: { _config_id: string; _rows: Json }
         Returns: number
+      }
+      supervisory_consequence_record: {
+        Args: { _payload: Json }
+        Returns: Json
+      }
+      supervisory_consequence_source_internal: {
+        Args: {
+          _assessment_id?: string
+          _domain_code: string
+          _entity_id: string
+        }
+        Returns: Json
+      }
+      supervisory_consequence_target_internal: {
+        Args: { _id: string; _kind: string }
+        Returns: Json
+      }
+      supervisory_consequence_view: {
+        Args: {
+          _assessment_id?: string
+          _domain_code?: string
+          _entity_id: string
+        }
+        Returns: Json
+      }
+      supervisory_consequence_withdraw: {
+        Args: { _decision_id: string; _rationale: string }
+        Returns: Json
       }
       supervisory_detect_candidates: {
         Args: { _detector_code: string; _params?: Json }
