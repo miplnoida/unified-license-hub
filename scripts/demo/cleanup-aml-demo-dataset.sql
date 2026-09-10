@@ -81,6 +81,12 @@ BEGIN
   PERFORM set_config('app.supervisory_risk_state_writer','', true);
 
   DELETE FROM public.entity_supervision_assignments WHERE entity_id = ANY(ents);
+
+  -- canonical licence attachments and the demo licences themselves
+  -- (license_terms / certificates cascade from public.licenses)
+  DELETE FROM public.entity_licenses WHERE entity_id = ANY(ents);
+  DELETE FROM public.licenses WHERE license_number LIKE 'FSRA-DEMO-AML-%' OR holder_id = ANY(ents);
+
   DELETE FROM public.licensees WHERE id = ANY(ents);
   DELETE FROM public.organizations o
    WHERE o.party_id IN (SELECT id FROM public.parties WHERE display_name LIKE 'DEMO AML %');
