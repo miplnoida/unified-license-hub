@@ -997,28 +997,40 @@ BEGIN
 END $$;
 
 -- =====================================================================
--- LINK-01 — a visible same-entity record can be linked.
+-- LINK-01 — a visible same-entity record that is not already linked can be
+--           linked without creating anything new. (The examination created by
+--           CREATE-07 is deliberately NOT reused here: the server correctly
+--           treats re-linking an already-linked target as the DUPLICATE_EXISTS
+--           case, which DUP-01 certifies separately.)
 -- =====================================================================
 DO $$
-DECLARE res jsonb; d public.supervisory_consequence_decision; n_before int;
+DECLARE res jsonb; d public.supervisory_consequence_decision; n_before int; pre uuid;
 BEGIN
+  INSERT INTO public.supervisory_finding(
+    reference, entity_id, domain_code, title, source_kind, status, origin_provenance)
+  VALUES ('AML08CERT-FIND-PREEXISTING',(SELECT v FROM c_id WHERE k='entity'),'AML_CFT',
+          'AML08CERT pre-existing AML/CFT finding','ASSESSMENT','DRAFT','GOVERNED')
+  RETURNING id INTO pre;
+  INSERT INTO c_id(k,v) VALUES ('find_pre', pre);
   SELECT count(*) INTO n_before FROM public.supervisory_finding;
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
   res := public.supervisory_consequence_record(jsonb_build_object(
     'entity_id',(SELECT v FROM c_id WHERE k='entity'),'domain_code','AML_CFT',
     'assessment_id',(SELECT v FROM c_id WHERE k='assessment'),
-    'action_type','OPEN_EXAMINATION','linkage_mode','LINK',
-    'target_id',(SELECT v FROM c_id WHERE k='examination'),
-    'rationale','AML08CERT: the existing AML/CFT examination is linked as the consequence of this outcome.'));
+    'action_type','RAISE_FINDING','linkage_mode','LINK',
+    'target_id', pre,
+    'rationale','AML08CERT: the existing AML/CFT finding is linked as the consequence of this outcome.'));
   RESET ROLE;
+  IF COALESCE((res->>'duplicate')::boolean,false) THEN
+    RAISE EXCEPTION 'FAIL LINK-01: a record that was never linked was reported as a duplicate: %', res; END IF;
   INSERT INTO c_id(k,v) VALUES ('dec_link', (res->>'decision_id')::uuid);
   SELECT * INTO d FROM public.supervisory_consequence_decision WHERE id=(SELECT v FROM c_id WHERE k='dec_link');
   IF (SELECT count(*) FROM public.supervisory_finding) <> n_before THEN
     RAISE EXCEPTION 'FAIL LINK-01: linking created a duplicate downstream record'; END IF;
-  IF d.linkage_mode <> 'LINK' OR d.target_id <> (SELECT v FROM c_id WHERE k='examination') THEN
-    RAISE EXCEPTION 'FAIL LINK-01: the link does not reference the existing record (mode=%, target=%, expected=%, returned=%)',
-      d.linkage_mode, d.target_id, (SELECT v FROM c_id WHERE k='examination'), res; END IF;
+  IF d.linkage_mode <> 'LINK' OR d.target_id <> pre THEN
+    RAISE EXCEPTION 'FAIL LINK-01: the link does not reference the existing record (mode=%, target=%, expected=%)',
+      d.linkage_mode, d.target_id, pre; END IF;
   RAISE NOTICE 'PASS LINK-01: an existing same-entity record is linked without creating anything new';
 END $$;
 
