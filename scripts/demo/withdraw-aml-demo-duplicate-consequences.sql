@@ -37,6 +37,7 @@ DECLARE
   e06 uuid;
   d record;
   withdrawn int := 0;
+  cancelled int := 0;
 BEGIN
   PERFORM set_config('request.jwt.claims', claim_sup, true);
   SELECT id INTO e06 FROM public.licensees WHERE name LIKE 'DEMO AML 06%' LIMIT 1;
