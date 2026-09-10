@@ -864,11 +864,13 @@ BEGIN
   IF r->'trends'->>'source' <> 'entity_risk_state_movement' THEN
     RAISE EXCEPTION 'FAIL TREND-01: the trend source is declared as %', r->'trends'->>'source'; END IF;
   FOR m IN SELECT x FROM jsonb_array_elements(r->'trends'->'movements') x LOOP
+    -- the report emits canonical upper-case rating codes; the ledger keeps its
+    -- own stored value untouched, so the comparison is made canonically.
     IF NOT EXISTS (SELECT 1 FROM public.entity_risk_state_movement v
                     WHERE v.id = (m->>'movement_id')::uuid
                       AND v.entity_id = (m->>'entity_id')::uuid
-                      AND v.new_rating IS NOT DISTINCT FROM m->>'new_rating'
-                      AND v.previous_rating IS NOT DISTINCT FROM m->>'previous_rating') THEN
+                      AND upper(NULLIF(v.new_rating,'')) IS NOT DISTINCT FROM m->>'new_rating'
+                      AND upper(NULLIF(v.previous_rating,'')) IS NOT DISTINCT FROM m->>'previous_rating') THEN
       RAISE EXCEPTION 'FAIL TREND-01: movement % is not an immutable risk-history record', m->>'movement_id'; END IF;
     IF NOT EXISTS (SELECT 1 FROM jsonb_array_elements(r->'entities') e
                     WHERE e->>'entity_id' = m->>'entity_id') THEN
@@ -894,7 +896,7 @@ BEGIN
   r := pg_temp.c_report('0b522724-adcb-48bf-b21d-175339479616','{}'::jsonb);
   pf := (r->'trends'->>'period_from')::date; pt := (r->'trends'->>'period_to')::date;
   FOR x IN SELECT e FROM jsonb_array_elements(r->'entities') e LOOP
-    SELECT COALESCE((SELECT v.previous_rating FROM public.entity_risk_state_movement v
+    SELECT COALESCE((SELECT upper(NULLIF(v.previous_rating,'')) FROM public.entity_risk_state_movement v
                       WHERE v.entity_id=(x->>'entity_id')::uuid
                         AND upper(COALESCE(v.domain_code,''))='AML_CFT'
                         AND COALESCE(v.approved_at,v.created_at)::date BETWEEN pf AND pt
@@ -907,7 +909,7 @@ BEGIN
       r->'trends'->'opening', expected; END IF;
   expected := '{}'::jsonb;
   FOR x IN SELECT e FROM jsonb_array_elements(r->'entities') e LOOP
-    SELECT COALESCE((SELECT v.new_rating FROM public.entity_risk_state_movement v
+    SELECT COALESCE((SELECT upper(NULLIF(v.new_rating,'')) FROM public.entity_risk_state_movement v
                       WHERE v.entity_id=(x->>'entity_id')::uuid
                         AND upper(COALESCE(v.domain_code,''))='AML_CFT'
                         AND COALESCE(v.approved_at,v.created_at)::date BETWEEN pf AND pt
@@ -1492,6 +1494,103 @@ BEGIN
   IF r->'notes'::text IS NULL THEN
     RAISE EXCEPTION 'FAIL SEC-08: the report carries no confidentiality caveat'; END IF;
   RAISE NOTICE 'PASS SEC-08: restricted matters are presence-only and never disclosed by aggregate';
+END $$;
+
+-- =====================================================================
+-- CASE-01..04 — mixed-case historical ratings resolve into ONE canonical
+--               reporting bucket, in the report and in the export, without
+--               the stored risk history ever being rewritten.
+--               Regression for the AML-UAT-01 portfolio trend defect.
+-- =====================================================================
+DO $$
+BEGIN
+  INSERT INTO public.entity_risk_state_movement
+    (entity_id, domain_code, new_assessment_id, previous_rating, new_rating, trend, reason, created_at, approved_at)
+  SELECT (SELECT c.v FROM c_id c WHERE c.k='entity'), 'AML_CFT',
+         (SELECT c.v FROM c_id c WHERE c.k='assessment'),
+         p, n, 'INCREASED', 'AML10CERT mixed-case rating fixture', now(), now()
+    FROM (VALUES ('moderate','high'), ('Moderate','High'), ('MODERATE','HIGH')) AS v(p,n);
+  RAISE NOTICE 'FIXTURE: three mixed-case AML10CERT movement rows recorded for this transaction only';
+END $$;
+
+DO $$
+DECLARE r jsonb; x jsonb; ks text[]; ps text[]; n int;
+BEGIN
+  r := pg_temp.c_report('0b522724-adcb-48bf-b21d-175339479616','{}'::jsonb);
+  SELECT array_agg(DISTINCT m->>'new_rating'), array_agg(DISTINCT m->>'previous_rating'), count(*)
+    INTO ks, ps, n
+    FROM jsonb_array_elements(r->'trends'->'movements') m
+   WHERE (m->>'movement_id')::uuid IN (SELECT v.id FROM public.entity_risk_state_movement v
+                                        WHERE v.reason = 'AML10CERT mixed-case rating fixture');
+  IF n < 3 THEN
+    RAISE EXCEPTION 'FAIL CASE-01: only % of the three mixed-case movements are reported', n; END IF;
+  IF ks <> ARRAY['HIGH'] THEN
+    RAISE EXCEPTION 'FAIL CASE-01: HIGH/high/High produced the buckets %', ks; END IF;
+  IF ps <> ARRAY['MODERATE'] THEN
+    RAISE EXCEPTION 'FAIL CASE-01: MODERATE/Moderate/moderate produced the buckets %', ps; END IF;
+  RAISE NOTICE 'PASS CASE-01: HIGH + high + High resolve into one canonical HIGH bucket (and MODERATE likewise)';
+END $$;
+
+DO $$
+DECLARE r jsonb; e jsonb; k text;
+BEGIN
+  r := pg_temp.c_report('0b522724-adcb-48bf-b21d-175339479616','{}'::jsonb);
+  e := pg_temp.c_export('0b522724-adcb-48bf-b21d-175339479616','{}'::jsonb);
+  -- every reported and exported rating label is already canonical
+  FOR k IN SELECT m->>'new_rating' FROM jsonb_array_elements(r->'trends'->'movements') m
+           UNION ALL SELECT m->>'previous_rating' FROM jsonb_array_elements(r->'trends'->'movements') m
+           UNION ALL SELECT m->>'new_rating' FROM jsonb_array_elements(e->'trends'->'movements') m
+           UNION ALL SELECT m->>'previous_rating' FROM jsonb_array_elements(e->'trends'->'movements') m
+           UNION ALL SELECT j.key FROM jsonb_each_text(r->'trends'->'opening') j
+           UNION ALL SELECT j.key FROM jsonb_each_text(r->'trends'->'closing') j
+           UNION ALL SELECT j.key FROM jsonb_each_text(e->'trends'->'opening') j
+           UNION ALL SELECT j.key FROM jsonb_each_text(e->'trends'->'closing') j
+  LOOP
+    IF k IS NOT NULL AND k <> upper(k) THEN
+      RAISE EXCEPTION 'FAIL CASE-02: a non-canonical rating label % is reported', k; END IF;
+  END LOOP;
+  IF e->'trends'->'opening' <> r->'trends'->'opening'
+     OR e->'trends'->'closing' <> r->'trends'->'closing'
+     OR jsonb_array_length(e->'trends'->'movements') <> jsonb_array_length(r->'trends'->'movements') THEN
+    RAISE EXCEPTION 'FAIL CASE-02: the export and the report disagree about the canonical trend'; END IF;
+  RAISE NOTICE 'PASS CASE-02: report and export publish identical canonical rating labels and counts';
+END $$;
+
+DO $$
+DECLARE stored text[]; lower_hist bigint;
+BEGIN
+  -- the three stored variants must still be exactly as written: reporting
+  -- normalises presentation, it never rewrites the immutable ledger.
+  SELECT array_agg(DISTINCT new_rating) INTO stored
+    FROM public.entity_risk_state_movement WHERE reason = 'AML10CERT mixed-case rating fixture';
+  IF NOT ('HIGH' = ANY(stored) AND 'High' = ANY(stored) AND 'high' = ANY(stored))
+     OR array_length(stored,1) <> 3 THEN
+    RAISE EXCEPTION 'FAIL CASE-03: the stored risk history was rewritten to %', stored; END IF;
+  IF EXISTS (SELECT 1 FROM public.entity_risk_state_movement
+              WHERE reason = 'AML10CERT mixed-case rating fixture'
+                AND previous_rating NOT IN ('moderate','Moderate','MODERATE')) THEN
+    RAISE EXCEPTION 'FAIL CASE-03: a stored previous rating was rewritten'; END IF;
+  -- the pre-existing operational lower-case history is also still lower case
+  SELECT count(*) INTO lower_hist FROM public.entity_risk_state_movement
+   WHERE reason IS DISTINCT FROM 'AML10CERT mixed-case rating fixture'
+     AND new_rating IS NOT NULL AND new_rating <> upper(new_rating);
+  RAISE NOTICE 'PASS CASE-03: the immutable history keeps its stored values exactly (% ; % pre-existing lower-case rows untouched)',
+    stored, lower_hist;
+END $$;
+
+
+DO $$
+DECLARE r jsonb; hi int; mo int;
+BEGIN
+  r := pg_temp.c_report('0b522724-adcb-48bf-b21d-175339479616','{}'::jsonb);
+  hi := COALESCE((r->'trends'->'closing'->>'HIGH')::int,0);
+  mo := COALESCE((r->'trends'->'closing'->>'MODERATE')::int,0);
+  IF (r->'trends'->'closing' ? 'high') OR (r->'trends'->'closing' ? 'High')
+     OR (r->'trends'->'opening' ? 'moderate') OR (r->'trends'->'opening' ? 'Moderate') THEN
+    RAISE EXCEPTION 'FAIL CASE-04: a case variant survives as its own distribution bucket'; END IF;
+  IF hi > 0 AND mo > 0 AND hi = mo AND hi = (SELECT (r->'summary'->>'entity_total')::int) THEN
+    RAISE EXCEPTION 'FAIL CASE-04: distinct canonical ratings were merged into one bucket'; END IF;
+  RAISE NOTICE 'PASS CASE-04: case variants collapse but genuinely different canonical ratings stay separate (HIGH=%, MODERATE=%)', hi, mo;
 END $$;
 
 -- =====================================================================

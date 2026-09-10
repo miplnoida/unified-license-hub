@@ -368,7 +368,9 @@ async function enrichExaminations(rows: any[]) {
           .select('examination_id, status, severity')
           .eq('domain_code', 'AML_CFT')
           .in('examination_id', ids),
-        sb.from('examination_team_members').select('examination_id, user_id, ended_at').in('examination_id', ids),
+        // Canonical case-team membership has no end-dating column: a row is a
+        // current member. Do not select or filter a non-existent `ended_at`.
+        sb.from('examination_team_members').select('examination_id, user_id, team_role').in('examination_id', ids),
         sb
           .from('supervisory_plan')
           .select('id, reference, status')
@@ -429,7 +431,7 @@ async function enrichExaminations(rows: any[]) {
       const rfis = requestByExam.get(r.id) ?? [];
       const wps = workpaperByExam.get(r.id) ?? [];
       const fnds = findingByExam.get(r.id) ?? [];
-      const members = (teamByExam.get(r.id) ?? []).filter((m: any) => !m.ended_at);
+      const members = teamByExam.get(r.id) ?? [];
       const drivingAssessment = driving?.assessment_id
         ? assessmentById.get(driving.assessment_id) ?? null
         : null;
