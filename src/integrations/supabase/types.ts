@@ -47727,6 +47727,16 @@ export type Database = {
           rating_provenance: string
           rationale: string
           regulator_id: string | null
+          response_policy_advisory_timeframe_days: number | null
+          response_policy_basis_status: string | null
+          response_policy_code: string | null
+          response_policy_component_id: string | null
+          response_policy_content_hash: string | null
+          response_policy_level: string | null
+          response_policy_profile_code: string | null
+          response_policy_profile_version: string | null
+          response_policy_rule_code: string | null
+          response_policy_version: string | null
           risk_state_id: string | null
           sector_id: string | null
           source_kind: string
@@ -47764,6 +47774,16 @@ export type Database = {
           rating_provenance: string
           rationale: string
           regulator_id?: string | null
+          response_policy_advisory_timeframe_days?: number | null
+          response_policy_basis_status?: string | null
+          response_policy_code?: string | null
+          response_policy_component_id?: string | null
+          response_policy_content_hash?: string | null
+          response_policy_level?: string | null
+          response_policy_profile_code?: string | null
+          response_policy_profile_version?: string | null
+          response_policy_rule_code?: string | null
+          response_policy_version?: string | null
           risk_state_id?: string | null
           sector_id?: string | null
           source_kind: string
@@ -47801,6 +47821,16 @@ export type Database = {
           rating_provenance?: string
           rationale?: string
           regulator_id?: string | null
+          response_policy_advisory_timeframe_days?: number | null
+          response_policy_basis_status?: string | null
+          response_policy_code?: string | null
+          response_policy_component_id?: string | null
+          response_policy_content_hash?: string | null
+          response_policy_level?: string | null
+          response_policy_profile_code?: string | null
+          response_policy_profile_version?: string | null
+          response_policy_rule_code?: string | null
+          response_policy_version?: string | null
           risk_state_id?: string | null
           sector_id?: string | null
           source_kind?: string
@@ -69988,6 +70018,14 @@ export type Database = {
         Args: { _payload: Json }
         Returns: Json
       }
+      supervisory_consequence_response_policy_view: {
+        Args: {
+          _assessment_id?: string
+          _domain_code?: string
+          _entity_id: string
+        }
+        Returns: Json
+      }
       supervisory_consequence_source_internal: {
         Args: {
           _assessment_id?: string
@@ -71164,6 +71202,31 @@ export type Database = {
           _residual_materiality: string
         }
         Returns: string
+      }
+      supervisory_response_policy_action_map: { Args: never; Returns: Json }
+      supervisory_response_policy_compatibility: {
+        Args: {
+          _component_id: string
+          _methodology_id: string
+          _profile_id: string
+        }
+        Returns: Json
+      }
+      supervisory_response_policy_content_errors: {
+        Args: { _content: Json }
+        Returns: string[]
+      }
+      supervisory_response_policy_internal: {
+        Args: { _assessment_id: string; _rating: string }
+        Returns: Json
+      }
+      supervisory_response_policy_operational_action: {
+        Args: { _policy_action: string }
+        Returns: string
+      }
+      supervisory_response_policy_rules: {
+        Args: { _content: Json }
+        Returns: Json
       }
       supervisory_risk_monitoring_due_list: {
         Args: { _domain_code?: string; _limit?: number; _state?: string }

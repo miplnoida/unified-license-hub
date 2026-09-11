@@ -38,6 +38,7 @@ import {
   useWithdrawSupervisoryConsequence,
   type ConsequenceAction,
 } from '@/hooks/useAmlSupervisoryConsequence';
+import { AmlResponsePolicyPanel } from './AmlResponsePolicyPanel';
 
 const dash = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : String(v));
 const when = (v: unknown) => (v ? new Date(String(v)).toLocaleString() : '—');
@@ -195,6 +196,9 @@ export function AmlSupervisoryConsequencePanel({
           </div>
         </CardContent>
       </Card>
+
+      {/* ------------------------------ PCOMP-R2C response policy expectations -- */}
+      <AmlResponsePolicyPanel entityId={entityId} assessmentId={assessmentId ?? null} domainCode={domainCode} />
 
       {/* ---------------------------------------------- permitted consequences -- */}
       <Card>
