@@ -106,6 +106,12 @@ VALUES ('R1CCERT-METH-B','AML_CFT','R1CCERT unrelated methodology','1.0','ACTIVE
   '[{"code":"LOW","label":"Low","ordinal":1}]'::jsonb);
 INSERT INTO r1c_id(k,v) SELECT 'meth_b', id FROM public.supervisory_methodology WHERE code='R1CCERT-METH-B';
 
+INSERT INTO public.supervisory_methodology_fact_requirement(
+  methodology_id, fact_code, label, data_type, is_required, auto_prefill_allowed,
+  officer_edit_allowed, definition_status, description)
+VALUES ((SELECT v FROM r1c_id WHERE k='meth'),'R1CCERT_F_RATIO','R1CCERT fixture ratio','percentage',
+  false,true,true,'DEFINED','Canonical fixture fact used by the convergence gates');
+
 INSERT INTO public.supervisory_methodology_dimension(
   methodology_id, dimension_code, dimension_group, label, weight, sort_order, active, dimension_kind)
 VALUES ((SELECT v FROM r1c_id WHERE k='meth'),'R1CCERT_DIM_I','INHERENT_RISK','Inherent fixture',100,1,true,'INHERENT');
@@ -173,7 +179,7 @@ DECLARE
   osector  uuid := (SELECT v FROM r1c_id WHERE k='other_sector');
   entity   uuid := (SELECT v FROM r1c_id WHERE k='entity');
   base uuid; second uuid; sectorp uuid; future uuid; expired uuid; refp uuid; inactivep uuid;
-  comp uuid; jv jsonb; jw jsonb; a1 uuid; a2 uuid; snap1 jsonb; n int; st text; hash1 text;
+  comp uuid; jv jsonb; jw jsonb; a1 uuid; a2 uuid; snap1 jsonb; n int; st text; hash1 text; crec record;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims', maker, true);
@@ -229,50 +235,104 @@ BEGIN
     'component_type','CALCULATION_CONFIG','component_id',(SELECT v FROM r1c_id WHERE k='calc'),
     'rationale','R1CCERT restores the matching calculation configuration'));
 
-  -- R1C-12..R1C-16 — semantic content validation blocks approval, one area at a time
-  -- Response policy with an invalid risk band
-  comp := (public.supervisory_policy_component_create(jsonb_build_object(
-    'component_type','RESPONSE_POLICY','domain_code','AML_CFT','regulator_id', reg,
-    'code','R1CCERT-RESP-BAND','component_version','1.0','name','R1CCERT invalid band',
-    'content', jsonb_build_object('responses', jsonb_build_array(jsonb_build_object(
-      'risk_band','NOT_A_BAND','actions', jsonb_build_array('EXAMINATION')))))))->>'component_id';
-  jv := public.supervisory_policy_component_validate(comp);
-  INSERT INTO r1c VALUES ('R1C-12-RESPONSE-BAND-INVALID', NOT (jv->>'valid')::boolean,
-    format('%s', jv->'errors'));
+  -- R1C-12..R1C-16G — cross-component semantic convergence. Each area is bound
+  -- with content that contradicts the canonical vocabulary, the profile must
+  -- report the exact structured finding, and the same area bound with canonical
+  -- content must clear it. Compatibility is the gate; nothing is guessed.
+  FOR crec IN SELECT * FROM (VALUES
+    ('R1C-12-RESPONSE-BAND-INVALID','RESPONSE_POLICY','RESPONSE_RISK_BAND_UNKNOWN',
+      jsonb_build_object('responses', jsonb_build_array(jsonb_build_object(
+        'risk_band','NOT_A_BAND','actions', jsonb_build_array('EXAMINATION'),'timeframe_days',30))),
+      jsonb_build_object('responses', jsonb_build_array(jsonb_build_object(
+        'risk_band', public.supervisory_policy_vocabulary('RISK_BAND', base)->>0,
+        'actions', jsonb_build_array('EXAMINATION'),'timeframe_days',30)))),
+    ('R1C-13-RESPONSE-ACTION-INVALID','RESPONSE_POLICY','RESPONSE_ACTION_UNKNOWN',
+      jsonb_build_object('responses', jsonb_build_array(jsonb_build_object(
+        'risk_band', public.supervisory_policy_vocabulary('RISK_BAND', base)->>0,
+        'actions', jsonb_build_array('DEPORTATION'),'timeframe_days',30))),
+      jsonb_build_object('responses', jsonb_build_array(jsonb_build_object(
+        'risk_band', public.supervisory_policy_vocabulary('RISK_BAND', base)->>0,
+        'actions', jsonb_build_array('EXAMINATION'),'timeframe_days',30)))),
+    ('R1C-14-SLA-STAGE-INVALID','SLA_POLICY','SLA_STAGE_UNKNOWN',
+      jsonb_build_object('stages', jsonb_build_array(jsonb_build_object('stage','NOT_A_STAGE','days',10))),
+      jsonb_build_object('stages', jsonb_build_array(jsonb_build_object(
+        'stage', public.supervisory_policy_vocabulary('WORKFLOW_STAGE')->>0,'days',10)))),
+    ('R1C-15-EVIDENCE-VOCAB-INVALID','EVIDENCE_POLICY','EVIDENCE_KIND_UNKNOWN',
+      jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
+        'scope','ASSESSMENT','sufficiency','REQUIRED','evidence_kind','NOT_A_KIND','minimum_items',1))),
+      jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
+        'scope','ASSESSMENT','sufficiency','REQUIRED',
+        'evidence_kind', public.supervisory_policy_vocabulary('EVIDENCE_KIND')->>0,'minimum_items',1)))),
+    ('R1C-16-FACT-NOT-CANONICAL','FACT_CONFIG','FACT_NOT_CANONICAL',
+      jsonb_build_object('facts', jsonb_build_array(jsonb_build_object(
+        'fact_code','R1CCERT_NOT_A_FACT','data_type','PERCENT'))),
+      jsonb_build_object('facts', jsonb_build_array(jsonb_build_object(
+        'fact_code', public.supervisory_policy_vocabulary('FACT', base)->>0,'data_type','PERCENT')))),
+    ('R1C-16B-JUDGEMENT-RULE-INVALID','JUDGEMENT_POLICY','JUDGEMENT_DIRECTION_INVALID',
+      jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
+        'direction','SIDEWAYS','max_band_steps',1,'rationale_min_length',50))),
+      jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
+        'direction','BOTH','max_band_steps',1,'rationale_min_length',50)))),
+    ('R1C-16C-SECTOR-UNKNOWN','SECTOR_OVERLAY','SECTOR_CODE_UNKNOWN',
+      jsonb_build_object('sectors', jsonb_build_array(jsonb_build_object(
+        'sector_code','NOT_A_SECTOR','applicability','APPLICABLE'))),
+      jsonb_build_object('sectors', jsonb_build_array(jsonb_build_object(
+        'sector_code', public.supervisory_policy_vocabulary('SECTOR')->>0,'applicability','APPLICABLE')))),
+    ('R1C-16D-SOURCE-FACT-UNKNOWN','SOURCE_BINDING','SOURCE_FACT_UNKNOWN',
+      jsonb_build_object('bindings', jsonb_build_array(jsonb_build_object(
+        'fact_code','R1CCERT_NOT_A_FACT','source_kind','RETURN','source_reference','R1CCERT return'))),
+      jsonb_build_object('bindings', jsonb_build_array(jsonb_build_object(
+        'fact_code', public.supervisory_policy_vocabulary('FACT', base)->>0,
+        'source_kind','RETURN','source_reference','R1CCERT return')))),
+    ('R1C-16E-MATERIALITY-MEASURE-UNKNOWN','MATERIALITY_POLICY','MATERIALITY_MEASURE_UNKNOWN',
+      jsonb_build_object('thresholds', jsonb_build_array(jsonb_build_object(
+        'measure','R1CCERT_NOT_A_MEASURE','operator','GT','value',10))),
+      jsonb_build_object('thresholds', jsonb_build_array(jsonb_build_object(
+        'measure', public.supervisory_policy_vocabulary('MATERIALITY_MEASURE', base)->>0,
+        'operator','GT','value',10)))),
+    ('R1C-16F-DASHBOARD-METRIC-UNKNOWN','DASHBOARD_POLICY','DASHBOARD_METRIC_UNKNOWN',
+      jsonb_build_object('tiles', jsonb_build_array(jsonb_build_object(
+        'tile_key','r1ccert_tile','metric','R1CCERT_NOT_A_METRIC','audience','REGULATOR'))),
+      jsonb_build_object('tiles', jsonb_build_array(jsonb_build_object(
+        'tile_key','r1ccert_tile','metric', public.supervisory_policy_vocabulary('METRIC')->>0,
+        'audience','REGULATOR')))),
+    ('R1C-16G-NOTIFICATION-EVENT-UNKNOWN','NOTIFICATION_POLICY','NOTIFICATION_EVENT_UNKNOWN',
+      jsonb_build_object('triggers', jsonb_build_array(jsonb_build_object(
+        'event','R1CCERT.NOT_AN_EVENT',
+        'channels', jsonb_build_array(public.supervisory_policy_vocabulary('NOTIFICATION_CHANNEL')->>0),
+        'recipients', jsonb_build_array(public.supervisory_policy_vocabulary('RECIPIENT_ROLE')->>0)))),
+      jsonb_build_object('triggers', jsonb_build_array(jsonb_build_object(
+        'event', public.supervisory_policy_vocabulary('NOTIFICATION_EVENT')->>0,
+        'channels', jsonb_build_array(public.supervisory_policy_vocabulary('NOTIFICATION_CHANNEL')->>0),
+        'recipients', jsonb_build_array(public.supervisory_policy_vocabulary('RECIPIENT_ROLE')->>0)))))
+  ) AS t(gate, ctype, finding_code, bad_content, good_content)
+  LOOP
+    comp := (public.supervisory_policy_component_create(jsonb_build_object(
+      'component_type', crec.ctype,'domain_code','AML_CFT','regulator_id', reg,
+      'code','R1CCERT-'||replace(crec.gate,'_','-'),'component_version','1.0',
+      'name','R1CCERT '||crec.ctype||' contradicting the canonical vocabulary',
+      'content', crec.bad_content)))->>'component_id';
+    PERFORM public.supervisory_policy_profile_binding_set(base, jsonb_build_object(
+      'component_type', crec.ctype,'component_id', comp,
+      'rationale','R1CCERT binds deliberately incompatible '||crec.ctype||' content'));
+    jv := public.supervisory_policy_profile_compatibility(base);
 
-  comp := (public.supervisory_policy_component_create(jsonb_build_object(
-    'component_type','RESPONSE_POLICY','domain_code','AML_CFT','regulator_id', reg,
-    'code','R1CCERT-RESP-ACTION','component_version','1.0','name','R1CCERT invalid action',
-    'content', jsonb_build_object('responses', jsonb_build_array(jsonb_build_object(
-      'risk_band','HIGH','actions', jsonb_build_array('DEPORTATION')))))))->>'component_id';
-  jv := public.supervisory_policy_component_validate(comp);
-  INSERT INTO r1c VALUES ('R1C-13-RESPONSE-ACTION-INVALID', NOT (jv->>'valid')::boolean,
-    format('%s', jv->'errors'));
+    comp := (public.supervisory_policy_component_create(jsonb_build_object(
+      'component_type', crec.ctype,'domain_code','AML_CFT','regulator_id', reg,
+      'code','R1CCERT-'||replace(crec.gate,'_','-')||'-OK','component_version','1.0',
+      'name','R1CCERT '||crec.ctype||' using canonical vocabulary',
+      'content', crec.good_content)))->>'component_id';
+    PERFORM public.supervisory_policy_profile_binding_set(base, jsonb_build_object(
+      'component_type', crec.ctype,'component_id', comp,
+      'rationale','R1CCERT binds canonical '||crec.ctype||' content'));
+    jw := public.supervisory_policy_profile_compatibility(base);
 
-  comp := (public.supervisory_policy_component_create(jsonb_build_object(
-    'component_type','SLA_POLICY','domain_code','AML_CFT','regulator_id', reg,
-    'code','R1CCERT-SLA','component_version','1.0','name','R1CCERT invalid SLA stage',
-    'content', jsonb_build_object('stages', jsonb_build_array(jsonb_build_object(
-      'stage','NOT_A_STAGE','days', 5))))))->>'component_id';
-  jv := public.supervisory_policy_component_validate(comp);
-  INSERT INTO r1c VALUES ('R1C-14-SLA-STAGE-INVALID', NOT (jv->>'valid')::boolean, format('%s', jv->'errors'));
+    INSERT INTO r1c VALUES (crec.gate,
+      EXISTS (SELECT 1 FROM jsonb_array_elements(jv->'findings') f WHERE f->>'code' = crec.finding_code)
+        AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(jw->'findings') f WHERE f->>'code' = crec.finding_code),
+      format('%s raised then cleared (%s error(s) remain)', crec.finding_code, jw->>'error_count'));
+  END LOOP;
 
-  comp := (public.supervisory_policy_component_create(jsonb_build_object(
-    'component_type','EVIDENCE_POLICY','domain_code','AML_CFT','regulator_id', reg,
-    'code','R1CCERT-EVID','component_version','1.0','name','R1CCERT invalid evidence vocabulary',
-    'content', jsonb_build_object('requirements', jsonb_build_array(jsonb_build_object(
-      'scope','NOT_A_SCOPE','evidence_kind','NOT_A_KIND','min_count',1))))))->>'component_id';
-  jv := public.supervisory_policy_component_validate(comp);
-  INSERT INTO r1c VALUES ('R1C-15-EVIDENCE-VOCAB-INVALID', NOT (jv->>'valid')::boolean, format('%s', jv->'errors'));
-
-  comp := (public.supervisory_policy_component_create(jsonb_build_object(
-    'component_type','FACT_CONFIG','domain_code','AML_CFT','regulator_id', reg,
-    'code','R1CCERT-FACT','component_version','1.0','name','R1CCERT non-canonical fact',
-    'content', jsonb_build_object('facts', jsonb_build_array(jsonb_build_object(
-      'fact_code','R1CCERT_NOT_A_FACT'))))))->>'component_id';
-  INSERT INTO r1c_id(k,v) VALUES ('fact_comp', comp);
-  jv := public.supervisory_policy_component_validate(comp);
-  INSERT INTO r1c VALUES ('R1C-16-FACT-NOT-CANONICAL', NOT (jv->>'valid')::boolean, format('%s', jv->'errors'));
 
   -- R1C-17 — compatibility findings are structured and deterministic
   jv := public.supervisory_policy_profile_compatibility(base);
