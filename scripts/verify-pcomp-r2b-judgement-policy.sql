@@ -187,7 +187,7 @@ INSERT INTO r2b_id(k,v) VALUES ('checker','0b522724-adcb-48bf-b21d-175339479616'
 
 INSERT INTO public.supervisory_methodology(
   code, version, name, domain_code, regulator_id, origin, status, scoring_scale,
-  effective_from, description)
+  effective_from)
 VALUES ('R2BCERT-RBA','1.0','R2BCERT judgement fixture','AML_CFT',
   (SELECT v FROM r2b_id WHERE k='regulator'),'REGULATOR_AUTHORED','ACTIVE',
   jsonb_build_array(
@@ -196,7 +196,7 @@ VALUES ('R2BCERT-RBA','1.0','R2BCERT judgement fixture','AML_CFT',
     jsonb_build_object('code','MEDIUM_HIGH','label','Medium-high','ordinal',3),
     jsonb_build_object('code','HIGH','label','High','ordinal',4),
     jsonb_build_object('code','SEVERE','label','Severe','ordinal',5)),
-  current_date - 1, 'R2BCERT fixture methodology, rolled back');
+  current_date - 1);
 INSERT INTO r2b_id(k,v) SELECT 'meth', id FROM public.supervisory_methodology WHERE code='R2BCERT-RBA';
 
 INSERT INTO public.supervisory_policy_component(
