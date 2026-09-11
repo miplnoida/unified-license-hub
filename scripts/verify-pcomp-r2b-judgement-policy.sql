@@ -605,23 +605,31 @@ BEGIN
     jsonb_array_length(COALESCE(jv,'[]'::jsonb)) = 0, format('findings=%s', jv));
 
   -- An unknown rating in the policy is incompatible with the methodology.
-  UPDATE public.supervisory_policy_component
-     SET content = jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
-           'rule_code','R2BCERT-BAD','applies_to_ratings', jsonb_build_array('CATASTROPHIC'))))
-   WHERE id = (SELECT v FROM r2b_id WHERE k='component');
+  -- Approved content is immutable, so the incompatible cases are authored as
+  -- separate draft versions rather than by editing the active one.
+  INSERT INTO public.supervisory_policy_component(
+    component_type, code, component_version, name, domain_code, regulator_id, origin, status, content)
+  VALUES ('JUDGEMENT_POLICY','R2BCERT-JUD-BAD','1.0','R2BCERT unknown rating','AML_CFT',
+    (SELECT v FROM r2b_id WHERE k='regulator'),'REGULATOR_AUTHORED','DRAFT',
+    jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
+      'rule_code','R2BCERT-BAD','applies_to_ratings', jsonb_build_array('CATASTROPHIC')))));
   jv := public.supervisory_judgement_policy_compatibility(NULL,
-          (SELECT v FROM r2b_id WHERE k='component'), (SELECT v FROM r2b_id WHERE k='meth'));
+          (SELECT id FROM public.supervisory_policy_component WHERE code='R2BCERT-JUD-BAD'),
+          (SELECT v FROM r2b_id WHERE k='meth'));
   INSERT INTO r2b VALUES ('R2B-82-UNKNOWN-RATING-INCOMPATIBLE',
     jsonb_array_length(COALESCE(jv,'[]'::jsonb)) >= 1, format('findings=%s', jv));
 
   -- A step limit larger than the rating scale allows is reported.
-  UPDATE public.supervisory_policy_component
-     SET content = jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
-           'rule_code','R2BCERT-BIG','applies_to_ratings', jsonb_build_array('LOW'),
-           'max_band_steps', 12)))
-   WHERE id = (SELECT v FROM r2b_id WHERE k='component');
+  INSERT INTO public.supervisory_policy_component(
+    component_type, code, component_version, name, domain_code, regulator_id, origin, status, content)
+  VALUES ('JUDGEMENT_POLICY','R2BCERT-JUD-BIG','1.0','R2BCERT impossible movement','AML_CFT',
+    (SELECT v FROM r2b_id WHERE k='regulator'),'REGULATOR_AUTHORED','DRAFT',
+    jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
+      'rule_code','R2BCERT-BIG','applies_to_ratings', jsonb_build_array('LOW'),
+      'max_band_steps', 12))));
   jv := public.supervisory_judgement_policy_compatibility(NULL,
-          (SELECT v FROM r2b_id WHERE k='component'), (SELECT v FROM r2b_id WHERE k='meth'));
+          (SELECT id FROM public.supervisory_policy_component WHERE code='R2BCERT-JUD-BIG'),
+          (SELECT v FROM r2b_id WHERE k='meth'));
   INSERT INTO r2b VALUES ('R2B-83-IMPOSSIBLE-MOVEMENT-INCOMPATIBLE',
     jsonb_array_length(COALESCE(jv,'[]'::jsonb)) >= 1, format('findings=%s', jv));
 
