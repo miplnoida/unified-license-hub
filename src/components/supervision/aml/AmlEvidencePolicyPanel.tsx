@@ -135,19 +135,19 @@ function RuleCard({
       {showRequest || showDecide ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {showRequest ? (
-            <Button size="sm" variant="outline" data-rbac="aml_supervision.execute_assessment"
+            <Button size="sm" variant="outline" data-rbac="aml_supervision.edit"
               data-testid={`evidence-policy-request-${d.rule_code}`} onClick={() => onRequest(d)}>
               Request exception
             </Button>
           ) : null}
           {showDecide && linked ? (
             <>
-              <Button size="sm" data-rbac="aml_supervision.approve_assessment"
+              <Button size="sm" data-rbac="aml_supervision.approve"
                 data-testid={`evidence-policy-approve-${d.rule_code}`}
                 onClick={() => onDecide(linked, 'APPROVED')}>
                 Approve exception
               </Button>
-              <Button size="sm" variant="outline" data-rbac="aml_supervision.approve_assessment"
+              <Button size="sm" variant="outline" data-rbac="aml_supervision.approve"
                 data-testid={`evidence-policy-reject-${d.rule_code}`}
                 onClick={() => onDecide(linked, 'REJECTED')}>
                 Reject exception

@@ -198,126 +198,6 @@
       "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
     },
     {
-      "module": "coordination_cases",
-      "action": "approve",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_cases",
-      "action": "create",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_cases",
-      "action": "edit",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_cases",
-      "action": "override",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_cases",
-      "action": "view",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_escalations",
-      "action": "approve",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_escalations",
-      "action": "create",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_escalations",
-      "action": "edit",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_escalations",
-      "action": "override",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_escalations",
-      "action": "view",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_flags",
-      "action": "approve",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_flags",
-      "action": "create",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_flags",
-      "action": "edit",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_flags",
-      "action": "override",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_flags",
-      "action": "view",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_messages",
-      "action": "approve",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_messages",
-      "action": "create",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_messages",
-      "action": "edit",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_messages",
-      "action": "override",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "coordination_messages",
-      "action": "view",
-      "disposition": "future-module",
-      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
       "module": "coordination",
       "action": "admin",
       "disposition": "reserved-granular",
@@ -334,6 +214,126 @@
       "action": "delete",
       "disposition": "reserved-granular",
       "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "coordination_cases",
+      "action": "approve",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_cases",
+      "action": "create",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_cases",
+      "action": "edit",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_cases",
+      "action": "override",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_cases",
+      "action": "view",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_escalations",
+      "action": "approve",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_escalations",
+      "action": "create",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_escalations",
+      "action": "edit",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_escalations",
+      "action": "override",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_escalations",
+      "action": "view",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_flags",
+      "action": "approve",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_flags",
+      "action": "create",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_flags",
+      "action": "edit",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_flags",
+      "action": "override",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_flags",
+      "action": "view",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_messages",
+      "action": "approve",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_messages",
+      "action": "create",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_messages",
+      "action": "edit",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_messages",
+      "action": "override",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
+    },
+    {
+      "module": "coordination_messages",
+      "action": "view",
+      "disposition": "future-module",
+      "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
     },
     {
       "module": "document_management",
@@ -504,6 +504,30 @@
       "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
     },
     {
+      "module": "fit_and_proper",
+      "action": "admin",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper",
+      "action": "delete",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper",
+      "action": "update",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
+      "module": "fit_and_proper",
+      "action": "view_status",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
       "module": "fit_and_proper_appeals",
       "action": "approve",
       "disposition": "future-module",
@@ -620,30 +644,6 @@
     {
       "module": "fit_and_proper_screening",
       "action": "run_ai_analysis",
-      "disposition": "reserved-granular",
-      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
-    },
-    {
-      "module": "fit_and_proper",
-      "action": "admin",
-      "disposition": "reserved-granular",
-      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
-    },
-    {
-      "module": "fit_and_proper",
-      "action": "delete",
-      "disposition": "reserved-granular",
-      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
-    },
-    {
-      "module": "fit_and_proper",
-      "action": "update",
-      "disposition": "reserved-granular",
-      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
-    },
-    {
-      "module": "fit_and_proper",
-      "action": "view_status",
       "disposition": "reserved-granular",
       "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
     },
@@ -804,6 +804,12 @@
       "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
     },
     {
+      "module": "market_conduct",
+      "action": "issue_enforcement_action",
+      "disposition": "reserved-granular",
+      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
+    },
+    {
       "module": "market_conduct_investigation",
       "action": "access_investigation_workspace",
       "disposition": "future-module",
@@ -832,12 +838,6 @@
       "action": "view",
       "disposition": "future-module",
       "rationale": "Module has no enforced surface yet; the whole module is catalogued ahead of its build-out and grants nothing today."
-    },
-    {
-      "module": "market_conduct",
-      "action": "issue_enforcement_action",
-      "disposition": "reserved-granular",
-      "rationale": "Module is live and enforced through coarser actions; this finer-grained action is reserved for future split-out and grants nothing today."
     },
     {
       "module": "notification_management",
