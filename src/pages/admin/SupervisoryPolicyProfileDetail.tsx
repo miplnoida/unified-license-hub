@@ -39,6 +39,7 @@ export default function SupervisoryPolicyProfileDetailPage() {
   const { readiness, capabilities } = useSupervisoryPolicyProfileGovernance(profileId);
   const events = useSupervisoryPolicyProfileEvents(profileId);
   const compare = useSupervisoryPolicyProfileCompare(profileId, baselineId || undefined);
+  const compatibility = useSupervisoryPolicyProfileCompatibility(profileId);
 
   if (detail.isLoading) return <Skeleton className="h-96 w-full" />;
   if (detail.error) return <ErrorPanel error={detail.error} title="This policy profile could not be opened" />;
