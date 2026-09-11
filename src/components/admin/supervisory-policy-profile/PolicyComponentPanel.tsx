@@ -7,7 +7,8 @@
  * built yet are shown honestly as unavailable rather than pretended configured.
  */
 import { useState } from 'react';
-import { Link2, Link2Off } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Link2, Link2Off, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
