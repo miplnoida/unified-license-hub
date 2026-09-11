@@ -30,6 +30,17 @@ import {
 } from '@/hooks/useSupervisoryPolicyProfiles';
 import { ReadinessBadge, RequirementBadge, errorMessage, formatDateTime } from './labels';
 
+/** Where each policy component type is authored, approved and versioned. */
+const COMPONENT_WORKSPACE: Record<string, string> = {
+  METHODOLOGY: '/admin/supervisory-methodology',
+  CALCULATION_CONFIG: '/admin/supervisory-calculation',
+  ASSESSMENT_PROGRAMME: '/admin/supervisory-assessment-programmes',
+};
+
+function workspaceHref(componentType: string) {
+  return COMPONENT_WORKSPACE[componentType] ?? '/admin/supervisory-policy-components';
+}
+
 export function PolicyComponentPanel({
   profileId, readiness, capabilities,
 }: {
