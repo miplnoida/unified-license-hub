@@ -384,11 +384,11 @@ BEGIN
 
   SELECT count(*) INTO n FROM public.supervisory_policy_component_type
    WHERE component_type IN ('SECTOR_OVERLAY','FACT_CONFIG','SOURCE_BINDING','MATERIALITY_POLICY',
-                            'JUDGEMENT_POLICY','RESPONSE_POLICY','SLA_POLICY','DASHBOARD_POLICY',
+                            'RESPONSE_POLICY','SLA_POLICY','DASHBOARD_POLICY',
                             'NOTIFICATION_POLICY')
      AND NOT is_runtime_consumed AND NOT is_certified;
-  INSERT INTO r2a VALUES ('R2A-47-OTHER-NINE-STILL-CONFIGURATION-ONLY', n = 9,
-    format('%s of 9 areas truthfully report configuration-only', n));
+  INSERT INTO r2a VALUES ('R2A-47-OTHER-EIGHT-STILL-CONFIGURATION-ONLY', n = 8,
+    format('%s of 8 areas truthfully report configuration-only', n));
 END $$;
 
 -- =====================================================================
