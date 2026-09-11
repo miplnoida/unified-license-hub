@@ -175,7 +175,7 @@ export function PolicyComponentPanel({
                             <Link2Off className="h-3.5 w-3.5" />Remove
                           </Button>
                         ) : null}
-                        <Button asChild size="sm" variant="ghost" className="gap-1.5">
+                        <Button asChild size="sm" variant="ghost" className="gap-1.5" data-rbac="aml_supervision.manage_config">
                           <Link to={workspaceHref(c.component_type)}>
                             <SlidersHorizontal className="h-3.5 w-3.5" />Configure
                           </Link>
