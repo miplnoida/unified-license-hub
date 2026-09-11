@@ -226,11 +226,16 @@ VALUES ('R2BCERT-ASSESS-1',(SELECT v FROM r2b_id WHERE k='entity'),'AML_CFT','PE
 INSERT INTO r2b_id(k,v) SELECT 'assessment', id FROM public.supervisory_assessment
  WHERE reference='R2BCERT-ASSESS-1';
 
+INSERT INTO public.supervisory_policy_profile(code, profile_version, domain_code, name)
+VALUES ('R2BCERT-PROFILE','1.0','AML_CFT','R2BCERT judgement profile fixture');
+INSERT INTO r2b_id(k,v) SELECT 'profile', id FROM public.supervisory_policy_profile
+ WHERE code='R2BCERT-PROFILE' AND profile_version='1.0';
+
 INSERT INTO public.supervisory_assessment_policy_snapshot(
   assessment_id, domain_code, policy_profile_id, policy_profile_code, policy_profile_version,
   policy_profile_origin, regulator_id, resolved_as_of, methodology_id, methodology_code,
   methodology_version, components, resolution, content_hash)
-VALUES ((SELECT v FROM r2b_id WHERE k='assessment'),'AML_CFT', gen_random_uuid(),
+VALUES ((SELECT v FROM r2b_id WHERE k='assessment'),'AML_CFT',(SELECT v FROM r2b_id WHERE k='profile'),
   'R2BCERT-PROFILE','1.0','REGULATOR_AUTHORED',(SELECT v FROM r2b_id WHERE k='regulator'),
   current_date, (SELECT v FROM r2b_id WHERE k='meth'),'R2BCERT-RBA','1.0',
   jsonb_build_array(jsonb_build_object(
