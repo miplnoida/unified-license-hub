@@ -30,7 +30,45 @@ import {
   useLinkAssessmentEvidence,
   useUnlinkAssessmentEvidence,
 } from '@/hooks/useAssessmentEvidenceBasis';
+import { useAssessmentEvidencePolicy } from '@/hooks/useAssessmentEvidencePolicy';
+import { decisionLabel, decisionTone, kindList, outstandingText } from '@/lib/evidencePolicyPresentation';
 import { AMBER, EMERALD, NEUTRAL } from '@/lib/amlLabels';
+
+/**
+ * The evidence policy requirement for this question, exactly as the platform
+ * decided it from the assessment's pinned policy. Nothing is re-checked here.
+ */
+function QuestionEvidencePolicyContext({ assessmentId, questionId }: { assessmentId: string; questionId: string }) {
+  const { data } = useAssessmentEvidencePolicy(assessmentId);
+  const evaluation = data?.evaluation;
+  if (!evaluation || evaluation.status !== 'EVALUATED') return null;
+  const decisions = evaluation.decisions.filter((d) => d.question_id === questionId);
+  if (decisions.length === 0) return null;
+
+  return (
+    <div className="space-y-1.5" data-testid={`question-evidence-policy-${questionId}`}>
+      {decisions.map((d) => (
+        <div key={d.rule_code} className="rounded-md border border-dashed p-2 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-1.5">
+            <span className="font-medium">
+              Evidence policy {evaluation.policy_component_code ?? ''} v{evaluation.policy_component_version ?? '—'} ·{' '}
+              {d.rule_label || d.rule_code}
+            </span>
+            <Badge variant="outline" className={`${decisionTone(d.decision)} text-[10px]`}>
+              {decisionLabel(d.decision)}
+            </Badge>
+          </div>
+          <p className="mt-1 text-muted-foreground">
+            Minimum {d.required_items || 0} · {kindList(d.permitted_source_kinds)}
+            {d.maximum_age_days ? ` · no older than ${d.maximum_age_days} days` : ''}
+            {d.independent_sources_required ? ` · ${d.independent_sources_required} independent sources` : ''}
+          </p>
+          {outstandingText(d) ? <p className="mt-1 text-muted-foreground">{outstandingText(d)}</p> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 interface Props {
   assessmentId: string;
@@ -84,6 +122,8 @@ export function AmlQuestionEvidencePanel({
           </Button>
         ) : null}
       </div>
+
+      <QuestionEvidencePolicyContext assessmentId={assessmentId} questionId={questionId} />
 
       {legacyCount > 0 ? (
         <p className="text-xs text-muted-foreground">
