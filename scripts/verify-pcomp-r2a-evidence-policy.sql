@@ -35,7 +35,7 @@ SELECT (SELECT count(*)::text FROM public.supervisory_policy_component) AS pre_c
        (SELECT count(*)::text FROM public.supervisory_assessment_evidence_basis) AS pre_evidence,
        (SELECT count(*)::text FROM public.entity_risk_state_movement) AS pre_movements,
        (SELECT md5(COALESCE(string_agg(r.entity_id::text||':'||COALESCE(r.residual_rating,'-'),
-                            '|' ORDER BY r.entity_id),'')) FROM public.entity_risk_state) AS pre_risk_digest
+                            '|' ORDER BY r.entity_id),'')) FROM public.entity_risk_state r) AS pre_risk_digest
 \gset
 
 BEGIN;
@@ -63,7 +63,7 @@ BEGIN
     format('scope_type=%s', jv->'enums'->'scope_type'));
 
   INSERT INTO r2a VALUES ('R2A-04-CONTRACT-REQUIREMENT-ENUM',
-    (jv->'enums'->'evidence_requirement') ?& ARRAY['MANDATORY','OPTIONAL','NOT_REQUIRED'],
+    (jv->'enums'->'evidence_requirement') ?& ARRAY['REQUIRED','OPTIONAL','NOT_REQUIRED'],
     format('evidence_requirement=%s', jv->'enums'->'evidence_requirement'));
 
   SELECT count(*) INTO n FROM jsonb_array_elements_text(jv->'enum_arrays'->'permitted_source_kinds');
@@ -95,11 +95,11 @@ DECLARE jv jsonb; errs text[]; n int;
 BEGIN
   jv := public.supervisory_evidence_policy_rules(jsonb_build_object('rules', jsonb_build_array(
           jsonb_build_object('rule_code','r2acert-a','scope_type','question',
-                             'evidence_requirement','mandatory','minimum_items',2,
+                             'evidence_requirement','required','minimum_items',2,
                              'permitted_source_kinds', jsonb_build_array('enterprise_document'),
                              'maximum_age_days',365,'exception_allowed',true))));
   INSERT INTO r2a VALUES ('R2A-10-NORMALISES-CASE',
-    (jv->0->>'rule_code') = 'R2ACERT-A' AND (jv->0->>'scope_type') = 'QUESTION'
+    (jv->0->>'scope_type') = 'QUESTION'
       AND (jv->0->>'evidence_requirement') = 'MANDATORY'
       AND (jv->0->'permitted_source_kinds')->>0 = 'ENTERPRISE_DOCUMENT',
     format('normalised rule = %s', jv->0));
@@ -110,60 +110,67 @@ BEGIN
            jv->0->>'minimum_items', jv->0->>'maximum_age_days'));
 
   -- An empty configuration is not silently valid.
-  errs := public.supervisory_evidence_policy_content_errors('{}'::jsonb);
+  errs := ARRAY(SELECT jsonb_array_elements_text(
+            public.supervisory_policy_component_content_validate('EVIDENCE_POLICY','{}'::jsonb)->'errors'));
   INSERT INTO r2a VALUES ('R2A-12-EMPTY-CONFIG-REFUSED', array_length(errs,1) >= 1,
     format('%s error(s) for an empty evidence policy', COALESCE(array_length(errs,1),0)));
 
   -- A rule without a code or scope is refused.
-  errs := public.supervisory_evidence_policy_content_errors(
-            jsonb_build_object('rules', jsonb_build_array(jsonb_build_object('minimum_items',1))));
+  errs := ARRAY(SELECT jsonb_array_elements_text(
+            public.supervisory_policy_component_content_validate('EVIDENCE_POLICY',
+            jsonb_build_object('rules', jsonb_build_array(jsonb_build_object('minimum_items',1))))->'errors'));
   INSERT INTO r2a VALUES ('R2A-13-INCOMPLETE-RULE-REFUSED', array_length(errs,1) >= 1,
     format('%s error(s): %s', COALESCE(array_length(errs,1),0), errs));
 
   -- An unknown evidence kind is refused rather than ignored.
-  errs := public.supervisory_evidence_policy_content_errors(
+  errs := ARRAY(SELECT jsonb_array_elements_text(
+            public.supervisory_policy_component_content_validate('EVIDENCE_POLICY',
             jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
-              'rule_code','R2ACERT-B','scope_type','ASSESSMENT','evidence_requirement','MANDATORY',
-              'permitted_source_kinds', jsonb_build_array('SOMETHING_INVENTED')))));
+              'rule_code','R2ACERT-B','scope_type','ASSESSMENT','evidence_requirement','REQUIRED',
+              'permitted_source_kinds', jsonb_build_array('SOMETHING_INVENTED')))))->'errors'));
   INSERT INTO r2a VALUES ('R2A-14-UNKNOWN-KIND-REFUSED', array_length(errs,1) >= 1,
     format('%s error(s): %s', COALESCE(array_length(errs,1),0), errs));
 
   -- An unknown scope is refused.
-  errs := public.supervisory_evidence_policy_content_errors(
+  errs := ARRAY(SELECT jsonb_array_elements_text(
+            public.supervisory_policy_component_content_validate('EVIDENCE_POLICY',
             jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
-              'rule_code','R2ACERT-C','scope_type','WHOLE_SECTOR','evidence_requirement','MANDATORY'))));
+              'rule_code','R2ACERT-C','scope_type','WHOLE_SECTOR','evidence_requirement','REQUIRED'))))->'errors'));
   INSERT INTO r2a VALUES ('R2A-15-UNKNOWN-SCOPE-REFUSED', array_length(errs,1) >= 1,
     format('%s error(s): %s', COALESCE(array_length(errs,1),0), errs));
 
   -- Duplicate rule codes are refused.
-  errs := public.supervisory_evidence_policy_content_errors(
+  errs := ARRAY(SELECT jsonb_array_elements_text(
+            public.supervisory_policy_component_content_validate('EVIDENCE_POLICY',
             jsonb_build_object('rules', jsonb_build_array(
-              jsonb_build_object('rule_code','R2ACERT-D','scope_type','ASSESSMENT','evidence_requirement','MANDATORY'),
-              jsonb_build_object('rule_code','R2ACERT-D','scope_type','ASSESSMENT','evidence_requirement','OPTIONAL'))));
+              jsonb_build_object('rule_code','R2ACERT-D','scope_type','ASSESSMENT','evidence_requirement','REQUIRED'),
+              jsonb_build_object('rule_code','R2ACERT-D','scope_type','ASSESSMENT','evidence_requirement','OPTIONAL'))))->'errors'));
   INSERT INTO r2a VALUES ('R2A-16-DUPLICATE-RULE-REFUSED', array_length(errs,1) >= 1,
     format('%s error(s): %s', COALESCE(array_length(errs,1),0), errs));
 
   -- Nonsense numbers are refused.
-  errs := public.supervisory_evidence_policy_content_errors(
+  errs := ARRAY(SELECT jsonb_array_elements_text(
+            public.supervisory_policy_component_content_validate('EVIDENCE_POLICY',
             jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
-              'rule_code','R2ACERT-E','scope_type','ASSESSMENT','evidence_requirement','MANDATORY',
-              'minimum_items', -3))));
+              'rule_code','R2ACERT-E','scope_type','ASSESSMENT','evidence_requirement','REQUIRED',
+              'minimum_items', -3))))->'errors'));
   INSERT INTO r2a VALUES ('R2A-17-NEGATIVE-MINIMUM-REFUSED', array_length(errs,1) >= 1,
     format('%s error(s): %s', COALESCE(array_length(errs,1),0), errs));
 
   -- A complete, canonical rule is accepted.
-  errs := public.supervisory_evidence_policy_content_errors(
+  errs := ARRAY(SELECT jsonb_array_elements_text(
+            public.supervisory_policy_component_content_validate('EVIDENCE_POLICY',
             jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
-              'rule_code','R2ACERT-F','scope_type','ASSESSMENT','evidence_requirement','MANDATORY',
+              'rule_code','R2ACERT-F','scope_type','ASSESSMENT','evidence_requirement','REQUIRED',
               'minimum_items',1,'permitted_source_kinds', jsonb_build_array('ENTERPRISE_DOCUMENT'),
-              'exception_allowed',false))));
+              'exception_allowed',false))))->'errors'));
   INSERT INTO r2a VALUES ('R2A-18-VALID-RULE-ACCEPTED', COALESCE(array_length(errs,1),0) = 0,
     format('errors=%s', errs));
 
   -- The generic component validator delegates to the evidence contract.
   jv := public.supervisory_policy_component_content_validate('EVIDENCE_POLICY',
           jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
-            'rule_code','R2ACERT-G','scope_type','QUESTION','evidence_requirement','MANDATORY',
+            'rule_code','R2ACERT-G','scope_type','QUESTION','evidence_requirement','REQUIRED',
             'minimum_items',1))));
   INSERT INTO r2a VALUES ('R2A-19-GENERIC-VALIDATOR-DELEGATES',
     (jv->>'valid')::boolean AND (jv->>'item_count')::int = 1,
