@@ -69348,6 +69348,18 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_assessment_evidence_exception_decide: {
+        Args: { _decision: string; _exception_id: string; _rationale: string }
+        Returns: Json
+      }
+      supervisory_assessment_evidence_exception_request: {
+        Args: { _payload: Json }
+        Returns: Json
+      }
+      supervisory_assessment_evidence_exceptions: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_assessment_evidence_link: {
         Args: { _assessment_id: string; _payload: Json }
         Returns: Json
@@ -70058,6 +70070,14 @@ export type Database = {
       supervisory_entity_scope_permits: {
         Args: { _entity_id: string; _uid: string }
         Returns: boolean
+      }
+      supervisory_evidence_policy_compatibility: {
+        Args: {
+          _component_id: string
+          _methodology_id: string
+          _profile_id: string
+        }
+        Returns: Json
       }
       supervisory_evidence_policy_content_errors: {
         Args: { _content: Json }
