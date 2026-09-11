@@ -18,6 +18,7 @@ import { AmlAssessmentGovernance } from '@/components/supervision/aml/AmlAssessm
 import { AmlAssessmentCalculation } from '@/components/supervision/aml/AmlAssessmentCalculation';
 import { AmlQuestionPlanPanel } from '@/components/supervision/aml/AmlQuestionPlanPanel';
 import { AmlAssessmentReviewPanel } from '@/components/supervision/aml/AmlAssessmentReviewPanel';
+import { AmlPolicyBasisPanel } from '@/components/supervision/aml/AmlPolicyBasisPanel';
 import { AmlEntityRiskHistory } from '@/components/supervision/aml/AmlEntityRiskHistory';
 
 import { AmlSupervisoryActivity } from '@/components/supervision/aml/AmlSupervisoryActivity';
@@ -300,6 +301,7 @@ export default function AmlAssessmentWorkspace() {
           <TabsList className="flex-wrap">
             <TabsTrigger value="worksheet">Working file</TabsTrigger>
             <TabsTrigger value="scope">Question scope</TabsTrigger>
+            <TabsTrigger value="policy-basis">Policy basis</TabsTrigger>
             <TabsTrigger value="inherent">Inherent risk ({inherent.length})</TabsTrigger>
             <TabsTrigger value="control">Control effectiveness ({control.length})</TabsTrigger>
             {other.length > 0 ? <TabsTrigger value="other">Other dimensions ({other.length})</TabsTrigger> : null}
@@ -313,6 +315,10 @@ export default function AmlAssessmentWorkspace() {
 
           <TabsContent value="scope" className="mt-4">
             <AmlQuestionPlanPanel assessmentId={h.id} status={h.status} />
+          </TabsContent>
+
+          <TabsContent value="policy-basis" className="mt-4">
+            <AmlPolicyBasisPanel assessmentId={h.id} />
           </TabsContent>
 
           <TabsContent value="calculation" className="mt-4">
