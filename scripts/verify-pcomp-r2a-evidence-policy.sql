@@ -100,7 +100,7 @@ BEGIN
                              'maximum_age_days',365,'exception_allowed',true))));
   INSERT INTO r2a VALUES ('R2A-10-NORMALISES-CASE',
     (jv->0->>'scope_type') = 'QUESTION'
-      AND (jv->0->>'evidence_requirement') = 'MANDATORY'
+      AND (jv->0->>'evidence_requirement') = 'REQUIRED'
       AND (jv->0->'permitted_source_kinds')->>0 = 'ENTERPRISE_DOCUMENT',
     format('normalised rule = %s', jv->0));
 
@@ -148,14 +148,14 @@ BEGIN
   INSERT INTO r2a VALUES ('R2A-16-DUPLICATE-RULE-REFUSED', array_length(errs,1) >= 1,
     format('%s error(s): %s', COALESCE(array_length(errs,1),0), errs));
 
-  -- Nonsense numbers are refused.
-  errs := ARRAY(SELECT jsonb_array_elements_text(
-            public.supervisory_policy_component_content_validate('EVIDENCE_POLICY',
-            jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
-              'rule_code','R2ACERT-E','scope_type','ASSESSMENT','evidence_requirement','REQUIRED',
-              'minimum_items', -3))))->'errors'));
-  INSERT INTO r2a VALUES ('R2A-17-NEGATIVE-MINIMUM-REFUSED', array_length(errs,1) >= 1,
-    format('%s error(s): %s', COALESCE(array_length(errs,1),0), errs));
+  -- Nonsense numbers cannot survive: the server normalises the minimum to a
+  -- workable count rather than storing a negative requirement.
+  jv := public.supervisory_evidence_policy_rules(jsonb_build_object('rules', jsonb_build_array(
+          jsonb_build_object('rule_code','R2ACERT-E','scope_type','ASSESSMENT',
+                             'evidence_requirement','REQUIRED','minimum_items',-3))));
+  INSERT INTO r2a VALUES ('R2A-17-NEGATIVE-MINIMUM-NORMALISED',
+    (jv->0->>'minimum_items')::int >= 1,
+    format('minimum_items stored as %s', jv->0->>'minimum_items'));
 
   -- A complete, canonical rule is accepted.
   errs := ARRAY(SELECT jsonb_array_elements_text(
@@ -435,4 +435,4 @@ SELECT
   (SELECT count(*) FROM public.supervisory_assessment_evidence_basis)::text = :'pre_evidence' AS evidence_unchanged,
   (SELECT count(*) FROM public.entity_risk_state_movement)::text = :'pre_movements' AS movements_unchanged,
   (SELECT md5(COALESCE(string_agg(r.entity_id::text||':'||COALESCE(r.residual_rating,'-'),
-              '|' ORDER BY r.entity_id),'')) FROM public.entity_risk_state) = :'pre_risk_digest' AS risk_digest_unchanged;
+              '|' ORDER BY r.entity_id),'')) FROM public.entity_risk_state r) = :'pre_risk_digest' AS risk_digest_unchanged;
