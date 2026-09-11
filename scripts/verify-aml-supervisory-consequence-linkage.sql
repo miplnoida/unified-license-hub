@@ -1972,7 +1972,8 @@ BEGIN
        + (SELECT count(*) FROM public.supervisory_assessment_approval_decision WHERE rationale LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.supervisory_assessment_risk_publication WHERE COALESCE(reason,'') LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.entity_risk_state_movement WHERE COALESCE(reason,'') LIKE 'AML08CERT%')
-       + (SELECT count(*) FROM public.supervisory_consequence_decision)
+       + (SELECT count(*) FROM public.supervisory_consequence_decision
+            WHERE COALESCE(rationale,'') LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.supervisory_plan WHERE COALESCE(title,'') LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.supervisory_reassessment_requirement WHERE COALESCE(trigger_rationale,'') LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.supervisory_intervention WHERE COALESCE(title,'') LIKE 'AML08CERT%')
@@ -1984,7 +1985,8 @@ BEGIN
        + (SELECT count(*) FROM public.supervisory_calculation_config c
             JOIN public.supervisory_methodology m ON m.id = c.methodology_id WHERE m.code LIKE 'AML08CERT%')
        + (SELECT count(*) FROM public.compliance_audit_logs
-            WHERE object_type='supervisory_consequence_decision')
+            WHERE object_type='supervisory_consequence_decision'
+              AND COALESCE(justification,'') LIKE 'AML08CERT%')
     INTO n;
   IF n <> 0 THEN RAISE EXCEPTION 'FAIL ROLLBACK: % AML08CERT records survived', n; END IF;
   RAISE NOTICE 'PASS ROLLBACK: no AML08CERT assessment, approval, publication, risk movement, consequence decision, plan, reassessment, intervention, examination, finding, enforcement case or audit row survived';

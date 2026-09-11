@@ -240,19 +240,6 @@ BEGIN
   -- report the exact structured finding, and the same area bound with canonical
   -- content must clear it. Compatibility is the gate; nothing is guessed.
   FOR crec IN SELECT * FROM (VALUES
-    ('R1C-12-RESPONSE-BAND-INVALID','RESPONSE_POLICY','RESPONSE_RISK_BAND_UNKNOWN',
-      jsonb_build_object('responses', jsonb_build_array(jsonb_build_object(
-        'risk_band','NOT_A_BAND','actions', jsonb_build_array('EXAMINATION'),'timeframe_days',30))),
-      jsonb_build_object('responses', jsonb_build_array(jsonb_build_object(
-        'risk_band', public.supervisory_policy_vocabulary('RISK_BAND', base)->>0,
-        'actions', jsonb_build_array('EXAMINATION'),'timeframe_days',30)))),
-    ('R1C-13-RESPONSE-ACTION-INVALID','RESPONSE_POLICY','RESPONSE_ACTION_UNKNOWN',
-      jsonb_build_object('responses', jsonb_build_array(jsonb_build_object(
-        'risk_band', public.supervisory_policy_vocabulary('RISK_BAND', base)->>0,
-        'actions', jsonb_build_array('DEPORTATION'),'timeframe_days',30))),
-      jsonb_build_object('responses', jsonb_build_array(jsonb_build_object(
-        'risk_band', public.supervisory_policy_vocabulary('RISK_BAND', base)->>0,
-        'actions', jsonb_build_array('EXAMINATION'),'timeframe_days',30)))),
     ('R1C-14-SLA-STAGE-INVALID','SLA_POLICY','SLA_STAGE_UNKNOWN',
       jsonb_build_object('stages', jsonb_build_array(jsonb_build_object('stage','NOT_A_STAGE','days',10))),
       jsonb_build_object('stages', jsonb_build_array(jsonb_build_object(
@@ -358,6 +345,47 @@ BEGIN
       format('%s raised then cleared (%s error(s) remain)', crec.finding_code, jw->>'error_count'));
   END LOOP;
 
+
+  -- R1C-12/R1C-13 — PCOMP-R2C moved response-policy vocabulary defence upstream:
+  -- an unknown risk band or an action that is not a canonical supervisory
+  -- consequence is now refused when the policy is authored, so it can never be
+  -- approved, activated or bound. The refusal is the gate.
+  BEGIN
+    PERFORM public.supervisory_policy_component_create(jsonb_build_object(
+      'component_type','RESPONSE_POLICY','domain_code','AML_CFT','regulator_id', reg,
+      'code','R1CCERT-RESPONSE-BAND','component_version','1.0',
+      'name','R1CCERT response policy naming a rating that does not exist',
+      'content', jsonb_build_object('responses', jsonb_build_array(jsonb_build_object(
+        'rule_code','R1CCERT-1','risk_band','NOT_A_BAND','action','EXAMINATION',
+        'response_level','REQUIRED')))));
+    PERFORM public.supervisory_policy_component_lifecycle(
+      (SELECT id FROM public.supervisory_policy_component WHERE code = 'R1CCERT-RESPONSE-BAND'),
+      'SUBMITTED','R1CCERT submits response content naming an unknown rating.');
+    INSERT INTO r1c VALUES ('R1C-12-RESPONSE-BAND-INVALID', false,
+      'an unknown risk band was accepted for governed response policy');
+  EXCEPTION WHEN OTHERS THEN
+    INSERT INTO r1c VALUES ('R1C-12-RESPONSE-BAND-INVALID', true,
+      'refused at authoring: ' || left(SQLERRM, 160));
+  END;
+
+  BEGIN
+    PERFORM public.supervisory_policy_component_create(jsonb_build_object(
+      'component_type','RESPONSE_POLICY','domain_code','AML_CFT','regulator_id', reg,
+      'code','R1CCERT-RESPONSE-ACTION','component_version','1.0',
+      'name','R1CCERT response policy naming an action that does not exist',
+      'content', jsonb_build_object('responses', jsonb_build_array(jsonb_build_object(
+        'rule_code','R1CCERT-2',
+        'risk_band', public.supervisory_policy_vocabulary('RISK_BAND', base)->>0,
+        'action','DEPORTATION','response_level','REQUIRED')))));
+    PERFORM public.supervisory_policy_component_lifecycle(
+      (SELECT id FROM public.supervisory_policy_component WHERE code = 'R1CCERT-RESPONSE-ACTION'),
+      'SUBMITTED','R1CCERT submits response content naming an unknown action.');
+    INSERT INTO r1c VALUES ('R1C-13-RESPONSE-ACTION-INVALID', false,
+      'an action outside the canonical supervisory consequence catalogue was accepted');
+  EXCEPTION WHEN OTHERS THEN
+    INSERT INTO r1c VALUES ('R1C-13-RESPONSE-ACTION-INVALID', true,
+      'refused at authoring: ' || left(SQLERRM, 160));
+  END;
 
   -- R1C-17 — compatibility findings are structured and deterministic
   jv := public.supervisory_policy_profile_compatibility(base);
@@ -712,11 +740,13 @@ BEGIN
   -- PCOMP-R2A promoted EVIDENCE_POLICY, and only EVIDENCE_POLICY, to runtime.
   SELECT count(*) INTO n FROM public.supervisory_policy_component_type
    WHERE component_type IN ('SECTOR_OVERLAY','FACT_CONFIG','SOURCE_BINDING',
-                            'MATERIALITY_POLICY','RESPONSE_POLICY','SLA_POLICY',
+                            'MATERIALITY_POLICY','SLA_POLICY',
                             'DASHBOARD_POLICY','NOTIFICATION_POLICY')
      AND NOT is_runtime_consumed AND NOT is_certified;
-  INSERT INTO r1c VALUES ('R1C-39-EIGHT-AREAS-NOT-RUNTIME', n = 8,
-    format('%s of 8 configuration-only areas truthfully report not runtime consumed', n));
+  -- PCOMP-R2C promoted RESPONSE_POLICY to runtime, leaving seven areas
+  -- configuration-only.
+  INSERT INTO r1c VALUES ('R1C-39-SEVEN-AREAS-NOT-RUNTIME', n = 7,
+    format('%s of 7 configuration-only areas truthfully report not runtime consumed', n));
 
   SELECT count(*) INTO n FROM public.supervisory_policy_component_type
    WHERE component_type = 'EVIDENCE_POLICY' AND is_runtime_consumed AND is_certified;
