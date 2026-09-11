@@ -51,7 +51,7 @@ export function AmlResponsePolicyPanel({
     );
   }
 
-  if (!view) {
+  if (!view || !view.evaluation) {
     return (
       <Card>
         <CardHeader><CardTitle>Supervisory response policy</CardTitle></CardHeader>
@@ -68,6 +68,9 @@ export function AmlResponsePolicyPanel({
   }
 
   const ev = view.evaluation;
+  const expectations = ev.expectations ?? [];
+  const required = ev.required_responses ?? [];
+  const decisions = view.decisions ?? [];
 
   return (
     <Card data-testid="aml-response-policy-panel">
@@ -113,7 +116,7 @@ export function AmlResponsePolicyPanel({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {ev.expectations.map((x) => (
+            {expectations.map((x) => (
               <TableRow key={x.action}>
                 <TableCell>{dash(x.label ?? x.action)}</TableCell>
                 <TableCell>
@@ -135,13 +138,13 @@ export function AmlResponsePolicyPanel({
           </TableBody>
         </Table>
 
-        {ev.required_responses.length > 0 ? (
+        {required.length > 0 ? (
           <Alert>
             <Info className="h-4 w-4" aria-hidden />
             <AlertTitle>Responses this policy requires</AlertTitle>
             <AlertDescription>
               <ul className="list-disc pl-5">
-                {ev.required_responses.map((r) => (
+                {required.map((r) => (
                   <li key={r.action}>
                     {r.action}
                     {r.rule_code ? ` — rule ${r.rule_code}` : ''}
@@ -156,7 +159,7 @@ export function AmlResponsePolicyPanel({
         <p className="text-xs text-muted-foreground" data-testid="response-policy-automation">{ev.automation}</p>
         <p className="text-xs text-muted-foreground">{ev.timing_ownership}</p>
 
-        {view.decisions.length > 0 ? (
+        {decisions.length > 0 ? (
           <div className="space-y-2">
             <h4 className="text-sm font-medium">Recorded consequences and the policy they were judged against</h4>
             <Table>
@@ -170,7 +173,7 @@ export function AmlResponsePolicyPanel({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {view.decisions.map((d) => (
+                {decisions.map((d) => (
                   <TableRow key={d.decision_id}>
                     <TableCell>{d.action_type}</TableCell>
                     <TableCell>{dash(d.response_policy_basis_status)}</TableCell>
