@@ -257,12 +257,21 @@ BEGIN
       jsonb_build_object('stages', jsonb_build_array(jsonb_build_object('stage','NOT_A_STAGE','days',10))),
       jsonb_build_object('stages', jsonb_build_array(jsonb_build_object(
         'stage', public.supervisory_policy_vocabulary('WORKFLOW_STAGE')->>0,'days',10)))),
-    ('R1C-15-EVIDENCE-VOCAB-INVALID','EVIDENCE_POLICY','EVIDENCE_KIND_UNKNOWN',
+    -- PCOMP-R2A made evidence policy content itself governed, so an unknown
+    -- evidence kind can no longer be submitted at all. The remaining
+    -- incompatibility an evidence policy can express is naming a question the
+    -- bound methodology does not own.
+    ('R1C-15-EVIDENCE-VOCAB-INVALID','EVIDENCE_POLICY','EVIDENCE_SCOPE_REFERENCE_UNKNOWN',
       jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
-        'scope','ASSESSMENT','sufficiency','REQUIRED','evidence_kind','NOT_A_KIND','minimum_items',1))),
+        'rule_code','R1CCERT-EV-BAD','scope_type','QUESTION',
+        'scope_reference','R1CCERT_NOT_A_QUESTION','evidence_requirement','REQUIRED',
+        'permitted_source_kinds', jsonb_build_array(public.supervisory_policy_vocabulary('EVIDENCE_KIND')->>0),
+        'minimum_items',1))),
       jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
-        'scope','ASSESSMENT','sufficiency','REQUIRED',
-        'evidence_kind', public.supervisory_policy_vocabulary('EVIDENCE_KIND')->>0,'minimum_items',1)))),
+        'rule_code','R1CCERT-EV-OK','scope_type','ASSESSMENT','evidence_requirement','REQUIRED',
+        'permitted_source_kinds', jsonb_build_array(public.supervisory_policy_vocabulary('EVIDENCE_KIND')->>0),
+        'minimum_items',1)))),
+
     ('R1C-16-FACT-NOT-CANONICAL','FACT_CONFIG','FACT_NOT_CANONICAL',
       jsonb_build_object('facts', jsonb_build_array(jsonb_build_object(
         'fact_code','R1CCERT_NOT_A_FACT','data_type','PERCENT'))),
