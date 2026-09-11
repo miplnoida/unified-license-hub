@@ -31,6 +31,8 @@ DECLARE
   outsider text := json_build_object('sub', gen_random_uuid(), 'role','authenticated')::text;
   reg uuid; sla uuid; resp uuid; nxt uuid; n int; v jsonb; st text; ok boolean; profile uuid;
 BEGIN
+  PERFORM set_config('request.jwt.claims', maker, true);
+
   SELECT regulator_id INTO reg FROM public.supervisory_methodology
    WHERE code = 'AML-CFT-RBA' AND version = '1.0' AND status = 'ACTIVE';
 
@@ -146,22 +148,33 @@ BEGIN
   INSERT INTO pcomp_result VALUES ('PCOMP-13', st = 'ACTIVE' AND COALESCE(ok,false),
     format('status %s, independent approver %s', st, ok));
 
-  -- PCOMP-14 — an approved version is immutable even to a direct table write
+  -- PCOMP-14 — an approved version is immutable to a direct table write
   BEGIN
     UPDATE public.supervisory_policy_component
        SET content = jsonb_build_object('stages','[]'::jsonb) WHERE id = sla;
-    INSERT INTO pcomp_result VALUES ('PCOMP-14', false, 'a direct content edit was ACCEPTED');
+    GET DIAGNOSTICS n = ROW_COUNT;
+    INSERT INTO pcomp_result VALUES ('PCOMP-14', n = 0,
+      format('%s row(s) changed by a direct write (0 expected)', n));
   EXCEPTION WHEN OTHERS THEN
     INSERT INTO pcomp_result VALUES ('PCOMP-14', true, left(SQLERRM,90));
   END;
+  SELECT jsonb_array_length(content->'stages') INTO n
+    FROM public.supervisory_policy_component WHERE id = sla;
+  INSERT INTO pcomp_result VALUES ('PCOMP-14B', n = 2,
+    format('approved content still holds %s entries', n));
 
   -- PCOMP-15 — history is append-only
   BEGIN
     DELETE FROM public.supervisory_policy_component_event WHERE component_id = sla;
-    INSERT INTO pcomp_result VALUES ('PCOMP-15', false, 'history rows were DELETED');
+    GET DIAGNOSTICS n = ROW_COUNT;
+    INSERT INTO pcomp_result VALUES ('PCOMP-15', n = 0,
+      format('%s history row(s) deleted (0 expected)', n));
   EXCEPTION WHEN OTHERS THEN
     INSERT INTO pcomp_result VALUES ('PCOMP-15', true, left(SQLERRM,90));
   END;
+  SELECT count(*) INTO n FROM public.supervisory_policy_component_event WHERE component_id = sla;
+  INSERT INTO pcomp_result VALUES ('PCOMP-15B', n >= 4,
+    format('%s history event(s) retained', n));
 
   -- PCOMP-16 — a new version copies the entries and supersedes on activation
   PERFORM set_config('request.jwt.claims', maker, true);
