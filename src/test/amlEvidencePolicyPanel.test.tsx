@@ -34,7 +34,7 @@ const baseDecision = {
   maximum_age_days: 365,
   independent_sources_required: 2,
   rationale_required: true,
-  evidence_requirement: 'MANDATORY',
+  evidence_requirement: 'REQUIRED',
   exception_allowed: true,
   exception_id: null,
   exception_status: null,
@@ -94,7 +94,7 @@ const OPTIONS = {
   component_code: 'AML-EVIDENCE',
   component_version: '1.3',
   scope_types: ['ASSESSMENT', 'DIMENSION', 'QUESTION'],
-  evidence_requirements: ['MANDATORY', 'OPTIONAL', 'NOT_REQUIRED'],
+  evidence_requirements: ['REQUIRED', 'OPTIONAL', 'NOT_REQUIRED'],
   evidence_kinds: [
     { code: 'ENTERPRISE_DOCUMENT', label: 'Enterprise document', requires_source_object: true },
     { code: 'REGULATORY_RETURN', label: 'Regulatory return', requires_source_object: true },
@@ -351,7 +351,7 @@ describe('PCOMP-R2A-C13 rules are composed from the platform’s own vocabulary'
       <EvidencePolicyRuleEditor
         componentId="cp-1"
         editable
-        items={[{ rule_code: 'EV-CDD-01', scope_type: 'QUESTION', evidence_requirement: 'MANDATORY', minimum_items: 2 }]}
+        items={[{ rule_code: 'EV-CDD-01', scope_type: 'QUESTION', evidence_requirement: 'REQUIRED', minimum_items: 2 }]}
         onChange={() => {}}
       />,
     );
@@ -374,7 +374,7 @@ describe('PCOMP-R2A-C14 the recorded rule is restated in plain language', () => 
         editable
         items={[{
           rule_code: 'EV-CDD-01', scope_type: 'QUESTION', scope_reference: 'Q-CDD-1',
-          evidence_requirement: 'MANDATORY', minimum_items: 2, maximum_age_days: 365,
+          evidence_requirement: 'REQUIRED', minimum_items: 2, maximum_age_days: 365,
           permitted_source_kinds: ['ENTERPRISE_DOCUMENT'], required_source_kinds: ['REGULATORY_RETURN'],
           independent_sources_required: 2, rationale_required: true, exception_allowed: true,
         }]}
@@ -404,7 +404,7 @@ describe('PCOMP-R2A-C15 an approved evidence policy cannot be edited in place', 
   it('disables every control when the server withholds edit authority', async () => {
     wrap(
       <EvidencePolicyRuleEditor componentId="cp-1" editable={false} onChange={() => {}}
-        items={[{ rule_code: 'EV-CDD-01', scope_type: 'QUESTION', evidence_requirement: 'MANDATORY' }]} />,
+        items={[{ rule_code: 'EV-CDD-01', scope_type: 'QUESTION', evidence_requirement: 'REQUIRED' }]} />,
     );
     await screen.findByTestId('evidence-policy-rule-editor');
     expect(screen.getByLabelText('Applies to 1')).toBeDisabled();
