@@ -326,7 +326,7 @@ END $$;
 -- PROPOSAL — the server refuses and accepts by policy, behaviourally
 -- =====================================================================
 DO $$
-DECLARE refused int := 0; sqlm text; id uuid; o public.supervisory_assessment_calculation_override;
+DECLARE refused int := 0; sqlm text; ovr uuid; o public.supervisory_assessment_calculation_override;
 BEGIN
   SET LOCAL ROLE authenticated;
   PERFORM set_config('request.jwt.claims',
@@ -371,12 +371,12 @@ BEGIN
     refused = 1 AND sqlm LIKE '%40%', COALESCE(sqlm,'not refused'));
 
   -- The permitted departure is accepted.
-  id := public.supervisory_calculation_override_propose(
+  ovr := public.supervisory_calculation_override_propose(
     (SELECT v FROM r2b_id WHERE k='assessment'),'MEDIUM_HIGH',
     'R2BCERT: a one-step upward departure that the judgement policy expressly permits.');
   RESET ROLE;
-  INSERT INTO r2b_id(k,v) VALUES ('override', id);
-  SELECT * INTO o FROM public.supervisory_assessment_calculation_override WHERE id = id;
+  INSERT INTO r2b_id(k,v) VALUES ('override', ovr);
+  SELECT * INTO o FROM public.supervisory_assessment_calculation_override x WHERE x.id = ovr;
 
   INSERT INTO r2b VALUES ('R2B-45-PERMITTED-PROPOSAL-ACCEPTED',
     o.status = 'PENDING_APPROVAL' AND o.proposed_rating = 'MEDIUM_HIGH',
