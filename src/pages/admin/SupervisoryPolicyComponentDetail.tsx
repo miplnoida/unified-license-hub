@@ -170,15 +170,15 @@ export default function SupervisoryPolicyComponentDetailPage() {
                 onClick={() => setTransition('DRAFT')}>Return to draft</Button>
             ) : null}
             {caps.can_approve_now ? (
-              <Button size="sm" data-rbac="aml_supervision.policy_approve"
+              <Button size="sm" data-rbac="aml_supervision.manage_config"
                 onClick={() => setTransition('APPROVED')}>Approve</Button>
             ) : null}
             {caps.can_activate ? (
-              <Button size="sm" data-rbac="aml_supervision.policy_approve"
+              <Button size="sm" data-rbac="aml_supervision.manage_config"
                 onClick={() => setTransition('ACTIVE')}>Activate</Button>
             ) : null}
             {caps.can_retire ? (
-              <Button size="sm" variant="outline" data-rbac="aml_supervision.policy_approve"
+              <Button size="sm" variant="outline" data-rbac="aml_supervision.manage_config"
                 onClick={() => setTransition('RETIRED')}>Retire</Button>
             ) : null}
             {caps.can_new_version ? (
