@@ -19,6 +19,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import {
   useSupervisoryPolicyProfile,
   useSupervisoryPolicyProfileCompare,
+  useSupervisoryPolicyProfileCompatibility,
   useSupervisoryPolicyProfileEvents,
   useSupervisoryPolicyProfileGovernance,
 } from '@/hooks/useSupervisoryPolicyProfiles';
