@@ -58,6 +58,8 @@ const SupervisoryPolicyProfileRegisterPage = lazy(() => import('@/pages/admin/Su
 const SupervisoryAssessmentProgrammeRegisterPage = lazy(() => import('@/pages/admin/SupervisoryAssessmentProgrammeRegister'));
 const SupervisoryAssessmentProgrammeDetailPage = lazy(() => import('@/pages/admin/SupervisoryAssessmentProgrammeDetail'));
 const SupervisoryPolicyProfileDetailPage = lazy(() => import('@/pages/admin/SupervisoryPolicyProfileDetail'));
+const SupervisoryPolicyComponentRegisterPage = lazy(() => import('@/pages/admin/SupervisoryPolicyComponentRegister'));
+const SupervisoryPolicyComponentDetailPage = lazy(() => import('@/pages/admin/SupervisoryPolicyComponentDetail'));
 const FpCommittees = lazy(() => import('@/pages/admin/FpCommittees'));
 const RuleOverrides = lazy(() => import('@/pages/admin/RuleOverrides'));
 const RuleLibrary = lazy(() => import('@/pages/admin/RuleLibrary'));
@@ -210,6 +212,8 @@ export const adminRoutes = (
     <Route path="/admin/supervisory-methodology/:methodologyId" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryMethodologyDetailPage /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-policy-profiles" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryPolicyProfileRegisterPage /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-policy-profiles/:profileId" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryPolicyProfileDetailPage /></PermissionRoute></P>} />
+    <Route path="/admin/supervisory-policy-components" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryPolicyComponentRegisterPage /></PermissionRoute></P>} />
+    <Route path="/admin/supervisory-policy-components/:componentId" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryPolicyComponentDetailPage /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-assessment-programmes" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryAssessmentProgrammeRegisterPage /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-assessment-programmes/:programmeSetId" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryAssessmentProgrammeDetailPage /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-calculation" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryCalculationConfig /></PermissionRoute></P>} />

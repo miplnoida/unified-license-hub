@@ -7,7 +7,8 @@
  * built yet are shown honestly as unavailable rather than pretended configured.
  */
 import { useState } from 'react';
-import { Link2, Link2Off } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Link2, Link2Off, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,6 +29,17 @@ import {
   type PolicyProfileReadiness,
 } from '@/hooks/useSupervisoryPolicyProfiles';
 import { ReadinessBadge, RequirementBadge, errorMessage, formatDateTime } from './labels';
+
+/** Where each policy component type is authored, approved and versioned. */
+const COMPONENT_WORKSPACE: Record<string, string> = {
+  METHODOLOGY: '/admin/supervisory-methodology',
+  CALCULATION_CONFIG: '/admin/supervisory-calculation',
+  ASSESSMENT_PROGRAMME: '/admin/supervisory-assessment-programmes',
+};
+
+function workspaceHref(componentType: string) {
+  return COMPONENT_WORKSPACE[componentType] ?? '/admin/supervisory-policy-components';
+}
 
 export function PolicyComponentPanel({
   profileId, readiness, capabilities,
@@ -150,7 +162,7 @@ export function PolicyComponentPanel({
                   <TableCell className="align-top"><ReadinessBadge state={c.state} /></TableCell>
                   <TableCell className="align-top text-right">
                     {c.is_available ? (
-                      <div className="flex justify-end gap-1">
+                      <div className="flex flex-wrap justify-end gap-1">
                         <Button size="sm" variant="outline" className="gap-1.5" disabled={!editable}
                           data-rbac="aml_supervision.manage_config"
                           onClick={() => { setBindType(c.component_type); setComponentId(c.bound_component_id ?? ''); }}>
@@ -163,6 +175,11 @@ export function PolicyComponentPanel({
                             <Link2Off className="h-3.5 w-3.5" />Remove
                           </Button>
                         ) : null}
+                        <Button asChild size="sm" variant="ghost" className="gap-1.5" data-rbac="aml_supervision.manage_config">
+                          <Link to={workspaceHref(c.component_type)}>
+                            <SlidersHorizontal className="h-3.5 w-3.5" />Configure
+                          </Link>
+                        </Button>
                       </div>
                     ) : (
                       <span className="text-xs text-muted-foreground">Awaiting platform capability</span>
