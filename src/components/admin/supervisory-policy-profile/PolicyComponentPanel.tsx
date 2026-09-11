@@ -150,7 +150,7 @@ export function PolicyComponentPanel({
                   <TableCell className="align-top"><ReadinessBadge state={c.state} /></TableCell>
                   <TableCell className="align-top text-right">
                     {c.is_available ? (
-                      <div className="flex justify-end gap-1">
+                      <div className="flex flex-wrap justify-end gap-1">
                         <Button size="sm" variant="outline" className="gap-1.5" disabled={!editable}
                           data-rbac="aml_supervision.manage_config"
                           onClick={() => { setBindType(c.component_type); setComponentId(c.bound_component_id ?? ''); }}>
@@ -163,6 +163,11 @@ export function PolicyComponentPanel({
                             <Link2Off className="h-3.5 w-3.5" />Remove
                           </Button>
                         ) : null}
+                        <Button asChild size="sm" variant="ghost" className="gap-1.5">
+                          <Link to={workspaceHref(c.component_type)}>
+                            <SlidersHorizontal className="h-3.5 w-3.5" />Configure
+                          </Link>
+                        </Button>
                       </div>
                     ) : (
                       <span className="text-xs text-muted-foreground">Awaiting platform capability</span>
