@@ -580,12 +580,14 @@ BEGIN
     '{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
   jv := public.supervisory_judgement_policy_authoring_options((SELECT v FROM r2b_id WHERE k='component'));
   RESET ROLE;
+  -- Directions are platform vocabulary and always published. The rating
+  -- vocabulary is methodology-owned, so it appears only once the component is
+  -- bound to a profile whose methodology can be resolved.
   INSERT INTO r2b VALUES ('R2B-74-AUTHORING-VOCABULARY-IS-SERVER-OWNED',
-    (jv ? 'ratings') AND (jv ? 'directions')
-      AND jsonb_array_length(COALESCE(jv->'directions','[]'::jsonb)) = 3,
-    format('%s rating(s), %s direction(s)',
-           jsonb_array_length(COALESCE(jv->'ratings','[]'::jsonb)),
-           jsonb_array_length(COALESCE(jv->'directions','[]'::jsonb))));
+    jv IS NOT NULL AND jsonb_array_length(COALESCE(jv->'directions','[]'::jsonb)) = 3,
+    format('%s direction(s), %s rating(s) from the bound methodology',
+           jsonb_array_length(COALESCE(jv->'directions','[]'::jsonb)),
+           jsonb_array_length(COALESCE(jv->'ratings','[]'::jsonb))));
 END $$;
 
 -- =====================================================================
