@@ -257,12 +257,21 @@ BEGIN
       jsonb_build_object('stages', jsonb_build_array(jsonb_build_object('stage','NOT_A_STAGE','days',10))),
       jsonb_build_object('stages', jsonb_build_array(jsonb_build_object(
         'stage', public.supervisory_policy_vocabulary('WORKFLOW_STAGE')->>0,'days',10)))),
-    ('R1C-15-EVIDENCE-VOCAB-INVALID','EVIDENCE_POLICY','EVIDENCE_KIND_UNKNOWN',
+    -- PCOMP-R2A made evidence policy content itself governed, so an unknown
+    -- evidence kind can no longer be submitted at all. The remaining
+    -- incompatibility an evidence policy can express is naming a question the
+    -- bound methodology does not own.
+    ('R1C-15-EVIDENCE-VOCAB-INVALID','EVIDENCE_POLICY','EVIDENCE_SCOPE_REFERENCE_UNKNOWN',
       jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
-        'scope','ASSESSMENT','sufficiency','REQUIRED','evidence_kind','NOT_A_KIND','minimum_items',1))),
+        'rule_code','R1CCERT-EV-BAD','scope_type','QUESTION',
+        'scope_reference','R1CCERT_NOT_A_QUESTION','evidence_requirement','REQUIRED',
+        'permitted_source_kinds', jsonb_build_array(public.supervisory_policy_vocabulary('EVIDENCE_KIND')->>0),
+        'minimum_items',1))),
       jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
-        'scope','ASSESSMENT','sufficiency','REQUIRED',
-        'evidence_kind', public.supervisory_policy_vocabulary('EVIDENCE_KIND')->>0,'minimum_items',1)))),
+        'rule_code','R1CCERT-EV-OK','scope_type','ASSESSMENT','evidence_requirement','REQUIRED',
+        'permitted_source_kinds', jsonb_build_array(public.supervisory_policy_vocabulary('EVIDENCE_KIND')->>0),
+        'minimum_items',1)))),
+
     ('R1C-16-FACT-NOT-CANONICAL','FACT_CONFIG','FACT_NOT_CANONICAL',
       jsonb_build_object('facts', jsonb_build_array(jsonb_build_object(
         'fact_code','R1CCERT_NOT_A_FACT','data_type','PERCENT'))),
@@ -700,13 +709,19 @@ BEGIN
   INSERT INTO r1c VALUES ('R1C-38-CALCULATION-CAPABILITY',
     ((jv->0)->>'runtime_consumed')::boolean, format('%s', (jv->0)->>'capability_state'));
 
+  -- PCOMP-R2A promoted EVIDENCE_POLICY, and only EVIDENCE_POLICY, to runtime.
   SELECT count(*) INTO n FROM public.supervisory_policy_component_type
-   WHERE component_type IN ('SECTOR_OVERLAY','FACT_CONFIG','SOURCE_BINDING','EVIDENCE_POLICY',
+   WHERE component_type IN ('SECTOR_OVERLAY','FACT_CONFIG','SOURCE_BINDING',
                             'MATERIALITY_POLICY','JUDGEMENT_POLICY','RESPONSE_POLICY','SLA_POLICY',
                             'DASHBOARD_POLICY','NOTIFICATION_POLICY')
      AND NOT is_runtime_consumed AND NOT is_certified;
-  INSERT INTO r1c VALUES ('R1C-39-TEN-AREAS-NOT-RUNTIME', n = 10,
-    format('%s of 10 generic areas truthfully report not runtime consumed', n));
+  INSERT INTO r1c VALUES ('R1C-39-NINE-AREAS-NOT-RUNTIME', n = 9,
+    format('%s of 9 configuration-only areas truthfully report not runtime consumed', n));
+
+  SELECT count(*) INTO n FROM public.supervisory_policy_component_type
+   WHERE component_type = 'EVIDENCE_POLICY' AND is_runtime_consumed AND is_certified;
+  INSERT INTO r1c VALUES ('R1C-39B-EVIDENCE-POLICY-RUNTIME', n = 1,
+    format('EVIDENCE_POLICY runtime/certified rows: %s of 1 expected', n));
 
   -- R1C-40 — capability is server state; no client-writable promotion exists
   BEGIN

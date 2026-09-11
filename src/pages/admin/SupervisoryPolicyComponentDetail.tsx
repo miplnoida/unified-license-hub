@@ -30,6 +30,7 @@ import {
   usePolicyComponentDetail, usePolicyComponentLifecycle, useNewPolicyComponentVersion,
   useSavePolicyComponent, type PolicyComponentContract,
 } from '@/hooks/useSupervisoryPolicyComponents';
+import { EvidencePolicyRuleEditor } from '@/components/admin/supervisory-policy-profile/EvidencePolicyRuleEditor';
 
 type Item = Record<string, unknown>;
 type FieldKind = 'enum' | 'array' | 'enum_array' | 'number' | 'text';
@@ -237,7 +238,14 @@ export default function SupervisoryPolicyComponentDetailPage() {
           )}
         </CardHeader>
         <CardContent className="space-y-4">
-          {!items.length ? (
+          {c.component_type === 'EVIDENCE_POLICY' ? (
+            <EvidencePolicyRuleEditor
+              componentId={c.id}
+              items={items}
+              editable={editable}
+              onChange={(next) => { setItems(next); setDirty(true); }}
+            />
+          ) : !items.length ? (
             <p className="rounded-md border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
               No {contract?.item_label ?? 'entries'} configured yet.
             </p>

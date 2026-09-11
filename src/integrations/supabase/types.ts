@@ -69372,6 +69372,10 @@ export type Database = {
         Args: { _assessment_id: string }
         Returns: Json
       }
+      supervisory_assessment_evidence_policy_view: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_assessment_evidence_register: {
         Args: { _assessment_id: string }
         Returns: Json
@@ -70070,6 +70074,10 @@ export type Database = {
       supervisory_entity_scope_permits: {
         Args: { _entity_id: string; _uid: string }
         Returns: boolean
+      }
+      supervisory_evidence_policy_authoring_options: {
+        Args: { _component_id: string }
+        Returns: Json
       }
       supervisory_evidence_policy_compatibility: {
         Args: {

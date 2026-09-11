@@ -19,6 +19,7 @@ import { AmlAssessmentCalculation } from '@/components/supervision/aml/AmlAssess
 import { AmlQuestionPlanPanel } from '@/components/supervision/aml/AmlQuestionPlanPanel';
 import { AmlAssessmentReviewPanel } from '@/components/supervision/aml/AmlAssessmentReviewPanel';
 import { AmlPolicyBasisPanel } from '@/components/supervision/aml/AmlPolicyBasisPanel';
+import { AmlEvidencePolicyPanel } from '@/components/supervision/aml/AmlEvidencePolicyPanel';
 import { AmlEntityRiskHistory } from '@/components/supervision/aml/AmlEntityRiskHistory';
 
 import { AmlSupervisoryActivity } from '@/components/supervision/aml/AmlSupervisoryActivity';
@@ -317,8 +318,9 @@ export default function AmlAssessmentWorkspace() {
             <AmlQuestionPlanPanel assessmentId={h.id} status={h.status} />
           </TabsContent>
 
-          <TabsContent value="policy-basis" className="mt-4">
+          <TabsContent value="policy-basis" className="mt-4 space-y-4">
             <AmlPolicyBasisPanel assessmentId={h.id} />
+            <AmlEvidencePolicyPanel assessmentId={h.id} />
           </TabsContent>
 
           <TabsContent value="calculation" className="mt-4">
