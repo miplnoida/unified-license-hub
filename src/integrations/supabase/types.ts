@@ -45378,6 +45378,109 @@ export type Database = {
           },
         ]
       }
+      supervisory_assessment_policy_snapshot: {
+        Row: {
+          assessment_id: string
+          calculation_config_id: string | null
+          calculation_config_version: string | null
+          components: Json
+          content_hash: string
+          created_at: string
+          domain_code: string
+          id: string
+          methodology_code: string | null
+          methodology_id: string | null
+          methodology_version: string | null
+          policy_profile_code: string
+          policy_profile_id: string
+          policy_profile_origin: string
+          policy_profile_version: string
+          programme_code: string | null
+          programme_set_id: string | null
+          programme_version: string | null
+          regulator_id: string | null
+          resolution: Json
+          resolved_as_of: string
+          resolved_at: string
+          resolved_by: string | null
+          sector_id: string | null
+        }
+        Insert: {
+          assessment_id: string
+          calculation_config_id?: string | null
+          calculation_config_version?: string | null
+          components?: Json
+          content_hash: string
+          created_at?: string
+          domain_code: string
+          id?: string
+          methodology_code?: string | null
+          methodology_id?: string | null
+          methodology_version?: string | null
+          policy_profile_code: string
+          policy_profile_id: string
+          policy_profile_origin: string
+          policy_profile_version: string
+          programme_code?: string | null
+          programme_set_id?: string | null
+          programme_version?: string | null
+          regulator_id?: string | null
+          resolution?: Json
+          resolved_as_of: string
+          resolved_at?: string
+          resolved_by?: string | null
+          sector_id?: string | null
+        }
+        Update: {
+          assessment_id?: string
+          calculation_config_id?: string | null
+          calculation_config_version?: string | null
+          components?: Json
+          content_hash?: string
+          created_at?: string
+          domain_code?: string
+          id?: string
+          methodology_code?: string | null
+          methodology_id?: string | null
+          methodology_version?: string | null
+          policy_profile_code?: string
+          policy_profile_id?: string
+          policy_profile_origin?: string
+          policy_profile_version?: string
+          programme_code?: string | null
+          programme_set_id?: string | null
+          programme_version?: string | null
+          regulator_id?: string | null
+          resolution?: Json
+          resolved_as_of?: string
+          resolved_at?: string
+          resolved_by?: string | null
+          sector_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_policy_snapshot_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: true
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_policy_snapshot_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: true
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_policy_snapshot_policy_profile_id_fkey"
+            columns: ["policy_profile_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_policy_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supervisory_assessment_programme: {
         Row: {
           allow_manual_override: boolean
@@ -50314,34 +50417,52 @@ export type Database = {
       }
       supervisory_policy_component_type: {
         Row: {
+          canonical_owner: string | null
+          capability_note: string | null
           component_table: string | null
           component_type: string
           created_at: string
           default_requirement: string
           description: string | null
           is_available: boolean
+          is_bindable: boolean
+          is_certified: boolean
+          is_runtime_consumed: boolean
+          is_validatable: boolean
           label: string
           sort_order: number
           updated_at: string
         }
         Insert: {
+          canonical_owner?: string | null
+          capability_note?: string | null
           component_table?: string | null
           component_type: string
           created_at?: string
           default_requirement?: string
           description?: string | null
           is_available?: boolean
+          is_bindable?: boolean
+          is_certified?: boolean
+          is_runtime_consumed?: boolean
+          is_validatable?: boolean
           label: string
           sort_order?: number
           updated_at?: string
         }
         Update: {
+          canonical_owner?: string | null
+          capability_note?: string | null
           component_table?: string | null
           component_type?: string
           created_at?: string
           default_requirement?: string
           description?: string | null
           is_available?: boolean
+          is_bindable?: boolean
+          is_certified?: boolean
+          is_runtime_consumed?: boolean
+          is_validatable?: boolean
           label?: string
           sort_order?: number
           updated_at?: string
@@ -69177,6 +69298,14 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_assessment_policy_basis: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_policy_snapshot_stamp_internal: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_assessment_programme_action_capabilities: {
         Args: { _set_id: string }
         Returns: Json
@@ -70455,9 +70584,17 @@ export type Database = {
         Args: never
         Returns: Json
       }
+      supervisory_policy_component_capability: {
+        Args: { _component_type?: string }
+        Returns: Json
+      }
       supervisory_policy_component_content_contract: {
         Args: { _component_type: string }
         Returns: Json
+      }
+      supervisory_policy_component_content_hash: {
+        Args: { _component_id: string; _component_type: string }
+        Returns: string
       }
       supervisory_policy_component_content_validate: {
         Args: { _component_type: string; _content: Json }
@@ -70542,6 +70679,10 @@ export type Database = {
         Args: { _baseline_id: string; _profile_id: string }
         Returns: Json
       }
+      supervisory_policy_profile_compatibility: {
+        Args: { _profile_id: string }
+        Returns: Json
+      }
       supervisory_policy_profile_component_candidates: {
         Args: { _component_type: string; _profile_id: string }
         Returns: Json
@@ -70552,6 +70693,25 @@ export type Database = {
       }
       supervisory_policy_profile_detail: {
         Args: { _profile_id: string }
+        Returns: Json
+      }
+      supervisory_policy_profile_effective: {
+        Args: {
+          _as_of?: string
+          _domain_code: string
+          _entity_id?: string
+          _regulator_id?: string
+          _sector_id?: string
+        }
+        Returns: Json
+      }
+      supervisory_policy_profile_effective_internal: {
+        Args: {
+          _as_of: string
+          _domain_code: string
+          _regulator_id: string
+          _sector_id: string
+        }
         Returns: Json
       }
       supervisory_policy_profile_event_register: {
@@ -70624,6 +70784,10 @@ export type Database = {
       supervisory_policy_requirement_strictness: {
         Args: { _requirement: string }
         Returns: number
+      }
+      supervisory_policy_vocabulary: {
+        Args: { _kind: string; _profile_id?: string }
+        Returns: Json
       }
       supervisory_portfolio: {
         Args: {
