@@ -69949,6 +69949,14 @@ export type Database = {
         Args: { _entity_id: string; _uid: string }
         Returns: boolean
       }
+      supervisory_evidence_policy_content_errors: {
+        Args: { _content: Json }
+        Returns: string[]
+      }
+      supervisory_evidence_policy_rules: {
+        Args: { _content: Json }
+        Returns: Json
+      }
       supervisory_evidence_source_resolve: {
         Args: {
           _entity_id: string
