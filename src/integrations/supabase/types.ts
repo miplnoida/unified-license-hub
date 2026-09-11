@@ -44706,6 +44706,19 @@ export type Database = {
           decided_by: string | null
           decision_note: string | null
           id: string
+          judgement_band_steps: number | null
+          judgement_direction: string | null
+          judgement_evaluation: Json | null
+          judgement_max_band_steps: number | null
+          judgement_policy_code: string | null
+          judgement_policy_component_id: string | null
+          judgement_policy_content_hash: string | null
+          judgement_policy_profile_code: string | null
+          judgement_policy_profile_version: string | null
+          judgement_policy_version: string | null
+          judgement_rationale_min_length: number | null
+          judgement_rule_code: string | null
+          policy_basis_status: string | null
           proposed_at: string
           proposed_by: string | null
           proposed_rating: string
@@ -44726,6 +44739,19 @@ export type Database = {
           decided_by?: string | null
           decision_note?: string | null
           id?: string
+          judgement_band_steps?: number | null
+          judgement_direction?: string | null
+          judgement_evaluation?: Json | null
+          judgement_max_band_steps?: number | null
+          judgement_policy_code?: string | null
+          judgement_policy_component_id?: string | null
+          judgement_policy_content_hash?: string | null
+          judgement_policy_profile_code?: string | null
+          judgement_policy_profile_version?: string | null
+          judgement_policy_version?: string | null
+          judgement_rationale_min_length?: number | null
+          judgement_rule_code?: string | null
+          policy_basis_status?: string | null
           proposed_at?: string
           proposed_by?: string | null
           proposed_rating: string
@@ -44746,6 +44772,19 @@ export type Database = {
           decided_by?: string | null
           decision_note?: string | null
           id?: string
+          judgement_band_steps?: number | null
+          judgement_direction?: string | null
+          judgement_evaluation?: Json | null
+          judgement_max_band_steps?: number | null
+          judgement_policy_code?: string | null
+          judgement_policy_component_id?: string | null
+          judgement_policy_content_hash?: string | null
+          judgement_policy_profile_code?: string | null
+          judgement_policy_profile_version?: string | null
+          judgement_policy_version?: string | null
+          judgement_rationale_min_length?: number | null
+          judgement_rule_code?: string | null
+          policy_basis_status?: string | null
           proposed_at?: string
           proposed_by?: string | null
           proposed_rating?: string
@@ -69412,6 +69451,14 @@ export type Database = {
         Args: { _data_type: string; _payload: Json }
         Returns: Json
       }
+      supervisory_assessment_judgement_policy_internal: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_judgement_policy_view: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_assessment_lifecycle_state: {
         Args: { _assessment_id: string }
         Returns: Json
@@ -70005,6 +70052,10 @@ export type Database = {
         Args: { _domain_code: string; _entity_id: string }
         Returns: boolean
       }
+      supervisory_domain_approval_actions: {
+        Args: { _domain_code: string }
+        Returns: string[]
+      }
       supervisory_domain_assignment: {
         Args: { _domain_code: string; _entity_id: string }
         Returns: {
@@ -70194,6 +70245,26 @@ export type Database = {
           _team_id?: string
           _title: string
         }
+        Returns: Json
+      }
+      supervisory_judgement_policy_authoring_options: {
+        Args: { _component_id: string }
+        Returns: Json
+      }
+      supervisory_judgement_policy_compatibility: {
+        Args: {
+          _component_id: string
+          _methodology_id: string
+          _profile_id: string
+        }
+        Returns: Json
+      }
+      supervisory_judgement_policy_content_errors: {
+        Args: { _content: Json }
+        Returns: string[]
+      }
+      supervisory_judgement_policy_rules: {
+        Args: { _content: Json }
         Returns: Json
       }
       supervisory_management_assurance_item: {
@@ -70460,6 +70531,10 @@ export type Database = {
       supervisory_methodology_question_sync: {
         Args: { _dimension_id: string; _questions: Json }
         Returns: number
+      }
+      supervisory_methodology_rating_order: {
+        Args: { _methodology_id: string }
+        Returns: Json
       }
       supervisory_methodology_reference_decision_record: {
         Args: { _payload: Json }

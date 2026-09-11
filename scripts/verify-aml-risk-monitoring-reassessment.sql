@@ -240,7 +240,7 @@ BEGIN
   PERFORM set_config('request.jwt.claims','{"sub":"cbce55aa-4310-4dc9-a4e1-dcf1bc71b5e9","role":"authenticated"}', true);
   cfg := public.supervisory_calculation_config_upsert((SELECT c.v FROM c_id c WHERE c.k='meth'), jsonb_build_object(
     'effective_from', (current_date - 1)::text,
-    'aggregation_method','UNWEIGHTED_MEAN','min_answered_questions',1,
+    'aggregation_method','UNWEIGHTED_MEAN','completeness_mode','MIN_ANSWERED','min_answered_questions',1,
     'na_denominator_handling','EXCLUDE','evidence_insufficiency_handling','FLAG_ONLY',
     'critical_question_handling','NONE','rounding_mode','HALF_UP','rounding_decimals',2,
     'inherent_direction','DIRECT','recommendation_policy','WEIGHTED_SCORE'));
