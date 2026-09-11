@@ -700,13 +700,19 @@ BEGIN
   INSERT INTO r1c VALUES ('R1C-38-CALCULATION-CAPABILITY',
     ((jv->0)->>'runtime_consumed')::boolean, format('%s', (jv->0)->>'capability_state'));
 
+  -- PCOMP-R2A promoted EVIDENCE_POLICY, and only EVIDENCE_POLICY, to runtime.
   SELECT count(*) INTO n FROM public.supervisory_policy_component_type
-   WHERE component_type IN ('SECTOR_OVERLAY','FACT_CONFIG','SOURCE_BINDING','EVIDENCE_POLICY',
+   WHERE component_type IN ('SECTOR_OVERLAY','FACT_CONFIG','SOURCE_BINDING',
                             'MATERIALITY_POLICY','JUDGEMENT_POLICY','RESPONSE_POLICY','SLA_POLICY',
                             'DASHBOARD_POLICY','NOTIFICATION_POLICY')
      AND NOT is_runtime_consumed AND NOT is_certified;
-  INSERT INTO r1c VALUES ('R1C-39-TEN-AREAS-NOT-RUNTIME', n = 10,
-    format('%s of 10 generic areas truthfully report not runtime consumed', n));
+  INSERT INTO r1c VALUES ('R1C-39-NINE-AREAS-NOT-RUNTIME', n = 9,
+    format('%s of 9 configuration-only areas truthfully report not runtime consumed', n));
+
+  SELECT count(*) INTO n FROM public.supervisory_policy_component_type
+   WHERE component_type = 'EVIDENCE_POLICY' AND is_runtime_consumed AND is_certified;
+  INSERT INTO r1c VALUES ('R1C-39B-EVIDENCE-POLICY-RUNTIME', n = 1,
+    format('EVIDENCE_POLICY runtime/certified rows: %s of 1 expected', n));
 
   -- R1C-40 — capability is server state; no client-writable promotion exists
   BEGIN
