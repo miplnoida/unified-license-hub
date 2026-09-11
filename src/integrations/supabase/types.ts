@@ -50159,6 +50159,159 @@ export type Database = {
           },
         ]
       }
+      supervisory_policy_component: {
+        Row: {
+          activated_at: string | null
+          approved_at: string | null
+          approved_by: string | null
+          code: string
+          component_type: string
+          component_version: string
+          content: Json
+          created_at: string
+          created_by: string | null
+          domain_code: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          name: string
+          notes: string | null
+          origin: string
+          purpose: string | null
+          regulator_id: string | null
+          retired_at: string | null
+          sector_id: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          superseded_at: string | null
+          supersedes_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          code: string
+          component_type: string
+          component_version: string
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          domain_code: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          origin?: string
+          purpose?: string | null
+          regulator_id?: string | null
+          retired_at?: string | null
+          sector_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          superseded_at?: string | null
+          supersedes_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          code?: string
+          component_type?: string
+          component_version?: string
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          domain_code?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          origin?: string
+          purpose?: string | null
+          regulator_id?: string | null
+          retired_at?: string | null
+          sector_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          superseded_at?: string | null
+          supersedes_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_policy_component_component_type_fkey"
+            columns: ["component_type"]
+            isOneToOne: false
+            referencedRelation: "supervisory_policy_component_type"
+            referencedColumns: ["component_type"]
+          },
+          {
+            foreignKeyName: "supervisory_policy_component_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_policy_component_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_policy_component"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_policy_component_event: {
+        Row: {
+          actor_id: string | null
+          component_id: string
+          created_at: string
+          detail: Json
+          event_type: string
+          from_status: string | null
+          id: string
+          rationale: string | null
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          component_id: string
+          created_at?: string
+          detail?: Json
+          event_type: string
+          from_status?: string | null
+          id?: string
+          rationale?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          component_id?: string
+          created_at?: string
+          detail?: Json
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          rationale?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_policy_component_event_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_policy_component"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supervisory_policy_component_type: {
         Row: {
           component_table: string | null
@@ -70298,8 +70451,67 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_policy_component_approval_queue: {
+        Args: never
+        Returns: Json
+      }
+      supervisory_policy_component_content_contract: {
+        Args: { _component_type: string }
+        Returns: Json
+      }
+      supervisory_policy_component_content_validate: {
+        Args: { _component_type: string; _content: Json }
+        Returns: Json
+      }
+      supervisory_policy_component_create: {
+        Args: { _payload: Json }
+        Returns: Json
+      }
+      supervisory_policy_component_detail: {
+        Args: { _component_id: string }
+        Returns: Json
+      }
+      supervisory_policy_component_lifecycle: {
+        Args: { _component_id: string; _rationale: string; _to_status: string }
+        Returns: Json
+      }
+      supervisory_policy_component_new_version: {
+        Args: {
+          _component_id: string
+          _new_version: string
+          _rationale: string
+        }
+        Returns: Json
+      }
       supervisory_policy_component_probe: {
         Args: { _component_id: string; _component_type: string }
+        Returns: Json
+      }
+      supervisory_policy_component_register: {
+        Args: {
+          _component_type?: string
+          _domain_code?: string
+          _limit?: number
+          _offset?: number
+          _search?: string
+          _status?: string
+        }
+        Returns: Json
+      }
+      supervisory_policy_component_require_approval: {
+        Args: { _domain_code: string; _regulator_id: string }
+        Returns: string
+      }
+      supervisory_policy_component_require_manage: {
+        Args: { _domain_code: string; _regulator_id: string }
+        Returns: string
+      }
+      supervisory_policy_component_save: {
+        Args: { _component_id: string; _payload: Json }
+        Returns: Json
+      }
+      supervisory_policy_component_validate: {
+        Args: { _component_id: string }
         Returns: Json
       }
       supervisory_policy_profile_action_capabilities: {
