@@ -635,7 +635,7 @@ BEGIN
 
   -- Capability truth: JUDGEMENT_POLICY is runtime consumed, the eight
   -- remaining generic areas are not.
-  caps := public.supervisory_policy_capability_state();
+  caps := public.supervisory_policy_component_capability();
   SELECT x INTO c FROM jsonb_array_elements(
       CASE WHEN jsonb_typeof(caps) = 'array' THEN caps ELSE COALESCE(caps->'areas','[]'::jsonb) END) x
    WHERE x->>'area' = 'JUDGEMENT_POLICY' OR x->>'component_type' = 'JUDGEMENT_POLICY';
