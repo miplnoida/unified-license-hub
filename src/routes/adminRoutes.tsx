@@ -58,6 +58,8 @@ const SupervisoryPolicyProfileRegisterPage = lazy(() => import('@/pages/admin/Su
 const SupervisoryAssessmentProgrammeRegisterPage = lazy(() => import('@/pages/admin/SupervisoryAssessmentProgrammeRegister'));
 const SupervisoryAssessmentProgrammeDetailPage = lazy(() => import('@/pages/admin/SupervisoryAssessmentProgrammeDetail'));
 const SupervisoryPolicyProfileDetailPage = lazy(() => import('@/pages/admin/SupervisoryPolicyProfileDetail'));
+const SupervisoryPolicyComponentRegisterPage = lazy(() => import('@/pages/admin/SupervisoryPolicyComponentRegister'));
+const SupervisoryPolicyComponentDetailPage = lazy(() => import('@/pages/admin/SupervisoryPolicyComponentDetail'));
 const FpCommittees = lazy(() => import('@/pages/admin/FpCommittees'));
 const RuleOverrides = lazy(() => import('@/pages/admin/RuleOverrides'));
 const RuleLibrary = lazy(() => import('@/pages/admin/RuleLibrary'));
