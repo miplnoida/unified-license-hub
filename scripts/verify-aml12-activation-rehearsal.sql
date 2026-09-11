@@ -235,7 +235,7 @@ BEGIN
   cfg := public.supervisory_calculation_config_upsert((SELECT v FROM d_id WHERE k='meth'), jsonb_build_object(
     'effective_from', (current_date - 1)::text,
     'aggregation_method','UNWEIGHTED_MEAN',
-    'min_answered_questions', 1,
+    'completeness_mode','MIN_ANSWERED','min_answered_questions',1,
     'na_denominator_handling','EXCLUDE',
     'evidence_insufficiency_handling','FLAG_ONLY',
     'critical_question_handling','NONE',

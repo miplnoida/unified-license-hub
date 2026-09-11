@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.supervisory_calculation_override_guard() FROM PUBLIC, anon, authenticated;

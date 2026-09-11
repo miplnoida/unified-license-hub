@@ -248,7 +248,7 @@ BEGIN
   PERFORM pg_temp.as_user((SELECT v FROM u_id WHERE k='policyadmin'));
   cfg := public.supervisory_calculation_config_upsert((SELECT v FROM u_id WHERE k='meth'), jsonb_build_object(
     'effective_from', (current_date - 1)::text,
-    'aggregation_method','UNWEIGHTED_MEAN','min_answered_questions',1,
+    'aggregation_method','UNWEIGHTED_MEAN','completeness_mode','MIN_ANSWERED','min_answered_questions',1,
     'na_denominator_handling','EXCLUDE','evidence_insufficiency_handling','FLAG_ONLY',
     'critical_question_handling','NONE','rounding_mode','HALF_UP','rounding_decimals',2,
     'inherent_direction','DIRECT','recommendation_policy','WEIGHTED_SCORE'));

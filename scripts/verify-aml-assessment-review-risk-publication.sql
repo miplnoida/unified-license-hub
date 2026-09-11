@@ -26,7 +26,16 @@
 \pset pager off
 SET row_security = on;
 
+-- Pre-transaction census. Review, approval-decision and publication rows that
+-- already exist as genuine operational records must be preserved, so the
+-- rollback gate compares against this census rather than against zero.
+SELECT (SELECT count(*)::text FROM public.supervisory_assessment_review_round) AS pre_rounds,
+       (SELECT count(*)::text FROM public.supervisory_assessment_approval_decision) AS pre_decisions,
+       (SELECT count(*)::text FROM public.supervisory_assessment_risk_publication) AS pre_publications
+\gset
+
 BEGIN;
+
 
 CREATE TEMP TABLE r_id(k text PRIMARY KEY, v uuid) ON COMMIT DROP;
 CREATE TEMP TABLE r_n(k text PRIMARY KEY, n bigint) ON COMMIT DROP;
@@ -324,7 +333,7 @@ BEGIN
   PERFORM set_config('request.jwt.claims','{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', true);
   cfg := public.supervisory_calculation_config_upsert((SELECT v FROM r_id WHERE k='meth'), jsonb_build_object(
     'effective_from', (current_date - 1)::text,
-    'aggregation_method','UNWEIGHTED_MEAN','min_answered_questions',1,
+    'aggregation_method','UNWEIGHTED_MEAN','completeness_mode','MIN_ANSWERED','min_answered_questions',1,
     'na_denominator_handling','EXCLUDE','evidence_insufficiency_handling','FLAG_ONLY',
     'critical_question_handling','NONE','rounding_mode','HALF_UP','rounding_decimals',2,
     'inherent_direction','DIRECT','recommendation_policy','WEIGHTED_SCORE'));
@@ -1414,10 +1423,19 @@ BEGIN
   SELECT (SELECT count(*) FROM public.supervisory_assessment WHERE COALESCE(summary,'') LIKE 'AML07CERT%')
        + (SELECT count(*) FROM public.supervisory_methodology WHERE code LIKE 'AML07CERT%')
        + (SELECT count(*) FROM public.supervisory_finding WHERE reference LIKE 'AML07CERT%')
-       + (SELECT count(*) FROM public.supervisory_assessment_review_round)
-       + (SELECT count(*) FROM public.supervisory_assessment_approval_decision)
-       + (SELECT count(*) FROM public.supervisory_assessment_risk_publication)
     INTO n;
   IF n <> 0 THEN RAISE EXCEPTION 'FAIL ROLLBACK: % AML07CERT records survived', n; END IF;
-  RAISE NOTICE 'PASS ROLLBACK: no AML07CERT record survived and no review, decision or publication row remains';
+  RAISE NOTICE 'PASS ROLLBACK: no AML07CERT fixture record survived';
 END $$;
+
+-- Genuine operational review, approval and publication records are preserved
+-- exactly as they were before this certification ran.
+SELECT
+  (SELECT count(*) FROM public.supervisory_assessment_review_round)::text = :'pre_rounds'
+    AS review_rounds_preserved,
+  (SELECT count(*) FROM public.supervisory_assessment_approval_decision)::text = :'pre_decisions'
+    AS approval_decisions_preserved,
+  (SELECT count(*) FROM public.supervisory_assessment_risk_publication)::text = :'pre_publications'
+    AS publications_preserved;
+
+

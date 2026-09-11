@@ -33,8 +33,20 @@ DECLARE
 BEGIN
   PERFORM set_config('request.jwt.claims', maker, true);
 
+  -- The owning regulator of regulator-authored content. The active AML-CFT-RBA
+  -- methodology is platform-wide (no regulator_id), so the fixture resolves the
+  -- real active regulator instead. Ownership validation is NOT weakened: the
+  -- component is still created as regulator-owned content naming its regulator.
   SELECT regulator_id INTO reg FROM public.supervisory_methodology
    WHERE code = 'AML-CFT-RBA' AND version = '1.0' AND status = 'ACTIVE';
+  IF reg IS NULL THEN
+    SELECT r.id INTO reg FROM public.regulators r
+     WHERE lower(r.status) = 'active' ORDER BY r.created_at LIMIT 1;
+  END IF;
+  IF reg IS NULL THEN
+    RAISE EXCEPTION 'fixture_unavailable: no active regulator exists to own regulator-authored policy content';
+  END IF;
+
 
   -- PCOMP-01 — every previously unimplemented policy area is now available
   SELECT count(*) INTO n FROM public.supervisory_policy_component_type

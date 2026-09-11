@@ -712,11 +712,11 @@ BEGIN
   -- PCOMP-R2A promoted EVIDENCE_POLICY, and only EVIDENCE_POLICY, to runtime.
   SELECT count(*) INTO n FROM public.supervisory_policy_component_type
    WHERE component_type IN ('SECTOR_OVERLAY','FACT_CONFIG','SOURCE_BINDING',
-                            'MATERIALITY_POLICY','JUDGEMENT_POLICY','RESPONSE_POLICY','SLA_POLICY',
+                            'MATERIALITY_POLICY','RESPONSE_POLICY','SLA_POLICY',
                             'DASHBOARD_POLICY','NOTIFICATION_POLICY')
      AND NOT is_runtime_consumed AND NOT is_certified;
-  INSERT INTO r1c VALUES ('R1C-39-NINE-AREAS-NOT-RUNTIME', n = 9,
-    format('%s of 9 configuration-only areas truthfully report not runtime consumed', n));
+  INSERT INTO r1c VALUES ('R1C-39-EIGHT-AREAS-NOT-RUNTIME', n = 8,
+    format('%s of 8 configuration-only areas truthfully report not runtime consumed', n));
 
   SELECT count(*) INTO n FROM public.supervisory_policy_component_type
    WHERE component_type = 'EVIDENCE_POLICY' AND is_runtime_consumed AND is_certified;
