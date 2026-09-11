@@ -359,7 +359,8 @@ describe('PCOMP-R2A-C13 rules are composed from the platform’s own vocabulary'
     expect(screen.getByTestId('evidence-policy-methodology')).toHaveTextContent('AML-CFT-RBA');
     expect(screen.getByLabelText('Applies to 1')).toBeInTheDocument();
     expect(screen.getByLabelText('Question 1')).toBeInTheDocument();
-    expect(screen.getByLabelText('Enterprise document', { selector: 'button' })).toBeInTheDocument();
+    expect(screen.getAllByLabelText('Enterprise document')).toHaveLength(2);
+    expect(screen.getAllByLabelText('Regulatory return')).toHaveLength(2);
     // Free-typed evidence kinds are impossible: the kinds are checkboxes.
     expect(EDITOR_SOURCE).not.toMatch(/comma separated/);
   });
