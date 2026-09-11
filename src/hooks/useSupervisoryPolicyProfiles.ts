@@ -555,3 +555,66 @@ export function usePolicyProfileLifecycleTransition() {
     onSuccess: (_d, v) => invalidate(v.profileId),
   });
 }
+
+/* -------------------------------------- PCOMP-R1C assessment policy basis */
+
+export interface PolicyBasisComponent {
+  component_type: string;
+  label?: string | null;
+  component_id?: string | null;
+  code?: string | null;
+  component_version?: string | null;
+  status_at_binding?: string | null;
+  origin?: string | null;
+  content_hash?: string | null;
+  requirement?: string | null;
+  capability?: { capability_state?: string | null; runtime_consumed?: boolean; label?: string | null } | null;
+}
+
+export interface AssessmentPolicyBasis {
+  status: 'SNAPSHOTTED' | 'NO_POLICY_BASIS' | string;
+  assessment_id: string;
+  reason?: string | null;
+  snapshot_id?: string | null;
+  policy_profile_id?: string | null;
+  policy_profile_code?: string | null;
+  policy_profile_version?: string | null;
+  policy_profile_origin?: string | null;
+  regulator_id?: string | null;
+  regulator_code?: string | null;
+  sector_id?: string | null;
+  resolved_as_of?: string | null;
+  resolved_at?: string | null;
+  methodology_id?: string | null;
+  methodology_code?: string | null;
+  methodology_version?: string | null;
+  programme_set_id?: string | null;
+  programme_code?: string | null;
+  programme_version?: string | null;
+  calculation_config_id?: string | null;
+  calculation_config_version?: string | null;
+  components?: PolicyBasisComponent[] | null;
+  content_hash?: string | null;
+  resolution?: Record<string, unknown> | null;
+  assessment_programme_code?: string | null;
+  assessment_programme_version?: string | null;
+  assessment_programme_provenance?: string | null;
+}
+
+/**
+ * The immutable policy basis of one assessment.
+ *
+ * Read-only by construction: the server owns the snapshot and this hook exposes
+ * no mutation. Nothing here derives, recomputes or reconciles policy — if the
+ * server says an assessment has no snapshot, that is what the screen shows.
+ */
+export function useAssessmentPolicyBasis(assessmentId?: string) {
+  return useQuery({
+    queryKey: ['supervisory-assessment', 'policy-basis', assessmentId] as const,
+    queryFn: () => rpc<AssessmentPolicyBasis>('supervisory_assessment_policy_basis', {
+      _assessment_id: assessmentId,
+    }),
+    enabled: !!assessmentId,
+    staleTime: 60_000,
+  });
+}
