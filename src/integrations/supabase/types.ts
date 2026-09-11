@@ -51510,6 +51510,141 @@ export type Database = {
           },
         ]
       }
+      supervisory_response_sla_obligation: {
+        Row: {
+          action_type: string
+          assessment_id: string | null
+          breach_severity: string | null
+          calendar_profile_id: string | null
+          calendar_resolution: string | null
+          closed_at: string | null
+          closure_reason: string | null
+          created_at: string
+          decision_id: string
+          domain_code: string
+          due_at: string | null
+          entity_id: string
+          escalation_tier_profile: string | null
+          id: string
+          obligation_key: string
+          outcome: string
+          pause_permitted: boolean
+          pause_reasons: Json
+          process_type: string | null
+          response_policy_advisory_timeframe_days: number | null
+          response_policy_rule_code: string | null
+          sla_calendar_mode: string | null
+          sla_duration_days: number | null
+          sla_hours: number | null
+          sla_policy_basis_status: string
+          sla_policy_code: string | null
+          sla_policy_component_id: string | null
+          sla_policy_content_hash: string | null
+          sla_policy_profile_code: string | null
+          sla_policy_profile_version: string | null
+          sla_policy_reason_code: string | null
+          sla_policy_rule_code: string | null
+          sla_policy_version: string | null
+          source_rating: string | null
+          stage_instance_id: string | null
+          stage_name: string | null
+          warning_percentage: number | null
+        }
+        Insert: {
+          action_type: string
+          assessment_id?: string | null
+          breach_severity?: string | null
+          calendar_profile_id?: string | null
+          calendar_resolution?: string | null
+          closed_at?: string | null
+          closure_reason?: string | null
+          created_at?: string
+          decision_id: string
+          domain_code: string
+          due_at?: string | null
+          entity_id: string
+          escalation_tier_profile?: string | null
+          id?: string
+          obligation_key: string
+          outcome?: string
+          pause_permitted?: boolean
+          pause_reasons?: Json
+          process_type?: string | null
+          response_policy_advisory_timeframe_days?: number | null
+          response_policy_rule_code?: string | null
+          sla_calendar_mode?: string | null
+          sla_duration_days?: number | null
+          sla_hours?: number | null
+          sla_policy_basis_status: string
+          sla_policy_code?: string | null
+          sla_policy_component_id?: string | null
+          sla_policy_content_hash?: string | null
+          sla_policy_profile_code?: string | null
+          sla_policy_profile_version?: string | null
+          sla_policy_reason_code?: string | null
+          sla_policy_rule_code?: string | null
+          sla_policy_version?: string | null
+          source_rating?: string | null
+          stage_instance_id?: string | null
+          stage_name?: string | null
+          warning_percentage?: number | null
+        }
+        Update: {
+          action_type?: string
+          assessment_id?: string | null
+          breach_severity?: string | null
+          calendar_profile_id?: string | null
+          calendar_resolution?: string | null
+          closed_at?: string | null
+          closure_reason?: string | null
+          created_at?: string
+          decision_id?: string
+          domain_code?: string
+          due_at?: string | null
+          entity_id?: string
+          escalation_tier_profile?: string | null
+          id?: string
+          obligation_key?: string
+          outcome?: string
+          pause_permitted?: boolean
+          pause_reasons?: Json
+          process_type?: string | null
+          response_policy_advisory_timeframe_days?: number | null
+          response_policy_rule_code?: string | null
+          sla_calendar_mode?: string | null
+          sla_duration_days?: number | null
+          sla_hours?: number | null
+          sla_policy_basis_status?: string
+          sla_policy_code?: string | null
+          sla_policy_component_id?: string | null
+          sla_policy_content_hash?: string | null
+          sla_policy_profile_code?: string | null
+          sla_policy_profile_version?: string | null
+          sla_policy_reason_code?: string | null
+          sla_policy_rule_code?: string | null
+          sla_policy_version?: string | null
+          source_rating?: string | null
+          stage_instance_id?: string | null
+          stage_name?: string | null
+          warning_percentage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_response_sla_obligation_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: true
+            referencedRelation: "supervisory_consequence_decision"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_response_sla_obligation_stage_instance_id_fkey"
+            columns: ["stage_instance_id"]
+            isOneToOne: false
+            referencedRelation: "sla_stage_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supervisory_risk_monitoring_decision: {
         Row: {
           assessment_id: string | null
@@ -68794,18 +68929,35 @@ export type Database = {
         Args: { _recipients: string; _stage_instance_id: string; _tier: number }
         Returns: undefined
       }
-      sla_stage_open: {
-        Args: {
-          _entity_id: string
-          _entity_type: string
-          _process_type: string
-          _stage_name?: string
-          _started_at?: string
-          _step_id?: string
-          _workflow_instance_id?: string
-        }
-        Returns: string
-      }
+      sla_stage_open:
+        | {
+            Args: {
+              _entity_id: string
+              _entity_type: string
+              _process_type: string
+              _stage_name?: string
+              _started_at?: string
+              _step_id?: string
+              _workflow_instance_id?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _calendar_profile_override: string
+              _entity_id: string
+              _entity_type: string
+              _metadata: Json
+              _process_type: string
+              _sla_hours_override: number
+              _sla_source_override: string
+              _stage_name: string
+              _started_at: string
+              _step_id: string
+              _workflow_instance_id: string
+            }
+            Returns: string
+          }
       sla_stage_pause: {
         Args: {
           _entity_id: string
@@ -71228,6 +71380,26 @@ export type Database = {
         Args: { _content: Json }
         Returns: Json
       }
+      supervisory_response_sla_complete: {
+        Args: { _obligation_id: string; _reason: string }
+        Returns: Json
+      }
+      supervisory_response_sla_open: {
+        Args: { _decision_id: string }
+        Returns: string
+      }
+      supervisory_response_sla_pause: {
+        Args: { _obligation_id: string; _reason: string; _resume?: boolean }
+        Returns: Json
+      }
+      supervisory_response_sla_view: {
+        Args: {
+          _assessment_id?: string
+          _domain_code?: string
+          _entity_id: string
+        }
+        Returns: Json
+      }
       supervisory_risk_monitoring_due_list: {
         Args: { _domain_code?: string; _limit?: number; _state?: string }
         Returns: Json
@@ -71268,6 +71440,23 @@ export type Database = {
         }
         Returns: string
       }
+      supervisory_sla_policy_compatibility: {
+        Args: {
+          _component_id: string
+          _methodology_id: string
+          _profile_id: string
+        }
+        Returns: Json
+      }
+      supervisory_sla_policy_content_errors: {
+        Args: { _content: Json }
+        Returns: string[]
+      }
+      supervisory_sla_policy_internal: {
+        Args: { _action: string; _assessment_id: string; _rating: string }
+        Returns: Json
+      }
+      supervisory_sla_policy_rules: { Args: { _content: Json }; Returns: Json }
       supervisory_spine_require: {
         Args: { _actions: string[] }
         Returns: string
