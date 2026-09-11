@@ -212,6 +212,8 @@ export const adminRoutes = (
     <Route path="/admin/supervisory-methodology/:methodologyId" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryMethodologyDetailPage /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-policy-profiles" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryPolicyProfileRegisterPage /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-policy-profiles/:profileId" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryPolicyProfileDetailPage /></PermissionRoute></P>} />
+    <Route path="/admin/supervisory-policy-components" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryPolicyComponentRegisterPage /></PermissionRoute></P>} />
+    <Route path="/admin/supervisory-policy-components/:componentId" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryPolicyComponentDetailPage /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-assessment-programmes" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryAssessmentProgrammeRegisterPage /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-assessment-programmes/:programmeSetId" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryAssessmentProgrammeDetailPage /></PermissionRoute></P>} />
     <Route path="/admin/supervisory-calculation" element={<P><PermissionRoute module="aml_supervision" action="manage_config"><SupervisoryCalculationConfig /></PermissionRoute></P>} />
