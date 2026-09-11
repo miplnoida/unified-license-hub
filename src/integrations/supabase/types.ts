@@ -45245,6 +45245,108 @@ export type Database = {
           },
         ]
       }
+      supervisory_assessment_evidence_exception: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_rationale: string | null
+          deficiency: Json
+          id: string
+          methodology_dimension_id: string | null
+          methodology_question_id: string | null
+          policy_component_id: string
+          policy_component_version: string
+          rationale: string
+          requested_at: string
+          requested_by: string
+          rule_code: string
+          scope_reference: string | null
+          scope_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_rationale?: string | null
+          deficiency?: Json
+          id?: string
+          methodology_dimension_id?: string | null
+          methodology_question_id?: string | null
+          policy_component_id: string
+          policy_component_version: string
+          rationale: string
+          requested_at?: string
+          requested_by: string
+          rule_code: string
+          scope_reference?: string | null
+          scope_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_rationale?: string | null
+          deficiency?: Json
+          id?: string
+          methodology_dimension_id?: string | null
+          methodology_question_id?: string | null
+          policy_component_id?: string
+          policy_component_version?: string
+          rationale?: string
+          requested_at?: string
+          requested_by?: string
+          rule_code?: string
+          scope_reference?: string | null
+          scope_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_evidence_e_methodology_dimension_id_fkey"
+            columns: ["methodology_dimension_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_dimension"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_evidence_ex_methodology_question_id_fkey"
+            columns: ["methodology_question_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_question"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_evidence_except_policy_component_id_fkey"
+            columns: ["policy_component_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_policy_component"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_evidence_exception_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_evidence_exception_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+        ]
+      }
       supervisory_assessment_fact: {
         Row: {
           as_of_date: string | null
@@ -69248,6 +69350,14 @@ export type Database = {
       }
       supervisory_assessment_evidence_link: {
         Args: { _assessment_id: string; _payload: Json }
+        Returns: Json
+      }
+      supervisory_assessment_evidence_policy: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_evidence_policy_internal: {
+        Args: { _assessment_id: string }
         Returns: Json
       }
       supervisory_assessment_evidence_register: {
