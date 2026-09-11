@@ -312,6 +312,14 @@ BEGIN
       'code','R1CCERT-'||replace(crec.gate,'_','-'),'component_version','1.0',
       'name','R1CCERT '||crec.ctype||' contradicting the canonical vocabulary',
       'content', crec.bad_content)))->>'component_id';
+    PERFORM public.supervisory_policy_component_lifecycle(comp,'SUBMITTED',
+      'R1CCERT submits the governed fixture for independent approval.');
+    PERFORM set_config('request.jwt.claims', checker, true);
+    PERFORM public.supervisory_policy_component_lifecycle(comp,'APPROVED',
+      'R1CCERT independent approval of the governed fixture.');
+    PERFORM public.supervisory_policy_component_lifecycle(comp,'ACTIVE',
+      'R1CCERT activation of the governed fixture.');
+    PERFORM set_config('request.jwt.claims', maker, true);
     PERFORM public.supervisory_policy_profile_binding_set(base, jsonb_build_object(
       'component_type', crec.ctype,'component_id', comp,
       'rationale','R1CCERT binds deliberately incompatible '||crec.ctype||' content'));
@@ -322,6 +330,14 @@ BEGIN
       'code','R1CCERT-'||replace(crec.gate,'_','-')||'-OK','component_version','1.0',
       'name','R1CCERT '||crec.ctype||' using canonical vocabulary',
       'content', crec.good_content)))->>'component_id';
+    PERFORM public.supervisory_policy_component_lifecycle(comp,'SUBMITTED',
+      'R1CCERT submits the governed fixture for independent approval.');
+    PERFORM set_config('request.jwt.claims', checker, true);
+    PERFORM public.supervisory_policy_component_lifecycle(comp,'APPROVED',
+      'R1CCERT independent approval of the governed fixture.');
+    PERFORM public.supervisory_policy_component_lifecycle(comp,'ACTIVE',
+      'R1CCERT activation of the governed fixture.');
+    PERFORM set_config('request.jwt.claims', maker, true);
     PERFORM public.supervisory_policy_profile_binding_set(base, jsonb_build_object(
       'component_type', crec.ctype,'component_id', comp,
       'rationale','R1CCERT binds canonical '||crec.ctype||' content'));
