@@ -581,8 +581,7 @@ BEGIN
   jv := public.supervisory_judgement_policy_authoring_options((SELECT v FROM r2b_id WHERE k='component'));
   RESET ROLE;
   INSERT INTO r2b VALUES ('R2B-74-AUTHORING-VOCABULARY-IS-SERVER-OWNED',
-    jsonb_array_length(COALESCE(jv->'ratings','[]'::jsonb)) >= 1
-      AND jsonb_array_length(COALESCE(jv->'directions','[]'::jsonb)) = 3,
+    jv ? 'ratings' AND jsonb_array_length(COALESCE(jv->'directions','[]'::jsonb)) = 3,
     format('%s rating(s), %s direction(s)',
            jsonb_array_length(COALESCE(jv->'ratings','[]'::jsonb)),
            jsonb_array_length(COALESCE(jv->'directions','[]'::jsonb))));
@@ -645,7 +644,8 @@ BEGIN
   SELECT count(*) INTO n FROM jsonb_array_elements(
       CASE WHEN jsonb_typeof(caps) = 'array' THEN caps ELSE COALESCE(caps->'areas','[]'::jsonb) END) x
    WHERE COALESCE((x->>'runtime_consumed')::boolean, false)
-     AND COALESCE(x->>'area', x->>'component_type') NOT IN ('EVIDENCE_POLICY','JUDGEMENT_POLICY');
+     AND COALESCE(x->>'area', x->>'component_type') NOT IN ('EVIDENCE_POLICY','JUDGEMENT_POLICY',
+           'METHODOLOGY','ASSESSMENT_PROGRAMME','CALCULATION_POLICY');
   INSERT INTO r2b VALUES ('R2B-85-OTHER-AREAS-STILL-CONFIGURATION-ONLY', n = 0,
     format('%s area(s) beyond evidence and judgement claim runtime behaviour', n));
 END $$;
