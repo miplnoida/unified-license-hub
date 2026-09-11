@@ -268,9 +268,9 @@ BEGIN
         'fact_code','R1CCERT_NOT_A_FACT','data_type','PERCENT'))),
       jsonb_build_object('facts', jsonb_build_array(jsonb_build_object(
         'fact_code', public.supervisory_policy_vocabulary('FACT', base)->>0,'data_type','PERCENT')))),
-    ('R1C-16B-JUDGEMENT-RULE-INVALID','JUDGEMENT_POLICY','JUDGEMENT_DIRECTION_INVALID',
+    ('R1C-16B-JUDGEMENT-RULE-INVALID','JUDGEMENT_POLICY','JUDGEMENT_BAND_STEPS_INVALID',
       jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
-        'direction','SIDEWAYS','max_band_steps',1,'rationale_min_length',50))),
+        'direction','BOTH','max_band_steps',99,'rationale_min_length',50))),
       jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
         'direction','BOTH','max_band_steps',1,'rationale_min_length',50)))),
     ('R1C-16C-SECTOR-UNKNOWN','SECTOR_OVERLAY','SECTOR_CODE_UNKNOWN',
