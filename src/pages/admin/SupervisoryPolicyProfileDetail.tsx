@@ -19,6 +19,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import {
   useSupervisoryPolicyProfile,
   useSupervisoryPolicyProfileCompare,
+  useSupervisoryPolicyProfileCompatibility,
   useSupervisoryPolicyProfileEvents,
   useSupervisoryPolicyProfileGovernance,
 } from '@/hooks/useSupervisoryPolicyProfiles';
@@ -38,6 +39,7 @@ export default function SupervisoryPolicyProfileDetailPage() {
   const { readiness, capabilities } = useSupervisoryPolicyProfileGovernance(profileId);
   const events = useSupervisoryPolicyProfileEvents(profileId);
   const compare = useSupervisoryPolicyProfileCompare(profileId, baselineId || undefined);
+  const compatibility = useSupervisoryPolicyProfileCompatibility(profileId);
 
   if (detail.isLoading) return <Skeleton className="h-96 w-full" />;
   if (detail.error) return <ErrorPanel error={detail.error} title="This policy profile could not be opened" />;
@@ -110,9 +112,29 @@ export default function SupervisoryPolicyProfileDetailPage() {
                 </div>
               </dl>
               <p className="mt-4 rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
-                Policy profiles govern configuration. In this release, live assessments continue to resolve their own
-                methodology version; profile activation does not re-point work already in progress.
+                When this profile is active, every newly created programmed assessment resolves it and keeps a permanent
+                record of the exact methodology, programme and calculation versions it was created under. Assessments
+                already in progress are never re-pointed, and earlier assessments keep their own recorded basis.
               </p>
+
+              {compatibility.data ? (
+                <div className="mt-3 rounded-md border p-3">
+                  <p className="text-sm font-medium">
+                    {compatibility.data.compatible
+                      ? 'The bound policy package is internally consistent.'
+                      : `${compatibility.data.error_count} issue${compatibility.data.error_count === 1 ? '' : 's'} must be resolved before this profile can be approved or activated.`}
+                  </p>
+                  {compatibility.data.findings.length > 0 && (
+                    <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                      {compatibility.data.findings.map((f) => (
+                        <li key={`${f.code}-${f.message}`}>
+                          <span className="font-medium">{humanize(f.component_type)}:</span> {f.message}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         </TabsContent>

@@ -369,6 +369,90 @@ export function useSupervisoryPolicyProfileResolution(args: {
   });
 }
 
+/* ------------------------------------------- PCOMP-R1 convergence reads */
+
+export interface PolicyCompatibilityFinding {
+  code: string;
+  severity: 'ERROR' | string;
+  component_type: string;
+  message: string;
+}
+
+export interface PolicyProfileCompatibility {
+  profile_id: string;
+  checked_at: string;
+  compatible: boolean;
+  error_count: number;
+  findings: PolicyCompatibilityFinding[];
+}
+
+export type PolicyCapabilityState =
+  | 'CERTIFIED' | 'RUNTIME_CONSUMED' | 'BINDABLE' | 'VALIDATABLE'
+  | 'AUTHORING_AVAILABLE' | 'UNAVAILABLE' | string;
+
+export interface PolicyComponentCapabilityRow {
+  component_type: string;
+  label: string;
+  sort_order: number;
+  authoring_available: boolean;
+  validatable: boolean;
+  bindable: boolean;
+  runtime_consumed: boolean;
+  certified: boolean;
+  canonical_owner: string | null;
+  capability_note: string | null;
+  capability_state: PolicyCapabilityState;
+}
+
+/**
+ * Cross-component compatibility of one profile. The server is the only judge:
+ * the browser renders the findings it is given and never derives its own.
+ */
+export function useSupervisoryPolicyProfileCompatibility(profileId?: string) {
+  return useQuery({
+    queryKey: ['supervisory-policy-profile', 'compatibility', profileId] as const,
+    queryFn: () => rpc<PolicyProfileCompatibility>('supervisory_policy_profile_compatibility', {
+      _profile_id: profileId,
+    }),
+    enabled: !!profileId,
+    staleTime: 30_000,
+  });
+}
+
+/** Server-declared runtime capability of every policy component type. */
+export function useSupervisoryPolicyComponentCapability(componentType?: string) {
+  return useQuery({
+    queryKey: ['supervisory-policy-component', 'capability', componentType ?? 'all'] as const,
+    queryFn: () => rpc<PolicyComponentCapabilityRow[]>('supervisory_policy_component_capability', {
+      _component_type: componentType ?? null,
+    }),
+    staleTime: 300_000,
+  });
+}
+
+/** The one effective policy profile for a supervisory context and date. */
+export function useSupervisoryEffectivePolicyProfile(args: {
+  domainCode?: string | null;
+  regulatorId?: string | null;
+  sectorId?: string | null;
+  entityId?: string | null;
+  asOf?: string | null;
+  enabled?: boolean;
+}) {
+  return useQuery({
+    queryKey: ['supervisory-policy-profile', 'effective', args] as const,
+    queryFn: () => rpc<Record<string, unknown>>('supervisory_policy_profile_effective', {
+      _domain_code: args.domainCode,
+      _regulator_id: args.regulatorId ?? null,
+      _sector_id: args.sectorId ?? null,
+      _entity_id: args.entityId ?? null,
+      _as_of: args.asOf ?? null,
+    }),
+    enabled: !!args.domainCode && args.enabled !== false,
+    staleTime: 60_000,
+  });
+}
+
 /* ----------------------------------------------------------- mutations */
 
 function useProfileInvalidation() {
