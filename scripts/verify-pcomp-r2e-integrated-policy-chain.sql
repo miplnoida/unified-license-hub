@@ -383,6 +383,7 @@ BEGIN
   INSERT INTO e_id(k,v) VALUES ('finding', fid);
   PERFORM public.supervisory_assessment_evidence_link(a, jsonb_build_object(
     'evidence_type','FINDING','source_object_id', fid,
+    'methodology_question_id',(SELECT v FROM e_id WHERE k='q_i1'),
     'relevance_note','R2ECERT evidence supporting the assessment-level requirement'));
 
   jv := public.supervisory_assessment_evidence_policy_view(a);
