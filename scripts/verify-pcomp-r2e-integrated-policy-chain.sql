@@ -850,15 +850,20 @@ BEGIN
   END;
   RESET ROLE;
 
-  SET LOCAL ROLE anon;
-  PERFORM set_config('request.jwt.claims','',true);
+  DECLARE _anon_ok boolean; _anon_msg text;
   BEGIN
-    PERFORM public.supervisory_assessment_policy_trace(a);
-    INSERT INTO r2e VALUES ('R2E-52-TRACE-NOT-ANON', false, 'a signed-out caller read the trace');
-  EXCEPTION WHEN OTHERS THEN
-    INSERT INTO r2e VALUES ('R2E-52-TRACE-NOT-ANON', true, left(SQLERRM,120));
+    SET LOCAL ROLE anon;
+    PERFORM set_config('request.jwt.claims','',true);
+    BEGIN
+      PERFORM public.supervisory_assessment_policy_trace(a);
+      _anon_ok := false; _anon_msg := 'a signed-out caller read the trace';
+    EXCEPTION WHEN OTHERS THEN
+      _anon_ok := true; _anon_msg := left(SQLERRM,120);
+    END;
+    RESET ROLE;
+    INSERT INTO r2e VALUES ('R2E-52-TRACE-NOT-ANON', _anon_ok, _anon_msg);
   END;
-  RESET ROLE;
+
 END $$;
 
 -- =====================================================================
