@@ -79,7 +79,7 @@ export default function ThematicReviewDetail() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
+  useEffect(() => { load();   }, [id]);
 
   const currentIdx = useMemo(() => THEMATIC_STATUSES.indexOf(review?.status || 'draft'), [review]);
 

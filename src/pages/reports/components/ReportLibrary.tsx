@@ -59,7 +59,7 @@ export function ReportLibrary({ onPreview, onSchedule }: Props) {
   const handleToggleFav = async (id: string) => {
     const next = new Set(favs);
     const on = await toggleFavorite(id);
-    on ? next.add(id) : next.delete(id);
+    if (on) next.add(id); else next.delete(id);
     setFavs(next);
   };
 

@@ -97,7 +97,7 @@ function loadFromStorage(): RegistrationFormData {
         captchaVerificationId: null,
       };
     }
-  } catch {}
+  } catch { /* intentionally ignored */ }
   return { ...initialState };
 }
 

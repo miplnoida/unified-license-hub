@@ -312,7 +312,7 @@ export default function FpaManualTasks() {
       // individual_id is always present (non-nullable in schema), so look up
       // names directly without any assessment-based fallback.
       const individualIds = [...new Set(findings.map((f) => f.individual_id))];
-      let individualNameMap: Record<string, string> = {};
+      const individualNameMap: Record<string, string> = {};
 
       if (individualIds.length > 0) {
         const { data: individuals } = await supabase

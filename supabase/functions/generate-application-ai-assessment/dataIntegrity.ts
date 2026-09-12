@@ -110,7 +110,7 @@ function flatten(value: unknown, prefix = "", out: Array<{ path: string; value: 
 function toNumber(v: unknown): number | null {
   if (typeof v === "number" && Number.isFinite(v)) return v;
   if (typeof v === "string") {
-    const cleaned = v.replace(/[,\s]/g, "").replace(/[^0-9.\-]/g, "");
+    const cleaned = v.replace(/[,\s]/g, "").replace(/[^0-9.-]/g, "");
     if (!cleaned || cleaned === "-" || cleaned === ".") return null;
     const n = Number(cleaned);
     return Number.isFinite(n) ? n : null;

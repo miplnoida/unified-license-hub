@@ -104,8 +104,10 @@ export default function InterventionDetail() {
   const navigate = useNavigate();
 
   const canApprove = useCan('market_conduct', 'approve');
-  const canOperate = useCan('market_conduct', 'run_conduct_analytics') || useCan('market_conduct', 'manage_complaints');
-
+  // Hooks must run unconditionally: evaluate both permissions, then combine.
+  const canOperatePrimary = useCan('market_conduct', 'run_conduct_analytics');
+  const canOperateAlternate = useCan('market_conduct', 'manage_complaints');
+  const canOperate = canOperatePrimary || canOperateAlternate;
   const { data, isLoading, isError, error } = useInterventionCaseMc10(id);
   const decide = useDecideInterventionMc10(id);
   const transition = useTransitionInterventionMc10(id);

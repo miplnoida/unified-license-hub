@@ -22,7 +22,7 @@ export interface AppTemplateSection {
 const SKIP_TYPES = new Set(['section', 'divider', 'heading', 'content']);
 
 function sanitizeSheetName(name: string, taken: Set<string>): string {
-  let base = (name || 'Section').replace(/[:\\/?*\[\]]/g, ' ').trim().slice(0, 28) || 'Section';
+  const base = (name || 'Section').replace(/[:\\/?*[\]]/g, ' ').trim().slice(0, 28) || 'Section';
   let candidate = base;
   let i = 2;
   while (taken.has(candidate.toLowerCase())) {

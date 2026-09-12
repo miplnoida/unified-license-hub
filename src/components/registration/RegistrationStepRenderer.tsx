@@ -873,7 +873,7 @@ function FileUploadField({ field, value, onChange, readOnly, error, imageOnly, u
     if (fileData?.path) {
       try {
         await supabase.storage.from('secure-documents').remove([fileData.path]);
-      } catch {}
+      } catch { /* intentionally ignored */ }
     }
     onChange('');
   };

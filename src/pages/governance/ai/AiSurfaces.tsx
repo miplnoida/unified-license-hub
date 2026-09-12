@@ -27,7 +27,10 @@ import { formatDateTime } from '@/lib/datetime';
 import { useCan } from '@/hooks/useCan';
 
 export default function AiSurfaces() {
-  const canGovern = useCan('ai_management', 'edit') || useCan('ai_management', 'approve');
+  // Hooks must run unconditionally: evaluate both permissions, then combine.
+  const canGovernPrimary = useCan('ai_management', 'edit');
+  const canGovernAlternate = useCan('ai_management', 'approve');
+  const canGovern = canGovernPrimary || canGovernAlternate;
   const { data: surfaces = [], isLoading } = useAiSurfaces();
   const transition = useAiSurfaceTransition();
 

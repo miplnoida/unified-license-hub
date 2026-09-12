@@ -75,7 +75,7 @@ export function EvidenceRepositoryPanel({ entityId, complaintId, investigationId
                     complaintId ? `complaint/${complaintId}` :
                     investigationId ? `investigation/${investigationId}` :
                     thematicReviewId ? `thematic/${thematicReviewId}` : 'misc';
-      const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+      const safeName = file.name.replace(/[^\w.-]+/g, '_');
       const path = `conduct-evidence/${scope}/${Date.now()}-${safeName}`;
       const { error: upErr } = await (supabase as any).storage.from('fp-evidence').upload(path, file, {
         contentType: file.type || 'application/octet-stream', upsert: false,

@@ -103,7 +103,7 @@ export function useRegistrationConfig(sectorId?: string, subSectorId?: string, c
     setLoading(prev => (hasLoadedOnce ? false : true));
     setError(null);
     try {
-      let query = supabase
+      const query = supabase
         .from('registration_form_configs')
         .select('*')
         .eq('is_active', true);

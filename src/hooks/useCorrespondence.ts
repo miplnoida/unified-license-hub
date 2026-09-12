@@ -588,7 +588,7 @@ export function useCloseCorrespondence(threadId?: string) {
 }
 
 export async function uploadCorrespondenceFile(threadId: string, file: File, messageId?: string) {
-  const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+  const safeName = file.name.replace(/[^\w.-]+/g, '_');
   const path = `${threadId}/${Date.now()}-${safeName}`;
   const { error: upErr } = await supabase.storage.from('correspondence').upload(path, file, { upsert: false });
   if (upErr) throw upErr;

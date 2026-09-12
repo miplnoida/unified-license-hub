@@ -256,7 +256,7 @@ export default function FpaConditions() {
       const determinationIds = Array.from(new Set(rows.map((r: any) => r.determination_id).filter(Boolean)));
 
       // Fetch names
-      let nameMap: Record<string, string> = {};
+      const nameMap: Record<string, string> = {};
       if (individualIds.length > 0) {
         const { data: indData } = await (supabase as any)
           .from('fp_individuals')
@@ -268,7 +268,7 @@ export default function FpaConditions() {
       }
 
       // Fetch determination outcomes
-      let detMap: Record<string, string> = {};
+      const detMap: Record<string, string> = {};
       if (determinationIds.length > 0) {
         const { data: detData } = await (supabase as any)
           .from('fp_determinations')

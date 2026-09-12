@@ -32,7 +32,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     // Surface for debugging; in production this would route to a monitor.
-    // eslint-disable-next-line no-console
+     
     console.error(
       `[ErrorBoundary${this.props.context ? ` · ${this.props.context}` : ''}]`,
       error,

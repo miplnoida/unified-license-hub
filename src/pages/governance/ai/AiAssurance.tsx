@@ -33,7 +33,10 @@ import { formatDate, formatDateTime } from '@/lib/datetime';
 import { useCan } from '@/hooks/useCan';
 
 export default function AiAssurance() {
-  const canAssure = useCan('ai_management', 'assure') || useCan('ai_management', 'approve');
+  // Hooks must run unconditionally: evaluate both permissions, then combine.
+  const canAssurePrimary = useCan('ai_management', 'assure');
+  const canAssureAlternate = useCan('ai_management', 'approve');
+  const canAssure = canAssurePrimary || canAssureAlternate;
   const { data: reviews = [], isLoading } = useAssuranceReviews();
   const { data: useCases = [] } = useAiUseCases();
   const { data: reviewable = [] } = useAiActivity({ outcome: 'SUCCESS', limit: 100 });

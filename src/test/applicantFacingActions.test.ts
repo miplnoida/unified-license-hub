@@ -13,6 +13,8 @@
  *   4. Existing approve/reject/send_back/escalate/request_resubmission paths
  *      keep their event_key + remarks-required contract.
  */
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import {
   resolveAvailableActions,
@@ -185,8 +187,6 @@ describe('applicant resubmission resumes the same workflow at the previous step'
    * that exact step. We pin the contract by inspecting the migration source.
    */
   const migrationSrc = (() => {
-    const fs = require('node:fs') as typeof import('node:fs');
-    const path = require('node:path') as typeof import('node:path');
     const dir = path.resolve(__dirname, '../../supabase/migrations');
     const files = fs.readdirSync(dir).filter((f: string) => f.endsWith('.sql')).sort();
     // Read the most recent migration that defines perform_workflow_transition

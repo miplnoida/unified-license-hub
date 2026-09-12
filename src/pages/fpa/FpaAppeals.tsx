@@ -352,7 +352,7 @@ export default function FpaAppeals() {
       const determinationIds = [...new Set(rows.map((r: any) => r.determination_id).filter(Boolean))];
 
       // Fetch names
-      let nameMap: Record<string, string> = {};
+      const nameMap: Record<string, string> = {};
       if (individualIds.length > 0) {
         const { data: inds } = await (supabase as any)
           .from('fp_individuals')
@@ -362,8 +362,8 @@ export default function FpaAppeals() {
       }
 
       // Fetch determinations
-      let detMap: Record<string, string> = {};
-      let detAssessmentMap: Record<string, string | null> = {};
+      const detMap: Record<string, string> = {};
+      const detAssessmentMap: Record<string, string | null> = {};
       if (determinationIds.length > 0) {
         const { data: dets } = await (supabase as any)
           .from('fp_determinations')

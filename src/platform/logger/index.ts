@@ -5,7 +5,7 @@
  * instead of `console.*`. See docs/16_LOGGING_STANDARD.md.
  */
 
-/* eslint-disable no-console */
+ 
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 

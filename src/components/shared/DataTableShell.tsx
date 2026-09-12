@@ -209,7 +209,7 @@ export function DataTableShell<T extends Record<string, any>>({
         return Object.values(row).some((v) => String(v ?? '') === filterValue);
       }
       return String(value ?? '') === filterValue;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+       
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, search, filterValue, filterOptions, filterKey, filterAccessor, columns, mode]);

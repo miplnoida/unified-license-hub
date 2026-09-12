@@ -576,7 +576,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
           ? `not-authorized (reason=${canActResult.reason})`
           : `backend can_${type}=false (allowed_actions=${JSON.stringify(canActResult.allowed_actions)})`;
     });
-    // eslint-disable-next-line no-console
+     
     console.debug('[WorkflowPanel] action diagnostic', {
       stepId: currentStep.id,
       stepName: currentStep.name,

@@ -66,7 +66,7 @@ export function getNavIcon(iconKey: string | null | undefined): LucideIcon {
   if (isValidNavIconKey(key)) return NAV_ICON_MAP[key];
   if (import.meta.env?.DEV && !warned.has(key)) {
     warned.add(key);
-    // eslint-disable-next-line no-console
+     
     console.warn(
       `[navIcons] Navigation icon_key ${key ? `"${key}"` : '(missing)'} is not in NAV_ICON_MAP. ` +
         'Seeded active navigation must use an approved key — treat this as a data defect.',

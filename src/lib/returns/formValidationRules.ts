@@ -45,7 +45,7 @@ export function parseNumericValue(raw: unknown): number | null {
     negative = true;
     text = text.slice(1, -1);
   }
-  text = text.replace(/[^0-9.\-]/g, '');
+  text = text.replace(/[^0-9.-]/g, '');
   if (text === '' || text === '-' || text === '.') return null;
   const n = Number(text);
   if (!Number.isFinite(n)) return null;

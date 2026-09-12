@@ -496,7 +496,7 @@ export default function PrudentialEntityProfile() {
             };
             const toggleKey = (k: string) => setHiddenRatios((prev) => {
               const next = new Set(prev);
-              next.has(k) ? next.delete(k) : next.add(k);
+              if (next.has(k)) next.delete(k); else next.add(k);
               return next;
             });
             const visibleKeys = allKeys.filter((k) => !hiddenRatios.has(k));

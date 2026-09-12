@@ -18,7 +18,7 @@ const cors = {
 function safeArith(expr: string): number {
   if (!expr || !expr.trim()) return 0;
   if (/[a-zA-Z_$]/.test(expr)) throw new Error("Invalid expression");
-  // eslint-disable-next-line no-new-func
+   
   const fn = new Function(`"use strict"; return (${expr});`);
   const v = fn();
   if (typeof v !== "number" || !Number.isFinite(v)) throw new Error("Non-numeric");

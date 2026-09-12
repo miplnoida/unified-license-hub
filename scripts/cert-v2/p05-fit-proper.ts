@@ -118,7 +118,7 @@ async function main() {
   // The officer role has no determinations:approve permission at all (P05.09),
   // so the guard is exercised on the supervisor: they submit the questionnaire
   // on a case and must then be blocked from determining it themselves.
-  let selfApprovalSuccesses = 0;
+  const selfApprovalSuccesses = 0;
   // Segregation of duties is enforced on two independent layers:
   //   1. permissions — no governed F&P role may both prepare/submit an
   //      assessment and approve its determination (asserted here);
@@ -132,7 +132,7 @@ async function main() {
 
   const grants = await sel(MEMBER_B,
     'sec_role_permissions?select=sec_roles(name),sec_permissions(key,sec_modules(key))');
-  let dualRoles: string[] = [];
+  const dualRoles: string[] = [];
   if (Array.isArray(grants.body)) {
     const byRole = new Map<string, Set<string>>();
     for (const g of grants.body as any[]) {

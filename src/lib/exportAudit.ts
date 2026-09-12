@@ -75,7 +75,7 @@ export async function logExport(input: LogExportInput): Promise<void> {
     });
   } catch (err) {
     // Never let audit failure break the actual export UX.
-    // eslint-disable-next-line no-console
+     
     console.warn('[logExport] failed to write audit row', err);
   }
 }

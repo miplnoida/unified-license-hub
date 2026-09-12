@@ -33,6 +33,16 @@ export default function PermissionCoverageReport() {
   const [q, setQ] = useState('');
   const [only, setOnly] = useState<'all' | 'orphaned' | 'ui-only' | 'backend-only' | 'enforced'>('all');
 
+  // Every hook runs before the permission guard so hook order never varies.
+  const rows = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    return matrix.rows.filter((r) => {
+      if (only !== 'all' && classifyCoverage(r) !== only) return false;
+      if (!s) return true;
+      return r.module.toLowerCase().includes(s) || r.action.toLowerCase().includes(s);
+    });
+  }, [matrix.rows, q, only]);
+
   if (!canViewCoverage) {
     return (
       <DashboardLayout>
@@ -48,14 +58,6 @@ export default function PermissionCoverageReport() {
     );
   }
 
-  const rows = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    return matrix.rows.filter((r) => {
-      if (only !== 'all' && classifyCoverage(r) !== only) return false;
-      if (!s) return true;
-      return r.module.toLowerCase().includes(s) || r.action.toLowerCase().includes(s);
-    });
-  }, [matrix.rows, q, only]);
 
   const badgeFor = (klass: ReturnType<typeof classifyCoverage>) => {
     switch (klass) {

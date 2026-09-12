@@ -161,7 +161,7 @@ export function DocumentsStep({ documents, onAddDocument, onRemoveDocument, erro
     if (!result.isConfirmed) return;
     try {
       await supabase.storage.from('secure-documents').remove([doc.path]);
-    } catch {}
+    } catch { /* intentionally ignored */ }
     onRemoveDocument(doc.id);
     setReplaceMode(false);
     toast.info(`${doc.name} removed`);

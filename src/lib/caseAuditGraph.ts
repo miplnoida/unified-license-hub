@@ -85,7 +85,7 @@ export async function buildRelatedGraph(root: RelatedEntity): Promise<RelatedEnt
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: enf } = await (supabase.from('enforcement_actions') as any).select('id').eq('entity_id', root.id).limit(200);
       (enf ?? []).forEach((e: Row) => add({ kind: 'enforcement_action', id: e.id }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       // EPR-01 — canonical filings are the Returns truth for the case graph.
       const { data: rets } = await (supabase.from('return_filings') as any).select('id').eq('entity_id', root.id).limit(200);
       (rets ?? []).forEach((r: Row) => add({ kind: 'return', id: r.id }));

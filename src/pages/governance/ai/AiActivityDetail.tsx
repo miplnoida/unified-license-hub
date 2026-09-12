@@ -39,7 +39,10 @@ export default function AiActivityDetail() {
   const { data: attempts = [] } = useAttemptsForInsight(insightId);
   const { data: assurance = [] } = useAssuranceForInsight(insightId);
   const { data: useCases = [] } = useAiUseCases();
-  const canAssure = useCan('ai_management', 'assure') || useCan('ai_management', 'approve');
+  // Hooks must run unconditionally: evaluate both permissions, then combine.
+  const canAssurePrimary = useCan('ai_management', 'assure');
+  const canAssureAlternate = useCan('ai_management', 'approve');
+  const canAssure = canAssurePrimary || canAssureAlternate;
   const createAssurance = useAssuranceCreate();
 
   const loading = (isAttempt && attemptLoading) || (!!insightId && insightLoading);

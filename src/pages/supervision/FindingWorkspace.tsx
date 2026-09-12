@@ -62,7 +62,11 @@ export default function FindingWorkspace() {
 
   const domainModule = moduleForSupervisoryDomain(model?.finding?.domain_code ?? null);
   const canManage = useCan(domainModule, 'edit');
-  const canRefer = useCan('enforcement_management', 'refer') || useCan(domainModule, 'approve');
+  // Hooks must run unconditionally: evaluate both permissions, then combine.
+  const canReferEnforcement = useCan('enforcement_management', 'refer');
+  const canApproveDomain = useCan(domainModule, 'approve');
+  const canRefer = canReferEnforcement || canApproveDomain;
+
 
   const respond = useRecordFindingResponse(id);
   const openRemediation = useOpenRemediation(id);

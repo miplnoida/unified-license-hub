@@ -73,9 +73,10 @@ const STATUS_COPY: Record<string, string> = {
 
 export function useLicenseEntitlements(targetLicenseeId?: string | null): LicenseEntitlementsResult {
   const { user } = useAuth();
-  const ppoc = (() => {
-    try { return usePpoc(); } catch { return null as any; }
-  })();
+  // usePpoc() returns a safe stub outside its provider, so it is called
+  // unconditionally here — hook order must never depend on a try/catch.
+  const ppoc = usePpoc();
+
 
   // PPOC users recalculate against the entity they are currently acting for.
   const scopedLicenseeId: string | null =

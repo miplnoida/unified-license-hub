@@ -10,6 +10,8 @@
  *     governed `withdraw_application` RPC (no direct application mutation)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+// vi.mock calls below are hoisted, so this import is safe at the top of the file.
+import { ApplicationWithdrawalPanel } from '@/components/applications/ApplicationWithdrawalPanel';
 import { existsSync, readFileSync } from 'node:fs';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
@@ -86,9 +88,6 @@ vi.mock('@/integrations/supabase/client', () => ({
     }),
   },
 }));
-
-// eslint-disable-next-line import/first
-import { ApplicationWithdrawalPanel } from '@/components/applications/ApplicationWithdrawalPanel';
 
 const baseProps = {
   applicationId: 'app-1',

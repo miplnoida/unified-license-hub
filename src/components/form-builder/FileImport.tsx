@@ -83,7 +83,7 @@ function convertFormula(
 
   // Detect cross-sheet references like Sheet2!A1, 'Sheet Name'!B2
   expression = expression.replace(/'?([^'!]+)'?!(\$?[A-Z]+\$?\d+)/gi, (match, sheet, cellRef) => {
-    const colLetters = cellRef.replace(/[\$\d]/g, '').toUpperCase();
+    const colLetters = cellRef.replace(/[$\d]/g, '').toUpperCase();
     const fieldName = colToFieldMap.get(colLetters) || `${toFieldName(sheet)}_${colLetters.toLowerCase()}`;
     const ref: CrossSheetRef = {
       sourceSheet: currentSheet,
@@ -98,7 +98,7 @@ function convertFormula(
 
   // Same-sheet cell references
   expression = expression.replace(/\$?([A-Z]+)\$?\d+/gi, (match) => {
-    const colLetters = match.replace(/[\$\d]/g, '').toUpperCase();
+    const colLetters = match.replace(/[$\d]/g, '').toUpperCase();
     const fieldName = colToFieldMap.get(colLetters);
     if (fieldName) {
       if (!referencedFields.includes(fieldName)) referencedFields.push(fieldName);
@@ -111,8 +111,8 @@ function convertFormula(
   expression = expression.replace(/SUM\(([^)]+)\)/gi, (_, range: string) => {
     const parts = range.split(':');
     if (parts.length === 2) {
-      const startCol = parts[0].replace(/[\$\d]/g, '').toUpperCase();
-      const endCol = parts[1].replace(/[\$\d]/g, '').toUpperCase();
+      const startCol = parts[0].replace(/[$\d]/g, '').toUpperCase();
+      const endCol = parts[1].replace(/[$\d]/g, '').toUpperCase();
       const allCols = Array.from(colToFieldMap.keys()).sort();
       const startIdx = allCols.indexOf(startCol);
       const endIdx = allCols.indexOf(endCol);
@@ -131,8 +131,8 @@ function convertFormula(
   expression = expression.replace(/AVERAGE\(([^)]+)\)/gi, (_, range: string) => {
     const parts = range.split(':');
     if (parts.length === 2) {
-      const startCol = parts[0].replace(/[\$\d]/g, '').toUpperCase();
-      const endCol = parts[1].replace(/[\$\d]/g, '').toUpperCase();
+      const startCol = parts[0].replace(/[$\d]/g, '').toUpperCase();
+      const endCol = parts[1].replace(/[$\d]/g, '').toUpperCase();
       const allCols = Array.from(colToFieldMap.keys()).sort();
       const startIdx = allCols.indexOf(startCol);
       const endIdx = allCols.indexOf(endCol);
@@ -280,7 +280,7 @@ function detectFinancialLayout(sheet: any, data: string[][], XLSX: any): Financi
   for (let r = 12; r < Math.min(25, data.length); r++) {
     const row = data[r] || [];
     let numCount = 0;
-    let consecutiveNums: number[] = [];
+    const consecutiveNums: number[] = [];
     for (let c = 0; c < row.length; c++) {
       const val = row[c];
       if (val !== '' && val !== null && val !== undefined) {
@@ -759,7 +759,7 @@ function parseLineItemReturnSheet(
 
     // Cross-sheet refs
     expression = expression.replace(/'?([^'!,()+*/\-\s]+)'?!(\$?[A-Z]+\$?\d+)/gi, (match, refSheet, cellRef) => {
-      const colLetters = cellRef.replace(/[\$\d]/g, '').toUpperCase();
+      const colLetters = cellRef.replace(/[$\d]/g, '').toUpperCase();
       const fieldName = `${toFieldName(refSheet)}_${colLetters.toLowerCase()}`;
       sheetCrossRefs.push({
         sourceSheet: currentSheet,

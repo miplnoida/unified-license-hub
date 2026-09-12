@@ -49,9 +49,10 @@ export interface LicenseStatusGate {
  */
 export function useLicenseStatusGate(): LicenseStatusGate {
   const { user } = useAuth();
-  const ppoc = (() => {
-    try { return usePpoc(); } catch { return null as any; }
-  })();
+  // usePpoc() returns a safe stub outside its provider, so it is called
+  // unconditionally here — hook order must never depend on a try/catch.
+  const ppoc = usePpoc();
+
   const activeLicenseeId: string | null =
     (ppoc?.isPpoc ? ppoc?.activeLicenseeId : null) || user?.licenseeId || null;
 
