@@ -51527,9 +51527,11 @@ export type Database = {
           escalation_tier_profile: string | null
           id: string
           obligation_key: string
+          operational_action: string | null
           outcome: string
           pause_permitted: boolean
           pause_reasons: Json
+          policy_action: string | null
           process_type: string | null
           response_policy_advisory_timeframe_days: number | null
           response_policy_rule_code: string | null
@@ -51566,9 +51568,11 @@ export type Database = {
           escalation_tier_profile?: string | null
           id?: string
           obligation_key: string
+          operational_action?: string | null
           outcome?: string
           pause_permitted?: boolean
           pause_reasons?: Json
+          policy_action?: string | null
           process_type?: string | null
           response_policy_advisory_timeframe_days?: number | null
           response_policy_rule_code?: string | null
@@ -51605,9 +51609,11 @@ export type Database = {
           escalation_tier_profile?: string | null
           id?: string
           obligation_key?: string
+          operational_action?: string | null
           outcome?: string
           pause_permitted?: boolean
           pause_reasons?: Json
+          policy_action?: string | null
           process_type?: string | null
           response_policy_advisory_timeframe_days?: number | null
           response_policy_rule_code?: string | null
@@ -71378,6 +71384,10 @@ export type Database = {
       }
       supervisory_response_policy_operational_action: {
         Args: { _policy_action: string }
+        Returns: string
+      }
+      supervisory_response_policy_policy_action: {
+        Args: { _action: string }
         Returns: string
       }
       supervisory_response_policy_rules: {
