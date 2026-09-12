@@ -188,6 +188,7 @@ BEGIN
     st='CALCULATED' AND calcr IS NOT NULL,
     format('run %s, calculated residual rating %s', st, calcr));
 
+  RAISE NOTICE 'R2F calculated=% status=% target-scale=%', calcr, st, scale;
   -- ------------------------------------------------------------- judgement --
   jw := public.supervisory_assessment_judgement_policy_view(a);
   INSERT INTO r2f VALUES ('R2F-09-JUDGEMENT-GOVERNED',
@@ -210,7 +211,8 @@ BEGIN
     SELECT s INTO target FROM unnest(scale) WITH ORDINALITY t(s,i)
      WHERE i = GREATEST(array_position(scale, calcr) - 1, 2);
   END IF;
-  INSERT INTO r2f_t(k,t) VALUES ('target', target);
+  INSERT INTO r2f_t(k,t) VALUES ('target', COALESCE(target,'-'));
+  RAISE NOTICE 'R2F target=%', target;
 
   ovr := public.supervisory_calculation_override_propose(a, target,
     'One band of supervisory judgement is applied because the sanctions control testing evidence is accepted under an approved exception and the finding backlog is not yet cleared.');
