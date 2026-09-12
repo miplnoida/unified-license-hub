@@ -602,10 +602,13 @@ BEGIN
   BEGIN
     PERFORM public.supervisory_consequence_record(jsonb_build_object(
       'entity_id', entity,'domain_code','AML_CFT','assessment_id', a,
-      'action_type','RECORD_DEFERRED','linkage_mode','RECORD',
+      'action_type','RECORD_DEFERRED','linkage_mode','RECORD_ONLY',
       'rationale','R2ECERT attempts a deferral the governing response policy prohibits at this rating.'));
     INSERT INTO r2e VALUES ('R2E-29-PROHIBITED-RESPONSE-REFUSED', false, 'the prohibited response was ACCEPTED');
   EXCEPTION WHEN OTHERS THEN
+    INSERT INTO r2e VALUES ('R2E-29-PROHIBITED-RESPONSE-REFUSED',
+      SQLERRM LIKE 'response_prohibited%', left(SQLERRM,140));
+
     INSERT INTO r2e VALUES ('R2E-29-PROHIBITED-RESPONSE-REFUSED', true, left(SQLERRM,140));
   END;
 
