@@ -736,9 +736,11 @@ BEGIN
     ((jv->'evaluation')->>'policy_component_version') = '1.0',
     format('evidence still evaluated against version %s', (jv->'evaluation')->>'policy_component_version'));
 
+  -- the programme derives its own review period: no manual dates are permitted
   jv := public.supervisory_assessment_create_programmed(
-    entity,'AML_CFT',(SELECT v FROM e_id WHERE k='prog'),'PERIODIC',
-    (current_date - 30)::date,(current_date - 1)::date,'R2ECERT successor-version assessment');
+    entity,'AML_CFT',(SELECT v FROM e_id WHERE k='prog'),'PERIODIC', NULL, NULL,
+    'R2ECERT successor-version assessment');
+
   a2 := (jv->>'id')::uuid;
   INSERT INTO e_id(k,v) VALUES ('assessment_v2', a2);
   snap := public.supervisory_assessment_policy_basis(a2);
