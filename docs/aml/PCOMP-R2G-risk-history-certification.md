@@ -36,7 +36,7 @@ from a second publication.
 
 ## 3. The exact production fix (prospective only)
 
-Migration: `supabase/migrations/*_pcomp_r2g_risk_history_semantics.sql`.
+Migration: `supabase/migrations/20260912145136_36be3f5a-d388-4bb9-947e-675e3fd8174c.sql`.
 
 1. `supervisory_risk_movement_record()` now establishes ownership explicitly.
    When the approval is governed (`NEW.approval_decision_id IS NOT NULL`) it
