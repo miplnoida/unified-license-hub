@@ -648,7 +648,7 @@ BEGIN
       CASE WHEN jsonb_typeof(caps) = 'array' THEN caps ELSE COALESCE(caps->'areas','[]'::jsonb) END) x
    WHERE COALESCE((x->>'runtime_consumed')::boolean, false)
      AND COALESCE(x->>'area', x->>'component_type') NOT IN ('EVIDENCE_POLICY','JUDGEMENT_POLICY',
-           'RESPONSE_POLICY',
+           'RESPONSE_POLICY','SLA_POLICY',
            'METHODOLOGY','ASSESSMENT_PROGRAMME','CALCULATION_CONFIG');
   INSERT INTO r2b VALUES ('R2B-85-OTHER-AREAS-STILL-CONFIGURATION-ONLY', n = 0,
     format('%s area(s) beyond evidence and judgement claim runtime behaviour', n));

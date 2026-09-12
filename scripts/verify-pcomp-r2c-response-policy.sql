@@ -408,7 +408,7 @@ BEGIN
 
   SELECT count(*) INTO n FROM jsonb_array_elements(cap) x
    WHERE x->>'component_type' IN ('SECTOR_OVERLAY','FACT_CONFIG','SOURCE_BINDING',
-     'MATERIALITY_POLICY','SLA_POLICY','DASHBOARD_POLICY','NOTIFICATION_POLICY')
+     'MATERIALITY_POLICY','DASHBOARD_POLICY','NOTIFICATION_POLICY')
      AND (x->>'runtime_consumed')::boolean;
   INSERT INTO r2c VALUES ('R2C-66-CAP-OTHERS-STILL-CONFIGURATION-ONLY', n = 0,
     format('%s area(s) wrongly claim runtime behaviour', n));

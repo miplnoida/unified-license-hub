@@ -384,11 +384,11 @@ BEGIN
 
   SELECT count(*) INTO n FROM public.supervisory_policy_component_type
    WHERE component_type IN ('SECTOR_OVERLAY','FACT_CONFIG','SOURCE_BINDING','MATERIALITY_POLICY',
-                            'SLA_POLICY','DASHBOARD_POLICY',
+                            'DASHBOARD_POLICY',
                             'NOTIFICATION_POLICY')
      AND NOT is_runtime_consumed AND NOT is_certified;
-  -- PCOMP-R2C promoted RESPONSE_POLICY to runtime; seven areas remain.
-  INSERT INTO r2a VALUES ('R2A-47-OTHER-SEVEN-STILL-CONFIGURATION-ONLY', n = 7,
+  -- R2C promoted RESPONSE_POLICY and R2D promoted SLA_POLICY; six areas remain.
+  INSERT INTO r2a VALUES ('R2A-47-OTHER-SEVEN-STILL-CONFIGURATION-ONLY', n = 6,
     format('%s of 7 areas truthfully report configuration-only', n));
 END $$;
 
