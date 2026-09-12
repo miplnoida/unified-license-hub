@@ -481,9 +481,10 @@ BEGIN
 
   INSERT INTO r2e VALUES ('R2E-16-JUDGEMENT-TARGETS-SERVER-DECIDED',
     EXISTS (SELECT 1 FROM jsonb_array_elements((jv->'evaluation')->'target_ratings') c
-             WHERE c->>'rating'='LOW' AND NOT (c->>'permitted')::boolean),
-    format('targets=%s', (SELECT string_agg(c->>'rating'||'='||(c->>'permitted'),',')
+             WHERE c->>'code'='LOW' AND NOT (c->>'permitted')::boolean),
+    format('targets=%s', (SELECT string_agg(c->>'code'||'='||(c->>'permitted'),',')
       FROM jsonb_array_elements((jv->'evaluation')->'target_ratings') c)));
+
 
   BEGIN
     PERFORM public.supervisory_calculation_override_propose(a,'LOW',
