@@ -35,7 +35,10 @@ interface Props {
  * changes to the panel never rewrite history for this appeal.
  */
 export function AppealPanelSection({ appeal }: Props) {
-  const canAssign = useCan('license_appeals', 'assign_panel') || useCan('license_appeals', 'decide');
+  // Hooks must run unconditionally: evaluate both permissions, then combine.
+  const canAssignPrimary = useCan('license_appeals', 'assign_panel');
+  const canAssignAlternate = useCan('license_appeals', 'decide');
+  const canAssign = canAssignPrimary || canAssignAlternate;
   const { data: panels } = useLicenseAppealPanels(true);
   const { data: allMembers } = useAllLicenseAppealPanelMembers();
 

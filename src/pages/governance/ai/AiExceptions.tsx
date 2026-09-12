@@ -37,7 +37,10 @@ const SEVERITY_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' |
 };
 
 export default function AiExceptions() {
-  const canAssure = useCan('ai_management', 'assure') || useCan('ai_management', 'approve');
+  // Hooks must run unconditionally: evaluate both permissions, then combine.
+  const canAssurePrimary = useCan('ai_management', 'assure');
+  const canAssureAlternate = useCan('ai_management', 'approve');
+  const canAssure = canAssurePrimary || canAssureAlternate;
   const { data: exceptions = [], isLoading } = useAiGovernanceExceptions(300);
   const { data: activity = [] } = useAiActivity({ limit: 500 });
   const { data: useCases = [] } = useAiUseCases();

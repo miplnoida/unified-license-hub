@@ -68,7 +68,13 @@ export default function SupervisoryAttentionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const canOperate = useCan('market_conduct', 'run_conduct_analytics') || useCan('market_conduct', 'manage_complaints');
+  // Hooks must run unconditionally: evaluate both permissions, then combine.
+
+  const canOperatePrimary = useCan('market_conduct', 'run_conduct_analytics');
+
+  const canOperateAlternate = useCan('market_conduct', 'manage_complaints');
+
+  const canOperate = canOperatePrimary || canOperateAlternate;
   const canApprove = useCan('market_conduct', 'approve');
 
   const { data, isLoading, isError } = useAttentionCase(id);

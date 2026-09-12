@@ -45,7 +45,10 @@ const EMPTY: FormState = {
 
 export default function AiModels() {
   const { user } = useAuth();
-  const canAuthor = useCan('ai_management', 'edit') || useCan('ai_management', 'approve');
+  // Hooks must run unconditionally: evaluate both permissions, then combine.
+  const canAuthorPrimary = useCan('ai_management', 'edit');
+  const canAuthorAlternate = useCan('ai_management', 'approve');
+  const canAuthor = canAuthorPrimary || canAuthorAlternate;
   const { data: models = [], isLoading } = useAiModels();
   const { data: useCases = [] } = useAiUseCases();
   const save = useAiModelSave();

@@ -39,7 +39,10 @@ const REMEDIATION_STATES = ['OPEN', 'IN_PROGRESS', 'COMPLETED', 'NOT_REQUIRED'];
 
 export default function AiAssuranceDetail() {
   const { id = '' } = useParams();
-  const canAssure = useCan('ai_management', 'assure') || useCan('ai_management', 'approve');
+  // Hooks must run unconditionally: evaluate both permissions, then combine.
+  const canAssurePrimary = useCan('ai_management', 'assure');
+  const canAssureAlternate = useCan('ai_management', 'approve');
+  const canAssure = canAssurePrimary || canAssureAlternate;
   const { data: review, isLoading } = useAssuranceReview(id);
   const { data: assessments = [] } = useAssuranceAssessments(id);
   const { data: insight } = useConductAiInsight(review?.conduct_ai_insight_id ?? null);

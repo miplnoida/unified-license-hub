@@ -87,8 +87,10 @@ function GapList({ title, description, rows, onOpen }: {
 
 export default function SupervisoryAttentionRegister() {
   const navigate = useNavigate();
-  const canOperate = useCan('market_conduct', 'run_conduct_analytics') || useCan('market_conduct', 'manage_complaints');
-
+  // Hooks must run unconditionally: evaluate both permissions, then combine.
+  const canOperatePrimary = useCan('market_conduct', 'run_conduct_analytics');
+  const canOperateAlternate = useCan('market_conduct', 'manage_complaints');
+  const canOperate = canOperatePrimary || canOperateAlternate;
   const [status, setStatus] = useState<string>('all');
   const [priority, setPriority] = useState<string>('all');
   const [search, setSearch] = useState('');
