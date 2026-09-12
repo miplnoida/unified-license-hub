@@ -402,10 +402,10 @@ BEGIN
                AND d->>'decision' IN ('UNSATISFIED','EXCEPTION_REQUIRED')),
     'the question-level rule is outstanding and an exception is available');
 
-  RAISE NOTICE 'R2ECERT DEBUG decisions: %', (jv->'evaluation')->'decisions';
   jv := public.supervisory_assessment_evidence_exception_request(jsonb_build_object(
     'assessment_id', a,'rule_code','R2ECERT-EV-QUESTION','scope_type','QUESTION',
     'question_id',(SELECT v FROM e_id WHERE k='q_c1'),
+    'dimension_id',(SELECT v FROM e_id WHERE k='dim_c'),
     'rationale','R2ECERT: the control testing evidence is held by the prior examination file and cannot be relinked.'));
   INSERT INTO e_id(k,v) VALUES ('exception', (jv->>'exception_id')::uuid);
   INSERT INTO r2e VALUES ('R2E-10-EXCEPTION-REQUESTED', (jv->>'status')='REQUESTED',
