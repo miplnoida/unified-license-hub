@@ -633,12 +633,8 @@ BEGIN
 
   -- ------------------------------------------------------------- SLA ---
   SELECT * INTO ob FROM public.supervisory_response_sla_obligation WHERE decision_id = dec;
-  RAISE NOTICE 'R2ECERT DIAG consequence action_type=% | sla_view=%',
-    (SELECT d.action_type FROM public.supervisory_consequence_decision d WHERE d.id=dec),
-    public.supervisory_response_sla_view(entity,'AML_CFT', a);
 
-  RAISE NOTICE 'R2ECERT DIAG obligation action=% stage=% basis=% reason=% outcome=%',
-    ob.action_type, ob.stage_instance_id, ob.sla_policy_basis_status, ob.sla_policy_reason_code, ob.outcome;
+
 
   INSERT INTO r2e VALUES ('R2E-32-SLA-OPENED-ON-THE-CONSEQUENCE', ob.id IS NOT NULL,
     format('deadline %s, stage instance %s', ob.due_at, ob.stage_instance_id));
