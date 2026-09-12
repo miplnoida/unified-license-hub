@@ -16,6 +16,7 @@ const sanitize = (html: string) => {
     kept.push(m.replace(/\s[^>]*/, (attrs) => (/^\s*\/?$/.test(attrs) ? attrs : '')));
     return `\u0000${kept.length - 1}\u0000`;
   });
+  // eslint-disable-next-line no-control-regex -- NUL sentinels are intentional placeholders
   return esc(placeholder).replace(/\u0000(\d+)\u0000/g, (_, i) => kept[Number(i)]);
 };
 

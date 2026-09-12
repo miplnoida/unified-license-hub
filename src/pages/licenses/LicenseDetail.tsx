@@ -714,9 +714,7 @@ export default function LicenseDetail() {
 
 
             {/* Certificate Signing & Dispatch hidden on request (component retained). */}
-            {false && isInternal && (
-              <LicenseSignaturePanel licenseId={license.id} />
-            )}
+            {/* LicenseSignaturePanel is deliberately not rendered; the component is retained. */}
 
 
 

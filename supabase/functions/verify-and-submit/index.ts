@@ -549,9 +549,9 @@ Deno.serve(async (req) => {
       );
 
     try {
-      // @ts-ignore - EdgeRuntime is provided by Supabase Edge Functions runtime
+      // @ts-expect-error - EdgeRuntime is provided by Supabase Edge Functions runtime
       if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
-        // @ts-ignore
+        // @ts-expect-error - EdgeRuntime is provided by Supabase Edge Functions runtime
         EdgeRuntime.waitUntil(dispatchAiAssessment);
       }
     } catch (waitErr) {
