@@ -1178,7 +1178,7 @@ export function FormRenderer({
           </div>
         );
         break;
-      case 'table':
+      case 'table': {
         const tableData = Array.isArray(val) ? val : [{}];
         const tableBaseline: any[] | undefined =
           baselineProvided && Array.isArray(baselineForField) ? (baselineForField as any[]) : undefined;
@@ -1413,12 +1413,14 @@ export function FormRenderer({
           </div>
         );
         break;
-      case 'calculated':
+      }
+      case 'calculated': {
         const result = field.calculatedExpression
           ? evaluateFormula(field.calculatedExpression, data)
           : '0';
         input = <Input value={result} disabled className="bg-muted" />;
         break;
+      }
       default:
         input = <Input value={val} onChange={e => onChange(field.fieldName, e.target.value)} disabled={readOnly} />;
     }
