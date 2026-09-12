@@ -240,15 +240,17 @@ BEGIN
   -- report the exact structured finding, and the same area bound with canonical
   -- content must clear it. Compatibility is the gate; nothing is guessed.
   FOR crec IN SELECT * FROM (VALUES
-    -- PCOMP-R2D made SLA policy content itself governed: a stage rule must name
-    -- its rule code, action and duration before it can even be submitted.
-    ('R1C-14-SLA-STAGE-INVALID','SLA_POLICY','SLA_STAGE_UNKNOWN',
+    -- PCOMP-R2D made SLA policy content itself governed: rule code, canonical
+    -- action, duration and calendar basis are now refused at authoring, so an
+    -- unknown stage name can no longer be submitted at all. The remaining
+    -- incompatibility an SLA policy can express is timing work by a risk band
+    -- the bound methodology does not own.
+    ('R1C-14-SLA-STAGE-INVALID','SLA_POLICY','SLA_RATING_UNKNOWN',
       jsonb_build_object('stages', jsonb_build_array(jsonb_build_object(
-        'rule_code','R1CCERT-SLA-BAD','stage','NOT_A_STAGE','applies_to_action','SUPERVISORY_PLAN',
-        'duration_days',10,'calendar_mode','CALENDAR_DAYS'))),
+        'rule_code','R1CCERT-SLA-BAD','stage','Assessment review','applies_to_action','SUPERVISORY_PLAN',
+        'risk_band','NOT_A_BAND','duration_days',10,'calendar_mode','CALENDAR_DAYS'))),
       jsonb_build_object('stages', jsonb_build_array(jsonb_build_object(
-        'rule_code','R1CCERT-SLA-OK',
-        'stage', public.supervisory_policy_vocabulary('WORKFLOW_STAGE')->>0,
+        'rule_code','R1CCERT-SLA-OK','stage','Assessment review',
         'applies_to_action','SUPERVISORY_PLAN','duration_days',10,'calendar_mode','CALENDAR_DAYS')))),
     -- PCOMP-R2A made evidence policy content itself governed, so an unknown
     -- evidence kind can no longer be submitted at all. The remaining
