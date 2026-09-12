@@ -69661,6 +69661,10 @@ export type Database = {
         Args: { _assessment_id: string }
         Returns: Json
       }
+      supervisory_assessment_policy_trace: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_assessment_programme_action_capabilities: {
         Args: { _set_id: string }
         Returns: Json
