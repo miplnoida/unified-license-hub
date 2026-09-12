@@ -492,12 +492,11 @@ BEGIN
     INSERT INTO r2e VALUES ('R2E-18-RATIONALE-MINIMUM-ENFORCED', true, left(SQLERRM,140));
   END;
 
-  jv := public.supervisory_calculation_override_propose(a,'MEDIUM_HIGH',
-    'R2ECERT: one band of supervisory judgement is applied because the control testing evidence is accepted under an approved exception.');
-  INSERT INTO e_id(k,v) VALUES ('override', (jv->>'override_id')::uuid);
+  INSERT INTO e_id(k,v) VALUES ('override', public.supervisory_calculation_override_propose(a,'MEDIUM_HIGH',
+    'R2ECERT: one band of supervisory judgement is applied because the control testing evidence is accepted under an approved exception.'));
   INSERT INTO r2e VALUES ('R2E-19-PERMITTED-OVERRIDE-PROPOSED',
-    (jv->>'override_id') IS NOT NULL,
-    format('override proposed: %s', jv->>'status'));
+    (SELECT v FROM e_id WHERE k='override') IS NOT NULL,
+    format('override proposed: %s', (SELECT v::text FROM e_id WHERE k='override')));
 
   INSERT INTO r2e VALUES ('R2E-20-OVERRIDE-CARRIES-POLICY-PROVENANCE',
     EXISTS (SELECT 1 FROM public.supervisory_assessment_calculation_override o
