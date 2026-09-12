@@ -320,7 +320,9 @@ export default function AmlAssessmentWorkspace() {
 
           <TabsContent value="policy-basis" className="mt-4 space-y-4">
             <AmlPolicyBasisPanel assessmentId={h.id} />
+            <AmlPolicyTracePanel assessmentId={h.id} />
             <AmlEvidencePolicyPanel assessmentId={h.id} />
+
           </TabsContent>
 
           <TabsContent value="calculation" className="mt-4">
