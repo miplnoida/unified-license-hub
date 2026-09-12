@@ -248,7 +248,7 @@ BEGIN
     ('R1C-14-SLA-STAGE-INVALID','SLA_POLICY','SLA_RATING_UNKNOWN',
       jsonb_build_object('stages', jsonb_build_array(jsonb_build_object(
         'rule_code','R1CCERT-SLA-BAD','stage','Assessment review','applies_to_action','SUPERVISORY_PLAN',
-        'risk_band','NOT_A_BAND','duration_days',10,'calendar_mode','CALENDAR_DAYS'))),
+        'risk_band','SEVERE','duration_days',10,'calendar_mode','CALENDAR_DAYS'))),
       jsonb_build_object('stages', jsonb_build_array(jsonb_build_object(
         'rule_code','R1CCERT-SLA-OK','stage','Assessment review',
         'applies_to_action','SUPERVISORY_PLAN','duration_days',10,'calendar_mode','CALENDAR_DAYS')))),
@@ -364,7 +364,7 @@ BEGIN
       'code','R1CCERT-RESPONSE-BAND','component_version','1.0',
       'name','R1CCERT response policy naming a rating that does not exist',
       'content', jsonb_build_object('responses', jsonb_build_array(jsonb_build_object(
-        'rule_code','R1CCERT-1','risk_band','NOT_A_BAND','action','EXAMINATION',
+        'rule_code','R1CCERT-1','risk_band','SEVERE','action','EXAMINATION',
         'response_level','REQUIRED')))));
     PERFORM public.supervisory_policy_component_lifecycle(
       (SELECT id FROM public.supervisory_policy_component WHERE code = 'R1CCERT-RESPONSE-BAND'),
