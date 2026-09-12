@@ -887,6 +887,52 @@ SELECT 'R2E-54-CAPABILITY-REMAINDER-CONFIG-ONLY',
                           'MATERIALITY_POLICY','DASHBOARD_POLICY','NOTIFICATION_POLICY');
 
 -- =====================================================================
+-- ACTION NAME CONVERGENCE — one supervisory action, two canonical names
+-- =====================================================================
+DO $$
+DECLARE
+  pairs text[][] := ARRAY[
+    ARRAY['SUPERVISORY_PLAN','OPEN_SUPERVISORY_PLAN'],
+    ARRAY['REASSESSMENT_REQUIREMENT','REQUIRE_REASSESSMENT'],
+    ARRAY['SUPERVISORY_INTERVENTION','OPEN_INTERVENTION'],
+    ARRAY['EXAMINATION','OPEN_EXAMINATION']];
+  i int; ok boolean := true; detail text := '';
+BEGIN
+  FOR i IN 1..array_length(pairs,1) LOOP
+    IF public.supervisory_response_policy_operational_action(pairs[i][1]) <> pairs[i][2]
+       OR public.supervisory_response_policy_operational_action(pairs[i][2]) <> pairs[i][2]
+       OR public.supervisory_response_policy_policy_action(pairs[i][2]) <> pairs[i][1]
+       OR public.supervisory_response_policy_policy_action(pairs[i][1]) <> pairs[i][1] THEN
+      ok := false;
+    END IF;
+    detail := detail || pairs[i][1] || '<->' || pairs[i][2] || ' ';
+  END LOOP;
+  INSERT INTO r2e VALUES ('R2E-55-ACTION-NAMES-RESOLVE-BOTH-WAYS', ok, btrim(detail));
+END $$;
+
+DO $$
+DECLARE ok boolean := true; msg text := '';
+BEGIN
+  -- an unknown action is never guessed at
+  BEGIN
+    PERFORM public.supervisory_response_policy_policy_action('OPEN_SUPERVISORY_PLANS');
+    ok := public.supervisory_response_policy_policy_action('OPEN_SUPERVISORY_PLANS') IS NULL;
+    msg := 'an unrecognised action resolves to nothing rather than a near match';
+  EXCEPTION WHEN OTHERS THEN
+    ok := true; msg := left(SQLERRM,120);
+  END;
+  INSERT INTO r2e VALUES ('R2E-56-UNKNOWN-ACTION-NOT-GUESSED', ok, msg);
+END $$;
+
+INSERT INTO r2e
+SELECT 'R2E-57-SLA-PROVENANCE-CARRIES-BOTH-NAMES',
+  count(*) = 2,
+  string_agg(column_name, ', ' ORDER BY column_name)
+  FROM information_schema.columns
+ WHERE table_schema='public' AND table_name='supervisory_response_sla_obligation'
+   AND column_name IN ('policy_action','operational_action');
+
+-- =====================================================================
 -- RESULTS
 -- =====================================================================
 SELECT gate, CASE WHEN ok THEN 'PASS' ELSE 'FAIL' END AS result, detail FROM r2e ORDER BY gate;
