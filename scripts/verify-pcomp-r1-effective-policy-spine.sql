@@ -240,10 +240,18 @@ BEGIN
   -- report the exact structured finding, and the same area bound with canonical
   -- content must clear it. Compatibility is the gate; nothing is guessed.
   FOR crec IN SELECT * FROM (VALUES
-    ('R1C-14-SLA-STAGE-INVALID','SLA_POLICY','SLA_STAGE_UNKNOWN',
-      jsonb_build_object('stages', jsonb_build_array(jsonb_build_object('stage','NOT_A_STAGE','days',10))),
+    -- PCOMP-R2D made SLA policy content itself governed: rule code, canonical
+    -- action, duration and calendar basis are now refused at authoring, so an
+    -- unknown stage name can no longer be submitted at all. The remaining
+    -- incompatibility an SLA policy can express is timing work by a risk band
+    -- the bound methodology does not own.
+    ('R1C-14-SLA-STAGE-INVALID','SLA_POLICY','SLA_RATING_UNKNOWN',
       jsonb_build_object('stages', jsonb_build_array(jsonb_build_object(
-        'stage', public.supervisory_policy_vocabulary('WORKFLOW_STAGE')->>0,'days',10)))),
+        'rule_code','R1CCERT-SLA-BAD','stage','Assessment review','applies_to_action','SUPERVISORY_PLAN',
+        'risk_band','SEVERE','duration_days',10,'calendar_mode','CALENDAR_DAYS'))),
+      jsonb_build_object('stages', jsonb_build_array(jsonb_build_object(
+        'rule_code','R1CCERT-SLA-OK','stage','Assessment review',
+        'applies_to_action','SUPERVISORY_PLAN','duration_days',10,'calendar_mode','CALENDAR_DAYS')))),
     -- PCOMP-R2A made evidence policy content itself governed, so an unknown
     -- evidence kind can no longer be submitted at all. The remaining
     -- incompatibility an evidence policy can express is naming a question the
@@ -673,8 +681,10 @@ BEGIN
     'component_type','SLA_POLICY','domain_code','AML_CFT','regulator_id', reg,
     'code','R1CCERT-SLA-GOV','component_version','1.0','name','R1CCERT governed SLA policy',
     'content', jsonb_build_object('stages', jsonb_build_array(
-      jsonb_build_object('stage','ASSESSMENT_REVIEW','days',10),
-      jsonb_build_object('stage','RATING_APPROVAL','days',5))))))->>'component_id';
+      jsonb_build_object('rule_code','R1CCERT-SLA-REVIEW','stage','ASSESSMENT_REVIEW',
+        'applies_to_action','SUPERVISORY_PLAN','duration_days',10,'calendar_mode','CALENDAR_DAYS'),
+      jsonb_build_object('rule_code','R1CCERT-SLA-APPROVAL','stage','RATING_APPROVAL',
+        'applies_to_action','MONITORING','duration_days',5,'calendar_mode','CALENDAR_DAYS'))))))->>'component_id';
   INSERT INTO r1c_id(k,v) VALUES ('gov_comp', comp);
   PERFORM public.supervisory_policy_component_lifecycle(comp,'SUBMITTED',
     'R1CCERT submits the governed service levels for independent approval.');
@@ -740,13 +750,13 @@ BEGIN
   -- PCOMP-R2A promoted EVIDENCE_POLICY, and only EVIDENCE_POLICY, to runtime.
   SELECT count(*) INTO n FROM public.supervisory_policy_component_type
    WHERE component_type IN ('SECTOR_OVERLAY','FACT_CONFIG','SOURCE_BINDING',
-                            'MATERIALITY_POLICY','SLA_POLICY',
+                            'MATERIALITY_POLICY',
                             'DASHBOARD_POLICY','NOTIFICATION_POLICY')
      AND NOT is_runtime_consumed AND NOT is_certified;
-  -- PCOMP-R2C promoted RESPONSE_POLICY to runtime, leaving seven areas
+  -- R2C promoted RESPONSE_POLICY and R2D promoted SLA_POLICY, leaving six areas
   -- configuration-only.
-  INSERT INTO r1c VALUES ('R1C-39-SEVEN-AREAS-NOT-RUNTIME', n = 7,
-    format('%s of 7 configuration-only areas truthfully report not runtime consumed', n));
+  INSERT INTO r1c VALUES ('R1C-39-SEVEN-AREAS-NOT-RUNTIME', n = 6,
+    format('%s of 6 configuration-only areas truthfully report not runtime consumed', n));
 
   SELECT count(*) INTO n FROM public.supervisory_policy_component_type
    WHERE component_type = 'EVIDENCE_POLICY' AND is_runtime_consumed AND is_certified;
@@ -756,14 +766,14 @@ BEGIN
   -- R1C-40 — capability is server state; no client-writable promotion exists
   BEGIN
     UPDATE public.supervisory_policy_component_type
-       SET is_runtime_consumed = true, is_certified = true WHERE component_type = 'SLA_POLICY';
+       SET is_runtime_consumed = true, is_certified = true WHERE component_type = 'DASHBOARD_POLICY';
     GET DIAGNOSTICS n = ROW_COUNT;
     INSERT INTO r1c VALUES ('R1C-40-CAPABILITY-NOT-PROMOTABLE', n = 0,
       format('%s capability row(s) changed by a signed-in identity (0 expected)', n));
   EXCEPTION WHEN OTHERS THEN
     INSERT INTO r1c VALUES ('R1C-40-CAPABILITY-NOT-PROMOTABLE', true, left(SQLERRM,110));
   END;
-  jv := public.supervisory_policy_component_capability('SLA_POLICY');
+  jv := public.supervisory_policy_component_capability('DASHBOARD_POLICY');
   INSERT INTO r1c VALUES ('R1C-40B-CAPABILITY-STILL-TRUTHFUL',
     NOT ((jv->0)->>'runtime_consumed')::boolean, format('%s', (jv->0)->>'capability_state'));
 

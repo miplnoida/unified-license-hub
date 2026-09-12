@@ -244,7 +244,10 @@ BEGIN
         jsonb_build_object('rule_code','R2ECERT-RE-PROH','risk_band','HIGH','action','DEFERRAL',
           'response_level','PROHIBITED'),
         jsonb_build_object('rule_code','R2ECERT-RE-MH','risk_band','MEDIUM_HIGH','action','SUPERVISORY_PLAN',
-          'response_level','REQUIRED')))),
+          'response_level','REQUIRED'),
+        jsonb_build_object('rule_code','R2ECERT-RE-MH-PROH','risk_band','MEDIUM_HIGH','action','DEFERRAL',
+          'response_level','PROHIBITED')))),
+
     ('sla','SLA_POLICY','R2ECERT-SLA',
       jsonb_build_object('stages', jsonb_build_array(
         jsonb_build_object('rule_code','R2ECERT-SLA-PLAN','stage','Open supervisory plan',
@@ -481,9 +484,10 @@ BEGIN
 
   INSERT INTO r2e VALUES ('R2E-16-JUDGEMENT-TARGETS-SERVER-DECIDED',
     EXISTS (SELECT 1 FROM jsonb_array_elements((jv->'evaluation')->'target_ratings') c
-             WHERE c->>'rating'='LOW' AND NOT (c->>'permitted')::boolean),
-    format('targets=%s', (SELECT string_agg(c->>'rating'||'='||(c->>'permitted'),',')
+             WHERE c->>'code'='LOW' AND NOT (c->>'permitted')::boolean),
+    format('targets=%s', (SELECT string_agg(c->>'code'||'='||(c->>'permitted'),',')
       FROM jsonb_array_elements((jv->'evaluation')->'target_ratings') c)));
+
 
   BEGIN
     PERFORM public.supervisory_calculation_override_propose(a,'LOW',
@@ -598,12 +602,14 @@ BEGIN
   BEGIN
     PERFORM public.supervisory_consequence_record(jsonb_build_object(
       'entity_id', entity,'domain_code','AML_CFT','assessment_id', a,
-      'action_type','RECORD_DEFERRED','linkage_mode','RECORD',
+      'action_type','RECORD_DEFERRED','linkage_mode','RECORD_ONLY',
       'rationale','R2ECERT attempts a deferral the governing response policy prohibits at this rating.'));
     INSERT INTO r2e VALUES ('R2E-29-PROHIBITED-RESPONSE-REFUSED', false, 'the prohibited response was ACCEPTED');
   EXCEPTION WHEN OTHERS THEN
-    INSERT INTO r2e VALUES ('R2E-29-PROHIBITED-RESPONSE-REFUSED', true, left(SQLERRM,140));
+    INSERT INTO r2e VALUES ('R2E-29-PROHIBITED-RESPONSE-REFUSED',
+      SQLERRM LIKE 'response_prohibited%', left(SQLERRM,140));
   END;
+
 
   jv := public.supervisory_consequence_record(jsonb_build_object(
     'entity_id', entity,'domain_code','AML_CFT','assessment_id', a,
@@ -626,6 +632,9 @@ BEGIN
 
   -- ------------------------------------------------------------- SLA ---
   SELECT * INTO ob FROM public.supervisory_response_sla_obligation WHERE decision_id = dec;
+
+
+
   INSERT INTO r2e VALUES ('R2E-32-SLA-OPENED-ON-THE-CONSEQUENCE', ob.id IS NOT NULL,
     format('deadline %s, stage instance %s', ob.due_at, ob.stage_instance_id));
 
@@ -694,8 +703,9 @@ BEGIN
   PERFORM set_config('request.jwt.claims', maker, true);
 
   -- a successor evidence policy version and a successor profile version
-  comp := public.supervisory_policy_component_new_version((SELECT v FROM e_id WHERE k='evidence'),'1.1',
-    'R2ECERT successor evidence policy version.');
+  comp := (public.supervisory_policy_component_new_version((SELECT v FROM e_id WHERE k='evidence'),'1.1',
+    'R2ECERT successor evidence policy version.')->>'component_id')::uuid;
+
   PERFORM public.supervisory_policy_component_save(comp, jsonb_build_object(
     'content', jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
       'rule_code','R2ECERT-EV-ASSESSMENT','scope_type','ASSESSMENT','evidence_requirement','REQUIRED',
@@ -728,9 +738,11 @@ BEGIN
     ((jv->'evaluation')->>'policy_component_version') = '1.0',
     format('evidence still evaluated against version %s', (jv->'evaluation')->>'policy_component_version'));
 
+  -- the programme derives its own review period: no manual dates are permitted
   jv := public.supervisory_assessment_create_programmed(
-    entity,'AML_CFT',(SELECT v FROM e_id WHERE k='prog'),'PERIODIC',
-    (current_date - 30)::date,(current_date - 1)::date,'R2ECERT successor-version assessment');
+    entity,'AML_CFT',(SELECT v FROM e_id WHERE k='prog'),'PERIODIC', NULL, NULL,
+    'R2ECERT successor-version assessment');
+
   a2 := (jv->>'id')::uuid;
   INSERT INTO e_id(k,v) VALUES ('assessment_v2', a2);
   snap := public.supervisory_assessment_policy_basis(a2);
@@ -840,15 +852,20 @@ BEGIN
   END;
   RESET ROLE;
 
-  SET LOCAL ROLE anon;
-  PERFORM set_config('request.jwt.claims','',true);
+  DECLARE _anon_ok boolean; _anon_msg text;
   BEGIN
-    PERFORM public.supervisory_assessment_policy_trace(a);
-    INSERT INTO r2e VALUES ('R2E-52-TRACE-NOT-ANON', false, 'a signed-out caller read the trace');
-  EXCEPTION WHEN OTHERS THEN
-    INSERT INTO r2e VALUES ('R2E-52-TRACE-NOT-ANON', true, left(SQLERRM,120));
+    SET LOCAL ROLE anon;
+    PERFORM set_config('request.jwt.claims','',true);
+    BEGIN
+      PERFORM public.supervisory_assessment_policy_trace(a);
+      _anon_ok := false; _anon_msg := 'a signed-out caller read the trace';
+    EXCEPTION WHEN OTHERS THEN
+      _anon_ok := true; _anon_msg := left(SQLERRM,120);
+    END;
+    RESET ROLE;
+    INSERT INTO r2e VALUES ('R2E-52-TRACE-NOT-ANON', _anon_ok, _anon_msg);
   END;
-  RESET ROLE;
+
 END $$;
 
 -- =====================================================================
@@ -868,6 +885,52 @@ SELECT 'R2E-54-CAPABILITY-REMAINDER-CONFIG-ONLY',
   FROM public.supervisory_policy_component_type
  WHERE component_type IN ('SECTOR_OVERLAY','FACT_CONFIG','SOURCE_BINDING',
                           'MATERIALITY_POLICY','DASHBOARD_POLICY','NOTIFICATION_POLICY');
+
+-- =====================================================================
+-- ACTION NAME CONVERGENCE — one supervisory action, two canonical names
+-- =====================================================================
+DO $$
+DECLARE
+  pairs text[][] := ARRAY[
+    ARRAY['SUPERVISORY_PLAN','OPEN_SUPERVISORY_PLAN'],
+    ARRAY['REASSESSMENT_REQUIREMENT','REQUIRE_REASSESSMENT'],
+    ARRAY['SUPERVISORY_INTERVENTION','OPEN_INTERVENTION'],
+    ARRAY['EXAMINATION','OPEN_EXAMINATION']];
+  i int; ok boolean := true; detail text := '';
+BEGIN
+  FOR i IN 1..array_length(pairs,1) LOOP
+    IF public.supervisory_response_policy_operational_action(pairs[i][1]) <> pairs[i][2]
+       OR public.supervisory_response_policy_operational_action(pairs[i][2]) <> pairs[i][2]
+       OR public.supervisory_response_policy_policy_action(pairs[i][2]) <> pairs[i][1]
+       OR public.supervisory_response_policy_policy_action(pairs[i][1]) <> pairs[i][1] THEN
+      ok := false;
+    END IF;
+    detail := detail || pairs[i][1] || '<->' || pairs[i][2] || ' ';
+  END LOOP;
+  INSERT INTO r2e VALUES ('R2E-55-ACTION-NAMES-RESOLVE-BOTH-WAYS', ok, btrim(detail));
+END $$;
+
+DO $$
+DECLARE ok boolean := true; msg text := '';
+BEGIN
+  -- an unknown action is never guessed at
+  BEGIN
+    PERFORM public.supervisory_response_policy_policy_action('OPEN_SUPERVISORY_PLANS');
+    ok := public.supervisory_response_policy_policy_action('OPEN_SUPERVISORY_PLANS') IS NULL;
+    msg := 'an unrecognised action resolves to nothing rather than a near match';
+  EXCEPTION WHEN OTHERS THEN
+    ok := true; msg := left(SQLERRM,120);
+  END;
+  INSERT INTO r2e VALUES ('R2E-56-UNKNOWN-ACTION-NOT-GUESSED', ok, msg);
+END $$;
+
+INSERT INTO r2e
+SELECT 'R2E-57-SLA-PROVENANCE-CARRIES-BOTH-NAMES',
+  count(*) = 2,
+  string_agg(column_name, ', ' ORDER BY column_name)
+  FROM information_schema.columns
+ WHERE table_schema='public' AND table_name='supervisory_response_sla_obligation'
+   AND column_name IN ('policy_action','operational_action');
 
 -- =====================================================================
 -- RESULTS
