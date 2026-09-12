@@ -244,7 +244,10 @@ BEGIN
         jsonb_build_object('rule_code','R2ECERT-RE-PROH','risk_band','HIGH','action','DEFERRAL',
           'response_level','PROHIBITED'),
         jsonb_build_object('rule_code','R2ECERT-RE-MH','risk_band','MEDIUM_HIGH','action','SUPERVISORY_PLAN',
-          'response_level','REQUIRED')))),
+          'response_level','REQUIRED'),
+        jsonb_build_object('rule_code','R2ECERT-RE-MH-PROH','risk_band','MEDIUM_HIGH','action','DEFERRAL',
+          'response_level','PROHIBITED')))),
+
     ('sla','SLA_POLICY','R2ECERT-SLA',
       jsonb_build_object('stages', jsonb_build_array(
         jsonb_build_object('rule_code','R2ECERT-SLA-PLAN','stage','Open supervisory plan',
