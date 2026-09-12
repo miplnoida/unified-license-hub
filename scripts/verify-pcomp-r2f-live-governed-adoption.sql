@@ -169,11 +169,11 @@ BEGIN
 
   -- a governed successor evidence policy and a successor profile version
   PERFORM set_config('request.jwt.claims', maker, true);
-  comp := (public.supervisory_policy_component_new_version(
+  comp := public.supervisory_policy_component_new_version(
     (SELECT b.component_id FROM public.supervisory_policy_profile_binding b
       JOIN public.supervisory_policy_component c ON c.id = b.component_id
      WHERE b.profile_id = prof AND c.component_type='EVIDENCE_POLICY'),
-    '1.1','R2FCERT successor evidence policy version, discarded on rollback.')->>'component_id')::uuid;
+    '1.1','R2FCERT successor evidence policy version, discarded on rollback.');
   PERFORM public.supervisory_policy_component_save(comp, jsonb_build_object(
     'content', jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
       'rule_code','FSRA-AML-EV-ASSESSMENT','scope_type','ASSESSMENT','evidence_requirement','REQUIRED',
@@ -201,8 +201,8 @@ BEGIN
   PERFORM public.supervisory_policy_component_lifecycle(comp,'ACTIVE','R2FCERT activation.');
   PERFORM set_config('request.jwt.claims', maker, true);
 
-  v2 := (public.supervisory_policy_profile_new_version(prof,'2.0',
-    'R2FCERT successor policy package version, discarded on rollback.')->>'profile_id')::uuid;
+  v2 := public.supervisory_policy_profile_new_version(prof,'2.0',
+    'R2FCERT successor policy package version, discarded on rollback.');
   PERFORM public.supervisory_policy_profile_binding_set(v2, jsonb_build_object(
     'component_type','EVIDENCE_POLICY','component_id', comp,
     'rationale','R2FCERT binds the successor evidence policy into version 2.0'));
