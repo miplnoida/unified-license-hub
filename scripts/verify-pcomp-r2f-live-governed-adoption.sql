@@ -91,8 +91,10 @@ BEGIN
   jv := public.supervisory_policy_profile_resolve('AML_CFT',
           (SELECT v FROM r2f_id WHERE k='regulator'), (SELECT sector_id FROM public.licensees WHERE id = ent));
   INSERT INTO r2f VALUES ('R2F-A5-SERVER-RESOLVES-THE-LIVE-PACKAGE',
-    (jv->>'status')='RESOLVED' AND (jv->>'profile_code')='FSRA-AML-CFT-POLICY',
-    format('%s -> %s version %s', jv->>'status', jv->>'profile_code', jv->>'profile_version'));
+    (jv->>'status')='RESOLVED' AND ((jv->'profile')->>'code')='FSRA-AML-CFT-POLICY'
+      AND ((jv->'profile')->>'status')='ACTIVE',
+    format('%s -> %s version %s', jv->>'status', (jv->'profile')->>'code',
+           (jv->'profile')->>'profile_version'));
 
   -- ------------------------------------------------ the retained assessment
   jv := public.supervisory_assessment_policy_basis(a);
