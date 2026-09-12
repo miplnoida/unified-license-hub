@@ -100,7 +100,10 @@ export function LicenseStatusList({
     return () => { cancelled = true; };
   }, [licenses.map(l => l.id).join(',')]);
 
+  if (!licenses.length) return null;
+
   return (
+
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">{title}</CardTitle>
