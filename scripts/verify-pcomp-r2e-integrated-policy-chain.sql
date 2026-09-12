@@ -442,6 +442,7 @@ BEGIN
     _assessment_id => a, _dimension_code => 'R2ECERT_DIM_C', _dimension_group => 'CONTROL_EFFECTIVENESS',
     _residual_rating => 'LOW', _score => 0,
     _rationale => 'R2ECERT control dimension rationale for the integrated fixture',
+    _override_reason => 'R2ECERT fixture: control dimension recorded as assessed by the reviewing officer',
     _methodology_dimension_id => (SELECT v FROM e_id WHERE k='dim_c'));
 
   jv := public.supervisory_assessment_calculation_run_record(a,'R2ECERT_RUN');
