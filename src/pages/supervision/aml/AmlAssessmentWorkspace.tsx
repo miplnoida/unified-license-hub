@@ -19,6 +19,8 @@ import { AmlAssessmentCalculation } from '@/components/supervision/aml/AmlAssess
 import { AmlQuestionPlanPanel } from '@/components/supervision/aml/AmlQuestionPlanPanel';
 import { AmlAssessmentReviewPanel } from '@/components/supervision/aml/AmlAssessmentReviewPanel';
 import { AmlPolicyBasisPanel } from '@/components/supervision/aml/AmlPolicyBasisPanel';
+import { AmlPolicyTracePanel } from '@/components/supervision/aml/AmlPolicyTracePanel';
+
 import { AmlEvidencePolicyPanel } from '@/components/supervision/aml/AmlEvidencePolicyPanel';
 import { AmlEntityRiskHistory } from '@/components/supervision/aml/AmlEntityRiskHistory';
 
