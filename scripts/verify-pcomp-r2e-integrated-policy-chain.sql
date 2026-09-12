@@ -636,9 +636,10 @@ BEGIN
     jsonb_array_length(COALESCE(jv->'obligations','[]'::jsonb)) >= 1,
     format('%s governed deadline(s) reported', jsonb_array_length(COALESCE(jv->'obligations','[]'::jsonb))));
 
-  RAISE NOTICE 'R2ECERT DEBUG obligation=% count=% expectations=%', ob.id,
+  RAISE NOTICE 'R2ECERT DEBUG obligation=% count=% any=% open=%', ob.id,
     (SELECT count(*) FROM public.supervisory_response_sla_obligation WHERE assessment_id = a),
-    (jv->'expectations');
+    (SELECT count(*) FROM public.supervisory_response_sla_obligation),
+    public.supervisory_response_sla_open(dec);
   PERFORM public.supervisory_response_sla_pause(ob.id,'AWAITING_ENTITY_INFORMATION', false);
   INSERT INTO r2e VALUES ('R2E-36-SLA-HOLD-WHERE-POLICY-PERMITS',
     (SELECT s.state FROM public.sla_stage_instances s WHERE s.id = ob.stage_instance_id) = 'paused',
