@@ -16,6 +16,9 @@
 \set QUIET 1
 \pset pager off
 SET row_security = on;
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claims',
+  '{"sub":"b8eaf680-fe66-4d49-b816-1c087f511235","role":"authenticated"}', false);
 
 SELECT (SELECT count(*)::text FROM public.supervisory_policy_profile) AS pre_profiles,
        (SELECT count(*)::text FROM public.supervisory_assessment)     AS pre_assessments,
