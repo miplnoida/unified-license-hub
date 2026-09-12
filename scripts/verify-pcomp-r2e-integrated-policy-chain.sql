@@ -464,15 +464,15 @@ BEGIN
   jv := public.supervisory_assessment_judgement_policy_view(a);
   INSERT INTO r2e VALUES ('R2E-15-JUDGEMENT-GOVERNED',
     ((jv->'evaluation')->>'status')='EVALUATED'
-      AND ((jv->'evaluation')->>'policy_component_version') IS NOT NULL,
+      AND (((jv->'evaluation')->'policy')->>'component_version') IS NOT NULL,
     format('%s, pinned version %s', (jv->'evaluation')->>'status',
-      (jv->'evaluation')->>'policy_component_version'));
+      ((jv->'evaluation')->'policy')->>'component_version'));
 
   INSERT INTO r2e VALUES ('R2E-16-JUDGEMENT-TARGETS-SERVER-DECIDED',
-    EXISTS (SELECT 1 FROM jsonb_array_elements((jv->'evaluation')->'candidates') c
+    EXISTS (SELECT 1 FROM jsonb_array_elements((jv->'evaluation')->'target_ratings') c
              WHERE c->>'rating'='LOW' AND NOT (c->>'permitted')::boolean),
-    format('candidates=%s', (SELECT string_agg(c->>'rating'||'='||(c->>'permitted'),',')
-      FROM jsonb_array_elements((jv->'evaluation')->'candidates') c)));
+    format('targets=%s', (SELECT string_agg(c->>'rating'||'='||(c->>'permitted'),',')
+      FROM jsonb_array_elements((jv->'evaluation')->'target_ratings') c)));
 
   BEGIN
     PERFORM public.supervisory_calculation_override_propose(a,'LOW',
@@ -499,10 +499,10 @@ BEGIN
   INSERT INTO r2e VALUES ('R2E-20-OVERRIDE-CARRIES-POLICY-PROVENANCE',
     EXISTS (SELECT 1 FROM public.supervisory_assessment_calculation_override o
              WHERE o.id=(SELECT v FROM e_id WHERE k='override')
-               AND o.judgement_policy_component_version IS NOT NULL
-               AND o.judgement_policy_rule_code IS NOT NULL),
-    (SELECT format('rule %s, policy version %s', o.judgement_policy_rule_code,
-                   o.judgement_policy_component_version)
+               AND o.judgement_policy_version IS NOT NULL
+               AND o.judgement_rule_code IS NOT NULL),
+    (SELECT format('rule %s, policy version %s', o.judgement_rule_code,
+                   o.judgement_policy_version)
        FROM public.supervisory_assessment_calculation_override o
       WHERE o.id=(SELECT v FROM e_id WHERE k='override')));
 
@@ -575,15 +575,15 @@ BEGIN
   jv := public.supervisory_consequence_response_policy_view(entity,'AML_CFT', a);
   INSERT INTO r2e VALUES ('R2E-27-RESPONSE-GOVERNED',
     ((jv->'evaluation')->>'status')='EVALUATED'
-      AND ((jv->'evaluation')->>'policy_component_version') IS NOT NULL,
+      AND (((jv->'evaluation')->'policy')->>'component_version') IS NOT NULL,
     format('%s on the operative rating %s', (jv->'evaluation')->>'status',
-      (jv->'evaluation')->>'rating'));
+      (jv->'evaluation')->>'source_rating'));
 
   INSERT INTO r2e VALUES ('R2E-28-RESPONSE-LEVELS-SERVER-DECIDED',
-    (SELECT count(DISTINCT r->>'response_level') FROM jsonb_array_elements((jv->'evaluation')->'responses') r
+    (SELECT count(DISTINCT r->>'response_level') FROM jsonb_array_elements((jv->'evaluation')->'expectations') r
       WHERE r->>'response_level' IN ('REQUIRED','RECOMMENDED','PERMITTED','PROHIBITED')) >= 2,
     (SELECT string_agg(DISTINCT (r->>'action')||'='||(r->>'response_level'), ', ')
-       FROM jsonb_array_elements((jv->'evaluation')->'responses') r));
+       FROM jsonb_array_elements((jv->'evaluation')->'expectations') r));
 
   BEGIN
     PERFORM public.supervisory_consequence_record(jsonb_build_object(
@@ -607,26 +607,26 @@ BEGIN
 
   INSERT INTO r2e VALUES ('R2E-31-CONSEQUENCE-CARRIES-RESPONSE-PROVENANCE',
     EXISTS (SELECT 1 FROM public.supervisory_consequence_decision d
-             WHERE d.id = dec AND d.response_policy_component_version IS NOT NULL
+             WHERE d.id = dec AND d.response_policy_version IS NOT NULL
                AND d.response_policy_rule_code IS NOT NULL
-               AND d.response_level IS NOT NULL),
+               AND d.response_policy_level IS NOT NULL),
     (SELECT format('rule %s, level %s, policy version %s', d.response_policy_rule_code,
-                   d.response_level, d.response_policy_component_version)
+                   d.response_policy_level, d.response_policy_version)
        FROM public.supervisory_consequence_decision d WHERE d.id = dec));
 
   -- ------------------------------------------------------------- SLA ---
   SELECT * INTO ob FROM public.supervisory_response_sla_obligation WHERE decision_id = dec;
   INSERT INTO r2e VALUES ('R2E-32-SLA-OPENED-ON-THE-CONSEQUENCE', ob.id IS NOT NULL,
-    format('deadline %s, stage instance %s', ob.due_at, ob.sla_stage_instance_id));
+    format('deadline %s, stage instance %s', ob.due_at, ob.stage_instance_id));
 
   INSERT INTO r2e VALUES ('R2E-33-SLA-CARRIES-POLICY-PROVENANCE',
-    ob.sla_policy_component_version IS NOT NULL AND ob.sla_policy_rule_code IS NOT NULL
-      AND ob.duration_days IS NOT NULL,
+    ob.sla_policy_version IS NOT NULL AND ob.sla_policy_rule_code IS NOT NULL
+      AND ob.sla_duration_days IS NOT NULL,
     format('rule %s, %s day(s), policy version %s', ob.sla_policy_rule_code,
-      ob.duration_days, ob.sla_policy_component_version));
+      ob.sla_duration_days, ob.sla_policy_version));
 
   INSERT INTO r2e VALUES ('R2E-34-SLA-USES-CANONICAL-STAGE-ENGINE',
-    EXISTS (SELECT 1 FROM public.sla_stage_instances s WHERE s.id = ob.sla_stage_instance_id),
+    EXISTS (SELECT 1 FROM public.sla_stage_instances s WHERE s.id = ob.stage_instance_id),
     'the deadline is held by the platform SLA stage engine');
 
   jv := public.supervisory_response_sla_view(entity,'AML_CFT', a);
@@ -636,8 +636,8 @@ BEGIN
 
   PERFORM public.supervisory_response_sla_pause(ob.id,'AWAITING_ENTITY_INFORMATION', false);
   INSERT INTO r2e VALUES ('R2E-36-SLA-HOLD-WHERE-POLICY-PERMITS',
-    (SELECT state FROM public.supervisory_response_sla_obligation WHERE id = ob.id) = 'PAUSED',
-    (SELECT format('deadline state %s', state) FROM public.supervisory_response_sla_obligation WHERE id = ob.id));
+    (SELECT s.state FROM public.sla_stage_instances s WHERE s.id = ob.stage_instance_id) = 'paused',
+    (SELECT format('deadline state %s', s.state) FROM public.sla_stage_instances s WHERE s.id = ob.stage_instance_id));
 
   BEGIN
     PERFORM public.supervisory_response_sla_pause(ob.id,'BECAUSE_WE_FEEL_LIKE_IT', false);
@@ -651,9 +651,10 @@ BEGIN
     'R2ECERT: the supervisory plan was opened within the governed timeframe.');
   INSERT INTO r2e VALUES ('R2E-38-SLA-OUTCOME-SERVER-OWNED',
     (SELECT outcome FROM public.supervisory_response_sla_obligation WHERE id = ob.id) IN ('ON_TIME','LATE')
-      AND (SELECT state FROM public.supervisory_response_sla_obligation WHERE id = ob.id) = 'COMPLETED',
-    (SELECT format('state %s, outcome %s', state, outcome)
-       FROM public.supervisory_response_sla_obligation WHERE id = ob.id));
+      AND (SELECT s.state FROM public.sla_stage_instances s WHERE s.id = ob.stage_instance_id) = 'completed',
+    (SELECT format('stage %s, outcome %s',
+       (SELECT s.state FROM public.sla_stage_instances s WHERE s.id = ob.stage_instance_id), o.outcome)
+       FROM public.supervisory_response_sla_obligation o WHERE o.id = ob.id));
 
   BEGIN
     UPDATE public.supervisory_response_sla_obligation SET sla_policy_rule_code='R2ECERT-TAMPER' WHERE id = ob.id;
