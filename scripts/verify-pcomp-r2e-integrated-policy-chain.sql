@@ -608,9 +608,8 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN
     INSERT INTO r2e VALUES ('R2E-29-PROHIBITED-RESPONSE-REFUSED',
       SQLERRM LIKE 'response_prohibited%', left(SQLERRM,140));
-
-    INSERT INTO r2e VALUES ('R2E-29-PROHIBITED-RESPONSE-REFUSED', true, left(SQLERRM,140));
   END;
+
 
   jv := public.supervisory_consequence_record(jsonb_build_object(
     'entity_id', entity,'domain_code','AML_CFT','assessment_id', a,
