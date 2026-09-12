@@ -70,7 +70,7 @@ SELECT 'sector', l.sector_id FROM public.licensees l WHERE l.id=(SELECT v FROM e
 -- Internal-officer marker: several governed read models are restricted to
 -- internal supervisory staff, so the synthetic personas need that marker.
 INSERT INTO public.user_roles(user_id, role)
-SELECT u, 'aml_analyst'::app_role
+SELECT u, 'analyst'::app_role
   FROM (VALUES ('b8eaf680-fe66-4d49-b816-1c087f511235'::uuid),
                ('0b522724-adcb-48bf-b21d-175339479616'::uuid)) AS x(u)
 ON CONFLICT DO NOTHING;
