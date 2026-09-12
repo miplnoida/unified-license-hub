@@ -43,8 +43,17 @@ interface Props {
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 const SKIP_TYPES = new Set(['section', 'divider', 'heading', 'content']);
 
-export function ApplicationUploadPanel({ formName, sections, disabled }: Props) {
+/**
+ * The feature flag is checked in this wrapper so the panel below can declare
+ * its hooks unconditionally.
+ */
+export function ApplicationUploadPanel(props: Props) {
   if (!APPLICATION_BULK_FILL_ENABLED) return null;
+  return <ApplicationUploadPanelInner {...props} />;
+}
+
+function ApplicationUploadPanelInner({ formName, sections, disabled }: Props) {
+
 
   const [collapsed, setCollapsed] = useState(false);
   const [pickedFile, setPickedFile] = useState<File | null>(null);
