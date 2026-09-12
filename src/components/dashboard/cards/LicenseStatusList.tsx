@@ -61,7 +61,7 @@ export function LicenseStatusList({
   renewMode = 'expired-only',
   title = 'License status',
 }: Props) {
-  if (!licenses.length) return null;
+  // The empty-list guard lives after every hook (see below) so hook order is stable.
 
   const pastGraceIds = new Set(expiryStatuses.filter(s => s.is_expired).map(s => s.license_id));
   const inGraceIds = new Set(expiryStatuses.filter(s => s.in_grace_period).map(s => s.license_id));

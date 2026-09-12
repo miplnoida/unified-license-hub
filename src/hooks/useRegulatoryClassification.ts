@@ -221,7 +221,10 @@ export function useClassificationMutations() {
     if (error) throw new Error(error.message);
     return data;
   };
-  const m = (fn: string) => useMutation({ mutationFn: rpc(fn), onSuccess: done });
+  // Named as a hook so the fixed, unconditional call order below is explicit.
+  const useRpcMutation = (fn: string) => useMutation({ mutationFn: rpc(fn), onSuccess: done });
+  const m = useRpcMutation;
+
 
   return {
     upsertSector: m('classification_sector_upsert'),
