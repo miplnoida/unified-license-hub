@@ -27,13 +27,13 @@ export function isEmailVerifiedLocally(email: string): boolean {
 export function markEmailVerifiedLocally(email: string): void {
   try {
     sessionStorage.setItem(verifiedEmailMarkerKey(email), 'true');
-  } catch {}
+  } catch { /* intentionally ignored */ }
 }
 
 export function clearEmailVerifiedLocally(email: string): void {
   try {
     sessionStorage.removeItem(verifiedEmailMarkerKey(email));
-  } catch {}
+  } catch { /* intentionally ignored */ }
 }
 
 /** Server-side lookup: is there a verified OTP record for this email? */

@@ -83,7 +83,7 @@ function loadDynamicData(): Record<string, unknown> {
   try {
     const saved = sessionStorage.getItem(DYNAMIC_DATA_KEY);
     if (saved) return JSON.parse(saved) as Record<string, unknown>;
-  } catch {}
+  } catch { /* intentionally ignored */ }
   return {};
 }
 
@@ -220,7 +220,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     try {
       sessionStorage.removeItem(STEP_KEY);
       sessionStorage.removeItem(DYNAMIC_DATA_KEY);
-    } catch {}
+    } catch { /* intentionally ignored */ }
   }, []);
 
   const resetRegistrationFlow = useCallback(() => {
@@ -258,7 +258,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     if (isUpdateMode) return;
     try {
       sessionStorage.setItem(DYNAMIC_DATA_KEY, JSON.stringify(dynamicFormData));
-    } catch {}
+    } catch { /* intentionally ignored */ }
   }, [dynamicFormData, isUpdateMode]);
 
   // Resolve the effective verification email across static + dynamic schemas.
@@ -523,7 +523,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
                 if (!new RegExp(v.pattern).test(strVal)) {
                   errs[effectiveName] = v.patternMessage || 'Invalid format';
                 }
-              } catch {}
+              } catch { /* intentionally ignored */ }
             }
           }
           if (isRegistrationEmailField(field) && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val))) {

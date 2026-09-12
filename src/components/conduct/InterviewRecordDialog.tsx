@@ -362,7 +362,7 @@ function DocumentsSection({ interview, investigationId, entityId }: {
     if (!meta.title.trim()) { toast.error('Title is required'); return; }
     setUploading(true);
     try {
-      const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+      const safeName = file.name.replace(/[^\w.-]+/g, '_');
       const path = `conduct-interviews/${interview.id}/${Date.now()}-${safeName}`;
       const { error: upErr } = await (supabase as any).storage.from('fp-evidence').upload(path, file, {
         contentType: file.type || 'application/octet-stream', upsert: false,

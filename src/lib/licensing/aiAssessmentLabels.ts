@@ -130,11 +130,11 @@ export function toEvidenceFact(raw: unknown): EvidenceFact | null {
     const valuePart = m[2].trim();
     // Treat the left side as a data key/path whenever it has no spaces
     // (`amount_paid`, `submitted_forms[0].response_data.amount_paid`).
-    if (/^[A-Za-z0-9_.\[\]-]+$/.test(pathPart)) {
+    if (/^[A-Za-z0-9_.[\]-]+$/.test(pathPart)) {
       return { label: humanKey(pathPart), value: humanizeTimestamps(valuePart), raw: str };
     }
   }
-  if (/[.\[]/.test(str) && !/\s/.test(str)) {
+  if (/[.[]/.test(str) && !/\s/.test(str)) {
     return { label: humanKey(str), raw: str };
   }
   return { label: humanizeTimestamps(str), raw: str };

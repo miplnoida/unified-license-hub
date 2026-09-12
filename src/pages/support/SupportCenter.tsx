@@ -112,7 +112,7 @@ export default function SupportCenter() {
 
   const uploadAttachments = async (ticketId: string) => {
     for (const file of files) {
-      const path = `${ticketId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, '_')}`;
+      const path = `${ticketId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]+/g, '_')}`;
       const { error: upErr } = await supabase.storage.from('support-attachments').upload(path, file);
       if (upErr) { toast.error(`${file.name}: ${upErr.message}`); continue; }
       await supabase.from('support_ticket_attachments').insert({

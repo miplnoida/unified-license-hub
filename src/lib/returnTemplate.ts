@@ -57,7 +57,7 @@ function normalizeUploadedValue(value: unknown): string {
 
 function sanitizeSheetName(name: string, taken: Set<string>): string {
   // Excel sheet names: max 31 chars, cannot contain : \ / ? * [ ]
-  const base = (name || 'Form').replace(/[:\\/?*\[\]]/g, ' ').trim().slice(0, 28) || 'Form';
+  const base = (name || 'Form').replace(/[:\\/?*[\]]/g, ' ').trim().slice(0, 28) || 'Form';
   let candidate = base;
   let i = 2;
   while (taken.has(candidate.toLowerCase())) {

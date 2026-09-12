@@ -62,7 +62,7 @@ export function FpConditionEvidencePanel({ conditionId, individualId }: Props) {
   const upload = async (file: File) => {
     setUploading(true);
     try {
-      const path = `conditions/${conditionId}/${Date.now()}-${file.name.replace(/[^\w.\-]/g, '_')}`;
+      const path = `conditions/${conditionId}/${Date.now()}-${file.name.replace(/[^\w.-]/g, '_')}`;
       const { error: upErr } = await supabase.storage.from('fp-evidence').upload(path, file);
       if (upErr) throw upErr;
 

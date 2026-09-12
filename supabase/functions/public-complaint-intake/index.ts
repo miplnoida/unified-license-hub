@@ -536,7 +536,7 @@ Deno.serve(async (req) => {
         attachmentWarnings.push(`${name}: larger than the ${Math.round(maxBytes / (1024 * 1024))}MB limit`);
         continue;
       }
-      const path = `complaints/public/${crypto.randomUUID()}/${name.replace(/[^\w.\-]+/g, "_")}`;
+      const path = `complaints/public/${crypto.randomUUID()}/${name.replace(/[^\w.-]+/g, "_")}`;
       const { error: upErr } = await admin.storage
         .from(ATTACHMENT_BUCKET)
         .upload(path, bytes, { contentType, upsert: false });

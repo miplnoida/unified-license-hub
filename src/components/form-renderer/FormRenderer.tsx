@@ -562,7 +562,7 @@ export function FormRenderer({
               if (cv.minLength && s.length < cv.minLength) { pushErr(errField, `Minimum ${cv.minLength} characters`); continue; }
               if (cv.maxLength && s.length > cv.maxLength) { pushErr(errField, `Maximum ${cv.maxLength} characters`); continue; }
               if (cv.pattern) {
-                try { if (!new RegExp(cv.pattern).test(s)) { pushErr(errField, cv.patternMessage || 'Invalid format'); continue; } } catch {}
+                try { if (!new RegExp(cv.pattern).test(s)) { pushErr(errField, cv.patternMessage || 'Invalid format'); continue; } } catch { /* intentionally ignored */ }
               }
             }
             if (col.type === 'number') {
@@ -1367,7 +1367,7 @@ export function FormRenderer({
                                   if (!re.test(val)) {
                                     // allow typing but mark invalid via HTML5; show toast only on blur via title
                                   }
-                                } catch {}
+                                } catch { /* intentionally ignored */ }
                               }
                               const newData = [...tableData];
                               newData[rowIdx] = { ...newData[rowIdx], [col.id]: val };

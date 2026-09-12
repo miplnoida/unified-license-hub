@@ -6,7 +6,7 @@
 
 const SECRET_PATTERNS: Array<[RegExp, string]> = [
   [/(pass(word)?|secret|token|api[_-]?key|key)\s*[:=]\s*\S+/gi, "$1=[redacted]"],
-  [/Bearer\s+[A-Za-z0-9._\-]+/gi, "Bearer [redacted]"],
+  [/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [redacted]"],
   [/AUTH\s+[A-Za-z0-9+/=]{8,}/gi, "AUTH [redacted]"],
 ];
 
