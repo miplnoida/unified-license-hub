@@ -62,7 +62,7 @@ export async function logReturnActivity(args: LogReturnActivityArgs): Promise<vo
     // Governed append: the server records the signed-in officer as the author.
     const { error } = await (supabase as any).rpc('return_activity_log_append', { _entry: payload });
     if (error && import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
+       
       console.warn('[returnActivityLogger]', args.action, error.message);
     }
   } catch (e) {

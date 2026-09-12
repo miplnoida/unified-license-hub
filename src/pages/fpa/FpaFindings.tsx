@@ -242,7 +242,7 @@ export default function FpaFindings() {
       const assessmentIds = rows.map((r: any) => r.assessment_id).filter(Boolean);
 
       // Build individual_id map from assessments
-      let assessmentIndividualMap: Record<string, string> = {};
+      const assessmentIndividualMap: Record<string, string> = {};
       if (assessmentIds.length > 0) {
         const { data: assData } = await (supabase as any)
           .from('fp_assessments')
@@ -262,7 +262,7 @@ export default function FpaFindings() {
       );
 
       // Fetch names
-      let nameMap: Record<string, string> = {};
+      const nameMap: Record<string, string> = {};
       if (allIndividualIds.length > 0) {
         const { data: indData } = await (supabase as any)
           .from('fp_individuals')

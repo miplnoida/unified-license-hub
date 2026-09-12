@@ -349,7 +349,7 @@ export function DecisionDocumentPreview({
     setArtifacts(((data as any[]) ?? []) as ArtifactRow[]);
   }
 
-  useEffect(() => { void loadArtifacts(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [applicationId]);
+  useEffect(() => { void loadArtifacts();   }, [applicationId]);
 
   // Mirror the licence's own expiry once it exists — staff never set it by hand.
   useEffect(() => {

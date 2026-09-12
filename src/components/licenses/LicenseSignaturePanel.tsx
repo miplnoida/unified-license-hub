@@ -92,7 +92,7 @@ export function LicenseSignaturePanel({ licenseId, onChanged }: Props) {
     setLoading(false);
   }
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [licenseId, user?.id]);
+  useEffect(() => { load();   }, [licenseId, user?.id]);
 
   async function describeFnError(
     error: { message?: string; context?: unknown } | null,

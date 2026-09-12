@@ -94,7 +94,7 @@ export function SubmissionCompareDialog({ open, onOpenChange, formName, left, ri
         });
       }
     }
-    let arr = Array.from(map.values());
+    const arr = Array.from(map.values());
     arr.forEach(d => { if (d.onlyOn) d.changed = true; });
     return arr;
   }, [loading, leftSections, rightSections, left.data, right.data]);

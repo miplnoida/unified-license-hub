@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
     // We REQUIRE actual delivery success — never claim success if the email failed.
     let emailDelivered = false;
     let providerError: string | null = null;
-    let providerStatus: number | null = null;
+    const providerStatus: number | null = null;
 
     if (channel === "email") {
       try {

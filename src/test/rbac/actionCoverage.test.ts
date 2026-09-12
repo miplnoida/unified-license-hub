@@ -60,7 +60,7 @@ describe('RBAC action coverage', () => {
     ]);
     const gaps = sites.filter((s) => !s.protected && CRITICAL.has(s.category));
     if (gaps.length > 0) {
-      // eslint-disable-next-line no-console
+       
       console.log('[rbac-audit] critical unguarded:', gaps.map((g) => `${g.file}:${g.line} ${g.category} "${g.button}"`));
     }
     expect(gaps.length, 'destructive/mutating buttons without PermissionGate/GuardedButton/data-rbac').toBe(0);
@@ -91,7 +91,7 @@ describe('RBAC action coverage', () => {
     // now 100% across all detected call sites.
     const BASELINE = 98;
     expect(pct).toBeGreaterThanOrEqual(BASELINE);
-    // eslint-disable-next-line no-console
+     
     console.log(`[rbac-audit] ${prot}/${total} protected (${pct.toFixed(1)}%)`);
   });
 

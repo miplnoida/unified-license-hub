@@ -139,7 +139,7 @@ export function evaluateFormula(
   crossFormData?: Record<string, Record<string, any>>,
 ): string {
   // Support {sheet.field} dot-notation for cross-sheet references
-  let substituted = expression.replace(/\{([^}]+)\}/g, (_, key: string) => {
+  const substituted = expression.replace(/\{([^}]+)\}/g, (_, key: string) => {
     if (key.includes('.')) {
       const [sheetKey, fieldKey] = key.split('.', 2);
       const sheetData = crossFormData?.[sheetKey];

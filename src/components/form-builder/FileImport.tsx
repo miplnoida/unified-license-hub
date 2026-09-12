@@ -280,7 +280,7 @@ function detectFinancialLayout(sheet: any, data: string[][], XLSX: any): Financi
   for (let r = 12; r < Math.min(25, data.length); r++) {
     const row = data[r] || [];
     let numCount = 0;
-    let consecutiveNums: number[] = [];
+    const consecutiveNums: number[] = [];
     for (let c = 0; c < row.length; c++) {
       const val = row[c];
       if (val !== '' && val !== null && val !== undefined) {

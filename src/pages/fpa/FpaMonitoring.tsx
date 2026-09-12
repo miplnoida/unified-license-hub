@@ -412,7 +412,7 @@ export default function FpaMonitoring() {
 
       // Collect individual IDs and fetch names
       const ids = Array.from(new Set(rows.map((r) => r.individual_id).filter(Boolean)));
-      let nameMap: Record<string, string> = {};
+      const nameMap: Record<string, string> = {};
       if (ids.length > 0) {
         const { data: inds } = await (supabase as any)
           .from('fp_individuals')

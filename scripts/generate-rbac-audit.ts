@@ -13,5 +13,5 @@ mkdirSync(outDir, { recursive: true });
 writeFileSync(join(outDir, 'action-audit.md'), renderMarkdown(sites), 'utf8');
 writeFileSync(join(outDir, 'action-audit.csv'), renderCsv(sites), 'utf8');
 const { total, protectedCount } = summarize(sites);
-// eslint-disable-next-line no-console
+ 
 console.log(`rbac-audit: ${protectedCount}/${total} protected (${total === 0 ? 100 : ((protectedCount / total) * 100).toFixed(1)}%)`);

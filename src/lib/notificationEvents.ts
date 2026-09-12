@@ -49,11 +49,11 @@ export async function dispatchNotificationEvent(args: DispatchEventArgs): Promis
       body: args,
     });
     if (error) {
-      // eslint-disable-next-line no-console
+       
       console.warn("[notifications] dispatch failed", args.event_key, error.message);
     }
   } catch (e) {
-    // eslint-disable-next-line no-console
+     
     console.warn("[notifications] dispatch threw", args.event_key, e);
   }
 }

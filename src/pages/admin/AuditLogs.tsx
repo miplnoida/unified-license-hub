@@ -63,7 +63,7 @@ export default function AuditLogs() {
 
     // Resolve user emails
     const userIds = [...new Set(next.map((d) => d.user_id).filter(Boolean))] as string[];
-    let emailMap: Record<string, string> = {};
+    const emailMap: Record<string, string> = {};
     if (userIds.length) {
       const { data: profiles } = await supabase
         .from('profiles').select('id, email, full_name').in('id', userIds);

@@ -108,7 +108,7 @@ export function useRfiAutoSuggestions(params: {
     ],
     enabled: !!params.applicationId,
     queryFn: async (): Promise<RfiSuggestion[]> => {
-      let query = supabase
+      const query = supabase
         .from('application_rfi_auto_rules' as any)
         .select('*')
         .eq('active', true);

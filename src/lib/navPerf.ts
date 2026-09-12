@@ -32,7 +32,7 @@ export function markRouteMounted(pathname: string): void {
   if (!isDev || !current || current.to !== pathname) return;
   current.mounted = performance.now();
   const { from, to, start, chunkReady, mounted } = current;
-  // eslint-disable-next-line no-console
+   
   console.info(
     `[NavigationPerf] ${from} -> ${to} | chunk: ${chunkReady ? ms(start, chunkReady) : 'cached'} | mount: ${ms(start, mounted!)}`,
   );
@@ -41,6 +41,6 @@ export function markRouteMounted(pathname: string): void {
 /** Pages may report when their critical data is ready. */
 export function markCriticalDataReady(pathname: string): void {
   if (!isDev || !current || current.to !== pathname) return;
-  // eslint-disable-next-line no-console
+   
   console.info(`[NavigationPerf] ${pathname} | critical data: ${ms(current.start, performance.now())}`);
 }

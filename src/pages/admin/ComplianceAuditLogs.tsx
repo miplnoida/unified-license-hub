@@ -272,7 +272,7 @@ export default function ComplianceAuditLogs() {
     }
     let data: any[] = [];
     let headers: string[] = [];
-    let name = `audit-${kind}-${new Date().toISOString().slice(0,19)}.csv`;
+    const name = `audit-${kind}-${new Date().toISOString().slice(0,19)}.csv`;
     if (kind === 'all' || kind === 'exports') {
       const src = kind === 'all' ? rows : exportsRows;
       headers = ['source','entry_id','timestamp','user_id','user_role','action_type','object_type','object_id','justification','ai_model_version','ip_address'];

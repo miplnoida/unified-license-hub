@@ -89,7 +89,7 @@ export function ReturnUploadPanel({
         }),
       );
       const versionIds = Array.from(new Set(resolved.map((r) => r.versionId).filter(Boolean))) as string[];
-      let fieldsByVersion = new Map<string, any[]>();
+      const fieldsByVersion = new Map<string, any[]>();
       if (versionIds.length > 0) {
         const { data: fields } = await supabase
           .from('form_fields')

@@ -310,7 +310,7 @@ export default function ApplicationDetail() {
     const appAny = appRow as any;
     const applicantId = appAny?.applicant_id as string | undefined;
     const userIds = [...new Set([...actionList.map(a => a.actor_id).filter(Boolean), applicantId].filter(Boolean))] as string[];
-    let nameMap: Record<string, string> = {};
+    const nameMap: Record<string, string> = {};
     if (userIds.length > 0) {
       // Secure resolver so applicant (pre-licensee) names are visible to every
       // internal reviewer role, not just Super Admin / Licensing Officer.

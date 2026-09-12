@@ -524,11 +524,11 @@ export default function NewApplication() {
         const responseVersionMatches = !!assignedVersionId && existingResponse?.version_id === assignedVersionId;
         const responseData = existingResponse?.response_data || {};
         const storedData = storedFormsData[templateId] || {};
-        const storedVersionMatches = !!assignedVersionId
+        const storedVersionMatches = assignedVersionId
           ? (storedVersionIds[templateId] ? storedVersionIds[templateId] === assignedVersionId : true)
           : hasNonEmptyFormData(storedData);
         const localProgress = prev[templateId];
-        const localAssignedVersionMatches = !!assignedVersionId
+        const localAssignedVersionMatches = assignedVersionId
           ? (localProgress?.versionId ? localProgress.versionId === assignedVersionId : true)
           : hasNonEmptyFormData(localProgress?.data);
         const activeLocalData = activeFormTemplateIdRef.current === templateId ? localProgress?.data || {} : {};
@@ -1277,7 +1277,7 @@ export default function NewApplication() {
       // accompanying error was reported (defensive).
       if (!guard.action && guardErr) {
         // Genuine technical failure — log raw error for developers.
-        // eslint-disable-next-line no-console
+         
         console.error('[apply_application_guard] technical error:', guardErr);
         toast.error('Could not verify existing applications. Please try again.');
         return;
