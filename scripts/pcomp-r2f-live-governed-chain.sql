@@ -181,7 +181,7 @@ BEGIN
   jw := public.supervisory_assessment_calculation_run_record(a,'MANUAL_RUN');
   run := (jw->>'run_id')::uuid;
   INSERT INTO r2f_id(k,v) VALUES ('run', run);
-  SELECT status, residual_rating INTO st, calcr
+  SELECT status, recommended_rating INTO st, calcr
     FROM public.supervisory_assessment_calculation_run WHERE id = run;
   INSERT INTO r2f_t(k,t) VALUES ('calculated', COALESCE(calcr,'-'));
   INSERT INTO r2f VALUES ('R2F-08-CALCULATED-ON-LIVE-POLICY',
@@ -205,12 +205,9 @@ BEGIN
     INSERT INTO r2f VALUES ('R2F-10-PROHIBITED-DEPARTURE-REFUSED', true, left(SQLERRM,140));
   END;
 
+  -- one band of judgement, downward, never to a rating the policy prohibits
   SELECT s INTO target FROM unnest(scale) WITH ORDINALITY t(s,i)
-   WHERE i = LEAST(array_position(scale, calcr) + 1, array_length(scale,1));
-  IF target = calcr THEN
-    SELECT s INTO target FROM unnest(scale) WITH ORDINALITY t(s,i)
-     WHERE i = GREATEST(array_position(scale, calcr) - 1, 2);
-  END IF;
+   WHERE i = GREATEST(array_position(scale, calcr) - 1, 2);
   INSERT INTO r2f_t(k,t) VALUES ('target', COALESCE(target,'-'));
   RAISE NOTICE 'R2F target=%', target;
 
