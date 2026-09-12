@@ -701,8 +701,9 @@ BEGIN
   PERFORM set_config('request.jwt.claims', maker, true);
 
   -- a successor evidence policy version and a successor profile version
-  comp := public.supervisory_policy_component_new_version((SELECT v FROM e_id WHERE k='evidence'),'1.1',
-    'R2ECERT successor evidence policy version.');
+  comp := (public.supervisory_policy_component_new_version((SELECT v FROM e_id WHERE k='evidence'),'1.1',
+    'R2ECERT successor evidence policy version.')->>'component_id')::uuid;
+
   PERFORM public.supervisory_policy_component_save(comp, jsonb_build_object(
     'content', jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
       'rule_code','R2ECERT-EV-ASSESSMENT','scope_type','ASSESSMENT','evidence_requirement','REQUIRED',
