@@ -169,11 +169,11 @@ BEGIN
 
   -- a governed successor evidence policy and a successor profile version
   PERFORM set_config('request.jwt.claims', maker, true);
-  comp := public.supervisory_policy_component_new_version(
+  comp := (public.supervisory_policy_component_new_version(
     (SELECT b.component_id FROM public.supervisory_policy_profile_binding b
       JOIN public.supervisory_policy_component c ON c.id = b.component_id
      WHERE b.profile_id = prof AND c.component_type='EVIDENCE_POLICY'),
-    '1.1','R2FCERT successor evidence policy version, discarded on rollback.');
+    '1.1','R2FCERT successor evidence policy version, discarded on rollback.')->>'component_id')::uuid;
   PERFORM public.supervisory_policy_component_save(comp, jsonb_build_object(
     'content', jsonb_build_object('rules', jsonb_build_array(jsonb_build_object(
       'rule_code','FSRA-AML-EV-ASSESSMENT','scope_type','ASSESSMENT','evidence_requirement','REQUIRED',
