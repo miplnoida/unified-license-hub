@@ -240,10 +240,16 @@ BEGIN
   -- report the exact structured finding, and the same area bound with canonical
   -- content must clear it. Compatibility is the gate; nothing is guessed.
   FOR crec IN SELECT * FROM (VALUES
+    -- PCOMP-R2D made SLA policy content itself governed: a stage rule must name
+    -- its rule code, action and duration before it can even be submitted.
     ('R1C-14-SLA-STAGE-INVALID','SLA_POLICY','SLA_STAGE_UNKNOWN',
-      jsonb_build_object('stages', jsonb_build_array(jsonb_build_object('stage','NOT_A_STAGE','days',10))),
       jsonb_build_object('stages', jsonb_build_array(jsonb_build_object(
-        'stage', public.supervisory_policy_vocabulary('WORKFLOW_STAGE')->>0,'days',10)))),
+        'rule_code','R1CCERT-SLA-BAD','stage','NOT_A_STAGE','applies_to_action','SUPERVISORY_PLAN',
+        'duration_days',10,'calendar_mode','CALENDAR_DAYS'))),
+      jsonb_build_object('stages', jsonb_build_array(jsonb_build_object(
+        'rule_code','R1CCERT-SLA-OK',
+        'stage', public.supervisory_policy_vocabulary('WORKFLOW_STAGE')->>0,
+        'applies_to_action','SUPERVISORY_PLAN','duration_days',10,'calendar_mode','CALENDAR_DAYS')))),
     -- PCOMP-R2A made evidence policy content itself governed, so an unknown
     -- evidence kind can no longer be submitted at all. The remaining
     -- incompatibility an evidence policy can express is naming a question the
