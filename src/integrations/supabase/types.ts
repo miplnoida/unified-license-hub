@@ -71045,6 +71045,26 @@ export type Database = {
         Args: { _component_id: string; _component_type: string }
         Returns: Json
       }
+      supervisory_policy_component_reference_map: {
+        Args: { _component_type: string }
+        Returns: Json
+      }
+      supervisory_policy_component_reference_options: {
+        Args: {
+          _component_type: string
+          _domain_code?: string
+          _regulator_id?: string
+        }
+        Returns: Json
+      }
+      supervisory_policy_component_reference_values: {
+        Args: {
+          _domain_code?: string
+          _regulator_id?: string
+          _source_key: string
+        }
+        Returns: Json
+      }
       supervisory_policy_component_register: {
         Args: {
           _component_type?: string
