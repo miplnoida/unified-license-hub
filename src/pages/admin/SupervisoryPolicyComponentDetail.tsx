@@ -334,7 +334,18 @@ export default function SupervisoryPolicyComponentDetailPage() {
                     <TableRow key={index}>
                       {specs.map((s) => (
                         <TableCell key={s.name} className="align-top">
-                          {s.kind === 'enum' ? (
+                          {refFields[s.name] ? (
+                            <ReferenceCodePicker
+                              field={refFields[s.name]}
+                              value={item[s.name]}
+                              disabled={!editable}
+                              ariaLabel={`${humanize(s.name)} ${index + 1}`}
+                              onChange={(next) => {
+                                setItems((prev) => prev.map((it, i) => (i === index ? { ...it, [s.name]: next } : it)));
+                                setDirty(true);
+                              }}
+                            />
+                          ) : s.kind === 'enum' ? (
                             <Select
                               value={typeof item[s.name] === 'string' ? String(item[s.name]).toUpperCase() : ''}
                               onValueChange={(v) => patch(index, s.name, s.kind, v)}
