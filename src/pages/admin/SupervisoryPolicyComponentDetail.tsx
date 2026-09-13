@@ -147,6 +147,19 @@ export default function SupervisoryPolicyComponentDetailPage() {
     }
   };
 
+  const persistDates = async () => {
+    try {
+      await save.mutateAsync({
+        componentId: c.id,
+        payload: { effective_from: dates.effective_from, effective_to: dates.effective_to },
+      });
+      setDatesDirty(false);
+      toast({ title: 'Period of effect saved', description: 'The dates are recorded against this version.' });
+    } catch (e) {
+      toast({ title: 'Save refused', description: errorMessage(e), variant: 'destructive' });
+    }
+  };
+
   const runTransition = async () => {
     if (!transition) return;
     try {
