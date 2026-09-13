@@ -87,18 +87,32 @@ export default function SupervisoryPolicyComponentDetailPage() {
   const specs = useMemo(() => fieldSpecs(contract), [contract]);
   const collection = contract?.collection ?? 'items';
 
+  const references = usePolicyComponentReferenceOptions({
+    componentType: detail.data?.component.component_type ?? null,
+    domainCode: detail.data?.component.domain_code ?? null,
+    regulatorId: detail.data?.component.regulator_id ?? null,
+  });
+  const refFields = references.data ?? {};
+
   const [items, setItems] = useState<Item[]>([]);
   const [dirty, setDirty] = useState(false);
   const [transition, setTransition] = useState<string | null>(null);
   const [rationale, setRationale] = useState('');
   const [versionLabel, setVersionLabel] = useState('');
   const [versioning, setVersioning] = useState(false);
+  const [dates, setDates] = useState({ effective_from: '', effective_to: '' });
+  const [datesDirty, setDatesDirty] = useState(false);
 
   useEffect(() => {
     const content = detail.data?.component.content as Record<string, unknown> | undefined;
     const rows = content?.[collection];
     setItems(Array.isArray(rows) ? (rows as Item[]) : []);
     setDirty(false);
+    setDates({
+      effective_from: detail.data?.component.effective_from?.slice(0, 10) ?? '',
+      effective_to: detail.data?.component.effective_to?.slice(0, 10) ?? '',
+    });
+    setDatesDirty(false);
   }, [detail.data?.component.id, detail.data?.component.updated_at, collection]);
 
   if (detail.isLoading) return <Skeleton className="h-96 w-full" />;
