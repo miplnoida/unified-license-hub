@@ -28,7 +28,7 @@ import {
   EmptyPanel, ErrorPanel, ProfileStatusBadge, errorMessage, formatDate, humanize,
 } from '@/components/admin/supervisory-policy-profile/labels';
 import {
-  useCreatePolicyComponent, usePolicyComponents,
+  useCreatePolicyComponent, usePolicyComponents, usePolicyComponentApprovalQueue,
 } from '@/hooks/useSupervisoryPolicyComponents';
 import { useSupervisoryPolicyProfileOptions } from '@/hooks/useSupervisoryPolicyProfiles';
 
