@@ -9,7 +9,7 @@
  */
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { ClipboardCheck, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,7 +28,7 @@ import {
   EmptyPanel, ErrorPanel, ProfileStatusBadge, errorMessage, formatDate, humanize,
 } from '@/components/admin/supervisory-policy-profile/labels';
 import {
-  useCreatePolicyComponent, usePolicyComponents,
+  useCreatePolicyComponent, usePolicyComponents, usePolicyComponentApprovalQueue,
 } from '@/hooks/useSupervisoryPolicyComponents';
 import { useSupervisoryPolicyProfileOptions } from '@/hooks/useSupervisoryPolicyProfiles';
 
@@ -44,6 +44,7 @@ export default function SupervisoryPolicyComponentRegisterPage() {
     search: search || null,
   });
   const options = useSupervisoryPolicyProfileOptions();
+  const queue = usePolicyComponentApprovalQueue();
 
   const authorable = useMemo(
     () => (query.data?.types ?? []).filter((t) => t.authorable),
@@ -64,6 +65,41 @@ export default function SupervisoryPolicyComponentRegisterPage() {
           />
         }
       />
+
+      {queue.data?.length ? (
+        <Card className="border-warning/40 bg-warning/5">
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4 text-warning" />
+              <h2 className="text-sm font-semibold">
+                Waiting for approval · {queue.data.length}
+              </h2>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Submitted by a colleague. A second officer must approve each version before it can be activated and
+              bound to a policy profile — the officer who submitted it cannot approve it.
+            </p>
+            <div className="space-y-2">
+              {queue.data.map((q) => (
+                <button
+                  key={q.id}
+                  type="button"
+                  className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-md border bg-background p-3 text-left hover:bg-muted/50"
+                  onClick={() => navigate(`/admin/supervisory-policy-components/${q.id}`)}
+                >
+                  <span className="text-sm font-medium">{q.name}</span>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {q.type_label} · {q.code} {q.component_version}
+                  </span>
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    Submitted {formatDate(q.submitted_at)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <RegisterToolbar search={search} onSearchChange={setSearch} searchPlaceholder="Search code or name">
         <Select value={type} onValueChange={setType}>

@@ -28,9 +28,11 @@ import {
 } from '@/components/admin/supervisory-policy-profile/labels';
 import {
   usePolicyComponentDetail, usePolicyComponentLifecycle, useNewPolicyComponentVersion,
-  useSavePolicyComponent, type PolicyComponentContract,
+  usePolicyComponentReferenceOptions, useSavePolicyComponent,
+  type PolicyComponentContract,
 } from '@/hooks/useSupervisoryPolicyComponents';
 import { EvidencePolicyRuleEditor } from '@/components/admin/supervisory-policy-profile/EvidencePolicyRuleEditor';
+import { ReferenceCodePicker } from '@/components/admin/supervisory-policy-profile/ReferenceCodePicker';
 
 type Item = Record<string, unknown>;
 type FieldKind = 'enum' | 'array' | 'enum_array' | 'number' | 'text';
@@ -85,18 +87,32 @@ export default function SupervisoryPolicyComponentDetailPage() {
   const specs = useMemo(() => fieldSpecs(contract), [contract]);
   const collection = contract?.collection ?? 'items';
 
+  const references = usePolicyComponentReferenceOptions({
+    componentType: detail.data?.component.component_type ?? null,
+    domainCode: detail.data?.component.domain_code ?? null,
+    regulatorId: detail.data?.component.regulator_id ?? null,
+  });
+  const refFields = references.data ?? {};
+
   const [items, setItems] = useState<Item[]>([]);
   const [dirty, setDirty] = useState(false);
   const [transition, setTransition] = useState<string | null>(null);
   const [rationale, setRationale] = useState('');
   const [versionLabel, setVersionLabel] = useState('');
   const [versioning, setVersioning] = useState(false);
+  const [dates, setDates] = useState({ effective_from: '', effective_to: '' });
+  const [datesDirty, setDatesDirty] = useState(false);
 
   useEffect(() => {
     const content = detail.data?.component.content as Record<string, unknown> | undefined;
     const rows = content?.[collection];
     setItems(Array.isArray(rows) ? (rows as Item[]) : []);
     setDirty(false);
+    setDates({
+      effective_from: detail.data?.component.effective_from?.slice(0, 10) ?? '',
+      effective_to: detail.data?.component.effective_to?.slice(0, 10) ?? '',
+    });
+    setDatesDirty(false);
   }, [detail.data?.component.id, detail.data?.component.updated_at, collection]);
 
   if (detail.isLoading) return <Skeleton className="h-96 w-full" />;
@@ -126,6 +142,19 @@ export default function SupervisoryPolicyComponentDetailPage() {
       });
       setDirty(false);
       toast({ title: 'Draft saved', description: 'The server has re-checked the configuration.' });
+    } catch (e) {
+      toast({ title: 'Save refused', description: errorMessage(e), variant: 'destructive' });
+    }
+  };
+
+  const persistDates = async () => {
+    try {
+      await save.mutateAsync({
+        componentId: c.id,
+        payload: { effective_from: dates.effective_from, effective_to: dates.effective_to },
+      });
+      setDatesDirty(false);
+      toast({ title: 'Period of effect saved', description: 'The dates are recorded against this version.' });
     } catch (e) {
       toast({ title: 'Save refused', description: errorMessage(e), variant: 'destructive' });
     }
@@ -197,12 +226,50 @@ export default function SupervisoryPolicyComponentDetailPage() {
             <Field label="Name">{c.name}</Field>
             <Field label="Supervisory domain">{humanize(c.domain_code)}</Field>
             <Field label="Origin">{humanize(c.origin)}</Field>
-            <Field label="Effective from">{formatDate(c.effective_from)}</Field>
             <Field label="Submitted">{formatDateTime(c.submitted_at)}</Field>
             <Field label="Approved">{formatDateTime(c.approved_at)}</Field>
             <Field label="Activated">{formatDateTime(c.activated_at)}</Field>
             <Field label="Last updated">{formatDateTime(c.updated_at)}</Field>
           </dl>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle className="text-base">Period of effect</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              The dates from which this version applies, and the date it stops applying. Leave the end date empty
+              while it applies until further notice.
+            </p>
+          </div>
+          {editable ? (
+            <Button size="sm" className="gap-1.5" onClick={persistDates}
+              disabled={!datesDirty || save.isPending} data-rbac="aml_supervision.manage_config">
+              <Save className="h-3.5 w-3.5" />Save dates
+            </Button>
+          ) : null}
+        </CardHeader>
+        <CardContent>
+          {editable ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:max-w-md">
+              <div className="space-y-1.5">
+                <Label htmlFor="pc-eff-from">Applies from</Label>
+                <Input id="pc-eff-from" type="date" value={dates.effective_from}
+                  onChange={(e) => { setDates((d) => ({ ...d, effective_from: e.target.value })); setDatesDirty(true); }} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="pc-eff-to">Applies until</Label>
+                <Input id="pc-eff-to" type="date" value={dates.effective_to}
+                  onChange={(e) => { setDates((d) => ({ ...d, effective_to: e.target.value })); setDatesDirty(true); }} />
+              </div>
+            </div>
+          ) : (
+            <dl className="grid gap-4 sm:grid-cols-2 lg:max-w-md">
+              <Field label="Applies from">{formatDate(c.effective_from)}</Field>
+              <Field label="Applies until">{c.effective_to ? formatDate(c.effective_to) : 'Until further notice'}</Field>
+            </dl>
+          )}
         </CardContent>
       </Card>
 
@@ -256,7 +323,7 @@ export default function SupervisoryPolicyComponentDetailPage() {
                   <TableRow>
                     {specs.map((s) => (
                       <TableHead key={s.name}>
-                        {humanize(s.name)}{s.required ? ' *' : ''}
+                        {refFields[s.name]?.label ?? humanize(s.name)}{s.required ? ' *' : ''}
                       </TableHead>
                     ))}
                     {editable ? <TableHead className="w-16" /> : null}
@@ -267,7 +334,18 @@ export default function SupervisoryPolicyComponentDetailPage() {
                     <TableRow key={index}>
                       {specs.map((s) => (
                         <TableCell key={s.name} className="align-top">
-                          {s.kind === 'enum' ? (
+                          {refFields[s.name] ? (
+                            <ReferenceCodePicker
+                              field={refFields[s.name]}
+                              value={item[s.name]}
+                              disabled={!editable}
+                              ariaLabel={`${humanize(s.name)} ${index + 1}`}
+                              onChange={(next) => {
+                                setItems((prev) => prev.map((it, i) => (i === index ? { ...it, [s.name]: next } : it)));
+                                setDirty(true);
+                              }}
+                            />
+                          ) : s.kind === 'enum' ? (
                             <Select
                               value={typeof item[s.name] === 'string' ? String(item[s.name]).toUpperCase() : ''}
                               onValueChange={(v) => patch(index, s.name, s.kind, v)}

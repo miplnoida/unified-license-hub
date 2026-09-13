@@ -144,6 +144,37 @@ export interface PolicyComponentQueueRow {
   status: string;
 }
 
+export interface PolicyComponentReferenceOption { value: string; label: string }
+
+export interface PolicyComponentReferenceField {
+  source: string;
+  label: string;
+  multiple: boolean;
+  options: PolicyComponentReferenceOption[];
+}
+
+/**
+ * Canonical master-data options for the lookup fields of one component type.
+ * The server publishes the permitted codes; unknown codes are refused on save.
+ */
+export function usePolicyComponentReferenceOptions(params: {
+  componentType?: string | null;
+  domainCode?: string | null;
+  regulatorId?: string | null;
+}) {
+  return useQuery({
+    queryKey: ['supervisory-policy-component-references', params],
+    enabled: !!params.componentType,
+    staleTime: 5 * 60 * 1000,
+    queryFn: () => rpc<Record<string, PolicyComponentReferenceField>>(
+      'supervisory_policy_component_reference_options', {
+        _component_type: params.componentType,
+        _domain_code: params.domainCode ?? null,
+        _regulator_id: params.regulatorId ?? null,
+      }),
+  });
+}
+
 export function usePolicyComponents(params: {
   componentType?: string | null;
   domainCode?: string | null;
