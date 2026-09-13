@@ -323,7 +323,7 @@ export default function SupervisoryPolicyComponentDetailPage() {
                   <TableRow>
                     {specs.map((s) => (
                       <TableHead key={s.name}>
-                        {humanize(s.name)}{s.required ? ' *' : ''}
+                        {refFields[s.name]?.label ?? humanize(s.name)}{s.required ? ' *' : ''}
                       </TableHead>
                     ))}
                     {editable ? <TableHead className="w-16" /> : null}
