@@ -28,9 +28,11 @@ import {
 } from '@/components/admin/supervisory-policy-profile/labels';
 import {
   usePolicyComponentDetail, usePolicyComponentLifecycle, useNewPolicyComponentVersion,
-  useSavePolicyComponent, type PolicyComponentContract,
+  usePolicyComponentReferenceOptions, useSavePolicyComponent,
+  type PolicyComponentContract,
 } from '@/hooks/useSupervisoryPolicyComponents';
 import { EvidencePolicyRuleEditor } from '@/components/admin/supervisory-policy-profile/EvidencePolicyRuleEditor';
+import { ReferenceCodePicker } from '@/components/admin/supervisory-policy-profile/ReferenceCodePicker';
 
 type Item = Record<string, unknown>;
 type FieldKind = 'enum' | 'array' | 'enum_array' | 'number' | 'text';
