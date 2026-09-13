@@ -226,12 +226,50 @@ export default function SupervisoryPolicyComponentDetailPage() {
             <Field label="Name">{c.name}</Field>
             <Field label="Supervisory domain">{humanize(c.domain_code)}</Field>
             <Field label="Origin">{humanize(c.origin)}</Field>
-            <Field label="Effective from">{formatDate(c.effective_from)}</Field>
             <Field label="Submitted">{formatDateTime(c.submitted_at)}</Field>
             <Field label="Approved">{formatDateTime(c.approved_at)}</Field>
             <Field label="Activated">{formatDateTime(c.activated_at)}</Field>
             <Field label="Last updated">{formatDateTime(c.updated_at)}</Field>
           </dl>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle className="text-base">Period of effect</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              The dates from which this version applies, and the date it stops applying. Leave the end date empty
+              while it applies until further notice.
+            </p>
+          </div>
+          {editable ? (
+            <Button size="sm" className="gap-1.5" onClick={persistDates}
+              disabled={!datesDirty || save.isPending} data-rbac="aml_supervision.manage_config">
+              <Save className="h-3.5 w-3.5" />Save dates
+            </Button>
+          ) : null}
+        </CardHeader>
+        <CardContent>
+          {editable ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:max-w-md">
+              <div className="space-y-1.5">
+                <Label htmlFor="pc-eff-from">Applies from</Label>
+                <Input id="pc-eff-from" type="date" value={dates.effective_from}
+                  onChange={(e) => { setDates((d) => ({ ...d, effective_from: e.target.value })); setDatesDirty(true); }} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="pc-eff-to">Applies until</Label>
+                <Input id="pc-eff-to" type="date" value={dates.effective_to}
+                  onChange={(e) => { setDates((d) => ({ ...d, effective_to: e.target.value })); setDatesDirty(true); }} />
+              </div>
+            </div>
+          ) : (
+            <dl className="grid gap-4 sm:grid-cols-2 lg:max-w-md">
+              <Field label="Applies from">{formatDate(c.effective_from)}</Field>
+              <Field label="Applies until">{c.effective_to ? formatDate(c.effective_to) : 'Until further notice'}</Field>
+            </dl>
+          )}
         </CardContent>
       </Card>
 
