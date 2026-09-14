@@ -294,79 +294,16 @@ export default function SupervisoryPolicyComponentDetailPage() {
               editable={editable}
               onChange={(next) => { setItems(next); setDirty(true); }}
             />
-          ) : !items.length ? (
-            <p className="rounded-md border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-              No {contract?.item_label ?? 'entries'} configured yet.
-            </p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {specs.map((s) => (
-                      <TableHead key={s.name}>
-                        {refFields[s.name]?.label ?? humanize(s.name)}{s.required ? ' *' : ''}
-                      </TableHead>
-                    ))}
-                    {editable ? <TableHead className="w-16" /> : null}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item, index) => (
-                    <TableRow key={index}>
-                      {specs.map((s) => (
-                        <TableCell key={s.name} className="align-top">
-                          {refFields[s.name] ? (
-                            <ReferenceCodePicker
-                              field={refFields[s.name]}
-                              value={item[s.name]}
-                              disabled={!editable}
-                              ariaLabel={`${humanize(s.name)} ${index + 1}`}
-                              onChange={(next) => {
-                                setItems((prev) => prev.map((it, i) => (i === index ? { ...it, [s.name]: next } : it)));
-                                setDirty(true);
-                              }}
-                            />
-                          ) : s.kind === 'enum' ? (
-                            <Select
-                              value={typeof item[s.name] === 'string' ? String(item[s.name]).toUpperCase() : ''}
-                              onValueChange={(v) => patch(index, s.name, s.kind, v)}
-                              disabled={!editable}
-                            >
-                              <SelectTrigger className="h-8 w-[11rem]" aria-label={`${humanize(s.name)} ${index + 1}`}>
-                                <SelectValue placeholder="Select" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {s.options.map((o) => <SelectItem key={o} value={o}>{humanize(o)}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <Input
-                              className="h-8 min-w-[10rem]"
-                              type={s.kind === 'number' ? 'number' : 'text'}
-                              value={toInput(item[s.name], s.kind)}
-                              placeholder={s.kind === 'enum_array' ? s.options.join(', ')
-                                : s.kind === 'array' ? 'comma separated' : ''}
-                              aria-label={`${humanize(s.name)} ${index + 1}`}
-                              disabled={!editable}
-                              onChange={(e) => patch(index, s.name, s.kind, e.target.value)}
-                            />
-                          )}
-                        </TableCell>
-                      ))}
-                      {editable ? (
-                        <TableCell className="align-top text-right">
-                          <Button size="sm" variant="ghost" aria-label={`Remove entry ${index + 1}`}
-                            onClick={() => removeItem(index)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </TableCell>
-                      ) : null}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <PolicyComponentEntryEditor
+              componentType={c.component_type}
+              itemLabel={contract?.item_label ?? 'entry'}
+              specs={specs}
+              items={items}
+              refFields={refFields}
+              editable={editable}
+              onChange={(next) => { setItems(next); setDirty(true); }}
+            />
           )}
 
           {validation.errors.length ? (
