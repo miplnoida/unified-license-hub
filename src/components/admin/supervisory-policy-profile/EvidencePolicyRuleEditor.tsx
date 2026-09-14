@@ -36,15 +36,25 @@ const arr = (v: unknown) => (Array.isArray(v) ? v.map(String) : []);
 const num = (v: unknown) => (v === null || v === undefined || v === '' ? '' : String(v));
 
 export function EvidencePolicyRuleEditor({ componentId, items, editable, onChange }: Props) {
-  const { data: options, isLoading } = useEvidencePolicyAuthoringOptions(componentId);
+  const { data: options, isLoading, error, refetch, isFetching } = useEvidencePolicyAuthoringOptions(componentId);
 
   if (isLoading) return <Skeleton className="h-64 w-full" />;
   if (!options) {
     return (
       <Alert data-testid="evidence-policy-options-unavailable">
         <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
-          The platform's evidence vocabulary could not be read, so no rule can be composed safely right now.
+        <AlertDescription className="space-y-2">
+          <p>
+            The platform's evidence vocabulary could not be read, so no rule can be composed safely right now.
+          </p>
+          {error instanceof Error && error.message ? (
+            <p className="text-xs text-muted-foreground" data-testid="evidence-policy-options-error">
+              Reason reported by the platform: {error.message}
+            </p>
+          ) : null}
+          <Button size="sm" variant="outline" disabled={isFetching} onClick={() => refetch()}>
+            {isFetching ? 'Trying again…' : 'Try again'}
+          </Button>
         </AlertDescription>
       </Alert>
     );
