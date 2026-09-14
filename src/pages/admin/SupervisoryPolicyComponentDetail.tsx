@@ -195,6 +195,20 @@ export default function SupervisoryPolicyComponentDetailPage() {
         }
       />
 
+      {area ? (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">What this area sets</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <p className="text-sm">{area.purpose}</p>
+            <p className={area.consumed ? 'text-xs text-muted-foreground' : 'text-xs text-warning'}>
+              {area.effect}
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card>
         <CardHeader><CardTitle className="text-base">Version</CardTitle></CardHeader>
         <CardContent>
