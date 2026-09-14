@@ -53,8 +53,13 @@ export function PolicyComponentEntryEditor({
   };
 
   const summary = (item: Record<string, unknown>) => {
-    const first = specs.find((s) => typeof item[s.name] === 'string' && String(item[s.name]).trim());
-    return first ? humanize(String(item[first.name])) : 'Not yet completed';
+    const filled = (s: EntryFieldSpec) => typeof item[s.name] === 'string' && String(item[s.name]).trim();
+    const chosen = specs.find((s) => s.kind === 'enum' && filled(s))
+      ?? specs.find((s) => refFields[s.name] && filled(s))
+      ?? specs.find(filled);
+    if (!chosen) return 'Not yet completed';
+    const raw = String(item[chosen.name]);
+    return chosen.kind === 'enum' ? humanize(raw) : raw;
   };
 
   if (!items.length) {
