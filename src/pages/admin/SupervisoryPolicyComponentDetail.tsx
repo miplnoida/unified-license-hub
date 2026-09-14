@@ -9,18 +9,16 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus, Save, Trash2 } from 'lucide-react';
+import { Plus, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -32,47 +30,32 @@ import {
   type PolicyComponentContract,
 } from '@/hooks/useSupervisoryPolicyComponents';
 import { EvidencePolicyRuleEditor } from '@/components/admin/supervisory-policy-profile/EvidencePolicyRuleEditor';
-import { ReferenceCodePicker } from '@/components/admin/supervisory-policy-profile/ReferenceCodePicker';
+import {
+  PolicyComponentEntryEditor, type EntryFieldSpec,
+} from '@/components/admin/supervisory-policy-profile/PolicyComponentEntryEditor';
+import { AREA_COPY } from '@/components/admin/supervisory-policy-profile/policyComponentVocabulary';
 
 type Item = Record<string, unknown>;
-type FieldKind = 'enum' | 'array' | 'enum_array' | 'number' | 'text';
 
-interface FieldSpec { name: string; kind: FieldKind; required: boolean; options: string[] }
-
-function fieldSpecs(contract: PolicyComponentContract | null): FieldSpec[] {
+function fieldSpecs(contract: PolicyComponentContract | null): EntryFieldSpec[] {
   if (!contract) return [];
   const names: string[] = [];
   const push = (n: string) => { if (!names.includes(n)) names.push(n); };
   (contract.required_fields ?? []).forEach(push);
+  Object.keys(contract.enums ?? {}).forEach(push);
   Object.keys(contract.enum_arrays ?? {}).forEach(push);
   (contract.non_empty_arrays ?? []).forEach(push);
   (contract.positive_numbers ?? []).forEach(push);
+  (contract.booleans ?? []).forEach(push);
+  const required = (name: string) => (contract.required_fields ?? []).includes(name);
   return names.map((name) => {
-    if (contract.enums?.[name]) return { name, kind: 'enum' as const, required: (contract.required_fields ?? []).includes(name), options: contract.enums[name] };
-    if (contract.enum_arrays?.[name]) return { name, kind: 'enum_array' as const, required: (contract.required_fields ?? []).includes(name), options: contract.enum_arrays[name] };
-    if ((contract.non_empty_arrays ?? []).includes(name)) return { name, kind: 'array' as const, required: (contract.required_fields ?? []).includes(name), options: [] };
-    if ((contract.positive_numbers ?? []).includes(name)) return { name, kind: 'number' as const, required: (contract.required_fields ?? []).includes(name), options: [] };
-    return { name, kind: 'text' as const, required: (contract.required_fields ?? []).includes(name), options: [] };
+    if (contract.enums?.[name]) return { name, kind: 'enum' as const, required: required(name), options: contract.enums[name] };
+    if (contract.enum_arrays?.[name]) return { name, kind: 'enum_array' as const, required: required(name), options: contract.enum_arrays[name] };
+    if ((contract.non_empty_arrays ?? []).includes(name)) return { name, kind: 'array' as const, required: required(name), options: [] };
+    if ((contract.booleans ?? []).includes(name)) return { name, kind: 'boolean' as const, required: required(name), options: [] };
+    if ((contract.positive_numbers ?? []).includes(name)) return { name, kind: 'number' as const, required: required(name), options: [] };
+    return { name, kind: 'text' as const, required: required(name), options: [] };
   });
-}
-
-function toInput(value: unknown, kind: FieldKind): string {
-  if (value === null || value === undefined) return '';
-  if (kind === 'array' || kind === 'enum_array') {
-    return Array.isArray(value) ? value.map((v) => String(v)).join(', ') : String(value);
-  }
-  return String(value);
-}
-
-function fromInput(raw: string, kind: FieldKind): unknown {
-  const text = raw.trim();
-  if (kind === 'array' || kind === 'enum_array') {
-    const parts = text.split(',').map((p) => p.trim()).filter(Boolean);
-    return kind === 'enum_array' ? parts.map((p) => p.toUpperCase()) : parts;
-  }
-  if (kind === 'number') return text === '' ? null : Number(text);
-  if (text === '') return null;
-  return text;
 }
 
 export default function SupervisoryPolicyComponentDetailPage() {
@@ -124,15 +107,8 @@ export default function SupervisoryPolicyComponentDetailPage() {
   const validation = detail.data.validation;
   const editable = caps.can_edit;
 
-  const patch = (index: number, field: string, kind: FieldKind, raw: string) => {
-    setItems((prev) => prev.map((it, i) => (i === index ? { ...it, [field]: fromInput(raw, kind) } : it)));
-    setDirty(true);
-  };
+  const area = AREA_COPY[c.component_type] ?? null;
   const addItem = () => { setItems((prev) => [...prev, {}]); setDirty(true); };
-  const removeItem = (index: number) => {
-    setItems((prev) => prev.filter((_, i) => i !== index));
-    setDirty(true);
-  };
 
   const persist = async () => {
     try {
@@ -219,6 +195,20 @@ export default function SupervisoryPolicyComponentDetailPage() {
         }
       />
 
+      {area ? (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">What this area sets</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <p className="text-sm">{area.purpose}</p>
+            <p className={area.consumed ? 'text-xs text-muted-foreground' : 'text-xs text-warning'}>
+              {area.effect}
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card>
         <CardHeader><CardTitle className="text-base">Version</CardTitle></CardHeader>
         <CardContent>
@@ -277,7 +267,7 @@ export default function SupervisoryPolicyComponentDetailPage() {
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>
             <CardTitle className="text-base">
-              {humanize(collection)} · {items.length} {items.length === 1 ? 'entry' : 'entries'}
+              {items.length} {contract?.item_label ?? 'entry'}{items.length === 1 ? '' : 's'} recorded
             </CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
               {validation.valid
@@ -312,79 +302,16 @@ export default function SupervisoryPolicyComponentDetailPage() {
               editable={editable}
               onChange={(next) => { setItems(next); setDirty(true); }}
             />
-          ) : !items.length ? (
-            <p className="rounded-md border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-              No {contract?.item_label ?? 'entries'} configured yet.
-            </p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {specs.map((s) => (
-                      <TableHead key={s.name}>
-                        {refFields[s.name]?.label ?? humanize(s.name)}{s.required ? ' *' : ''}
-                      </TableHead>
-                    ))}
-                    {editable ? <TableHead className="w-16" /> : null}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item, index) => (
-                    <TableRow key={index}>
-                      {specs.map((s) => (
-                        <TableCell key={s.name} className="align-top">
-                          {refFields[s.name] ? (
-                            <ReferenceCodePicker
-                              field={refFields[s.name]}
-                              value={item[s.name]}
-                              disabled={!editable}
-                              ariaLabel={`${humanize(s.name)} ${index + 1}`}
-                              onChange={(next) => {
-                                setItems((prev) => prev.map((it, i) => (i === index ? { ...it, [s.name]: next } : it)));
-                                setDirty(true);
-                              }}
-                            />
-                          ) : s.kind === 'enum' ? (
-                            <Select
-                              value={typeof item[s.name] === 'string' ? String(item[s.name]).toUpperCase() : ''}
-                              onValueChange={(v) => patch(index, s.name, s.kind, v)}
-                              disabled={!editable}
-                            >
-                              <SelectTrigger className="h-8 w-[11rem]" aria-label={`${humanize(s.name)} ${index + 1}`}>
-                                <SelectValue placeholder="Select" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {s.options.map((o) => <SelectItem key={o} value={o}>{humanize(o)}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <Input
-                              className="h-8 min-w-[10rem]"
-                              type={s.kind === 'number' ? 'number' : 'text'}
-                              value={toInput(item[s.name], s.kind)}
-                              placeholder={s.kind === 'enum_array' ? s.options.join(', ')
-                                : s.kind === 'array' ? 'comma separated' : ''}
-                              aria-label={`${humanize(s.name)} ${index + 1}`}
-                              disabled={!editable}
-                              onChange={(e) => patch(index, s.name, s.kind, e.target.value)}
-                            />
-                          )}
-                        </TableCell>
-                      ))}
-                      {editable ? (
-                        <TableCell className="align-top text-right">
-                          <Button size="sm" variant="ghost" aria-label={`Remove entry ${index + 1}`}
-                            onClick={() => removeItem(index)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </TableCell>
-                      ) : null}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <PolicyComponentEntryEditor
+              componentType={c.component_type}
+              itemLabel={contract?.item_label ?? 'entry'}
+              specs={specs}
+              items={items}
+              refFields={refFields}
+              editable={editable}
+              onChange={(next) => { setItems(next); setDirty(true); }}
+            />
           )}
 
           {validation.errors.length ? (

@@ -32,6 +32,8 @@ export interface PolicyComponentContract {
   enum_arrays?: Record<string, string[]>;
   non_empty_arrays?: string[];
   positive_numbers?: string[];
+  booleans?: string[];
+  runtime?: string | null;
 }
 
 export interface PolicyComponentTypeOption {
