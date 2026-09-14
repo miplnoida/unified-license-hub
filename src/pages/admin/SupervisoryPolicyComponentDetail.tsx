@@ -30,7 +30,10 @@ import {
   type PolicyComponentContract,
 } from '@/hooks/useSupervisoryPolicyComponents';
 import { EvidencePolicyRuleEditor } from '@/components/admin/supervisory-policy-profile/EvidencePolicyRuleEditor';
-import { ReferenceCodePicker } from '@/components/admin/supervisory-policy-profile/ReferenceCodePicker';
+import {
+  PolicyComponentEntryEditor, type EntryFieldSpec,
+} from '@/components/admin/supervisory-policy-profile/PolicyComponentEntryEditor';
+import { AREA_COPY } from '@/components/admin/supervisory-policy-profile/policyComponentVocabulary';
 
 type Item = Record<string, unknown>;
 
