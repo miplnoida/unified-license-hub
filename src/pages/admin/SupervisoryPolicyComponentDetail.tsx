@@ -107,15 +107,8 @@ export default function SupervisoryPolicyComponentDetailPage() {
   const validation = detail.data.validation;
   const editable = caps.can_edit;
 
-  const patch = (index: number, field: string, kind: FieldKind, raw: string) => {
-    setItems((prev) => prev.map((it, i) => (i === index ? { ...it, [field]: fromInput(raw, kind) } : it)));
-    setDirty(true);
-  };
+  const area = AREA_COPY[c.component_type] ?? null;
   const addItem = () => { setItems((prev) => [...prev, {}]); setDirty(true); };
-  const removeItem = (index: number) => {
-    setItems((prev) => prev.filter((_, i) => i !== index));
-    setDirty(true);
-  };
 
   const persist = async () => {
     try {
