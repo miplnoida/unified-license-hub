@@ -35,44 +35,26 @@ import { EvidencePolicyRuleEditor } from '@/components/admin/supervisory-policy-
 import { ReferenceCodePicker } from '@/components/admin/supervisory-policy-profile/ReferenceCodePicker';
 
 type Item = Record<string, unknown>;
-type FieldKind = 'enum' | 'array' | 'enum_array' | 'number' | 'text';
 
-interface FieldSpec { name: string; kind: FieldKind; required: boolean; options: string[] }
-
-function fieldSpecs(contract: PolicyComponentContract | null): FieldSpec[] {
+function fieldSpecs(contract: PolicyComponentContract | null): EntryFieldSpec[] {
   if (!contract) return [];
   const names: string[] = [];
   const push = (n: string) => { if (!names.includes(n)) names.push(n); };
   (contract.required_fields ?? []).forEach(push);
+  Object.keys(contract.enums ?? {}).forEach(push);
   Object.keys(contract.enum_arrays ?? {}).forEach(push);
   (contract.non_empty_arrays ?? []).forEach(push);
   (contract.positive_numbers ?? []).forEach(push);
+  (contract.booleans ?? []).forEach(push);
+  const required = (name: string) => (contract.required_fields ?? []).includes(name);
   return names.map((name) => {
-    if (contract.enums?.[name]) return { name, kind: 'enum' as const, required: (contract.required_fields ?? []).includes(name), options: contract.enums[name] };
-    if (contract.enum_arrays?.[name]) return { name, kind: 'enum_array' as const, required: (contract.required_fields ?? []).includes(name), options: contract.enum_arrays[name] };
-    if ((contract.non_empty_arrays ?? []).includes(name)) return { name, kind: 'array' as const, required: (contract.required_fields ?? []).includes(name), options: [] };
-    if ((contract.positive_numbers ?? []).includes(name)) return { name, kind: 'number' as const, required: (contract.required_fields ?? []).includes(name), options: [] };
-    return { name, kind: 'text' as const, required: (contract.required_fields ?? []).includes(name), options: [] };
+    if (contract.enums?.[name]) return { name, kind: 'enum' as const, required: required(name), options: contract.enums[name] };
+    if (contract.enum_arrays?.[name]) return { name, kind: 'enum_array' as const, required: required(name), options: contract.enum_arrays[name] };
+    if ((contract.non_empty_arrays ?? []).includes(name)) return { name, kind: 'array' as const, required: required(name), options: [] };
+    if ((contract.booleans ?? []).includes(name)) return { name, kind: 'boolean' as const, required: required(name), options: [] };
+    if ((contract.positive_numbers ?? []).includes(name)) return { name, kind: 'number' as const, required: required(name), options: [] };
+    return { name, kind: 'text' as const, required: required(name), options: [] };
   });
-}
-
-function toInput(value: unknown, kind: FieldKind): string {
-  if (value === null || value === undefined) return '';
-  if (kind === 'array' || kind === 'enum_array') {
-    return Array.isArray(value) ? value.map((v) => String(v)).join(', ') : String(value);
-  }
-  return String(value);
-}
-
-function fromInput(raw: string, kind: FieldKind): unknown {
-  const text = raw.trim();
-  if (kind === 'array' || kind === 'enum_array') {
-    const parts = text.split(',').map((p) => p.trim()).filter(Boolean);
-    return kind === 'enum_array' ? parts.map((p) => p.toUpperCase()) : parts;
-  }
-  if (kind === 'number') return text === '' ? null : Number(text);
-  if (text === '') return null;
-  return text;
 }
 
 export default function SupervisoryPolicyComponentDetailPage() {
