@@ -99,6 +99,12 @@ DECLARE _ent uuid; _m uuid; _dimI uuid; _dimC uuid; _q1 uuid; _q2 uuid; _cfgv uu
 BEGIN
   SELECT entity_id INTO _ent FROM public.supervisory_assessment WHERE entity_id IS NOT NULL LIMIT 1;
   IF _ent IS NULL THEN SELECT id INTO _ent FROM public.supervisory_entity LIMIT 1; END IF;
+  -- AML-CLOSE-02D fixture modernisation: creation requires an explicit AML/CFT
+  -- perimeter (AML-CLOSE-02C). TEST-only determination, rolled back; an
+  -- existing determination for the entity is left untouched.
+  INSERT INTO public.supervisory_domain_perimeter(entity_id, domain_code, is_applicable, basis)
+  VALUES (_ent, 'AML_CFT', true, 'TEST ONLY verifier fixture (rolled back) — not a regulatory determination')
+  ON CONFLICT (entity_id, domain_code) DO NOTHING;
 
   INSERT INTO public.supervisory_domain_calculation_rule(domain_code, effective_date_rule, rationale)
   VALUES ('AML_CFT','PERIOD_END','synthetic verifier fixture: period end')

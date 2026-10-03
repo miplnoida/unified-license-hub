@@ -126,6 +126,12 @@ BEGIN
 
   SELECT count(*) INTO _rows FROM public.supervisory_assessment;
 
+  -- AML-CLOSE-02D fixture modernisation: creation requires an explicit AML/CFT
+  -- perimeter (AML-CLOSE-02C). TEST-only determination, rolled back; an
+  -- existing determination for the entity is left untouched.
+  INSERT INTO public.supervisory_domain_perimeter(entity_id, domain_code, is_applicable, basis)
+  VALUES (_ent, 'AML_CFT', true, 'TEST ONLY verifier fixture (rolled back) — not a regulatory determination')
+  ON CONFLICT (entity_id, domain_code) DO NOTHING;
   PERFORM pg_temp.act_as(_sa);
   SET LOCAL ROLE authenticated;
 
