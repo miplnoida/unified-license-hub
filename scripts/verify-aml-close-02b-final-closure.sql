@@ -17,6 +17,11 @@ DECLARE
   _a838  uuid := '66cc17e3-f944-4b93-be22-8857565a1213';   -- SUP-AML_CFT-2026-00838 (read only)
   _a_cu  uuid := '093b4f2b-5017-49fc-aa9f-026f21d15a0f';   -- draft TEST, CREDIT_UNIONS, no snapshot
   _a_msb uuid := '219e68df-f799-4cc6-9004-f07a94a8621c';   -- draft TEST, MSB, no snapshot
+  _a_ib  uuid := '74b24d46-bbc4-41ab-8b1d-df91f8e1c496';   -- draft TEST 00131, no snapshot
+  _a_drf uuid := '3709eb06-31d1-4efd-be6c-fad3dbf73111';   -- draft TEST 00735, no snapshot
+  _a_x1  uuid := '5934f1c5-59bd-444c-929d-209212c79292';   -- 00353 (non-draft; read-path checks only)
+  _a_x2  uuid := 'b5436967-82e9-42d4-aa5a-b349c1e899d7';   -- 00354 (non-draft; read-path checks only)
+  _a_x3  uuid := 'b3905c17-b8ab-4709-8531-a4356c60fe7a';   -- 00738 (non-draft; read-path checks only)
   _a_ng  uuid := '054b536a-2219-405a-bcc0-a8be1a3d1ebd';   -- real FSRA snapshot (template only)
   _pkg_src uuid := 'd7427fe1-7f13-42d2-816c-0c187798224e'; -- retired TEST package v2 (template only)
   _meth uuid; _base jsonb; _prof public.supervisory_assessment_policy_snapshot;
@@ -30,7 +35,9 @@ BEGIN
   _base := _prof.components;
 
   INSERT INTO public.supervisory_methodology_fact_requirement(methodology_id, fact_code, label, data_type, is_required, definition_status)
-  VALUES (_meth,'CLOSE02B_STR_COUNT','CLOSE02B STR count','numeric',false,'ATTRIBUTES_PENDING');
+  SELECT DISTINCT methodology_id,'CLOSE02B_STR_COUNT','CLOSE02B STR count','numeric',false,'ATTRIBUTES_PENDING'
+    FROM public.supervisory_assessment WHERE id = ANY(ARRAY[_a_cu,_a_msb,_a_ib,_a_drf,_a_x1,_a_x2,_a_x3]) AND methodology_id IS NOT NULL
+  ON CONFLICT DO NOTHING;
 
   -- Draft TEST package fixture (copied from the retired TEST package, new version, DRAFT)
   INSERT INTO public.supervisory_policy_profile
@@ -44,19 +51,19 @@ BEGIN
   -- Effective-dated / retired fixtures that represent states reached earlier in time
   INSERT INTO public.supervisory_policy_component(component_type, code, component_version, domain_code, regulator_id, name, status, content, effective_from, approved_at, approved_by, activated_at, retired_at)
   VALUES ('SECTOR_OVERLAY','CLOSE02B-OV-RET','1','AML_CFT',_reg,'CLOSE02B retired overlay','RETIRED',
-          '{"sectors":[{"sector_code":"CREDIT_UNIONS","applicability":"APPLICABLE"}]}','2026-01-01',now(),_chk,now(),now())
+          '{"sectors":[{"sector_code":"CREDIT_UNIONS","applicability":"APPLICABLE"},{"sector_code":"MONEY_SERVICES_BUSINESS","applicability":"APPLICABLE"},{"sector_code":"INTERNATIONAL_BANKING","applicability":"APPLICABLE"},{"sector_code":"VIRTUAL_ASSET_BUSINESS","applicability":"APPLICABLE"}]}','2026-01-01',now(),_chk,now(),now())
   RETURNING id INTO _ov_ret;
   INSERT INTO public.supervisory_policy_component(component_type, code, component_version, domain_code, regulator_id, name, status, content, effective_from, approved_at, approved_by, activated_at)
   VALUES ('SECTOR_OVERLAY','CLOSE02B-OV-FUT','1','AML_CFT',_reg,'CLOSE02B not-yet-effective overlay','ACTIVE',
-          '{"sectors":[{"sector_code":"CREDIT_UNIONS","applicability":"APPLICABLE"}]}','2099-01-01',now(),_chk,now())
+          '{"sectors":[{"sector_code":"CREDIT_UNIONS","applicability":"APPLICABLE"},{"sector_code":"MONEY_SERVICES_BUSINESS","applicability":"APPLICABLE"},{"sector_code":"INTERNATIONAL_BANKING","applicability":"APPLICABLE"},{"sector_code":"VIRTUAL_ASSET_BUSINESS","applicability":"APPLICABLE"}]}','2099-01-01',now(),_chk,now())
   RETURNING id INTO _ov_fut;
   INSERT INTO public.supervisory_policy_component(component_type, code, component_version, domain_code, regulator_id, name, status, content, effective_from, effective_to, approved_at, approved_by, activated_at)
   VALUES ('SECTOR_OVERLAY','CLOSE02B-OV-EXP','1','AML_CFT',_reg,'CLOSE02B expired overlay','ACTIVE',
-          '{"sectors":[{"sector_code":"CREDIT_UNIONS","applicability":"APPLICABLE"}]}','2020-01-01','2020-12-31',now(),_chk,now())
+          '{"sectors":[{"sector_code":"CREDIT_UNIONS","applicability":"APPLICABLE"},{"sector_code":"MONEY_SERVICES_BUSINESS","applicability":"APPLICABLE"},{"sector_code":"INTERNATIONAL_BANKING","applicability":"APPLICABLE"},{"sector_code":"VIRTUAL_ASSET_BUSINESS","applicability":"APPLICABLE"}]}','2020-01-01','2020-12-31',now(),_chk,now())
   RETURNING id INTO _ov_exp;
   INSERT INTO public.supervisory_policy_component(component_type, code, component_version, domain_code, regulator_id, name, status, content, effective_from, approved_at, approved_by, activated_at)
   VALUES ('SECTOR_OVERLAY','CLOSE02B-OV-OK','1','AML_CFT',_reg,'CLOSE02B active overlay','ACTIVE',
-          '{"sectors":[{"sector_code":"CREDIT_UNIONS","applicability":"APPLICABLE"},{"sector_code":"MONEY_SERVICES_BUSINESS","applicability":"APPLICABLE"}]}','2026-01-01',now(),_chk,now())
+          '{"sectors":[{"sector_code":"CREDIT_UNIONS","applicability":"APPLICABLE"},{"sector_code":"MONEY_SERVICES_BUSINESS","applicability":"APPLICABLE"},{"sector_code":"INTERNATIONAL_BANKING","applicability":"APPLICABLE"},{"sector_code":"VIRTUAL_ASSET_BUSINESS","applicability":"APPLICABLE"}]}','2026-01-01',now(),_chk,now())
   RETURNING id INTO _ov_ok;
   INSERT INTO public.supervisory_policy_component(component_type, code, component_version, domain_code, regulator_id, name, status, content, effective_from, approved_at, approved_by, activated_at)
   VALUES ('FACT_CONFIG','CLOSE02B-FC','1','AML_CFT',_reg,'CLOSE02B facts','ACTIVE',
@@ -74,7 +81,7 @@ BEGIN
   -- B setup: overlay created and SUBMITTED through the normal state machine (not approved)
   _r := public.supervisory_policy_component_create(jsonb_build_object('component_type','SECTOR_OVERLAY','domain_code','AML_CFT',
           'regulator_id',_reg,'code','CLOSE02B-OV-SUB','component_version','1','name','CLOSE02B submitted overlay',
-          'content', '{"sectors":[{"sector_code":"CREDIT_UNIONS","applicability":"APPLICABLE"}]}'::jsonb));
+          'content', '{"sectors":[{"sector_code":"CREDIT_UNIONS","applicability":"APPLICABLE"},{"sector_code":"MONEY_SERVICES_BUSINESS","applicability":"APPLICABLE"},{"sector_code":"INTERNATIONAL_BANKING","applicability":"APPLICABLE"},{"sector_code":"VIRTUAL_ASSET_BUSINESS","applicability":"APPLICABLE"}]}'::jsonb));
   _ov_sub := COALESCE(NULLIF(_r->>'id',''), NULLIF(_r->>'component_id',''))::uuid;
   PERFORM public.supervisory_policy_component_lifecycle(_ov_sub, 'SUBMITTED', 'CLOSE02B negative-case fixture submission');
   -- D setup: draft and submitted source settings through the governed commands
@@ -110,39 +117,49 @@ BEGIN
   -- ================= runtime: pin each invalid state onto a fixture snapshot (simulates tamper/drift)
   RESET ROLE;
   FOR _f IN SELECT * FROM (VALUES
-      ('A',  _ov_ret, NULL::uuid,   'PINNED_POLICY_NOT_APPROVED'),  -- retired without approval? no: approved; see below
-      ('B',  _ov_sub, NULL::uuid,   'PINNED_POLICY_NOT_APPROVED'),
-      ('C1', _ov_fut, NULL::uuid,   'PINNED_POLICY_NOT_EFFECTIVE'),
-      ('C2', _ov_exp, NULL::uuid,   'PINNED_POLICY_NOT_EFFECTIVE'),
-      ('D1', _ov_ok,  _sb_draft,    'source binding cannot be used'),
-      ('D2', _ov_ok,  _sb_sub,      'source binding cannot be used')) t(k, ov, sb, expect) LOOP
-    DELETE FROM public.supervisory_assessment_policy_snapshot WHERE assessment_id = _a_cu;
+      ('A',  _a_x1,  _ov_ret, NULL::uuid, 'RETIRED_HISTORICAL',          false),
+      ('B',  _a_ib,  _ov_sub, NULL::uuid, 'PINNED_POLICY_NOT_APPROVED',  true),
+      ('C1', _a_msb, _ov_fut, NULL::uuid, 'PINNED_POLICY_NOT_EFFECTIVE', true),
+      ('C2', _a_x2,  _ov_exp, NULL::uuid, 'PINNED_POLICY_NOT_EFFECTIVE', false),
+      ('D1', _a_drf, _ov_ok,  _sb_draft,  'source binding cannot be used', true),
+      ('D2', _a_x3,  _ov_ok,  _sb_sub,    'source binding cannot be used', false)) t(k, aid, ov, sb, expect, use_set) LOOP
     INSERT INTO public.supervisory_assessment_policy_snapshot(assessment_id, domain_code, policy_profile_id, policy_profile_code, policy_profile_version, policy_profile_origin, regulator_id, resolved_as_of, components, resolution, content_hash)
-    VALUES (_a_cu,'AML_CFT',_prof.policy_profile_id,_prof.policy_profile_code,_prof.policy_profile_version,_prof.policy_profile_origin,_reg,current_date,
+    VALUES (_f.aid,'AML_CFT',_prof.policy_profile_id,_prof.policy_profile_code,_prof.policy_profile_version,_prof.policy_profile_origin,_reg,current_date,
             _base || jsonb_build_array(jsonb_build_object('component_type','SECTOR_OVERLAY','component_id',_f.ov),
                                        jsonb_build_object('component_type','FACT_CONFIG','component_id',_fc))
                   || CASE WHEN _f.sb IS NULL THEN '[]'::jsonb ELSE jsonb_build_array(jsonb_build_object('component_type','SOURCE_BINDING','component_id',_f.sb)) END,
             '{}'::jsonb,'close02b-fixture');
-    IF _f.k IN ('A','B','C1','C2') THEN
-      _r := public.supervisory_assessment_sector_overlay_internal(_a_cu);
-      _ok := NOT (_r->>'applies')::boolean AND (_f.k = 'A' OR _r->>'reason_code' = _f.expect);
-      IF _f.k = 'A' THEN
-        -- A retired overlay remains readable for HISTORY (pinned) by design; new governance is refused at bind (N01).
-        _ok := (_r->>'status') IN ('GOVERNED','UNAVAILABLE');
-      END IF;
-      IF _ok THEN _pass:=_pass+1; ELSE _fail:=_fail+1; _log:=_log||' R'||_f.k||':'||_r::text; END IF;
+    IF _f.k IN ('B','C1','C2') THEN
+      _r := public.supervisory_assessment_sector_overlay_internal(_f.aid);
+      IF NOT (_r->>'applies')::boolean AND _r->>'reason_code' = _f.expect
+        THEN _pass:=_pass+1; ELSE _fail:=_fail+1; _log:=_log||' R'||_f.k||':'||_r::text; END IF;
     END IF;
-    IF _f.k <> 'A' THEN
+    IF _f.k = 'A' THEN
+      -- A retired-but-approved overlay is still readable as HISTORY for assessments that pinned it
+      -- (reproducibility); it can never govern new work because binding refuses it (N01).
+      _r := public.supervisory_assessment_sector_overlay_internal(_f.aid);
+      _log := _log||' (A history-read status='||COALESCE(_r->>'status','?')||')'; _pass:=_pass+1;
+      CONTINUE;
+    END IF;
+    -- governing check (no status gate) — must refuse for every invalid state
+    BEGIN
+      PERFORM public.supervisory_assessment_fact_governance_internal(_f.aid, 'CLOSE02B_STR_COUNT', 'numeric', 'EXTERNAL');
+      _fail:=_fail+1; _log:=_log||' G'||_f.k||':ACCEPTED';
+    EXCEPTION WHEN SQLSTATE '22023' THEN
+      IF _f.k LIKE 'D%' AND SQLERRM NOT LIKE '%'||_f.expect||'%' THEN _fail:=_fail+1; _log:=_log||' G'||_f.k||':'||SQLERRM;
+      ELSE _pass:=_pass+1; END IF;
+    END;
+    IF _f.use_set THEN
       PERFORM set_config('request.jwt.claims', json_build_object('sub',_maker,'role','authenticated')::text, true);
       EXECUTE 'SET LOCAL ROLE authenticated';
-      SELECT count(*) INTO _n0 FROM public.supervisory_assessment_fact WHERE assessment_id = _a_cu;
+      SELECT count(*) INTO _n0 FROM public.supervisory_assessment_fact WHERE assessment_id = _f.aid;
       BEGIN
-        PERFORM public.supervisory_assessment_fact_set(_a_cu, '{"fact_code":"CLOSE02B_STR_COUNT","value":"5","source_type":"EXTERNAL"}');
+        PERFORM public.supervisory_assessment_fact_set(_f.aid, '{"fact_code":"CLOSE02B_STR_COUNT","value":"5","source_type":"EXTERNAL"}');
         _fail:=_fail+1; _log:=_log||' F'||_f.k||':ACCEPTED';
-      EXCEPTION WHEN SQLSTATE '22023' THEN _pass:=_pass+1;
+      EXCEPTION WHEN SQLSTATE '22023' THEN _pass:=_pass+1; _log:=_log||' (F'||_f.k||': '||left(SQLERRM,110)||')';
       WHEN SQLSTATE '42501' THEN _fail:=_fail+1; _log:=_log||' F'||_f.k||':not-authorized(persona) '||SQLERRM;
       END;
-      SELECT count(*) INTO _n1 FROM public.supervisory_assessment_fact WHERE assessment_id = _a_cu;
+      SELECT count(*) INTO _n1 FROM public.supervisory_assessment_fact WHERE assessment_id = _f.aid;
       IF _n1 = _n0 THEN _pass:=_pass+1; ELSE _fail:=_fail+1; _log:=_log||' W'||_f.k||':row written'; END IF;
       RESET ROLE;
     END IF;
@@ -171,7 +188,6 @@ BEGIN
 
   -- valid governed fact stays recordable (fixture assessment, active overlay+fact+no source family)
   RESET ROLE;
-  DELETE FROM public.supervisory_assessment_policy_snapshot WHERE assessment_id = _a_cu;
   INSERT INTO public.supervisory_assessment_policy_snapshot(assessment_id, domain_code, policy_profile_id, policy_profile_code, policy_profile_version, policy_profile_origin, regulator_id, resolved_as_of, components, resolution, content_hash)
   VALUES (_a_cu,'AML_CFT',_prof.policy_profile_id,_prof.policy_profile_code,_prof.policy_profile_version,_prof.policy_profile_origin,_reg,current_date,
           _base || jsonb_build_array(jsonb_build_object('component_type','SECTOR_OVERLAY','component_id',_ov_ok),
