@@ -356,6 +356,28 @@ export function useEntityProgrammeOptions(entityId: string | null, domainCode: s
   });
 }
 
+export interface AssessmentCreationEligibility {
+  allowed: boolean;
+  state: 'PERIMETER_ESTABLISHED' | 'PERIMETER_NOT_ESTABLISHED' | 'DOMAIN_NOT_APPLICABLE' | 'NOT_RECORDED_DOMAIN_DEFAULT';
+  reason?: string | null;
+  determined_at?: string | null;
+  can_manage_perimeter?: boolean;
+}
+
+/**
+ * Whether the supervisory perimeter allows a new assessment of this entity.
+ * Display only — the same rule is enforced on every assessment insert.
+ */
+export function useAssessmentCreationEligibility(entityId: string | null, domainCode: string) {
+  return useQuery({
+    queryKey: ['assessment-creation-eligibility', entityId, domainCode],
+    enabled: Boolean(entityId),
+    queryFn: () => rpc<AssessmentCreationEligibility>('supervisory_assessment_creation_eligibility', {
+      _entity_id: entityId, _domain_code: domainCode,
+    }),
+  });
+}
+
 export function useCreateProgrammedAssessment() {
   const qc = useQueryClient();
   return useMutation({

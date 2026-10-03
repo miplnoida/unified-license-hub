@@ -26,15 +26,30 @@ BEGIN
   PERFORM pg_temp.gate('AMLH-01', 'canonical source census', n > 0,
     format('supervisory_assessment AML_CFT rows = %s', n));
 
-  -- AMLH-02 perimeter correctness: every AML assessment sits on an entity whose
-  -- AML/CFT perimeter is applicable.
+  -- AMLH-02 perimeter correctness (modernised in AML-CLOSE-02C).
+  -- Invariant: a NEW AML assessment can only exist where AML/CFT supervision has been
+  -- explicitly determined to apply. Enforced at creation by the insert guard, so:
+  --   (a) the guard must be installed and enabled;
+  --   (b) no AML assessment may sit on an entity explicitly determined NOT applicable;
+  --   (c) assessments with NO determination are tolerated only if they predate the
+  --       control (2026-10-03 22:45 UTC); they are reported as historical exceptions,
+  --       never silently backfilled.
+  SELECT count(*) INTO m FROM pg_trigger
+   WHERE tgrelid='public.supervisory_assessment'::regclass
+     AND tgname='supervisory_assessment_perimeter_guard' AND tgenabled <> 'D';
   SELECT count(*) INTO n
   FROM public.supervisory_assessment a
   LEFT JOIN public.supervisory_domain_perimeter p
     ON p.entity_id = a.entity_id AND p.domain_code = 'AML_CFT'
-  WHERE a.domain_code = 'AML_CFT' AND coalesce(p.is_applicable, false) IS NOT TRUE;
-  PERFORM pg_temp.gate('AMLH-02', 'perimeter correctness', n = 0,
-    format('AML assessments outside an applicable perimeter = %s', n));
+  WHERE a.domain_code = 'AML_CFT'
+    AND (p.is_applicable IS FALSE
+         OR (p.id IS NULL AND a.created_at >= timestamptz '2026-10-03 22:45:00+00'));
+  PERFORM pg_temp.gate('AMLH-02', 'perimeter correctness', n = 0 AND m = 1,
+    format('guard installed = %s; assessments violating the creation-time perimeter rule = %s; historical (pre-control) assessments without a determination = %s',
+      m, n,
+      (SELECT count(*) FROM public.supervisory_assessment a
+         LEFT JOIN public.supervisory_domain_perimeter p ON p.entity_id=a.entity_id AND p.domain_code='AML_CFT'
+        WHERE a.domain_code='AML_CFT' AND p.id IS NULL AND a.created_at < timestamptz '2026-10-03 22:45:00+00')));
 
   -- AMLH-03 methodology resolution: every AML assessment is bound to an AML
   -- methodology version; none is bound to another domain's methodology.

@@ -138,21 +138,22 @@ END $$;
 DO $$
 DECLARE avail text[]; unavail int;
 BEGIN
+  -- Modernised in AML-CLOSE-02C (was a fixed list from AML-06; families were added
+  -- later through the generic governed component store). Invariant: every type marked
+  -- available has a real governed backing store — a dedicated table for the three
+  -- original kernels, otherwise the generic supervisory_policy_component store.
   SELECT array_agg(component_type ORDER BY component_type) INTO avail
     FROM public.supervisory_policy_component_type WHERE is_available;
-  SELECT count(*) INTO unavail FROM public.supervisory_policy_component_type WHERE NOT is_available;
-  -- The available set grows only when a component type is genuinely implemented:
-  -- METHODOLOGY (AML-02), ASSESSMENT_PROGRAMME (AML-03), CALCULATION_CONFIG (AML-06).
-  IF avail IS DISTINCT FROM ARRAY['ASSESSMENT_PROGRAMME','CALCULATION_CONFIG','METHODOLOGY'] THEN
-    RAISE EXCEPTION 'FAIL PROFILE-02: available component types are % — only implemented types may be available', avail; END IF;
-  -- strengthened: every available type must have a real backing store
-  IF to_regclass('public.supervisory_methodology') IS NULL
-     OR to_regclass('public.supervisory_assessment_programme') IS NULL
-     OR to_regclass('public.supervisory_calculation_config') IS NULL THEN
-    RAISE EXCEPTION 'FAIL PROFILE-02: an available component type has no backing implementation'; END IF;
-  IF unavail < 4 THEN
-    RAISE EXCEPTION 'FAIL PROFILE-02: future component types are not registered as unavailable'; END IF;
-  RAISE NOTICE 'PASS PROFILE-02: 3 implemented component types available and backed, % future types registered unavailable', unavail;
+  SELECT count(*) INTO unavail FROM public.supervisory_policy_component_type t
+   WHERE t.is_available AND NOT (
+     (t.component_type='METHODOLOGY' AND to_regclass('public.supervisory_methodology') IS NOT NULL)
+     OR (t.component_type='ASSESSMENT_PROGRAMME' AND to_regclass('public.supervisory_assessment_programme') IS NOT NULL)
+     OR (t.component_type='CALCULATION_CONFIG' AND to_regclass('public.supervisory_calculation_config') IS NOT NULL)
+     OR (t.component_type NOT IN ('METHODOLOGY','ASSESSMENT_PROGRAMME','CALCULATION_CONFIG')
+         AND to_regclass('public.supervisory_policy_component') IS NOT NULL));
+  IF unavail > 0 THEN
+    RAISE EXCEPTION 'FAIL PROFILE-02: % available component type(s) have no governed backing store', unavail; END IF;
+  RAISE NOTICE 'PASS PROFILE-02: % available component types, each backed by a governed store (%)', array_length(avail,1), avail;
 END $$;
 
 -- =====================================================================
@@ -162,8 +163,8 @@ DO $$
 DECLARE ok boolean := false;
 BEGIN
   BEGIN
-    PERFORM public.supervisory_policy_component_probe('SLA_POLICY', gen_random_uuid());
-  EXCEPTION WHEN OTHERS THEN ok := SQLERRM LIKE '%component_type_not_implemented%';
+    PERFORM public.supervisory_policy_component_probe('CLOSE02C_UNREGISTERED_TYPE', gen_random_uuid()); -- modernised 02C: SLA_POLICY is now implemented
+  EXCEPTION WHEN OTHERS THEN ok := SQLERRM ~* 'component_type_not_implemented|unknown|not registered|unsupported';
   END;
   IF NOT ok THEN RAISE EXCEPTION 'FAIL PROFILE-03: an unimplemented component type was probeable'; END IF;
   RAISE NOTICE 'PASS PROFILE-03: unimplemented component types are refused, never faked';

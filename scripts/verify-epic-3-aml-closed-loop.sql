@@ -75,6 +75,13 @@ VALUES ((SELECT v FROM e3 WHERE k='entity_a'),
         'b597c405-e0c4-421b-9092-820a444f2429',
         'active', 'Epic 3 certification: examiner/reviewer scope fixture.');
 
+-- AML-CLOSE-02C: creation now requires an explicit AML/CFT perimeter determination.
+-- Transaction-scoped (rolled back) fixture determination for the in-scope entity only.
+INSERT INTO public.supervisory_domain_perimeter(entity_id, domain_code, is_applicable, basis)
+VALUES ((SELECT v FROM e3 WHERE k='entity_a'), 'AML_CFT', true,
+        'Epic 3 certification fixture (rolled back): AML/CFT supervision applies.')
+ON CONFLICT (entity_id, domain_code) DO NOTHING;
+
 -- Transaction-scoped Head of AML/CFT fixture: methodology change control is a
 -- head-of-function right (aml_supervision.manage_config), so the certification
 -- checker persona also carries the aml_head role for gate B only.
