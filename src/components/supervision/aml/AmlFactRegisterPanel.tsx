@@ -30,6 +30,11 @@ import {
   type AssessmentFactRow,
 } from '@/hooks/useAssessmentEvidenceBasis';
 import { AMBER, EMERALD, NEUTRAL } from '@/lib/amlLabels';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  useAssessmentConfigurationAuthority,
+  type GovernedFactRow,
+} from '@/hooks/useAssessmentConfigurationAuthority';
 
 interface Props {
   assessmentId: string;
@@ -59,9 +64,20 @@ const proposedValue = (row: AssessmentFactRow): string | null => {
   return v == null ? null : String(v);
 };
 
+const SOURCE_KINDS = ['RETURN', 'FORM', 'MANUAL', 'EXTERNAL', 'DERIVED'];
+const SOURCE_LABEL: Record<string, string> = {
+  RETURN: 'Regulatory return', FORM: 'Form submission', MANUAL: 'Officer entry',
+  EXTERNAL: 'External source', DERIVED: 'Derived by the platform',
+};
+
 export function AmlFactRegisterPanel({ assessmentId, editable }: Props) {
   const { data, isLoading } = useAssessmentFactRegister(assessmentId);
+  const authority = useAssessmentConfigurationAuthority(assessmentId);
   const [target, setTarget] = useState<AssessmentFactRow | null>(null);
+  const factGoverned = authority.data?.fact_config.status === 'GOVERNED';
+  const governedByCode = new Map<string, GovernedFactRow>(
+    (authority.data?.facts ?? []).map((f) => [f.fact_code, f]),
+  );
 
   if (isLoading) {
     return (
@@ -99,7 +115,13 @@ export function AmlFactRegisterPanel({ assessmentId, editable }: Props) {
                     <Badge variant="outline" className={`${NEUTRAL} font-mono text-[10px]`}>{r.fact_code}</Badge>
                     <Badge variant="outline" className={`${NEUTRAL} text-[10px]`}>{r.data_type}</Badge>
                     {r.unit ? <Badge variant="outline" className={`${NEUTRAL} text-[10px]`}>{r.unit}</Badge> : null}
-                    {r.is_required ? <Badge variant="outline" className={AMBER}>Required</Badge> : null}
+                    {(factGoverned ? governedByCode.get(r.fact_code)?.required : r.is_required)
+                      ? <Badge variant="outline" className={AMBER}>Required</Badge> : null}
+                    {factGoverned && governedByCode.get(r.fact_code)?.permitted === false ? (
+                      <Badge variant="outline" className={NEUTRAL} data-testid={`fact-not-permitted-${r.fact_code}`}>
+                        Not used by the governing fact settings
+                      </Badge>
+                    ) : null}
                     {r.recorded ? (
                       <Badge variant="outline" className={EMERALD}>
                         {r.value ?? '—'}{r.numerator != null && r.denominator != null ? ` (${r.numerator}/${r.denominator})` : ''}
@@ -126,7 +148,7 @@ export function AmlFactRegisterPanel({ assessmentId, editable }: Props) {
                     <p className="mt-1 text-xs text-muted-foreground">Change explained: {r.override_reason}</p>
                   ) : null}
                 </div>
-                {editable ? (
+                {editable && !(factGoverned && governedByCode.get(r.fact_code)?.permitted === false) ? (
                   <Button data-rbac="aml_supervision.edit" type="button" size="sm" variant="outline"
                     onClick={() => setTarget(r)}>
                     {r.recorded ? (r.auto_prefilled ? 'Change value' : 'Update') : 'Record'}
@@ -145,6 +167,8 @@ export function AmlFactRegisterPanel({ assessmentId, editable }: Props) {
         <FactDialog
           assessmentId={assessmentId}
           row={target}
+          governed={governedByCode.get(target.fact_code)}
+          sourceGoverned={authority.data?.source_binding.status === 'GOVERNED'}
           onClose={() => setTarget(null)}
         />
       ) : null}
@@ -153,14 +177,23 @@ export function AmlFactRegisterPanel({ assessmentId, editable }: Props) {
 }
 
 function FactDialog({
-  assessmentId, row, onClose,
-}: { assessmentId: string; row: AssessmentFactRow; onClose: () => void }) {
+  assessmentId, row, onClose, governed, sourceGoverned,
+}: {
+  assessmentId: string; row: AssessmentFactRow; onClose: () => void;
+  governed?: GovernedFactRow; sourceGoverned: boolean;
+}) {
   const set = useSetAssessmentFact(assessmentId);
   const override = useOverrideAssessmentFact(assessmentId);
+  // Display only: the server re-checks every source against the pinned settings.
+  const sourceChoices: string[] | null = governed?.allowed_sources?.length
+    ? Array.from(new Set(governed.allowed_sources.map((s) => s.source_kind)))
+    : sourceGoverned ? SOURCE_KINDS : null;
   const [value, setValue] = useState(row.value ?? '');
   const [numerator, setNumerator] = useState(row.numerator != null ? String(row.numerator) : '');
   const [denominator, setDenominator] = useState(row.denominator != null ? String(row.denominator) : '');
-  const [sourceType, setSourceType] = useState(row.source_type ?? 'OFFICER_ENTERED');
+  const [sourceType, setSourceType] = useState(
+    row.source_type ?? (sourceChoices ? sourceChoices[0] : 'OFFICER_ENTERED'),
+  );
   const [sourceReference, setSourceReference] = useState(row.source_reference ?? '');
   const [asOf, setAsOf] = useState(row.as_of_date ?? '');
   const [note, setNote] = useState(row.note ?? '');
@@ -241,8 +274,27 @@ function FactDialog({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="fact-source">Where the value comes from</Label>
-              <Input id="fact-source" value={sourceType} onChange={(e) => setSourceType(e.target.value)} />
-              {row.source_type_expectation?.length ? (
+              {sourceChoices ? (
+                <Select value={sourceType} onValueChange={(v) => {
+                  setSourceType(v);
+                  const ref = governed?.allowed_sources?.find((s) => s.source_kind === v)?.source_reference;
+                  if (ref && !sourceReference) setSourceReference(ref);
+                }}>
+                  <SelectTrigger id="fact-source" aria-label="Where the value comes from"><SelectValue placeholder="Choose a source" /></SelectTrigger>
+                  <SelectContent>
+                    {sourceChoices.map((k) => (
+                      <SelectItem key={k} value={k}>{SOURCE_LABEL[k] ?? k}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input id="fact-source" value={sourceType} onChange={(e) => setSourceType(e.target.value)} />
+              )}
+              {governed?.allowed_sources?.length ? (
+                <p className="text-xs text-muted-foreground">
+                  The governing source settings accept only these sources for this fact.
+                </p>
+              ) : row.source_type_expectation?.length ? (
                 <p className="text-xs text-muted-foreground">
                   The methodology expects: {row.source_type_expectation.join(', ')}
                 </p>
