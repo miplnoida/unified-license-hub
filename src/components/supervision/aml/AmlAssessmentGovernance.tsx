@@ -14,6 +14,7 @@ import {
 import { AmlAssessmentActions } from '@/components/supervision/aml/AmlAssessmentActions';
 import { AmlDimensionWorksheet } from '@/components/supervision/aml/AmlDimensionWorksheet';
 import { AmlEvidencePolicyPanel } from '@/components/supervision/aml/AmlEvidencePolicyPanel';
+import { AmlConfigurationAuthorityPanel } from '@/components/supervision/aml/AmlConfigurationAuthorityPanel';
 import { AmlFactRegisterPanel } from '@/components/supervision/aml/AmlFactRegisterPanel';
 import { AmlReadinessPanel } from '@/components/supervision/aml/AmlReadinessPanel';
 import { computeAssessmentReadiness, type RecordedDimension } from '@/lib/amlAssessmentReadiness';
@@ -75,6 +76,7 @@ export function AmlAssessmentGovernance({
           </Card>
         ) : null}
         <AmlReadinessPanel assessmentId={assessmentId} />
+        <AmlConfigurationAuthorityPanel assessmentId={assessmentId} />
         <AmlEvidencePolicyPanel assessmentId={assessmentId} />
         <AmlFactRegisterPanel assessmentId={assessmentId} editable={editable} />
         <AmlDimensionWorksheet
