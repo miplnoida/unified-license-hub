@@ -109,7 +109,7 @@ SELECT u, r.id, 'active', '4248640c-3397-4cf6-a274-fa09bad4ba64'::uuid  -- AML-C
                ('0b522724-adcb-48bf-b21d-175339479616'::uuid)) AS x(u),
        public.sec_roles r
  WHERE r.key = 'aml_head'
-ON CONFLICT DO NOTHING;
+ON CONFLICT (user_id, role_id) DO UPDATE SET status='active', assigned_by=EXCLUDED.assigned_by;  -- AML-CLOSE-02D: re-activate inside this rolled-back transaction
 
 INSERT INTO public.sec_role_scopes(role_id, module_id, scope_type_id)
 SELECT r.id, m.id, st.id

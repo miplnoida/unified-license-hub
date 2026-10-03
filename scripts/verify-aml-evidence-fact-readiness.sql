@@ -27,6 +27,12 @@
 \pset pager off
 SET row_security = on;
 
+-- AML-CLOSE-02D: capture the pre-run census at session level (outside the
+-- rolled-back transaction) so the post-run check proves "unchanged" instead
+-- of asserting a hard-coded historical count.
+SELECT set_config('aml02d.pre_assessments',(SELECT count(*) FROM public.supervisory_assessment)::text,false),
+       set_config('aml02d.pre_calc_config',(SELECT count(*) FROM public.supervisory_calculation_config)::text,false),
+       set_config('aml02d.pre_calc_rule',(SELECT count(*) FROM public.supervisory_domain_calculation_rule WHERE domain_code='AML_CFT')::text,false);
 BEGIN;
 
 CREATE TEMP TABLE ev_id(k text PRIMARY KEY, v uuid) ON COMMIT DROP;
@@ -105,7 +111,7 @@ SELECT u, r.id, 'active', '4248640c-3397-4cf6-a274-fa09bad4ba64'::uuid  -- AML-C
                ('0b522724-adcb-48bf-b21d-175339479616'::uuid)) AS x(u),
        public.sec_roles r
  WHERE r.key = 'aml_head'
-ON CONFLICT DO NOTHING;
+ON CONFLICT (user_id, role_id) DO UPDATE SET status='active', assigned_by=EXCLUDED.assigned_by;  -- AML-CLOSE-02D: re-activate inside this rolled-back transaction
 
 INSERT INTO public.sec_role_scopes(role_id, module_id, scope_type_id)
 SELECT r.id, m.id, st.id
@@ -1314,7 +1320,7 @@ BEGIN
   IF n > 0 THEN RAISE EXCEPTION 'FAIL ROLLBACK: % AML05CERT audit event(s) survived', n; END IF;
 
   SELECT count(*) INTO total FROM public.supervisory_assessment;
-  IF total <> 28 THEN RAISE EXCEPTION 'FAIL ROLLBACK: the assessment count is % rather than 28', total; END IF;
+  IF total <> current_setting('aml02d.pre_assessments')::bigint THEN RAISE EXCEPTION 'FAIL ROLLBACK: the assessment count is % rather than the pre-run %', total, current_setting('aml02d.pre_assessments'); END IF;
   RAISE NOTICE 'POST-RUN: no AML05CERT fixture survives; % assessment(s) remain; % evidence record(s); % fact(s)',
     total,
     (SELECT count(*) FROM public.supervisory_assessment_evidence_basis),
