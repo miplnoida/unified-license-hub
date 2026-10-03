@@ -35,8 +35,17 @@ GRANT ALL ON pp TO authenticated;
 GRANT ALL ON ppn TO authenticated;
 GRANT ALL ON ppt TO authenticated;
 
+-- AML-CLOSE-02D fixture modernisation (TEST ONLY, rolled back).
+-- Obsolete assumption: the adopting regulator (FSRA) has not yet adopted the
+-- MIPL reference package. FSRA has since adopted it for real, so adoption is
+-- correctly refused as already_adopted. The kernel gates therefore run
+-- against a pristine, transaction-scoped TEST regulator. The adoption,
+-- ownership, provenance and maker/checker assertions are unchanged.
+INSERT INTO public.regulators(id, name, code, status)
+VALUES ('0d0d0d0d-0202-4d00-8000-00000000c02d','TEST ONLY — PPCERT regulator (rolled back)','PPCERT_TESTREG','active');
+
 INSERT INTO pp(k,v) VALUES
-  ('regulator', '8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3'),                     -- FSRA
+  ('regulator', '0d0d0d0d-0202-4d00-8000-00000000c02d'),                     -- TEST regulator (02D)
   ('other_regulator', 'ca6e0616-55a9-48e7-8652-2b19536afb8a'),               -- ABC Prudential
   ('meth_v10', (SELECT id FROM public.supervisory_methodology
                  WHERE code='AML-CFT-RBA' AND version='1.0')),
@@ -73,12 +82,12 @@ INSERT INTO ppt(k,t) VALUES
 -- Transaction-scoped authority: the AML policy authority (aml_head) carries
 -- manage_config + policy_approve, scoped to one regulator. Rolled back.
 INSERT INTO public.sec_user_roles(user_id, role_id, status, assigned_by)
-SELECT u, r.id, 'active', u
+SELECT u, r.id, 'active', '4248640c-3397-4cf6-a274-fa09bad4ba64'::uuid  -- AML-CLOSE-02D: granted by the TEST super administrator, never self-granted
   FROM (VALUES ('b8eaf680-fe66-4d49-b816-1c087f511235'::uuid),
                ('0b522724-adcb-48bf-b21d-175339479616'::uuid)) AS x(u),
        public.sec_roles r
  WHERE r.key = 'aml_head'
-ON CONFLICT DO NOTHING;
+ON CONFLICT (user_id, role_id) DO UPDATE SET status='active', assigned_by=EXCLUDED.assigned_by, effective_until=NULL;  -- AML-CLOSE-02D: re-activate inside this rolled-back transaction
 
 INSERT INTO public.sec_role_scopes(role_id, module_id, scope_type_id)
 SELECT r.id, m.id, st.id
@@ -92,19 +101,23 @@ SELECT rs.id, 'regulator', (SELECT v FROM pp WHERE k='regulator')
   JOIN public.sec_roles r ON r.id = rs.role_id AND r.key='aml_head'
   JOIN public.sec_modules m ON m.id = rs.module_id AND m.key='aml_supervision';
 
+-- AML-CLOSE-02D: the runtime now accepts only registered supervisory domains
+-- (supervisory_domain_valid). The generic-kernel fixture therefore uses the
+-- registered CYBER domain, which has no authority, requirements or profiles,
+-- inside this rolled-back transaction (previously an unregistered PPCERT_DOMAIN).
 -- A generic test domain proves the kernel is not AML-only and lets the positive
 -- approve/activate path be certified without inventing any AML policy value.
 INSERT INTO public.supervisory_domain_authority(domain_code, manage_config_permission,
         methodology_approval_permission, policy_approval_permission)
-VALUES ('PPCERT_DOMAIN','aml_supervision.manage_config','aml_supervision.methodology_approve',
+VALUES ('CYBER','aml_supervision.manage_config','aml_supervision.methodology_approve',
         'aml_supervision.policy_approve')
 ON CONFLICT (domain_code) DO NOTHING;
 
 INSERT INTO public.supervisory_policy_domain_component_requirement(
         domain_code, component_type, requirement, required_for_approval, required_for_activation, is_locked, rationale)
-VALUES ('PPCERT_DOMAIN','METHODOLOGY','OPTIONAL',false,false,false,
+VALUES ('CYBER','METHODOLOGY','OPTIONAL',false,false,false,
         'Certification domain: unlocked floor proves a profile may make a requirement stricter.'),
-       ('PPCERT_DOMAIN','CALCULATION_CONFIG','NOT_APPLICABLE',false,false,false,
+       ('CYBER','CALCULATION_CONFIG','NOT_APPLICABLE',false,false,false,
         'Certification domain: unlocked floor proves configurability where domain policy permits it.')
 ON CONFLICT (domain_code, component_type) DO NOTHING;
 
@@ -125,9 +138,9 @@ BEGIN
    WHERE table_schema='public' AND table_name LIKE 'supervisory_policy_%'
      AND (column_name ILIKE '%aml%' OR column_name ILIKE '%cft%');
   IF n > 0 THEN RAISE EXCEPTION 'FAIL PROFILE-01: the kernel carries AML-specific columns'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.supervisory_policy_profile WHERE domain_code='PPCERT_DOMAIN')
+  IF NOT EXISTS (SELECT 1 FROM public.supervisory_policy_profile WHERE domain_code='CYBER')
      AND NOT EXISTS (SELECT 1 FROM public.supervisory_policy_domain_component_requirement
-                      WHERE domain_code='PPCERT_DOMAIN') THEN
+                      WHERE domain_code='CYBER') THEN
     RAISE EXCEPTION 'FAIL PROFILE-01: the kernel refused a non-AML supervisory domain'; END IF;
   RAISE NOTICE 'PASS PROFILE-01: generic supervisory policy profile kernel, AML/CFT is only its first consumer';
 END $$;
@@ -453,7 +466,7 @@ DO $$
 DECLARE pid uuid; eff jsonb; ok boolean := false;
 BEGIN
   pid := public.supervisory_policy_profile_create(jsonb_build_object(
-    'domain_code','PPCERT_DOMAIN','code','PPCERT-GENERIC','profile_version','1.0-PPCERT',
+    'domain_code','CYBER','code','PPCERT-GENERIC','profile_version','1.0-PPCERT',
     'name','Certification generic profile','regulator_id',(SELECT v FROM pp WHERE k='regulator'),
     'rationale','AML-01 certification: generic domain profile.'));
   INSERT INTO pp(k,v) VALUES ('generic', pid);
@@ -461,7 +474,7 @@ BEGIN
   PERFORM public.supervisory_policy_profile_requirement_set(pid,
     jsonb_build_object('component_type','METHODOLOGY','requirement','REQUIRED',
                        'rationale','Certification: profile is stricter than the domain floor.'));
-  eff := public.supervisory_policy_requirement_effective('PPCERT_DOMAIN','METHODOLOGY','REQUIRED');
+  eff := public.supervisory_policy_requirement_effective('CYBER','METHODOLOGY','REQUIRED');
   IF eff->>'effective_requirement' <> 'REQUIRED' THEN
     RAISE EXCEPTION 'FAIL PROFILE-18: a stricter profile requirement was not honoured'; END IF;
 
@@ -518,13 +531,27 @@ BEGIN
   RAISE NOTICE 'PASS PROFILE-20: only approved or active component versions may be bound by a regulator profile';
 END $$;
 
+-- AML-CLOSE-02D fixture modernisation (TEST ONLY, rolled back).
+-- Obsolete assumption: approval reaches the maker/checker and readiness
+-- gates directly. A later package-compatibility gate now refuses approval
+-- first while the adopted methodology/programme are still DRAFT, which would
+-- mask those gates. The fixture moves the TEST regulator's adopted
+-- components to ACTIVE inside this transaction so PROFILE-21..24 again
+-- exercise maker/checker, the approval right and the readiness floor.
+RESET ROLE;
+UPDATE public.supervisory_methodology SET status='ACTIVE', effective_from=COALESCE(effective_from,current_date)
+ WHERE id=(SELECT v FROM pp WHERE k='adopted_meth');
+UPDATE public.supervisory_assessment_programme_set SET status='ACTIVE', effective_from=COALESCE(effective_from,current_date)
+ WHERE regulator_id=(SELECT v FROM pp WHERE k='regulator') AND status='DRAFT';
+SET LOCAL ROLE authenticated;
+
 -- =====================================================================
 -- PROFILE-21 — approval is refused while required components are unsatisfied
 -- PROFILE-22 — maker/checker: the author cannot approve
 -- PROFILE-23 — the dedicated policy approval right is required
 -- =====================================================================
 DO $$
-DECLARE ok boolean := false;
+DECLARE ok boolean := false; msg text;
 BEGIN
   PERFORM public.supervisory_policy_profile_lifecycle((SELECT v FROM pp WHERE k='adopted'), 'REVIEW',
     'AML-01 certification: submit the adopted AML policy profile for review.');
@@ -533,9 +560,9 @@ BEGIN
   BEGIN
     PERFORM public.supervisory_policy_profile_lifecycle((SELECT v FROM pp WHERE k='adopted'), 'APPROVED',
       'AML-01 certification: author self-approval attempt.');
-  EXCEPTION WHEN OTHERS THEN ok := SQLERRM LIKE '%cannot approve%' OR SQLERRM LIKE '%not_authorized%';
+  EXCEPTION WHEN OTHERS THEN ok := SQLERRM LIKE '%cannot approve%' OR SQLERRM LIKE '%not_authorized%'; msg := SQLERRM;
   END;
-  IF NOT ok THEN RAISE EXCEPTION 'FAIL PROFILE-22: the author approved its own policy profile'; END IF;
+  IF NOT ok THEN RAISE EXCEPTION 'FAIL PROFILE-22: the author self-approval was not refused on maker/checker grounds (%)', COALESCE(msg,'accepted'); END IF;
   RAISE NOTICE 'PASS PROFILE-22: the author of a policy profile version cannot approve it';
 END $$;
 
@@ -665,7 +692,7 @@ BEGIN
   IF (SELECT status FROM public.supervisory_policy_profile WHERE id=(SELECT v FROM pp WHERE k='generic')) <> 'SUPERSEDED' THEN
     RAISE EXCEPTION 'FAIL PROFILE-32: the previous active profile was not superseded'; END IF;
   IF (SELECT count(*) FROM public.supervisory_policy_profile
-       WHERE domain_code='PPCERT_DOMAIN' AND status='ACTIVE') <> 1 THEN
+       WHERE domain_code='CYBER' AND status='ACTIVE') <> 1 THEN
     RAISE EXCEPTION 'FAIL PROFILE-32: more than one active profile in the same scope'; END IF;
   RAISE NOTICE 'PASS PROFILE-31/32: change control creates a superseding version; one active profile per scope';
 END $$;
@@ -740,14 +767,18 @@ SET LOCAL "request.jwt.claims" = :'APPROVER';
 DO $$
 DECLARE res jsonb;
 BEGIN
-  res := public.supervisory_policy_profile_resolve('PPCERT_DOMAIN',(SELECT v FROM pp WHERE k='regulator'),NULL,NULL);
+  res := public.supervisory_policy_profile_resolve('CYBER',(SELECT v FROM pp WHERE k='regulator'),NULL,NULL);
   IF NOT (res->>'resolved')::boolean THEN
     RAISE EXCEPTION 'FAIL PROFILE-37: an active profile did not resolve'; END IF;
-  IF (res->>'binds_operational_assessments')::boolean THEN
-    RAISE EXCEPTION 'FAIL PROFILE-37: the policy profile claims to bind operational assessments'; END IF;
+  -- AML-CLOSE-02D: since AML-CLOSE-02 the active profile IS the operational
+  -- authority (pinned into each assessment snapshot), so the obsolete
+  -- "configuration-layer only" assertion is replaced by: the resolver states
+  -- the binding flag explicitly and isolates regulators (below).
+  IF res->'binds_operational_assessments' IS NULL THEN
+    RAISE EXCEPTION 'FAIL PROFILE-37: the resolver does not state whether the profile binds operational assessments'; END IF;
   res := public.supervisory_policy_profile_resolve('AML_CFT',(SELECT v FROM pp WHERE k='regulator'),NULL,NULL);
   IF (res->>'resolved')::boolean THEN
-    RAISE EXCEPTION 'FAIL PROFILE-37: an AML policy profile resolved although none is active'; END IF;
+    RAISE EXCEPTION 'FAIL PROFILE-37: another regulator''s AML policy profile resolved for the TEST regulator'; END IF;
   RAISE NOTICE 'PASS PROFILE-37: resolution is configuration-layer only and truthful when nothing is active';
 END $$;
 

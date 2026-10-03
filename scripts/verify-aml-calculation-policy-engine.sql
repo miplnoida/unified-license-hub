@@ -68,12 +68,12 @@ INSERT INTO c_t(k,t) VALUES
 
 -- -------------------------------------------------------------- fixtures ----
 INSERT INTO public.sec_user_roles(user_id, role_id, status, assigned_by)
-SELECT u, r.id, 'active', u
+SELECT u, r.id, 'active', '4248640c-3397-4cf6-a274-fa09bad4ba64'::uuid  -- AML-CLOSE-02D: granted by the TEST super administrator, never self-granted
   FROM (VALUES ('b8eaf680-fe66-4d49-b816-1c087f511235'::uuid),
                ('0b522724-adcb-48bf-b21d-175339479616'::uuid)) AS x(u),
        public.sec_roles r
  WHERE r.key = 'aml_head'
-ON CONFLICT DO NOTHING;
+ON CONFLICT (user_id, role_id) DO UPDATE SET status='active', assigned_by=EXCLUDED.assigned_by, effective_until=NULL;  -- AML-CLOSE-02D: re-activate inside this rolled-back transaction
 
 INSERT INTO public.sec_role_scopes(role_id, module_id, scope_type_id)
 SELECT r.id, m.id, st.id
@@ -167,6 +167,26 @@ INSERT INTO public.supervisory_assessment_programme_trigger(
   programme_id, trigger_code, label, is_default, is_active, sort_order)
 SELECT p.id,'PERIODIC','Periodic cycle',true,true,1
   FROM public.supervisory_assessment_programme p WHERE p.programme_code='AML06CERT_P';
+
+-- AML-CLOSE-02D fixture modernisation (TEST ONLY, rolled back).
+-- Obsolete assumption: no active policy profile governs the domain, so any
+-- programme set applies. Current runtime: the active regulator profile binds
+-- the ASSESSMENT_PROGRAMME the canonical create path must use. The fixture
+-- therefore governs its programme set through a TEST sector-scoped profile
+-- (more specific than the regulator-wide profile). The creation-time
+-- programme control itself is unchanged and still enforced.
+INSERT INTO public.supervisory_policy_profile(
+  code, profile_version, domain_code, regulator_id, sector_id, name, status, origin, effective_from, notes)
+VALUES ('AML06CERT-TEST-POLICY','1','AML_CFT',(SELECT v FROM c_id WHERE k='regulator'),(SELECT v FROM c_id WHERE k='sector'),
+  'TEST ONLY — AML06CERT fixture profile','DRAFT','REGULATOR_AUTHORED', current_date - 1,
+  'TEST ONLY — not an FSRA policy; discarded on rollback');
+INSERT INTO public.supervisory_policy_profile_binding(
+  profile_id, component_type, component_table, component_id, component_code, component_version, component_status, rationale)
+SELECT pp.id,'ASSESSMENT_PROGRAMME','supervisory_assessment_programme_set', s.id, s.code, s.set_version, 'ACTIVE','TEST fixture binding'
+  FROM public.supervisory_policy_profile pp, public.supervisory_assessment_programme_set s
+ WHERE pp.code='AML06CERT-TEST-POLICY' AND s.code='AML06CERT-PROGRAMMES';
+UPDATE public.supervisory_policy_profile SET status='ACTIVE', approved_at=now(), activated_at=now()
+ WHERE code='AML06CERT-TEST-POLICY';
 
 -- The domain must publish an effective-date rule for a calculation to resolve.
 DO $$
