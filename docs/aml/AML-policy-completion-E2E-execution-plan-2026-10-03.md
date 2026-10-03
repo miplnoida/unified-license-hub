@@ -12,6 +12,7 @@ Recorded R2F/R2G results are historical evidence. R2F records 19/19 chain gates,
 An active FSRA package and a governed demonstration chain exist. Calculation values remain demonstration values, and DEC-01 through DEC-08 require regulator decisions.
 Six tracked policy families remain configuration-only: sector overlay, fact, source binding, materiality, dashboard and notification. Existing related capabilities must be preserved.
 The latest inspected CI run 36316172130 failed frontend and skipped dependent jobs. Logs returned unavailable; cause is unknown.
+Fresh PR CI run 37130715061 established a concrete tooling failure: bunx tsgo --noEmit attempted registry.npmjs.org/tsgo and received 404 before code checking. This branch replaces it with the already-declared TypeScript compiler, explicitly checks app/node/AML E2E configs, and adds an independent Node 24 classifier regression job. These changes require a fresh CI result; further defects are not presumed resolved.
 Current session has GitHub source access but no connected SQL runner or confirmed TEST frontend/persona session. No live E2E result is claimed.
 Focused authorization-evidence classifier regression: 10/10 passed on Node 24.19.0. These are harness tests, not live AML tests.
 
@@ -202,4 +203,3 @@ Production readiness: mandatory approved-policy, integrity, permissions, runtime
 Outcome options: TECHNICAL TEST PASS (demo limitations explicit), CONDITIONAL with named noncritical exceptions, BLOCKED, or FAIL. ENTERPRISE PRODUCTION PASS requires production-policy and operational gates as well.
 
 Final delivery: changed files/migrations; policy/adoption inventory; D01-D13 closure register; E01-E30 evidence; I01-I12 reconciliation; CI results; actual risk/defect register; deployment/rollback guidance; exact remaining decisions/access.
-
