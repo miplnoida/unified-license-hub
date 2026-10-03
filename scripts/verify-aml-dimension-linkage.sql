@@ -186,8 +186,10 @@ DECLARE _uid uuid; _ent uuid; _mA uuid; _mB uuid; _dA uuid; _dA2 uuid; _dB uuid;
         _row public.supervisory_assessment_dimension;
 BEGIN
   _uid := pg_temp.admin_uid();
-  SELECT entity_id INTO _ent FROM public.supervisory_assessment
-   WHERE upper(domain_code)='AML_CFT' AND entity_id IS NOT NULL LIMIT 1;
+  -- AML-CLOSE-02C: choose an entity inside an established AML/CFT perimeter.
+  SELECT a.entity_id INTO _ent FROM public.supervisory_assessment a
+    JOIN public.supervisory_domain_perimeter p ON p.entity_id=a.entity_id AND p.domain_code='AML_CFT' AND p.is_applicable
+   WHERE upper(a.domain_code)='AML_CFT' LIMIT 1;
   IF _uid IS NULL OR _ent IS NULL THEN
     PERFORM pg_temp.gate('LINK-06','writer refuses a foreign methodology dimension', false,
       'no usable identity/entity fixture');

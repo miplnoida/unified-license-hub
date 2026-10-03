@@ -72,6 +72,10 @@ BEGIN
   VALUES (other, '0b522724-adcb-48bf-b21d-175339479616', 'active', 'W4-A6 perimeter determination');
 
   INSERT INTO a6(k,v) VALUES ('ent',ent),('other',other);
+  -- AML-CLOSE-02C: explicit (rolled-back) perimeter determination for the master entity.
+  INSERT INTO public.supervisory_domain_perimeter(entity_id, domain_code, is_applicable, basis)
+  VALUES (ent, 'AML_CFT', true, 'A6 fixture (rolled back): AML/CFT supervision applies.')
+  ON CONFLICT (entity_id, domain_code) DO NOTHING;
 END $$;
 
 -- ---------------------------------------------------------------------------
