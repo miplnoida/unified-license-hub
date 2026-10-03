@@ -195,6 +195,6 @@ BEGIN
   IF (_r->>'applies')::boolean AND _r->>'component_version'='1.0'
     THEN _pass:=_pass+1; ELSE _fail:=_fail+1; _log:=_log||' G23:'||_r::text; END IF;
 
-  RAISE EXCEPTION 'CLOSE02_RESULT pass=% fail=%%', _pass, _fail, CASE WHEN _log='' THEN '' ELSE ' failures:'||_log END;
+  RAISE EXCEPTION 'CLOSE02_RESULT pass=% fail=% %', _pass, _fail, CASE WHEN _log='' THEN '' ELSE ' failures:'||_log END;
 END
 $close02$;
