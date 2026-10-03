@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { loginAs } from './support/auth';
 import { persona } from './support/personas';
-import { rpc } from './support/api';
+import { rpc, restSelect } from './support/api';
 
 /**
  * AML-CLOSE-02B — governed runtime authority (overlay + fact settings + sources).
@@ -69,5 +69,18 @@ test.describe('AML/CFT governed runtime authority (00838)', () => {
     for (const code of RECORDED) {
       await expect(page.getByTestId(`config-fact-${code}`)).toContainText(/Recorded \((RETURN|MANUAL)\)/);
     }
+  });
+
+  test('AML-CLOSE-02C: forged authenticated creation without supervisory applicability is refused and writes nothing', async () => {
+    const HELEN = 'fdf5c81f-9aa8-40da-9df0-781f3c2e7adc';
+    const elig = await rpc(AML_OFFICER, 'supervisory_assessment_creation_eligibility', { _entity_id: HELEN, _domain_code: 'AML_CFT' });
+    expect(elig.ok, elig.bodyText).toBeTruthy();
+    expect((elig.body as { allowed: boolean; state: string }).allowed).toBe(false);
+    const before = await restSelect(AML_OFFICER, `supervisory_assessment?select=id&entity_id=eq.${HELEN}`);
+    const r = await rpc(AML_OFFICER, 'supervisory_assessment_create', { _entity_id: HELEN, _domain_code: 'AML_CFT' });
+    expect(r.ok).toBeFalsy();
+    expect(r.bodyText).toMatch(/perimeter_not_established/);
+    const after = await restSelect(AML_OFFICER, `supervisory_assessment?select=id&entity_id=eq.${HELEN}`);
+    expect((after.body as unknown[]).length).toBe((before.body as unknown[]).length);
   });
 });

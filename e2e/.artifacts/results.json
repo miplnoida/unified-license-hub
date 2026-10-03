@@ -101,12 +101,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 684,
+                      "duration": 621,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-03T22:57:36.349Z",
+                      "startTime": "2026-10-03T22:58:13.478Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -135,12 +135,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 193,
+                      "duration": 121,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-03T22:57:37.068Z",
+                      "startTime": "2026-10-03T22:58:14.133Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -169,12 +169,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 137,
+                      "duration": 78,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-03T22:57:37.270Z",
+                      "startTime": "2026-10-03T22:58:14.269Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -203,12 +203,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 18068,
+                      "duration": 20422,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-03T22:57:37.419Z",
+                      "startTime": "2026-10-03T22:58:14.357Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -220,6 +220,40 @@
               "file": "07-aml-governed-runtime.spec.ts",
               "line": 56,
               "column": 3
+            },
+            {
+              "title": "AML-CLOSE-02C: forged authenticated creation without supervisory applicability is refused and writes nothing",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 120000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 362,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-03T22:58:35.058Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "47366594aede9d39035d-f1fbb1550cbbfc734ccb",
+              "file": "07-aml-governed-runtime.spec.ts",
+              "line": 74,
+              "column": 3
             }
           ]
         }
@@ -228,9 +262,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-03T22:57:35.623Z",
-    "duration": 21784.832000000002,
-    "expected": 4,
+    "startTime": "2026-10-03T22:58:12.664Z",
+    "duration": 22875.174000000003,
+    "expected": 5,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
