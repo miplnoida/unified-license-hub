@@ -30,6 +30,7 @@ import { useAmlPortfolio } from '@/hooks/useAmlSupervision';
 import { useCan } from '@/hooks/useCan';
 import { useCalculationReadiness } from '@/hooks/useSupervisoryCalculationConfig';
 import {
+  useAssessmentCreationEligibility,
   useCreateProgrammedAssessment,
   useEntityProgrammeOptions,
 } from '@/hooks/useSupervisoryAssessmentProgrammes';
@@ -80,6 +81,10 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
       !programme.period.allow_manual_override,
   );
   const programmeUnavailable = programmeOptions.data?.mode === 'UNAVAILABLE';
+  // Supervisory perimeter: the server enforces it on every assessment insert;
+  // this only stops offering the action and explains why.
+  const eligibility = useAssessmentCreationEligibility(targetEntity || null, 'AML_CFT');
+  const perimeterBlocked = Boolean(targetEntity) && (eligibility.isError || eligibility.data?.allowed === false);
 
 
   const entityOptions = useMemo(
@@ -140,7 +145,17 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
             </div>
           ) : null}
 
-          {targetEntity ? (
+          {targetEntity && perimeterBlocked ? (
+            <Alert variant="destructive" data-testid="aml-perimeter-refusal">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                {eligibility.data?.reason ??
+                  'AML/CFT supervisory applicability has not been established for this entity.'}
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          {targetEntity && !perimeterBlocked ? (
             programmeOptions.isLoading ? (
               <p className="text-sm text-muted-foreground">Resolving the approved assessment programmes…</p>
             ) : programmeUnavailable ? (
@@ -258,7 +273,7 @@ export function AmlNewAssessmentDialog({ entityId, label = 'New AML/CFT assessme
               Cancel
             </Button>
             <Button
-              disabled={!targetEntity || !programme || programme.selectable === false || !methodology || ambiguous || resolving || programmeOptions.isLoading}
+              disabled={!targetEntity || perimeterBlocked || eligibility.isLoading || !programme || programme.selectable === false || !methodology || ambiguous || resolving || programmeOptions.isLoading}
               onClick={() => {
                 setPickerOpen(false);
                 setOpen(true);

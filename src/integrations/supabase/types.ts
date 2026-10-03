@@ -69542,6 +69542,14 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_assessment_creation_eligibility: {
+        Args: { _domain_code: string; _entity_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_creation_perimeter: {
+        Args: { _domain_code: string; _entity_id: string }
+        Returns: Json
+      }
       supervisory_assessment_dimension_materialise_internal: {
         Args: { _actor?: string; _assessment_id: string }
         Returns: Json

@@ -42,6 +42,7 @@ let resolution: { status: string; methodology: typeof METHODOLOGY | null } = {
   methodology: METHODOLOGY,
 };
 let resolving = false;
+let perimeter: { allowed: boolean; state: string; reason?: string } = { allowed: true, state: 'PERIMETER_ESTABLISHED' };
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock('@/hooks/useCan', () => ({ useCan: () => true }));
@@ -56,6 +57,7 @@ vi.mock('@/hooks/useSupervisoryCalculationConfig', () => ({
 }));
 vi.mock('@/hooks/useSupervisoryAssessmentProgrammes', () => ({
   useCreateProgrammedAssessment: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useAssessmentCreationEligibility: () => ({ isLoading: false, isError: false, data: perimeter }),
   useEntityProgrammeOptions: () => ({
     isLoading: false,
     data: {
@@ -113,6 +115,7 @@ async function openPicker() {
 afterEach(() => {
   resolution = { status: 'RESOLVED', methodology: METHODOLOGY };
   resolving = false;
+  perimeter = { allowed: true, state: 'PERIMETER_ESTABLISHED' };
   cleanup();
   document.body.style.pointerEvents = '';
 });
@@ -160,5 +163,16 @@ describe('AUTHUX-UI creation is blocked unless the server resolved exactly one v
     await user.click(within(dialog).getByLabelText('Assessment'));
     await user.click(await screen.findByRole('option', { name: /periodic aml\/cft review/i }));
     expect(within(dialog).getByRole('button', { name: 'Continue' })).toBeEnabled();
+  });
+});
+
+describe('AML-CLOSE-02C supervisory perimeter', () => {
+  it('offers no way to continue and explains why when applicability is not established', async () => {
+    perimeter = { allowed: false, state: 'PERIMETER_NOT_ESTABLISHED',
+      reason: 'AML/CFT supervisory applicability has not been established for this entity.' };
+    const { dialog } = await openPicker();
+    expect(within(dialog).getByTestId('aml-perimeter-refusal').textContent).toMatch(/applicability has not been established/);
+    expect(within(dialog).queryByLabelText(/^Assessment$/)).toBeNull();
+    expect((within(dialog).getByRole('button', { name: /continue/i }) as HTMLButtonElement).disabled).toBe(true);
   });
 });
