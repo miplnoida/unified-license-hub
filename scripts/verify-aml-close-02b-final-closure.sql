@@ -11,6 +11,7 @@
 -- =====================================================================
 DO $close02b$
 DECLARE
+  _admin uuid := '4248640c-3397-4cf6-a274-fa09bad4ba64';   -- super administrator (portfolio-wide)
   _maker uuid := 'b8eaf680-fe66-4d49-b816-1c087f511235';   -- aml_supervision_officer
   _chk   uuid := '0b522724-adcb-48bf-b21d-175339479616';   -- aml_supervision_supervisor
   _reg   uuid := '8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3';   -- FSRA
@@ -118,7 +119,7 @@ BEGIN
   RESET ROLE;
   FOR _f IN SELECT * FROM (VALUES
       ('A',  _a_x1,  _ov_ret, NULL::uuid, 'RETIRED_HISTORICAL',          false),
-      ('B',  _a_ib,  _ov_sub, NULL::uuid, 'PINNED_POLICY_NOT_APPROVED',  true),
+      ('B',  _a_cu,  _ov_sub, NULL::uuid, 'PINNED_POLICY_NOT_APPROVED',  true),
       ('C1', _a_msb, _ov_fut, NULL::uuid, 'PINNED_POLICY_NOT_EFFECTIVE', true),
       ('C2', _a_x2,  _ov_exp, NULL::uuid, 'PINNED_POLICY_NOT_EFFECTIVE', false),
       ('D1', _a_drf, _ov_ok,  _sb_draft,  'source binding cannot be used', true),
@@ -189,16 +190,18 @@ BEGIN
   -- valid governed fact stays recordable (fixture assessment, active overlay+fact+no source family)
   RESET ROLE;
   INSERT INTO public.supervisory_assessment_policy_snapshot(assessment_id, domain_code, policy_profile_id, policy_profile_code, policy_profile_version, policy_profile_origin, regulator_id, resolved_as_of, components, resolution, content_hash)
-  VALUES (_a_cu,'AML_CFT',_prof.policy_profile_id,_prof.policy_profile_code,_prof.policy_profile_version,_prof.policy_profile_origin,_reg,current_date,
+  VALUES (_a_ib,'AML_CFT',_prof.policy_profile_id,_prof.policy_profile_code,_prof.policy_profile_version,_prof.policy_profile_origin,_reg,current_date,
           _base || jsonb_build_array(jsonb_build_object('component_type','SECTOR_OVERLAY','component_id',_ov_ok),
                                      jsonb_build_object('component_type','FACT_CONFIG','component_id',_fc)), '{}'::jsonb,'close02b-fixture');
+  PERFORM set_config('request.jwt.claims', json_build_object('sub',_admin,'role','authenticated')::text, true);
   EXECUTE 'SET LOCAL ROLE authenticated';
   BEGIN
-    PERFORM public.supervisory_assessment_fact_set(_a_cu, '{"fact_code":"CLOSE02B_STR_COUNT","value":"7","source_type":"RETURN"}');
-    IF (SELECT value_numeric FROM public.supervisory_assessment_fact WHERE assessment_id=_a_cu AND fact_code='CLOSE02B_STR_COUNT') = 7
+    PERFORM public.supervisory_assessment_fact_set(_a_ib, '{"fact_code":"CLOSE02B_STR_COUNT","value":"7","source_type":"RETURN"}');
+    IF (SELECT value_numeric FROM public.supervisory_assessment_fact WHERE assessment_id=_a_ib AND fact_code='CLOSE02B_STR_COUNT') = 7
       THEN _pass:=_pass+1; ELSE _fail:=_fail+1; _log:=_log||' V:not persisted'; END IF;
   EXCEPTION WHEN OTHERS THEN _fail:=_fail+1; _log:=_log||' V:'||SQLSTATE||' '||SQLERRM; END;
 
+  PERFORM set_config('request.jwt.claims', json_build_object('sub',_maker,'role','authenticated')::text, true);
   -- ================= fingerprint semantics (cfp1 = substantive content only)
   _r := public.supervisory_assessment_policy_basis_integrity(_a838);
   IF _r->>'status' = 'CONTENT_UNCHANGED' THEN _pass:=_pass+1; ELSE _fail:=_fail+1; _log:=_log||' I838:'||left(_r::text,600); END IF;
