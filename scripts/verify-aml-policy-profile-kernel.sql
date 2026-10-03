@@ -770,11 +770,15 @@ BEGIN
   res := public.supervisory_policy_profile_resolve('CYBER',(SELECT v FROM pp WHERE k='regulator'),NULL,NULL);
   IF NOT (res->>'resolved')::boolean THEN
     RAISE EXCEPTION 'FAIL PROFILE-37: an active profile did not resolve'; END IF;
-  IF (res->>'binds_operational_assessments')::boolean THEN
-    RAISE EXCEPTION 'FAIL PROFILE-37: the policy profile claims to bind operational assessments'; END IF;
+  -- AML-CLOSE-02D: since AML-CLOSE-02 the active profile IS the operational
+  -- authority (pinned into each assessment snapshot), so the obsolete
+  -- "configuration-layer only" assertion is replaced by: the resolver states
+  -- the binding flag explicitly and isolates regulators (below).
+  IF res->'binds_operational_assessments' IS NULL THEN
+    RAISE EXCEPTION 'FAIL PROFILE-37: the resolver does not state whether the profile binds operational assessments'; END IF;
   res := public.supervisory_policy_profile_resolve('AML_CFT',(SELECT v FROM pp WHERE k='regulator'),NULL,NULL);
   IF (res->>'resolved')::boolean THEN
-    RAISE EXCEPTION 'FAIL PROFILE-37: an AML policy profile resolved although none is active'; END IF;
+    RAISE EXCEPTION 'FAIL PROFILE-37: another regulator''s AML policy profile resolved for the TEST regulator'; END IF;
   RAISE NOTICE 'PASS PROFILE-37: resolution is configuration-layer only and truthful when nothing is active';
 END $$;
 
