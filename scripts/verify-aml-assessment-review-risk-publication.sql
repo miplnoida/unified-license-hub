@@ -162,6 +162,26 @@ INSERT INTO public.supervisory_assessment_programme_trigger(
 SELECT p.id,'PERIODIC','Periodic cycle',true,true,1
   FROM public.supervisory_assessment_programme p WHERE p.programme_code='AML07CERT_P';
 
+-- AML-CLOSE-02D fixture modernisation (TEST ONLY, rolled back).
+-- Obsolete assumption: no active policy profile governs the domain, so any
+-- programme set applies. Current runtime: the active regulator profile binds
+-- the ASSESSMENT_PROGRAMME the canonical create path must use. The fixture
+-- therefore governs its programme set through a TEST sector-scoped profile
+-- (more specific than the regulator-wide profile). The creation-time
+-- programme control itself is unchanged and still enforced.
+INSERT INTO public.supervisory_policy_profile(
+  code, profile_version, domain_code, regulator_id, sector_id, name, status, origin, effective_from, notes)
+VALUES ('AML07CERT-TEST-POLICY','1','AML_CFT',(SELECT v FROM r_id WHERE k='regulator'),(SELECT v FROM r_id WHERE k='sector'),
+  'TEST ONLY — AML07CERT fixture profile','DRAFT','REGULATOR_AUTHORED', current_date - 1,
+  'TEST ONLY — not an FSRA policy; discarded on rollback');
+INSERT INTO public.supervisory_policy_profile_binding(
+  profile_id, component_type, component_table, component_id, component_code, component_version, component_status, rationale)
+SELECT pp.id,'ASSESSMENT_PROGRAMME','supervisory_assessment_programme_set', s.id, s.code, s.set_version, 'ACTIVE','TEST fixture binding'
+  FROM public.supervisory_policy_profile pp, public.supervisory_assessment_programme_set s
+ WHERE pp.code='AML07CERT-TEST-POLICY' AND s.code='AML07CERT-PROGRAMMES';
+UPDATE public.supervisory_policy_profile SET status='ACTIVE', approved_at=now(), activated_at=now()
+ WHERE code='AML07CERT-TEST-POLICY';
+
 DO $$
 BEGIN
   SET LOCAL ROLE authenticated;
