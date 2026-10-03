@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { loginAs, probeRoute } from './support/auth';
 import { PERSONAS, persona } from './support/personas';
-import { restSelect, rpc, isDenied } from './support/api';
+import { restSelect, rpc } from './support/api';
+import { isAmlAuthorizationDenied } from './support/amlAuthorization';
 
 /**
  * AML/CFT demonstration dataset — persona walkthrough.
@@ -87,7 +88,7 @@ test.describe('AML/CFT demonstration dataset', () => {
       _is_applicable: false,
       _basis: 'Unauthorised attempt from an out-of-domain officer account.',
     });
-    expect(isDenied(write) || !write.ok, `perimeter write should be refused: ${write.bodyText}`).toBeTruthy();
+    expect(isAmlAuthorizationDenied(write), `perimeter write should be refused: ${write.bodyText}`).toBeTruthy();
   });
 
   test('an external licensee user can reach no AML supervisory record', async ({ page }) => {
@@ -99,7 +100,7 @@ test.describe('AML/CFT demonstration dataset', () => {
 
     const read = await restSelect(LICENSEE, 'supervisory_finding?select=id,title&limit=5');
     const empty = read.ok && Array.isArray(read.body) && (read.body as unknown[]).length === 0;
-    expect(isDenied(read) || empty, `external read must be denied or empty: ${read.bodyText}`).toBeTruthy();
+    expect(isAmlAuthorizationDenied(read) || empty, `external read must be denied or empty: ${read.bodyText}`).toBeTruthy();
   });
 
   test('the enforcement officer sees the referred case and the read-only persona can look but not act', async ({ page }) => {
@@ -113,6 +114,7 @@ test.describe('AML/CFT demonstration dataset', () => {
       _entity_id: '00000000-0000-0000-0000-000000000000',
       _domain_code: 'AML_CFT',
     });
-    expect(isDenied(attempt) || !attempt.ok, `read-only write must fail: ${attempt.bodyText}`).toBeTruthy();
+    expect(isAmlAuthorizationDenied(attempt), `read-only write must fail: ${attempt.bodyText}`).toBeTruthy();
   });
 });
+
