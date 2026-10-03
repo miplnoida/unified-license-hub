@@ -35,8 +35,17 @@ GRANT ALL ON pp TO authenticated;
 GRANT ALL ON ppn TO authenticated;
 GRANT ALL ON ppt TO authenticated;
 
+-- AML-CLOSE-02D fixture modernisation (TEST ONLY, rolled back).
+-- Obsolete assumption: the adopting regulator (FSRA) has not yet adopted the
+-- MIPL reference package. FSRA has since adopted it for real, so adoption is
+-- correctly refused as already_adopted. The kernel gates therefore run
+-- against a pristine, transaction-scoped TEST regulator. The adoption,
+-- ownership, provenance and maker/checker assertions are unchanged.
+INSERT INTO public.regulators(id, name, code, status)
+VALUES ('0d0d0d0d-0202-4d00-8000-00000000c02d','TEST ONLY — PPCERT regulator (rolled back)','PPCERT_TESTREG','active');
+
 INSERT INTO pp(k,v) VALUES
-  ('regulator', '8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3'),                     -- FSRA
+  ('regulator', '0d0d0d0d-0202-4d00-8000-00000000c02d'),                     -- TEST regulator (02D)
   ('other_regulator', 'ca6e0616-55a9-48e7-8652-2b19536afb8a'),               -- ABC Prudential
   ('meth_v10', (SELECT id FROM public.supervisory_methodology
                  WHERE code='AML-CFT-RBA' AND version='1.0')),
