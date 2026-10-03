@@ -527,6 +527,20 @@ BEGIN
   RAISE NOTICE 'PASS PROFILE-20: only approved or active component versions may be bound by a regulator profile';
 END $$;
 
+-- AML-CLOSE-02D fixture modernisation (TEST ONLY, rolled back).
+-- Obsolete assumption: approval reaches the maker/checker and readiness
+-- gates directly. A later package-compatibility gate now refuses approval
+-- first while the adopted methodology/programme are still DRAFT, which would
+-- mask those gates. The fixture moves the TEST regulator's adopted
+-- components to ACTIVE inside this transaction so PROFILE-21..24 again
+-- exercise maker/checker, the approval right and the readiness floor.
+RESET ROLE;
+UPDATE public.supervisory_methodology SET status='ACTIVE', effective_from=COALESCE(effective_from,current_date)
+ WHERE id=(SELECT v FROM pp WHERE k='adopted_meth');
+UPDATE public.supervisory_assessment_programme_set SET status='ACTIVE', effective_from=COALESCE(effective_from,current_date)
+ WHERE regulator_id=(SELECT v FROM pp WHERE k='regulator') AND status='DRAFT';
+SET LOCAL ROLE authenticated;
+
 -- =====================================================================
 -- PROFILE-21 — approval is refused while required components are unsatisfied
 -- PROFILE-22 — maker/checker: the author cannot approve
