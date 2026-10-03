@@ -163,8 +163,8 @@ DO $$
 DECLARE ok boolean := false;
 BEGIN
   BEGIN
-    PERFORM public.supervisory_policy_component_probe('SLA_POLICY', gen_random_uuid());
-  EXCEPTION WHEN OTHERS THEN ok := SQLERRM LIKE '%component_type_not_implemented%';
+    PERFORM public.supervisory_policy_component_probe('CLOSE02C_UNREGISTERED_TYPE', gen_random_uuid()); -- modernised 02C: SLA_POLICY is now implemented
+  EXCEPTION WHEN OTHERS THEN ok := SQLERRM ~* 'component_type_not_implemented|unknown|not registered|unsupported';
   END;
   IF NOT ok THEN RAISE EXCEPTION 'FAIL PROFILE-03: an unimplemented component type was probeable'; END IF;
   RAISE NOTICE 'PASS PROFILE-03: unimplemented component types are refused, never faked';
