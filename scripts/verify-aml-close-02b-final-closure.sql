@@ -230,6 +230,11 @@ BEGIN
   _lh2 := public.supervisory_policy_component_content_hash('SECTOR_OVERLAY', _fp_c);
   IF _fp2 = _fp1 THEN _pass:=_pass+1; ELSE _fail:=_fail+1; _log:=_log||' FP-activate'; END IF;
   IF _lh2 <> _lh1 THEN _pass:=_pass+1; ELSE _fail:=_fail+1; _log:=_log||' LEGACY-not-status-sensitive'; END IF;
+  -- content edits are only possible on a DRAFT version: use a separate draft fixture
+  INSERT INTO public.supervisory_policy_component(component_type, code, component_version, domain_code, regulator_id, name, status, content)
+  VALUES ('SECTOR_OVERLAY','CLOSE02B-FP-D','1','AML_CFT',_reg,'CLOSE02B fp draft','DRAFT',
+          '{"sectors":[{"sector_code":"CREDIT_UNIONS","applicability":"APPLICABLE"}]}') RETURNING id INTO _fp_c;
+  _fp1 := public.supervisory_policy_component_content_fingerprint('SECTOR_OVERLAY', _fp_c);
   UPDATE public.supervisory_policy_component SET content='{"sectors":[{"sector_code":"CREDIT_UNIONS","applicability":"NOT_APPLICABLE"}]}' WHERE id=_fp_c;
   IF public.supervisory_policy_component_content_fingerprint('SECTOR_OVERLAY', _fp_c) <> _fp1 THEN _pass:=_pass+1; ELSE _fail:=_fail+1; _log:=_log||' FP-content'; END IF;
   UPDATE public.supervisory_policy_component SET content='{"sectors":[{"applicability":"APPLICABLE","sector_code":"CREDIT_UNIONS"}]}' WHERE id=_fp_c;
