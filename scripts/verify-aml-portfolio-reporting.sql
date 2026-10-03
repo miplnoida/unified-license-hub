@@ -103,7 +103,7 @@ END $$;
 -- for CREATE-09 and which is granted inside this transaction only.
 INSERT INTO public.sec_user_roles(user_id, role_id, status, assigned_by)
 SELECT '0b522724-adcb-48bf-b21d-175339479616'::uuid, r.id, 'active',
-       '0b522724-adcb-48bf-b21d-175339479616'::uuid
+       '4248640c-3397-4cf6-a274-fa09bad4ba64'::uuid  -- AML-CLOSE-02D: not self-granted
   FROM public.sec_roles r WHERE r.key = 'enforcement_officer'
 ON CONFLICT DO NOTHING;
 
@@ -125,7 +125,7 @@ ON CONFLICT DO NOTHING;
 -- requires, to the reviewing supervisor. The officer is deliberately NOT given
 -- review or policy authority, so the maker-checker gates test the real split.
 INSERT INTO public.sec_user_roles(user_id, role_id, status, assigned_by)
-SELECT u, r.id, 'active', u
+SELECT u, r.id, 'active', '4248640c-3397-4cf6-a274-fa09bad4ba64'::uuid  -- AML-CLOSE-02D: granted by the TEST super administrator, never self-granted
   FROM (VALUES ('cbce55aa-4310-4dc9-a4e1-dcf1bc71b5e9'::uuid),
                ('0b522724-adcb-48bf-b21d-175339479616'::uuid)) AS x(u),
        public.sec_roles r

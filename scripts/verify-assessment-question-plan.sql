@@ -96,7 +96,7 @@ INSERT INTO pl_t(k,t) VALUES
 -- -------------------------------------------------------------- fixtures ----
 -- Transaction-scoped supervisory authority for the personas.
 INSERT INTO public.sec_user_roles(user_id, role_id, status, assigned_by)
-SELECT u, r.id, 'active', u
+SELECT u, r.id, 'active', '4248640c-3397-4cf6-a274-fa09bad4ba64'::uuid  -- AML-CLOSE-02D: granted by the TEST super administrator, never self-granted
   FROM (VALUES ('b8eaf680-fe66-4d49-b816-1c087f511235'::uuid),
                ('0b522724-adcb-48bf-b21d-175339479616'::uuid)) AS x(u),
        public.sec_roles r
