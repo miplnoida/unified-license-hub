@@ -70,9 +70,9 @@ export function AmlConfigurationAuthorityPanel({ assessmentId }: { assessmentId:
       <CardHeader className="pb-2">
         <CardTitle className="text-base">Governing configuration</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Fixed when the assessment was created from policy package{' '}
-          {data.fact_config.policy_profile_code ?? '—'} {data.fact_config.policy_profile_version ?? ''}. Later
-          configuration changes do not alter it.
+          {data.fact_config.policy_profile_code
+            ? `Fixed when the assessment was created from policy package ${data.fact_config.policy_profile_code} ${data.fact_config.policy_profile_version ?? ''}. Later configuration changes do not alter it.`
+            : 'This assessment was created without a policy package basis, so none of these families govern it.'}
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
