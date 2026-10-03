@@ -69508,6 +69508,10 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_assessment_configuration_authority: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_assessment_create: {
         Args: {
           _assessment_type?: string
@@ -69623,6 +69627,15 @@ export type Database = {
         Args: { _assessment_id: string }
         Returns: Json
       }
+      supervisory_assessment_fact_governance_internal: {
+        Args: {
+          _assessment_id: string
+          _fact_code: string
+          _method_type: string
+          _source_type: string
+        }
+        Returns: Json
+      }
       supervisory_assessment_fact_override: {
         Args: { _fact_id: string; _payload: Json; _reason: string }
         Returns: Json
@@ -69657,6 +69670,10 @@ export type Database = {
           _domain_table: string
           _record_id: string
         }
+        Returns: Json
+      }
+      supervisory_assessment_pinned_component_internal: {
+        Args: { _assessment_id: string; _type: string }
         Returns: Json
       }
       supervisory_assessment_policy_basis: {
@@ -69898,6 +69915,10 @@ export type Database = {
         Returns: Json
       }
       supervisory_assessment_risk_lineage: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_sector_overlay_internal: {
         Args: { _assessment_id: string }
         Returns: Json
       }
@@ -70373,6 +70394,10 @@ export type Database = {
         Returns: Json
       }
       supervisory_export_text_safe: { Args: { _v: string }; Returns: string }
+      supervisory_fact_type_compatible: {
+        Args: { _config_type: string; _method_type: string }
+        Returns: boolean
+      }
       supervisory_finding_can_read: {
         Args: { _f: Database["public"]["Tables"]["supervisory_finding"]["Row"] }
         Returns: boolean

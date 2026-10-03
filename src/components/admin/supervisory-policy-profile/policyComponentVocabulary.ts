@@ -39,18 +39,18 @@ export const AREA_COPY: Record<string, AreaCopy> = {
   },
   SECTOR_OVERLAY: {
     purpose: 'Which sectors this policy package applies to, and where it applies with modifications.',
-    effect: 'Recorded and governed, but supervision does not yet read it. It documents intent only.',
-    consumed: false,
+    effect: 'Used live: an assessment pinned to this overlay can only be created or worked on for sectors it marks applicable.',
+    consumed: true,
   },
   FACT_CONFIG: {
     purpose: 'The facts officers must record, and the form each fact takes.',
-    effect: 'Recorded and governed, but the assessment fact register still follows the methodology.',
-    consumed: false,
+    effect: 'Used live: only listed methodology facts can be recorded, sector limits and types are enforced, and mandatory facts count as missing information.',
+    consumed: true,
   },
   SOURCE_BINDING: {
     purpose: 'Where each fact is expected to come from — a return, a form, or manual entry.',
-    effect: 'Recorded and governed, but facts are not yet pre-filled from these sources.',
-    consumed: false,
+    effect: 'Used live: a fact can only be recorded with a source kind bound to it, and the binding is kept with the fact. Values are not yet pre-filled automatically.',
+    consumed: true,
   },
   MATERIALITY_POLICY: {
     purpose: 'The size thresholds at which a measure becomes material for supervision.',
