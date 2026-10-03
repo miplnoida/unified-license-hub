@@ -69680,6 +69680,10 @@ export type Database = {
         Args: { _assessment_id: string }
         Returns: Json
       }
+      supervisory_assessment_policy_basis_integrity: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_assessment_policy_snapshot_stamp_internal: {
         Args: { _assessment_id: string }
         Returns: Json
@@ -71038,6 +71042,10 @@ export type Database = {
         Args: { _component_type: string }
         Returns: Json
       }
+      supervisory_policy_component_content_fingerprint: {
+        Args: { _component_id: string; _component_type: string }
+        Returns: string
+      }
       supervisory_policy_component_content_hash: {
         Args: { _component_id: string; _component_type: string }
         Returns: string
@@ -71053,6 +71061,14 @@ export type Database = {
       supervisory_policy_component_detail: {
         Args: { _component_id: string }
         Returns: Json
+      }
+      supervisory_policy_component_legacy_hash_with_status: {
+        Args: {
+          _component_id: string
+          _component_type: string
+          _status: string
+        }
+        Returns: string
       }
       supervisory_policy_component_lifecycle: {
         Args: { _component_id: string; _rationale: string; _to_status: string }
