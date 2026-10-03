@@ -101,19 +101,23 @@ SELECT rs.id, 'regulator', (SELECT v FROM pp WHERE k='regulator')
   JOIN public.sec_roles r ON r.id = rs.role_id AND r.key='aml_head'
   JOIN public.sec_modules m ON m.id = rs.module_id AND m.key='aml_supervision';
 
+-- AML-CLOSE-02D: the runtime now accepts only registered supervisory domains
+-- (supervisory_domain_valid). The generic-kernel fixture therefore uses the
+-- registered CYBER domain, which has no authority, requirements or profiles,
+-- inside this rolled-back transaction (previously an unregistered PPCERT_DOMAIN).
 -- A generic test domain proves the kernel is not AML-only and lets the positive
 -- approve/activate path be certified without inventing any AML policy value.
 INSERT INTO public.supervisory_domain_authority(domain_code, manage_config_permission,
         methodology_approval_permission, policy_approval_permission)
-VALUES ('PPCERT_DOMAIN','aml_supervision.manage_config','aml_supervision.methodology_approve',
+VALUES ('CYBER','aml_supervision.manage_config','aml_supervision.methodology_approve',
         'aml_supervision.policy_approve')
 ON CONFLICT (domain_code) DO NOTHING;
 
 INSERT INTO public.supervisory_policy_domain_component_requirement(
         domain_code, component_type, requirement, required_for_approval, required_for_activation, is_locked, rationale)
-VALUES ('PPCERT_DOMAIN','METHODOLOGY','OPTIONAL',false,false,false,
+VALUES ('CYBER','METHODOLOGY','OPTIONAL',false,false,false,
         'Certification domain: unlocked floor proves a profile may make a requirement stricter.'),
-       ('PPCERT_DOMAIN','CALCULATION_CONFIG','NOT_APPLICABLE',false,false,false,
+       ('CYBER','CALCULATION_CONFIG','NOT_APPLICABLE',false,false,false,
         'Certification domain: unlocked floor proves configurability where domain policy permits it.')
 ON CONFLICT (domain_code, component_type) DO NOTHING;
 
@@ -134,9 +138,9 @@ BEGIN
    WHERE table_schema='public' AND table_name LIKE 'supervisory_policy_%'
      AND (column_name ILIKE '%aml%' OR column_name ILIKE '%cft%');
   IF n > 0 THEN RAISE EXCEPTION 'FAIL PROFILE-01: the kernel carries AML-specific columns'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.supervisory_policy_profile WHERE domain_code='PPCERT_DOMAIN')
+  IF NOT EXISTS (SELECT 1 FROM public.supervisory_policy_profile WHERE domain_code='CYBER')
      AND NOT EXISTS (SELECT 1 FROM public.supervisory_policy_domain_component_requirement
-                      WHERE domain_code='PPCERT_DOMAIN') THEN
+                      WHERE domain_code='CYBER') THEN
     RAISE EXCEPTION 'FAIL PROFILE-01: the kernel refused a non-AML supervisory domain'; END IF;
   RAISE NOTICE 'PASS PROFILE-01: generic supervisory policy profile kernel, AML/CFT is only its first consumer';
 END $$;
@@ -462,7 +466,7 @@ DO $$
 DECLARE pid uuid; eff jsonb; ok boolean := false;
 BEGIN
   pid := public.supervisory_policy_profile_create(jsonb_build_object(
-    'domain_code','PPCERT_DOMAIN','code','PPCERT-GENERIC','profile_version','1.0-PPCERT',
+    'domain_code','CYBER','code','PPCERT-GENERIC','profile_version','1.0-PPCERT',
     'name','Certification generic profile','regulator_id',(SELECT v FROM pp WHERE k='regulator'),
     'rationale','AML-01 certification: generic domain profile.'));
   INSERT INTO pp(k,v) VALUES ('generic', pid);
@@ -470,7 +474,7 @@ BEGIN
   PERFORM public.supervisory_policy_profile_requirement_set(pid,
     jsonb_build_object('component_type','METHODOLOGY','requirement','REQUIRED',
                        'rationale','Certification: profile is stricter than the domain floor.'));
-  eff := public.supervisory_policy_requirement_effective('PPCERT_DOMAIN','METHODOLOGY','REQUIRED');
+  eff := public.supervisory_policy_requirement_effective('CYBER','METHODOLOGY','REQUIRED');
   IF eff->>'effective_requirement' <> 'REQUIRED' THEN
     RAISE EXCEPTION 'FAIL PROFILE-18: a stricter profile requirement was not honoured'; END IF;
 
@@ -688,7 +692,7 @@ BEGIN
   IF (SELECT status FROM public.supervisory_policy_profile WHERE id=(SELECT v FROM pp WHERE k='generic')) <> 'SUPERSEDED' THEN
     RAISE EXCEPTION 'FAIL PROFILE-32: the previous active profile was not superseded'; END IF;
   IF (SELECT count(*) FROM public.supervisory_policy_profile
-       WHERE domain_code='PPCERT_DOMAIN' AND status='ACTIVE') <> 1 THEN
+       WHERE domain_code='CYBER' AND status='ACTIVE') <> 1 THEN
     RAISE EXCEPTION 'FAIL PROFILE-32: more than one active profile in the same scope'; END IF;
   RAISE NOTICE 'PASS PROFILE-31/32: change control creates a superseding version; one active profile per scope';
 END $$;
@@ -763,7 +767,7 @@ SET LOCAL "request.jwt.claims" = :'APPROVER';
 DO $$
 DECLARE res jsonb;
 BEGIN
-  res := public.supervisory_policy_profile_resolve('PPCERT_DOMAIN',(SELECT v FROM pp WHERE k='regulator'),NULL,NULL);
+  res := public.supervisory_policy_profile_resolve('CYBER',(SELECT v FROM pp WHERE k='regulator'),NULL,NULL);
   IF NOT (res->>'resolved')::boolean THEN
     RAISE EXCEPTION 'FAIL PROFILE-37: an active profile did not resolve'; END IF;
   IF (res->>'binds_operational_assessments')::boolean THEN
