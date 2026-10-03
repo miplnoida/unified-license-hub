@@ -41,6 +41,9 @@ export interface GovernedFactRow {
   label: string | null;
   data_type: string | null;
   permitted: boolean;
+  /** Why the platform will refuse this fact for this assessment, when it will. */
+  not_permitted_reason?: 'RETIRED_DEFINITION' | 'FACT_CONFIG_UNAVAILABLE' | 'NOT_IN_FACT_CONFIG' | 'OTHER_SECTOR' | null;
+  definition_status?: string | null;
   required: boolean;
   sector_codes: string[] | null;
   allowed_sources: Array<{ source_kind: string; source_reference: string | null }> | null;

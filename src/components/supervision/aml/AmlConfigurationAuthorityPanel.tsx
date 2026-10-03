@@ -21,6 +21,13 @@ const FAMILY_LABEL: Record<string, string> = {
   SOURCE_BINDING: 'Source binding',
 };
 
+const NOT_PERMITTED_LABEL: Record<string, string> = {
+  RETIRED_DEFINITION: 'retired definition',
+  FACT_CONFIG_UNAVAILABLE: 'fact settings cannot be used',
+  NOT_IN_FACT_CONFIG: 'not in the fact settings',
+  OTHER_SECTOR: 'applies to another sector',
+};
+
 function statusText(f: PinnedFamily): { text: string; tone: string } {
   if (f.status === 'GOVERNED') return { text: `${f.code} v${f.component_version}`, tone: EMERALD };
   if (f.status === 'UNAVAILABLE') return { text: 'Cannot be used', tone: AMBER };
@@ -108,7 +115,10 @@ export function AmlConfigurationAuthorityPanel({ assessmentId }: { assessmentId:
                 {data.facts.map((f) => (
                   <tr key={f.fact_code} className="border-b last:border-0" data-testid={`config-fact-${f.fact_code}`}>
                     <td className="py-1 pr-2"><span className="font-mono text-xs">{f.fact_code}</span> {f.label}</td>
-                    <td className="py-1 pr-2">{f.permitted ? 'Yes' : 'No'}{f.sector_codes?.length ? ` (${f.sector_codes.join(', ')})` : ''}</td>
+                    <td className="py-1 pr-2">
+                      {f.permitted ? 'Yes' : `No${f.not_permitted_reason ? ` — ${NOT_PERMITTED_LABEL[f.not_permitted_reason] ?? f.not_permitted_reason}` : ''}`}
+                      {f.sector_codes?.length ? ` (${f.sector_codes.join(', ')})` : ''}
+                    </td>
                     <td className="py-1 pr-2">{f.required ? 'Yes' : 'No'}</td>
                     <td className="py-1 pr-2">
                       {f.allowed_sources?.length
