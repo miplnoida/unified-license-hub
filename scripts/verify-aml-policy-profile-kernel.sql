@@ -533,7 +533,7 @@ END $$;
 -- PROFILE-23 — the dedicated policy approval right is required
 -- =====================================================================
 DO $$
-DECLARE ok boolean := false;
+DECLARE ok boolean := false; msg text;
 BEGIN
   PERFORM public.supervisory_policy_profile_lifecycle((SELECT v FROM pp WHERE k='adopted'), 'REVIEW',
     'AML-01 certification: submit the adopted AML policy profile for review.');
@@ -542,9 +542,9 @@ BEGIN
   BEGIN
     PERFORM public.supervisory_policy_profile_lifecycle((SELECT v FROM pp WHERE k='adopted'), 'APPROVED',
       'AML-01 certification: author self-approval attempt.');
-  EXCEPTION WHEN OTHERS THEN ok := SQLERRM LIKE '%cannot approve%' OR SQLERRM LIKE '%not_authorized%';
+  EXCEPTION WHEN OTHERS THEN ok := SQLERRM LIKE '%cannot approve%' OR SQLERRM LIKE '%not_authorized%'; msg := SQLERRM;
   END;
-  IF NOT ok THEN RAISE EXCEPTION 'FAIL PROFILE-22: the author approved its own policy profile'; END IF;
+  IF NOT ok THEN RAISE EXCEPTION 'FAIL PROFILE-22: the author self-approval was not refused on maker/checker grounds (%)', COALESCE(msg,'accepted'); END IF;
   RAISE NOTICE 'PASS PROFILE-22: the author of a policy profile version cannot approve it';
 END $$;
 
