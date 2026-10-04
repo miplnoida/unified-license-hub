@@ -118,7 +118,7 @@ test.describe.serial('AML-CLOSE-03A browser journey (TEST package)', () => {
     for (const [dim, answer] of plan) {
       const head = page.getByRole('button', { name: dim });
       if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click();
-      const region = page.locator('[role="region"]', { has: page.locator('button[id^="resp-"]') }).filter({ visible: true }).last();
+      const region = page.locator(`[role="region"][aria-labelledby="${await head.getAttribute('id')}"]`);
       const trigs = region.locator('button[id^="resp-"]');
       await expect(trigs.first()).toBeVisible({ timeout: 20_000 });
       for (let i = 0; i < await trigs.count(); i++) {
