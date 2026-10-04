@@ -146,6 +146,7 @@ test.describe.serial('AML-CLOSE-03A browser journey (TEST package)', () => {
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.getByRole('tab', { name: 'Calculation' }).click();
     await expect(result).toContainText(/MODERATE/i, { timeout: 45_000 });
+    await page.getByRole('tab', { name: 'Working file' }).click();
     expect(await factorRows(page)).toMatchObject({ AML_TECH_CERT_INHERENT_B: 'EXCLUDED_NOT_MATERIAL' });
 
     const fa = await rpc(OFFICER, 'supervisory_assessment_factor_authority', { _assessment_id: assessmentId });
