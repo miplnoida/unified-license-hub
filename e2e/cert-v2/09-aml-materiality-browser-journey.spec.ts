@@ -108,26 +108,32 @@ test.describe.serial('AML-CLOSE-03A browser journey (TEST package)', () => {
     await page.goto(`/supervision/aml/assessments/${assessmentId}`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('aml-factor-authority')).toBeVisible({ timeout: 45_000 });
 
-    // Open every dimension in the working file and answer each question.
-    for (const t of await page.locator('[data-radix-collection-item][data-state="closed"]').filter({ hasText: /AML_TECH_CERT|TEST/ }).all()) {
-      await t.click().catch(() => {});
+    // Answer each applicable dimension's questions in the working file (accordions open one at a time).
+    const plan: Array<[RegExp, RegExp]> = [
+      [/^AML_TECH_CERT_INHERENT weight/, /Partially/i],
+      [/^AML_TECH_CERT_INHERENT_B weight/, /^Yes$/i],
+      [/^TEST ONLY control dimension weight/, /^Yes$/i],
+    ];
+    let answered = 0;
+    for (const [dim, answer] of plan) {
+      const head = page.getByRole('button', { name: dim });
+      if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click();
+      const region = page.locator('[role="region"]', { has: page.locator('button[id^="resp-"]') }).filter({ visible: true }).last();
+      const trigs = region.locator('button[id^="resp-"]');
+      await expect(trigs.first()).toBeVisible({ timeout: 20_000 });
+      for (let i = 0; i < await trigs.count(); i++) {
+        const trig = trigs.nth(i);
+        const qid = (await trig.getAttribute('id'))!.slice(5);
+        await trig.click();
+        await page.getByRole('option', { name: answer }).first().click();
+        await page.locator(`#obs-${qid}`).fill('TEST ONLY observation — AML-CLOSE-03A');
+        const save = trig.locator('xpath=ancestor::div[.//button[normalize-space()="Save response"]][1]').getByRole('button', { name: 'Save response' });
+        await save.click();
+        await expect(save).toHaveText('Save response', { timeout: 20_000 });
+        answered++;
+      }
     }
-    const answers: Record<string, RegExp> = { 'AML-TC-IR-01': /Partially/i };
-    const triggers = page.locator('button[id^="resp-"]');
-    const n = await triggers.count();
-    expect(n, 'questions visible in the working file').toBeGreaterThan(0);
-    for (let i = 0; i < n; i++) {
-      const trig = triggers.nth(i);
-      const card = trig.locator('xpath=ancestor::div[contains(@class,"rounded")][1]');
-      const text = await card.innerText();
-      const code = Object.keys(answers).find((k) => text.includes(k));
-      await trig.click();
-      await page.getByRole('option', { name: code ? answers[code] : /^Yes$/i }).first().click();
-      const obs = card.locator('textarea');
-      if (await obs.count()) await obs.first().fill('TEST ONLY observation — AML-CLOSE-03A');
-      await card.getByRole('button', { name: 'Save response' }).click();
-      await expect(card.getByRole('button', { name: 'Save response' })).toBeEnabled({ timeout: 20_000 });
-    }
+    expect(answered, 'questions answered through the working file').toBeGreaterThan(0);
 
     await page.getByRole('tab', { name: 'Calculation' }).click();
     await page.getByRole('button', { name: 'Recalculate' }).click();
