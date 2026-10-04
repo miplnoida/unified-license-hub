@@ -86,7 +86,9 @@ test.describe.serial('AML-CLOSE-03A browser journey (TEST package)', () => {
     expect(sub.ok, 'submission must be refused while factor information is pending').toBeFalsy();
 
     await recordFact(page, 'AML_TECH_CERT_HAS_FLAG', 'yes');
-    await expect.poll(async () => (await factorRows(page)).AML_TECH_CERT_INHERENT, { timeout: 30_000 }).not.toBe('PENDING_INFORMATION');
+    // Applicability resolves automatically; the factor stays pending only on its materiality fact.
+    await expect(page.locator('tr[data-factor="AML_TECH_CERT_INHERENT"]')).toContainText('meets the applicability condition', { timeout: 30_000 });
+    await expect(page.locator('tr[data-factor="AML_TECH_CERT_INHERENT"]')).toContainText('Missing: AML_TECH_CERT_STR_COUNT');
     await recordFact(page, 'AML_TECH_CERT_STR_COUNT', '12');
     await expect.poll(async () => (await factorRows(page)).AML_TECH_CERT_INHERENT_B, { timeout: 30_000 }).toBe('EXCLUDED_NOT_MATERIAL');
 
