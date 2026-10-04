@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.supervisory_assessment_readiness_internal(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.supervisory_assessment_readiness_internal(uuid) TO service_role;
