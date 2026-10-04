@@ -203,7 +203,8 @@ export function useAssessmentFactRegister(assessmentId?: string) {
 function useAssessmentInvalidation(assessmentId?: string) {
   const qc = useQueryClient();
   return () => {
-    ['assessment-readiness', 'assessment-question-execution', 'assessment-evidence-register', 'assessment-fact-register']
+    ['assessment-readiness', 'assessment-question-execution', 'assessment-evidence-register', 'assessment-fact-register',
+      'supervisory_assessment_factor_authority']
       .forEach((key) => qc.invalidateQueries({ queryKey: [key, assessmentId] }));
     qc.invalidateQueries({ queryKey: ['aml', 'question-responses', assessmentId ?? null] });
   };

@@ -17,6 +17,7 @@ import { AmlEvidencePolicyPanel } from '@/components/supervision/aml/AmlEvidence
 import { AmlConfigurationAuthorityPanel } from '@/components/supervision/aml/AmlConfigurationAuthorityPanel';
 import { AmlFactRegisterPanel } from '@/components/supervision/aml/AmlFactRegisterPanel';
 import { AmlReadinessPanel } from '@/components/supervision/aml/AmlReadinessPanel';
+import { AmlFactorAuthorityPanel } from '@/components/supervision/aml/AmlFactorAuthorityPanel';
 import { computeAssessmentReadiness, type RecordedDimension } from '@/lib/amlAssessmentReadiness';
 
 
@@ -79,6 +80,7 @@ export function AmlAssessmentGovernance({
         <AmlConfigurationAuthorityPanel assessmentId={assessmentId} />
         <AmlEvidencePolicyPanel assessmentId={assessmentId} />
         <AmlFactRegisterPanel assessmentId={assessmentId} editable={editable} />
+        <AmlFactorAuthorityPanel assessmentId={assessmentId} />
         <AmlDimensionWorksheet
           assessmentId={assessmentId}
           entityId={entityId}
