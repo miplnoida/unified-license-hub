@@ -36,10 +36,10 @@ export default defineConfig({
   retries: 0,
   reporter: [
     ['list'],
-    ['json', { outputFile: 'e2e/.artifacts/results.json' }],
-    ['html', { outputFolder: 'e2e/.artifacts/report', open: 'never' }],
+    ['json', { outputFile: '/tmp/e2e-artifacts/results.json' }],
+    ['html', { outputFolder: '/tmp/e2e-artifacts/report', open: 'never' }],
   ],
-  outputDir: 'e2e/.artifacts/output',
+  outputDir: process.env.E2E_OUTPUT_DIR ?? '/tmp/e2e-artifacts/output',
   use: {
     baseURL: process.env.E2E_BASE_URL || 'http://localhost:8080',
     viewport: { width: 1440, height: 1000 },
