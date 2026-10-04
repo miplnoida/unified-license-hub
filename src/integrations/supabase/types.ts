@@ -47161,6 +47161,79 @@ export type Database = {
           },
         ]
       }
+      supervisory_calculation_applicability_rule: {
+        Row: {
+          basis: string
+          config_id: string
+          created_at: string
+          dimension_code: string
+          fact_code: string | null
+          fact_requirement_id: string | null
+          id: string
+          methodology_dimension_id: string
+          operator: string | null
+          rationale: string
+          sector_codes: string[] | null
+          threshold_value: number | null
+          updated_at: string
+          when_missing: string
+        }
+        Insert: {
+          basis: string
+          config_id: string
+          created_at?: string
+          dimension_code: string
+          fact_code?: string | null
+          fact_requirement_id?: string | null
+          id?: string
+          methodology_dimension_id: string
+          operator?: string | null
+          rationale: string
+          sector_codes?: string[] | null
+          threshold_value?: number | null
+          updated_at?: string
+          when_missing?: string
+        }
+        Update: {
+          basis?: string
+          config_id?: string
+          created_at?: string
+          dimension_code?: string
+          fact_code?: string | null
+          fact_requirement_id?: string | null
+          id?: string
+          methodology_dimension_id?: string
+          operator?: string | null
+          rationale?: string
+          sector_codes?: string[] | null
+          threshold_value?: number | null
+          updated_at?: string
+          when_missing?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_calculation_applicabi_methodology_dimension_id_fkey"
+            columns: ["methodology_dimension_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_dimension"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_calculation_applicability__fact_requirement_id_fkey"
+            columns: ["fact_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_fact_requirement"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_calculation_applicability_rule_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_calculation_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supervisory_calculation_band: {
         Row: {
           band_code: string
@@ -47524,13 +47597,18 @@ export type Database = {
           comparator: string
           config_id: string
           created_at: string
+          dimension_code: string | null
           fact_code: string | null
+          fact_requirement_id: string | null
           id: string
+          methodology_dimension_id: string | null
           parameter_code: string
           rationale: string
           threshold_value: number
           unit: string | null
           updated_at: string
+          when_missing: string
+          when_not_material: string | null
         }
         Insert: {
           adjustment_band?: string | null
@@ -47538,13 +47616,18 @@ export type Database = {
           comparator: string
           config_id: string
           created_at?: string
+          dimension_code?: string | null
           fact_code?: string | null
+          fact_requirement_id?: string | null
           id?: string
+          methodology_dimension_id?: string | null
           parameter_code: string
           rationale: string
           threshold_value: number
           unit?: string | null
           updated_at?: string
+          when_missing?: string
+          when_not_material?: string | null
         }
         Update: {
           adjustment_band?: string | null
@@ -47552,15 +47635,34 @@ export type Database = {
           comparator?: string
           config_id?: string
           created_at?: string
+          dimension_code?: string | null
           fact_code?: string | null
+          fact_requirement_id?: string | null
           id?: string
+          methodology_dimension_id?: string | null
           parameter_code?: string
           rationale?: string
           threshold_value?: number
           unit?: string | null
           updated_at?: string
+          when_missing?: string
+          when_not_material?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "supervisory_calculation_materiali_methodology_dimension_id_fkey"
+            columns: ["methodology_dimension_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_dimension"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_calculation_materiality_ru_fact_requirement_id_fkey"
+            columns: ["fact_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_methodology_fact_requirement"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "supervisory_calculation_materiality_rule_config_id_fkey"
             columns: ["config_id"]
@@ -69660,6 +69762,14 @@ export type Database = {
         Args: { _data_type: string; _payload: Json }
         Returns: Json
       }
+      supervisory_assessment_factor_authority: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_factor_evaluation_internal: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_assessment_judgement_policy_internal: {
         Args: { _assessment_id: string }
         Returns: Json
@@ -70097,6 +70207,18 @@ export type Database = {
         Args: { _assessment_id: string }
         Returns: string
       }
+      supervisory_calc_config_resolved_internal: {
+        Args: { _assessment_id: string }
+        Returns: string
+      }
+      supervisory_calc_factor_evaluate_internal: {
+        Args: { _assessment_id: string; _policy: Json }
+        Returns: Json
+      }
+      supervisory_calc_factor_rules_internal: {
+        Args: { _config_id: string }
+        Returns: Json
+      }
       supervisory_calc_inputs_snapshot: {
         Args: { _assessment_id: string }
         Returns: Json
@@ -70123,6 +70245,14 @@ export type Database = {
         Args: { _config_id: string }
         Returns: Json
       }
+      supervisory_calc_policy_from_config_base: {
+        Args: { _config_id: string }
+        Returns: Json
+      }
+      supervisory_calc_policy_from_config_factor_ext: {
+        Args: { _config_id: string }
+        Returns: Json
+      }
       supervisory_calc_round: {
         Args: { _decimals: number; _mode: string; _v: number }
         Returns: number
@@ -70134,6 +70264,10 @@ export type Database = {
       supervisory_calc_simulate: {
         Args: { _domain_code: string; _entity_id?: string; _policy: Json }
         Returns: Json
+      }
+      supervisory_calculation_applicability_set: {
+        Args: { _config_id: string; _rows: Json }
+        Returns: number
       }
       supervisory_calculation_bands_set: {
         Args: { _band_kind: string; _config_id: string; _rows: Json }
