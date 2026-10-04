@@ -127,7 +127,8 @@ test.describe.serial('AML-CLOSE-03A browser journey (TEST package)', () => {
         await trig.click();
         await page.getByRole('option', { name: answer }).first().click();
         await page.locator(`#obs-${qid}`).fill('TEST ONLY observation — AML-CLOSE-03A');
-        const save = trig.locator('xpath=ancestor::div[.//button[normalize-space()="Save response"]][1]').getByRole('button', { name: 'Save response' });
+        const card = page.locator('div').filter({ has: page.locator(`#resp-${qid}`) }).filter({ has: page.getByRole('button', { name: 'Save response' }) }).last();
+        const save = card.getByRole('button', { name: /Save response|Saving/ });
         await save.click();
         await expect(save).toHaveText('Save response', { timeout: 20_000 });
         answered++;
