@@ -53,7 +53,7 @@ test.describe.serial('AML-CLOSE-03A browser journey (TEST package)', () => {
   test('create assessment through the dialog; policy, methodology and settings resolve', async ({ page }) => {
     expect(await loginAs(page, OFFICER)).not.toBe('/login');
     await page.goto('/supervision/aml/assessments', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: /New assessment|Start assessment/i }).first().click();
+    await page.getByRole('button', { name: /New AML\/CFT assessment/i }).first().click();
     await page.locator('#aml-entity-pick').click();
     await page.getByRole('option', { name: new RegExp(ENTITY_NAME) }).first().click();
     await page.locator('#aml-programme-pick').click({ timeout: 30_000 });
