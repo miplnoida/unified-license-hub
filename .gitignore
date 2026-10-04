@@ -25,3 +25,6 @@ dist-ssr
 
 # Verification gate evidence artifacts
 artifacts/
+e2e/.artifacts/output/
+e2e/.artifacts/report/
+e2e/.artifacts/results.json
