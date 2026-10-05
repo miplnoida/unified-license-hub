@@ -28,6 +28,7 @@ export const MATERIALITY_ADJUSTMENT_OPTIONS = ['FLOOR_AT_BAND', 'FLAG_ONLY'] as 
 
 export const OVERRIDE_STATUS_LABEL: Record<string, string> = {
   PROPOSED: 'Awaiting an independent decision',
+  PENDING_APPROVAL: 'Awaiting an independent decision',
   APPROVED: 'Approved',
   REJECTED: 'Rejected',
   WITHDRAWN: 'Withdrawn',

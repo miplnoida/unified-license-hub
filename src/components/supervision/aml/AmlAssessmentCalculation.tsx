@@ -23,6 +23,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle, Calculator, ShieldCheck } from 'lucide-react';
+import { AmlCalculationBreakdown } from '@/components/supervision/aml/AmlCalculationBreakdown';
 import { useCan } from '@/hooks/useCan';
 import { calculationStatusLabel } from '@/hooks/useSupervisoryCalculationConfig';
 import {
@@ -91,7 +92,7 @@ export function AmlAssessmentCalculation({ assessmentId }: { assessmentId: strin
   const run = view?.latest_run ?? null;
   const runs = view?.runs ?? [];
   const overrides = view?.overrides ?? [];
-  const pending = overrides.find((o) => o.status === 'PROPOSED') ?? null;
+  const pending = overrides.find((o) => o.status === 'PROPOSED' || o.status === 'PENDING_APPROVAL') ?? null;
   const { data: ratings = [] } = useMethodologyRatingVocabulary(run?.methodology_id ?? null);
 
   const calculate = async () => {
@@ -194,14 +195,9 @@ export function AmlAssessmentCalculation({ assessmentId }: { assessmentId: strin
                 </TableBody>
               </Table>
 
-              <ServerTable caption="Question contributions" rows={traceRows(run, 'questions')}
-                columns={['question_code', 'participation', 'response_code', 'score', 'weight', 'dimension_code']} />
-              <ServerTable caption="Fact transformations" rows={traceRows(run, 'facts')}
-                columns={['fact_code', 'value', 'unit', 'band_code', 'score', 'treatment']} />
-              <ServerTable caption="Dimension results" rows={traceRows(run, 'dimensions')}
-                columns={['dimension_code', 'contributes_to', 'score', 'weight', 'completeness_pct', 'included']} />
+              <AmlCalculationBreakdown trace={run.trace} />
               <ServerTable caption="Materiality treatment" rows={traceRows(run, 'materiality')}
-                columns={['parameter_code', 'fact_code', 'comparator', 'applied', 'adjustment_kind', 'adjustment_band']} />
+                columns={['parameter_code', 'fact_code', 'value', 'outcome', 'reason_code', 'floored_to']} />
 
               <Alert>
                 <ShieldCheck className="h-4 w-4" />
