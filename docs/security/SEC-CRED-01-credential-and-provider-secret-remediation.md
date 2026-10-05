@@ -173,3 +173,9 @@ Edge functions redeployed: send-notification, send-registration-otp, test-resend
 5. Click **Send Test Email** and confirm receipt.
 
 **Verdict: CONDITIONAL PASS — awaiting owner entry of the replacement Google App Password through the newly verified save path and a successful server-stored SMTP test.**
+
+## X. Final verification attempt 3 (2026-10-05 22:28 UTC)
+- SMTP secret `updated_at`: still 2026-10-05 20:03:54 UTC, with no updater recorded.
+- No settings or secret change logged since 20:05 UTC.
+- `email_provider_test_log`: **0 rows**. Every test attempt on build 433c43e writes a row, so no test ran against this backend.
+- The owner's reported screen state cannot be reconciled with the backend records. **Verdict unchanged: CONDITIONAL PASS.**
