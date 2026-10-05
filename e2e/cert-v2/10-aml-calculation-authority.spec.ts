@@ -47,7 +47,8 @@ const TEST_MATRIX: Record<string, string> = {
 const run = async (id: string) => {
   const r = await rpc(OFFICER, 'supervisory_assessment_calculation_run_record', { _assessment_id: id, _event_reason: 'MANUAL_RUN' });
   expect(r.ok, r.bodyText.slice(0, 300)).toBeTruthy();
-  return (r.body as { result: { trace: Trace; engine_version?: string; status?: string } }).result;
+  const res = (r.body as { result: Trace & { engine_version?: string; status?: string } }).result;
+  return { ...res, trace: res };
 };
 const halfUp = (x: number, d: number) => Math.round(x * 10 ** d + Number.EPSILON) / 10 ** d;
 function band(score: number, bands: ReadonlyArray<readonly [string, number, number]>) {
