@@ -70261,6 +70261,10 @@ export type Database = {
         Args: { _decimals: number; _mode: string; _v: number }
         Returns: number
       }
+      supervisory_calc_round_ordinal: {
+        Args: { _mode: string; _v: number }
+        Returns: number
+      }
       supervisory_calc_run_authority: {
         Args: { _assessment_id: string }
         Returns: string
