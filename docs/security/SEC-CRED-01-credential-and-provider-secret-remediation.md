@@ -87,3 +87,23 @@ Edge functions redeployed: send-notification, send-registration-otp, test-resend
 - Does the runtime get secrets only from secure server-side storage? **YES**
 - Can the settings UI retrieve the secret? **NO**
 - Is the fresh scan at zero critical? **YES**
+
+## Q. Provider-side credential rotation closure (verification 2026-10-05 20:50 UTC)
+| Item | Result |
+|---|---|
+| New Google App Password created | Owner reports YES |
+| Replacement stored in secure server-side storage | **NOT EVIDENCED**: the only `smtp_password` entry was last written at 20:03:54 UTC by the SEC-CRED-01 migration (the old value), with no admin author. No secret-store update has been logged since |
+| Test email delivered with replacement | **NOT EVIDENCED**: no email delivery records since 20:00 UTC |
+| Old Google App Password revoked | OLD PROVIDER APP PASSWORD: REVOKED BY OWNER (owner statement) |
+| Post-revocation application email delivered | NOT EVIDENCED |
+| Ordinary DB secret count | 0 (settings 0; change history 0) |
+| Registration plaintext credentials | 0 |
+| Git active-secret count | 0 (the only seed matches are form-field type definitions named "password", which are not secrets) |
+| REG-2026-000196 / REG-2026-000051 | Login disabled / account active; no further email sent |
+| Focused tests | 2 files, 7/7 passed |
+| Protected AML 00830/00836/00838 | Unchanged |
+
+## R. Final verdict
+**SEC-CRED-01 = CONDITIONAL PASS (unchanged).** If the old password has been revoked, the app is still holding the revoked value, so outgoing SMTP email will fail until the replacement is entered. The package closes as PASS once:
+1. the new App Password is saved through Settings → Email & SMS → SMTP password; and
+2. one test email is received at the approved MIPL mailbox.
