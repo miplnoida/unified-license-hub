@@ -146,6 +146,15 @@ async function downloadFile(att: NormalizedAttachment): Promise<void> {
         return;
       }
     }
+    const viaCapability = await signRegistrationFile(path, 300);
+    if (viaCapability) {
+      const a = document.createElement('a');
+      a.href = viaCapability;
+      a.download = att.name;
+      a.rel = 'noopener noreferrer';
+      a.click();
+      return;
+    }
   }
   const url = att.downloadUrl || att.viewUrl;
   if (url) {
