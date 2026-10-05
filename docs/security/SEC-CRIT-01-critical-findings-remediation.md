@@ -69,3 +69,88 @@ No browser persona sweep (external user and unrelated staff) was run against the
 
 ## Q. Verdict
 CONDITIONAL PASS: 34 of 40 critical findings fixed, 6 documented with next steps, not published.
+
+---
+
+# SEC-CRIT-01A — residual closure (in progress)
+
+## R. Residual closure
+A fresh scan before any changes returned **8** critical findings, not 6. The 6 expected ones were there, plus `return_validation_rules` and `return_validation_rule_versions`, which the scanner had moved up from warning. All 8 are now fixed (migrations "SEC-CRIT-01A" waves 1–2).
+
+After each fix, the scanner moves more existing warning-level "any signed-in user can read every record" findings up to critical. Total findings fell 134 → 95 → 87 → 79, but the critical list refills each time:
+- scan 3 found 8 more (`app_environment_config`, five `prudential_*` tables, `report_runtime_config`, `risk_ratings`), which were fixed in wave 3;
+- scan 4 found 9 more (`otp_verifications`, `permission_actions`, `permission_dependent_actions`, `sec_modules`, `sec_navigation_items`, `sec_scope_types`, `sla_configurations`, `sla_escalation_tiers`, `supervisory_assessment_programme_vocabulary`), which are **not yet analysed**.
+
+## S. Authorization catalogues
+- **Consumers:** the only reader is `useClassificationTree`, which is used only by the internal admin tabs ClassificationStructureTab and AuthorizationSchemesTab. Public registration does not read these tables. The writing routines are privileged (`SECURITY DEFINER`) and unaffected.
+- **Data:** the tables hold schemes, legal basis, customer restriction, market scope, status and effective dates. These are classified as INTERNAL_CONFIGURATION.
+- **New access:** super admin or internal staff only. Signed-out read access was revoked. A signed-out read now returns error 42501.
+
+## T. identity_governed_tables
+The table describes the security-governance strategy (canonical write paths, justifications for signed-out and signed-in access) and has no browser consumer. Read access is now super admin only. A signed-out read returns 42501.
+
+## U. roles
+- **Consumers:**
+  - the sign-in display name (`authHelpers`), which resolves the user's own roles;
+  - PPOC mapping, the return workflow panel, the rule editor and role admin, all internal.
+- **New model:**
+  - super admin and internal staff can read the full catalogue, which these internal screens genuinely need;
+  - every other signed-in user can read only their own assigned role rows, through `sec_own_role_ids()` (no arguments, uses `auth.uid()`);
+  - signed-out visitors have no access.
+- **New linter warning:** `sec_own_role_ids()` adds 1 new "signed-in users can execute" warning. It is accepted: the function is a policy helper that returns only the caller's own role IDs.
+
+## V. Secure pre-registration file architecture
+No pre-login capability existed. The OTP flow proves only the email address and returns no token. A new capability was added:
+
+```text
+Browser -> registration-file-access{issue}
+        -> 32-byte secret (only its SHA-256 hash is stored, in registration_upload_capabilities, service_role only, 30-day expiry, revocable)
+Upload  -> registrations/<capability_id>/...
+Preview -> registration-file-access{sign, capability_id, secret, path}
+        -> server checks the hash, expiry and revocation, and that the path sits inside the capability's own folder (no "..", no "//")
+        -> 300-second signed URL for that single object
+```
+
+- The storage rule "Allow anon read registration uploads" was **removed**.
+- Signed-in owners use the owner-scoped rule from SEC-CRIT-01. Reviewers use the existing `secure_documents_read` rule.
+- Client code: `src/lib/registrationFileAccess.ts`, the DocumentsStep and RegistrationStepRenderer (signature) uploads and previews, and the AttachmentDisplay fallback.
+- **Residual:** files uploaded before this change, under `registrations/<random>/`, can no longer be previewed by a signed-out visitor. They remain available to reviewers.
+
+## W. Registration attack tests (direct calls, negative only)
+
+| Attempt | Result |
+|---|---|
+| No token | `capability_invalid` |
+| Invalid token | `capability_invalid` |
+| Wrong secret for a real capability | `capability_invalid` |
+| Token A requesting B's path | `path_not_owned` |
+| `..` traversal | `path_not_owned` |
+| Legacy path | `path_not_owned` |
+| Signed-out raw storage sign | 403 |
+| Signed-out bucket list | 403 |
+
+Not yet run: the signed-in unrelated user test and the reviewer browser test.
+
+## X. Persona/browser matrix
+Signed-out REST reads were tested on the 5 tables: all were refused. The browser persona sweep is **not yet run**.
+
+## Y. Full application regression
+1764/1764 passed, 182 files, 0 skipped (after waves 1–2, before wave 3). Not rerun after wave 3.
+
+## Z / AA. Browser and AML regression
+**Not yet run.**
+
+**Positive registration upload journey: BLOCKED.** The registration form places Email Verification (step 3) before Supporting Documents (step 4), and passing it sends a real verification email. That is an external communication, which this package forbids.
+
+## AB. Security scan
+40 → 6 (SEC-CRIT-01) → 8 (fresh scan) → 0 of those 8 remain → 8 promoted, fixed → 9 promoted, open.
+
+## AC. Publish
+Not published.
+
+## AE. Verdict (interim)
+**CONDITIONAL PASS / BLOCKED.** The original 6 residuals, plus 10 more promoted findings, are fixed. Still open:
+- the positive browser upload journey (blocked by the verification email);
+- the 9 newly promoted findings;
+- persona, browser and AML regression;
+- publish.
