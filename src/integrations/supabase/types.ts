@@ -68913,7 +68913,7 @@ export type Database = {
         Returns: boolean
       }
       sec_is_internal_user: { Args: { _user_id: string }; Returns: boolean }
-      sec_own_role_ids: { Args: { _user_id: string }; Returns: string[] }
+      sec_own_role_ids: { Args: never; Returns: string[] }
       sec_route_for_path: {
         Args: { p_path: string }
         Returns: {
