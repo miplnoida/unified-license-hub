@@ -64,6 +64,8 @@ function respond(fn: string, args: any): any {
       return { fact_id: 'fac10000-0000-4000-8000-0000000000f1' };
     case 'supervisory_assessment_fact_override':
       return { fact_id: FIX.fact_register[1].fact_id };
+    case 'supervisory_assessment_configuration_authority':
+      return { fact_config: { status: 'NOT_CONFIGURED' }, source_binding: { status: 'NOT_CONFIGURED' }, facts: [] };
     default:
       throw new Error(`UI-EFR: unexpected operation ${fn}`);
   }
