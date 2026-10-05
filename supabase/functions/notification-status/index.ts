@@ -8,6 +8,7 @@
 // Never returns secret values — booleans only.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { readProviderSecret } from "../_shared/email-provider.ts";
 import { requireUserPermission } from "../_shared/authz.ts";
 
 const corsHeaders = {
@@ -45,9 +46,10 @@ Deno.serve(async (req) => {
       .eq("key", "email_sms_settings")
       .maybeSingle();
     const smtp = (settingsRow as any)?.value?.smtp || {};
+    const smtpSecret = await readProviderSecret(admin, "smtp_password", "SMTP_PASSWORD");
     const resendCfg = (settingsRow as any)?.value?.resend || {};
     const generalCfg = (settingsRow as any)?.value?.email || {};
-    const smtpConfigured = !!(smtp.enabled && smtp.host && smtp.port && smtp.username && smtp.password && smtp.fromEmail);
+    const smtpConfigured = !!(smtp.enabled && smtp.host && smtp.port && smtp.username && smtpSecret && smtp.fromEmail);
     let resendKeyPresent = !!Deno.env.get("RESEND_API_KEY");
     if (!resendKeyPresent) {
       const { data: secret } = await admin
