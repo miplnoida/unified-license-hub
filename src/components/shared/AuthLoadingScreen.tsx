@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
  */
 export function AuthLoadingScreen() {
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen" data-route-state="loading" aria-busy="true">
       {/* Sidebar skeleton */}
       <div className="hidden md:flex w-64 flex-col border-r bg-card p-4 gap-4">
         <Skeleton className="h-8 w-32" />
