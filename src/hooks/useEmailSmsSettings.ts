@@ -68,7 +68,6 @@ export const DEFAULTS: EmailSmsSettings = {
     host: '',
     port: 587,
     username: '',
-    password: '',
     encryption: 'tls',
     fromName: '',
     fromEmail: '',
@@ -76,13 +75,41 @@ export const DEFAULTS: EmailSmsSettings = {
   },
   sms: {
     provider: 'twilio',
-    apiKey: '',
     senderId: '',
     enabled: false,
   },
 };
 
 const QKEY = ['site_settings', 'email_sms_settings'];
+
+export type ProviderSecretKey = 'resend_api_key' | 'smtp_password' | 'sms_api_key';
+
+/** SEC-CRED-01: provider secrets never live in site_settings — remove them from any settings object. */
+export function stripSecrets(s: EmailSmsSettings): EmailSmsSettings {
+  const { password: _p, ...smtp } = s.smtp;
+  const { apiKey: _k, ...sms } = s.sms;
+  const { ...resend } = s.resend as ResendSettings & { apiKey?: string };
+  delete (resend as { apiKey?: string }).apiKey;
+  return { ...s, smtp: smtp as SmtpSettings, sms: sms as SmsSettings, resend };
+}
+
+/** Whether a provider secret exists server-side (status only, value never returned). */
+export function useProviderSecretPresent(key: ProviderSecretKey) {
+  return useQuery({
+    queryKey: ['email_provider_secret', key],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('email_provider_secret_present', { _key: key });
+      if (error) return false;
+      return data === true;
+    },
+  });
+}
+
+/** Write-only secret entry through the governed server-side RPC. */
+export async function saveProviderSecret(key: ProviderSecretKey, value: string) {
+  const { error } = await (supabase.rpc as any)('email_provider_secret_set', { _key: key, _value: value });
+  if (error) throw error;
+}
 
 export function useEmailSmsSettings() {
   return useQuery({
@@ -95,12 +122,12 @@ export function useEmailSmsSettings() {
         .maybeSingle() as any);
       if (error) throw error;
       const v = (data?.value || {}) as Partial<EmailSmsSettings>;
-      return {
+      return stripSecrets({
         email: { ...DEFAULTS.email, ...(v.email || {}) },
         resend: { ...DEFAULTS.resend, ...(v.resend || {}) },
         smtp: { ...DEFAULTS.smtp, ...(v.smtp || {}) },
         sms: { ...DEFAULTS.sms, ...(v.sms || {}) },
-      } as EmailSmsSettings;
+      } as EmailSmsSettings);
     },
   });
 }
@@ -147,32 +174,27 @@ export function useSaveEmailSmsSettings() {
         .maybeSingle() as any);
       const prev = (existing?.value || {}) as Partial<EmailSmsSettings>;
 
-      const merged: EmailSmsSettings = {
+      // Secrets typed in the form go only to the server-side secret store.
+      if (settings.smtp.password && settings.smtp.password.trim()) {
+        await saveProviderSecret('smtp_password', settings.smtp.password.trim());
+      }
+      if (settings.sms.apiKey && settings.sms.apiKey.trim()) {
+        await saveProviderSecret('sms_api_key', settings.sms.apiKey.trim());
+      }
+      const merged = stripSecrets({
         email: { ...DEFAULTS.email, ...(prev.email || {}), ...settings.email },
         resend: { ...DEFAULTS.resend, ...(prev.resend || {}), ...settings.resend },
-        smtp: {
-          // SMTP configuration is never destroyed by Resend changes.
-          ...(prev.smtp || {}),
-          ...settings.smtp,
-          port: Number(settings.smtp.port) || 587,
-          password: settings.smtp.password && settings.smtp.password.length > 0
-            ? settings.smtp.password
-            : (prev.smtp?.password || ''),
-        },
-        sms: {
-          ...(prev.sms || {}),
-          ...settings.sms,
-          apiKey: settings.sms.apiKey && settings.sms.apiKey.length > 0
-            ? settings.sms.apiKey
-            : (prev.sms?.apiKey || ''),
-        },
-      };
+        // SMTP configuration is never destroyed by Resend changes.
+        smtp: { ...DEFAULTS.smtp, ...(prev.smtp || {}), ...settings.smtp, port: Number(settings.smtp.port) || 587 },
+        sms: { ...DEFAULTS.sms, ...(prev.sms || {}), ...settings.sms },
+      });
 
       await siteSettingSave('email_sms_settings', merged);
       return merged;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QKEY });
+      qc.invalidateQueries({ queryKey: ['email_provider_secret'] });
       try { sessionStorage.removeItem('site_settings_cache'); } catch { /* noop */ }
     },
   });

@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import nodemailer from "npm:nodemailer@6.9.16";
 import { requireUserPermission } from "../_shared/authz.ts";
+import { readProviderSecret } from "../_shared/email-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,10 +64,12 @@ serve(async (req) => {
       host: incoming?.host || savedSmtp.host || "",
       port: Number(incoming?.port ?? savedSmtp.port ?? 587),
       username: incoming?.username || savedSmtp.username || "",
+      // A password typed for this test is used transiently; otherwise only the
+      // server-side secret store is consulted (never site_settings).
       password:
         incoming?.password && incoming.password.length > 0
           ? incoming.password
-          : savedSmtp.password || "",
+          : (await readProviderSecret(admin, "smtp_password", "SMTP_PASSWORD")) || "",
       encryption: (incoming?.encryption || savedSmtp.encryption || "tls") as SmtpConfig["encryption"],
       fromName: incoming?.fromName || savedSmtp.fromName || "Unified License Hub",
       fromEmail: incoming?.fromEmail || savedSmtp.fromEmail || "",
