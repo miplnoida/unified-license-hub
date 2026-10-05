@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Eye, Download, FileText, History, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { signRegistrationFile } from '@/lib/registrationFileAccess';
 import { toast } from 'sonner';
 import { DocumentVersionHistoryDialog } from '@/components/documents/versioned/DocumentVersionHistoryDialog';
 
@@ -122,6 +123,8 @@ async function resolveSignedUrl(att: NormalizedAttachment): Promise<string | nul
       const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 300);
       if (data?.signedUrl) return data.signedUrl;
     }
+    const viaCapability = await signRegistrationFile(path, 300);
+    if (viaCapability) return viaCapability;
   }
   if (att.viewUrl) return att.viewUrl;
   return null;

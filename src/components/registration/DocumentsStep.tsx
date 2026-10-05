@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Upload, FileText, Trash2, AlertCircle, Image, File, Eye, Download, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { registrationUploadFolder, signRegistrationFile } from '@/lib/registrationFileAccess';
 import type { DocumentMeta } from '@/hooks/useRegistrationForm';
 import Swal from 'sweetalert2';
 import {
@@ -113,7 +114,7 @@ export function DocumentsStep({ documents, onAddDocument, onRemoveDocument, erro
     setUploading(true);
     try {
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'pdf';
-      const filePath = `registrations/${crypto.randomUUID()}/${Date.now()}.${fileExt}`;
+      const filePath = `${await registrationUploadFolder(crypto.randomUUID())}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('secure-documents')
@@ -182,8 +183,9 @@ export function DocumentsStep({ documents, onAddDocument, onRemoveDocument, erro
   };
 
   const openSignedUrl = async (doc: DocumentMeta, download = false) => {
-    const { data, error } = await supabase.storage.from('secure-documents').createSignedUrl(doc.path, 300);
-    if (error || !data?.signedUrl) {
+    const signedUrl = await signRegistrationFile(doc.path, 300);
+    const data = signedUrl ? { signedUrl } : null;
+    if (!data?.signedUrl) {
       toast.error('Unable to open document');
       return;
     }

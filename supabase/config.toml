@@ -9,3 +9,5 @@ verify_jwt = false
 [functions.screening-sandbox]
 verify_jwt = false
 
+[functions.registration-file-access]
+verify_jwt = false
