@@ -131,3 +131,45 @@ Edge functions redeployed: send-notification, send-registration-otp, test-resend
 - No security rescan was run, because no secret or code changed.
 
 **Verdict: SEC-CRED-01 remains CONDITIONAL PASS.** The owner's confirmation conflicts with the system records, so PASS cannot be evidenced.
+
+# SEC-CRED-01A — Verified Secret Save Path & SMTP Test Authority
+
+## Q. Secret-save-path diagnosis
+- The live bundle already contained the secure-storage save code. The backend recorded **no** secret write, settings save or test-email run after 20:03 UTC, so no save reached this backend.
+- The old flow had three gaps:
+  1. The success message relied only on the request not erroring; there was no read-back proof.
+  2. Send Test Email could use an unsaved password typed in the browser.
+  3. Test attempts left no record.
+
+## R. Save acknowledgement design
+- `email_provider_secret_status(key)` returns only `configured`, `updated_at` and `updated_by`. It is gated by settings.edit; PUBLIC and anon are revoked.
+- `email_provider_secret_set` now returns the same acknowledgement.
+- The client reads status before the write, calls the setter, then reads status again. It accepts the save only if the secret is configured, the new `updated_at` is strictly later than before, and the updater is the current user. Otherwise it shows "SMTP password was not saved. Existing credential remains unchanged.", keeps the typed value, and shows no success message.
+- The SMTP section shows server-backed "Password: Configured · Last changed: …".
+
+## S. SMTP-test authority change
+- `test-smtp-email` ignores every browser-supplied SMTP field and password. It uses the saved settings plus the password from secure storage only, and fails closed with "not configured in secure storage" when the password is missing.
+- The browser sends only `{ to }`. The test button is disabled while a new password is typed but not yet saved.
+
+## T. Test-email audit evidence
+- New table `email_provider_test_log` records the invoking user, recipient, provider, status (ACCEPTED/FAILED), failure category, provider message ID, and the timestamp of the secret used.
+- It never stores the password. Only settings administrators can read it. Failed attempts are logged too.
+
+## U. Deployed build/environment verification
+- The settings page shows "Build <commit> · built <time> · backend <project id>".
+- After publishing, the live page `EmailSmsSettings-D-lQZSls.js` carries build marker **433c43e**, which matches the current source revision, and backend `sndfttzqmbkmkcnrvpfn`.
+
+## V. Automated test results
+- Vitest: 186 files, **1782/1782** passed. The new file `secCred01aSecretSavePath.test.ts` (8 tests) covers save proof, failed save, unchanged timestamp, metadata-only status, a password-free test request, unsaved-password gating, stored-secret authority, and audit without secrets.
+- Typecheck: clean.
+- Direct denial checks, all refused (HTTP 401, 42501): anon status query, applicant status query, applicant secret write.
+- Admin status returns metadata only. Admin direct table read is refused (403).
+
+## W. Owner action required
+1. Hard-refresh `olras.mishainfotech.com/settings/email-sms` and confirm it shows **Build 433c43e**.
+2. Enter the replacement Google App Password and click **Save Changes**.
+3. Confirm "Last changed" shows a NEW time later than 05 Oct 2026 20:03 UTC.
+4. Reload the page and confirm the same time persists.
+5. Click **Send Test Email** and confirm receipt.
+
+**Verdict: CONDITIONAL PASS — awaiting owner entry of the replacement Google App Password through the newly verified save path and a successful server-stored SMTP test.**
