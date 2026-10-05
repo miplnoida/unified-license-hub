@@ -68907,6 +68907,14 @@ export type Database = {
         Returns: boolean
       }
       sec_delete_role: { Args: { _role_id: string }; Returns: Json }
+      sec_external_return_config_visible: {
+        Args: { _config_id: string }
+        Returns: boolean
+      }
+      sec_external_return_form_visible: {
+        Args: { _form_template_id: string }
+        Returns: boolean
+      }
       sec_get_user_context: { Args: never; Returns: Json }
       sec_has_permission: {
         Args: { p_action: string; p_module: string; p_user_id: string }
