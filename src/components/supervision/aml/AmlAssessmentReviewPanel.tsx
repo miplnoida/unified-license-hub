@@ -458,10 +458,26 @@ export function AmlAssessmentReviewPanel({ assessmentId }: { assessmentId: strin
                   </Badge>
                 </TableCell>
               </TableRow>
+              {decision ? (
+                <TableRow data-testid="review-judgement-difference"
+                  data-source={decision.final_rating_source ?? ''}>
+                  <TableCell className="text-muted-foreground">CALCULATED → FINAL</TableCell>
+                  <TableCell className="font-mono text-xs font-semibold">
+                    {decision.final_rating_source === 'APPROVED_OVERRIDE'
+                      ? `${dash(decision.computed_rating)} (calculated) → ${dash(decision.final_rating)} (approved judgement)`
+                      : `${dash(decision.computed_rating)} (calculated) → ${dash(decision.final_rating)} (unchanged)`}
+                  </TableCell>
+                </TableRow>
+              ) : null}
               <TableRow>
                 <TableCell className="text-muted-foreground">PUBLISHED RISK-OF-RECORD</TableCell>
                 <TableCell className="font-mono text-xs">
                   {publication ? dash(publication.published_rating) : 'Not published'}
+                  {publication && decision ? (
+                    <span className="ml-2 text-muted-foreground">
+                      from {FINAL_RATING_SOURCE_LABEL[decision.final_rating_source ?? ''] ?? dash(decision.final_rating_source)}
+                    </span>
+                  ) : null}
                 </TableCell>
               </TableRow>
             </TableBody>

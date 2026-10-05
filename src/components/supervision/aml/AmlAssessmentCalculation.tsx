@@ -188,7 +188,11 @@ export function AmlAssessmentCalculation({ assessmentId }: { assessmentId: strin
                   <TableRow><TableCell className="text-muted-foreground">Inherent risk (score / band)</TableCell><TableCell>{dash(run.inherent_score)} / {dash(run.inherent_band)}</TableCell></TableRow>
                   <TableRow><TableCell className="text-muted-foreground">Control effectiveness (score / band)</TableCell><TableCell>{dash(run.control_score)} / {dash(run.control_band)}</TableCell></TableRow>
                   <TableRow><TableCell className="text-muted-foreground">Residual rating (matrix)</TableCell><TableCell>{dash(run.residual_rating)}</TableCell></TableRow>
-                  <TableRow><TableCell className="text-muted-foreground">Proposed result</TableCell><TableCell>{dash(run.recommended_rating)}</TableCell></TableRow>
+                  <TableRow><TableCell className="text-muted-foreground">Advisory recommendation</TableCell><TableCell>{dash(run.recommended_rating)}</TableCell></TableRow>
+                  <TableRow data-testid="calc-decision-rating">
+                    <TableCell className="text-muted-foreground font-medium">Calculated rating used for approval and override</TableCell>
+                    <TableCell className="font-mono font-semibold">{dash(run.residual_rating ?? run.recommended_rating)}</TableCell>
+                  </TableRow>
                   <TableRow><TableCell className="text-muted-foreground">Engine version</TableCell><TableCell className="font-mono text-xs">{dash(run.engine_version)}</TableCell></TableRow>
                   <TableRow><TableCell className="text-muted-foreground">Inputs hash</TableCell><TableCell className="font-mono text-xs break-all">{dash(run.inputs_hash)}</TableCell></TableRow>
                   <TableRow><TableCell className="text-muted-foreground">Result hash</TableCell><TableCell className="font-mono text-xs break-all">{dash(run.result_hash)}</TableCell></TableRow>
@@ -271,18 +275,27 @@ export function AmlAssessmentCalculation({ assessmentId }: { assessmentId: strin
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Proposed</TableHead><TableHead>Calculated</TableHead><TableHead>Status</TableHead>
-                  <TableHead>Rationale</TableHead><TableHead>Decided</TableHead>
+                  <TableHead>Run</TableHead><TableHead>Calculated → proposed</TableHead><TableHead>Status</TableHead>
+                  <TableHead>Rationale</TableHead><TableHead>Proposed by</TableHead><TableHead>Decision</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {overrides.map((o) => (
-                  <TableRow key={o.id}>
-                    <TableCell className="font-mono">{o.proposed_rating}</TableCell>
-                    <TableCell className="font-mono text-xs">{dash(o.computed_recommended_rating ?? o.computed_residual_rating)}</TableCell>
+                  <TableRow key={o.id} data-testid="calc-override-row" data-status={o.status}>
+                    <TableCell className="font-mono text-xs">
+                      #{dash(runs.find((r) => r.id === o.run_id)?.run_seq)}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs whitespace-nowrap">
+                      {dash(o.computed_residual_rating ?? o.computed_recommended_rating)} (calculated) → {o.proposed_rating} (judgement)
+                    </TableCell>
                     <TableCell>{OVERRIDE_STATUS_LABEL[o.status] ?? o.status}</TableCell>
                     <TableCell className="text-xs text-muted-foreground max-w-md">{o.rationale}</TableCell>
-                    <TableCell className="text-xs">{o.decided_at ? new Date(o.decided_at).toLocaleString() : '—'}</TableCell>
+                    <TableCell className="font-mono text-xs">{dash(o.proposed_by)}</TableCell>
+                    <TableCell className="text-xs">
+                      {o.decided_at ? new Date(o.decided_at).toLocaleString() : '—'}
+                      {o.decided_by ? <div className="font-mono">{o.decided_by}</div> : null}
+                      {o.decision_note ? <div className="text-muted-foreground">{o.decision_note}</div> : null}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

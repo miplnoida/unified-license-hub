@@ -32,6 +32,7 @@ export const OVERRIDE_STATUS_LABEL: Record<string, string> = {
   APPROVED: 'Approved',
   REJECTED: 'Rejected',
   WITHDRAWN: 'Withdrawn',
+  STALE: 'Stale — the challenged calculation was replaced',
 };
 
 /* ------------------------------------------------------------------- types -- */
@@ -169,20 +170,33 @@ function useInvalidateRun() {
 /** Human copy for the governed calculation operations' known refusals. */
 export function calcPolicyErrorMessage(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error ?? '');
+  if (raw.includes('maker_checker') || raw.includes('decider_must_differ') || raw.includes('different person')) {
+    return 'An override must be decided by someone other than the person who proposed it.';
+  }
+  if (raw.includes('stale_override')) {
+    return 'This override challenges an earlier calculation run. The assessment was recalculated, so a new override must be proposed.';
+  }
+  if (raw.includes('assessment_closed')) {
+    return 'This assessment is approved, closed or superseded, so its judgement can no longer be changed.';
+  }
+  if (raw.includes('assessment_locked')) {
+    return 'Only a draft assessment, or one returned for revision, can be recalculated.';
+  }
+  if (raw.includes('not_calculated') || raw.includes('no_calculation')) {
+    return 'There is no calculated result to override. Unresolved information cannot be overridden into a rating.';
+  }
+  if (raw.includes('no_difference') || raw.includes('same_as_calculated')) {
+    return 'The proposed rating is the same as the calculated result, so there is nothing to override.';
+  }
+  if (raw.includes('invalid_rating') || raw.includes('unknown_rating')) return 'That rating is not on the methodology scale.';
+  if (raw.includes('override_pending')) return 'An override proposal is already awaiting a decision.';
+  if (raw.includes('note_required')) return 'Rejecting an override needs a written reason of at least 10 characters.';
   if (raw.includes('not_authorized_for_domain')) {
     return 'You do not hold configuration authority for this supervisory domain.';
   }
   if (raw.includes('not_authorized')) return 'You are not authorised to perform this calculation action.';
-  if (raw.includes('draft')) return 'Only a draft calculation policy may be edited. Create a new version instead.';
   if (raw.includes('rationale')) return 'A written supervisory rationale is required.';
-  if (raw.includes('same_as_calculated')) {
-    return 'The proposed rating is the same as the calculated result, so there is nothing to override.';
-  }
-  if (raw.includes('unknown_rating')) return 'That rating is not on the methodology scale.';
-  if (raw.includes('override_pending')) return 'An override proposal is already awaiting a decision.';
-  if (raw.includes('decider_must_differ') || raw.includes('different person')) {
-    return 'An override must be decided by someone other than the person who proposed it.';
-  }
+  if (raw.includes('draft')) return 'Only a draft calculation policy may be edited. Create a new version instead.';
   return raw || 'The operation could not be completed.';
 }
 
