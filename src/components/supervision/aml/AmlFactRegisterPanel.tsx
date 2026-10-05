@@ -163,14 +163,32 @@ export function AmlFactRegisterPanel({ assessmentId, editable }: Props) {
         </p>
       </CardContent>
 
-      {target ? (
+      {target && authority.data ? (
         <FactDialog
           assessmentId={assessmentId}
           row={target}
           governed={governedByCode.get(target.fact_code)}
-          sourceGoverned={authority.data?.source_binding.status === 'GOVERNED'}
+          sourceGoverned={authority.data.source_binding.status === 'GOVERNED'}
           onClose={() => setTarget(null)}
         />
+      ) : target ? (
+        // Fail closed: never offer a free-text source while the permitted sources are unknown.
+        <Dialog open onOpenChange={(o) => (o ? null : setTarget(null))}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{target.label || target.fact_code}</DialogTitle>
+              <DialogDescription>
+                {authority.isError
+                  ? 'The permitted sources for this fact could not be loaded, so the value cannot be recorded right now. Close this window and try again.'
+                  : 'Loading the sources this fact may come from…'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1.5">
+              <Label htmlFor="fact-source">Where the value comes from</Label>
+              <Input id="fact-source" aria-label="Where the value comes from" disabled value="" placeholder={authority.isError ? 'Unavailable' : 'Loading…'} readOnly />
+            </div>
+          </DialogContent>
+        </Dialog>
       ) : null}
     </Card>
   );
