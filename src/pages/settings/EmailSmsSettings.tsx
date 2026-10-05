@@ -17,6 +17,7 @@ import {
   useEmailSmsSettings,
   useSaveEmailSmsSettings,
   useResendKeyPresent,
+  useProviderSecretPresent,
   useSaveResendApiKey,
   DEFAULTS,
   EmailSmsSettings as EmailSmsSettingsT,
