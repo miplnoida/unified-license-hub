@@ -16,6 +16,10 @@ function resolveChromium(): string | undefined {
   const bin = path.join(root, dir, 'chrome-linux', 'chrome');
   return fs.existsSync(bin) ? bin : undefined;
 }
+const chrome = () => ({
+  ...devices['Desktop Chrome'],
+  launchOptions: { executablePath: resolveChromium(), args: ['--no-sandbox', '--disable-dev-shm-usage'] },
+});
 
 
 /**
@@ -50,15 +54,19 @@ export default defineConfig({
     navigationTimeout: 45_000,
   },
   projects: [
+    // Run-scoped AML TEST package, created and retired through the screens (AML-CLOSE-05A).
+    { name: 'aml-fixture-setup', testMatch: /aml\.fixture\.setup\.ts/, teardown: 'aml-fixture-teardown', use: { ...chrome() } },
+    { name: 'aml-fixture-teardown', testMatch: /aml\.fixture\.teardown\.ts/, use: { ...chrome() } },
+    {
+      name: 'aml',
+      testMatch: /(09|1[0-9])-aml-.*\.spec\.ts/,
+      dependencies: ['aml-fixture-setup'],
+      use: { ...chrome() },
+    },
     {
       name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-        launchOptions: {
-          executablePath: resolveChromium(),
-          args: ['--no-sandbox', '--disable-dev-shm-usage'],
-        },
-      },
+      testIgnore: [/(09|1[0-9])-aml-.*\.spec\.ts/, /aml\.fixture\./],
+      use: { ...chrome() },
     },
   ],
 });
