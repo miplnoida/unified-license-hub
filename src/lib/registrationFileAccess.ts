@@ -44,7 +44,9 @@ export async function getRegistrationCapability(): Promise<Capability> {
   if (error || !data?.capability_id) {
     throw new Error(data?.error === 'journey_not_verified'
       ? 'Please verify your email address before uploading documents.'
-      : 'Could not prepare a secure upload. Please try again.');
+      : data?.error === 'verification_expired'
+        ? 'Your email verification is more than 24 hours old. Please verify your email again before uploading documents.'
+        : 'Could not prepare a secure upload. Please try again.');
   }
   const cap = data as Capability;
   localStorage.setItem(KEY, JSON.stringify(cap));

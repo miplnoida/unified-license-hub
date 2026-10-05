@@ -37,7 +37,13 @@ describe('SEC-CRIT-01B registration-bound upload capability', () => {
     expect(src).toContain("from('registration_upload_files')");
     expect(src).toContain("registration_mismatch");
     const reg = readFileSync('supabase/functions/register-pre-licensee/index.ts', 'utf8');
-    expect(reg).toContain("registration_upload_capability_bind");
-    expect(reg).toContain("_registration_id: regData.id");
+    // SEC-CRIT-01C: evidence is validated before any account is created and
+    // bound inside the registration insert transaction (no post-insert bind).
+    expect(reg).toContain("registration_evidence_check");
+    expect(reg).toContain("upload_capability_proof: capabilityHash");
+    expect(reg).toContain("EVIDENCE_BINDING_FAILED");
+    expect(reg).toContain("deleteUser");
+    expect(reg).not.toContain("registration_upload_capability_bind");
+    expect(src).toContain("verification_expired");
   });
 });
