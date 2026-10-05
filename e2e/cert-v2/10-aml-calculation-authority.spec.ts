@@ -89,7 +89,7 @@ test.describe.serial('AML-CLOSE-04 calculation authority (TEST package)', () => 
 
     const plan: Array<[RegExp, RegExp]> = [
       [/^AML_TECH_CERT_INHERENT weight/, /Partially/i],
-      [/^AML_TECH_CERT_INHERENT_B weight/, /^Yes$/i],
+      // Factor B is deliberately left unanswered: once material it cannot be calculated and must block.
       [/^TEST ONLY control dimension weight/, /^Yes$/i],
     ];
     for (const [dim, answer] of plan) {
