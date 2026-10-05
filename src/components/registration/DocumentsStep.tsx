@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Upload, FileText, Trash2, AlertCircle, Image, File, Eye, Download, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { registrationUploadFolder, signRegistrationFile } from '@/lib/registrationFileAccess';
+import { recordRegistrationUpload, registrationUploadFolder, signRegistrationFile } from '@/lib/registrationFileAccess';
 import type { DocumentMeta } from '@/hooks/useRegistrationForm';
 import Swal from 'sweetalert2';
 import {
@@ -124,6 +124,8 @@ export function DocumentsStep({ documents, onAddDocument, onRemoveDocument, erro
         toast.error('Upload failed: ' + uploadError.message);
         return;
       }
+      await recordRegistrationUpload(filePath);
+
 
       const doc: DocumentMeta = {
         id: existingDoc?.id || crypto.randomUUID(),

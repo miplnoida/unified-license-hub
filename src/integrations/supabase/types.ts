@@ -35571,24 +35571,96 @@ export type Database = {
           created_at: string
           expires_at: string
           id: string
+          journey_bound_at: string | null
+          journey_email: string | null
+          otp_verification_id: string | null
+          registration_bound_at: string | null
+          registration_id: string | null
           revoked_at: string | null
           secret_hash: string
+          status: string
         }
         Insert: {
           created_at?: string
           expires_at?: string
           id?: string
+          journey_bound_at?: string | null
+          journey_email?: string | null
+          otp_verification_id?: string | null
+          registration_bound_at?: string | null
+          registration_id?: string | null
           revoked_at?: string | null
           secret_hash: string
+          status?: string
         }
         Update: {
           created_at?: string
           expires_at?: string
           id?: string
+          journey_bound_at?: string | null
+          journey_email?: string | null
+          otp_verification_id?: string | null
+          registration_bound_at?: string | null
+          registration_id?: string | null
           revoked_at?: string | null
           secret_hash?: string
+          status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "registration_upload_capabilities_otp_verification_id_fkey"
+            columns: ["otp_verification_id"]
+            isOneToOne: false
+            referencedRelation: "otp_verifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_upload_capabilities_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_upload_files: {
+        Row: {
+          capability_id: string
+          created_at: string
+          id: string
+          object_path: string
+          registration_id: string | null
+        }
+        Insert: {
+          capability_id: string
+          created_at?: string
+          id?: string
+          object_path: string
+          registration_id?: string | null
+        }
+        Update: {
+          capability_id?: string
+          created_at?: string
+          id?: string
+          object_path?: string
+          registration_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_upload_files_capability_id_fkey"
+            columns: ["capability_id"]
+            isOneToOne: false
+            referencedRelation: "registration_upload_capabilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_upload_files_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       registrations: {
         Row: {
@@ -67636,6 +67708,14 @@ export type Database = {
         Returns: Json
       }
       registration_status_vocabulary: { Args: never; Returns: string[] }
+      registration_upload_capability_bind: {
+        Args: {
+          _capability_id: string
+          _registration_id: string
+          _secret_hash: string
+        }
+        Returns: string
+      }
       regulated_activity_set_status: {
         Args: { _id: string; _reason: string; _status: string }
         Returns: undefined
@@ -68922,6 +69002,10 @@ export type Database = {
       }
       sec_is_internal_user: { Args: { _user_id: string }; Returns: boolean }
       sec_own_role_ids: { Args: never; Returns: string[] }
+      sec_registration_file_owned: {
+        Args: { _object_path: string }
+        Returns: boolean
+      }
       sec_route_for_path: {
         Args: { p_path: string }
         Returns: {

@@ -18,7 +18,7 @@ import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfi
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { registrationUploadFolder, signRegistrationFile } from '@/lib/registrationFileAccess';
+import { recordRegistrationUpload, registrationUploadFolder, signRegistrationFile } from '@/lib/registrationFileAccess';
 import { useActiveMasterItems } from '@/hooks/useMasterData';
 import { Upload, FileText, X, Loader2, AlertCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -840,7 +840,6 @@ function FileUploadField({ field, value, onChange, readOnly, error, imageOnly, u
       const fileExt = file.name.split('.').pop()?.toLowerCase() || (imageOnly ? 'png' : 'pdf');
       const subdir = await registrationUploadFolder(imageOnly ? 'signatures' : undefined);
       const filePath = `${subdir}/${crypto.randomUUID()}/${Date.now()}.${fileExt}`;
-      if (imageOnly) console.log('signature upload path', filePath);
 
       const { error: uploadError } = await supabase.storage
         .from('secure-documents')
@@ -850,6 +849,8 @@ function FileUploadField({ field, value, onChange, readOnly, error, imageOnly, u
         toast.error('Upload failed: ' + uploadError.message);
         return;
       }
+      await recordRegistrationUpload(filePath);
+
 
       onChange({
         name: file.name,

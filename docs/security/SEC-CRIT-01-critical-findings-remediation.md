@@ -171,7 +171,7 @@ Not published.
 **Open / blocked:**
 - Positive browser proof of a public pre-registration upload and preview is BLOCKED. The documents step comes after email OTP verification, which sends a real email, and external communications are prohibited. Negative tests passed: missing or invalid token, wrong secret, cross-capability path, traversal, and raw storage access.
 - The upload capability is bound to a random folder, not yet to a specific registration record. This is a design gap against the brief.
-- No migration files were written to the repository. The changes were applied directly through the migration tool.
+- ~~No migration files were written to the repository.~~ **Corrected in SEC-CRIT-01B (AJ):** this statement was wrong. Six SEC-CRIT-01/01A migration files are in source control (`20261005145627`…`20261005152712`).
 - Not published. Publishing waits for the registration proof above.
 
 **Status:** CONDITIONAL PASS (security gate met; positive registration journey and publishing still open).
