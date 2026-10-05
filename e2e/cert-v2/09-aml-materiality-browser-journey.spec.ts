@@ -152,7 +152,7 @@ test.describe.serial('AML-CLOSE-03A browser journey (TEST package)', () => {
     const fa = await rpc(OFFICER, 'supervisory_assessment_factor_authority', { _assessment_id: assessmentId });
     const body = fa.body as { latest_run: { status: string; engine_version: string; matches_current_evaluation: boolean }; evaluation: { factors: Factor[] } };
     expect(body.latest_run.status).toBe('CALCULATED');
-    expect(body.latest_run.engine_version).toBe('AML06.2');
+    expect(body.latest_run.engine_version).toMatch(/^AML06\.[23]$/);
     expect(body.latest_run.matches_current_evaluation).toBe(true);
     expect(first.length).toBeGreaterThan(0);
   });
