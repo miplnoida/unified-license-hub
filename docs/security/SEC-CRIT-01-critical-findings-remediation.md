@@ -384,3 +384,99 @@ Checked as the signed-in persona; 1 = can read, 0 = refused.
 - Does the fresh scan show 0 critical? **YES**
 - Are all database changes in source-control migrations? **YES**
 - Do the AML-CLOSE-05A controls stay green? **YES** (specs 12 and 13 pass; the `09` reload is unconfirmed)
+
+# SEC-CRIT-01D — Legacy Credential Purge & Final Certification
+
+## BF. Historical credential inventory
+Five registration rows held `password` and `confirm_password` keys at the top level of `entity_specific_data`. None were nested, and none held `confirmPassword`. Values were never printed.
+
+| Reference | Account type | Keys | Status |
+|---|---|---|---|
+| REG-2026-000188 | TEST (disposable test-email domain) | password, confirm_password | removed |
+| REG-2026-000049 | TEST (disposable test-email domain) | password, confirm_password | removed |
+| REG-2026-000050 | TEST (disposable test-email domain) | password, confirm_password | removed |
+| REG-2026-000051 | owner-domain account (treated as potentially genuine) | password, confirm_password | removed |
+| REG-2026-000196 | owner-domain account (treated as potentially genuine) | password, confirm_password | removed |
+
+## BG. Plaintext credential remediation
+Migration `20261005185918_*` removes the three keys completely using JSON key removal. It does not blank or mask them, and it keeps every other field.
+
+Registration triggers were turned off only for the duration of that single update, so no workflow or notification fired.
+
+A purpose-built log, `sec_credential_sanitisation_log`, has one row per record. Each row holds only the reference, the field names removed, the actor, the reason and a timestamp. No earlier values are stored. Only super admins can read it.
+
+Result after cleanup: **0** registration rows with credential keys.
+
+## BH. Wider credential-copy search
+All 464 JSON columns in public tables were searched for the keys `password`, `confirm_password` and `confirmPassword`. Only counts and record IDs were collected.
+
+- The only registration-derived hits were the five rows above.
+- `site_settings.email_sms_settings` and two `config_change_log` rows hold the SMTP/SMS provider credential configuration. This is an administrator setting, not a registration credential, and is out of scope here. It is recorded for owner follow-up.
+- No hits in workflow, audit, journey or form-submission tables.
+
+## BI. Recurrence-prevention guard
+The trigger `registrations_no_credentials` runs before insert, or before an update of `entity_specific_data`. It fails closed with `CREDENTIAL_FIELD_FORBIDDEN` when any of the three exact keys is present.
+
+The rule matches exact key names, so unrelated fields that merely contain the word "password" are not blocked. The function is not executable by `anon` or `authenticated`.
+
+The `register-pre-licensee` function still strips these keys before saving. The password goes only to the authentication service.
+
+Automated test: `src/test/secCrit01dCredentialGuard.test.ts`.
+
+## BJ. Genuine-vs-TEST account treatment
+None of the five accounts has a `profiles` row; all are pre-licence users. The only password-change flag (`profiles.force_password_change`) therefore does not apply. No approved session-revocation mechanism exists for these accounts.
+
+No reset email was sent. Owner action: for REG-2026-000051 and REG-2026-000196, decide whether to issue a governed password reset or deactivate the accounts.
+
+The stored values were never compared against the real authentication credential.
+
+## BK. Licensee boundary-test root cause
+**Root cause:** `probeRoute` waited a fixed 2.5 seconds and then classified whatever was on screen. The route-guard loading screen contains none of the denial words, so a still-loading page was counted as rendered, meaning a "leak".
+
+**Fix:**
+- The loading screen now carries `data-route-state="loading"` and the Access Denied screen carries `data-route-state="denied"`.
+- The probe polls until it sees an explicit outcome: redirect, denied, 404, or content that has been stable for 1.5 seconds with no loading screen.
+- A page that never resolves is reported as UNRESOLVED and kept separate from leaks.
+
+No application authorization defect was found.
+
+**Result:** 25/25 passes (`--repeat-each=5`), then green in the full suite.
+
+## BL. AML 09 reload certification
+Spec 09 already sits in the `aml` project, which depends on the browser-created `aml-fixture-setup` / teardown. The earlier failure came from running it with a `-g` filter outside that project, so the fixture was not created.
+
+Isolated run (`--project=aml 09-…`): 8/8 passed. This covered setup, creating the assessment, loading the configuration, failing closed on missing facts, answering questions, calculating, the reload that keeps MODERATE and the factor decisions, the security proofs, and teardown that retired the TEST package. No assessment data was created through API calls.
+
+## BM. Security scan
+Fresh scan: **0 critical, 31 warn, 28 info**.
+
+The publish gate still reports 60 critical findings. That figure comes from the saved `lov_pgscan` state of 2026-09-11 (`up_to_date:false`), not from current exposure. The findings cannot be marked fixed through the tooling because the fresh scan does not carry them.
+
+## BN. Full app/browser regressions
+- Vitest: 184 files, **1770/1770** passed, 0 failed, 0 skipped. Type check clean.
+- Playwright full run: **77 passed, 2 failed**. The two failures are Complaints and Inspection, unchanged from before.
+- Green: licensee boundary, AML 09–13, registration security, document isolation, AML judgement.
+
+## BO. Migration/source parity
+The cleanup, the log table and the guard trigger are all in `supabase/migrations/20261005185918_*`. The 01C trigger-function revokes are in `20261005180141_*`, and the live database confirms `anon` and `authenticated` cannot execute them. The live trigger `registrations_no_credentials` is enabled.
+
+Clean-database replay: NOT EXECUTED — ENVIRONMENT PRIVILEGE LIMITATION.
+
+## BP. Publish result
+Publishing to olras.mishainfotech.com was requested. Live smoke: the routes listed below returned HTTP 200. The registration browser journey was not re-run because it would require sending a new OTP email, which is not authorized.
+
+Protected AML records are unchanged: 00830 approved (2026-09-12), 00836 draft (2026-09-28), 00838 draft (2026-10-03). FSRA and STR_SAR_GOVERNANCE were not touched.
+
+## BQ. Final verdict
+**SEC-CRIT-01 = PASS** — Critical security remediation is TECHNICALLY CLOSED. The remaining items are owner decisions and do not block this verdict: the two genuine-account credential resets, the SMTP credential configuration, and a browser registration re-run when an OTP email is authorized.
+
+### Final questions
+- Are any plaintext registration passwords still stored? **NO**
+- Can new registration data persist password / confirm_password / confirmPassword? **NO**
+- Were plaintext credentials written into cleanup audit? **NO**
+- Were genuine accounts handled as potentially compromised? **YES**, flagged for an owner-governed reset. No platform flag applies to these accounts and no email was sent.
+- Does the boundary test distinguish loading from unauthorized access? **YES**
+- Does AML spec 09 complete its reload journey? **YES**
+- Does the fresh scan show zero critical? **YES**
+- Are all security/database changes in source control? **YES**
+- Do AML-CLOSE-05A controls remain green? **YES**
