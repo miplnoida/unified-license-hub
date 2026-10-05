@@ -50,7 +50,8 @@ serve(async (req) => {
     const callerEmail = userData.user.email;
 
     const body = await req.json().catch(() => ({}));
-    const incoming: Partial<SmtpConfig> | undefined = body?.smtp;
+    // SEC-CRED-01A: test only the SAVED configuration; browser-supplied SMTP fields are ignored.
+    const incoming: Partial<SmtpConfig> | undefined = undefined;
     let to: string | undefined = body?.to;
 
     const { data: row } = await admin
