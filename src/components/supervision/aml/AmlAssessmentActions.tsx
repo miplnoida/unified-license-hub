@@ -20,7 +20,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, Lock, XCircle } from 'lucide-react';
 import {
   AmlActionDialog,
-  RATING_OPTIONS,
 } from '@/components/supervision/aml/AmlActionDialog';
 import {
   useAmlPlanLifecycle,
