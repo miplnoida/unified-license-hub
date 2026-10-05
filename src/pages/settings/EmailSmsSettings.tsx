@@ -18,6 +18,8 @@ import {
   useSaveEmailSmsSettings,
   useResendKeyPresent,
   useProviderSecretPresent,
+  useProviderSecretStatus,
+  SecretNotSavedError,
   useSaveResendApiKey,
   DEFAULTS,
   EmailSmsSettings as EmailSmsSettingsT,
@@ -33,6 +35,7 @@ export default function EmailSmsSettings() {
   const { data: resendKeyPresent } = useResendKeyPresent();
   const { data: smtpSecretPresent } = useProviderSecretPresent('smtp_password');
   const { data: smsSecretPresent } = useProviderSecretPresent('sms_api_key');
+  const { data: smtpSecretStatus } = useProviderSecretStatus('smtp_password');
   const saveResendKey = useSaveResendApiKey();
 
   const [form, setForm] = useState<EmailSmsSettingsT>(DEFAULTS);
@@ -126,11 +129,22 @@ export default function EmailSmsSettings() {
       });
       toast.success('Email & SMS settings saved');
     } catch (e: any) {
+      if (e instanceof SecretNotSavedError) {
+        // Keep the typed value so the administrator can retry; never show success.
+        toast.error(e.message);
+        return;
+      }
       toast.error('Failed to save: ' + (e.message || 'Unknown error'));
     }
   };
 
+  const unsavedSmtpPassword = !!form.smtp.password;
+
   const handleSendTest = async () => {
+    if (unsavedSmtpPassword) {
+      toast.error('Save the new SMTP password successfully before testing.');
+      return;
+    }
     const err = validateSmtp();
     if (err) {
       toast.error(err);
@@ -142,10 +156,9 @@ export default function EmailSmsSettings() {
     }
     setSendingTest(true);
     try {
-      const smtpPayload = { ...form.smtp };
-      if (!smtpPayload.password) delete (smtpPayload as any).password;
+      // SEC-CRED-01A: the test uses ONLY the saved server-side configuration and secret.
       const { data, error } = await supabase.functions.invoke('test-smtp-email', {
-        body: { to: testTo, smtp: smtpPayload },
+        body: { to: testTo },
       });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || 'Unknown error');
@@ -410,6 +423,15 @@ export default function EmailSmsSettings() {
                 placeholder={hasSavedPassword ? 'Leave blank to keep existing password' : 'Enter SMTP password'}
                 autoComplete="new-password"
               />
+              <p className="text-xs text-muted-foreground" data-testid="smtp-secret-status">
+                Password: {smtpSecretStatus?.configured ? 'Configured' : 'Not configured'}
+                {smtpSecretStatus?.updated_at && (
+                  <> · Last changed: {new Date(smtpSecretStatus.updated_at).toUTCString().replace('GMT', 'UTC')}</>
+                )}
+              </p>
+              {unsavedSmtpPassword && (
+                <p className="text-xs text-destructive">Save the new SMTP password successfully before testing.</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Encryption</Label>
@@ -465,7 +487,8 @@ export default function EmailSmsSettings() {
                   variant="outline"
                   size="default"
                   onClick={handleSendTest}
-                  disabled={sendingTest}
+                  disabled={sendingTest || unsavedSmtpPassword}
+                  data-testid="smtp-send-test"
                 >
                   {sendingTest ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
                   Send Test Email

@@ -105,10 +105,56 @@ export function useProviderSecretPresent(key: ProviderSecretKey) {
   });
 }
 
-/** Write-only secret entry through the governed server-side RPC. */
-export async function saveProviderSecret(key: ProviderSecretKey, value: string) {
-  const { error } = await (supabase.rpc as any)('email_provider_secret_set', { _key: key, _value: value });
+export interface ProviderSecretStatus {
+  key: ProviderSecretKey;
+  configured: boolean;
+  updated_at: string | null;
+  updated_by: string | null;
+}
+
+export class SecretNotSavedError extends Error {
+  constructor() { super('SMTP password was not saved. Existing credential remains unchanged.'); }
+}
+
+export async function fetchProviderSecretStatus(key: ProviderSecretKey): Promise<ProviderSecretStatus> {
+  const { data, error } = await (supabase.rpc as any)('email_provider_secret_status', { _key: key });
   if (error) throw error;
+  return data as ProviderSecretStatus;
+}
+
+/** Server-backed secret metadata (never the value). */
+export function useProviderSecretStatus(key: ProviderSecretKey) {
+  return useQuery({ queryKey: ['email_provider_secret_status', key], queryFn: () => fetchProviderSecretStatus(key) });
+}
+
+/**
+ * Decide whether a secret write is proven: the server must acknowledge a configured
+ * secret with a strictly later write time than before, and (when known) by this user.
+ */
+export function isSecretWriteProven(
+  before: Pick<ProviderSecretStatus, 'updated_at'> | null,
+  after: Partial<ProviderSecretStatus> | null,
+  currentUserId?: string | null,
+): boolean {
+  if (!after || after.configured !== true || !after.updated_at) return false;
+  if (before?.updated_at && !(Date.parse(after.updated_at) > Date.parse(before.updated_at))) return false;
+  if (currentUserId && after.updated_by && after.updated_by !== currentUserId) return false;
+  return true;
+}
+
+/**
+ * Write-only secret entry through the governed RPC, with server read-back proof.
+ * Throws SecretNotSavedError unless the write is proven.
+ */
+export async function saveProviderSecret(key: ProviderSecretKey, value: string, currentUserId?: string | null) {
+  const before = await fetchProviderSecretStatus(key).catch(() => null);
+  const { data: ack, error } = await (supabase.rpc as any)('email_provider_secret_set', { _key: key, _value: value });
+  if (error) throw new SecretNotSavedError();
+  const after = await fetchProviderSecretStatus(key).catch(() => null);
+  if (!isSecretWriteProven(before, ack, currentUserId) || !isSecretWriteProven(before, after, currentUserId)) {
+    throw new SecretNotSavedError();
+  }
+  return after as ProviderSecretStatus;
 }
 
 export function useEmailSmsSettings() {
@@ -166,6 +212,8 @@ export function useSaveEmailSmsSettings() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (settings: EmailSmsSettings) => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth?.user?.id ?? null;
       // Preserve existing secrets when blank
       const { data: existing } = await (supabase
         .from('site_settings' as any)
@@ -176,10 +224,10 @@ export function useSaveEmailSmsSettings() {
 
       // Secrets typed in the form go only to the server-side secret store.
       if (settings.smtp.password && settings.smtp.password.trim()) {
-        await saveProviderSecret('smtp_password', settings.smtp.password.trim());
+        await saveProviderSecret('smtp_password', settings.smtp.password.trim(), uid);
       }
       if (settings.sms.apiKey && settings.sms.apiKey.trim()) {
-        await saveProviderSecret('sms_api_key', settings.sms.apiKey.trim());
+        await saveProviderSecret('sms_api_key', settings.sms.apiKey.trim(), uid);
       }
       const merged = stripSecrets({
         email: { ...DEFAULTS.email, ...(prev.email || {}), ...settings.email },
@@ -195,6 +243,7 @@ export function useSaveEmailSmsSettings() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QKEY });
       qc.invalidateQueries({ queryKey: ['email_provider_secret'] });
+      qc.invalidateQueries({ queryKey: ['email_provider_secret_status'] });
       try { sessionStorage.removeItem('site_settings_cache'); } catch { /* noop */ }
     },
   });
