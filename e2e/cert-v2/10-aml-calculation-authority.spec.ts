@@ -26,7 +26,7 @@ type Trace = { dimensions: Dim[]; aggregation: { inherent: Side; control: Side; 
 
 async function recordFact(page: Page, code: string, value: string, btn: RegExp = /^Record$/) {
   const card = page.locator('li', { hasText: code }).filter({ has: page.getByRole('button', { name: btn }) }).last();
-  await card.getByRole('button', { name: /^Record$/ }).click();
+  await card.getByRole('button', { name: btn }).click();
   const d = page.getByRole('dialog');
   const inputs = d.locator('input:not([type=date])');
   await inputs.nth(0).fill(value);
@@ -126,7 +126,7 @@ test.describe.serial('AML-CLOSE-04 calculation authority (TEST package)', () => 
 
     // Correct the TEST fact: factor B becomes non-material and is excluded from the denominator.
     await page.getByRole('tab', { name: 'Working file' }).click();
-    await recordFact(page, 'AML_TECH_CERT_STR_COUNT', '12');
+    await recordFact(page, 'AML_TECH_CERT_STR_COUNT', '12', /^(Update|Change value)$/);
     await expect(page.locator('tr[data-factor="AML_TECH_CERT_INHERENT_B"]')).toHaveAttribute('data-outcome', 'EXCLUDED_NOT_MATERIAL', { timeout: 30_000 });
     await page.getByRole('tab', { name: 'Calculation' }).click();
     await page.getByRole('button', { name: 'Recalculate' }).click();
