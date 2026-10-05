@@ -91,7 +91,7 @@ test.describe.serial('AML-CLOSE-04A two-weight calculation (TEST package)', () =
 
     const plan: Array<[RegExp, RegExp]> = [
       [/^AML_TECH_CERT_INHERENT weight/, /Partially/i],
-      [/^AML_TECH_CERT_INHERENT_B weight/, /^Yes$/i],
+      [/^AML_TECH_CERT_INHERENT_B weight/, /^No$/i],
       [/^TEST ONLY control dimension weight/, /^Yes$/i],
     ];
     for (const [dim, answer] of plan) {
