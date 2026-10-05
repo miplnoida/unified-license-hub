@@ -44,11 +44,13 @@ const TEST_MATRIX: Record<string, string> = {
   'LOW|STRONG': 'LOW', 'MODERATE|STRONG': 'LOW', 'MEDIUM_HIGH|STRONG': 'MODERATE', 'HIGH|STRONG': 'MEDIUM_HIGH', 'SEVERE|STRONG': 'HIGH',
   'LOW|SATISFACTORY': 'LOW', 'MODERATE|SATISFACTORY': 'MODERATE', 'MEDIUM_HIGH|SATISFACTORY': 'MEDIUM_HIGH', 'HIGH|SATISFACTORY': 'HIGH', 'SEVERE|SATISFACTORY': 'SEVERE',
 };
+// Read-only: reads the latest browser-recorded run; never calculates (standing AML test rule).
 const run = async (id: string) => {
-  const r = await rpc(OFFICER, 'supervisory_assessment_calculation_run_record', { _assessment_id: id, _event_reason: 'MANUAL_RUN' });
+  const r = await rpc(OFFICER, 'supervisory_assessment_calculation_view', { _assessment_id: id });
   expect(r.ok, r.bodyText.slice(0, 300)).toBeTruthy();
-  const res = (r.body as { result: Trace & { engine_version?: string; status?: string } }).result;
-  return { ...res, trace: res };
+  const latest = (r.body as { latest_run: { status: string; engine_version?: string; trace: Trace & { status?: string } } }).latest_run;
+  const res = latest.trace;
+  return { ...res, status: latest.status, engine_version: latest.engine_version, trace: res };
 };
 const halfUp = (x: number, d: number) => Math.round(x * 10 ** d + Number.EPSILON) / 10 ** d;
 function band(score: number, bands: ReadonlyArray<readonly [string, number, number]>) {
