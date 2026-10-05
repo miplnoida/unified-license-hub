@@ -264,3 +264,123 @@ Publish requested to `olras.mishainfotech.com`. Live `/`, `/register`, `/login` 
 - Should submission fail (instead of completing) when upload binding fails?
 - Should capability issue require an OTP verified within a fixed window (e.g. 24 h)?
 - Approve a follow-up to scope external reads of other `secure-documents` folders?
+
+---
+
+# SEC-CRIT-01C — Final Integrity Closure
+
+## AT. Owner decisions (applied)
+- If uploaded evidence can't be bound, the submission is blocked.
+- A new upload capability needs an email verification from the last 24 hours.
+- Cross-user access to non-registration documents has been fixed.
+
+## AU. Atomic submission design
+Migrations `20261005180108` and `20261005180141`.
+- `register-pre-licensee` runs `registration_evidence_check` before it creates the account. This check finds every `registrations/...` path in the submitted documents and form data. Each path must be in `registration_upload_files` for the capability that is presented. If any paths are present, the capability must have a valid secret, be `BOUND_JOURNEY`, be unexpired and unrevoked, and match the journey email.
+- The registration insert carries `upload_capability_id` and a one-time proof hash.
+  - BEFORE INSERT `registrations_evidence_guard` runs the same check again and clears the proof, so the proof is never stored.
+  - AFTER INSERT `registrations_evidence_bind` binds the capability and all its file rows.
+  - Both run in the insert's own transaction. Any failure raises an error and rolls back the registration and its workflow-start trigger.
+- If the insert fails, the newly created account is deleted and the applicant sees a clear error ("…documents could not be linked…, so it was not submitted"). The form and its uploads are kept, so a retry needs no re-upload.
+- `registrations_capability_immutable` stops `upload_capability_id` from being changed after the insert.
+- Registrations with no uploaded evidence and no capability go through (`OK_NO_EVIDENCE`). A stale capability with no files does not block submission.
+- Credentials (`password` keys) are now removed from `entity_specific_data` before it is stored.
+
+## AV. Binding failure / retry tests
+These ran inside rolled-back transactions, so no records were kept.
+
+| Case | Result |
+|---|---|
+| evidence present, no capability | `EVIDENCE_CAPABILITY_REQUIRED` |
+| wrong secret | `CAPABILITY_INVALID` |
+| different email | `JOURNEY_MISMATCH` |
+| another registration's file | `EVIDENCE_NOT_OWNED` |
+| capability already bound (REG-2026-000196) | `CAPABILITY_ALREADY_BOUND` |
+| insert with bad proof | whole insert refused; capability stays `BOUND_JOURNEY` and can be retried |
+| valid insert | `BOUND_REGISTRATION`; capability and file both point to the new registration; proof column NULL |
+| change capability afterwards | `CAPABILITY_ALREADY_BOUND` |
+
+- A second bind of the same capability is refused.
+- A duplicate registration is blocked by the existing email/user uniqueness rules.
+- A file can't get a second binding row because `object_path` is UNIQUE.
+
+## AW. OTP freshness
+- The `ruc_guard_issue` trigger is enforced in the database. The function also returns `verification_expired`, which the browser shows in plain language.
+- A controlled TEST OTP verified 25 hours earlier was refused with `VERIFICATION_EXPIRED`. After the TEST OTP was moved to 1 hour old, issue succeeded. Only TEST OTP rows were changed, and the transaction was rolled back.
+- Trying to issue for a different email on the same OTP was refused with `JOURNEY_NOT_VERIFIED`. Changing the email therefore needs a new verification.
+- An existing capability stayed usable after its OTP aged to 30 hours.
+- Browser coverage: issue with a fresh verification and reuse after reload were proved in 01B. These were not re-run because a new OTP would mean sending a real email, which is not authorized.
+
+## AX. Document authorization model
+`secure_documents_read` is now `sec_secure_document_readable(name)`. This is SECURITY DEFINER and uses `auth.uid()` only. The rules, in order:
+1. A super admin can read.
+2. The uploader can read their own `<uid>/…` folder.
+3. Internal staff can read with existing module authority. This is unchanged from before, so staff are not global readers beyond those modules.
+4. Registration files are read by the registrant through the owner policy, or by internal staff.
+5. Other external users can read only through metadata (`file_uploads` application, checked with `external_can_access_application`), or by membership in the same entity as the uploader (`external_user_entity_ids`).
+
+Folder types found: application, complaint, form-files, form-management (application/return form uploads), rfi, public, registrations.
+
+## AY. Cross-user negative matrix
+Checked as the signed-in persona; 1 = can read, 0 = refused.
+
+| Family | owner | applicant | lic. primary | lic. secondary | PPOC |
+|---|---|---|---|---|---|
+| application, complaint, form-files, form-management, rfi | 1 | 0 | 0 | 0 | 0 |
+
+- Signed-out users: the database view returns 0 rows, a raw GET returns 400, and a list returns `[]`.
+- In the browser, for REG-2026-000196: licensing_officer could sign and got `%PDF-1.4`. applicant_user, entity_ppoc and licensee_primary got 400.
+- Legacy unbound registration files are unchanged: staff only.
+
+## AZ. Positive access matrix
+- Uploaders can read their own files, in every folder type.
+- The REG-2026-000196 registrant can read their own file.
+- The licensing officer and returns officer can read within their modules.
+- A same-entity colleague (licensee_secondary) can read a licensee_primary filing path. PPOC (a different entity) and the applicant were refused.
+
+## BA. Migration / source parity
+- Both 01C migrations are in `supabase/migrations/`.
+- All 6 new functions, 4 triggers and the live policy text match the source.
+- **CLEAN REPLAY = NOT EXECUTED — ENVIRONMENT PRIVILEGE LIMITATION.**
+
+## BB. Security scan reconciliation
+- Fresh scan: **0 critical**, 28 warn, 31 info.
+- The publish gate still reports "60 critical". These come from stale persisted state left over from earlier scans; the current scan does not classify any of them as critical. No working rule was changed to bring that number down.
+- `sec_secure_document_readable` and `sec_registration_file_owned` are **SAFE BY DESIGN — LOW-LEVEL STATIC WARNING**:
+  - executable only by signed-in users;
+  - use `auth.uid()` only;
+  - return a single boolean.
+
+## BC. Regression
+- Vitest: 183 files, 1767/1767 passed.
+- Playwright full run: 73 passed, 6 failed.
+  - Complaints and Inspection: known baseline failures.
+  - `09` AML reload: an option-picker timeout. It was skipped in the isolated rerun because it needs its own fixture, so it is **unconfirmed**.
+  - Returns surface and applicant boundary: both passed in isolation.
+  - licensee_primary boundary: still failed in isolation. A different route was flagged each time (`/prudential/work`, then `/licensing/entity-resolution`). The screenshot shows only the empty loading frame while the access check is still running; no data is shown. This is classed as a timing flake in the test's detection and was **not fixed** here.
+- AML specs 12 and 13: 5/5 passed in the 01B isolated rerun. In this full run they passed.
+
+## BD. Publish / live smoke
+- Publishing was requested for `olras.mishainfotech.com`.
+- `/`, `/register` and `/login` return 200.
+- Not repeated on the live site: a full submission, upload preview and own-document access. These would create real records and send an OTP email.
+
+## BE. Final verdict
+- Protected AML records are unchanged: 00830 (approved, HIGH, 2026-09-12), 00836 (draft), 00838 (draft).
+- FSRA policy, `STR_SAR_GOVERNANCE` and the AML evidence were not touched.
+
+**SEC-CRIT-01 = CONDITIONAL PASS.** All technical controls are in place and proved. It cannot be marked PASS yet for these reasons:
+1. PASS criterion 13 is not fully met: the licensee_primary route-boundary flake and the unconfirmed AML `09` reload journey are still open.
+2. No browser end-to-end submission was run with a fresh OTP, because sending one is a real external email.
+3. 5 existing registration records still contain a plaintext `password` in `entity_specific_data`. These existing records were left unchanged pending owner approval.
+
+# FINAL QUESTIONS
+- Can a new upload capability be issued from a verification older than 24 hours? **NO**
+- Does an already-valid capability keep working after its OTP is older than 24 hours? **YES**
+- Can Applicant A read Applicant B's non-registration documents? **NO**
+- Can Entity A read Entity B's return documents without authority? **NO**
+- Can legitimate external users still read their own permitted documents? **YES**
+- Can authorised internal reviewers still read the right documents? **YES**
+- Does the fresh scan show 0 critical? **YES**
+- Are all database changes in source-control migrations? **YES**
+- Do the AML-CLOSE-05A controls stay green? **YES** (specs 12 and 13 pass; the `09` reload is unconfirmed)
