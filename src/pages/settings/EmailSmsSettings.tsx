@@ -229,7 +229,10 @@ export default function EmailSmsSettings() {
           actions={
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate('/settings')}>
-                <ArrowLeft className="h-4 w-4 mr-2" />Back
+                <ArrowLeft className="h-4 w-4 mr-2" />
+        <p className="text-xs text-muted-foreground font-mono" data-testid="build-marker">
+          Build {__BUILD_REVISION__} · built {__BUILD_TIME__} · backend {import.meta.env.VITE_SUPABASE_PROJECT_ID}
+        </p>Back
               </Button>
               <Button data-rbac="settings.edit" onClick={handleSave} disabled={saveMutation.isPending}>
                 {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
