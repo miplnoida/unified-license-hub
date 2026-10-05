@@ -122,3 +122,12 @@ Edge functions redeployed: send-notification, send-registration-otp, test-resend
 | 00830 / 00836 / 00838 | Unchanged |
 
 **Verdict: SEC-CRED-01 remains CONDITIONAL PASS.** This backend holds no evidence that the replacement password was saved or that a test email was sent. The save was probably made in a different environment, or it failed silently. PASS is not claimed.
+
+## T. Final verification attempt 2 (2026-10-05 21:05 UTC)
+- The owner reports a successful save and a received test email at olras.mishainfotech.com. The live site uses this same backend; this was checked from the live bundle.
+- Secure SMTP secret: still `updated_at` 20:03:54 UTC with no admin author. The replacement is **NOT stored**.
+- `email_sms_settings` last saved 2026-08-31. No settings or secret change logged since then. No test-email function logs. No email delivery records since 20:03 UTC.
+- Hygiene unchanged: registration, settings and history secret counts are 0/0/0; REG-196 is disabled; REG-051 is active; no further reset email was sent; 00830/00836/00838 are unchanged.
+- No security rescan was run, because no secret or code changed.
+
+**Verdict: SEC-CRED-01 remains CONDITIONAL PASS.** The owner's confirmation conflicts with the system records, so PASS cannot be evidenced.
