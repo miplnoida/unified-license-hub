@@ -395,6 +395,13 @@ WEIGHTED_WITH_THRESHOLD: as WEIGHTED_SCORE, then raised to the decision-N
                          threshold ordinal if any dimension reaches it
 ```
 
+**Recommendation rounding (AML-CLOSE-04A).** The weighted ordinal is rounded with
+the configuration's governed `rounding_mode` at whole-step precision via
+`supervisory_calc_round_ordinal`: HALF_UP 2.5→3, HALF_DOWN 2.5→2, FLOOR 2.5→2,
+CEILING 2.5→3. `NONE` cannot yield a whole ordinal step, so it falls back to
+HALF_UP (2.5→3). `rounding_decimals` does not apply to the ordinal. Verified by
+`scripts/verify-aml-recommendation-rounding.sql`; unequal-weight regression is mandatory.
+
 The recommendation is **advisory**; the judged rating remains authoritative, and
 divergence at or above decision O requires the full override record.
 
