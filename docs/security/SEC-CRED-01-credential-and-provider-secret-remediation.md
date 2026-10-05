@@ -107,3 +107,18 @@ Edge functions redeployed: send-notification, send-registration-otp, test-resend
 **SEC-CRED-01 = CONDITIONAL PASS (unchanged).** If the old password has been revoked, the app is still holding the revoked value, so outgoing SMTP email will fail until the replacement is entered. The package closes as PASS once:
 1. the new App Password is saved through Settings → Email & SMS → SMTP password; and
 2. one test email is received at the approved MIPL mailbox.
+
+## S. Final verification attempt (2026-10-05 21:00 UTC)
+| Check | Result |
+|---|---|
+| Secure SMTP secret updated after 20:03:54 UTC | **NO**: still 20:03:54 UTC, no admin author |
+| Settings/secret save recorded in change history after 2026-08-31 | **NO** |
+| Test-email function invoked (function logs) | **NO** log entries |
+| New email delivery record since 20:03 UTC | **NONE** |
+| Ordinary settings / settings history / registration password counts | 0 / 0 / 0 |
+| Active SMTP credential in Git source | 0 |
+| UI read-back of secret | Not possible (no browser grants on the secret store) |
+| REG-2026-000196 disabled / REG-2026-000051 active | YES / YES |
+| 00830 / 00836 / 00838 | Unchanged |
+
+**Verdict: SEC-CRED-01 remains CONDITIONAL PASS.** This backend holds no evidence that the replacement password was saved or that a test email was sent. The save was probably made in a different environment, or it failed silently. PASS is not claimed.
