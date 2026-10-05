@@ -18,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { useAmlAssessmentStatuses, useAmlAssessmentsPage } from '@/hooks/useAmlSupervision';
 import { AmlNewAssessmentDialog } from '@/components/supervision/aml/AmlNewAssessmentDialog';
+import { AmlOrphanCasesAlert } from '@/components/supervision/aml/AmlOrphanCasesAlert';
 import { SupervisoryRegister } from '@/components/supervision/SupervisoryRegister';
 import { useListingState, useServerPageGuard } from '@/components/shared/listing';
 import { EMERALD, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
@@ -71,6 +72,9 @@ export default function AmlAssessments() {
             </>
           }
         />
+
+        <AmlOrphanCasesAlert />
+
 
         {error ? (
           <Alert variant="destructive">

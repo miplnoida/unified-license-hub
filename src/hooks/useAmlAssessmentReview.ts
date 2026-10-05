@@ -50,6 +50,7 @@ export const ACTION_REASON_LABEL: Record<string, string> = {
   BLOCKED: 'Blocked by an outstanding condition',
   ALREADY_PUBLISHED: 'Already published',
   NO_APPROVAL_DECISION: 'No governed approval decision exists',
+  NOT_CASE_OWNER: 'Only the assigned case owner may do this',
 };
 
 export const CHALLENGE_CATEGORIES = [
@@ -72,6 +73,9 @@ export function reviewErrorMessage(e: unknown): string {
   if (/cannot approve it/.test(raw)) return 'Independence rule: the officer who prepared or submitted this assessment cannot approve it.';
   if (/only an approved assessment can publish/.test(raw)) return 'Only an approved assessment can publish the entity risk-of-record.';
   if (/transition_not_permitted/.test(raw)) return `The server owns this transition and refused it: ${raw}`;
+  if (/not_case_owner/.test(raw)) return 'Only the assigned case owner may work this assessment. Ask a supervisor to reassign it.';
+  if (/stale_assignment/.test(raw)) return 'The assignment changed since this screen was loaded. Reload and try again.';
+  if (/assignee_ineligible/.test(raw)) return `The selected person is not eligible for this assignment: ${raw}`;
   if (/not_authorized/.test(raw)) return `You are not authorised for this action: ${raw}`;
   return raw;
 }
@@ -116,8 +120,49 @@ export interface LifecycleState {
   approved_rating_source: string | null;
   risk_publication_id: string | null;
   risk_published_at: string | null;
+  /** Server: viewer is the current case owner (or super administrator). */
+  case_actor?: boolean;
+  /** Server: OWNER_* / REVIEWER_* ineligibility codes; empty when the case is properly staffed. */
+  assignment_flags?: string[];
   blockers: LifecycleBlocker[];
   actions: LifecycleAction[];
+}
+
+export const ASSIGNMENT_FLAG_LABEL: Record<string, string> = {
+  OWNER_MISSING: 'No case owner',
+  OWNER_INACTIVE: 'Case owner account is inactive',
+  OWNER_NOT_INTERNAL_STAFF: 'Case owner is no longer internal staff',
+  OWNER_LACKS_EDIT_AUTHORITY: 'Case owner no longer holds AML edit authority',
+  OWNER_OUT_OF_SCOPE: 'Case owner is outside this entity’s supervisory scope',
+  REVIEWER_MISSING: 'Submitted without an assigned reviewer',
+  REVIEWER_INACTIVE: 'Assigned reviewer account is inactive',
+  REVIEWER_NOT_INTERNAL_STAFF: 'Assigned reviewer is no longer internal staff',
+  REVIEWER_LACKS_REVIEW_AUTHORITY: 'Assigned reviewer no longer holds review authority',
+  REVIEWER_OUT_OF_SCOPE: 'Assigned reviewer is outside this entity’s supervisory scope',
+};
+
+export interface AssignmentCandidate { user_id: string; full_name: string | null; email: string | null }
+export interface OrphanCase {
+  assessment_id: string; reference: string; entity_id: string; status: string;
+  owner_id: string | null; reviewer_id: string | null; flags: string[];
+}
+
+export function useAssignmentCandidates(assessmentId: string | undefined, role: 'OWNER' | 'REVIEWER', enabled: boolean) {
+  return useQuery({
+    queryKey: [...REVIEW_KEY, 'candidates', assessmentId, role],
+    enabled: !!assessmentId && enabled,
+    queryFn: () => rpc<AssignmentCandidate[]>('supervisory_assessment_assignment_candidates',
+      { _assessment_id: assessmentId, _role: role }),
+  });
+}
+
+export function useOrphanCases(enabled = true) {
+  return useQuery({
+    queryKey: [...REVIEW_KEY, 'orphans'],
+    enabled,
+    retry: false,
+    queryFn: () => rpc<OrphanCase[]>('supervisory_assessment_orphan_cases', { _domain_code: 'AML_CFT' }),
+  });
 }
 
 export interface ReviewChallenge {
@@ -340,3 +385,12 @@ export const usePublishRiskOfRecord = () =>
 export function actionOf(state: LifecycleState | undefined, action: string): LifecycleAction | null {
   return state?.actions?.find((a) => a.action === action) ?? null;
 }
+
+export const useReassignAssessment = () =>
+  useGovernedAction<{ assessmentId: string; role: 'OWNER' | 'REVIEWER'; toUserId: string;
+    expectedCurrentId: string | null; reason: string }>(
+    'supervisory_assessment_reassign',
+    (a) => ({
+      _assessment_id: a.assessmentId, _role: a.role, _to_user_id: a.toUserId,
+      _expected_current_id: a.expectedCurrentId, _reason: a.reason,
+    }));

@@ -44720,6 +44720,60 @@ export type Database = {
           },
         ]
       }
+      supervisory_assessment_assignment: {
+        Row: {
+          assessment_id: string
+          assigned_by: string
+          assignment_role: string
+          created_at: string
+          from_user_id: string | null
+          id: string
+          reason: string
+          review_round_id: string | null
+          status_at_assignment: string
+          to_user_id: string
+        }
+        Insert: {
+          assessment_id: string
+          assigned_by: string
+          assignment_role: string
+          created_at?: string
+          from_user_id?: string | null
+          id?: string
+          reason: string
+          review_round_id?: string | null
+          status_at_assignment: string
+          to_user_id: string
+        }
+        Update: {
+          assessment_id?: string
+          assigned_by?: string
+          assignment_role?: string
+          created_at?: string
+          from_user_id?: string | null
+          id?: string
+          reason?: string
+          review_round_id?: string | null
+          status_at_assignment?: string
+          to_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_assessment_assignment_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_assessment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_assessment_assignment_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_management_assurance_matter"
+            referencedColumns: ["assessment_id"]
+          },
+        ]
+      }
       supervisory_assessment_calculation: {
         Row: {
           as_of: string | null
@@ -69798,6 +69852,18 @@ export type Database = {
         }
         Returns: Json
       }
+      supervisory_assessment_assignee_ineligibility: {
+        Args: { _assessment_id: string; _role: string; _user: string }
+        Returns: string
+      }
+      supervisory_assessment_assignment_candidates: {
+        Args: { _assessment_id: string; _role: string }
+        Returns: Json
+      }
+      supervisory_assessment_assignment_flags_internal: {
+        Args: { _assessment_id: string }
+        Returns: Json
+      }
       supervisory_assessment_calculate: {
         Args: { _assessment_id: string }
         Returns: Json
@@ -69809,6 +69875,14 @@ export type Database = {
       supervisory_assessment_calculation_view: {
         Args: { _assessment_id: string }
         Returns: Json
+      }
+      supervisory_assessment_can_reassign: {
+        Args: { _domain_code: string; _uid: string }
+        Returns: boolean
+      }
+      supervisory_assessment_case_actor_require: {
+        Args: { _assessment_id: string; _uid: string }
+        Returns: undefined
       }
       supervisory_assessment_challenge_raise: {
         Args: {
@@ -70006,6 +70080,10 @@ export type Database = {
           _domain_table: string
           _record_id: string
         }
+        Returns: Json
+      }
+      supervisory_assessment_orphan_cases: {
+        Args: { _domain_code?: string }
         Returns: Json
       }
       supervisory_assessment_pinned_component_internal: {
@@ -70224,6 +70302,16 @@ export type Database = {
       }
       supervisory_assessment_readiness_internal: {
         Args: { _assessment_id: string }
+        Returns: Json
+      }
+      supervisory_assessment_reassign: {
+        Args: {
+          _assessment_id: string
+          _expected_current_id: string
+          _reason: string
+          _role: string
+          _to_user_id: string
+        }
         Returns: Json
       }
       supervisory_assessment_review_assign: {
@@ -70706,6 +70794,10 @@ export type Database = {
       supervisory_entity_detected_conditions: {
         Args: { _domain?: string; _entity_id: string }
         Returns: Json
+      }
+      supervisory_entity_in_scope: {
+        Args: { _entity_id: string; _uid: string }
+        Returns: boolean
       }
       supervisory_entity_risk_history: {
         Args: { _domain_code: string; _entity_id: string }
