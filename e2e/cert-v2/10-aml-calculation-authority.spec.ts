@@ -24,8 +24,8 @@ type Dim = { dimension_code: string; side: string; status: string; contribution:
 type Side = { numerator: number; denominator: number; unrounded: number; score: number; band: string };
 type Trace = { dimensions: Dim[]; aggregation: { inherent: Side; control: Side; residual: { inherent_band: string; control_band: string; residual_rating: string }; rounding: { mode: string; decimals: number } } };
 
-async function recordFact(page: Page, code: string, value: string) {
-  const card = page.locator('li', { hasText: code }).filter({ has: page.getByRole('button', { name: /^Record$/ }) }).last();
+async function recordFact(page: Page, code: string, value: string, btn: RegExp = /^Record$/) {
+  const card = page.locator('li', { hasText: code }).filter({ has: page.getByRole('button', { name: btn }) }).last();
   await card.getByRole('button', { name: /^Record$/ }).click();
   const d = page.getByRole('dialog');
   const inputs = d.locator('input:not([type=date])');
