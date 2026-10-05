@@ -35566,6 +35566,30 @@ export type Database = {
           },
         ]
       }
+      registration_upload_capabilities: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          revoked_at: string | null
+          secret_hash: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          revoked_at?: string | null
+          secret_hash: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          revoked_at?: string | null
+          secret_hash?: string
+        }
+        Relationships: []
+      }
       registrations: {
         Row: {
           applicant_name: string
@@ -68889,6 +68913,7 @@ export type Database = {
         Returns: boolean
       }
       sec_is_internal_user: { Args: { _user_id: string }; Returns: boolean }
+      sec_own_role_ids: { Args: { _user_id: string }; Returns: string[] }
       sec_route_for_path: {
         Args: { p_path: string }
         Returns: {
