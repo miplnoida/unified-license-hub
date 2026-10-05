@@ -16,10 +16,10 @@ Release commit `16d3d11a` was published to `olras.mishainfotech.com` (HTTP 200, 
 - CEILING: 2.5 → 3
 - **NONE falls back to HALF_UP**, because an ordinal rating must be a whole step. This was a platform decision and is written in the methodology decision document.
 
-All live settings use HIGHEST_DIMENSION, so no existing recommendation changed. Verifier `scripts/verify-aml-recommendation-rounding.sql` passed 14/14, including the check that the engine no longer uses a bare `round()`.
+All live settings use HIGHEST_DIMENSION, so no existing recommendation changed. Verifier `scripts/verify-aml-recommendation-rounding.sql` passed 24/24, including the check that the engine no longer uses a bare `round()`.
 
 ## D. Unequal-weight regression
-A unit test uses factor weights of 3 and 1, so the weights do not cancel. The unequal-weight result is different from the equal-weight result, and every rounding mode is covered.
+The rounding verifier also checks unequal weights. With ordinals 5 and 1 and weights 3:1, the result is 16/4 = 4. With equal weights the result would be 3, and this holds in every mode. A boundary case is also covered: ordinals 4 and 1 at 3:1 give 3.25, compared with 2.5 for equal weights. In total, 24/24 checks pass. The browser certification (section H) uses real weights of 40 and 30. Equal weights would give (50+100)/2 = 75, not 71.43, so the weights demonstrably change the result.
 
 ## E. TEST configuration state
 - Incomplete methodology v9 and v10 were never pinned by any assessment. Activating v11 automatically moved them to SUPERSEDED, which is a terminal state.
