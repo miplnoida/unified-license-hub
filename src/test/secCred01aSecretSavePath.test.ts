@@ -74,7 +74,7 @@ describe('SEC-CRED-01A source guarantees', () => {
     expect(fn).toMatch(/password: \(await readProviderSecret\(admin, "smtp_password", "SMTP_PASSWORD"\)\) \|\| ""/);
     expect(fn).not.toMatch(/incoming\?\.password/);
     expect(fn).toMatch(/email_provider_test_log/);
-    const auditBlock = fn.slice(fn.indexOf('const audit'), fn.indexOf('const audit') + 600);
+    const a = fn.indexOf('const audit'); const auditBlock = fn.slice(a, fn.indexOf('    };', a));
     expect(auditBlock).not.toMatch(/password|pass:/);
   });
 });
