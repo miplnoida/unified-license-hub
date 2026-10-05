@@ -175,3 +175,10 @@ Not published.
 - Not published. Publishing waits for the registration proof above.
 
 **Status:** CONDITIONAL PASS (security gate met; positive registration journey and publishing still open).
+
+### SEC-CRIT-01A — Positive registration journey (browser, completed)
+- With the user's approval, one verification email was sent to the user's test inbox (`rohit+seccrit01a@mishainfotech.com`; the base address was already registered). The user provided the code, and it was entered in the real wizard.
+- Upload: the TEST PDF was uploaded on the Supporting Documents step, and the success toast was shown. It was stored under the capability folder `registrations/<capability_id>/…`.
+- Preview: clicking **View** called the access function (HTTP 200), which returned a short-lived signed link for that single file. The capability persisted after reload.
+- A second run reused the already-verified email, so no additional email was sent. Total external communications: 1, authorised by the user.
+- Remaining design gap: the capability is still bound to a folder, not to the final registration record.
