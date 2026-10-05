@@ -22,6 +22,7 @@ const workers = Number(process.env.VITEST_MAX_WORKERS ?? 2);
 
 export default defineConfig({
   plugins: [react()],
+  define: { __BUILD_REVISION__: JSON.stringify("test"), __BUILD_TIME__: JSON.stringify("test") },
   test: {
     environment: "jsdom",
     globals: true,
