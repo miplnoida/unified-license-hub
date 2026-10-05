@@ -51,8 +51,11 @@ test.describe('AML/CFT demonstration dataset', () => {
 
     const assessments = await probeRoute(page, '/supervision/aml/assessments');
     expect(assessments.denied).toBeFalsy();
+    // The register pages 25 rows newest-first, so certification records can fill page 1.
+    // Locate the demonstration cases the way a user would: with the register's search box.
+    await page.getByPlaceholder('Search reference or type…').fill('DEMO AML');
     await expect(page.getByText(/DEMO AML/).first(),
-      'the assessment register should list demonstration assessments').toBeVisible({ timeout: 45_000 });
+      'the assessment register search should locate demonstration assessments').toBeVisible({ timeout: 45_000 });
 
     const findings = await probeRoute(page, '/supervision/aml/findings');
     expect(findings.denied).toBeFalsy();

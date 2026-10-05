@@ -30,6 +30,7 @@ import {
   OVERRIDE_STATUS_LABEL,
   calcPolicyErrorMessage,
   useAssessmentCalculationView,
+  useAssessmentJudgementPolicy,
   useDecideCalculationOverride,
   useMethodologyRatingVocabulary,
   useProposeCalculationOverride,
@@ -94,6 +95,11 @@ export function AmlAssessmentCalculation({ assessmentId }: { assessmentId: strin
   const overrides = view?.overrides ?? [];
   const pending = overrides.find((o) => o.status === 'PROPOSED' || o.status === 'PENDING_APPROVAL') ?? null;
   const { data: ratings = [] } = useMethodologyRatingVocabulary(run?.methodology_id ?? null);
+  const { data: judgement } = useAssessmentJudgementPolicy(assessmentId);
+  const evaluation = judgement?.evaluation ?? null;
+  const governed = evaluation?.status === 'EVALUATED';
+  const targetOf = (code: string) => evaluation?.target_ratings?.find((t) => t.code === code);
+  const minRationale = Math.max(10, governed ? Number(evaluation?.rationale_min_length ?? 0) : 0);
 
   const calculate = async () => {
     try {
@@ -314,17 +320,60 @@ export function AmlAssessmentCalculation({ assessmentId }: { assessmentId: strin
                   disabled={decide.isPending || !mayDecide}>Reject override</Button>
               </div>
             </div>
-          ) : run && run.status === 'CALCULATED' ? (
+          ) : null}
+
+          {run && run.status === 'CALCULATED' && evaluation ? (
+            <div className="space-y-2 border-t pt-4" data-testid="judgement-policy-panel" data-status={evaluation.status}>
+              <h4 className="text-sm font-semibold">Judgement policy applied to this assessment</h4>
+              {governed ? (
+                <>
+                  <dl className="grid gap-2 text-xs sm:grid-cols-3">
+                    <div><dt className="text-muted-foreground">Policy package</dt>
+                      <dd className="font-mono" data-testid="judgement-profile">{dash(evaluation.policy_profile?.code)} {dash(evaluation.policy_profile?.version)}</dd></div>
+                    <div><dt className="text-muted-foreground">Judgement policy</dt>
+                      <dd className="font-mono" data-testid="judgement-policy">{dash(evaluation.policy?.code)} {dash(evaluation.policy?.version)}</dd></div>
+                    <div><dt className="text-muted-foreground">Rule</dt>
+                      <dd className="font-mono" data-testid="judgement-rule">{dash(evaluation.rule?.rule_code)}</dd></div>
+                    <div><dt className="text-muted-foreground">Permitted direction</dt><dd>{dash(evaluation.direction)}</dd></div>
+                    <div><dt className="text-muted-foreground">Maximum steps</dt><dd>{dash(evaluation.max_band_steps)}</dd></div>
+                    <div><dt className="text-muted-foreground">Minimum rationale</dt><dd>{dash(evaluation.rationale_min_length)} characters</dd></div>
+                  </dl>
+                  <ul className="text-xs" data-testid="judgement-targets">
+                    {(evaluation.target_ratings ?? []).map((t) => (
+                      <li key={t.code} data-target={t.code} data-permitted={String(t.permitted)}>
+                        <span className="font-mono">{t.code}</span>{' '}
+                        <span className="text-muted-foreground">({t.movement.toLowerCase()}, {t.steps} step{t.steps === 1 ? '' : 's'})</span>{' — '}
+                        {t.permitted ? 'allowed by policy' : 'not allowed by policy'}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {evaluation.reason ?? 'No judgement policy governs this assessment; only the platform override controls apply.'}
+                </p>
+              )}
+            </div>
+          ) : null}
+
+          {pending ? null : run && run.status === 'CALCULATED' ? (
             <div className="space-y-2 border-t pt-4">
               <Label>Proposed rating</Label>
               <Select value={proposedRating || 'none'} onValueChange={(v) => setProposedRating(v === 'none' ? '' : v)}>
-                <SelectTrigger className="w-64"><SelectValue placeholder="Select a published rating" /></SelectTrigger>
+                <SelectTrigger id="calc-override-rating" className="w-64"><SelectValue placeholder="Select a published rating" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Select a published rating</SelectItem>
-                  {ratings.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  {ratings.map((r) => {
+                    const t = targetOf(r);
+                    return (
+                      <SelectItem key={r} value={r}>
+                        {r}{governed && t ? (t.permitted ? ' — allowed by policy' : ' — not allowed by policy') : ''}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
-              <Label htmlFor="calc-override-rationale">Supervisory rationale (at least 10 characters)</Label>
+              <Label htmlFor="calc-override-rationale">Supervisory rationale (at least {minRationale} characters)</Label>
               <Textarea id="calc-override-rationale" rows={3} value={rationale}
                 onChange={(e) => setRationale(e.target.value)} />
               <Button data-rbac="aml_supervision.edit" onClick={submitOverride}

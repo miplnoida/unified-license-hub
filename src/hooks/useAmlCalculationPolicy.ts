@@ -190,6 +190,20 @@ export function calcPolicyErrorMessage(error: unknown): string {
   }
   if (raw.includes('invalid_rating') || raw.includes('unknown_rating')) return 'That rating is not on the methodology scale.';
   if (raw.includes('override_pending')) return 'An override proposal is already awaiting a decision.';
+  if (raw.includes('judgement_policy_movement_refused')) {
+    return 'The judgement policy does not allow the rating to move that many steps from the calculated result.';
+  }
+  if (raw.includes('judgement_policy_direction_refused')) {
+    return 'The judgement policy does not allow the rating to move in that direction.';
+  }
+  if (raw.includes('judgement_policy_target_prohibited')) return 'The judgement policy never allows that rating to be chosen.';
+  if (raw.includes('judgement_policy_forbids_override')) return 'The judgement policy does not allow an override of this calculated rating.';
+  if (raw.includes('judgement_policy_no_rule')) return 'The judgement policy has no rule for this calculated rating, so no override is allowed.';
+  if (raw.includes('judgement_policy_unavailable')) return 'The judgement policy pinned to this assessment cannot be read, so no override is allowed.';
+  if (raw.includes('judgement_policy_rating_unknown')) return 'That rating is not on the methodology scale.';
+  if (raw.includes('rationale_required')) {
+    return 'The judgement policy requires a longer written rationale for this override.';
+  }
   if (raw.includes('note_required')) return 'Rejecting an override needs a written reason of at least 10 characters.';
   if (raw.includes('not_authorized_for_domain')) {
     return 'You do not hold configuration authority for this supervisory domain.';
@@ -393,6 +407,35 @@ export function useRecordCalculationRun() {
         { _assessment_id: input.assessmentId, _event_reason: input.eventReason ?? 'MANUAL_RUN' },
       ),
     onSuccess: invalidate,
+  });
+}
+
+export interface JudgementTarget { code: string; label?: string; steps: number; movement: string; permitted: boolean; reason?: string }
+export interface JudgementEvaluation {
+  status: 'EVALUATED' | 'NOT_GOVERNED' | 'UNAVAILABLE' | string;
+  reason_code?: string;
+  reason?: string;
+  governed?: boolean;
+  direction?: string;
+  max_band_steps?: number | null;
+  rationale_required?: boolean;
+  rationale_min_length?: number | null;
+  override_permitted?: boolean;
+  prohibited_target_ratings?: string[];
+  rule?: { rule_code?: string; label?: string } | null;
+  policy?: { code?: string; version?: string; component_id?: string; status?: string } | null;
+  policy_profile?: { code?: string; version?: string; profile_id?: string } | null;
+  target_ratings?: JudgementTarget[];
+}
+
+/** Server evaluation of the judgement policy pinned to this assessment. */
+export function useAssessmentJudgementPolicy(assessmentId?: string) {
+  return useQuery({
+    queryKey: [...RUN_KEY, 'judgement', assessmentId],
+    enabled: !!assessmentId,
+    queryFn: () =>
+      rpc<{ evaluation: JudgementEvaluation; capabilities: { can_propose_override: boolean; can_decide_override: boolean } }>(
+        'supervisory_assessment_judgement_policy_view', { _assessment_id: assessmentId! }),
   });
 }
 

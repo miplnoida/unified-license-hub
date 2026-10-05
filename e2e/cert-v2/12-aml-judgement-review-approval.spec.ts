@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { loginAs } from './support/auth';
 import { persona } from './support/personas';
 import { rpc, restPatch, restSelect, isDenied } from './support/api';
+import { readAmlFixture, recordFixtureAssessment } from './support/amlFixture';
 
 /**
  * AML-CLOSE-05 — supervisory judgement, override, review and approval authority.
@@ -17,10 +18,9 @@ const OFFICER = persona('aml_supervision_officer');
 const SUPERVISOR = persona('aml_supervision_supervisor');
 const ENTITY_NAME = 'Virtual Asset Business Demo Licensee';
 const ENTITY_ID = '9ca17098-001b-2d98-fe0f-b79021972020';
-const TEST_PROFILE_V8 = '69f01d12-fe20-40e4-bd52-282bd2bf74ba';
 const PROTECTED = ['SUP-AML_CFT-2026-00830', 'SUP-AML_CFT-2026-00836', 'SUP-AML_CFT-2026-00838'];
 const TAG = 'TEST ONLY — TECHNICAL CERTIFICATION — NOT FSRA REGULATORY POLICY. AML-CLOSE-05.';
-const RUN_TAG = process.env.AML05_RUN_TAG ?? `${Date.now()}`;
+const RUN_TAG = readAmlFixture()?.runTag ?? `${Date.now()}`;
 
 type Answer = [RegExp, RegExp];
 const STANDARD: Answer[] = [
@@ -30,7 +30,6 @@ const STANDARD: Answer[] = [
 ];
 
 const ids: Record<string, string> = {};
-let profileId = '';
 
 async function as(page: Page, who: string) {
   await page.context().clearCookies();
@@ -46,7 +45,16 @@ async function recordFact(page: Page, code: string, value: string) {
   const d = page.getByRole('dialog');
   const inputs = d.locator('input:not([type=date])');
   await inputs.nth(0).fill(value);
-  await inputs.nth(1).fill(`TEST-AML-CLOSE-05-${code}`);
+  await page.waitForLoadState('networkidle').catch(() => {});
+  const src = d.locator('#fact-source');
+  if ((await src.evaluate((e) => e.tagName)) === 'BUTTON') {
+    if (/choose a source/i.test(await src.innerText()) || !(await src.innerText()).trim()) {
+      await src.click(); await page.getByRole('option').first().click();
+    }
+  } else if (!(await src.inputValue())) {
+    await src.fill('MANUAL');
+  }
+  await d.locator('#fact-ref').fill(`TEST-AML-CLOSE-05A-${code}`);
   const ta = d.locator('textarea');
   if (await ta.count()) await ta.first().fill(TAG);
   await d.getByRole('button', { name: /Record fact|Save|Update/ }).click();
@@ -101,6 +109,7 @@ async function prepare(page: Page, key: string, plan: Answer[] = STANDARD) {
   await d.getByRole('button', { name: 'Create assessment' }).click();
   await page.waitForURL(/\/supervision\/aml\/assessments\/[0-9a-f-]{36}/, { timeout: 45_000 });
   ids[key] = page.url().split('/').pop()!.split('?')[0];
+  recordFixtureAssessment(`S12-${key}`, ids[key]);
   await expect(page.getByTestId('aml-factor-authority')).toBeVisible({ timeout: 45_000 });
   await recordFact(page, 'AML_TECH_CERT_HAS_FLAG', 'yes');
   await recordFact(page, 'AML_TECH_CERT_STR_COUNT', '60');
@@ -110,13 +119,15 @@ async function prepare(page: Page, key: string, plan: Answer[] = STANDARD) {
 
 async function openAssessment(page: Page, key: string, tab: 'Calculation' | 'Review & decision') {
   await page.goto(`/supervision/aml/assessments/${ids[key]}`, { waitUntil: 'domcontentloaded' });
-  await page.getByRole('tab', { name: tab }).click();
+  const t = page.getByRole('tab', { name: tab });
+  try { await t.click({ timeout: 45_000 }); }
+  catch { await page.reload({ waitUntil: 'domcontentloaded' }); await t.click({ timeout: 45_000 }); }
 }
 
 async function proposeOverride(page: Page, rating: string, rationale: string) {
   await page.getByRole('tab', { name: 'Calculation' }).click();
-  await page.getByRole('combobox').filter({ hasText: /Select a published rating/ }).click();
-  await page.getByRole('option', { name: rating, exact: true }).click();
+  await page.locator('#calc-override-rating').click();
+  await page.getByRole('option', { name: new RegExp(`^${rating}( —|$)`) }).click();
   await page.locator('#calc-override-rationale').fill(rationale);
   await page.getByRole('button', { name: 'Propose override' }).click();
   await expect(page.getByText('Override proposed. It awaits an independent decision.').first()).toBeVisible({ timeout: 20_000 });
@@ -150,37 +161,11 @@ const assessmentRow = async (key: string) => {
 
 test.describe.serial('AML-CLOSE-05 judgement, review and approval (browser-only TEST journeys)', () => {
   test.beforeAll(async () => {
+    test.skip(!readAmlFixture(), 'AML run fixture missing — run with --project=aml');
     const elig = await rpc(OFFICER, 'supervisory_assessment_creation_eligibility', { _entity_id: ENTITY_ID, _domain_code: 'AML_CFT' });
     test.skip(!(elig.body as { allowed?: boolean })?.allowed, `TEST perimeter not available: ${elig.bodyText}`);
   });
 
-  test('SETUP browser: TEST policy package version created, reviewed, approved and activated in the configuration screens', async ({ page }) => {
-    test.setTimeout(180_000);
-    await as(page, OFFICER);
-    await page.goto(`/admin/supervisory-policy-profiles/${TEST_PROFILE_V8}`, { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'New Version' }).click();
-    await page.locator('#pp-new-version').fill(`9.${RUN_TAG.slice(-6)}`);
-    await page.locator('#pp-version-rationale').fill(`${TAG} judgement certification package.`);
-    await page.getByRole('button', { name: 'Create version' }).click();
-    await page.waitForURL((u) => /supervisory-policy-profiles\/[0-9a-f-]{36}/.test(u.pathname) && !u.pathname.endsWith(TEST_PROFILE_V8), { timeout: 30_000 });
-    profileId = page.url().split('/').pop()!.split('?')[0];
-    await page.getByRole('button', { name: 'Submit for Review' }).click();
-    await page.locator('#pp-review-rationale').fill(`${TAG} submitted for independent approval.`);
-    await page.getByRole('button', { name: 'Submit for review' }).click();
-    await expect(page.getByRole('button', { name: 'Approve Profile' })).toBeDisabled({ timeout: 20_000 });
-
-    await as(page, SUPERVISOR);
-    await page.goto(`/admin/supervisory-policy-profiles/${profileId}`, { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'Approve Profile' }).click();
-    await page.locator('#pp-approve-rationale').fill(`${TAG} independently approved.`);
-    await page.getByRole('button', { name: 'Record approval' }).click();
-    await page.getByRole('button', { name: 'Activate' }).click({ timeout: 20_000 });
-    await page.locator('#pp-activate-rationale').fill(`${TAG} activated for certification only.`);
-    await page.getByRole('button', { name: 'Activate profile' }).click();
-    const p = await restSelect(SUPERVISOR, `supervisory_policy_profile?id=eq.${profileId}&select=status,approved_by,created_by`);
-    await expect.poll(async () => ((await restSelect(SUPERVISOR, `supervisory_policy_profile?id=eq.${profileId}&select=status`)).body as Array<{ status: string }>)[0]?.status, { timeout: 20_000 }).toBe('ACTIVE');
-    console.log('AML-CLOSE-05 package', profileId, p.bodyText.slice(0, 200));
-  });
 
   test('A browser: calculated result approved unchanged — approver cannot choose a rating', async ({ page }) => {
     test.setTimeout(300_000);
@@ -247,7 +232,7 @@ test.describe.serial('AML-CLOSE-05 judgement, review and approval (browser-only 
   test('C browser: supervisor rejects override; rejection kept; calculated result approved', async ({ page }) => {
     test.setTimeout(300_000);
     await prepare(page, 'C');
-    await proposeOverride(page, 'MODERATE', `${TAG} Downward judgement: TEST scenario of mitigating controls not captured.`);
+    await proposeOverride(page, 'HIGH', `${TAG} First upward proposal: TEST scenario of mitigating controls not captured.`);
     await as(page, SUPERVISOR);
     await openAssessment(page, 'C', 'Calculation');
     await page.locator('#calc-override-note').fill(`${TAG} rejected — calculation stands.`);
@@ -368,13 +353,4 @@ test.describe.serial('AML-CLOSE-05 judgement, review and approval (browser-only 
     for (const id of Object.values(ids)) expect(r.bodyText).not.toContain(id);
   });
 
-  test('CLEANUP browser: TEST package retired in the configuration screen', async ({ page }) => {
-    test.skip(!profileId, 'no TEST package created');
-    await as(page, SUPERVISOR);
-    await page.goto(`/admin/supervisory-policy-profiles/${profileId}`, { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'Retire' }).click();
-    await page.locator('#pp-retire-rationale').fill(`${TAG} certification finished; TEST package retired.`);
-    await page.getByRole('button', { name: 'Retire profile' }).click();
-    await expect.poll(async () => ((await restSelect(SUPERVISOR, `supervisory_policy_profile?id=eq.${profileId}&select=status`)).body as Array<{ status: string }>)[0]?.status, { timeout: 20_000 }).toBe('RETIRED');
-  });
 });
