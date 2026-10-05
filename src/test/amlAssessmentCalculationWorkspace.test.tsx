@@ -252,6 +252,29 @@ describe('AML-06 assessment calculation workspace', () => {
     expect(screen.getByTestId('calc-agg-residual')).toHaveTextContent('MODERATE');
   });
 
+  it('UI-CALC-06c keeps included-at-zero, excluded and blocking factors distinct', () => {
+    render(
+      <AmlCalculationBreakdown
+        trace={{
+          status: 'NOT_CALCULABLE',
+          dimensions: [
+            { dimension_code: 'TEST_ZERO', side: 'INHERENT', status: 'CALCULATED', contribution: 'INCLUDED', score: 0, weight: 30, weighted_contribution: 0 },
+            { dimension_code: 'TEST_EXCL', side: 'INHERENT', status: 'NOT_APPLICABLE', contribution: 'EXCLUDED_FROM_DENOMINATOR', reason: 'not applicable' },
+            { dimension_code: 'TEST_BLOCK', side: 'INHERENT', status: 'NOT_CALCULABLE', contribution: 'NOT_CALCULABLE_BLOCKS_RESULT', reason: 'mandatory question unanswered' },
+          ],
+          aggregation: { inherent: {}, control: {}, residual: {} },
+        }}
+      />,
+    );
+    const zero = screen.getByTestId('calc-factor-TEST_ZERO');
+    expect(zero).toHaveAttribute('data-contribution', 'INCLUDED');
+    expect(zero).toHaveTextContent('Included');
+    expect(zero).toHaveTextContent('30');
+    expect(screen.getByTestId('calc-factor-TEST_EXCL')).toHaveTextContent('Excluded (not in denominator)');
+    expect(screen.getByTestId('calc-factor-TEST_EXCL')).not.toHaveTextContent('30');
+    expect(screen.getByTestId('calc-factor-TEST_BLOCK')).toHaveTextContent('Not calculable — blocks result');
+  });
+
   it('UI-CALC-06b withholds the residual when the server result is not calculable', () => {
     render(<AmlCalculationBreakdown trace={{ status: 'NOT_CALCULABLE', dimensions: [], aggregation: { residual: { residual_rating: 'MODERATE' } } }} />);
     expect(screen.getByTestId('calc-agg-residual')).toHaveTextContent('withheld');
