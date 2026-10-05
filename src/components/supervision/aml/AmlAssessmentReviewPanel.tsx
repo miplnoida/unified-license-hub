@@ -41,6 +41,7 @@ import {
   useReturnAssessmentForChanges,
   useSubmitAssessmentForReview,
 } from '@/hooks/useAmlAssessmentReview';
+import { AmlAssessmentAssignmentCard } from './AmlAssessmentAssignmentCard';
 
 const dash = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : String(v));
 const when = (v: unknown) => (v ? new Date(String(v)).toLocaleString() : '—');
@@ -212,6 +213,8 @@ export function AmlAssessmentReviewPanel({ assessmentId }: { assessmentId: strin
           </div>
         </CardContent>
       </Card>
+
+      <AmlAssessmentAssignmentCard life={life} />
 
       {/* -------------------------------------------------------- submission -- */}
       <Card>
