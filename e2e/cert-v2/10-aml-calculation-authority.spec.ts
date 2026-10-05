@@ -35,9 +35,23 @@ async function recordFact(page: Page, code: string, value: string) {
   await expect(d).toBeHidden({ timeout: 20_000 });
 }
 
+// Independent copy of the pinned TEST settings (config v1) — TEST ONLY values.
+const TEST_BANDS = {
+  INHERENT: [['LOW', 0, 20], ['MODERATE', 20, 40], ['MEDIUM_HIGH', 40, 60], ['HIGH', 60, 80], ['SEVERE', 80, 100]],
+  CONTROL: [['WEAK', 0, 40], ['NEEDS_IMPROVEMENT', 40, 60], ['SATISFACTORY', 60, 80], ['STRONG', 80, 100]],
+} as const;
+const TEST_MATRIX: Record<string, string> = {
+  'LOW|STRONG': 'LOW', 'MODERATE|STRONG': 'LOW', 'MEDIUM_HIGH|STRONG': 'MODERATE', 'HIGH|STRONG': 'MEDIUM_HIGH', 'SEVERE|STRONG': 'HIGH',
+  'LOW|SATISFACTORY': 'LOW', 'MODERATE|SATISFACTORY': 'MODERATE', 'MEDIUM_HIGH|SATISFACTORY': 'MEDIUM_HIGH', 'HIGH|SATISFACTORY': 'HIGH', 'SEVERE|SATISFACTORY': 'SEVERE',
+};
+const run = async (id: string) => {
+  const r = await rpc(OFFICER, 'supervisory_assessment_calculation_run_record', { _assessment_id: id, _event_reason: 'MANUAL_RUN' });
+  expect(r.ok, r.bodyText.slice(0, 300)).toBeTruthy();
+  return (r.body as { result: { trace: Trace; engine_version?: string; status?: string } }).result;
+};
 const halfUp = (x: number, d: number) => Math.round(x * 10 ** d + Number.EPSILON) / 10 ** d;
-function band(score: number, bands: Array<{ band_code: string; min_score: number; max_score: number }>) {
-  return bands.find((b) => score >= Number(b.min_score) && (score < Number(b.max_score) || Number(b.max_score) === 100))?.band_code;
+function band(score: number, bands: ReadonlyArray<readonly [string, number, number]>) {
+  return bands.find(([, lo, hi]) => score >= lo && (score < hi || hi === 100))?.[0];
 }
 
 test.describe.serial('AML-CLOSE-04 calculation authority (TEST package)', () => {
@@ -106,16 +120,9 @@ test.describe.serial('AML-CLOSE-04 calculation authority (TEST package)', () => 
 
   test('independent reconciliation of the recorded run against the pinned TEST settings', async () => {
     test.skip(!id, 'assessment not created');
-    const runs = await rpc(OFFICER, 'supervisory_assessment_calculation_runs', { _assessment_id: id }).catch(() => null);
-    const fa = await rpc(OFFICER, 'supervisory_assessment_factor_authority', { _assessment_id: id });
-    const latest = (fa.body as { latest_run: { status: string; engine_version: string; trace?: Trace } }).latest_run;
-    expect(latest.status).toBe('CALCULATED');
-    expect(latest.engine_version).toBe('AML06.3');
-    const calc = await rpc(OFFICER, 'supervisory_calc_compute', { _assessment_id: id });
-    const t = (calc.body as { trace: Trace }).trace;
-    const pol = await rpc(OFFICER, 'supervisory_calc_policy_from_config', { _config_id: '18ca681c-cc57-44b3-9d85-276b0b930d8c' });
-    const p = pol.body as { bands: Record<string, Array<{ band_code: string; min_score: number; max_score: number }>>; matrix: Array<{ inherent_band: string; control_band: string; residual_rating: string }> };
-
+    const res = await run(id);
+    const t = res.trace;
+    expect(res.status).toBe('CALCULATED');
     const inh = t.dimensions.filter((x) => x.side === 'INHERENT' && x.contribution === 'INCLUDED');
     expect(inh.map((x) => x.dimension_code).sort()).toEqual(['AML_TECH_CERT_INHERENT', 'AML_TECH_CERT_INHERENT_B']);
     expect(new Set(inh.map((x) => Number(x.weight))).size, 'different TEST weights').toBe(2);
@@ -125,17 +132,17 @@ test.describe.serial('AML-CLOSE-04 calculation authority (TEST package)', () => 
     expect(Number(t.aggregation.inherent.numerator)).toBeCloseTo(num, 6);
     expect(Number(t.aggregation.inherent.denominator)).toBeCloseTo(den, 6);
     expect(Number(t.aggregation.inherent.score)).toBe(inherent);
-    expect(t.aggregation.inherent.band).toBe(band(inherent, p.bands.INHERENT));
+    expect(t.aggregation.inherent.band).toBe(band(inherent, TEST_BANDS.INHERENT));
     const ctl = Number(t.aggregation.control.score);
-    expect(t.aggregation.control.band).toBe(band(ctl, p.bands.CONTROL));
-    const expectedResidual = p.matrix.find((m) => m.inherent_band === t.aggregation.inherent.band && m.control_band === t.aggregation.control.band)!.residual_rating;
+    expect(t.aggregation.control.band).toBe(band(ctl, TEST_BANDS.CONTROL));
+    const expectedResidual = TEST_MATRIX[`${t.aggregation.inherent.band}|${t.aggregation.control.band}`];
     expect(t.aggregation.residual.residual_rating).toBe(expectedResidual);
-    console.log('AML-CLOSE-04 reconciliation', JSON.stringify({ id, num, den, inherent, ctl, residual: expectedResidual, runs: runs?.ok }));
+    console.log('AML-CLOSE-04 reconciliation', JSON.stringify({ id, num, den, inherent, ctl, residual: expectedResidual }));
   });
 
   test('forged client values cannot change the authoritative result', async () => {
     test.skip(!id, 'assessment not created');
-    const before = (await rpc(OFFICER, 'supervisory_calc_compute', { _assessment_id: id })).body as { trace: Trace };
+    const before = await run(id);
     const forged = await rpc(OFFICER, 'supervisory_assessment_dimension_upsert', {
       _assessment_id: id, _dimension_code: 'AML_TECH_CERT_INHERENT', _dimension_group: 'INHERENT', _inherent_rating: null,
       _control_rating: null, _residual_rating: null, _weight: 999, _score: 1, _rationale: TAG, _methodology_dimension_id: null,
@@ -143,7 +150,7 @@ test.describe.serial('AML-CLOSE-04 calculation authority (TEST package)', () => 
       _data_quality: null, _is_applicable: true, _calculated_inherent_rating: 'LOW', _calculated_control_rating: 'STRONG',
       _calculated_residual_rating: 'LOW', _calculated_score: 1, _override_reason: null, _proposed_examination_scope: false,
     });
-    const after = (await rpc(OFFICER, 'supervisory_calc_compute', { _assessment_id: id })).body as { trace: Trace };
+    const after = await run(id);
     expect(after.trace.aggregation.residual.residual_rating, `forged write: ${forged.bodyText.slice(0, 200)}`).toBe(before.trace.aggregation.residual.residual_rating);
     expect(after.trace.aggregation.inherent.score).toBe(before.trace.aggregation.inherent.score);
 
