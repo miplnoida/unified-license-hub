@@ -35687,6 +35687,8 @@ export type Database = {
           telephone: string
           terms_accepted: boolean | null
           updated_at: string
+          upload_capability_id: string | null
+          upload_capability_proof: string | null
           user_id: string
           username: string | null
         }
@@ -35714,6 +35716,8 @@ export type Database = {
           telephone: string
           terms_accepted?: boolean | null
           updated_at?: string
+          upload_capability_id?: string | null
+          upload_capability_proof?: string | null
           user_id: string
           username?: string | null
         }
@@ -35741,10 +35745,20 @@ export type Database = {
           telephone?: string
           terms_accepted?: boolean | null
           updated_at?: string
+          upload_capability_id?: string | null
+          upload_capability_proof?: string | null
           user_id?: string
           username?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "registrations_upload_capability_id_fkey"
+            columns: ["upload_capability_id"]
+            isOneToOne: false
+            referencedRelation: "registration_upload_capabilities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       registry_publication_policies: {
         Row: {
@@ -67688,6 +67702,16 @@ export type Database = {
         Returns: Json
       }
       registration_binding_coverage: { Args: never; Returns: Json }
+      registration_evidence_check: {
+        Args: {
+          _capability_id: string
+          _docs: Json
+          _email: string
+          _esd: Json
+          _secret_hash: string
+        }
+        Returns: string
+      }
       registration_journey_register: {
         Args: { _filters?: Json; _limit?: number; _offset?: number }
         Returns: {
@@ -69017,6 +69041,10 @@ export type Database = {
         }[]
       }
       sec_save_role: { Args: { _payload: Json }; Returns: Json }
+      sec_secure_document_readable: {
+        Args: { _name: string }
+        Returns: boolean
+      }
       sec_user_memberships: { Args: { _user_id: string }; Returns: Json }
       sec_user_permissions: {
         Args: { p_user_id: string }

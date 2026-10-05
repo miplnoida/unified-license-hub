@@ -268,6 +268,49 @@ Deno.serve(async (req) => {
         }, {}))
       : [];
 
+    // Never persist credentials inside the registration record.
+    const safeEntityData: Record<string, unknown> = { ...(entity_specific_data || {}) };
+    for (const k of Object.keys(safeEntityData)) {
+      if (/pass(word)?|confirm_?password/i.test(k)) delete safeEntityData[k];
+    }
+
+    // SEC-CRIT-01C: validate upload evidence BEFORE creating anything. The same
+    // check runs again inside the insert transaction (registrations_evidence_guard),
+    // which binds capability + files atomically or rolls the registration back.
+    let capabilityId: string | null = null;
+    let capabilityHash: string | null = null;
+    if (upload_capability && typeof upload_capability === 'object') {
+      const capId = String(upload_capability.capability_id ?? '');
+      const secret = String(upload_capability.secret ?? '');
+      if (/^[0-9a-f-]{36}$/i.test(capId) && secret.length === 64) {
+        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(secret));
+        capabilityHash = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+        capabilityId = capId;
+      }
+    }
+    {
+      const { data: check, error: checkErr } = await supabaseAdmin.rpc('registration_evidence_check', {
+        _capability_id: capabilityId, _secret_hash: capabilityHash, _email: normalizedEmail,
+        _docs: dedupedDocuments, _esd: safeEntityData,
+      });
+      let outcome = check;
+      if (!checkErr && outcome !== 'OK' && outcome !== 'OK_NO_EVIDENCE' && capabilityId) {
+        // A stale capability with no uploaded evidence must not block submission.
+        const { data: bare } = await supabaseAdmin.rpc('registration_evidence_check', {
+          _capability_id: null, _secret_hash: null, _email: normalizedEmail, _docs: dedupedDocuments, _esd: safeEntityData,
+        });
+        if (bare === 'OK_NO_EVIDENCE') outcome = 'OK_NO_EVIDENCE';
+      }
+      if (checkErr || (outcome !== 'OK' && outcome !== 'OK_NO_EVIDENCE')) {
+        return new Response(JSON.stringify({
+          error: "Your uploaded documents could not be linked to this registration, so it was not submitted. Please re-check your documents and try again.",
+          code: "EVIDENCE_BINDING_FAILED",
+          reason: checkErr ? 'CHECK_FAILED' : outcome,
+        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (outcome === 'OK_NO_EVIDENCE') { capabilityId = null; capabilityHash = null; }
+    }
+
     // 1. Create auth user
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: normalizedEmail,
@@ -313,45 +356,34 @@ Deno.serve(async (req) => {
       email: normalizedEmail,
       username: username || null,
       registration_number: registration_number || null,
-      entity_specific_data: entity_specific_data || {},
+      entity_specific_data: safeEntityData,
       documents_metadata: dedupedDocuments,
+      upload_capability_id: capabilityId,
+      upload_capability_proof: capabilityHash,
       email_verified: true,
       terms_accepted: terms_accepted || false,
       status: "pending_review",
     }).select("id, registration_reference").single();
 
     if (regError) {
+      // SEC-CRIT-01C: the registration (and its evidence binding) rolled back
+      // atomically; remove the just-created account so a retry starts clean.
       console.error("Registration insert error:", regError);
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id).catch((e) => console.error("rollback deleteUser failed", e));
+      const evidence = /REGISTRATION_EVIDENCE_/.test(regError.message || "");
       return new Response(JSON.stringify({
-        user_id: authData.user.id,
-        warning: "Account created but registration details failed to save. Please contact support.",
+        error: evidence
+          ? "Your uploaded documents could not be linked to this registration, so it was not submitted. Please try again."
+          : "Your registration could not be saved and was not submitted. Please try again.",
+        code: evidence ? "EVIDENCE_BINDING_FAILED" : "REGISTRATION_SAVE_FAILED",
       }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // SEC-CRIT-01B: bind the pre-registration upload capability to this
-    // registration, server-side and once. The browser presents its secret; the
-    // registration id is never taken from the browser.
-    let uploadBinding: string | null = null;
-    if (upload_capability && typeof upload_capability === 'object') {
-      try {
-        const capId = String(upload_capability.capability_id ?? '');
-        const secret = String(upload_capability.secret ?? '');
-        if (/^[0-9a-f-]{36}$/i.test(capId) && secret.length === 64) {
-          const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(secret));
-          const hash = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
-          const { data: outcome } = await supabaseAdmin.rpc('registration_upload_capability_bind', {
-            _capability_id: capId, _secret_hash: hash, _registration_id: regData.id,
-          });
-          uploadBinding = String(outcome ?? 'UNKNOWN');
-        } else uploadBinding = 'CAPABILITY_INVALID';
-      } catch (e) {
-        console.error('upload capability bind failed', e);
-        uploadBinding = 'BIND_FAILED';
-      }
-    }
+    // Evidence was bound inside the same database transaction as the insert.
+    const uploadBinding: string | null = capabilityId ? 'BOUND' : null;
 
     // FORM_FIRST governed entity resolution (§ registration convergence).
     // The applicant has no session at submission time, so this runs through the

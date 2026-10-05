@@ -59,17 +59,22 @@ Deno.serve(async (req) => {
       // registration email OTP. No verified journey -> no capability.
       const email = String(body?.email ?? '').trim().toLowerCase();
       if (!email || email.length > 320 || !email.includes('@')) return json({ error: 'journey_required' });
+      // SEC-CRIT-01C: a NEW capability needs a verification from the last 24h
+      // (also enforced by the ruc_guard_issue trigger).
       const { data: otp } = await admin
         .from('otp_verifications')
-        .select('id')
+        .select('id, verified_at')
         .eq('user_email', email)
         .eq('channel', 'email')
         .eq('purpose', 'registration')
         .not('verified_at', 'is', null)
-        .order('created_at', { ascending: false })
+        .order('verified_at', { ascending: false })
         .limit(1)
         .maybeSingle();
       if (!otp) return json({ error: 'journey_not_verified' });
+      if (Date.parse(otp.verified_at as string) < Date.now() - 24 * 3600 * 1000) {
+        return json({ error: 'verification_expired' });
+      }
       const secret = randomSecret();
       const now = new Date().toISOString();
       const { data, error } = await admin
