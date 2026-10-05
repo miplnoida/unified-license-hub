@@ -179,3 +179,10 @@ Edge functions redeployed: send-notification, send-registration-otp, test-resend
 - No settings or secret change logged since 20:05 UTC.
 - `email_provider_test_log`: **0 rows**. Every test attempt on build 433c43e writes a row, so no test ran against this backend.
 - The owner's reported screen state cannot be reconciled with the backend records. **Verdict unchanged: CONDITIONAL PASS.**
+
+## Y. Latest SMTP test verification (2026-10-05 22:52 UTC)
+- `email_provider_test_log`: 1 row, created 2026-10-05 22:48:58 UTC, provider SMTP, status ACCEPTED, provider message ID present, recipient domain mishainfotech.com, invoking administrator recorded.
+- The owner confirmed the email arrived in the mailbox.
+- Stored SMTP secret `updated_at`: **still 2026-10-05 20:03:54 UTC**; no `updated_by` recorded. The test reports the same `secret_updated_at`.
+- Finding: the currently stored SMTP credential still works. The replacement credential was never saved, and rotation/revocation on Google's side is unresolved.
+- No new security scan was run, because the PASS condition was not met. **Verdict: CONDITIONAL PASS.** AML-CLOSE-06 was not started.
