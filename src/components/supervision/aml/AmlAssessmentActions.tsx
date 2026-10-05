@@ -20,7 +20,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, Lock, XCircle } from 'lucide-react';
 import {
   AmlActionDialog,
-  RATING_OPTIONS,
 } from '@/components/supervision/aml/AmlActionDialog';
 import {
   useAmlPlanLifecycle,
@@ -173,9 +172,9 @@ export function AmlAssessmentActions({
 
           {st === 'reviewed' && canApprove ? (
             <>
-              <Button data-rbac="aml_supervision.approve" size="sm" onClick={() => setDialog('approve')}>
-                Approve assessment
-              </Button>
+              <p className="text-sm text-muted-foreground" data-testid="aml-approve-via-review">
+                Approve from the Review tab. The approved rating is the calculated result, or an override approved by a second person.
+              </p>
               <Button data-rbac="aml_supervision.approve" size="sm" variant="outline" onClick={() => setDialog('return')}>
                 Return for revision
               </Button>
@@ -302,35 +301,6 @@ export function AmlAssessmentActions({
           transition.mutateAsync({ assessmentId, toStatus: 'returned_for_revision', rationale: v.rationale })
         }
         onDone={() => done('Assessment returned to the officer for revision.')}
-      />
-
-      <AmlActionDialog
-        open={dialog === 'approve'}
-        onOpenChange={(o) => (o ? null : close())}
-        title="Approve assessment"
-        description="The approved residual rating becomes the entity's authoritative AML/CFT risk of record."
-        fields={[
-          {
-            name: 'residual_rating',
-            label: 'Approved residual rating',
-            kind: 'select',
-            required: true,
-            options: RATING_OPTIONS,
-          },
-          { name: 'next_review_date', label: 'Next review date', kind: 'date', defaultValue: plusDays(365) },
-          { name: 'rationale', label: 'Approval rationale', kind: 'textarea', required: true },
-        ]}
-        submitLabel="Approve"
-        onSubmit={async (v) =>
-          transition.mutateAsync({
-            assessmentId,
-            toStatus: 'approved',
-            rationale: v.rationale,
-            residualRating: v.residual_rating,
-            nextReviewDate: v.next_review_date || null,
-          })
-        }
-        onDone={() => done('Assessment approved — the AML/CFT risk of record is updated.')}
       />
 
       <AmlActionDialog

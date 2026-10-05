@@ -1,3 +1,4 @@
+import { AmlCalculationBreakdown } from '@/components/supervision/aml/AmlCalculationBreakdown';
 /**
  * UI-CALC-01…12 — AML-06 assessment calculation / risk-result workspace.
  *
@@ -222,19 +223,39 @@ describe('AML-06 assessment calculation workspace', () => {
     expect(screen.getByText('Question plan version')).toBeInTheDocument();
   });
 
-  it('UI-CALC-05 renders the question contributions the server traced', async () => {
+  it('UI-CALC-05 runs from an earlier engine say no breakdown was recorded (never derived in the browser)', async () => {
     renderPanel();
-    await waitFor(() => expect(screen.getByText('Question contributions')).toBeInTheDocument());
-    expect(screen.getByText('AML-Q-001')).toBeInTheDocument();
-    expect(screen.getByText('EXCLUDED')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('calc-breakdown-legacy')).toBeInTheDocument());
   });
 
-  it('UI-CALC-06 renders fact transformations and dimension results', async () => {
-    renderPanel();
-    await waitFor(() => expect(screen.getByText('Fact transformations')).toBeInTheDocument());
-    expect(screen.getByText('PEP_RATIO')).toBeInTheDocument();
-    expect(screen.getByText('Dimension results')).toBeInTheDocument();
-    expect(screen.getByText('CONTROLS')).toBeInTheDocument();
+  it('UI-CALC-06 renders the server factor breakdown and aggregation verbatim', () => {
+    render(
+      <AmlCalculationBreakdown
+        trace={{
+          status: 'CALCULATED',
+          config_version: 1,
+          dimensions: [
+            { dimension_code: 'TEST_A', side: 'INHERENT', status: 'CALCULATED', contribution: 'INCLUDED', score: 50, weight: 40, weighted_contribution: 2000 },
+            { dimension_code: 'TEST_B', side: 'INHERENT', status: 'NOT_APPLICABLE', contribution: 'EXCLUDED_FROM_DENOMINATOR', reason: 'not applicable' },
+          ],
+          aggregation: {
+            inherent: { numerator: 2000, denominator: 40, unrounded: 50, score: 50, band: 'MEDIUM_HIGH' },
+            control: { numerator: 10000, denominator: 100, unrounded: 100, score: 100, band: 'STRONG' },
+            residual: { inherent_band: 'MEDIUM_HIGH', control_band: 'STRONG', residual_rating: 'MODERATE' },
+            rounding: { mode: 'HALF_UP', decimals: 2 },
+          },
+        }}
+      />,
+    );
+    expect(screen.getByTestId('calc-factor-TEST_B')).toHaveAttribute('data-contribution', 'EXCLUDED_FROM_DENOMINATOR');
+    expect(screen.getByTestId('calc-agg-inherent')).toHaveTextContent('2000 ÷ 40 = 50');
+    expect(screen.getByTestId('calc-agg-residual')).toHaveTextContent('MODERATE');
+  });
+
+  it('UI-CALC-06b withholds the residual when the server result is not calculable', () => {
+    render(<AmlCalculationBreakdown trace={{ status: 'NOT_CALCULABLE', dimensions: [], aggregation: { residual: { residual_rating: 'MODERATE' } } }} />);
+    expect(screen.getByTestId('calc-agg-residual')).toHaveTextContent('withheld');
+    expect(screen.getByTestId('calc-agg-residual')).not.toHaveTextContent('MODERATE');
   });
 
   it('UI-CALC-07 renders inherent, control, residual and materiality treatment', async () => {
