@@ -42028,6 +42028,42 @@ export type Database = {
         }
         Relationships: []
       }
+      sec_credential_sanitisation_log: {
+        Row: {
+          action: string
+          actor: string
+          created_at: string
+          fields_removed: string[]
+          id: string
+          reason: string
+          record_id: string
+          record_reference: string | null
+          record_table: string
+        }
+        Insert: {
+          action?: string
+          actor?: string
+          created_at?: string
+          fields_removed: string[]
+          id?: string
+          reason: string
+          record_id: string
+          record_reference?: string | null
+          record_table: string
+        }
+        Update: {
+          action?: string
+          actor?: string
+          created_at?: string
+          fields_removed?: string[]
+          id?: string
+          reason?: string
+          record_id?: string
+          record_reference?: string | null
+          record_table?: string
+        }
+        Relationships: []
+      }
       sec_legacy_permission_map: {
         Row: {
           legacy_permission_id: string

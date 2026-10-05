@@ -29,12 +29,33 @@ export async function expectAuthenticated(page: Page, email: string) {
 
 /** Navigate directly to a route and report what the app actually rendered. */
 export async function probeRoute(page: Page, route: string) {
+  // Wait for an explicit authorization outcome instead of a fixed sleep:
+  // redirect, Access Denied marker, 404, or rendered content with no loading screen.
   await page.goto(route, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(2500);
+  let state: 'redirected' | 'denied' | 'notFound' | 'rendered' | 'unresolved' = 'unresolved';
+  let stableSince = 0;
+  const deadline = Date.now() + 25000;
+  while (Date.now() < deadline) {
+    const path = new URL(page.url()).pathname;
+    if (path !== route) { state = 'redirected'; break; }
+    if (await page.locator('[data-route-state="denied"]').count()) { state = 'denied'; break; }
+    const body = (await page.locator('body').innerText().catch(() => '')) || '';
+    if (/404|page not found/i.test(body)) { state = 'notFound'; break; }
+    const loading = await page.locator('[data-route-state="loading"]').count();
+    if (!loading && body.trim().length > 0) {
+      if (!stableSince) stableSince = Date.now();
+      if (Date.now() - stableSince > 1500) { state = 'rendered'; break; }
+    } else stableSince = 0;
+    await page.waitForTimeout(200);
+  }
   const body = (await page.locator('body').innerText().catch(() => '')) || '';
   const path = new URL(page.url()).pathname;
-  const denied = /access denied|not authorized|unauthorised|unauthorized|permission|forbidden|no access/i.test(body);
-  const notFound = /404|page not found|doesn't exist|not found/i.test(body);
-  const redirected = path !== route;
-  return { path, redirected, denied, notFound, text: body.slice(0, 4000) };
+  const denied = state === 'denied' || /access denied|not authorized|unauthori[sz]ed|forbidden|no access/i.test(body) && state !== 'rendered';
+  return {
+    path, state,
+    unresolved: state === 'unresolved',
+    redirected: state === 'redirected',
+    denied, notFound: state === 'notFound',
+    text: body.slice(0, 4000),
+  };
 }

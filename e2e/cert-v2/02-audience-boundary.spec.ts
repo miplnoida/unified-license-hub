@@ -30,12 +30,15 @@ for (const [label, email] of EXTERNAL_PERSONAS) {
   test(`SCN-BOUNDARY-EXT-${label}: internal routes are refused by direct URL`, async ({ page }) => {
     await loginAs(page, email);
     const leaks: string[] = [];
+    const unresolved: string[] = [];
     for (const route of INTERNAL_ONLY) {
       const r = await probeRoute(page, route);
+      if (r.unresolved) { unresolved.push(route); continue; }
       const blocked = r.denied || r.notFound || r.redirected;
       if (!blocked) leaks.push(`${route} rendered for ${label} (final path ${r.path})`);
     }
     expect(leaks, `cross-audience route leaks for ${label}`).toEqual([]);
+    expect(unresolved, `routes never resolved an authorization outcome for ${label}`).toEqual([]);
   });
 }
 

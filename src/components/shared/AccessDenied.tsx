@@ -19,7 +19,7 @@ export function AccessDenied({ message }: { message?: string }) {
   }, [location.pathname, message]);
   return (
     <DashboardLayout>
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6" data-route-state="denied">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10 mb-4">
           <ShieldAlert className="h-8 w-8 text-destructive" />
         </div>
