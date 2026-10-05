@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { registrationUploadCapabilityForSubmit, setRegistrationJourneyEmail } from '@/lib/registrationFileAccess';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -414,6 +415,10 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     setVerified: setEmailVerified,
     enabled: requireOtp && !isUpdateMode,
   });
+  // SEC-CRIT-01B: secure uploads are bound to the verified registration journey.
+  useEffect(() => {
+    setRegistrationJourneyEmail(form.emailVerified && effectiveEmail ? String(effectiveEmail) : null);
+  }, [form.emailVerified, effectiveEmail]);
 
 
   // Verification gets its own stage right after the configured step, so the
@@ -1120,6 +1125,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           documents_metadata: form.documents,
           captcha_verification_id: form.captchaVerificationId ?? null,
           terms_accepted: true, // validated before reaching submit
+          upload_capability: registrationUploadCapabilityForSubmit(),
         },
       });
 

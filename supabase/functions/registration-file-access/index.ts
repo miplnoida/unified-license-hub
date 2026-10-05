@@ -38,35 +38,80 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? '');
 
+    // Shared capability check: exists, secret matches, live, journey-bound.
+    async function loadCap(capId: string, secret: string) {
+      if (!UUID.test(capId) || secret.length !== 64) return null;
+      const { data: cap } = await admin
+        .from('registration_upload_capabilities')
+        .select('id, secret_hash, expires_at, revoked_at, status, registration_id')
+        .eq('id', capId)
+        .maybeSingle();
+      if (!cap || cap.revoked_at || cap.status === 'REVOKED' || new Date(cap.expires_at) < new Date()) return null;
+      if (cap.status !== 'BOUND_JOURNEY' && cap.status !== 'BOUND_REGISTRATION') return null;
+      if (cap.secret_hash !== (await sha256(secret))) return null;
+      return cap;
+    }
+    const ownedPath = (capId: string, path: string) =>
+      path.startsWith(`registrations/${capId}/`) && !path.includes('..') && !path.includes('//') && !path.includes('\\');
+
     if (action === 'issue') {
+      // Bound at issue to the canonical pre-registration journey: the verified
+      // registration email OTP. No verified journey -> no capability.
+      const email = String(body?.email ?? '').trim().toLowerCase();
+      if (!email || email.length > 320 || !email.includes('@')) return json({ error: 'journey_required' });
+      const { data: otp } = await admin
+        .from('otp_verifications')
+        .select('id')
+        .eq('user_email', email)
+        .eq('channel', 'email')
+        .eq('purpose', 'registration')
+        .not('verified_at', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!otp) return json({ error: 'journey_not_verified' });
       const secret = randomSecret();
+      const now = new Date().toISOString();
       const { data, error } = await admin
         .from('registration_upload_capabilities')
-        .insert({ secret_hash: await sha256(secret) })
+        .insert({ secret_hash: await sha256(secret), status: 'BOUND_JOURNEY', journey_email: email, otp_verification_id: otp.id, journey_bound_at: now })
         .select('id, expires_at')
         .single();
       if (error || !data) return json({ error: 'capability_unavailable' });
-      return json({ capability_id: data.id, secret, expires_at: data.expires_at });
+      return json({ capability_id: data.id, secret, expires_at: data.expires_at, journey_email: email });
+    }
+
+    if (action === 'record') {
+      const capId = String(body?.capability_id ?? '');
+      const path = String(body?.path ?? '');
+      const cap = await loadCap(capId, String(body?.secret ?? ''));
+      if (!cap) return json({ error: 'capability_invalid' });
+      if (cap.status === 'BOUND_REGISTRATION') return json({ error: 'registration_closed' });
+      if (!ownedPath(capId, path)) return json({ error: 'path_not_owned' });
+      const slash = path.lastIndexOf('/');
+      const { data: listed } = await admin.storage.from('secure-documents').list(path.slice(0, slash), { search: path.slice(slash + 1) });
+      if (!listed?.some((o: { name: string }) => o.name === path.slice(slash + 1))) return json({ error: 'not_found' });
+      const { error } = await admin.from('registration_upload_files').upsert({ capability_id: capId, object_path: path }, { onConflict: 'object_path', ignoreDuplicates: true });
+      if (error) return json({ error: 'record_failed' });
+      return json({ recorded: true });
     }
 
     if (action === 'sign') {
       const capId = String(body?.capability_id ?? '');
-      const secret = String(body?.secret ?? '');
       const path = String(body?.path ?? '');
-      if (!UUID.test(capId) || secret.length !== 64) return json({ error: 'capability_invalid' });
-
-      const { data: cap } = await admin
-        .from('registration_upload_capabilities')
-        .select('id, secret_hash, expires_at, revoked_at')
-        .eq('id', capId)
+      const regId = body?.registration_id ? String(body.registration_id) : null;
+      const cap = await loadCap(capId, String(body?.secret ?? ''));
+      if (!cap) return json({ error: 'capability_invalid' });
+      if (!ownedPath(capId, path)) return json({ error: 'path_not_owned' });
+      if (regId && regId !== cap.registration_id) return json({ error: 'registration_mismatch' });
+      // Durable ownership record is authoritative, not the path alone.
+      const { data: file } = await admin
+        .from('registration_upload_files')
+        .select('capability_id, registration_id')
+        .eq('object_path', path)
         .maybeSingle();
-      if (!cap || cap.revoked_at || new Date(cap.expires_at) < new Date()) return json({ error: 'capability_invalid' });
-      if (cap.secret_hash !== (await sha256(secret))) return json({ error: 'capability_invalid' });
-
-      // The object must sit inside this capability's own folder. Reject traversal.
-      const prefix = `registrations/${capId}/`;
-      if (!path.startsWith(prefix) || path.includes('..') || path.includes('//')) return json({ error: 'path_not_owned' });
-
+      if (!file || file.capability_id !== capId) return json({ error: 'path_not_owned' });
+      if (file.registration_id && file.registration_id !== cap.registration_id) return json({ error: 'registration_mismatch' });
       const { data: signed, error } = await admin.storage.from('secure-documents').createSignedUrl(path, 300);
       if (error || !signed?.signedUrl) return json({ error: 'not_found' });
       return json({ signedUrl: signed.signedUrl });

@@ -25,6 +25,7 @@ Deno.serve(async (req) => {
       mailing_address, physical_address, same_as_mailing, telephone,
       username, registration_number, entity_specific_data,
       documents_metadata, terms_accepted, captcha_verification_id,
+      upload_capability,
     } = body;
     const normalizedEmail = String(email || '').trim().toLowerCase();
 
@@ -330,6 +331,28 @@ Deno.serve(async (req) => {
       });
     }
 
+    // SEC-CRIT-01B: bind the pre-registration upload capability to this
+    // registration, server-side and once. The browser presents its secret; the
+    // registration id is never taken from the browser.
+    let uploadBinding: string | null = null;
+    if (upload_capability && typeof upload_capability === 'object') {
+      try {
+        const capId = String(upload_capability.capability_id ?? '');
+        const secret = String(upload_capability.secret ?? '');
+        if (/^[0-9a-f-]{36}$/i.test(capId) && secret.length === 64) {
+          const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(secret));
+          const hash = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+          const { data: outcome } = await supabaseAdmin.rpc('registration_upload_capability_bind', {
+            _capability_id: capId, _secret_hash: hash, _registration_id: regData.id,
+          });
+          uploadBinding = String(outcome ?? 'UNKNOWN');
+        } else uploadBinding = 'CAPABILITY_INVALID';
+      } catch (e) {
+        console.error('upload capability bind failed', e);
+        uploadBinding = 'BIND_FAILED';
+      }
+    }
+
     // FORM_FIRST governed entity resolution (§ registration convergence).
     // The applicant has no session at submission time, so this runs through the
     // service-role-only entry point. It never creates entities via direct DML:
@@ -426,6 +449,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       user_id: authData.user.id,
       registration_reference: regData.registration_reference,
+      upload_binding: uploadBinding,
       message: "Registration successful",
     }), {
       status: 200,
