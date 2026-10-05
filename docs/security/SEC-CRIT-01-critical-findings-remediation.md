@@ -187,3 +187,80 @@ Not published.
 - Publish requested for https://olras.mishainfotech.com. Home and /register/applicant both returned HTTP 200 about 1 minute later.
 - The publish gate warned about 60 critical findings, taken from the older saved scan state. The latest fresh scan shows 0 critical findings. The saved findings have not been marked as fixed yet.
 - No AML-CLOSE-06 work was started.
+
+---
+
+# SEC-CRIT-01B — Registration-Bound Upload Capability, Migration Source Parity & Final Security Closure
+
+Baseline HEAD `5131cb6d0` ("Fixed upload redirect logic"). Scope: SEC-CRIT-01B only. AML-CLOSE-06 not started. No AML/FSRA/protected record changed. No email or other external communication sent (the registration OTP verified in 01A for the one user-authorised plus-alias was reused).
+
+## AF. Lifecycle finding
+Registration rows (`registrations`) are created only at final submission (`register-pre-licensee`), after documents are uploaded. The only durable pre-registration identity is the verified registration OTP (`otp_verifications`, email + purpose). Binding therefore happens in two stages:
+1. **Journey binding** — `registration-file-access` `issue` requires a verified registration OTP for the email; the capability is stored `BOUND_JOURNEY` with `journey_email` + `otp_verification_id`.
+2. **Registration binding** — on final submit, `register-pre-licensee` calls service-role-only `registration_upload_capability_bind(capability, secret_hash, registration_id)` which checks secret, active state, journey state and email match, locks the row, binds once (`BOUND_REGISTRATION`) and stamps every file row with the registration id.
+
+## AG. Durable file ownership
+`registration_upload_files` (capability_id, object_path UNIQUE, registration_id). Every successful browser upload calls `record`; `sign` issues a URL only for a path that is in this register for the presenting capability. Guards: `ruc_guard_binding` (no rebind / change of registration), `ruf_guard` (path and owner immutable, no un-binding).
+
+## AH. Rebind / cross-registration proof (negative, direct calls — permitted by brief)
+| Attempt | Result |
+|---|---|
+| capability A + file A | SIGNED |
+| capability A + file B / B + A | `path_not_owned` |
+| path traversal / rewritten folder | `path_not_owned` |
+| bound capability + wrong registration id | `registration_mismatch` |
+| missing secret | `capability_invalid` |
+| issue for unverified email | `journey_not_verified` |
+| bind RPC unauthenticated | HTTP 401 |
+| SQL: change bound registration | `CAPABILITY_ALREADY_BOUND` |
+| SQL: unbind file / change path | `FILE_ALREADY_BOUND` / `FILE_OWNERSHIP_IMMUTABLE` |
+| anon read of file register | empty (RLS) |
+
+Honesty note: the two fixtures used for the cross-capability matrix were created with direct function/storage calls (negative-test setup, registration security, not AML).
+
+## AI. Normal-browser positive journey
+Public `/register` journey: upload PDF → View → signed URL returned HTTP 200 `%PDF-1.4`; repeated after page reload (200). Submitted → `REG-2026-000196`, `upload_binding: BOUND`. Read-only SQL confirmed registration → capability `f7edd71f…` (`BOUND_REGISTRATION`) → file row with matching registration id. Record preserved as TEST evidence; not re-run.
+
+## AJ. Reviewer / applicant / unrelated access — new defect found and fixed
+Persona proof via real login UI on `/admin/registration-review/<id>`:
+- **Before fix:** `applicant_user` and `entity_ppoc` could sign the registration file (HTTP 200). Cause: `secure_documents_read` granted any holder of `application_management.view` (held by external users for their own applications) read on the whole bucket, including every `registrations/` upload.
+- **Fix** (migration `20261005164141`): the broad permission branch no longer applies to `registrations/` unless `is_internal_staff`. Other folders unchanged.
+- **After fix:** licensing_officer document listed, sign 200; applicant_user 400; entity_ppoc 400. Owner (REG-2026-000196 user) RLS read = 1 row; another registrant = 0.
+- Residual (not changed, out of scope, flagged): the same broad branch still lets external holders of those permissions read other users' *non-registration* folders in `secure-documents`. Recommend a scoped follow-up.
+
+## AK. Legacy files
+85 objects under `registrations/`; those without a register row (≈74 at inspection) are classified **LEGACY_UNBOUND**: no ownership fabricated; readable only by internal staff/super admin; no capability can sign them.
+
+## AL. Migration source parity
+Source now holds all SEC-CRIT migrations: six 01/01A files (correcting the 01A report's false "no migration files" statement — see note above) plus `20261005162840` (01B binding) and `20261005164141` (storage read fix). Static drift check: all 74 live `sec_crit01*`/registration policies and all 7 helper/guard functions are present in source — 0 missing.
+
+## AM. Reproducibility
+Replay in a rolled-back transaction was refused by the sandbox role (`must be owner of …`) — no clean-database replay was possible here. Status: **STATIC PARITY PROVEN; CLEAN REPLAY NOT EXECUTED**.
+
+## AN. Helpers
+`sec_registration_file_owned` (SECURITY DEFINER, `search_path=public`, PUBLIC/anon revoked, uses `auth.uid()`, required by storage RLS) — the only new linter warning; safe by design. Binder is service-role only.
+
+## AO. Tests
+- Vitest: 182 files, 1764/1764 (incl. new `secCrit01bRegistrationBinding.test.ts`, 3 tests).
+- Playwright full: 68 passed / 4 failed — Complaints and Inspection surfaces (known baseline); AML specs 12-B and 13-A timed out on the entity picker. Isolated rerun of 12/13 with fresh browser fixture: 5/5 passed.
+
+## AP. Fresh security scan
+0 critical; 59 findings (25 warn, 34 info). Note: the publish gate reported 60 "critical" items from persisted earlier-scan state; the fresh scan listing does not classify these as critical. To reconcile in the security view.
+
+## AQ. Publish & live smoke
+Publish requested to `olras.mishainfotech.com`. Live `/`, `/register`, `/login` returned HTTP 200 with the app title.
+
+## AR. Open items
+1. Clean-database migration replay (needs an owner-privileged environment).
+2. Broad non-registration `secure-documents` read for external permission holders (AJ residual).
+3. If binding fails at submit, the registration is still created and `upload_binding` reports the error (not rolled back) — policy decision needed.
+4. Capability issue accepts any previously verified registration OTP for the email (no OTP age limit); capability expiry 30 days.
+5. Persisted-scan vs fresh-scan critical count reconciliation.
+
+## AS. Verdict
+**CONDITIONAL PASS.** Upload capability is bound to the verified journey and then once to the final registration; rebind and cross-registration access are refused; a real cross-applicant registration-file exposure was found and closed. Conditions: items AR-1…AR-5.
+
+### Final questions for the owner
+- Should submission fail (instead of completing) when upload binding fails?
+- Should capability issue require an OTP verified within a fixed window (e.g. 24 h)?
+- Approve a follow-up to scope external reads of other `secure-documents` folders?
