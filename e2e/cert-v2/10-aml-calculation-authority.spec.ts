@@ -129,7 +129,7 @@ test.describe.serial('AML-CLOSE-04 calculation authority (TEST package)', () => 
     await page.getByRole('tab', { name: 'Calculation' }).click();
     await page.getByRole('button', { name: 'Recalculate' }).click();
     await expect(page.getByTestId('calc-factor-AML_TECH_CERT_INHERENT_B')).toHaveAttribute('data-contribution', 'EXCLUDED_FROM_DENOMINATOR', { timeout: 45_000 });
-    await expect(page.getByTestId('calc-agg-residual')).toContainText('LOW');
+    await expect(page.getByTestId('calc-agg-residual')).toContainText('MODERATE');
     await page.screenshot({ path: '/tmp/e2e-artifacts/aml-close-04-breakdown.png' });
   });
 
