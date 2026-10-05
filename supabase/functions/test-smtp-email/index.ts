@@ -50,7 +50,8 @@ serve(async (req) => {
     const callerEmail = userData.user.email;
 
     const body = await req.json().catch(() => ({}));
-    const incoming: Partial<SmtpConfig> | undefined = body?.smtp;
+    // SEC-CRED-01A: test only the SAVED configuration; browser-supplied SMTP fields are ignored.
+    const incoming: Partial<SmtpConfig> | undefined = undefined;
     let to: string | undefined = body?.to;
 
     const { data: row } = await admin
@@ -64,12 +65,9 @@ serve(async (req) => {
       host: incoming?.host || savedSmtp.host || "",
       port: Number(incoming?.port ?? savedSmtp.port ?? 587),
       username: incoming?.username || savedSmtp.username || "",
-      // A password typed for this test is used transiently; otherwise only the
-      // server-side secret store is consulted (never site_settings).
-      password:
-        incoming?.password && incoming.password.length > 0
-          ? incoming.password
-          : (await readProviderSecret(admin, "smtp_password", "SMTP_PASSWORD")) || "",
+      // SEC-CRED-01A: the password ALWAYS comes from server-side secret storage.
+      // Any browser-supplied password is ignored.
+      password: (await readProviderSecret(admin, "smtp_password", "SMTP_PASSWORD")) || "",
       encryption: (incoming?.encryption || savedSmtp.encryption || "tls") as SmtpConfig["encryption"],
       fromName: incoming?.fromName || savedSmtp.fromName || "Unified License Hub",
       fromEmail: incoming?.fromEmail || savedSmtp.fromEmail || "",
@@ -82,12 +80,26 @@ serve(async (req) => {
     if (!smtp.username) missing.push("username");
     if (!smtp.password) missing.push("password");
     if (!smtp.fromEmail) missing.push("fromEmail");
-    if (missing.length) {
-      return json({ success: false, error: `Missing/invalid SMTP fields: ${missing.join(", ")}` });
-    }
-
     if (!to) to = callerEmail;
     if (!to) return json({ success: false, error: "No recipient available" });
+
+    const { data: secretMeta } = await admin.from("email_provider_secrets")
+      .select("updated_at").eq("key", "smtp_password").maybeSingle();
+    const audit = async (status: string, failure_category: string | null, provider_message_id: string | null) => {
+      try {
+        await admin.from("email_provider_test_log").insert({
+          invoked_by: userData.user.id, recipient: to, provider: "SMTP", status,
+          failure_category, provider_message_id,
+          secret_updated_at: (secretMeta as any)?.updated_at ?? null,
+        });
+      } catch (_e) { /* audit is best-effort; never include secrets */ }
+    };
+    if (missing.length) {
+      await audit("FAILED", missing.includes("password") ? "SECRET_MISSING" : "CONFIG_INCOMPLETE", null);
+      return json({ success: false, error: missing.includes("password")
+        ? "SMTP password is not configured in secure storage. Save it first."
+        : `Missing/invalid SMTP fields: ${missing.join(", ")}` });
+    }
 
     // ssl => implicit TLS (port 465); tls => STARTTLS (port 587); none => plain
     const secure = smtp.encryption === "ssl";
@@ -105,8 +117,9 @@ serve(async (req) => {
       socketTimeout: 20000,
     });
 
+    let info: any;
     try {
-      await transporter.sendMail({
+      info = await transporter.sendMail({
         from: `"${smtp.fromName}" <${smtp.fromEmail}>`,
         to,
         subject: "SMTP Test Email",
@@ -125,10 +138,14 @@ serve(async (req) => {
       } else if (code === "ECONNECTION" || /ECONNREFUSED|ENOTFOUND|getaddrinfo|dns/i.test(raw)) {
         friendly = `Cannot reach SMTP server ${smtp.host}:${smtp.port}. ${raw}`;
       }
+      const cat = code === "EAUTH" || /535|534|invalid login|authentication/i.test(raw) ? "AUTH_FAILED"
+        : /ETIMEDOUT|ESOCKET|ECONNRESET|SSL|TLS/i.test(raw) ? "TLS_OR_CONNECTION" : "SEND_FAILED";
+      await audit("FAILED", cat, null);
       return json({ success: false, error: friendly });
     }
 
-    return json({ success: true, to });
+    await audit("ACCEPTED", null, info?.messageId ?? null);
+    return json({ success: true, to, message_id: info?.messageId ?? null, secret_updated_at: (secretMeta as any)?.updated_at ?? null });
   } catch (err: any) {
     console.error("test-smtp-email error:", err?.message || String(err));
     return json({ success: false, error: err?.message || "Unknown error" });

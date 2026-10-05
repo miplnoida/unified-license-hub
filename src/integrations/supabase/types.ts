@@ -15111,6 +15111,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_provider_test_log: {
+        Row: {
+          created_at: string
+          failure_category: string | null
+          id: string
+          invoked_by: string | null
+          provider: string
+          provider_message_id: string | null
+          recipient: string | null
+          secret_updated_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          failure_category?: string | null
+          id?: string
+          invoked_by?: string | null
+          provider?: string
+          provider_message_id?: string | null
+          recipient?: string | null
+          secret_updated_at?: string | null
+          status: string
+        }
+        Update: {
+          created_at?: string
+          failure_category?: string | null
+          id?: string
+          invoked_by?: string | null
+          provider?: string
+          provider_message_id?: string | null
+          recipient?: string | null
+          secret_updated_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       enforcement_actions: {
         Row: {
           appeal_deadline: string | null
@@ -62618,8 +62654,9 @@ export type Database = {
       }
       email_provider_secret_set: {
         Args: { _key: string; _value: string }
-        Returns: undefined
+        Returns: Json
       }
+      email_provider_secret_status: { Args: { _key: string }; Returns: Json }
       end_entity_supervision_assignment: {
         Args: {
           _assignment_id: string
