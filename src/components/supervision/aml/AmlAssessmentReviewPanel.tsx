@@ -238,7 +238,7 @@ export function AmlAssessmentReviewPanel({ assessmentId }: { assessmentId: strin
               submit.mutateAsync({
                 assessmentId,
                 rationale: submitReason,
-                runId: currentRound?.calculation_run_id ?? null,
+                runId: null, // server binds the current calculation run; a prior round's run is obsolete
                 expectedResultHash: null,
                 changeSummary: changeSummary || null,
               }))}
