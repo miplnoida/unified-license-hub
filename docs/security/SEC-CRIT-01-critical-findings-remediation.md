@@ -182,3 +182,8 @@ Not published.
 - Preview: clicking **View** called the access function (HTTP 200), which returned a short-lived signed link for that single file. The capability persisted after reload.
 - A second run reused the already-verified email, so no additional email was sent. Total external communications: 1, authorised by the user.
 - Remaining design gap: the capability is still bound to a folder, not to the final registration record.
+
+### SEC-CRIT-01A — Publish
+- Publish requested for https://olras.mishainfotech.com. Home and /register/applicant both returned HTTP 200 about 1 minute later.
+- The publish gate warned about 60 critical findings, taken from the older saved scan state. The latest fresh scan shows 0 critical findings. The saved findings have not been marked as fixed yet.
+- No AML-CLOSE-06 work was started.
