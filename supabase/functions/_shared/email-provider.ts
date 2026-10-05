@@ -77,6 +77,16 @@ export function isValidRecipient(to: unknown): boolean {
 }
 
 /** Read the effective email delivery configuration (settings + server-only secret). */
+/** Server-only provider secret: secure table first, platform secret second. Never site_settings. */
+export async function readProviderSecret(supabase: any, key: string, envName: string): Promise<string | null> {
+  try {
+    const { data } = await supabase.from("email_provider_secrets").select("value").eq("key", key).maybeSingle();
+    const v = (data?.value as string | undefined) || null;
+    if (v) return v;
+  } catch { /* fall through */ }
+  return Deno.env.get(envName) || null;
+}
+
 export async function loadEmailDeliveryConfig(supabase: any): Promise<EmailDeliveryConfig> {
   const { data } = await supabase
     .from("site_settings")
@@ -89,9 +99,12 @@ export async function loadEmailDeliveryConfig(supabase: any): Promise<EmailDeliv
   const rawGeneral = (value.email ?? {}) as Partial<EmailGeneralConfig>;
   const rawResend = (value.resend ?? {}) as Partial<ResendConfig> & { apiKey?: string };
 
+  // SEC-CRED-01: the SMTP password comes ONLY from server-side secret storage
+  // (email_provider_secrets, then SMTP_PASSWORD env). Never from site_settings.
+  const smtpPassword = await readProviderSecret(supabase, "smtp_password", "SMTP_PASSWORD");
   const smtpUsable = !!(
     rawSmtp && rawSmtp.enabled && rawSmtp.host && rawSmtp.port &&
-    rawSmtp.username && rawSmtp.password && rawSmtp.fromEmail
+    rawSmtp.username && smtpPassword && rawSmtp.fromEmail
   );
 
   // Server-only Resend key: dedicated table first, environment secret second.
@@ -122,7 +135,7 @@ export async function loadEmailDeliveryConfig(supabase: any): Promise<EmailDeliv
       apiKey: resendKey,
       status: rawResend.status || "not_configured",
     },
-    smtp: smtpUsable ? (rawSmtp as SmtpConfig) : null,
+    smtp: smtpUsable ? ({ ...(rawSmtp as SmtpConfig), password: smtpPassword! }) : null,
   };
 }
 

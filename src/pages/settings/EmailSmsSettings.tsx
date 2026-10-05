@@ -17,6 +17,7 @@ import {
   useEmailSmsSettings,
   useSaveEmailSmsSettings,
   useResendKeyPresent,
+  useProviderSecretPresent,
   useSaveResendApiKey,
   DEFAULTS,
   EmailSmsSettings as EmailSmsSettingsT,
@@ -30,6 +31,8 @@ export default function EmailSmsSettings() {
   const { data: saved, isLoading } = useEmailSmsSettings();
   const saveMutation = useSaveEmailSmsSettings();
   const { data: resendKeyPresent } = useResendKeyPresent();
+  const { data: smtpSecretPresent } = useProviderSecretPresent('smtp_password');
+  const { data: smsSecretPresent } = useProviderSecretPresent('sms_api_key');
   const saveResendKey = useSaveResendApiKey();
 
   const [form, setForm] = useState<EmailSmsSettingsT>(DEFAULTS);
@@ -42,9 +45,7 @@ export default function EmailSmsSettings() {
 
   useEffect(() => {
     if (saved) {
-      setHasSavedPassword(!!saved.smtp.password);
-      setHasSavedApiKey(!!saved.sms.apiKey);
-      // Don't expose stored secrets in inputs
+      // Secrets are never read back; inputs are write-only.
       setForm({
         email: saved.email,
         resend: saved.resend,
@@ -53,6 +54,9 @@ export default function EmailSmsSettings() {
       });
     }
   }, [saved]);
+
+  useEffect(() => { setHasSavedPassword(!!smtpSecretPresent); }, [smtpSecretPresent]);
+  useEffect(() => { setHasSavedApiKey(!!smsSecretPresent); }, [smsSecretPresent]);
 
   useEffect(() => {
     if (!testTo && user?.email) setTestTo(user.email);
@@ -112,8 +116,8 @@ export default function EmailSmsSettings() {
         setResendApiKey('');
       }
       const result = await saveMutation.mutateAsync(form);
-      setHasSavedPassword(!!result.smtp.password);
-      setHasSavedApiKey(!!result.sms.apiKey);
+      if (form.smtp.password) setHasSavedPassword(true);
+      if (form.sms.apiKey) setHasSavedApiKey(true);
       setForm({
         email: result.email,
         resend: result.resend,
