@@ -123,6 +123,7 @@ test.describe.serial('AML-CLOSE-04 calculation authority (TEST package)', () => 
     const res = await run(id);
     const t = res.trace;
     expect(res.status).toBe('CALCULATED');
+    expect(JSON.stringify(res)).toContain('AML06.3');
     const inh = t.dimensions.filter((x) => x.side === 'INHERENT' && x.contribution === 'INCLUDED');
     expect(inh.map((x) => x.dimension_code).sort()).toEqual(['AML_TECH_CERT_INHERENT', 'AML_TECH_CERT_INHERENT_B']);
     expect(new Set(inh.map((x) => Number(x.weight))).size, 'different TEST weights').toBe(2);
