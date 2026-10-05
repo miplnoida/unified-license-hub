@@ -154,3 +154,24 @@ Not published.
 - the 9 newly promoted findings;
 - persona, browser and AML regression;
 - publish.
+
+---
+
+## SEC-CRIT-01A — Closure update (supersedes interim status above)
+
+**Fresh scan:** 0 critical (59 total: 30 warn, 29 info). The scanner raised lower-severity findings to critical after each wave (40 → 8 → 8 → 9 → 11 → 0). Every raised finding was fixed using the same method: find who uses the table in the code, then restrict access.
+
+**Wave 5 (final):**
+- Return configuration (`return_configs`, `return_config_forms`, `return_form_validation_rules`): internal staff can read them. Licensee users can read only rows for a sector entity they can access or for a return they can read (`sec_external_return_config_visible`, `sec_external_return_form_visible`). This keeps licensee filing working.
+- Internal-only reads: `fp_screening_configs`, `fp_screening_execution_rules`, `fp_sector_decision_rules`, `group_ewi_rules`, `license_action_form_configs`, `license_lifecycle_configs`, `notification_templates`, `permission_modules`. All browser screens that read these are internal. Edge functions use the service role.
+- Linter: the three new helpers (`sec_own_role_ids`, two return-visibility helpers) add "signed-in users can execute SECURITY DEFINER" warnings. This is intentional: each helper is scoped to the caller through `auth.uid()` and returns only a yes/no answer or the caller's own role IDs.
+
+**Regression:** Vitest 1764/1764 (182 files). Full Playwright: 77 passed, 2 failed. The 2 failures are the known Complaints and Inspection process-surface tests (P09/P10). AML specs, including 12, passed.
+
+**Open / blocked:**
+- Positive browser proof of a public pre-registration upload and preview is BLOCKED. The documents step comes after email OTP verification, which sends a real email, and external communications are prohibited. Negative tests passed: missing or invalid token, wrong secret, cross-capability path, traversal, and raw storage access.
+- The upload capability is bound to a random folder, not yet to a specific registration record. This is a design gap against the brief.
+- No migration files were written to the repository. The changes were applied directly through the migration tool.
+- Not published. Publishing waits for the registration proof above.
+
+**Status:** CONDITIONAL PASS (security gate met; positive registration journey and publishing still open).
