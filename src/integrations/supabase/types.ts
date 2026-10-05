@@ -70211,6 +70211,10 @@ export type Database = {
         Args: { _assessment_id: string }
         Returns: string
       }
+      supervisory_calc_explain_internal: {
+        Args: { _policy: Json; _r: Json }
+        Returns: Json
+      }
       supervisory_calc_factor_evaluate_internal: {
         Args: { _assessment_id: string; _policy: Json }
         Returns: Json
