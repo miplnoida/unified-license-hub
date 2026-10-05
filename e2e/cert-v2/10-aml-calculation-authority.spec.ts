@@ -121,7 +121,8 @@ test.describe.serial('AML-CLOSE-04 calculation authority (TEST package)', () => 
     await page.screenshot({ path: '/tmp/e2e-artifacts/aml-close-04-fail-closed.png' });
     const blocked = await run(id);
     expect(blocked.status).toBe('NOT_CALCULABLE');
-    expect(blocked.trace.aggregation.residual.residual_rating ?? null).toBeNull();
+    expect((blocked as unknown as { residual_rating?: string | null }).residual_rating ?? null).toBeNull();
+    await expect(page.getByTestId('calc-agg-residual')).toContainText('withheld');
 
     // Correct the TEST fact: factor B becomes non-material and is excluded from the denominator.
     await page.getByRole('tab', { name: 'Working file' }).click();

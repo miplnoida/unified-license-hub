@@ -16,7 +16,7 @@ const CONTRIBUTION: Record<string, string> = {
 };
 
 export function AmlCalculationBreakdown({ trace }: { trace: unknown }) {
-  const t = (trace ?? {}) as { dimensions?: Dim[]; aggregation?: Record<string, unknown>; config_version?: unknown };
+  const t = (trace ?? {}) as { status?: string; dimensions?: Dim[]; aggregation?: Record<string, unknown>; config_version?: unknown };
   const dims = Array.isArray(t.dimensions) ? t.dimensions : [];
   const agg = t.aggregation as
     | { inherent?: Side; control?: Side; residual?: Record<string, unknown>; rounding?: Record<string, unknown>;
@@ -84,8 +84,14 @@ export function AmlCalculationBreakdown({ trace }: { trace: unknown }) {
           <TableRow data-testid="calc-agg-residual">
             <TableCell className="text-muted-foreground">Residual risk</TableCell>
             <TableCell className="font-mono text-xs">
-              matrix(inherent {show(agg.residual?.inherent_band)}, control {show(agg.residual?.control_band)}) ={' '}
-              <strong>{show(agg.residual?.residual_rating)}</strong>
+              {t.status === 'CALCULATED' ? (
+                <>
+                  matrix(inherent {show(agg.residual?.inherent_band)}, control {show(agg.residual?.control_band)}) ={' '}
+                  <strong>{show(agg.residual?.residual_rating)}</strong>
+                </>
+              ) : (
+                <span>Result withheld — a factor that should count could not be calculated.</span>
+              )}
             </TableCell>
           </TableRow>
           <TableRow>
