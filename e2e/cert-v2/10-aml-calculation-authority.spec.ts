@@ -113,8 +113,23 @@ test.describe.serial('AML-CLOSE-04 calculation authority (TEST package)', () => 
     await page.getByRole('tab', { name: 'Calculation' }).click();
     await page.getByRole('button', { name: 'Recalculate' }).click();
     await expect(page.getByTestId('calc-breakdown')).toBeVisible({ timeout: 45_000 });
-    await expect(page.getByTestId('calc-factor-AML_TECH_CERT_INHERENT_B')).toHaveAttribute('data-contribution', 'INCLUDED');
+    // Fail closed: factor B is material but its completeness cannot be established under the TEST
+    // methodology, so the whole result is withheld instead of silently re-weighting the other factors.
+    await expect(page.getByTestId('calc-factor-AML_TECH_CERT_INHERENT_B')).toHaveAttribute('data-contribution', 'NOT_CALCULABLE_BLOCKS_RESULT');
     await expect(page.getByTestId('calc-factor-AML_TECH_CERT_INHERENT_C')).toHaveAttribute('data-contribution', 'EXCLUDED_FROM_DENOMINATOR');
+    await page.screenshot({ path: '/tmp/e2e-artifacts/aml-close-04-fail-closed.png' });
+    const blocked = await run(id);
+    expect(blocked.status).toBe('NOT_CALCULABLE');
+    expect(blocked.trace.aggregation.residual.residual_rating ?? null).toBeNull();
+
+    // Correct the TEST fact: factor B becomes non-material and is excluded from the denominator.
+    await page.getByRole('tab', { name: 'Working file' }).click();
+    await recordFact(page, 'AML_TECH_CERT_STR_COUNT', '12');
+    await expect(page.locator('tr[data-factor="AML_TECH_CERT_INHERENT_B"]')).toHaveAttribute('data-outcome', 'EXCLUDED_NOT_MATERIAL', { timeout: 30_000 });
+    await page.getByRole('tab', { name: 'Calculation' }).click();
+    await page.getByRole('button', { name: 'Recalculate' }).click();
+    await expect(page.getByTestId('calc-factor-AML_TECH_CERT_INHERENT_B')).toHaveAttribute('data-contribution', 'EXCLUDED_FROM_DENOMINATOR', { timeout: 45_000 });
+    await expect(page.getByTestId('calc-agg-residual')).toContainText('LOW');
     await page.screenshot({ path: '/tmp/e2e-artifacts/aml-close-04-breakdown.png' });
   });
 
@@ -125,8 +140,9 @@ test.describe.serial('AML-CLOSE-04 calculation authority (TEST package)', () => 
     expect(res.status).toBe('CALCULATED');
     expect(JSON.stringify(res)).toContain('AML06.3');
     const inh = t.dimensions.filter((x) => x.side === 'INHERENT' && x.contribution === 'INCLUDED');
-    expect(inh.map((x) => x.dimension_code).sort()).toEqual(['AML_TECH_CERT_INHERENT', 'AML_TECH_CERT_INHERENT_B']);
-    expect(new Set(inh.map((x) => Number(x.weight))).size, 'different TEST weights').toBe(2);
+    expect(inh.map((x) => x.dimension_code)).toEqual(['AML_TECH_CERT_INHERENT']);
+    expect(t.dimensions.filter((x) => x.contribution === 'EXCLUDED_FROM_DENOMINATOR').map((x) => x.dimension_code).sort())
+      .toEqual(['AML_TECH_CERT_INHERENT_B', 'AML_TECH_CERT_INHERENT_C']);
     const num = inh.reduce((s, x) => s + Number(x.score) * Number(x.weight), 0);
     const den = inh.reduce((s, x) => s + Number(x.weight), 0);
     const inherent = halfUp(num / den, 2);
