@@ -403,8 +403,9 @@ describe('UI-EFR-14 changing a proposed fact requires a written reason', () => {
     wrap(<AmlFactRegisterPanel assessmentId={ASSESSMENT} editable />);
     await screen.findByText('Alert clearance rate');
     await user.click(screen.getByRole('button', { name: 'Change value' }));
-    const dialog = await screen.findByRole('dialog');
-    const save = within(dialog).getByRole('button', { name: 'Record my value' });
+    await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('dialog', { name: /./ });
+    const save = await within(dialog).findByRole('button', { name: 'Record my value' });
     expect(save).toBeDisabled();
     await user.type(
       within(dialog).getByLabelText(/Why are you changing the proposed value\?/),
@@ -518,7 +519,7 @@ describe('UI-EFR-20 every evidence and fact mutation uses the central guarded ac
     for (const el of factGuards) expect(el.getAttribute('data-rbac')).toBe('aml_supervision.edit');
     await user.click(screen.getByRole('button', { name: 'Change value' }));
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByRole('button', { name: 'Record my value' })).toHaveAttribute(
+    expect((await within(dialog).findByRole('button', { name: 'Record my value' }))).toHaveAttribute(
       'data-rbac',
       'aml_supervision.edit',
     );
