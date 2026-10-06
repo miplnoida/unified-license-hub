@@ -880,10 +880,10 @@ SELECT 'R2E-53-CAPABILITY-FOUR-RUNTIMES',
 
 INSERT INTO r2e
 SELECT 'R2E-54-CAPABILITY-REMAINDER-CONFIG-ONLY',
-  count(*) FILTER (WHERE NOT is_runtime_consumed) = 6,
+  count(*) FILTER (WHERE NOT is_runtime_consumed) = 3,
   string_agg(component_type||'='||is_runtime_consumed::text, ', ' ORDER BY component_type)
   FROM public.supervisory_policy_component_type
- WHERE component_type IN ('SECTOR_OVERLAY','FACT_CONFIG','SOURCE_BINDING',
+ WHERE component_type IN ( -- SECTOR_OVERLAY, FACT_CONFIG, SOURCE_BINDING became runtime-enforced in AML-CLOSE-02
                           'MATERIALITY_POLICY','DASHBOARD_POLICY','NOTIFICATION_POLICY');
 
 -- =====================================================================
