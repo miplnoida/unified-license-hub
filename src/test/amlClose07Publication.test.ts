@@ -64,3 +64,23 @@ describe('AML-CLOSE-07 publication and risk-of-record (source guarantees)', () =
     expect(pub).toMatch(/sup_risk_ordinal\(_d\.final_rating\) > public\.sup_risk_ordinal\(_prev\.residual_rating\) THEN 'DETERIORATING'/);
   });
 });
+
+describe('AML-CLOSE-07B official-risk consumers never trust raw is_current', () => {
+  const fnBody = (name: string) => {
+    const i = sql.lastIndexOf(`OR REPLACE FUNCTION public.${name}(`);
+    const body = sql.slice(i + 10);
+    const end = body.indexOf('CREATE OR REPLACE FUNCTION');
+    return end > 0 ? body.slice(0, end) : body;
+  };
+  it.each(['aml_entity_panel', 'aml_portfolio', 'aml_overview_metrics', 'supervisory_reassessment_require'])(
+    '%s resolves the official assessment from entity_risk_state.driving_assessment_id',
+    (name) => {
+      const b = fnBody(name);
+      expect(b).toMatch(/driving_assessment_id/);
+      expect(b).not.toMatch(/AND\s+(a\.)?is_current/);
+    },
+  );
+  it('new assessments default to not current', () => {
+    expect(sql).toMatch(/ALTER COLUMN is_current SET DEFAULT false/);
+  });
+});
