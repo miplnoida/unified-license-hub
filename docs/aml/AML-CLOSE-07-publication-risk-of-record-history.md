@@ -372,3 +372,168 @@ All technical publication criteria (1–13, 16, 17) are proven. Open items:
 | Fresh scan 0 critical? | NOT RE-RUN |
 
 Stopped. AML-CLOSE-08 not started.
+
+---
+
+# AML-CLOSE-07B — Final Certification Closure
+
+**Baseline (before testing):**
+- Git HEAD `f632f4429`; 88 AML/CFT publications.
+- Demo entity official risk: MEDIUM_HIGH, driven by 01121.
+- Demo `is_current` rows: 01121 (approved, published) and 01104 (draft, unpublished).
+
+## AQ. Fresh security scan
+A new scan ran at 13:05 UTC on 2026-10-06, after 07A: **0 critical, 17 warn, 42 info** (59 findings).
+
+If the publish gate still shows "60 critical", that is STALE SAVED SCAN STATE — DOES NOT MATCH CURRENT FRESH SCAN.
+
+The migration linter separately lists 1806 findings that predate this package and are unchanged.
+
+## AR. AML browser regression
+
+| Run | Scope | Passed | Failed | Did not run |
+|---|---|---|---|---|
+| Full AML project (setup, 09–16, teardown), 43 tests | 40.7 min | 37 | 2 | 4 |
+| Rerun of specs 12 and 16 | 16.2 min | 10 | 1 | 4 |
+
+Failures in the full run:
+1. Spec 12 E: the entity option in the new-assessment picker was not found in time.
+2. Spec 16 ACTION MATRIX: one officer read of the lifecycle state returned HTTP 500.
+
+Failure in the rerun: spec 16 G/H timed out waiting for the page to change after "Create assessment".
+
+**No clean, uninterrupted full AML run was achieved.**
+
+## AS. Previous Recalculate failure disposition
+In the full run, spec 16 test F (the earlier "Recalculate not found" failure) passed. The earlier failure did not reproduce.
+
+The 3 failures seen in 07B are each different and each passed elsewhere:
+- spec 12 E passed in the rerun;
+- G/H passed in the full run;
+- the officer read reproduced as HTTP 200 for all 4 latest demo cases right afterwards.
+
+No database errors appeared in the logs for that period. The pattern points to load and latency in the test environment, not a publication defect. However, the single HTTP 500 is unexplained, so this is not proven.
+
+Per the brief, no test waits were weakened or lengthened.
+
+## AT. Live publish verification (https://olras.mishainfotech.com)
+Republished after the 07B consumer migration and test-only changes. The root page returned 200. Checked in a real browser with TEST cases only:
+
+| Persona | Case | Result |
+|---|---|---|
+| Supervisor | Approved-not-published stale TEST cases 01143 and 01141 | Publish button shown **disabled**; "Current published risk: MODERATE" (the official state) |
+| Officer | 01149, 01143, 01141 | Publish **disabled**; "Current published risk: MODERATE" visible |
+| Licensee | All three cases | Access denied; no publish control or risk shown |
+
+Reload kept the same state for all three personas.
+
+**Not re-proven live:**
+- an *eligible* fresh case showing an enabled Publish button. Proving it needs a new approval; it was proven in the preview by spec 16 F in the full run.
+- a self-owned case. Proven in the preview by spec 16 S in the full run.
+
+## AU. TEST 01104 disposition
+**Retained as PRE-FIX TEST DATA ARTIFACT.** The lifecycle offers no governed withdraw or cancel action for drafts. It was not patched, deleted or fabricated.
+
+| Check | Result |
+|---|---|
+| A. Drives `entity_risk_state` | No |
+| B. Has a publication | No (0) |
+| C. Status | Still DRAFT, no approval decision |
+| D. Consumers | Fixed — see AW |
+| E. New drafts start `is_current=false` | Yes: 0 unpublished current rows created after 12:30 UTC, including drafts 01148/01150 created by the browser |
+
+## AV. Current-flag invariant census
+These AML assessments are flagged current but have no publication.
+
+| Group | Records | Count |
+|---|---|---|
+| **TEST residue** | 01104 (draft) | 1 |
+| **Legacy approved, pre-publication** | 00130, 00353–00375 | 18 |
+| **Non-TEST drafts / submitted / returned** | 00131, 00351, 00352, 00735–00739, 00836, 00837, 00838 | 11 |
+
+The legacy approved records do drive `entity_risk_state` (22 of 22 approved current rows drive it, 0 do not).
+
+The non-TEST drafts are all from before the fix (2026-09-02 to 10-03) and include the protected 00836/00838. Per the brief's "do not touch protected" and "do not mutate history" rules, their flags were **left as they are**. Instead, the readers were fixed (AW) so the flag carries no authority.
+
+**Real/non-TEST unpublished rows with `is_current=true` is 11, not 0.** They are neutralised but still present.
+
+## AW. Official-risk consumer protection
+Migration `20261006130811` (no data changes) changes 4 readers:
+- `aml_entity_panel`, `aml_portfolio` and `aml_overview_metrics` now find the official assessment through `entity_risk_state.driving_assessment_id`;
+- `supervisory_reassessment_require` now links its default previous assessment to the driving assessment, replacing "any `is_current` row", which could pick draft 01104.
+
+The cross-domain monitoring readers already filter to `status='approved'` and only use `is_current` for ordering. Legacy approved current rows all equal the driver, so drafts cannot surface there.
+
+Source regression: 5 new checks in `amlClose07Publication.test.ts`. The `AGENTS.md` rule is updated.
+
+## AX. Final publication census
+**TOTAL PUBLICATIONS CHECKED = 104** (88, plus 16 created by the 07B reruns). Zero mismatches on:
+- assessment;
+- decision (approved, owned by the assessment);
+- entity/domain;
+- rating;
+- movement;
+- reverse assessment pointer;
+- uniqueness per decision.
+
+**L4 = 0.**
+
+Demo entity: exactly 1 `entity_risk_state` row, MODERATE, driven by 01149, its latest publication.
+
+## AY. Rating-change and as-of preservation
+The latest demo movements, newest first:
+1. MEDIUM_HIGH → MODERATE, IMPROVING
+2. HIGH → MEDIUM_HIGH, IMPROVING
+3. MEDIUM_HIGH → HIGH, DETERIORATING
+4. MEDIUM_HIGH → MEDIUM_HIGH, STABLE
+
+The 07A chains are unchanged (census AX).
+
+The as-of browser test (spec 16 AS-OF) did **not run** in 07B, because it depends on the failed earlier test. It is only proven in 07A (3 identical calls).
+
+## AZ. Protected-state proof
+- 00830 approved, `2026-09-12 14:11:29`.
+- 00836 draft, `2026-09-28 11:37:09`.
+- 00838 draft, `2026-10-03 17:35:00`, with 3 facts.
+
+All unchanged. Legacy L3/L5 records untouched. No email or SMS sent.
+
+The STR_SAR_GOVERNANCE check was not re-proven in 07B: a query of `supervisory_policy_component` by that code returned 0, so its original source table was not re-identified.
+
+## BA. Regression and final verdict
+
+| Check | Result |
+|---|---|
+| Typecheck (`tsgo`) | Passed |
+| Full Vitest | **188 files / 1798 of 1798** |
+| Publication source tests | 12 of 12 |
+| Build | Via platform |
+
+**Verdict: AML-CLOSE-07 remains CONDITIONAL PASS.** Unmet criteria:
+- **#2:** no clean full AML browser run;
+- **#7:** 11 non-TEST unpublished pre-fix rows still carry `is_current=true` (harmless to readers, but present);
+- the as-of check was not re-run in 07B;
+- STR_SAR_GOVERNANCE was not re-proven.
+
+| Final question | Answer |
+|---|---|
+| Fresh scan? | YES |
+| Unexplained critical? | NO |
+| Full AML run clean? | **NO** |
+| Recalculate failure a real defect? | No evidence of one: it passed in the full run |
+| Live smoke after publish? | YES (with the limits in AT) |
+| Stale case shows an enabled Publish? | NO |
+| Self-owned case shows an enabled Publish? | NO (preview proof) |
+| 01104 can influence official risk? | NO |
+| 01104 patched? | NO |
+| New drafts start `is_current=false`? | YES |
+| Real unpublished `is_current=true` rows? | **YES, 11 legacy, neutralised** |
+| Consumers use canonical risk? | YES |
+| Exactly one official risk? | YES |
+| All publications checked? | YES (104) |
+| L4 = 0? | YES |
+| Trend history correct? | YES |
+| As-of re-proven? | 07A only |
+| 00830/00836/00838 unchanged, 3 facts? | YES |
+
+Stopped. AML-CLOSE-08 not started.
