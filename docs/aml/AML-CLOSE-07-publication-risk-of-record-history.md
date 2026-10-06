@@ -537,3 +537,125 @@ The STR_SAR_GOVERNANCE check was not re-proven in 07B: a query of `supervisory_p
 | 00830/00836/00838 unchanged, 3 facts? | YES |
 
 Stopped. AML-CLOSE-08 not started.
+
+---
+
+# AML-CLOSE-07C — Deterministic Final Closure
+
+Executed 2026-10-06 (UTC). Git HEAD at start `51d4c652f`. 07C made no frontend change; the one change is a database forward guard (BH), so the 07B live publish still matches the tested UI. The backend is shared by preview and the live site. No email/SMS was sent.
+
+Baseline (before any change): 104 AML/CFT publications. Demo entity had one `entity_risk_state`: MODERATE, driven by 01149. 11 non-TEST unpublished rows had `is_current=true`, plus TEST 01104.
+
+## BB. HTTP 500 investigation
+- The original 07B artefacts (request ID, response body) are no longer in the sandbox. The exact request body and persona token cannot be shown again.
+- Backend edge log query for `supervisory_assessment_lifecycle_state` with status >= 500: **0 rows**. Postgres log query for errors naming lifecycle_state or publication_eligibility: **0 rows**. No database exception was recorded.
+- Classification: **B — non-reproducible infrastructure/transient event**. Evidence:
+  - no matching database exception;
+  - BC stress run: 0 of 220 calls returned 500;
+  - the evaluator returned stable reason codes for every state;
+  - the full AML suite ran cleanly (BD);
+  - the internal evaluator is not executable by `authenticated` or `anon`, so no permission race is possible from the client.
+
+## BC. Lifecycle stress probe (read-only, AML officer + supervisor)
+| Probe | Calls | 200 | 4xx | 500 | Latency min/median/max |
+|---|---|---|---|---|---|
+| 50 sequential + 10×5 concurrent (officer) + 20 (supervisor), cases: draft 01148, submitted 01150, published 01149, approved-stale 01143 | 120 | 120 | 0 | 0 | 71 / 125 / 440 ms |
+| Eligibility matrix, 10 cases × 5 repeats × 2 personas | 100 | 100 | 0 | 0 | — |
+
+Each persona/case returned exactly one distinct response signature.
+
+Eligibility results were stable:
+- Officer: `PERMISSION_MISSING` on every case.
+- Supervisor: `STALE_PUBLICATION` on 7 cases and `MAKER_CHECKER` on 01103 and 01143.
+- Both personas: `ALREADY_PUBLISHED` on 01149.
+
+`supervisory_assessment_publication_eligibility_internal` is executable by authenticated users: false; by anon: false. The enabled path for an eligible case was proven again in the browser by specs 15/16 (BD).
+
+## BD. Final AML browser evidence
+The first attempt was stopped by the 10-minute shell limit after 16 tests passed, with no failures. It was then rerun in the background on the same build.
+
+**Full `aml` project: 43 total / 43 passed / 0 failed / 0 did not run (38.8 min).** This is a clean, complete run. The navigation-timing exception was not needed.
+
+## BE. AS-OF re-certification (supervisor, read-only, 3 runs)
+| As-of | Rating | Provenance | Response md5 (identical ×3) |
+|---|---|---|---|
+| 2026-10-05 11:10:00Z (before first publication) | none | NONE | a38e300441 |
+| 2026-10-06 11:49:08.6Z (after MODERATE publication) | MODERATE | GOVERNED_PUBLICATION | a851efe068 |
+| 2026-10-06 11:51:50.5Z (after MODERATE→MEDIUM_HIGH) | MEDIUM_HIGH | GOVERNED_PUBLICATION | dc82c4ffe5 |
+
+Spec 15 "AS-OF" also passed in BD.
+
+## BF. STR_SAR_GOVERNANCE correct-table preservation
+In `public.supervisory_assessment_dimension` where `dimension_code='STR_SAR_GOVERNANCE'`: **count = 22**. The ID-set digest is `8305ec6bbf50ef8573c6634bd6de6328`. No rows were added or deleted, and nothing was relinked.
+
+## BG. Active runtime is_current audit (`pg_proc`, functions referencing both)
+| Function | Class | Notes |
+|---|---|---|
+| aml_assessment_page | B | Returns the flag for display only. |
+| supervisory_trace | B | Diagnostic listing; official risk comes from `entity_risk_state`. |
+| supervisory_assessment_approve | B | Comment only: succession happens at publication. |
+| supervisory_assessment_publish_internal | Writer | The governed publication writer; sets current with `risk_publication_id`. |
+| supervisory_assessment_transition | C (for AML) | Refuses AML/CFT approval (`governed_approval_required`); legacy supersession applies to other domains only. |
+| supervisory_monitoring_register / _options / _provenance / _action_capabilities / _raise_attention / _require_reassessment | B | Filter status APPROVED and use the flag only for ordering or provenance among approved rows. DRAFT/SUBMITTED/RETURNED rows can never be selected. No AML approved row with `is_current=true` is a non-driver, and BH prevents a new one. |
+
+The readers hardened in 07B (`aml_entity_panel`, `aml_portfolio`, `aml_overview_metrics`, `supervisory_reassessment_require`) no longer reference `is_current`. `entity_supervisory_360` and `supervisory_consequence_source_internal` do not appear in the list, so they do not read the flag. No category A function trusts raw `is_current`.
+
+## BH. Forward is_current protection
+New trigger `supervisory_assessment_aml_current_guard` (BEFORE INSERT OR UPDATE OF is_current). It applies to AML_CFT only and refuses `is_current=true` unless `risk_publication_id` references a publication for that same assessment.
+- Existing legacy rows that are already `is_current=true` are exempt.
+- No data was updated.
+- The default remains false.
+
+Negative proof (rolled back): setting draft 01148 to `is_current=true` was refused with `governed_publication_required`, and the value stayed false. Publication paths in BD still passed. There are 0 post-fix unpublished AML rows with `is_current=true`.
+
+## BI. Historical current-flag residue
+11 rows remain: 00131, 00351, 00352, 00735, 00736, 00737, 00738, 00739, 00836, 00837, 00838. For all 11:
+- created before the fix;
+- no publication;
+- not an `entity_risk_state` driver;
+- status draft, submitted or returned, so excluded by every reader in BG.
+
+Classified **PRE-PUBLICATION LEGACY ASSESSMENT FLAG — NON-AUTHORITATIVE**. None were altered.
+
+## BJ. 01104
+Status DRAFT; 0 decisions; 0 publications; drives no risk state; updated_at 2026-10-06 12:05:00 is unchanged. Classified **PRE-FIX TEST DATA ARTIFACT**.
+
+## BK. Final publication census
+**TOTAL MODERN PUBLICATIONS = 118** (104 + 14 from the BD run). The following counts are all 0:
+- missing or foreign approval decision;
+- published rating ≠ decision final rating;
+- missing movement;
+- assessment↔publication link mismatch;
+- effective date ≠ publication date.
+
+**L4 = 0.**
+
+## BL. Official demo risk
+Exactly **1** `entity_risk_state` row exists for the demo entity + AML_CFT:
+- rating: MEDIUM_HIGH;
+- driver: 01177, created by BD spec 16;
+- publication `bae04ffc-…`, which is the latest publication;
+- movement: MODERATE→MEDIUM_HIGH, DETERIORATING.
+
+Movement patterns preserved (canonical ordinal):
+- MEDIUM_HIGH→MODERATE IMPROVING (4);
+- MODERATE→MEDIUM_HIGH DETERIORATING (4);
+- MEDIUM_HIGH→MEDIUM_HIGH STABLE (41).
+
+Historical pre-ordinal `CHANGED` labels remain as recorded.
+
+## BM. Protected-state proof
+00830, 00836 and 00838 have the same `updated_at` as before. Their rating/owner/approval fingerprints are unchanged. 00838 keeps 3 facts. Spec 15 "protected assessments untouched" passed. STR_SAR_GOVERNANCE has 22 rows (BF). FSRA policy was not touched by 07C.
+
+Security: a fresh scan was run because the database changed. Result: **0 critical**, 17 warning, 42 info. The 1,806 linter findings predate 07C and were not introduced by it.
+
+Regression: Vitest 188 files / 1798 tests passed. AML browser 43/43 passed.
+
+## BN. Final verdict
+All 14 final-pass conditions are evidenced above.
+
+**AML-CLOSE-07 = PASS**
+
+**Publication, effective risk-of-record and historical risk truth are TECHNICALLY CLOSED.**
+
+AML-CLOSE-08 was not started.
