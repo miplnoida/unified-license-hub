@@ -152,3 +152,33 @@ describe('AmlResponseSlaPanel', () => {
     expect(note.textContent).toContain('automatically');
   });
 });
+
+describe('AmlResponseSlaPanel — AML-CLOSE-08 deadline controls', () => {
+  beforeEach(() => rpc.mockReset());
+  const open = {
+    ...governed,
+    obligations: [{ ...governed.obligations[0], outcome: 'PENDING', closed_at: null,
+      stage: { ...governed.obligations[0].stage, state: 'active', completed_at: null, breached_at: null } }],
+  };
+
+  it('offers hold and close only when the server says the viewer may manage deadlines', async () => {
+    rpc.mockResolvedValue({ data: { ...open, viewer_can_manage: true }, error: null });
+    mount();
+    expect(await screen.findByRole('button', { name: 'Put deadline on hold' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Close response' })).toBeInTheDocument();
+  });
+
+  it('shows no controls to a viewer without deadline authority', async () => {
+    rpc.mockResolvedValue({ data: { ...open, viewer_can_manage: false }, error: null });
+    mount();
+    await screen.findByTestId('aml-response-sla-panel');
+    expect(screen.queryByRole('button', { name: 'Close response' })).toBeNull();
+  });
+
+  it('shows no controls once the server has closed the response', async () => {
+    rpc.mockResolvedValue({ data: { ...governed, viewer_can_manage: true }, error: null });
+    mount();
+    await screen.findByTestId('aml-response-sla-panel');
+    expect(screen.queryByRole('button', { name: 'Close response' })).toBeNull();
+  });
+});
