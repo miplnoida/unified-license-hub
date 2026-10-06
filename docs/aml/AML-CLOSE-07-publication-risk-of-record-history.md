@@ -151,17 +151,16 @@ Notes:
 - The risk-history panel shows "Current published risk" and labels legacy state.
 - New refusal messages: stale publication, effective date, and preparer/owner/submitter publish.
 
-## S. Historical legacy inventory (AML_CFT, approved / closed / superseded)
-- **L1** (approved + governed publication + complete lineage): **56** — 00744, 00830, 01065, 01069, 01071, 01072 and 50 superseded TEST records 00941–01063.
-- **L2** (approved, never published, modern decision): **1** — 01070 (TEST stale candidate, intentionally unpublished).
-- **L3** (current state without governed publication): **19** — 00130, 00353, 00354, 00357–00369, 00371, 00374, 00375.
-- **L4** (publication with incomplete or mismatched lineage): **0** of 64 publications. Each was checked for a matching movement, entity, assessment, decision and rating.
-- **L5** (legacy, superseded, no decision): **5** — 00129, 00355, 00356, 00370, 00372.
+## S. Historical legacy inventory (AML_CFT, approved / closed / superseded; re-queried after all runs)
+- **L1** (approved + governed publication): **74** assessments — 00744, 00830 and 72 TEST records 00941–01096. This includes publications from suite reruns.
+- **L4** (publication with mismatched or missing lineage): **0**. This was checked against the earlier 64 publications; publications added by reruns were not re-checked.
+- **L2** (approved with a modern decision but never published): **3** — 01067 (first-run C), 01070 and 01094 (later stale-candidate C records). All are TEST; none can publish (stale).
+- **L5** (approved / superseded with no decision or publication): **24** — 00129, 00130, 00353–00372, 00374, 00375.
+- **L3** (subset of L5 that still drives current state): **19** current `entity_risk_state` rows without a governed publication — 00130, 00353, 00354, 00357–00369, 00371, 00374, 00375.
 
 ## T. Legacy reconciliation decision
-- L3 and L5: preserved as legacy. No publications were fabricated (no publisher, date or decision evidence exists). Read models label them `LEGACY_RISK_STATE`.
-- Reconciling them needs regulator evidence; the recommendation is a fresh governed assessment and publication per entity.
-- L2 (01070): preserved TEST record. It can never publish (stale).
+- L3 and L5: preserved as legacy. No publications were fabricated (no publisher, date or decision evidence exists). Read models label them `LEGACY_RISK_STATE`. Reconciling them needs regulator evidence; the recommendation is a fresh governed assessment and publication per entity.
+- L2: preserved TEST records. They can never publish (stale).
 
 ## U. Browser E2E
 `e2e/cert-v2/15-aml-publication-risk-of-record.spec.ts`: **9/9 passed** (journeys A, B, C, E, AS-OF, D-negative, protected, fixture setup/teardown).
@@ -175,7 +174,7 @@ TEST records created on the demo licensee:
 | SUP-AML_CFT-2026-01071 | B | Published, then superseded |
 | SUP-AML_CFT-2026-01072 | E | Concurrent publish; current |
 
-Earlier runs also left 01066–01068.
+Suite reruns also left TEST 01066–01068 and 01076–01096.
 All four published ratings were MEDIUM_HIGH, with trend STABLE. This proves same-rating succession without a false movement, but not a rating change (see AA).
 
 ## V. Direct bypass / security tests
