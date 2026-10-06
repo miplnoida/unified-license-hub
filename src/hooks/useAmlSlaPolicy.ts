@@ -150,11 +150,12 @@ export function useSupervisoryResponseSla(
 export function useSupervisoryResponseSlaHold() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { obligationId: string; reason: string; resume?: boolean }) => {
+    mutationFn: async (input: { obligationId: string; reason: string; rationale: string; resume?: boolean }) => {
       const { data, error } = await db().rpc('supervisory_response_sla_pause', {
         _obligation_id: input.obligationId,
         _reason: input.reason,
         _resume: input.resume ?? false,
+        _rationale: input.rationale,
       });
       if (error) throw new Error(error.message);
       return data;
