@@ -235,3 +235,140 @@ Fresh scan `2026-10-06T02:30:46Z`: **0 critical**, 28 warn, 31 info.
 **Publication, effective risk-of-record and historical risk truth are TECHNICALLY CLOSED.**
 
 Stopped. AML-CLOSE-08 not started.
+
+---
+
+# AML-CLOSE-07A — Final Publication Closure
+
+## AC. Publication-action contract defect
+`supervisory_assessment_lifecycle_state` returned `PUBLISH_RISK_OF_RECORD.permitted=true` for stale and self-owned approved cases, while the publish command refused them. Fixed.
+
+A second defect was found during this work. New assessments defaulted to `is_current=true`, so an approved-but-unpublished TEST case (01103) was briefly flagged current alongside the official one. This matters because `aml_entity_panel` picks its "current approved" assessment by that flag.
+
+Fixed in migration 2 of 07A:
+- the default is now `false`;
+- publication clears `is_current` only on approved/closed rows, so drafts — including protected 00836/00838 — are never touched.
+
+## AD. Shared eligibility authority
+New `supervisory_assessment_publication_eligibility_internal(assessment, uid)` is the single evaluator.
+- The lifecycle contract uses it (`permitted`, `reason_code`, `publication_allowed`, `publication_reason_code`).
+- `supervisory_assessment_publish_internal` calls it under the entity/domain advisory lock and maps each code to its existing refusal.
+- It checks state, decision, final rating, permission plus entity scope, preparer/owner/submitter, effective date and staleness.
+- Execute access is revoked from PUBLIC, anon and authenticated. A direct call was refused (spec 16, action matrix).
+- The UI reads only the server action. New safe labels: STALE_PUBLICATION, EFFECTIVE_DATE_REFUSED, NO_FINAL_RATING.
+
+## AE. Action reason matrix (spec 16, server contract)
+
+| Case | Result |
+|---|---|
+| Fresh approved F, supervisor | `true / OK` |
+| F, officer | `false / PERMISSION_MISSING` |
+| Published F, supervisor | `false / ALREADY_PUBLISHED` |
+| Stale H, supervisor | `false / STALE_PUBLICATION`; Publish not enabled; refusal text shown; RPC `stale_publication` |
+| Self-owned S (supervisor took ownership in the browser), supervisor | `false / MAKER_CHECKER`; Publish not enabled; RPC "cannot publish it" |
+| Out-of-scope prudential supervisor, licensee | lifecycle refused or not permitted |
+| Signed out | refused (HTTP ≥ 400) |
+
+## AF. Different-rating browser journey
+All via browser: facts, answers, calculation, submit, independent approval, publish. Inputs differ only in the TEST fact `AML_TECH_CERT_STR_COUNT`: 12 gives MODERATE, 60 gives MEDIUM_HIGH.
+
+| Run | Step | Record | Movement |
+|---|---|---|---|
+| 1 | F | 01097 | MEDIUM_HIGH → MODERATE, IMPROVING |
+| 1 | G | 01099 | MODERATE → MEDIUM_HIGH, DETERIORATING (movement `bd9f18d2…`) |
+| 2 | F | 01100 | MEDIUM_HIGH → MODERATE, IMPROVING |
+| 2 | G | 01102 | MODERATE → MEDIUM_HIGH, DETERIORATING (movement `59af5372…`) |
+
+- Each movement's previous and new assessment IDs were asserted.
+- Trend now follows `sup_risk_ordinal`; it used to record a generic CHANGED.
+- Same rating still gives STABLE (source test).
+- G approval alone left F official, and F's publication was preserved (F now SUPERSEDED).
+
+## AG. As-of changed-rating proof
+Checked 3 times, with identical results:
+
+| As of | Result |
+|---|---|
+| Before F | The previous driving assessment |
+| After F | F / MODERATE / GOVERNED_PUBLICATION |
+| After G | G / MEDIUM_HIGH / GOVERNED_PUBLICATION |
+
+## AH. Official-risk consumer recheck
+After G was published, `aml_entity_panel`, `entity_supervisory_360`, `aml_portfolio_page` and `supervisory_monitoring_register` all returned MEDIUM_HIGH. The browser review tab showed "Current published risk: MEDIUM_HIGH".
+
+Limitation: the consumer assertion checks that the rating appears in each response, not the exact field.
+
+## AI. Complete publication-lineage census
+**All 88** AML/CFT publications were checked, none sampled. For each:
+- the assessment and decision exist;
+- the decision is APPROVED and belongs to that assessment;
+- entity, domain and rating match;
+- the movement exists, with matching entity, domain, assessment and rating;
+- there is no duplicate per decision;
+- the assessment points back to the publication.
+
+All mismatch counts were 0. The lineage RPC resolved 76 of 76 (run before the last 12 were added).
+
+## AJ. Recomputed L4
+**L4 = 0** on the complete set of 88.
+
+## AK. TEST publication residue
+All on the demo licensee only, TEST-labelled, not FSRA policy evidence:
+
+| Record(s) | State |
+|---|---|
+| 01102 | Published, current |
+| 01097, 01099, 01100 and earlier S15 records | Published, superseded |
+| 01101 and 01103 | Approved, not published (stale or self-owned) |
+| 01104 | Draft from a failed suite attempt; still has the old `is_current=true` default |
+
+No withdrawal mechanism was invented.
+
+Demo entity: exactly one `entity_risk_state` row, driven by its latest publication (01102). Of the approved assessments, only 01102 is flagged current; draft 01104 also still carries the flag.
+
+## AL. Regression
+- Vitest: 188 files / **1793/1793** passed.
+- Publication source tests: 7/7.
+- Spec 16 standalone: **8/8** (with fixtures).
+- Full AML browser project (06–16): **37 passed, 1 failed, 5 did not run**. The failure was spec 16 F: the Recalculate button was not found after navigation, a timing issue (it passed standalone).
+- Typecheck/build: through the platform build only.
+
+## AM. Security scan
+A fresh scan was not re-run in 07A, so no fresh scan result exists for this package. The last scan (`2026-10-06T02:30Z`) showed 0 critical, 28 warn and 31 info. The new helper is not executable by clients (AD).
+
+## AN. Publish / live smoke
+Publish requested after 07A. Live smoke for 07A has not been re-run.
+
+## AO. Protected-state proof
+- 00830 approved, `2026-09-12 14:11:29`.
+- 00836 draft, `2026-09-28 11:37:09`.
+- 00838 draft, `2026-10-03 17:35:00`, with 3 facts (unchanged).
+- Legacy L3 (19) and L5 (24) records untouched.
+- No email or SMS sent.
+
+## AP. Final verdict
+**CONDITIONAL PASS.**
+
+All technical publication criteria (1–13, 16, 17) are proven. Open items:
+- a clean full-suite AML run (14);
+- a fresh security scan (15);
+- live smoke after the 07A publish;
+- TEST draft 01104's leftover current flag.
+
+| Question | Answer |
+|---|---|
+| Contract refuses before the RPC? | YES |
+| Stale shows permitted? | NO |
+| Self shows permitted? | NO |
+| Different-rating proven in the browser? | YES |
+| Movement keeps before and after? | YES |
+| Trend follows canonical order? | YES |
+| As-of A then B? | YES |
+| All publications rechecked? | YES (88) |
+| L4 = 0? | YES |
+| One current TEST risk? | YES |
+| Legacy preserved? | YES |
+| Protected unchanged? | YES |
+| Fresh scan 0 critical? | NOT RE-RUN |
+
+Stopped. AML-CLOSE-08 not started.
