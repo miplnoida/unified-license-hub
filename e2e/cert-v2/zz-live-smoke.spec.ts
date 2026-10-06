@@ -13,10 +13,11 @@ test('live: AML officer', async ({ page }) => {
   await expect(page.getByTestId('aml-orphan-cases')).toHaveCount(0);
   await open(page, O);
   const card = page.getByTestId('aml-assignment-card');
-  await expect(card).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText('Lifecycle state and permitted actions')).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText('Editing allowed').first()).toBeVisible();
   await expect(page.getByText('Reassign case owner').first()).toBeVisible();
-  await expect(card.getByRole('button', { name: /Reassign case owner|Assign reviewer/ })).toHaveCount(0);
-  await page.reload(); await open(page, O); await expect(card).toBeVisible({ timeout: 30000 });
+  await expect(card).toHaveCount(0);
+  await page.reload(); await open(page, O); await expect(page.getByText('Editing allowed').first()).toBeVisible({ timeout: 30000 });
   await page.screenshot({ path: '/root/w/live-officer.png' });
 });
 test('live: AML supervisor', async ({ page }) => {
