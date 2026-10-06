@@ -66,6 +66,7 @@ export function AmlAssessmentReviewPanel({ assessmentId }: { assessmentId: strin
   const [decisionReason, setDecisionReason] = useState('');
   const [resolutionNote, setResolutionNote] = useState('');
   const [publishReason, setPublishReason] = useState('');
+  const [publishOnApprove, setPublishOnApprove] = useState(true);
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Loading the governed review record…</p>;
@@ -523,11 +524,18 @@ export function AmlAssessmentReviewPanel({ assessmentId }: { assessmentId: strin
             <Label htmlFor="rev-decision-reason">Decision rationale (at least 10 characters)</Label>
             <Textarea id="rev-decision-reason" rows={2} value={decisionReason}
               onChange={(e) => setDecisionReason(e.target.value)} />
+            <label className="flex items-center gap-2 text-sm" htmlFor="rev-approve-publish">
+              <input id="rev-approve-publish" type="checkbox" className="h-4 w-4 accent-primary"
+                checked={publishOnApprove} onChange={(e) => setPublishOnApprove(e.target.checked)} />
+              Also publish as the official risk-of-record now
+            </label>
             <Button
               data-rbac="aml_supervision.approve"
               disabled={!permitted('APPROVE') || approve.isPending || decisionReason.trim().length < 10}
-              onClick={() => void run('The assessment was approved and the risk-of-record published.', () =>
-                approve.mutateAsync({ assessmentId, rationale: decisionReason }))}
+              onClick={() => void run(publishOnApprove
+                  ? 'The assessment was approved and the risk-of-record published.'
+                  : 'The assessment was approved. It is not yet the official risk-of-record.', () =>
+                approve.mutateAsync({ assessmentId, rationale: decisionReason, publish: publishOnApprove }))}
             >
               Approve assessment
             </Button>
