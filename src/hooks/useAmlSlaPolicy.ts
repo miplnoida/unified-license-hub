@@ -124,6 +124,8 @@ export interface SlaPolicyView {
   timing_authority: string;
   engine: string;
   automation: string;
+  /** Server-decided: may this viewer hold, resume or close a deadline? */
+  viewer_can_manage?: boolean;
 }
 
 export function useSupervisoryResponseSla(
