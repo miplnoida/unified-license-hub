@@ -51,6 +51,9 @@ export const ACTION_REASON_LABEL: Record<string, string> = {
   ALREADY_PUBLISHED: 'Already published',
   NO_APPROVAL_DECISION: 'No governed approval decision exists',
   NOT_CASE_OWNER: 'Only the assigned case owner may do this',
+  STALE_PUBLICATION: 'A later approved assessment is already the official risk-of-record',
+  EFFECTIVE_DATE_REFUSED: 'The approval is not yet effective',
+  NO_FINAL_RATING: 'The approval has no valid final rating',
 };
 
 export const CHALLENGE_CATEGORIES = [

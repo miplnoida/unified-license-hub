@@ -70212,6 +70212,10 @@ export type Database = {
         Args: { _payload: Json; _set_id: string }
         Returns: string
       }
+      supervisory_assessment_publication_eligibility_internal: {
+        Args: { _assessment_id: string; _uid: string }
+        Returns: Json
+      }
       supervisory_assessment_publish_internal: {
         Args: {
           _assessment_id: string
