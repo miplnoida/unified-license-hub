@@ -26,6 +26,8 @@ import {
   useSupervisoryResponseSla,
   type SlaObligation,
 } from '@/hooks/useAmlSlaPolicy';
+import { Fragment } from 'react';
+import { AmlSlaObligationControls } from './AmlSlaObligationControls';
 
 const dash = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : String(v));
 
@@ -211,7 +213,8 @@ export function AmlResponseSlaPanel({
               </TableHeader>
               <TableBody>
                 {obligations.map((o) => (
-                  <TableRow key={o.obligation_id}>
+                  <Fragment key={o.obligation_id}>
+                  <TableRow>
                     <TableCell>
                       {o.action_type}
                       {o.stage_name ? (
@@ -248,6 +251,12 @@ export function AmlResponseSlaPanel({
                       </Badge>
                     </TableCell>
                   </TableRow>
+                  {view.viewer_can_manage && o.outcome === 'PENDING' && o.stage ? (
+                    <TableRow>
+                      <TableCell colSpan={5}><AmlSlaObligationControls obligation={o} /></TableCell>
+                    </TableRow>
+                  ) : null}
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>
