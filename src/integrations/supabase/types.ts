@@ -70799,6 +70799,10 @@ export type Database = {
         Args: { _entity_id: string; _uid: string }
         Returns: boolean
       }
+      supervisory_entity_risk_as_of: {
+        Args: { _at: string; _domain_code: string; _entity_id: string }
+        Returns: Json
+      }
       supervisory_entity_risk_history: {
         Args: { _domain_code: string; _entity_id: string }
         Returns: Json

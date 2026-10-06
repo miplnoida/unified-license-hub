@@ -452,7 +452,7 @@ describe('AML-07 review, decision and publication surface', () => {
   it('UI-REV-15: shows each review round separately with what changed', async () => {
     mode = 'approved_not_published';
     renderPanel();
-    await screen.findByText('Approved — risk-of-record not published');
+    await screen.findByText('Approved — not yet official risk-of-record');
     expect(screen.getAllByText('#1').length).toBeGreaterThan(0);
     expect(screen.getAllByText('#2').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/December PEP screening evidence added/).length).toBeGreaterThan(0);
@@ -499,7 +499,7 @@ describe('AML-07 review, decision and publication surface', () => {
   it('UI-REV-20: publishes the risk-of-record only when the server permits it', async () => {
     mode = 'approved_not_published';
     renderPanel();
-    await screen.findByText('Approved — risk-of-record not published');
+    await screen.findByText('Approved — not yet official risk-of-record');
     await userEvent.type(screen.getByLabelText(/Publication reason/i), 'Approved annual assessment.');
     await userEvent.click(screen.getByRole('button', { name: /publish risk-of-record/i }));
     await waitFor(() => expect(calls.some((c) => c.fn === 'supervisory_assessment_publish_risk_of_record')).toBe(true));

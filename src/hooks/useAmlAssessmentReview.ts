@@ -27,7 +27,7 @@ export const LIFECYCLE_STATE_LABEL: Record<string, string> = {
   RESUBMITTED: 'Resubmitted for review',
   UNDER_REVIEW: 'Under review',
   RETURNED_FOR_CHANGES: 'Returned for changes',
-  APPROVED_NOT_PUBLISHED: 'Approved — risk-of-record not published',
+  APPROVED_NOT_PUBLISHED: 'Approved — not yet official risk-of-record',
   APPROVED: 'Approved and published',
   CLOSED_WITHOUT_APPROVAL: 'Closed without approval',
   CLOSED: 'Closed',
@@ -71,6 +71,9 @@ export function reviewErrorMessage(e: unknown): string {
   if (/stale_readiness/.test(raw)) return 'This screen is showing an obsolete result. Reload the assessment and try again.';
   if (/stale_calculation/.test(raw)) return 'A newer calculation run exists. Review the current run before submitting.';
   if (/cannot approve it/.test(raw)) return 'Independence rule: the officer who prepared or submitted this assessment cannot approve it.';
+  if (/stale_publication/.test(raw)) return 'A later approved assessment is already the official risk-of-record. This older approval can no longer be published.';
+  if (/effective_date_refused/.test(raw)) return 'Future-dated or backdated risk-of-record is not supported. The official risk takes effect when it is published.';
+  if (/cannot publish it/.test(raw)) return 'Independence rule: the officer who prepared, owns or submitted this assessment cannot publish it.';
   if (/only an approved assessment can publish/.test(raw)) return 'Only an approved assessment can publish the entity risk-of-record.';
   if (/transition_not_permitted/.test(raw)) return `The server owns this transition and refused it: ${raw}`;
   if (/not_case_owner/.test(raw)) return 'Only the assigned case owner may work this assessment. Ask a supervisor to reassign it.';
