@@ -597,7 +597,7 @@ BEGIN
     'the capability record names the canonical engine as owner');
 
   SELECT count(*) INTO n FROM jsonb_array_elements(cap) x
-   WHERE x->>'component_type' IN ('SECTOR_OVERLAY','FACT_CONFIG','SOURCE_BINDING',
+   WHERE x->>'component_type' IN ( -- SECTOR_OVERLAY, FACT_CONFIG, SOURCE_BINDING became runtime-enforced in AML-CLOSE-02 (DB-enforced fact/source authority)
      'MATERIALITY_POLICY','DASHBOARD_POLICY','NOTIFICATION_POLICY')
      AND (x->>'runtime_consumed')::boolean;
   INSERT INTO r2d VALUES ('R2D-102-CAP-OTHERS-STILL-CONFIGURATION-ONLY', n = 0,
