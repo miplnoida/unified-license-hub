@@ -10,7 +10,7 @@ test('live: AML officer', async ({ page }) => {
   await loginAs(page, 'aml_supervision_officer@mishainfotech.com');
   await page.goto('/supervision/aml/assessments');
   await expect(page.getByText('SUP-AML_CFT-2026-01038').first()).toBeVisible({ timeout: 45000 });
-  await expect(page.getByTestId('aml-orphan-cases-alert')).toHaveCount(0);
+  await expect(page.getByTestId('aml-orphan-cases')).toHaveCount(0);
   await open(page, O);
   const card = page.getByTestId('aml-assignment-card');
   await expect(card).toBeVisible({ timeout: 30000 });
@@ -22,7 +22,7 @@ test('live: AML officer', async ({ page }) => {
 test('live: AML supervisor', async ({ page }) => {
   await loginAs(page, 'aml_supervision_supervisor@mishainfotech.com');
   await page.goto('/supervision/aml/assessments');
-  await expect(page.getByTestId('aml-orphan-cases-alert')).toBeVisible({ timeout: 45000 });
+  await expect(page.getByTestId('aml-orphan-cases')).toBeVisible({ timeout: 45000 });
   await open(page, D);
   const card = page.getByTestId('aml-assignment-card');
   await expect(card).toBeVisible({ timeout: 30000 });
