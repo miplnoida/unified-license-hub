@@ -653,19 +653,19 @@ BEGIN
     jsonb_array_length(COALESCE(jv->'obligations','[]'::jsonb)) >= 1,
     format('%s governed deadline(s) reported', jsonb_array_length(COALESCE(jv->'obligations','[]'::jsonb))));
 
-  PERFORM public.supervisory_response_sla_pause(ob.id,'AWAITING_ENTITY_INFORMATION', false);
+  PERFORM public.supervisory_response_sla_pause(ob.id,'AWAITING_ENTITY_INFORMATION', false, 'TEST ONLY certification hold rationale');
   INSERT INTO r2e VALUES ('R2E-36-SLA-HOLD-WHERE-POLICY-PERMITS',
     (SELECT s.state FROM public.sla_stage_instances s WHERE s.id = ob.stage_instance_id) = 'paused',
     (SELECT format('deadline state %s', s.state) FROM public.sla_stage_instances s WHERE s.id = ob.stage_instance_id));
 
   BEGIN
-    PERFORM public.supervisory_response_sla_pause(ob.id,'BECAUSE_WE_FEEL_LIKE_IT', false);
+    PERFORM public.supervisory_response_sla_pause(ob.id,'BECAUSE_WE_FEEL_LIKE_IT', false, 'TEST ONLY certification hold rationale');
     INSERT INTO r2e VALUES ('R2E-37-SLA-HOLD-REASON-CONTROLLED', false, 'an uncontrolled hold reason was ACCEPTED');
   EXCEPTION WHEN OTHERS THEN
     INSERT INTO r2e VALUES ('R2E-37-SLA-HOLD-REASON-CONTROLLED', true, left(SQLERRM,140));
   END;
 
-  PERFORM public.supervisory_response_sla_pause(ob.id,'AWAITING_ENTITY_INFORMATION', true);
+  PERFORM public.supervisory_response_sla_pause(ob.id,'AWAITING_ENTITY_INFORMATION', true, 'TEST ONLY certification resume rationale');
   PERFORM public.supervisory_response_sla_complete(ob.id,
     'R2ECERT: the supervisory plan was opened within the governed timeframe.');
   INSERT INTO r2e VALUES ('R2E-38-SLA-OUTCOME-SERVER-OWNED',
