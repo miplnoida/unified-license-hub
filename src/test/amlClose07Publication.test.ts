@@ -46,4 +46,21 @@ describe('AML-CLOSE-07 publication and risk-of-record (source guarantees)', () =
     const panel = read('src/components/supervision/aml/AmlAssessmentReviewPanel.tsx');
     expect(panel).toMatch(/publish: publishOnApprove/);
   });
+
+  it('AML-CLOSE-07A: one eligibility authority drives both the action contract and the publish command', () => {
+    const ev = last('supervisory_assessment_publication_eligibility_internal');
+    for (const code of ['OK', 'STATE_NOT_ELIGIBLE', 'PERMISSION_MISSING', 'MAKER_CHECKER', 'STALE_PUBLICATION', 'ALREADY_PUBLISHED', 'EFFECTIVE_DATE_REFUSED', 'NO_APPROVAL_DECISION']) {
+      expect(ev).toContain(`'${code}'`);
+    }
+    expect(last('supervisory_assessment_lifecycle_state')).toMatch(/'permitted', \(_pe->>'reason_code'\) = 'OK'/);
+    expect(last('supervisory_assessment_publish_internal')).toMatch(/supervisory_assessment_publication_eligibility_internal\(_assessment_id, _uid\)/);
+    expect(sql).toMatch(/REVOKE ALL ON FUNCTION public\.supervisory_assessment_publication_eligibility_internal\(uuid, uuid\) FROM PUBLIC, anon, authenticated/);
+  });
+
+  it('AML-CLOSE-07A: movement trend follows canonical rating order; same rating stays STABLE', () => {
+    const pub = last('supervisory_assessment_publish_internal');
+    expect(pub).toMatch(/upper\(_d\.final_rating\)\) THEN 'STABLE'|upper\(_prev\.residual_rating\) = upper\(_d\.final_rating\) THEN 'STABLE'/);
+    expect(pub).toMatch(/sup_risk_ordinal\(_d\.final_rating\) < public\.sup_risk_ordinal\(_prev\.residual_rating\) THEN 'IMPROVING'/);
+    expect(pub).toMatch(/sup_risk_ordinal\(_d\.final_rating\) > public\.sup_risk_ordinal\(_prev\.residual_rating\) THEN 'DETERIORATING'/);
+  });
 });
