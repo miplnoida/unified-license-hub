@@ -9,15 +9,37 @@ export async function loginAs(page: Page, email: string): Promise<string> {
   await page.goto('/login', { waitUntil: 'domcontentloaded' });
   await page.locator('#login-email').fill(email);
   await page.locator('#login-password').fill(certPassword());
+  // Observe (never alter) the real auth response so a failure is diagnosable.
+  // Only status, content-type, duration, request id and a safe error code are kept;
+  // request bodies, headers and tokens are never read.
+  const started = Date.now();
+  const tokenResponse = page
+    .waitForResponse((r) => r.url().includes('/auth/v1/token'), { timeout: 60_000 })
+    .catch(() => null);
   // Scope to the login form: the public nav also carries a "Login" button.
   await page.locator('form button[type="submit"]').first().click();
   // Never let the credential survive into a failure snapshot or trace.
   await page.locator('#login-password').fill('').catch(() => {});
 
   // Either we land on an authenticated route, MFA is requested, or an error toast appears.
+  const res = await tokenResponse;
   await page.waitForTimeout(4000);
   await page.waitForLoadState('networkidle').catch(() => {});
-  return new URL(page.url()).pathname;
+  const path = new URL(page.url()).pathname;
+  if (path === '/login') {
+    let code = '';
+    if (res && res.status() < 500) {
+      try {
+        const body = (await res.json()) as { error_code?: string; error?: string; code?: string | number };
+        code = String(body.error_code ?? body.error ?? body.code ?? '').replace(/[A-Za-z0-9_-]{24,}/g, '[redacted]');
+      } catch { /* non-JSON body */ }
+    }
+    const diag = res
+      ? `login failed: HTTP ${res.status()} / ${res.headers()['content-type'] ?? 'unknown'} / ${code || 'no-error-code'} / ${Date.now() - started}ms / req ${res.headers()['sb-request-id'] ?? res.headers()['cf-ray'] ?? 'n/a'}`
+      : `login failed: no /auth/v1/token response within 60s`;
+    console.log(`[auth-diag] ${email} ${diag}`);
+  }
+  return path;
 }
 
 

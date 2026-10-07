@@ -270,3 +270,47 @@ Not performed: suite not clean, so no publish, no live smoke (BZ–CC). Live esc
 
 ## CG. Final verdict
 **AML-CLOSE-08 = CONDITIONAL PASS.** Next: fix dashboard/work-queue statement timeouts, investigate login `{}` failure, fresh scan, then one new isolated full suite before publish. AML-CLOSE-09 not started.
+
+---
+# AML-CLOSE-08D — performance and authentication defect closure (2026-10-07)
+
+## CH. Scope
+08D only. TEST data only; no live sweep, no email/SMS/webhook. AML-CLOSE-09 not started.
+
+## CI. Dashboard / work-queue statement timeouts (fixed)
+Root cause: `sup_dashboard_summary` scanned `v_prudential_current_breaches` four times (~1.16 s each); `supervisory_work_queue` re-evaluated the shared `supervisory_work_item` base; RBAC wrappers `has_permission` / `is_super_admin` (SQL SECURITY DEFINER) and `sec_has_permission` (expanded full permission set per call) dominated per-row cost.
+Fix (two applied migrations): single breach aggregate; MATERIALIZED shared base; `sec_has_permission` filters requested module/action directly (equivalence checked on 16,920 user/module/action cases, 0 mismatches); wrappers moved to PL/pgSQL with same logic. No scope widened.
+Measured as TEST AML supervisor, 50 sequential calls each, 0 errors (median/p95/max ms): `aml_overview_metrics` 214/223/385; `sup_dashboard_summary` 360/372/383 (was ~3,900); `aml_work_queue_page` 401/455/521; `supervisory_work_queue` 392/408/441 (was ~3,500). 5 concurrent pairs: no errors.
+
+## CJ. Login `{}` defect (fixed in UI)
+Trace evidence: `/auth/v1/token` returned HTTP 504 `text/plain` after 35.7 s; the library surfaced `{}`. `safeAuthErrorMessage` now shows "Sign-in could not be completed. Please try again." for empty/structural messages and any 5xx; meaningful 4xx (wrong credentials) unchanged. Unit test 3/3. E2E helper records only status/content-type/timing/request-id on failure.
+
+## CK. 10 consecutive real UI sign-ins
+`e2e/cert-v2/auth-latency-probe.spec.ts`, TEST AML officer: 10/10 reached `/dashboard`, HTTP 200 each, 54.4 s total. PASS.
+
+## CL. Spec 12 / Spec 15 three-in-a-row
+NOT MET. Spec 12 runs: pass, fail, fail; restarted: fail; diagnostic sample run: fail. Spec 15 three-in-a-row not reached.
+Failure evidence (preserved per run under `/tmp/aml08c/out-*`):
+- 03:44 token request never answered within 60 s.
+- 03:54 `sec_get_user_context` HTTP 500 `57014` after 15.7 s; trivial reads (`site_settings`, `currencies`) 8 s.
+- 04:00 server wait 3–22 s on ordinary reads (`licenses`, `payments`, `notification_counts` 13.6 s).
+
+## CM. Root-cause localisation (partial)
+- While spec 12 ran, `pg_stat_activity` sampled every ~2 s for ~4 min: **zero** statements active > 0.8 s. The same reads take ~0.1 s when idle. Delay is therefore before/around statement execution (API/pooler queueing or instance saturation), not one slow query.
+- Scheduled jobs failed with `job startup timeout` at 03:04–03:09 and 03:42–03:44 — the database could not start work, matching the 03:44 sign-in hang.
+- One dashboard landing fires 58 backend requests in 12 s (licenses ×9, complaints ×6, licensees ×5 …). This client fan-out is a contributing load source; not yet reduced.
+- Health snapshot: connections 36/60, no recorded exhaustion alert. API gateway/PostgREST logs returned no rows, so the exact queueing layer is **not proven**.
+
+## CN–CW. Gates not executed because CL is not met
+Privilege checks on the five tables, fresh security scan after the RBAC change, full Vitest/build, one clean isolated full AML suite, TEST residue census, protected-state re-check, publish and live smoke: **not run in 08D**. Migration linter flagged `has_permission` / `is_super_admin` as signed-in-callable SECURITY DEFINER; both were already SECURITY DEFINER and callable before 08D — needs confirmation in a fresh scan.
+
+## CX. Protected data
+No writes to 00830/00836/00838, FSRA policy, STR_SAR_GOVERNANCE in 08D (only TEST fixtures created/retired by the browser specs). Not re-fingerprinted in 08D.
+
+## CY. Remaining work
+1. Reduce dashboard landing fan-out (dedupe licenses/licensees/complaints count queries).
+2. Obtain gateway/pooler evidence for the queueing window, or larger instance.
+3. Re-run spec 12 and 15 ×3, then the remaining gates.
+
+## CZ. Verdict
+**AML-CLOSE-08 = CONDITIONAL PASS.** Not published. AML-CLOSE-09 not started.
