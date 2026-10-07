@@ -234,3 +234,39 @@ External escalation notification delivery is intentionally deferred to AML-CLOSE
 
 ## BR. Final verdict
 **AML-CLOSE-08 = CONDITIONAL PASS.** Criteria 1–6 and 8–13, 15 and 16 are evidenced. Criteria 7 (clean full browser suite) and 14 (publish and live smoke) are not. AML-CLOSE-09 was not started.
+
+# AML-CLOSE-08C — Final Isolated Certification
+
+## BS. Final code/build baseline
+Git HEAD `970364f1f`; preview `http://localhost:8080` (dev build); Lovable Cloud backend (single instance). Current AML browser certification = `aml` project (specs 09–18 + fixture setup/teardown) plus specs 06–08 (chromium project): **69 tests in 15 files** (previous 50-test count no longer current).
+
+## BT. Isolated-run conditions
+Started 2026-10-07 02:30:31 UTC after confirming no Vitest/Playwright process running. No backend verifier, Vitest, build, security scan or second suite ran concurrently. Pre-run: app `/login` 200, backend auth health 200.
+
+## BU. Complete AML browser suite
+Total 69 — **56 passed, 2 failed, 11 did not run** — duration 32.4 min. **Not clean.**
+
+## BV. Failure investigation
+1. Spec 12 B (02:38:40–02:41:45 UTC): after approval + reload, "Review & decision" tab never rendered (20 s). Trace shows repeated HTTP 500 `57014 canceling statement due to statement timeout` from `sup_dashboard_summary` (02:38:44, 02:39:37, 02:39:54, 02:40:31) and `supervisory_work_queue` (02:40:31). Classification: **APPLICATION_DEFECT (backend performance — read RPCs exceeding statement timeout)**, not proven infrastructure. Root cause not yet fixed.
+2. Spec 15 A (02:51:28 UTC): login returned an empty `{}` error toast; user stayed on `/login`. No evidence yet distinguishing auth-gateway event from app defect → **unclassified**; INFRASTRUCTURE_EVENT not claimed.
+Dependent tests (5 in spec 12, 6 in spec 15) did not run.
+
+## BW. TRUNCATE privilege confirmation
+Read-only inspection: `supervisory_consequence_decision`, `supervisory_response_sla_obligation`, `sla_stage_instances`, `sla_stage_events` — no TRUNCATE for anon/authenticated. **`sla_escalation_dispatches` granted TRUNCATE to anon and authenticated — security defect.** Fixed by migration revoking TRUNCATE/REFERENCES/TRIGGER from anon, authenticated, PUBLIC (no data change); re-check shows false for both. Because this is a security change, a fresh scan is now required before closure (not yet run).
+
+## BX–CE
+Not performed: suite not clean, so no publish, no live smoke (BZ–CC). Live escalation sweep NOT EXECUTED BY DESIGN — worker can invoke real notification delivery; deferred to AML-CLOSE-11 (CD). No email/SMS/webhook sent in 08C. TEST policy residue, protected-state and official-risk rechecks deferred to the next certification run.
+
+## CF. Final evidence matrix
+| Gate | Final |
+|---|---|
+| Backend verifiers 66/66/102/57 | PASS (prior) |
+| App regression 1804/1804 | PASS (prior; no app source change in 08C) |
+| Security | needs fresh scan after TRUNCATE revoke |
+| Full AML browser (isolated) | **FAIL** 56/2/11 |
+| TRUNCATE privileges | FIXED (defect found) |
+| Publish/live smoke | NOT RUN |
+| External notification | deferred AML-CLOSE-11, not an 08 blocker |
+
+## CG. Final verdict
+**AML-CLOSE-08 = CONDITIONAL PASS.** Next: fix dashboard/work-queue statement timeouts, investigate login `{}` failure, fresh scan, then one new isolated full suite before publish. AML-CLOSE-09 not started.
