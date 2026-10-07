@@ -1,5 +1,11 @@
 # Roadmap
 
+## AML-CLOSE-08F2 — authorised scope only
+- [ ] Inventory all three orphaned TEST runs and inspect server-offered lifecycle capabilities before cleanup.
+- [ ] Retire eligible TEST profiles first, then their components, through normal browser controls only.
+- [ ] Verify historical pinning, zero new-work TEST authority, real FSRA policy and protected AML state.
+- [ ] Create infrastructure support pack and append DU–EF evidence; retain CONDITIONAL PASS. No tests, publish, capacity/code/schema/security changes or AML-CLOSE-09.
+
 ## EPIC 4 — Enterprise SupTech Convergence & Final Certification
 
 - [x] W0 Rebaseline: HEAD `c093c519783bc29f3319a697c1f295914b463f0e`, clean tree, migration head `20260902213053`, Epic 2 + Epic 3 gates green
