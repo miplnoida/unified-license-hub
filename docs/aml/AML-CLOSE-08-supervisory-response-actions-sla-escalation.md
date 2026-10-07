@@ -671,3 +671,78 @@ No substantive platform evidence is available to classify as directly explaining
 The evidence remains instructional and does not establish a material diagnosis, remediation, platform change or materially improved observability sufficient to justify another certification attempt. **AML-CLOSE-08 = CONDITIONAL PASS — CERTIFICATION FROZEN.** Qualifying substantive evidence remains the blocker; even a future satisfied prerequisite requires separate owner certification authorisation.
 
 Document review and documentation updates only. No Spec 12, Spec 15, full AML suite, regression, security scan, backend/platform query, load probe, publish, live smoke, infrastructure resize, AML functionality/schema/security/data change or external communication occurred. Two inactive TEST drafts remain untouched; no fresh protected-state certification is claimed. **STOP. AML-CLOSE-09 not started.**
+
+---
+
+## AML-CLOSE-08F3 — Controlled Request-Path Diagnostic
+
+Owner-authorised bounded diagnostic (brief `AML-CLOSE-08F3 — CONTROLLED REQUEST-PATH DIAGNOSTIC & PLATFORM ESCALATION`). Not a recertification. No code, schema, RLS, Auth, pooler, timeout or capacity change; no publish; no Spec 15; no full suite; no AML-CLOSE-09.
+
+### 1. Baseline (2026-10-07 17:10 UTC)
+| Item | Value |
+|---|---|
+| Git HEAD | `fb86ccf336f22dc36077fd5b22cd05a9bafeae9f` |
+| Deployed frontend version | UNKNOWN (not discoverable from sandbox) |
+| Managed backend | Lovable Cloud project (shared TEST/live instance) |
+| Compute size | Mini (per F1/F2 record; not re-read) |
+| DB start time | 2026-08-31 10:29:55 UTC (no restart since) |
+| DB connections | 23 / 60 (1 active, 14 idle) |
+| Pool clients | NOT EXPOSED in this run |
+| Memory | NOT EXPOSED in this run |
+| Platform warnings | none; status check: auth 106 ms, database 107 ms, auth→database 330 ms |
+
+### 2. Requests executed (one officer session, sequential steps, `aml_supervision_officer` TEST persona)
+1. Anonymous cheap REST control `GET /rest/v1/regulators?select=id&limit=1` → 200, 182–196 ms.
+2. Real login UI → `POST /auth/v1/token`.
+3. Profile, `user_roles`, `user_dynamic_roles`, `roles` reads.
+4. `rpc/sec_get_user_context`.
+5. Navigate `/supervision/aml/assessments` → `aml_portfolio`, `aml_assessment_page`; "New AML/CFT assessment" control rendered (page ready in 3.14 s incl. network idle).
+6. Dashboard read models already in the journey (`supervisory_work_queue`, `supervisory_dashboard_operational_summary`, `sup_dashboard_summary`).
+
+### 3–4. Request timing and correlation (selected; full 71-request capture in sandbox `/tmp/browser/f3/recs.json`, tokens not stored)
+| UTC start | ms | HTTP | Method | Endpoint | sb-request-id | cf-ray |
+|---|---|---|---|---|---|---|
+| 17:11:28.496 | 195 | 200 | GET | /rest/v1/regulators | 01a11759-4447-7c44-8f1c-1afcc6425b23 | a46e86739b0e65f9-AMS |
+| 17:11:28.844 | 401 | 200 | POST | /auth/v1/token | 01a11759-456b-72ef-803c-7cedfa6cd82b | a46e86756b3e0ae3-AMS |
+| 17:11:29.389 | 89 | 200 | GET | /rest/v1/profiles | 01a11759-4792-7e26-bc23-005ea49329df | a46e8678df180ae3-AMS |
+| 17:11:29.396 | 155 | 200 | GET | /rest/v1/user_roles | 01a11759-479e-75a4-8b76-ec7d65d7c0ac | a46e8678ef330ae3-AMS |
+| 17:11:29.748 | 93 | 200 | GET | /rest/v1/roles | 01a11759-48fb-7292-b4f8-2452ef79e6e5 | a46e867b198d0ae3-AMS |
+| 17:11:29.938 | 392 | 200 | POST | rpc/sec_get_user_context | 01a11759-49c5-7fbb-a17a-88845d26ad92 | a46e867c5ac60ae3-AMS |
+| 17:11:31.050 | 1210 | 200 | POST | rpc/supervisory_work_queue | 01a11759-4e19-7e36-b0c8-019e028ce370 | a46e86834b9f0ae3-AMS |
+| 17:11:31.050 | 1447 | 200 | POST | rpc/supervisory_dashboard_operational_summary | 01a11759-4e15-7f2b-af8d-62d7aca6ec3f | a46e86833b980ae3-AMS |
+| 17:11:31.052 | 1089 | 200 | POST | rpc/sup_dashboard_summary | 01a11759-4e1b-77fa-962c-9e3b08d3a504 | a46e86834ba40ae3-AMS |
+| 17:11:34.825 | 781 | 200 | POST | rpc/aml_portfolio | 01a11759-5ced-7da5-a6d7-2f164ea83108 | a46e869aea770ae3-AMS |
+| 17:11:34.835 | 284 | 200 | POST | rpc/aml_assessment_page | 01a11759-5cf8-7f97-9a33-6c520340af45 | a46e869b0a8d0ae3-AMS |
+
+No `x-request-id`/trace ID header returned; `sb-request-id` and `cf-ray` are the available correlation IDs. PostgreSQL backend PID, per-request SQL duration and pre-/in-/post-SQL split: NOT EXPOSED. Expected non-stall statuses: pre-login anonymous `currencies`/`monetary_config_resolve` 401; officer `supervisory_assessment_orphan_cases` 403 (lacks approval authority). No retries observed. No 5xx.
+
+### 5. DB observations
+Diagnostic: 23 connections, 0 lock waits. Spec 12 window (17:11:53–17:21:24 UTC, 180 samples @3 s): connections 32–35/60 peak 35; active client statements other than the monitor 0 at every sample; lock waits 0; longest active client statement 0 s; no wait events. `pg_stat_statements` deltas not captured.
+
+### 6. Managed-service observations
+Gateway, Auth, PostgREST and pooler latency, CPU, I/O, network, concurrency, queue depth, throttling: NOT EXPOSED. Pooler log search (last 20 min) for `EAUTHQUERY`/timeout/FATAL: 0 rows. Edge and Auth log queries returned 0 rows for the window — treated as NOT EXPOSED, not as zero.
+
+### 7. First stop-condition event
+None. Max cheap REST 196 ms; Auth 401 ms; profile/security max 392 ms; no 5xx; no `EAUTHQUERY`; navigation never blocked.
+
+### 8. Request-path timeline
+Browser → Gateway (CONFIRMED HEALTHY in this run) → Auth (CONFIRMED HEALTHY, 401 ms) → PostgREST (CONFIRMED HEALTHY, end-to-end ≤1.45 s) → Pooler (NOT OBSERVABLE beyond absent errors) → PostgreSQL (CONFIRMED HEALTHY: no waits/long SQL) → client (CONFIRMED HEALTHY). Healthy applies only to this window; the F1 failure window remains NOT OBSERVABLE at gateway/Auth/PostgREST/pooler layers.
+
+### 9. Root-cause classification
+**L. UNKNOWN_DUE_TO_OBSERVABILITY_GAP** (secondary candidates, unproven: I. SHARED_MANAGED_PROJECT_CAPACITY, F. POOLER given the historical `EAUTHQUERY`).
+
+### 10. Stall reproduced
+No. Controlled requests healthy, so per §I one controlled Spec 12 run was executed: **9 passed (6.9 min)**, one worker, no parallel tests, setup and teardown passed; protected 00830/00836/00838 timestamps unchanged; TEST policy retired by teardown. **STALL NOT REPRODUCED IN THIS RUN — REMEDIATION NOT PROVEN.** Spec 15 and certification not run.
+
+### 11. Application defect proven
+No. No duplicate-request storm, refresh loop or uncontrolled retry observed (dashboard reads issued once per navigation).
+
+### 12. Additional platform telemetry required
+Yes — pre-SQL queue time, pooler auth-query latency and gateway/Auth/PostgREST timings for the F1 window are needed to explain the earlier stall.
+
+### 13. Support escalation document
+Not created: §J applies only when the stall reproduces. Existing `docs/aml/AML-CLOSE-08-infrastructure-stall-support-pack.md` remains the owner's escalation pack for the F1 window.
+
+### STALL NOT REPRODUCED — REMEDIATION NOT PROVEN
+
+AML-CLOSE-08 remains **CONDITIONAL PASS**. Not PASS. Not published. Not resized. AML-CLOSE-09 not started. Stopped after F3.
