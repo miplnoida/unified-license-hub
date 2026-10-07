@@ -589,3 +589,43 @@ The upload timestamp is not a remediation timestamp. The known backend provider 
 Evidence remains insufficient: this upload is an evidence-intake instruction, not evidence that the managed request-path blocker was remediated, materially changed, diagnosed by support or made materially more observable. No facts inferred. **AML-CLOSE-08 = CONDITIONAL PASS — CERTIFICATION FROZEN. UPGRADE_NOT_YET_JUSTIFIED.**
 
 Spec 12, Spec 15, full AML suite, regression, security scans, load probes, publication and resizing were not performed. No application/schema/security/settings/account/data changes, external communications or notification sweeps occurred. Frozen F2 evidence and the two inactive TEST drafts remain undisturbed, not freshly recertified. Concrete platform evidence is required before intake validation; a separate owner certification-resumption decision is required even if a future intake finds the prerequisite satisfied. **STOP. AML-CLOSE-09 not started.**
+
+## EI. Validate new platform evidence only — owner upload 2026-10-07 16:47 UTC
+
+Reviewed the complete supplied file `AML-CLOSE-08_-_VALIDATE_NEW_PLATFORM_EVIDENCE_pasted.md`. It states that new platform/support evidence has been supplied, but contains only validation instructions, the historical failure symptoms and stop conditions. It supplies no support response, change record, diagnosis, remediation timestamp or new telemetry. No separate supporting record accompanies this turn. The assertion that evidence exists is not direct evidence of a qualifying change; the upload time is not a remediation time. This is document-only validation, not a new platform investigation or certification attempt.
+
+### Required evidence record
+
+| Required item | Supported value |
+|---|---|
+| 1. Support/change reference | **UNKNOWN** |
+| 2. Responsible provider/team | **UNKNOWN** |
+| 3. Exact diagnosis or remediation | **UNKNOWN** |
+| 4. Remediation/change timestamp | **UNKNOWN** |
+| 5. TEST/live shared-infrastructure impact | **UNKNOWN** |
+| 6. Database-compute impact | **UNKNOWN** |
+| 7. Gateway/Auth/PostgREST/pooler impact | **UNKNOWN** |
+| 8. Application/schema/security impact | **UNKNOWN** |
+| 9. Whether the change occurred outside Git | **UNKNOWN** |
+| 10. Expected impact on historical request stalls/Auth 504 | **UNKNOWN** |
+
+### Comparison with recorded F1 failure (historical, not rerun)
+
+| Recorded observation | Supplied evidence addressing it |
+|---|---|
+| Cheap REST 19.19 s | **UNKNOWN** |
+| Auth HTTP 504 after 45.4 s | **UNKNOWN** |
+| Profile 9.72 s | **UNKNOWN** |
+| Roles 6.98 s | **UNKNOWN** |
+| Security/context requests unfinished at 20 s | **UNKNOWN** |
+| DB peak 40/60 connections | **UNKNOWN** |
+| Pool clients 1/200 | **UNKNOWN** |
+| No observed long-running SQL | **UNKNOWN** |
+| No observed DB waits | **UNKNOWN** |
+| Pooler `EAUTHQUERY auth_query secret check timed out` | **UNKNOWN** |
+
+F1's sampled absence of long SQL/waits does not prove no SQL execution, and the pooler event was recorded during run 2 rather than the final run-3 failure. No supplied finding identifies the causal layer, establishes remediation or materially improves observability. EG's prior healthy idle snapshot remains insufficient and has not been repeated.
+
+### PREREQUISITE NOT SATISFIED
+
+**AML-CLOSE-08 remains CONDITIONAL PASS — CERTIFICATION FROZEN.** No tests (including Spec 12/15), scans, load probes, platform/backend queries, publication, resizing, application/schema/security/data changes or external communications were performed for this validation. The two inactive TEST drafts were not touched; protected-state evidence remains historical, not freshly verified. Documentation only was updated. Concrete qualifying evidence is still required, followed by a separate owner instruction before any certification resumption. **STOP. AML-CLOSE-09 not started.**
