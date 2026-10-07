@@ -14,9 +14,10 @@ export interface ConductDashboardMetrics {
  * client-side over full rows, so the two surfaces stay consistent without
  * shipping row data to a summary tile.
  */
-export function useConductDashboardMetrics() {
+export function useConductDashboardMetrics(enabled = true) {
   return useQuery<ConductDashboardMetrics>({
     queryKey: ['conduct_dashboard_metrics'],
+    enabled,
     queryFn: async () => {
       const nowIso = new Date().toISOString();
 

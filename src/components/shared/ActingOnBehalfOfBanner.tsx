@@ -81,7 +81,8 @@ export function ActingOnBehalfOfBanner() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on id only (08E)
+  }, [user?.id]);
 
   if (loading || (delegations.length === 0 && !user?.delegatedRole)) return null;
 

@@ -22,9 +22,10 @@ export interface FpaDashboardMetrics {
  * Fit & Proper metrics shared by FpaDashboard.tsx and the cross-module
  * supervisory dashboard, so both surfaces always report the same numbers.
  */
-export function useFpaDashboardMetrics() {
+export function useFpaDashboardMetrics(enabled = true) {
   return useQuery<FpaDashboardMetrics>({
     queryKey: ['fpa_dashboard_metrics'],
+    enabled,
     queryFn: async () => {
       const [
         individualsRes,

@@ -755,9 +755,10 @@ export function useSectorRiskDistribution() {
 }
 
 // ---------- Dashboard ----------
-export function usePrudentialDashboardMetrics() {
+export function usePrudentialDashboardMetrics(enabled = true) {
   return useQuery({
     queryKey: ['prudential_dashboard_metrics'],
+    enabled,
     queryFn: async () => {
       const { data, error } = await sb.rpc('prudential_dashboard_metrics');
       if (error) throw error;

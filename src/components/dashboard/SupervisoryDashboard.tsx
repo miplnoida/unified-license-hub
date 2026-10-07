@@ -71,9 +71,9 @@ export function SupervisoryDashboard() {
   // previously absent from this dashboard entirely. Fetched only when the
   // user actually has access to each module, and reuse the exact same hooks
   // each module's own dashboard uses so the numbers always agree.
-  const { data: fpaMetrics, isLoading: loadingFpa } = useFpaDashboardMetrics();
-  const { data: conductMetrics, isLoading: loadingConduct } = useConductDashboardMetrics();
-  const { data: prudentialMetrics, isLoading: loadingPrudential } = usePrudentialDashboardMetrics();
+  const { data: fpaMetrics, isLoading: loadingFpa } = useFpaDashboardMetrics(can.fitAndProper);
+  const { data: conductMetrics, isLoading: loadingConduct } = useConductDashboardMetrics(can.marketConduct);
+  const { data: prudentialMetrics, isLoading: loadingPrudential } = usePrudentialDashboardMetrics(can.prudential);
 
   // Filter insights to modules the user can act on.
   const visibleInsights = insights.filter((i) => {

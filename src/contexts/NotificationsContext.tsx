@@ -54,6 +54,9 @@ const NotificationsContext = createContext<NotificationsContextValue | undefined
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  // Key on the user id only: hydration replaces the user object several times
+  // during sign-in, which previously re-ran this load and re-subscribed (08E).
+  const userId = user?.id ?? null;
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [counts, setCounts] = useState<NotificationCounts>(EMPTY_COUNTS);
   const [loading, setLoading] = useState(true);
@@ -65,11 +68,11 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const load = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
     const { data } = await supabase
       .from('notifications')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('channel', 'in_app')
       .is('dismissed_at', null)
       .order('created_at', { ascending: false })
@@ -78,22 +81,22 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     setNotifications(rows.filter(isActiveNotification));
     setLoading(false);
     await loadCounts();
-  }, [user, loadCounts]);
+  }, [userId, loadCounts]);
 
   useEffect(() => {
     load();
-    if (!user) return;
+    if (!userId) return;
 
     // Realtime is primary; a 60s poll keeps counts fresh if the socket drops.
     const poll = setInterval(() => { load(); }, 60_000);
 
     const channel = supabase
-      .channel('notif-' + user.id)
+      .channel('notif-' + userId)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'notifications',
-        filter: `user_id=eq.${user.id}`,
+        filter: `user_id=eq.${userId}`,
       }, (payload) => {
         const n = payload.new as AppNotification;
         if (n.channel === 'in_app' && isActiveNotification(n)) {
@@ -108,7 +111,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         event: 'UPDATE',
         schema: 'public',
         table: 'notifications',
-        filter: `user_id=eq.${user.id}`,
+        filter: `user_id=eq.${userId}`,
       }, (payload) => {
         const n = payload.new as AppNotification;
         setNotifications(prev =>
@@ -121,7 +124,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       .subscribe();
 
     return () => { clearInterval(poll); supabase.removeChannel(channel); };
-  }, [user, load, loadCounts]);
+  }, [userId, load, loadCounts]);
 
 
   const unreadCount = counts.unread
