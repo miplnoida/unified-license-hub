@@ -2,7 +2,8 @@ import { test as setup, expect, type Page } from '@playwright/test';
 import { loginAs } from './support/auth';
 import { persona } from './support/personas';
 import { restSelect } from './support/api';
-import { TEST_JUDGEMENT, TEST_PROFILE_TEMPLATE, TEST_TAG, writeAmlFixture, clearAmlFixture } from './support/amlFixture';
+import { TEST_JUDGEMENT, TEST_PROFILE_TEMPLATE, TEST_TAG, TEST_SLA, writeAmlFixture, clearAmlFixture } from './support/amlFixture';
+import { authorComponent, approveComponent, bindInProfile, componentStatus as statusOf } from './support/policyAuthoring';
 
 /**
  * AML-CLOSE-05A run fixture — created ENTIRELY through the configuration screens.
@@ -80,6 +81,41 @@ setup('AML TEST package with governed judgement policy (browser only)', async ({
   }
   expect(await componentStatus(judgementComponentId)).toBe('SUBMITTED');
 
+  // 1b. AML-CLOSE-08A — TEST response and SLA policy (maker: officer)
+  const sfx = runTag.slice(-8);
+  const responseCode = `TEST-AML08A-RESP-${sfx}`;
+  const slaCode = `TEST-AML08A-SLA-${sfx}`;
+  const responseComponentId = await authorComponent(page, {
+    typeLabel: 'Supervisory response policy', code: responseCode,
+    name: `${TEST_TAG} — AML-CLOSE-08A response ${runTag}`,
+    purpose: `${TEST_TAG}. AML-CLOSE-08A: a supervisory plan is REQUIRED at ${TEST_SLA.ratingLabel}. Synthetic certification value.`,
+    entries: [[
+      { kind: 'text', label: 'Rule reference', value: `TEST-AML08A-RE-${sfx}` },
+      { kind: 'select', label: 'Risk rating', option: TEST_SLA.ratingOption },
+      { kind: 'select', label: 'Supervisory action', option: /^Supervisory plan$/i },
+      { kind: 'select', label: 'Policy expectation', option: /^Required$/i },
+      { kind: 'switch', label: 'Reason required', on: true },
+    ]],
+  });
+  await expect.poll(() => statusOf(OFFICER, responseComponentId), { timeout: 20_000 }).toBe('SUBMITTED');
+  const slaComponentId = await authorComponent(page, {
+    typeLabel: 'SLA policy', code: slaCode,
+    name: `${TEST_TAG} — AML-CLOSE-08A SLA ${runTag}`,
+    purpose: `${TEST_TAG}. AML-CLOSE-08A: ${TEST_SLA.days} calendar day(s) to open the plan; clock may be held. Synthetic certification value.`,
+    entries: [[
+      { kind: 'text', label: 'Rule reference', value: `TEST-AML08A-SLA-${sfx}` },
+      { kind: 'text', label: 'Stage', value: TEST_SLA.stage },
+      { kind: 'text', label: 'Days allowed', value: String(TEST_SLA.days) },
+      { kind: 'select', label: 'Day basis', option: /^Calendar days$/i },
+      { kind: 'select', label: 'Applies to action', option: /^Supervisory plan$/i },
+      { kind: 'select', label: 'Severity if breached', option: /^Medium$/i },
+      { kind: 'text', label: 'Early warning at', value: String(TEST_SLA.warning) },
+      { kind: 'switch', label: 'Clock may be paused', on: true },
+      { kind: 'check', option: /awaiting entity information/i },
+    ]],
+  });
+  await expect.poll(() => statusOf(OFFICER, slaComponentId), { timeout: 20_000 }).toBe('SUBMITTED');
+
   // 2. independent approval
   await as(page, SUPERVISOR);
   await page.goto(`/admin/supervisory-policy-components/${judgementComponentId}`, { waitUntil: 'domcontentloaded' });
@@ -87,6 +123,10 @@ setup('AML TEST package with governed judgement policy (browser only)', async ({
   await page.locator('#pc-rationale').fill(`${TEST_TAG}. Independently approved for certification only.`);
   await page.getByRole('button', { name: 'Confirm' }).click();
   await expect.poll(() => componentStatus(judgementComponentId), { timeout: 20_000 }).toBe('APPROVED');
+  for (const id of [responseComponentId, slaComponentId]) {
+    await approveComponent(page, id);
+    await expect.poll(() => statusOf(SUPERVISOR, id), { timeout: 20_000 }).toBe('APPROVED');
+  }
 
   // 3. package version + binding
   await as(page, OFFICER);
@@ -107,6 +147,8 @@ setup('AML TEST package with governed judgement policy (browser only)', async ({
   await page.locator('#pp-bind-rationale').fill(`${TEST_TAG}. Bind run judgement policy.`);
   await page.getByRole('button', { name: 'Bind version' }).click();
   await expect(row).toContainText(code, { timeout: 20_000 });
+  await bindInProfile(page, 'Supervisory response policy', responseCode);
+  await bindInProfile(page, 'SLA policy', slaCode);
 
   await page.getByRole('button', { name: 'Submit for Review' }).click();
   await page.locator('#pp-review-rationale').fill(`${TEST_TAG}. Submitted for independent approval.`);
@@ -124,6 +166,7 @@ setup('AML TEST package with governed judgement policy (browser only)', async ({
   await page.getByRole('button', { name: 'Activate profile' }).click();
   await expect.poll(async () => ((await restSelect(SUPERVISOR, `supervisory_policy_profile?id=eq.${profileId}&select=status`)).body as Array<{ status: string }>)[0]?.status, { timeout: 20_000 }).toBe('ACTIVE');
 
-  writeAmlFixture({ runTag, profileId, profileVersion, judgementComponentId, judgementCode: code, judgementVersion: '1.0', assessments: {} });
+  writeAmlFixture({ runTag, profileId, profileVersion, judgementComponentId, judgementCode: code, judgementVersion: '1.0',
+    responseComponentId, responseCode, slaComponentId, slaCode, assessments: {} });
   console.log('AML fixture', JSON.stringify({ runTag, profileId, profileVersion, judgementComponentId, code }));
 });

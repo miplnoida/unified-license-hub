@@ -33,6 +33,14 @@ teardown('retire AML TEST package and judgement policy (browser only)', async ({
   await page.getByRole('button', { name: 'Confirm' }).click();
   await expect.poll(async () => ((await restSelect(SUPERVISOR, `supervisory_policy_component?id=eq.${f!.judgementComponentId}&select=status`)).body as Array<{ status: string }>)[0]?.status, { timeout: 20_000 }).toBe('RETIRED');
 
+  for (const id of [f!.responseComponentId, f!.slaComponentId].filter(Boolean) as string[]) {
+    await page.goto(`/admin/supervisory-policy-components/${id}`, { waitUntil: 'domcontentloaded' });
+    await page.getByRole('button', { name: 'Retire', exact: true }).click();
+    await page.locator('#pc-rationale').fill(`${TEST_TAG}. Run ${f!.runTag} finished; AML-CLOSE-08A TEST policy retired.`);
+    await page.getByRole('button', { name: 'Confirm' }).click();
+    await expect.poll(async () => ((await restSelect(SUPERVISOR, `supervisory_policy_component?id=eq.${id}&select=status`)).body as Array<{ status: string }>)[0]?.status, { timeout: 20_000 }).toBe('RETIRED');
+  }
+
   // Read-only: no new assessment can resolve to the TEST package; existing ones keep their pinned policy.
   const elig = await rpc(OFFICER, 'supervisory_assessment_creation_eligibility', { _entity_id: ENTITY_ID, _domain_code: 'AML_CFT' });
   const pinned: Record<string, unknown> = {};

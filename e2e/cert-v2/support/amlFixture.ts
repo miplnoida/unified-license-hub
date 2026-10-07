@@ -13,6 +13,10 @@ export interface AmlFixture {
   judgementComponentId: string;
   judgementCode: string;
   judgementVersion: string;
+  responseComponentId?: string;
+  responseCode?: string;
+  slaComponentId?: string;
+  slaCode?: string;
   assessments: Record<string, string>;
 }
 
@@ -43,3 +47,5 @@ export const TEST_PROFILE_TEMPLATE = '69f01d12-fe20-40e4-bd52-282bd2bf74ba';
 export const TEST_TAG = 'TEST ONLY — TECHNICAL CERTIFICATION — NOT FSRA REGULATORY POLICY';
 /** TEST judgement rule (TEST ONLY): upward only, at most one rating step, rationale of at least 40 characters. */
 export const TEST_JUDGEMENT = { direction: 'UPWARD', maxSteps: 1, minRationale: 40 } as const;
+/** AML-CLOSE-08A TEST SLA rule (TEST ONLY — synthetic): plan opened within 1 calendar day, hold permitted. */
+export const TEST_SLA = { days: 1, warning: 50, stage: 'TEST AML08A open supervisory plan', rating: 'MODERATE', ratingLabel: 'MODERATE', ratingOption: /^Moderate$/i } as const;
