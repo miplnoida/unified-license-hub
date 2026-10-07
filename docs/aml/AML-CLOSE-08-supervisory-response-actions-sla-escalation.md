@@ -839,3 +839,29 @@ All 14 referencing assessments: status, `updated_at` and snapshot components md5
 ### F5 CONDITIONAL — NON-GOVERNING RESIDUE REMAINS
 
 The four orphan judgement components are clean. Remaining residue (3 shared ACTIVE base components, 2 draft profiles, 1 draft component) governs no new work. Retiring the base components would break future fixture setup; owner decision required. AML-CLOSE-08 remains **CONDITIONAL PASS**. No Spec 15, publish or AML-CLOSE-09. STOP.
+
+---
+
+## AML-CLOSE-08F6 — Spec 15 Publication / Risk-of-Record Determinism Gate
+
+### 1. Pre-run integrity (19:06:36 UTC)
+HEAD `baee43ea4`; since F4 (`5b8ed59e6`) only this report changed. No application, migration/schema, RLS/grant or Spec 15 diff (Spec 15 last changed 2026-10-06). Auth/pooler/infrastructure change: none made; external NOT OBSERVABLE. Active TEST profiles 0; TEST components with active binding 0. FSRA-AML-CFT-POLICY `5dcc6999…` ACTIVE (updated 2026-09-12). DB 22/60.
+
+### 2–4. Runs (Spec 15 unchanged, one worker, project `aml` with governed screen setup/teardown)
+| Run | UTC | Result | Duration | Cheap REST max | DB conns | 5xx |
+|---|---|---|---|---|---|---|
+| 1 | 19:07:00–19:11:32 | 7/7 + setup + teardown | 4.5 m | 0.19 s | 22–38 | 0 |
+| 2 | 19:11:40–19:16:31 | 7/7 + setup + teardown | 4.8 m | 4.50 s | 31–34 | 0 |
+| 3 | 19:16:51–19:22:38 | 7/7 + setup + teardown | 5.8 m | **7.60 s (19:20:11)** | 34–38 | 0 |
+
+### 5–7. Observations
+All DB samples: 0 active client SQL, 0 lock waits, longest SQL 0 s. No sign-in diagnostics, Auth 504 or `EAUTHQUERY` in output; gateway/pooler logs not exposed. Expected refusals in tests D/E/C were test assertions, not errors. Latency rose across runs (0.19 → 4.50 → 7.60 s) with an idle database. Run 3 breached the 5 s cheap-REST stop condition. Correlation IDs not captured.
+
+### 8–12. State after run 3 (read-only)
+00830 approved 2026-09-12 14:11:29; 00836 draft 2026-09-28 11:37:09; 00838 draft 2026-10-03 17:35:00, 3 facts — unchanged. STR_SAR_GOVERNANCE 22 rows, ID digest `8305ec6bbf50ef8573c6634bd6de6328`. 01283 superseded (F3), updated 17:14:00, one snapshot row — pinned basis not rewritten. FSRA policy unchanged/ACTIVE. Active TEST profiles 0; publication history not deleted.
+
+### 13. Retained fixtures
+AML_TECH_CERT_SOURCES/OVERLAY/FACTS ACTIVE (unbound), 2 draft TEST profiles, 1 draft component — untouched.
+
+### STALL REPRODUCED — PLATFORM SUPPORT ESCALATION REQUIRED
+Functionally 3/3 green, but the gate is not PASS because of the run-3 stop condition. Escalation: `docs/aml/AML-CLOSE-08-platform-support-escalation.md`. AML-CLOSE-08 remains **CONDITIONAL PASS**. No full suite, publish, resize or AML-CLOSE-09.
