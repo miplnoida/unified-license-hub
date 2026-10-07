@@ -3,6 +3,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { PlatformUser } from '@/types/platform';
 import { fetchPlatformUser } from '@/lib/authHelpers';
+
+/**
+ * Auth gateway failures (e.g. HTTP 504 with a plain-text body) surface from the
+ * client library as an empty/structural message such as "{}". Never show that
+ * to users; show a safe human-readable fallback instead.
+ */
+export function safeAuthErrorMessage(message: string | undefined, status?: number): string {
+  const m = (message ?? '').trim();
+  const meaningless = !m || /^[{}\[\]\s]*$/.test(m) || m === 'null' || m === 'undefined';
+  if (meaningless || (status !== undefined && status >= 500)) {
+    return 'Sign-in could not be completed. Please try again.';
+  }
+  return m;
+}
 import { logLogin, logLogout, logSecurityEvent } from '@/lib/complianceAudit';
 
 export type MfaStatus = 'not_required' | 'pending' | 'verified';
@@ -161,8 +175,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       // Log failed sign-in as a security event (best-effort).
-      logSecurityEvent('AUTH_FAILED', { target_resource: 'auth.session', detail: { email, message: error.message } }).catch(() => {});
-      return { error: error.message };
+      const status = (error as { status?: number }).status;
+      logSecurityEvent('AUTH_FAILED', { target_resource: 'auth.session', detail: { email, message: error.message, status } }).catch(() => {});
+      return { error: safeAuthErrorMessage(error.message, status) };
     }
     const authUserId = data.user?.id;
     if (!authUserId) return { requires2FA: false };
