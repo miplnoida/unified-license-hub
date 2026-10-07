@@ -527,3 +527,23 @@ Created `docs/aml/AML-CLOSE-08-infrastructure-stall-support-pack.md`, A–I: sha
 
 ## EF. Verdict
 **AML-CLOSE-08 = CONDITIONAL PASS.** New-work TEST authority = **0**. Historical pinning, real FSRA authority and protected state positively verified. Two inactive nonretirable drafts remain, not silently described as retired. Functional AML-CLOSE-08 controls have prior proof, but deterministic end-to-end certification remains blocked by the reproducible shared managed-service request-layer stall whose exact internal layer is not observable from this project. No new certification suites, scan, publication, external email/SMS/webhook, settings/account/security/schema/application changes. Only authorised lifecycle commands and documentation occurred. **AML-CLOSE-09 not started. STOP.**
+
+## EG. Conditional resumption prerequisite — 2026-10-07 16:37–16:40 UTC
+
+Owner uploaded a certification-only resumption instruction conditional on the managed-platform/request-path blocker having been materially addressed, changed or made observable. The repeated upload contains the same condition and supplies no remediation reference, actor or timestamp. This entry records preliminary read-only evidence, not a new certification attempt or proof of remediation.
+
+| Required record | Direct evidence / limitation |
+|---|---|
+| Platform/infrastructure condition changed | **NOT ESTABLISHED.** No support finding, remediation record or newly available causal telemetry was supplied or found in the reviewed project history/documents. |
+| Who/what resolved or changed it | **UNKNOWN.** No responsible party or support reference evidenced. |
+| Change timestamp | **UNKNOWN.** Observation timestamp is not a remediation timestamp. Database read observation: 2026-10-07 16:38:08.765706 UTC. |
+| Shared TEST/live infrastructure change | Shared managed backend remains in use. Current server size **Mini**; database start time **2026-08-31 10:29:55.528116 UTC**. These observations do not exclude unrecorded gateway/Auth/PostgREST/pooler changes or prove a complete infrastructure change history. No infrastructure change performed in this check. |
+| Application/schema/security change | Git review from F1 `32b0693b9` through the preliminary documentation revision found only AML documentation/roadmap changes, not application source or migrations. This is source evidence only; absence of out-of-band hosted security/settings changes is **not independently established**. No application/schema/security change performed. |
+| Current Git HEAD | At the start of this check, before roadmap documentation: **4f919f105f1838349f5d323f5fb56a28eccd9acf**, clean working tree. Subsequent report/roadmap edits are documentation-only and can advance the managed revision. |
+| Current deployment/backend state | Publish settings report **published/public**. Public site GET returned **200**; existing asset `/assets/index-BpxcnL6P.js` returned **200**, SHA-256 **4fec1e1277cf43c6a070014112f146cda45956cbe37dd5f4974579ea0f701e23**. Asset contains the configured shared managed-backend host. Exact deployment-to-source commit mapping is **unverified**. Backend reachable; Auth 112 ms, database 111 ms, Auth→database 312 ms in one managed status check. |
+
+Managed health snapshot: database and pooler up, memory **64%**, connections **15/60**, pool clients **1/200**, data disk **17%**, no recent exhaustion alerts returned, restarts since boot **0**. These are isolated health observations. F1 also had healthy idle responses before the third-run stall; current idle health does **not** establish deterministic request-path recovery or eliminate the observability gap.
+
+The owner was asked for the support/change reference, responsible party, timestamp and environment impact; that question was skipped. No safe default can invent these facts. **Prerequisite blocked: evidence of the qualifying platform change/finding is missing.** Spec 12, Spec 15, full AML suite, regression, security scan, load probes, backend verifiers, new residue/protected-state certification, publication and live persona smoke were **not run**. Frozen F2 integrity evidence is retained as historical evidence, not freshly reverified. No external communication or notification-producing sweep occurred.
+
+**AML-CLOSE-08 = CONDITIONAL PASS. UPGRADE_NOT_YET_JUSTIFIED.** No automatic compute upgrade is recommended or authorised. Certification remains paused until the qualifying change/finding is evidenced. Completed functional development stays closed; AML-CLOSE-09 not started.

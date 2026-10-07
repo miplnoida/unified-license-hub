@@ -1,8 +1,9 @@
 # Roadmap
 
 ## AML-CLOSE-08 — conditional certification resumption (2026-10-07)
-- [ ] Establish evidenced platform/request-path change, resolver, timestamp, shared infrastructure impact, application/schema/security impact, Git HEAD and current deployment/backend state before certification.
-- [ ] Only after the prerequisite is evidenced: health verification, Spec 12 ×3, Spec 15 ×3, complete isolated AML suite, currentness-dependent regression/security scan, residue/protected-state verification, gated publish and safe live smoke. No notification-producing sweep or AML-CLOSE-09.
+- [x] Record preliminary read-only health, Git and deployment/backend evidence in report EG; healthy idle snapshot does not prove stall remediation.
+- [ ] Establish qualifying platform/request-path change, resolver and timestamp — BLOCKED: no support/change evidence supplied or found; owner clarification skipped. Shared infrastructure change history and hosted security change history remain unverified.
+- [ ] Outstanding certification gates — BLOCKED by the prerequisite above: Spec 12 ×3, Spec 15 ×3, complete isolated AML suite, currentness-dependent regression/security scan, residue/protected-state verification, gated publish and safe live smoke. No notification-producing sweep or AML-CLOSE-09; CONDITIONAL PASS retained.
 
 ## AML-CLOSE-08F2 — authorised scope only
 - [x] Inventory all three orphaned TEST runs and inspect server-offered lifecycle capabilities before cleanup: 2 profiles, 9 components.
