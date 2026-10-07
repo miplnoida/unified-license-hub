@@ -48,4 +48,4 @@ export const TEST_TAG = 'TEST ONLY — TECHNICAL CERTIFICATION — NOT FSRA REGU
 /** TEST judgement rule (TEST ONLY): upward only, at most one rating step, rationale of at least 40 characters. */
 export const TEST_JUDGEMENT = { direction: 'UPWARD', maxSteps: 1, minRationale: 40 } as const;
 /** AML-CLOSE-08A TEST SLA rule (TEST ONLY — synthetic): plan opened within 1 calendar day, hold permitted. */
-export const TEST_SLA = { days: 1, warning: 50, stage: 'TEST AML08A open supervisory plan', rating: 'MODERATE', ratingLabel: 'MODERATE', ratingOption: /^Moderate$/i } as const;
+export const TEST_SLA = { days: 1, warning: 50, stage: 'TEST AML08A open supervisory plan', rating: 'MEDIUM_HIGH', ratingLabel: 'MEDIUM_HIGH', ratingOption: /^Medium[ _-]?high$/i } as const;
