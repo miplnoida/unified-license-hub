@@ -314,3 +314,51 @@ No writes to 00830/00836/00838, FSRA policy, STR_SAR_GOVERNANCE in 08D (only TES
 
 ## CZ. Verdict
 **AML-CLOSE-08 = CONDITIONAL PASS.** Not published. AML-CLOSE-09 not started.
+
+---
+# AML-CLOSE-08E — Request fan-out, request-layer saturation, capacity (2026-10-07)
+
+## DA. Dashboard fan-out (fixed)
+Clean TEST AML supervisor landing, first 15 s, sign-in token and realtime excluded (`e2e/cert-v2/dashboard-request-budget.spec.ts`):
+| | Before | After |
+|---|---|---|
+| Total backend requests | 50 | 34 (2 are static logo/favicon files) |
+| Exact duplicates | user_roles ×3, profiles ×3, user_dynamic_roles ×3, roles ×3, delegation_rules ×5, notifications ×3, notification_counts ×3 | user_dynamic_roles ×2 (sign-in role label + dashboard tier lookup, two separate uses; kept) |
+| Dashboard metric requests | ~45 count/list calls | 1 `supervisory_dashboard_operational_summary` + `sup_dashboard_summary` + `supervisory_work_queue` + module tiles the user can open |
+| Median / slowest | — | 53 ms / 928 ms |
+
+Changes:
+- `supervisory_dashboard_operational_summary(_sector_id, _regulator_id)`: one SECURITY INVOKER aggregate (so the caller's own access rules apply) using the same filters as the old counts. Application counts call the same `get_application_list_page` + drill-down params; returns via `returns_supervisory_summary`. No new tables. Authenticated only.
+- `useSupervisoryMetrics` uses it; output shape unchanged.
+- Fit & Proper, Conduct and Prudential tile queries now take `enabled` and do not run without module access.
+- `fetchPlatformUser` shares one in-progress load per user (sign-in fired it 3×); nothing cached after it settles.
+- Notifications and delegation banner key on user id, not the user object.
+Comparison as TEST supervisor: new vs old values for licences 25/25, active 25/25, licensees 26/26, complaints-open 0/0, payments-pending 0/0, enforcement-open 0/0, risk-high 0/0, applications-all 3/3; sector filter returns scoped zeros. 0 mismatches.
+Target ≤20 **not met**: the remaining ~29 API calls are app-shell start-up (currencies, regulators, site settings, entity context, entitlements, notifications, security context), not dashboard tiles.
+
+## DB. Request-layer probe (every ~2 s, aligned by timestamp)
+Cheap anon REST read (`site_settings`, normally ~0.1 s) and `pg_stat_activity` sampled throughout Spec 12 runs:
+| Time (UTC) | REST read | DB connections | Active client queries | Oldest active |
+|---|---|---|---|---|
+| 04:30:18 | 11.4 s | 41 | 1 (probe) | none >0 s |
+| 04:36:22 | 12.0 s | 42 | 1 (probe) | none |
+| 04:37:23 | 6.1 s | 41 | 1 (probe) | none |
+Classification: **Case C**. Requests are delayed before they reach the database. The database was idle with no waits. Peak connections were 42/60, so the limit was not reached. Earlier windows (03:04–03:09, 03:42–03:44) logged background-job `job startup timeout`. Request/pooler/auth logs returned no rows: **OBSERVABILITY GAP** for the exact layer.
+
+## DC. Spec 12
+Test fix: the review-tab click could land during a re-render and get lost. Spec now retries until the tab is selected.
+Runs: pass (6.0 m), pass (7.2 m), **fail** (Recalculate button not ready within 20 s at ~04:36). This lines up with the 12 s REST stall above. Spec 15 not run (sequence stops at first failure). **3/3 not met.**
+
+## DD. Scaling decision
+Conditions in §23 hold: individual SQL is fast; the dashboard storm is removed; stalls occur with an idle database and connections below limit. Classification: **TEST INFRASTRUCTURE CAPACITY LIMIT (probable)**. A database-server size upgrade is reasonable but needs the owner's approval (cost). Not performed.
+
+## DE. Security
+- Five-table privileges (anon / authenticated): `supervisory_consequence_decision` — / SELECT; `supervisory_response_sla_obligation` — / SELECT; `sla_stage_instances` and `sla_stage_events`: anon SELECT revoked → — / SELECT (writes already refused by policy); `sla_escalation_dispatches` had INSERT/UPDATE/DELETE granted to anon and authenticated. RLS had no write policy, so writes were refused, but the grants are now **revoked** → — / SELECT. TRUNCATE granted to neither. Not executed.
+- `has_permission` / `is_super_admin`: SECURITY DEFINER, authenticated EXECUTE, anon none. Required: 503 access-rule clauses call them, all with `auth.uid()`. They return only a boolean, but a signed-in caller *can* pass another user's id and learn yes/no for one permission. Tightening to self-only cannot be done inside a definer function without breaking nested definer callers. **Accepted residual, low severity**, recorded for a dedicated RBAC package.
+- Fresh scan: **0 critical**, 17 warnings, 42 info (same classes as before).
+
+## DF. Regression
+Vitest 190 files / 1807 passed (ran during Spec 12 run 1 — not isolated). Build OK. Full AML suite, publish and live smoke **not run** (Spec 12 gate not met). No live sweep, no email/SMS/webhook. Protected records not written.
+
+## DG. Verdict
+**AML-CLOSE-08 = CONDITIONAL PASS.** Blocker: request-layer stalls upstream of the database on the TEST project. Next: owner decision on database-server upgrade, then A/B re-run of Spec 12 ×3, Spec 15 ×3, full AML suite, publish. AML-CLOSE-09 not started.
