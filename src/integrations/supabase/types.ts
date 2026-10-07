@@ -70697,6 +70697,10 @@ export type Database = {
         Args: { _decision_id: string; _rationale: string }
         Returns: Json
       }
+      supervisory_dashboard_operational_summary: {
+        Args: { _regulator_id?: string; _sector_id?: string }
+        Returns: Json
+      }
       supervisory_detect_candidates: {
         Args: { _detector_code: string; _params?: Json }
         Returns: {

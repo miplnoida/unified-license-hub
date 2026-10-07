@@ -228,7 +228,25 @@ async function applyDelegation(base: PlatformUser): Promise<PlatformUser> {
  * Fetch and build the full PlatformUser for a given auth user.
  * Handles both pre-licensee and system user paths with proper error logging.
  */
-export async function fetchPlatformUser(userId: string, email: string): Promise<PlatformUser> {
+/**
+ * AML-CLOSE-08E: share ONE in-flight hydration per user. Sign-in fires
+ * getSession + INITIAL_SESSION + SIGNED_IN together; without this each one
+ * re-ran the same 6-request profile/role/delegation chain. Only the promise
+ * that is still running is shared — nothing is cached after it settles, so a
+ * later refresh always re-reads current roles.
+ */
+const inflightPlatformUser = new Map<string, Promise<PlatformUser>>();
+
+export function fetchPlatformUser(userId: string, email: string): Promise<PlatformUser> {
+  const key = `${userId}|${email}`;
+  const existing = inflightPlatformUser.get(key);
+  if (existing) return existing;
+  const p = loadPlatformUser(userId, email).finally(() => inflightPlatformUser.delete(key));
+  inflightPlatformUser.set(key, p);
+  return p;
+}
+
+async function loadPlatformUser(userId: string, email: string): Promise<PlatformUser> {
   const role = await resolveUserRole(userId);
 
   if (role === 'pre_licensee') {

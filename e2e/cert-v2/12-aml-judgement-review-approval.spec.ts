@@ -133,15 +133,25 @@ async function proposeOverride(page: Page, rating: string, rationale: string) {
   await expect(page.getByText('Override proposed. It awaits an independent decision.').first()).toBeVisible({ timeout: 20_000 });
 }
 
+async function openTab(page: Page, name: string) {
+  // The workspace can re-render while its read model settles; a click landing
+  // during that render is lost. Retry until the tab is actually selected.
+  const tab = page.getByRole('tab', { name });
+  await expect(async () => {
+    await tab.click();
+    await expect(tab).toHaveAttribute('aria-selected', 'true', { timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
+}
+
 async function submitForReview(page: Page) {
-  await page.getByRole('tab', { name: 'Review & decision' }).click();
+  await openTab(page, 'Review & decision');
   await page.locator('#rev-submit-reason').fill(`${TAG} submitted for review.`);
   await page.getByRole('button', { name: /^(Submit|Resubmit) for review$/ }).click();
   await expect(page.getByText('The assessment was submitted for review.').first()).toBeVisible({ timeout: 30_000 });
 }
 
 async function approveAssessment(page: Page) {
-  await page.getByRole('tab', { name: 'Review & decision' }).click();
+  await openTab(page, 'Review & decision');
   await page.locator('#rev-decision-reason').fill(`${TAG} approved by the independent reviewer.`);
   await page.getByRole('button', { name: 'Approve assessment' }).click();
   await expect(page.getByText(/The assessment was approved/).first()).toBeVisible({ timeout: 45_000 });
