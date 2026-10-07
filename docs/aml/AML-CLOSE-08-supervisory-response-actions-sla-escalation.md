@@ -438,3 +438,92 @@ Protected 00830/00836/00838 timestamps unchanged per run 1/2 "protected assessme
 
 ## DT. Verdict
 **AML-CLOSE-08 = CONDITIONAL PASS.** Spec 12 = 2/3 on current capacity. Code/schema/settings changed: **NO**. AML-CLOSE-09 not started.
+
+---
+# AML-CLOSE-08F2 — TEST Residue Cleanup & Infrastructure Escalation
+
+2026-10-07 UTC. Scope: read-only inventory/verification, existing governed browser retirement/return, this report and support pack only. Source HEAD at entry `08e53178a`. No Spec 12/15/full-suite execution, publish, capacity change, application/schema/RLS/grant/Auth/pooler/timeout change or external communication.
+
+## DU. Orphan TEST inventory
+Complete pre-mutation inventory: **2 associated profiles and 9 components**. Run 45213303 had **no associated profile/binding/snapshot** matching its component IDs/codes; no profile was fabricated. A nearby retired profile 10.281560 belongs to different metadata and was left untouched.
+
+Actor keys: maker/submitter/binder `b8eaf680-fe66-4d49-b816-1c087f511235`; independent checker and F2 cleanup actor `0b522724-adcb-48bf-b21d-175339479616` (normal TEST AML supervisor login). Components are version 1.0, regulator-authored but explicitly TEST ONLY, with NULL effective dates. Codes are shown exactly; neither origin label nor status alone was treated as lifecycle authority.
+
+| Run | Object/code | ID | Before | Created UTC / last update before cleanup |
+|---|---|---|---|---|
+| 80368237 | AML_TECH_CERT_POLICY 10.368237 | 5e9aeb59-1f79-4fb9-9265-4229d36602f7 | ACTIVE | 13:40:27.397312 / 13:40:46.153240 |
+| 80368237 | AML_TECH_CERT_JUDGEMENT_80368237 | d022ef14-4867-4d6d-b640-667a5590843b | APPROVED | 13:39:37.201087 / 13:40:14.125540 |
+| 80368237 | TEST-AML08A-RESP-80368237 | 211cf2fc-18e7-4293-ae0a-58d8af89e770 | APPROVED | 13:39:56.471009 / 13:40:16.341793 |
+| 80368237 | TEST-AML08A-SLA-80368237 | 39fc9d4b-5094-4c59-bd98-0647ff0ad470 | APPROVED | 13:40:03.303801 / 13:40:18.974591 |
+| 45472712 | AML_TECH_CERT_POLICY 10.472712 | d56ae0f4-f85d-473d-af22-a6581d19f12a | REVIEW | 03:58:55.839434 / 03:59:04.738437 |
+| 45472712 | AML_TECH_CERT_JUDGEMENT_45472712 | d260fb7f-549d-4340-81bb-0c24378287d9 | APPROVED | 03:58:01.133172 / 03:58:37.335747 |
+| 45472712 | TEST-AML08A-RESP-45472712 | 25f607e2-bddc-448f-8765-7bedb2d3bfe6 | APPROVED | 03:58:15.295871 / 03:58:39.922508 |
+| 45472712 | TEST-AML08A-SLA-45472712 | 739d04f4-fbb9-46ec-a93b-2c758aea6537 | APPROVED | 03:58:20.917405 / 03:58:44.145641 |
+| 45213303 | AML_TECH_CERT_JUDGEMENT_45213303 | 00b9e262-baa1-452e-9173-a9b6baf004b2 | APPROVED | 03:53:45.969800 / 03:54:11.429312 |
+| 45213303 | TEST-AML08A-RESP-45213303 | cdfd323d-39ab-4960-bc0f-eeba59fd934b | APPROVED | 03:53:55.892660 / 03:54:13.378144 |
+| 45213303 | TEST-AML08A-SLA-45213303 | 9986a11a-d804-48c4-80be-6213f305e997 | SUBMITTED | 03:54:01.442223 / 03:54:03.913266 |
+
+Both profiles were made/submitted by the maker; only 80368237 had checker approval. Its effective period before cleanup was 2026-10-07 to NULL; 45472712 dates NULL. All components were made/submitted by maker; all except SLA-45213303 approved by checker; that SLA had no approval actor.
+
+Bindings: 80368237 J/R/S at 13:40:30.141094 / 13:40:31.635484 / 13:40:33.188264; 45472712 at 03:58:58.953159 / 03:59:00.999376 / 03:59:03.366277. Each binding recorded APPROVED, version 1.0 and maker binder. 45213303 has zero bindings. Snapshot census: only assessment 01283 references the affected profile/components. Before cleanup only ACTIVE 80368237 could govern new work in its sector; REVIEW 45472712 and unbound 45213303 could not.
+
+## DV. Lifecycle capability results
+Actual browser/server controls inspected before mutations for every existing profile/component. 80368237 profile and eight APPROVED components: **RETIRABLE**, Retire enabled. REVIEW profile and SUBMITTED SLA-45213303: Return-to-draft enabled, retirement not offered/enabled. After authorised return both were rechecked: **INACTIVE_NONRETIRABLE**, not RETURN_THEN_RETIRE, because retirement still unavailable. No approval/activation was performed to manufacture a retirement route. Screens/logs: `/tmp/browser/aml08f2/component-capabilities.log`, `cleanup.log`, before/after screenshots.
+
+## DW. Policy profile cleanup
+Profile first: 80368237 ACTIVE→RETIRED at **16:22:19.823016**; 45472712 REVIEW→DRAFT at **16:22:23.050655**. Server history confirms cleanup actor above. Exact retirement rationale: `TEST ONLY — AML-CLOSE-08 certification package retired after browser certification teardown was interrupted by shared service instability.` Return rationale additionally records that retirement is not offered and the object must not be reused.
+
+Retirement command automatically closed the retired TEST profile's effective_to to 2026-10-07; no date editor/direct date change was used. Draft profile retirement remained disabled; no direct SQL, delete, history/binding rewrite or bypass.
+
+## DX. Component cleanup
+After profiles, eight APPROVED components were retired through enabled UI actions; one SUBMITTED SLA returned to DRAFT. All nine content digests match pre-cleanup.
+
+| Run | J / response / SLA resulting status | J / response / SLA command times UTC |
+|---|---|---|
+| 80368237 | RETIRED / RETIRED / RETIRED | 16:22:26.175192 / 16:22:29.249582 / 16:22:31.826377 |
+| 45472712 | RETIRED / RETIRED / RETIRED | 16:22:34.476182 / 16:22:37.070751 / 16:22:39.644512 |
+| 45213303 | RETIRED / RETIRED / DRAFT | 16:22:42.697322 / 16:22:45.477426 / 16:22:48.246042 |
+
+**9 objects retired (1 profile + 8 components); 2 non-retired drafts remain (1 profile + 1 SLA) because no safe retirement control exists.** Inactive-authority cleanup achieved; literal retirement of every object is not claimed.
+
+## DY. Historical assessment pinning
+01283 ID `56da8bb5-b596-48ee-b5a4-bb7e3202798f`, approved, update **13:41:48.490097**, row fingerprint **57a045c3b4cec8d54fcd0ec82bdcc656** unchanged. Snapshot fingerprint **120f8ee02207de73ac396d8ae59c850f**, legacy snapshot hash **a326656cdc3b15ef4282aee2502112a4** unchanged. Original profile 10.368237 and J/R/S component IDs/version 1.0 retained.
+
+Authenticated read-only `supervisory_assessment_policy_basis_integrity`: **CONTENT_UNCHANGED**, algorithm cfp1, all nine pinned families content_unchanged=true. Retired J/R/S fingerprints respectively **cfp1:1503eaaef9d6fd8cfaf76ba24231ec2e**, **cfp1:b7d4c42d6f96edb0d70dfcc8fe068bfb**, **cfp1:eca5cd97e1a33d7cc9118fcc3e9e4a6c**. Original legacy component hashes remain **59906277c7297847bea2f0e6ba6d961a**, **e60a2e28c896b6fe1dd935af8e9ebfee**, **d85a887186c720ae5e051b25d570210c** in snapshot; current status-sensitive hashes differ as expected, not content mutation. No assessment recalculation/approval/publication/provenance change.
+
+## DZ. New-work policy-resolution proof
+Read-only authenticated `supervisory_policy_profile_resolve` for AML_CFT / FSRA / affected VIRTUAL_ASSET_BUSINESS sector / 2026-10-07: **RESOLVED**, exactly one candidate, **FSRA-AML-CFT-POLICY 1.0**, ID `5dcc6999-7740-476a-b549-98537ad585c2`. Returned response/SLA are the real FSRA IDs in EA, ACTIVE 1.0. Orphan active profiles = **0**; orphan ACTIVE components = **0**; active bindings for each of the nine orphan components = **0**. **0 orphan packages can govern new work now.** Retired/inactive records can still be historical evidence; authorised future versioning is not confused with current authority. Read-only creation eligibility confirms PERIMETER_ESTABLISHED, allowed=true; it is a perimeter verdict, not the policy-resolution proof. No new assessment created. Resolver prose contains stale family descriptions; authority conclusion uses structured resolved IDs/statuses, not that prose.
+
+## EA. FSRA authority
+Before/after row fingerprints, versions and update times identical, all ACTIVE 1.0, updated 2026-09-12 14:07:47.217799 UTC:
+- Profile `5dcc6999-7740-476a-b549-98537ad585c2`: **9489529168cbbcba9640fb323043d96c**.
+- FSRA-AML-RESPONSE `82537e2b-3c62-4eed-821f-67332d5809ba`: **69822c0426aa944a54d4719b106c5edc**.
+- FSRA-AML-SLA `0f08c975-cb4a-4fb1-bef3-707e9752f992`: **688efd7f1815d56b37c2c76c385d4b3d**.
+No real policy change; structured resolver positively confirms new-work authority.
+
+## EB. TEST residue census
+| Run | Profile | Judgement | Response | SLA | Assessment evidence | Governs new work? |
+|---|---|---|---|---|---|---|
+| 80368237 | RETIRED 10.368237 | RETIRED | RETIRED | RETIRED | 01283 retained | No |
+| 45472712 | DRAFT 10.472712 | RETIRED | RETIRED | RETIRED | No affected snapshot found | No |
+| 45213303 | No associated profile/binding found | RETIRED | RETIRED | DRAFT | No affected snapshot found | No |
+
+Scope is these three run IDs; not a claim that every historical TEST object platform-wide is retired. Two drafts retained with governed return history; no further approval path attempted.
+
+## EC. Protected-state proof
+Before/after exact row digests and timestamps match:
+| Assessment | Last update UTC | Row fingerprint | Facts |
+|---|---|---|---:|
+| 00830 | 2026-09-12 14:11:29.821340 | 1d69a6ed9bf755f77cf2310b4a6203b6 | 0 |
+| 00836 | 2026-09-28 11:37:09.016119 | 4d1732290423df77e883e94f8b58a466 | 0 |
+| 00838 | 2026-10-03 17:35:00.173152 | 8513abd140887090aaea1e12f7599f6a | **3** |
+00838 original fact rows/provenance digest **0120ffc47bb15da3f547675b0217f1e7**, unchanged. Correct table `supervisory_assessment_dimension`, STR_SAR_GOVERNANCE **22** rows, ID digest **8305ec6bbf50ef8573c6634bd6de6328**, full row digest **c311070dab1b86d32cd3b12d0844bb9f**, unchanged.
+
+## ED. Infrastructure support pack
+Created `docs/aml/AML-CLOSE-08-infrastructure-stall-support-pack.md`, A–I: shared environment, accepted F1 baseline/timeline, DB/pooler/job observations, unavailable internal metrics, documentary safe reproduction and six support questions. No fresh load or external support dispatch. Earlier approximate startup/query-layer explanations are not promoted to causal proof.
+
+## EE. Capacity recommendation
+**UPGRADE_NOT_YET_JUSTIFIED.** SHARED_PROJECT_CAPACITY (probable) with OBSERVABILITY_GAP retained. PostgreSQL root cause not proven; observed connections below limits, CPU/internal queues unavailable. No shared-server capacity change. Any future experiment needs separate shared-live authorisation.
+
+## EF. Verdict
+**AML-CLOSE-08 = CONDITIONAL PASS.** New-work TEST authority = **0**. Historical pinning, real FSRA authority and protected state positively verified. Two inactive nonretirable drafts remain, not silently described as retired. Functional AML-CLOSE-08 controls have prior proof, but deterministic end-to-end certification remains blocked by the reproducible shared managed-service request-layer stall whose exact internal layer is not observable from this project. No new certification suites, scan, publication, external email/SMS/webhook, settings/account/security/schema/application changes. Only authorised lifecycle commands and documentation occurred. **AML-CLOSE-09 not started. STOP.**
