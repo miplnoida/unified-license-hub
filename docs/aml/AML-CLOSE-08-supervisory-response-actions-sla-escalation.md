@@ -61,7 +61,7 @@ is proposed or created from a rating.
 The rationale-length refusal on an **open** deadline is covered by R2E only, not live.
 
 ## G. Notifications
-No email/SMS/webhook path in the SLA/escalation functions; none sent.
+(Corrected in BB.) No real email, SMS or webhook was sent during AML-CLOSE-08. The live escalation sweep was intentionally NOT executed against an overdue live TEST stage, because its notification path can dispatch external communications.
 
 ## H. Tests
 Vitest 188 files: 1801/1801 after adding `data-rbac` markers (first run 1799/1801 —
@@ -102,3 +102,135 @@ Spec `e2e/cert-v2/17-aml-supervisory-response-sla.spec.ts`, run tag `17913327905
 - Not run in this pass: the full AML browser suite, a fresh security scan, publishing and the live smoke test.
 - 00830/00836/00838 are present (1 approved, 2 draft) and were not touched. No email or SMS was sent.
 - **Verdict: AML-CLOSE-08 remains CONDITIONAL PASS.** The positive deadline journey is now proven in the browser. Closing the remaining gates above still needs a separate authorized pass. AML-CLOSE-09 was not started.
+
+# AML-CLOSE-08B — Final Safe Closure
+
+## BB. Notification scope correction
+`supabase/functions/sla-escalation-sweep/index.ts` invokes `dispatch-notification-event` for `workflow.sla_breached` and `workflow.sla_escalation`. The repository notification matrix records `workflow.sla_escalation` as `in_app + email`. Section G has been corrected. The live sweep was deliberately not run against any overdue stage. This was a safety decision, not a control defect. No email, SMS or webhook was sent during 08B.
+
+## BC. AML-08 vs AML-11 boundary
+AML-08 certifies deadline creation, the canonical stage, overdue detection, breach transition and event, escalation-tier eligibility, dispatch uniqueness and stage escalation evidence. AML-11 will certify real delivery: channels, recipients, templates, delivery outcomes, retries and suppression.
+
+## BD. Breach/escalation core (rollback only)
+R2D passed 102/0. Relevant checks:
+- 67: an overdue deadline breaches once.
+- 68: there is no second breach.
+- 69: one escalation event.
+- 71: late-completion evidence is kept.
+- 51 and 52: breach and escalation each exist exactly once in the engine.
+- 77: ON_TIME/LATE is decided by the server.
+- 81: one deadline per consequence.
+- 82: no action, finding or enforcement case is created.
+- 37: policy cannot suppress escalation.
+
+The linkage verifier confirms that no fixture (risk movement, enforcement, etc.) survives the rollback.
+
+## BE. Edge worker wiring review (source only, worker not invoked)
+1. Selects `state='active' AND due_at < now`.
+2. Calls `public.sla_stage_mark_breached`. This returns false unless the stage is `active` and overdue, so only `active → breached` is possible. It logs the event and an audit row.
+3. Notifies only when the call returned true.
+4. Reads breached stages, then `sla_escalation_tiers` by process type and `delay_days`.
+5. Inserts into `sla_escalation_dispatches`. The constraint `UNIQUE (workflow_instance_id, tier)` (`sla_escalation_dispatches_workflow_instance_id_tier_key`) applies, and 23505 is treated as already sent.
+6. Calls `public.sla_stage_mark_escalated`.
+
+There is no AML-specific escalation path.
+
+## BF. Safe worker test
+Added `src/test/slaEscalationSweepWiring.test.ts` (3 tests). It is a source-contract test, so the worker is never executed. It asserts:
+- the breach selection and delegation to `sla_stage_mark_breached`, with notification only on a true transition;
+- the tier → dispatch insert → 23505 skip → `sla_stage_mark_escalated` chain;
+- no `skipNotifications`/`dryRun` bypass and no AML-specific path.
+
+A mocked execution test was not added: the Deno worker has no dependency-injection seam, and adding one would change production code. No notification bypass was introduced.
+
+## BG. Full AML browser suite (preview)
+- **Full run:** 50 tests; 37 passed, 3 failed, 10 did not run (34.2 min).
+  - Spec 13 B: click timeout.
+  - Spec 14 A: `upstream r…` non-JSON answer from the auth gateway while obtaining a token.
+  - Spec 16 G/H: one call returned HTTP 500.
+  - Backend checks and Vitest were running at the same time.
+  - Postgres error logs and edge logs for the preceding 60–70 min show no matching 500 or error. The 500 was gateway-level, with no database or function error recorded.
+- **Re-run of 13, 14 and 16:** 13 passed, 1 failed, 3 did not run.
+  - 13 and 16 G/H passed.
+  - 14 D failed: assessment creation stayed on "Working…" for more than 45 s (screenshot). This is a slow server answer, not an assertion failure.
+- **Spec 14 alone:** 8/8 passed (8.1 min).
+- The suite has **not** passed cleanly in a single run, and the 3-consecutive-pass standard was not completed. This is not labelled flakiness.
+- Spec 18 (`18-aml-sla-rpc-authority.spec.ts`, new) was added after the full run started. It was run separately: 6/6 passed.
+
+## BH. Spec 17 re-certification
+In the full run, spec 17 executed all 7 steps without failure on a fresh run-scoped TEST package. Steps covered:
+- pinning;
+- REQUIRED with no automatic action;
+- exactly one consequence and exactly one obligation;
+- officer denied;
+- hold, reload and resume;
+- ON_TIME close;
+- duplicate refusals;
+- protected state.
+
+The fixture teardown retired the TEST package.
+
+## BI. Backend verifier totals
+| Verifier | Result |
+|---|---|
+| consequence linkage | 66 PASS / 0 FAIL, rollback verified |
+| R2C | 66/0/66 |
+| R2D | 102/0/102 |
+| R2E | 57/0/57 |
+
+## BJ. App regression
+- Typecheck (`tsgo`): 0 errors.
+- Vitest: 189 files, 1804/1804 passed. This includes the 3 new wiring tests and the RBAC action-coverage tests.
+- Production build: OK in the harness.
+
+## BK. Fresh security scan (2026-10-07 ~01:21 UTC)
+0 critical, 17 warning, 42 info.
+
+## BL. Authenticated RPC warning disposition
+Both `supervisory_response_sla_pause(uuid,text,boolean,text)` and `supervisory_response_sla_complete(uuid,text)` are SECURITY DEFINER. Anonymous callers cannot execute them; authenticated callers can.
+
+The function bodies check, in this order:
+1. `auth.uid()` (no actor parameter);
+2. existence;
+3. `supervisory_entity_scope_check`;
+4. review authority;
+5. open state;
+6. rationale of at least 10 characters;
+7. the pause policy and the reason vocabulary.
+
+Spec 18 results:
+- Signed-out callers got 401/403.
+- The licensee, the AML officer and an other-domain supervisor (prudential) were refused before any state check.
+- A scoped AML supervisor passed authority and reached `sla_not_open`.
+- A forged `_actor_id` was rejected because no such parameter exists.
+
+The allowed path on an open obligation was proven in spec 17. No AML-specific out-of-scope supervisor persona exists, so the other-domain supervisor stands in.
+
+Classification: **SAFE BY DESIGN — AUTHENTICATED ENTRY POINT WITH SERVER-SIDE AUTHORIZATION.**
+
+## BM. Direct-write bypass
+Spec 18 tried INSERT, UPDATE and DELETE as the supervisor on `supervisory_consequence_decision`, `supervisory_response_sla_obligation`, `sla_stage_instances`, `sla_stage_events` and `sla_escalation_dispatches`. All were refused or changed 0 rows. The obligation stays ON_TIME and its events are intact. TRUNCATE was not separately re-inspected in 08B.
+
+## BN. TEST policy retirement
+`TEST-AML08A-RESP-32790501` and `TEST-AML08A-SLA-32790501` are RETIRED. Every 08B suite run created and then retired its own run-scoped package. `FSRA-AML-RESPONSE` and `FSRA-AML-SLA` are ACTIVE, `updated_at 2026-09-12 14:07:47`. The ON_TIME TEST obligation is kept as evidence.
+
+## BO. Publish / live smoke
+**Not performed.** The publish gate requires the full AML browser suite to pass, and it did not pass cleanly (BG).
+
+## BP. Protected state
+- 00830: approved, 2026-09-12 14:11:29.
+- 00836: draft, 2026-09-28 11:37:09.
+- 00838: draft, 2026-10-03 17:35:00; still has 3 facts.
+- STR_SAR_GOVERNANCE: 22 rows, ID digest `8305ec6bbf50ef8573c6634bd6de6328`, the same as AML-CLOSE-07C.
+- FSRA policies: unchanged.
+- The demo entity's official risk is MEDIUM_HIGH, driven by a TEST assessment published by the suite's own browser journeys.
+
+## BQ. Remaining limitations
+- There is no single clean full AML browser run. Server responses were slow or unavailable (gateway errors, creation taking more than 45 s); each affected spec passed on re-run.
+- Not published and no live smoke.
+- TRUNCATE privilege was not re-inspected.
+
+External escalation notification delivery is intentionally deferred to AML-CLOSE-11.
+
+## BR. Final verdict
+**AML-CLOSE-08 = CONDITIONAL PASS.** Criteria 1–6 and 8–13, 15 and 16 are evidenced. Criteria 7 (clean full browser suite) and 14 (publish and live smoke) are not. AML-CLOSE-09 was not started.
