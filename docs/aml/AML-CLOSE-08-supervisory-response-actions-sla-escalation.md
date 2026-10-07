@@ -629,3 +629,45 @@ F1's sampled absence of long SQL/waits does not prove no SQL execution, and the 
 ### PREREQUISITE NOT SATISFIED
 
 **AML-CLOSE-08 remains CONDITIONAL PASS — CERTIFICATION FROZEN.** No tests (including Spec 12/15), scans, load probes, platform/backend queries, publication, resizing, application/schema/security/data changes or external communications were performed for this validation. The two inactive TEST drafts were not touched; protected-state evidence remains historical, not freshly verified. Documentation only was updated. Concrete qualifying evidence is still required, followed by a separate owner instruction before any certification resumption. **STOP. AML-CLOSE-09 not started.**
+
+## EJ. Concrete platform evidence intake — owner upload 2026-10-07 16:52 UTC
+
+Reviewed the entire `AML-CLOSE-08_-_CONCRETE_PLATFORM_EVIDENCE_INTAKE_pasted.md`. This turn supplies one instructional document, not a provider support response, incident/change ticket, remediation notice, managed-service change record, telemetry, confirmed configuration/resource change or substantive provider diagnosis. Its statement that concrete evidence has been supplied is unsupported by its contents. The document itself explicitly says an instruction asserting that evidence exists is not evidence. No remediation or causal finding is inferred from the upload timestamp or prior idle health.
+
+### Exact evidence record
+
+| Requested item | Supplied value |
+|---|---|
+| 1. Support/change reference | **UNKNOWN** |
+| 2. Provider/team | **UNKNOWN** |
+| 3. Exact diagnosis | **UNKNOWN** |
+| 4. Exact remediation/change | **UNKNOWN** |
+| 5. Timestamp | **UNKNOWN** |
+| 6. TEST/live shared-infrastructure impact | **UNKNOWN** |
+| 7. Database-compute impact | **UNKNOWN** |
+| 8. Gateway/Auth/PostgREST/pooler impact | **UNKNOWN** |
+| 9. Application/schema/security impact | **UNKNOWN** |
+| 10. Expected impact on recorded request stalls | **UNKNOWN** |
+
+### Historical blocker comparison
+
+| Recorded F1 symptom (not rerun) | Classification of supplied platform evidence |
+|---|---|
+| Cheap REST 19.19 s | **UNKNOWN** |
+| Auth 504 after 45.4 s | **UNKNOWN** |
+| Profile 9.72 s | **UNKNOWN** |
+| Roles 6.98 s | **UNKNOWN** |
+| Security/context calls unfinished after 20 s | **UNKNOWN** |
+| DB peak 40/60 | **UNKNOWN** |
+| Pool clients 1/200 | **UNKNOWN** |
+| No observed long-running SQL | **UNKNOWN** |
+| No observed DB waits | **UNKNOWN** |
+| Pooler `EAUTHQUERY auth_query secret check timed out` | **UNKNOWN** |
+
+No substantive platform evidence is available to classify as directly explaining, plausibly addressing or not addressing any symptom. Historical observations are not new telemetry. Sampled absence of long SQL/waits is not proof of no SQL execution; the pooler timeout was recorded during run 2, not the final run-3 failure.
+
+### PREREQUISITE NOT SATISFIED
+
+The evidence remains instructional and does not establish a material diagnosis, remediation, platform change or materially improved observability sufficient to justify another certification attempt. **AML-CLOSE-08 = CONDITIONAL PASS — CERTIFICATION FROZEN.** Qualifying substantive evidence remains the blocker; even a future satisfied prerequisite requires separate owner certification authorisation.
+
+Document review and documentation updates only. No Spec 12, Spec 15, full AML suite, regression, security scan, backend/platform query, load probe, publish, live smoke, infrastructure resize, AML functionality/schema/security/data change or external communication occurred. Two inactive TEST drafts remain untouched; no fresh protected-state certification is claimed. **STOP. AML-CLOSE-09 not started.**

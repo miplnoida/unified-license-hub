@@ -1,6 +1,7 @@
 # Roadmap
 
 ## AML-CLOSE-08 — conditional certification resumption (2026-10-07)
+- [x] Review 16:52 concrete-evidence intake upload and record its ten-field UNKNOWN matrix and symptom classifications in report EJ; upload is instructional only. PREREQUISITE NOT SATISFIED; STOP, no certification.
 - [x] Validate 16:47 upload only and document ten UNKNOWN facts plus F1 comparison in report EI; no concrete platform evidence supplied. PREREQUISITE NOT SATISFIED; freeze retained, no gates executed.
 - [x] Record 16:44 evidence-intake-only instruction and ten-field UNKNOWN matrix in report EH; PREREQUISITE NOT SATISFIED. Stop after documentation; even future satisfaction requires separate owner resumption.
 - [x] Record preliminary read-only health, Git and deployment/backend evidence in report EG; healthy idle snapshot does not prove stall remediation.
