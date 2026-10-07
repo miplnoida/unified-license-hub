@@ -1,6 +1,7 @@
 # Roadmap
 
 ## AML-CLOSE-08 — conditional certification resumption (2026-10-07)
+- [x] Record 16:44 evidence-intake-only instruction and ten-field UNKNOWN matrix in report EH; PREREQUISITE NOT SATISFIED. Stop after documentation; even future satisfaction requires separate owner resumption.
 - [x] Record preliminary read-only health, Git and deployment/backend evidence in report EG; healthy idle snapshot does not prove stall remediation.
 - [ ] Establish qualifying platform/request-path change, resolver and timestamp — BLOCKED: no support/change evidence supplied or found; owner clarification skipped. Shared infrastructure change history and hosted security change history remain unverified.
 - [ ] Outstanding certification gates — BLOCKED by the prerequisite above: Spec 12 ×3, Spec 15 ×3, complete isolated AML suite, currentness-dependent regression/security scan, residue/protected-state verification, gated publish and safe live smoke. No notification-producing sweep or AML-CLOSE-09; CONDITIONAL PASS retained.
