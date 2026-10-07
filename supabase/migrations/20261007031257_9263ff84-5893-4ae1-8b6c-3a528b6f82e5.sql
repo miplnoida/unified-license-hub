@@ -1,0 +1,1 @@
+REVOKE TRUNCATE, REFERENCES, TRIGGER ON public.sla_escalation_dispatches FROM anon, authenticated, PUBLIC;
