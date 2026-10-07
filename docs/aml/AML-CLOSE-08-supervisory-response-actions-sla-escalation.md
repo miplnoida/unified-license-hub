@@ -746,3 +746,47 @@ Not created: §J applies only when the stall reproduces. Existing `docs/aml/AML-
 ### STALL NOT REPRODUCED — REMEDIATION NOT PROVEN
 
 AML-CLOSE-08 remains **CONDITIONAL PASS**. Not PASS. Not published. Not resized. AML-CLOSE-09 not started. Stopped after F3.
+
+---
+
+## AML-CLOSE-08F4 — Spec 12 Determinism Gate
+
+### 1. F3 run accepted as run 1
+F3 Spec 12 (2026-10-07 17:11:52–17:18:47 UTC) 9/9 PASS, setup and teardown passed.
+
+### 2. Pre-run integrity check (18:22:08 UTC)
+HEAD `2e86132eb`; commits since F3 base `fb86ccf3` changed only this report (75 doc lines). Application code, migrations/schema, RLS/grants: no diff. Auth/pooler config change: none made; external change NOT OBSERVABLE. Compute: none made. DB connections 24/60. F3 counted as run 1.
+
+### 3–4. Runs 2 and 3 (Spec 12 only, one worker, isolated, normal fixture setup/teardown, no other activity between)
+| Run | UTC window | Result | Duration | Teardown |
+|---|---|---|---|---|
+| 1 (F3) | 17:11:52–17:18:47 | 9 passed | 6.9 min | passed |
+| 2 | 18:22:23–18:29:30 | 9 passed, 0 failed, 0 not run | 7.0 min | passed |
+| 3 | 18:29:39–18:37:05 | 9 passed, 0 failed, 0 not run | 7.4 min | passed |
+
+### 5. Request-path latency (cheap REST `regulators?select=id&limit=1` sampled ~4 s)
+Run 2: 98 samples, max 0.64 s, 0 × 5xx. Run 3: 102 samples, max 3.03 s (one isolated sample ~18:34 UTC, below the 5 s stop limit; others ≤0.63 s), 0 × 5xx. No `[auth-diag]` sign-in failures, no Auth 504, no request-path timeout in Spec 12 output. Per-request Auth latency inside the specs not separately instrumented. `EAUTHQUERY`: none surfaced; pooler logs NOT EXPOSED for this window beyond F3's empty query.
+
+### 6. DB observations
+Run 2 connections 23–32/60; run 3 30–33/60. Active client statements (excluding monitor) 0 at every sample, lock waits 0, longest active SQL 0 s.
+
+### 7. Setup/teardown
+All three runs: fixture setup via screens, teardown retired the run's judgement, response and SLA TEST components (runs 93120164, 97354721, 97785059 → all RETIRED).
+
+### 8. Protected state (read-only, after run 3)
+| Assessment | Status | Last update UTC | Facts |
+|---|---|---|---:|
+| 00830 | approved | 2026-09-12 14:11:29.82134 | 0 |
+| 00836 | draft | 2026-09-28 11:37:09.016119 | 0 |
+| 00838 | draft | 2026-10-03 17:35:00.173152 | 3 (all with source; latest fact write 2026-10-03 17:41:56) |
+Timestamps match EC. STR_SAR_GOVERNANCE 22 rows, ID digest `8305ec6bbf50ef8573c6634bd6de6328` (matches). Full-row digests in EC used an unrecorded formula and were not reproduced; unchanged-state rests on timestamps, counts and ID digest. 01283: one policy snapshot (created 2026-10-07 13:41:02, before F3), components digest `527abb709b9e62e11c4e596811addba5`; status now `superseded`, updated 2026-10-07 17:14:00 during F3 run 1 by normal publication supersession on the shared TEST entity — pinned basis not rewritten. cfp1 integrity function not callable from read-only role: NOT VERIFIED by function.
+
+### 9. TEST residue
+Active TEST profiles: 0. Inactive drafts retained: 2 profiles, 1 component (as F2). **Pre-existing residue found:** 4 TEST judgement components still APPROVED (`AML_TECH_CERT_JUDGEMENT_20036115`, `_42222154`, `_42457139` created 2026-10-05; `_21398242` created 2026-10-06) — not from F3/F4 runs and not in F2's scoped three runs. With no active TEST profile they are not shown to govern new work, but this was not proven by function. Not retired here (outside F4 scope); owner decision required.
+
+### 10. Stall reproduced
+No.
+
+### SPEC 12 DETERMINISM GATE = PASS — 3/3 CONSECUTIVE ISOLATED RUNS
+
+AML-CLOSE-08 remains **CONDITIONAL PASS**. No Spec 15, full suite, publish, resize or code/schema/security change. AML-CLOSE-09 not started. STOP.
