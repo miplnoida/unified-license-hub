@@ -1,5 +1,9 @@
 # Roadmap
 
+## AML-CLOSE-08 — conditional certification resumption (2026-10-07)
+- [ ] Establish evidenced platform/request-path change, resolver, timestamp, shared infrastructure impact, application/schema/security impact, Git HEAD and current deployment/backend state before certification.
+- [ ] Only after the prerequisite is evidenced: health verification, Spec 12 ×3, Spec 15 ×3, complete isolated AML suite, currentness-dependent regression/security scan, residue/protected-state verification, gated publish and safe live smoke. No notification-producing sweep or AML-CLOSE-09.
+
 ## AML-CLOSE-08F2 — authorised scope only
 - [x] Inventory all three orphaned TEST runs and inspect server-offered lifecycle capabilities before cleanup: 2 profiles, 9 components.
 - [x] Retire eligible TEST profiles first, then their components, through normal browser controls only: 9 retired; 2 returned to inactive draft with no retirement capability.
