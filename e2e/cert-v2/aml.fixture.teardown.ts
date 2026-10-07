@@ -17,21 +17,32 @@ async function as(page: Page, who: string) {
 }
 
 teardown('retire AML TEST package and judgement policy (browser only)', async ({ page }) => {
-  teardown.setTimeout(180_000);
+  teardown.setTimeout(480_000);
   const f = readAmlFixture();
   teardown.skip(!f, 'no fixture created');
   await as(page, SUPERVISOR);
+  const profStatus = ((await restSelect(SUPERVISOR, `supervisory_policy_profile?id=eq.${f!.profileId}&select=status`)).body as Array<{ status: string }>)[0]?.status;
+  if (profStatus !== 'RETIRED') {
   await page.goto(`/admin/supervisory-policy-profiles/${f!.profileId}`, { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'Retire' }).click();
+  await page.getByRole('button', { name: 'Retire' }).click({ timeout: 90_000 });
   await page.locator('#pp-retire-rationale').fill(`${TEST_TAG}. Run ${f!.runTag} finished; TEST package retired.`);
   await page.getByRole('button', { name: 'Retire profile' }).click();
   await expect.poll(async () => ((await restSelect(SUPERVISOR, `supervisory_policy_profile?id=eq.${f!.profileId}&select=status`)).body as Array<{ status: string }>)[0]?.status, { timeout: 20_000 }).toBe('RETIRED');
+  }
 
   await page.goto(`/admin/supervisory-policy-components/${f!.judgementComponentId}`, { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'Retire', exact: true }).click();
+  await page.getByRole('button', { name: 'Retire', exact: true }).click({ timeout: 90_000 });
   await page.locator('#pc-rationale').fill(`${TEST_TAG}. Run ${f!.runTag} finished; TEST judgement policy retired.`);
   await page.getByRole('button', { name: 'Confirm' }).click();
   await expect.poll(async () => ((await restSelect(SUPERVISOR, `supervisory_policy_component?id=eq.${f!.judgementComponentId}&select=status`)).body as Array<{ status: string }>)[0]?.status, { timeout: 20_000 }).toBe('RETIRED');
+
+  for (const id of [f!.responseComponentId, f!.slaComponentId].filter(Boolean) as string[]) {
+    await page.goto(`/admin/supervisory-policy-components/${id}`, { waitUntil: 'domcontentloaded' });
+    await page.getByRole('button', { name: 'Retire', exact: true }).click({ timeout: 90_000 });
+    await page.locator('#pc-rationale').fill(`${TEST_TAG}. Run ${f!.runTag} finished; AML-CLOSE-08A TEST policy retired.`);
+    await page.getByRole('button', { name: 'Confirm' }).click();
+    await expect.poll(async () => ((await restSelect(SUPERVISOR, `supervisory_policy_component?id=eq.${id}&select=status`)).body as Array<{ status: string }>)[0]?.status, { timeout: 20_000 }).toBe('RETIRED');
+  }
 
   // Read-only: no new assessment can resolve to the TEST package; existing ones keep their pinned policy.
   const elig = await rpc(OFFICER, 'supervisory_assessment_creation_eligibility', { _entity_id: ENTITY_ID, _domain_code: 'AML_CFT' });
