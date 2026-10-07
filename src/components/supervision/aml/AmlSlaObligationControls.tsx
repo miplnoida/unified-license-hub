@@ -47,7 +47,7 @@ export function AmlSlaObligationControls({ obligation }: { obligation: SlaObliga
                 {reasons.map((r) => <SelectItem key={r} value={r}>{r.replace(/_/g, ' ').toLowerCase()}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" disabled={busy || reason === 'none'}
+            <Button data-rbac="aml_supervision.review" variant="outline" size="sm" disabled={busy || reason === 'none'}
               onClick={() => hold.mutate({ obligationId: id, reason, rationale: note },
                 { onSuccess: () => done('Deadline put on hold'), onError: fail })}>
               Put deadline on hold
@@ -55,13 +55,13 @@ export function AmlSlaObligationControls({ obligation }: { obligation: SlaObliga
           </>
         ) : null}
         {paused ? (
-          <Button variant="outline" size="sm" disabled={busy}
+          <Button data-rbac="aml_supervision.review" variant="outline" size="sm" disabled={busy}
             onClick={() => hold.mutate({ obligationId: id, reason: '', rationale: note, resume: true },
               { onSuccess: () => done('Deadline resumed'), onError: fail })}>
             Resume deadline
           </Button>
         ) : null}
-        <Button size="sm" disabled={busy}
+        <Button data-rbac="aml_supervision.review" size="sm" disabled={busy}
           onClick={() => complete.mutate({ obligationId: id, reason: note },
             { onSuccess: (r) => done(`Response closed — ${r.outcome === 'ON_TIME' ? 'on time' : r.outcome === 'LATE' ? 'late' : r.outcome}`), onError: fail })}>
           Close response
