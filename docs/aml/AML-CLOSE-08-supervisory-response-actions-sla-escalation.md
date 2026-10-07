@@ -362,3 +362,79 @@ Vitest 190 files / 1807 passed (ran during Spec 12 run 1 — not isolated). Buil
 
 ## DG. Verdict
 **AML-CLOSE-08 = CONDITIONAL PASS.** Blocker: request-layer stalls upstream of the database on the TEST project. Next: owner decision on database-server upgrade, then A/B re-run of Spec 12 ×3, Spec 15 ×3, full AML suite, publish. AML-CLOSE-09 not started.
+
+---
+# AML-CLOSE-08F1 — Current-Capacity Stall Reproduction (2026-10-07)
+
+Diagnostic only. No code, schema, grant, policy, setting or capacity change. No publish, no Spec 15, no full suite, no sweep, no email/SMS/webhook.
+
+## DH. Shared-environment constraint
+TEST and live share one backend server. Any future size change affects both. It must be separately authorised as a shared-environment infrastructure change, preferably in a low-traffic window. Not done.
+
+## DI. Idle baseline (13:13–13:14 UTC, 20 samples, Git `32b0693b9`)
+| Check | Median | p95 | Max |
+|---|---:|---:|---:|
+| `site_settings` | 104 ms | 184 ms | 184 ms |
+| sign-in token | 203 ms | 278 ms | 278 ms |
+| `sec_get_user_context` | 161 ms | 412 ms | 412 ms |
+| `supervisory_dashboard_operational_summary` | 757 ms | 1,465 ms | 1,465 ms |
+| `sup_dashboard_summary` | 468 ms | 649 ms | 649 ms |
+| `supervisory_work_queue` | 513 ms | 783 ms | 783 ms |
+Connections 16/60, memory 58%, no resource alerts (48 h). The earlier "second ordinary read" was an invalid query (HTTP 400) and is discarded.
+
+## DJ. CHEAP_REST_CONTROL
+`GET /rest/v1/regulators?select=id&limit=1` (anon key, no join). Idle, 20 samples at 13:25 UTC: all HTTP 200, median 109 ms, p95 139 ms, max 625 ms. During Spec 12 it was polled every ~2 s together with `pg_stat_activity` (535 samples, 13:25:12–13:42:48).
+
+## DK. Spec 12 runs
+| Run | UTC | Result |
+|---|---|---|
+| 1 | 13:25:42–13:32:15 | 9/9 passed (6.5 m) |
+| 2 | 13:32:28–13:39:19 | 9/9 passed (6.8 m) |
+| 3 | 13:39:25–13:43:09 | **FAILED**: setup + journey A passed; journey B failed; 5 did not run; fixture teardown failed |
+**3/3 not met.** The stall reproduced. Sequence stopped; no rerun.
+
+Control read per window: pre-run max 0.15 s; run 1 max 2.03 s (1 sample >2 s); run 2 max 4.90 s (4 >2 s); run 3 max **19.19 s** (5 >2 s).
+
+## DL. Failure window (actual evidence)
+| UTC | Spec step | Cheap REST | Auth | AML/app request | DB conns | Active client queries / max age | DB wait | CPU | Memory | Background jobs |
+|---|---|---:|---:|---:|---:|---:|---|---:|---:|---|
+| 13:41:21–13:41:58 | B: officer sign-in | 0.10–1.06 s | token 1.03 s (13:41:53, 200) | — | 39 | 0 / 0 s | none | UNKNOWN / NOT EXPOSED | UNKNOWN | cron OK |
+| 13:42:00 | B: app shell load | **15.59 s** | — | `profiles` 9.72 s; `user_dynamic_roles` 6.98 s (13:42:09) | 39 | 0 / 0 s | none | UNKNOWN | UNKNOWN | cron OK |
+| 13:42:19 | B: "New AML/CFT assessment" not rendered | 0.94 s | — | `sec_get_user_context`, `entity_license_entitlements`, `licensees`, `notifications` etc. never completed (-1, page closed at 20 s timeout) | 39 | 0 / 0 s | none | UNKNOWN | UNKNOWN | cron OK |
+| 13:42:20–13:42:48 | teardown sign-in | 4.61 s, **18.89 s**, **19.19 s** | **token HTTP 504 after 45.4 s** (req `01a11699-…`) | — | 39–40 | 0 / 0 s | none | UNKNOWN | UNKNOWN | cron OK |
+Memory after the run (db health, 13:44): 76%, 32/60 connections, pool clients 1/200, no exhaustion alert.
+
+## DM. Database activity
+- Peak connections during all three runs: **40/60**. Pool clients 1/200.
+- Active client queries in every sample (excluding the probe): **0**; longest active statement observed: **0 s**; wait events: **none**.
+- Blocked-session count was non-zero (3) in one sample only, 13:32:00, between runs — not in the failure window.
+- At 13:37:30 one monitor connection was refused by the connection pooler: `FATAL (EAUTHQUERY) auth_query secret check timed out`. This is a pooler-side authentication lookup timing out, during run 2.
+- `pg_stat_statements` (cumulative since stats reset, not window-specific) shows old PostgREST `licenses`/`licensees` count queries with max ~8.0 s (statement-timeout ceiling). Not attributable to this window; no such statement was active during the stall.
+- SQL timing for the 9.7 s `profiles` read: no matching active statement was visible in any 2 s sample, so SQL execution was below sampling resolution; ≈9.7 s occurred outside SQL execution.
+
+## DN. Infrastructure utilisation
+CPU, database CPU, I/O, network, API/PostgREST utilisation: **UNKNOWN / NOT EXPOSED**. Memory 58% before, 76% after (single snapshots, not a time series). No resource-exhaustion alert recorded.
+
+## DO. Auth / API behaviour
+- Cheap control read slowed: **yes** (to 19.2 s, HTTP 200).
+- Auth slowed: **yes** (one token request 504 after 45.4 s; earlier token 1.03 s).
+- AML/app requests slowed: **yes** (profiles 9.7 s, user roles 7.0 s; security-context calls did not complete within 20 s).
+- PostgreSQL long-running query: **no**.
+- Gateway/auth/postgres log queries for the window returned **no rows** (observability gap).
+
+## DP. Background jobs
+103 scheduled job runs 13:24–13:44, all succeeded. Maximum start delay after the scheduled minute: 8.0 s (time not tied to a specific run). No `job startup timeout` in this window.
+
+## DQ. Classification
+**F. SHARED_PROJECT_CAPACITY (probable) with G. OBSERVABILITY_GAP.** Gateway reads, Auth and app reads all degraded at the same time, and the pooler logged an authentication-lookup timeout. PostgreSQL showed no active statements, no waits and connections below the limit. Not A (no slow SQL), not B (40/60, 1/200 pool), not proven C (CPU not exposed, memory 76%), not E alone (REST also degraded). The exact managed-service layer remains unobservable.
+
+## DR. Capacity-upgrade recommendation
+**UPGRADE_NOT_YET_JUSTIFIED.** Multiple services stall at once, which fits shared-capacity pressure. But no exposed metric shows CPU, memory or connection saturation that extra compute would clearly relieve. If the owner wishes to test it, it is a shared TEST+live change needing separate authorisation in a low-traffic window.
+
+## DS. TEST residue from 08F1
+Run 3 teardown failed (Auth 504), so run-scoped TEST policies `AML_TECH_CERT_JUDGEMENT_80368237`, `TEST-AML08A-RESP-80368237` and `TEST-AML08A-SLA-80368237` remain **APPROVED** (not retired). The same applies to older 08E sets 45472712 and 45213303 (APPROVED/SUBMITTED). TEST assessment 01283 (journey A) approved. These are TEST-only and were not cleaned up in this diagnostic pass. They must be retired through the screens in the next authorised pass.
+Remaining dashboard start-up request families (from DA, not re-measured): settings, regulators, currencies/monetary config, entity context (licensees, PPOC mappings, profile), entitlements/security context, notifications, delegation, module tiles. No changes.
+Protected 00830/00836/00838 timestamps unchanged per run 1/2 "protected assessments untouched" checks.
+
+## DT. Verdict
+**AML-CLOSE-08 = CONDITIONAL PASS.** Spec 12 = 2/3 on current capacity. Code/schema/settings changed: **NO**. AML-CLOSE-09 not started.
