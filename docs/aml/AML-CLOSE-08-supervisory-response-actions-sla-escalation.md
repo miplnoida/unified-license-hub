@@ -790,3 +790,52 @@ No.
 ### SPEC 12 DETERMINISM GATE = PASS — 3/3 CONSECUTIVE ISOLATED RUNS
 
 AML-CLOSE-08 remains **CONDITIONAL PASS**. No Spec 15, full suite, publish, resize or code/schema/security change. AML-CLOSE-09 not started. STOP.
+
+---
+
+## AML-CLOSE-08F5 — Orphan TEST Judgement Policy Cleanup
+
+### 1. Inventory (before, 2026-10-07 ~18:48 UTC)
+All four: type JUDGEMENT_POLICY, version 1.0, status APPROVED, maker and submitter `b8eaf680…` (officer), approver `0b522724…` (supervisor), no effective dates.
+| Code | ID | Created | Updated | Content md5 | Bound profile | Snapshots / assessments | Class |
+|---|---|---|---|---|---|---|---|
+| …20036115 | 1082eb54-4420-4e22-8c82-b8a2944f0265 | 10-05 17:07:35 | 10-05 17:08:00 | 49bad79fd68b1459dae0a5ef18307cf3 | 22c367cd… SUPERSEDED | 5: 01003–01005 superseded, 01006–01007 draft | HISTORICALLY_REFERENCED_BUT_RETIRABLE |
+| …42222154 | 083e672e-60b1-4ba9-8726-92f65ff7c6c9 | 10-05 23:17:21 | 10-05 23:17:44 | b3498357b2b38977783f927be10a7c11 | 4ae95915… SUPERSEDED | 1: 01035 submitted | HISTORICALLY_REFERENCED_BUT_RETIRABLE |
+| …42457139 | b59c1fdd-acf4-4c53-96d4-affad0c8fe6c | 10-05 23:21:25 | 10-05 23:21:58 | 8736b1c37f479c0614385e2f915a00b3 | ef050714… SUPERSEDED | 2: 01037 superseded, 01038 draft | HISTORICALLY_REFERENCED_BUT_RETIRABLE |
+| …21398242 | 6c1eaab9-67b3-4ea2-b5e9-d0821965d87a | 10-06 21:16:58 | 10-06 21:17:23 | 0f433f203fd727075497a060ed0848cb | f5879bf5… SUPERSEDED | 6: 01151–01153, 01156 draft; 01154–01155 superseded | HISTORICALLY_REFERENCED_BUT_RETIRABLE |
+
+### 2–4. Bindings and new-work authority (before)
+Each component had exactly one binding, to a SUPERSEDED TEST profile. Active AML_CFT profiles: only `FSRA-AML-CFT-POLICY` (5dcc6999…, ACTIVE, 7 bindings, none of the four). Active TEST profiles: 0. **0 of 4 governed new AML/CFT work.** Existing draft/submitted TEST assessments retain their own pinned snapshots (historical basis, not new work).
+
+### 5–6. Capabilities and retirement
+Signed in through the normal login as the TEST AML supervisor. On each component screen the server offered **Retire**; used it with the mandated F5 rationale. No other lifecycle action used.
+
+### 7–8. After
+| Code | Status | Retired UTC | Content md5 | RETIRED event |
+|---|---|---|---|---|
+| …20036115 | RETIRED | 18:49:26 | unchanged | 1 |
+| …42222154 | RETIRED | 18:49:32 | unchanged | 1 |
+| …42457139 | RETIRED | 18:49:38 | unchanged | 1 |
+| …21398242 | RETIRED | 18:49:44 | unchanged | 1 |
+Content fingerprints are md5 of `content` (cfp1 function not callable from read-only role).
+
+### 9–10. Historical basis
+All 14 referencing assessments: status, `updated_at` and snapshot components md5 identical before/after (99f4e824… ×5, 1784e9e6…, 8efcc083… ×2, 52be25a4… ×6). No recalculation or publication. **01283 PINNED POLICY BASIS UNCHANGED** (single snapshot, md5 `527abb709b9e62e11c4e596811addba5`; status `superseded` from F3 left as is).
+
+### 11. FSRA authority
+`FSRA-AML-CFT-POLICY` ACTIVE, updated 2026-09-12 14:07:47 (unchanged), 7 bindings.
+
+### 12–13. Protected state
+00830 approved 2026-09-12 14:11:29.82134, 0 facts; 00836 draft 2026-09-28 11:37:09.016119, 0 facts; 00838 draft 2026-10-03 17:35:00.173152, 3 facts. STR_SAR_GOVERNANCE (`supervisory_assessment_dimension`) 22 rows, ID digest `8305ec6bbf50ef8573c6634bd6de6328`. Full-row digest not claimed.
+
+### 14. Final TEST authority census
+- Active TEST profiles: 0. Draft TEST profiles: 2 (retained from F2).
+- Approved TEST judgement components: 0 (four retired here; F3/F4 run components already RETIRED).
+- ACTIVE shared TEST base components: 3 — `AML_TECH_CERT_SOURCES`, `AML_TECH_CERT_OVERLAY`, `AML_TECH_CERT_FACTS`. Bound only to RETIRED/SUPERSEDED/DRAFT TEST profiles; reused as the base for every Spec 12 fixture run. Not in F5 scope; not retired.
+- Draft TEST components: 1 (retained from F2).
+- Active bindings to TEST components: 0.
+- **TEST AML authority capable of governing new work = 0.** Not a claim that all historical TEST artefacts platform-wide are removed.
+
+### F5 CONDITIONAL — NON-GOVERNING RESIDUE REMAINS
+
+The four orphan judgement components are clean. Remaining residue (3 shared ACTIVE base components, 2 draft profiles, 1 draft component) governs no new work. Retiring the base components would break future fixture setup; owner decision required. AML-CLOSE-08 remains **CONDITIONAL PASS**. No Spec 15, publish or AML-CLOSE-09. STOP.
