@@ -283,12 +283,12 @@ BEGIN
     format('deadline %s under rule %s, %s day(s), policy version %s',
       ob.due_at, ob.sla_policy_rule_code, ob.sla_duration_days, ob.sla_policy_version));
 
-  PERFORM public.supervisory_response_sla_pause(ob.id,'AWAITING_ENTITY_INFORMATION', false);
+  PERFORM public.supervisory_response_sla_pause(ob.id,'AWAITING_ENTITY_INFORMATION', false, 'TEST ONLY certification hold rationale');
   INSERT INTO r2f VALUES ('R2F-17-SLA-HOLD',
     (SELECT s.state FROM public.sla_stage_instances s WHERE s.id = ob.stage_instance_id) = 'paused',
     (SELECT format('deadline state %s', s.state) FROM public.sla_stage_instances s WHERE s.id = ob.stage_instance_id));
 
-  PERFORM public.supervisory_response_sla_pause(ob.id,'AWAITING_ENTITY_INFORMATION', true);
+  PERFORM public.supervisory_response_sla_pause(ob.id,'AWAITING_ENTITY_INFORMATION', true, 'TEST ONLY certification resume rationale');
   PERFORM public.supervisory_response_sla_complete(ob.id,
     'The supervisory plan was opened within the governed timeframe.');
   INSERT INTO r2f VALUES ('R2F-18-SLA-COMPLETED-SERVER-OWNED',

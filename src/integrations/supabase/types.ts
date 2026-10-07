@@ -71932,7 +71932,12 @@ export type Database = {
         Returns: string
       }
       supervisory_response_sla_pause: {
-        Args: { _obligation_id: string; _reason: string; _resume?: boolean }
+        Args: {
+          _obligation_id: string
+          _rationale?: string
+          _reason: string
+          _resume?: boolean
+        }
         Returns: Json
       }
       supervisory_response_sla_view: {
