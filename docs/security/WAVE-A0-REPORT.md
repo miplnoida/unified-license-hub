@@ -51,7 +51,7 @@ No existing file was modified.
 6. Confirm a backup, then apply to the shared backend.
 
 ## Test results
-See the final run below. Only static tests were run.
+`src/test/secA0CertLockdown.test.ts`: 6/6 passed (static, no DB), 2026-10-09 10:54 UTC. The pgTAP test and the browser regression were not run (they need staging).
 
 ## Remaining risks / next wave
 - Until the migration is applied, SEC-003/004 remain exploitable by any signed-in user.
