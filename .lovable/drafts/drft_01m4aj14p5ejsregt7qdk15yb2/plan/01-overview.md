@@ -1,45 +1,62 @@
-## Wave A0 independent review: verdict FAIL (not deployable as staged)
+## Wave A0 corrections (stage files only)
 
-This was a read-only review. It used catalog reads and file inspection only. No SQL was written to the database, nothing was applied, and nothing was deployed.
+Only these files change: the staged migration (M), the rollback (R), the pgTAP test (T), the Vitest test (V), `docs/security/WAVE-A0-REPORT.md` and `roadmap.md`. The only commands run are read-only catalog reads to build the inventory and static file tests. Nothing is applied, accepted or deployed.
 
-Shorthand: M = `.lovable/drafts/drft_01m4aj14p5ejsregt7qdk15yb2/migrations/20261009110000_sec_a0_cert_function_lockdown.sql`; R = `docs/security/wave-a0/rollback.sql`; T = `supabase/tests/security/a0_cert_lockdown.sql`; V = `src/test/secA0CertLockdown.test.ts`.
+### 1. Destructive inventory (catalog evidence)
+- Build the list from a read-only `pg_proc` query. It matches names containing reset, purge, delete, wipe, detach, seed, put, truncate or cascade, and then each function body is read to confirm it writes data. Current candidates (21):
+  - `cert_reset_force_delete`, `cert_reset_nonproduction_business_data_v1`, `cert_reset_detach_optional_links`
+  - `cert_seed_identity_v1`, `cert_seed_returns_v1`, `cert_seed_structure_v1`, `cert_seed_wave_d_v1`
+  - `cert_v2_reset`, `cert_v2_cascade_delete`, `cert_v2_put_metric`
+  - `cert_v2_seed_calculate`, `cert_v2_seed_entities`, `cert_v2_seed_reference`, `cert_v2_seed_returns`, `cert_v2_seed_universe`
+  - plus any confirmed writers among the remaining cert/rc1 functions
+- Read-only helpers such as `cert_reset_classify_tables` and `auth_purge_precheck` are listed as "non-destructive, revoke only", with evidence.
+- M holds the exact list of signatures. It aborts if any listed signature is missing, or if a new name-pattern match in the catalog is not on the list.
 
-### Findings
-| # | Sev | Where | Finding (V = verified fact, A = assumption) | Required correction |
-|---|---|---|---|---|
-| 1 | **High** | M 82–83 | V: The guard only covers `cert_reset_force_delete`, `cert_reset_nonproduction_business_data_v1`, `cert_v2_put_metric` and `cert_seed_*`. These destructive functions are left unguarded: `cert_v2_reset`, `cert_v2_cascade_delete`, `cert_v2_seed_*` (6), `cert_reset_detach_optional_links`, `cert_v2_seed_calculate`. They are blocked only by the revoke, so service_role or the owner can still run them on the shared backend. | Guard every reset, purge, delete, seed, wipe and put function, using an explicit list checked against the catalog. Abort the migration if any listed name is missing. |
-| 2 | **High** | M 14–16, 34 | V: The `postgres` default rules give tables `arwd` to `app_certification_runner` and `arwdDxtm` to service_role. The revokes leave `app_certification_runner` able to INSERT into the arming table, and leave service_role able to INSERT and TRUNCATE the snapshot. | Revoke ALL from `app_certification_runner` and service_role on both tables, then grant SELECT only on the snapshot to service_role. Also revoke the bigserial sequences from anon, authenticated and the runner. |
-| 3 | Medium | M 20–24 | V: The append-only trigger does not block TRUNCATE. | Add a `BEFORE TRUNCATE` statement trigger. |
-| 4 | Medium | M 39–56 | V: `sec_a0_require_armed` inherits default EXECUTE for `app_certification_runner` and is not revoked from it. A: harmless today, because the destructive bodies run as the owner. | Revoke from `app_certification_runner`. |
-| 5 | Medium | M 48 | V: The arming check matches on `current_setting('app.project_ref')`, which is never set, so arming can never succeed in any environment. This is safe on shared (permanently disarmed) but also blocks legitimate staging certification. | Compare against a value an owner-only config stores, and document how to arm in staging only. |
-| 6 | Medium | M 42 | V: The caller check allows `auth.role()='service_role'` or `session_user` postgres/supabase_admin. Because `authenticator` is the session user under the API, authenticated users cannot pass. A: the check is not bypassable once EXECUTE is revoked, but it trusts the JWT role claim. | Acceptable. Add `current_user` owner verification as defense in depth. |
-| 7 | Medium | M 88–89 | V: Injection relies on regex for the first uppercase `BEGIN` after `$function$`. If no match is found, it aborts safely. A: lowercase `begin`, or a `BEGIN` inside a DECLARE default, could misplace the guard or cause an abort. | After injecting, assert that `pg_get_functiondef` contains the guard immediately after the main BEGIN, or hand-write each guarded definition. |
-| 8 | Low | M 61–103 | V: Coverage is catalog-driven, so overloads are included, but the migration never asserts the 57-function count. | Assert the before-snapshot covers 57 signatures, or fail with the actual list. |
-| 9 | Low | M 99–103 | V: The self-check covers anon and authenticated only; PUBLIC is caught indirectly; the runner is not checked. | Also check `app_certification_runner` and an explicit PUBLIC ACL. |
-| 10 | Medium | R 12–15 | V: The rollback re-grants to `app_certification_runner` unconditionally, which contradicts its own comment. | Remove that grant, or put it behind an explicit opt-in variable. |
-| 11 | Low | R | V: Never grants to PUBLIC, anon or authenticated, and keeps the guard. | None. |
-| 12 | Medium | V 5 | V: The test hardcodes the draft migration path, so it will break after the draft is accepted. | Look the file up in both the draft folder and `supabase/migrations`. |
-| 13 | Low | V | V: Regex tests confirm the text is present but do not prove behavior. | Accept as static only; behavior is proven by T in staging. |
-| 14 | Medium | T | V: Does not check the table ACLs, the runner, that the arming table is empty, or the 57 count. It also inherits finding 1, because it tests only the partial destructive list. | Add these assertions. |
-| 15 | Info | Callers | V: `cert-v2-user-fixtures` calls only `cert_v2_guard_ok`, `role_catalogue`, `auth_purge_precheck` and `auth_identity_classification` with the service-role key, so it is preserved. No policy references cert functions. `supervisory_detect_run` (SECURITY DEFINER) calls `cert_v2_guard_ok` as owner. A: the owner is postgres, so it is unaffected. | Confirm the owner in staging. |
-| 16 | Info | Atomicity | A: The Lovable migration runner applies each file in one transaction, so any RAISE rolls everything back. This is not verified. | Verify in staging: inject a failure and confirm nothing persists. |
-| 17 | Info | Report | V: The report's "no existing file modified" is accurate. It understates finding 1. | Update after the corrections. |
+### 2. Syntax-safe guard (replaces the regex)
+For each destructive signature:
+1. `ALTER FUNCTION ... RENAME TO <name>__a0_impl`. The original body, owner and SECURITY DEFINER setting stay untouched.
+2. Revoke ALL on the impl from every role except the owner.
+3. Create a wrapper under the original name and signature, with the same return type. It first calls `sec_a0_require_armed('<name>')` and then returns the impl's result.
+4. Wrappers are explicit generated SQL written into M, one per signature and reviewable. They are not built at runtime.
 
-### Assessment
-- **FAIL.** Findings 1 and 2 leave destructive capability and arming-table write paths open.
-- UNVERIFIED: atomic apply, the supervisory function owner, and staged behavior.
+### 3. Spoof-proof arming
+- Drop the session-setting and JWT-claim checks.
+- The guard requires all three of these:
+  - `current_user` is the owner, because wrappers run as SECURITY DEFINER and the role is checked through `session_user` membership in an owner-only allow-list table
+  - `assert_nonproduction()` passes
+  - an unexpired row in `sec_a0_destructive_arming` matches the database's system identifier, read through an owner-only function
+- A permanent deny row stores the shared/published backend's identifier. The guard always refuses that identifier, even if someone adds an arming row for it.
+- **Unverified:** whether the owner role can read the system identifier on this platform. If it can't, the fallback is `current_database()` plus an owner-written identity row. This gets verified in staging.
 
-### Next step if approved (files only, still no database)
-- Fix findings 1–14 in M, R, T and V.
-- Re-run the static Vitest.
-- Update `WAVE-A0-REPORT.md`.
+### 4. Privileges
+For both tables, their sequences and every helper and impl function:
+- `REVOKE ALL` from PUBLIC, anon, authenticated, service_role and `app_certification_runner`
+- grant back only SELECT on the snapshot to service_role
+- the snapshot gets append-only triggers covering UPDATE, DELETE and TRUNCATE, and INSERT is allowed only for the owner
 
-### Conditions before any deployment
-1. All High and Medium items are corrected.
-2. Staging exists and T passes there.
-3. The atomic-failure test passes.
-4. Backups are confirmed.
-5. Browser regression passes.
-6. You give explicit approval.
+M ends with a self-check over `has_table_privilege`, `has_sequence_privilege` and `has_function_privilege` for every role. If any unexpected right remains, the migration aborts.
 
-No Wave A1.
+### 5. Rollback
+R puts the service_role grant back on the wrappers only. It never grants to PUBLIC, anon, authenticated or the runner. Wrappers, impl functions, the guard and the deny row are kept, and a header lists what is never reversed.
+
+### 6. Tests
+- **V:** finds the migration in either the draft folder or `supabase/migrations`, then asserts:
+  - the explicit destructive list
+  - no regex body edits
+  - no `current_setting` or `auth.role` checks in the guard
+  - the rollback grant rules
+  - the TRUNCATE trigger
+  - the revoke-from-runner statements
+- **T:** asserts:
+  - 57 base signatures plus the impl count
+  - zero anon/authenticated/runner EXECUTE
+  - table and sequence ACLs
+  - the arming table is empty and the deny row is present
+  - every destructive wrapper calls the guard and every impl is owner-only
+
+  T never calls a destructive function.
+
+### 7. Report and re-review
+- Update WAVE-A0-REPORT.md with each correction mapped to its finding, line numbers and test results.
+- Run a fresh static review and give a PASS / FAIL / UNVERIFIED verdict.
+- SEC-003 and SEC-004 stay **Ready for Deployment — Blocked**. No Wave A1.
