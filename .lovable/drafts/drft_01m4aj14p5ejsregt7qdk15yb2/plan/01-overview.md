@@ -55,3 +55,17 @@ Each phase in the plan lists:
 - Evidence collection uses SELECT-only catalog queries, static code scans with `rg`, the saved scan results, the linter and a dependency scan.
 - Generation runs in `/tmp`. The deliverables are `/mnt/documents/security-remediation-plan.docx` and `/mnt/documents/security-remediation-tracker.xlsx`.
 - Effort is estimated in person-days per finding and rolled up per phase.
+
+## Additional requirements (approved by you)
+- **Full coverage, not samples.** Every screen, route, role, permission, table, access rule, database function, edge function and storage bucket is enumerated. The Summary shows total identified versus total reviewed for each object type, plus a list of uncovered areas and why.
+- **Coverage matrix:** Role × Route × Action × Table with create/read/update/delete flags, from route guards, button permission checks, code table calls and access rules. Each row is marked as code-reviewed or not.
+- **Manual test cases:** each has an ID, prerequisites, test role (TEST accounts), URL, exact steps, expected result, a read-only database check, and an evidence field.
+- **Two separate result columns:**
+  - Code Review Result: Confirmed Open, Fixed, Partial or Unverified.
+  - Test Execution Result: PASS, FAIL, NOT TESTED or BLOCKED. Every test starts as NOT TESTED; no result is invented.
+- **Historical findings:** each item from the earlier security, access-control and audit reports is re-checked against the current code and database, with old status, new status and evidence.
+- **Counts and effort:** issues by severity, effort per finding rolled up per phase, and a production release blocker list.
+- **Per phase:** measurable acceptance criteria.
+- **Per fix:** dependency analysis, backward compatibility, rollback steps and named regression tests.
+- **Additional tracker sheets:** Summary, Findings, Coverage Matrix, Test Cases, Historical Revalidation, Object Inventory (reviewed vs identified), Release Blockers, Phase Plan and Effort.
+- After delivery, a short chat summary covers Critical/High findings, effort per phase and recommended order. No fixes start without your explicit approval.
