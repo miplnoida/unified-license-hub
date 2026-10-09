@@ -56,9 +56,9 @@ For each function `<n>`:
 4. Wrapper EXECUTE is revoked from PUBLIC, anon, authenticated and the runner, and granted to service_role.
 
 Return kinds:
-- 10 TABLE: `clean/clear/zero_message_runtime`, `detach_users`, `register_legacy_baseline`, `reset`, `zero_runtime`, and the rest of the TABLE group
-- 4 void
-- 11 scalar (jsonb, uuid, integer)
+- 7 TABLE: `clean_message_runtime`, `clear_message_runtime`, `detach_users`, `register_legacy_baseline`, `reset`, `zero_message_runtime`, `zero_runtime`
+- 5 void: `seed_identity_v1`, `seed_returns_v1`, `seed_structure_v1`, `complete_run`, `put_metric`
+- 13 scalar (jsonb, uuid, integer)
 
 ## Effective authorization after deployment (expected; UNVERIFIED until staging)
 - anon, authenticated and the runner have no EXECUTE path to any cert, rc1 or sec_a0 object.
