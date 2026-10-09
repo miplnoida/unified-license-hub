@@ -63,7 +63,8 @@ describe('SEC-A0 v2 staged lockdown (static)', () => {
     expect(code(rb)).toContain("NOT LIKE '%\\_\\_a0\\_impl'");
   });
   it('pgTAP never calls cert/rc1/sec_a0 functions', () => {
-    expect(code(pg)).not.toMatch(/\b(?:public\.)?(cert|rc1|sec_a0)_[a-z0-9_]+\s*\(/);
+    // Quoted signature strings (e.g. 'cert_x(_a text)') are data, not calls.
+    expect(code(pg).replace(/'[^']*'/g, "''")).not.toMatch(/\b(?:public\.)?(cert|rc1|sec_a0)_[a-z0-9_]+\s*\(/);
     expect(pg).toContain('SELECT plan(14);');
   });
 });
