@@ -1,115 +1,142 @@
-# Audit Logging and Notifications — Remediation Plan
+# Audit Logging and Notifications — Corrected Remediation Plan
 
-A new, independent task. It covers only the audit-log and notification findings in the workbook, at every severity. Other security items and the cancelled plan are out of scope.
+This is an independent task covering only audit logging and notifications. The cancelled security plan is not resumed. Nothing changes in the database: no migrations, access rules, grants, triggers, stored procedures or data. Anything that needs one of those is marked **Blocked** and described in the Database Requirements section.
 
-## Ground rules
-- No database changes: no migrations, access rules, triggers, database functions, grants or seed rows. Anything that needs one is written up in the "Database requirements" list and left undone.
-- Workflows, permissions, payments, registration, licensing and returns behave as they do today.
-- Reuse the existing audit helpers (`src/lib/complianceAudit.ts`, `supabase/functions/_shared/audit.ts`) and the existing notification dispatcher. No new logging or notification system.
-- Work proceeds one phase at a time, with tests after each phase. An item is marked Fixed only with evidence.
+Execution: after approval, **Phase 1 only** is implemented and tested, and its results are reported. Phase 2 starts only after a separate approval.
 
-## Status of the 31 audit and notification findings (checked against current code and live setup)
+## 1. Classification — every finding exactly once (33 findings)
+These are the 30 findings the workbook tags Audit or Notification, plus 3 tagged Security that concern audit or notification behaviour (RISK-045, 056, 059).
 
-| Status | Count | Findings |
+| Status | # | Findings |
 |---|---|---|
-| Already resolved (needs retest only) | 2 | RISK-035, RISK-036: correspondence reply and thematic-review closure events now have active configurations |
-| Partly resolved | 2 | RISK-008/009: 20 of the 31 "unconfigured" events are now configured and active; 11 remain unconfigured |
-| Code fix planned | 8 | RISK-007, 011, 024, 025, 030, 037 (app side), 049 (partial), 056 |
-| Needs database change (documented only) | 14 | RISK-005, 006, 021, 022, 023, 026, 028, 029, 031, 032, 033, 034, 045, 050, 051 |
-| Needs a decision or setup | 4 | RISK-010 (SMS provider), 038 (job schedules), 039 (alerting), 052 (support tickets) |
-| To verify first | 1 | RISK-027 (document view/download logging) |
+| Resolved, retest only | 2 | 035, 036 |
+| Partially resolved | 4 | 008, 009, 027, 049 |
+| Code fix planned | 3 | 024, 025, 056 (056 only if baseline proves safe) |
+| Blocked: needs a database change | 21 | 005, 006, 007, 011, 021, 022, 023, 026, 028, 029, 031, 032, 033, 034, 037, 039, 045, 050, 051, 052, 059 |
+| Blocked: decision or requirement | 2 | 010 (SMS provider decision), 030 (requirement 6 forbids changing audit-failure behaviour) |
+| Unverified | 1 | 038 (scheduled-job settings cannot be read with current access) |
+| **Total** | **33** | |
 
-```text
-Phase 1: Audit (code fixes) --> tests --> Phase 2: Notifications (code fixes) --> tests --> Phase 3: Full regression and report
-```
+## 2. Verified evidence and reasons, per finding
 
-## Phase 1 — Audit logging
+**Audit**
+- **005**: the audit-log read rule uses the general staff check. Blocked (access rule).
+- **006, 021, 022, 028, 029, 031–034, 051**: the generic audit trigger is attached to a limited set of tables. Blocked (trigger).
+- **007**: a failed sign-in is logged from the browser while the user is signed out. The logging function only accepts signed-in callers, so these events are lost.
+  - A secure fix needs trusted attribution and lasting rate limits, which need a database table or function.
+  - A server-memory limiter alone is not strong enough.
+  - Blocked; no new public endpoint will be added.
+- **023**: whether audit failures should block the action is decided inside database functions. Blocked.
+- **024**, verified in the database: the export filters on `table_name`, which does not exist in two of the three logs. Correct columns:
+  - `audit_logs.entity_type`
+  - `compliance_audit_logs.object_type`
+  - `security_event_logs.module`
+  - all three have `created_at`
+- **025**, verified: the export caps at 20,000 rows. The logs already hold more: audit log 25,516, compliance log 74,366, security log 792. So today's exports of the two larger logs are silently incomplete.
+  - The CSV writer does not neutralise cells starting with `= + - @`.
+  - The export job record already has a `filters` field that can hold a "truncated" note, so no database change is needed.
+- **026**: config tables can be written outside the logged path. Blocked (access rule).
+- **027**: versioned documents write a "download" entry when a signed link is created. That proves the link was **issued**, not that the file was viewed or downloaded.
+  - Today the log holds 0 download rows; only upload and version-created rows exist. The insert may be blocked by access rules.
+  - Other file paths (attachments, payments, correspondence, F&P evidence, registration files) issue links without logging.
+  - Real view or download evidence needs storage access logs or a server proxy. That part is Blocked.
+  - Phase 1 only verifies why the existing insert yields 0 rows and reports it. Labels and behaviour are not changed.
+- **030**: edge audit writes stay best-effort. Requirement 6 rules out a change, so this is Blocked and documented.
+- **049**: browser security events already capture IP address and browser; browser compliance-audit rows do not. Code fix: add the same IP and browser values to browser compliance rows (metadata only). System-actor labelling inside triggers stays Blocked.
+- **050**: full row copies in audit records may include personal data. Blocked (trigger).
+- **059**: any signed-in user can call the security-event logging function. Blocked (grant).
 
-**Verified issues and code-only fixes**
+**Notifications**
+- **008**: 5 enforcement events are now configured and active, so the configuration side is resolved. Delivery needs a retest.
+- **009**: of the 31 events the workbook flagged, 20 are now configured and active; 11 are still not configured.
+  - When an event has no configuration, the dispatcher returns "skipped" without writing to the delivery log.
+  - The delivery log already accepts the `skipped` status, and the dispatcher already writes "skipped – no recipient" rows through the same service access. So a "skipped – no active configuration" row is supported with no database change.
+- **010**: no SMS provider exists; the app honestly records "provider not configured". Needs a decision.
+- **011**: `payment.failed` is configured and active, but nothing sends it. The browser cannot call the dispatcher, which accepts only background jobs.
+  - The only browser-reachable path is the database queueing function, and that is the access RISK-045 says should be removed.
+  - Blocked; payment code is not touched.
+- **035, 036**: the configurations exist and are active. Retest only.
+- **037**: notification queueing failures are swallowed inside a database function, so nothing is recorded for the app to show. Blocked.
+- **038**: scheduled-job settings are not readable with current access. Unverified.
+- **039, 052**: alerts for critical security events and support-ticket notifications need new triggers. Blocked.
+- **045**: signed-in users can call the notification-queue function directly. Blocked (grant).
+- **056**: placeholder values are inserted into HTML email bodies unescaped. There are 202 email templates.
+  - Escaping changes output only for values containing `& < > " '`.
+  - It is applied only if the baseline shows no variable is meant to carry HTML; otherwise it stays Blocked.
 
-| ID | Finding (verified) | Fix |
-|---|---|---|
-| RISK-007 | A failed sign-in is logged from the browser while the user is still signed out. The logging function only accepts signed-in callers, so these events are silently lost. | Send failed sign-ins to a small server function that records them with the existing security-event helper. It records the email, a reason code, the time, IP address and browser, but never the password. The login screen and messages are unchanged. |
-| RISK-024 | The audit export filters the compliance and security logs on a `table_name` column that does not exist. | Use the real columns: `entity_type` (audit log), `object_type` (compliance log), `module` (security log). The date filter is set per log type. |
-| RISK-025 | The export stops silently at 20,000 rows. Cells starting with `=`, `+`, `-` or `@` can run as formulas in Excel. | Fetch in pages of 1,000 up to a safety limit. Mark the job "truncated" if the limit is reached, and show that in the export screen. Prefix risky cells with an apostrophe. |
-| RISK-030 | In server functions, audit write failures are only printed to the log. | Keep this best-effort by default (so no business action breaks). Add an optional "required" mode that returns an error. It is switched on only for export, which is audit-only by nature. |
-| RISK-049 (partial) | Audit rows written from the browser lack IP address and browser details. Edge rows do not say which function wrote them. | Browser rows already resolve IP and browser for security events; do the same for compliance audit rows. Edge rows add `source_function`. |
-| RISK-027 | Logging of document views and downloads was not found yet. | Verify the signed-link and download paths first. If none log, call the existing export/access audit helper when a signed link is issued. |
+## 3. Phase 1 — Audit Logging (implemented after approval)
 
-**Database-dependent blockers (documented, not done):** RISK-005 (who can read the audit log), 006/021/022/028/029/031–034/051 (wider trigger coverage), 023 (audit failures should block the action), 026 (config changes outside the logged path), 050 (personal data in full row copies).
+**Baseline first**
+- Record row counts and a sample export for each log type with no filter, with a module filter and with a date range. These capture today's behaviour, including the silent 20,000-row cap.
+- Record what one browser compliance-audit row and one security-event row contain today.
+- Read-only check of why `document_action_logs` has no download rows (RISK-027).
 
-**Phase 1 tests**
-- Unit tests:
-  - Export column mapping for each log type.
-  - CSV formula escaping.
-  - Pagination and the truncated flag.
-  - Failed-login payload never includes a password.
-- Browser checks:
-  - A wrong-password attempt creates one AUTH_FAILED entry visible under Security Events.
-  - Export with a module filter returns rows for each log type.
-  - Normal sign-in, the Audit Logs, Compliance Audit Logs and Case Audit Trail screens, and export download still work.
+**Exact file changes**
+- `supabase/functions/audit-export/index.ts` (024, 025):
+  - Use the correct filter column per log.
+  - Page through rows in batches of 1,000, ordered by `created_at` then id, up to a stated safety limit.
+  - If the limit is reached, write `truncated: true`, the total available and the exported count into the job's `filters`.
+  - Neutralise formula-leading cells.
+  - The download path and access check are unchanged.
+- `src/pages/admin/AuditExport.tsx` (025): show a "Truncated — X of Y rows" badge when the job says so. No other screen changes.
+- `src/lib/complianceAudit.ts` (049): add IP address and browser to compliance-audit metadata, using the existing resolver. The call signature and failure handling are unchanged.
+- New tests:
+  - `src/test/auditExportMapping.test.ts`: column map, CSV neutralisation, pagination and truncation.
+  - `src/test/complianceAuditMetadata.test.ts`: the metadata contains IP and browser and never a password or token.
 
-## Phase 2 — Notifications
+**Phase 1 tests and evidence**
+- **Unit tests** above, plus the full unit test suite and typecheck.
+- **Edge function tests** for `audit-export`:
+  - A module filter on each log type returns only matching rows.
+  - An export larger than 20,000 rows of the compliance log returns everything up to the limit, or reports truncation.
+  - An unauthorised caller is still refused.
+- **Browser checks:**
+  - The Audit Export screen shows correct counts.
+  - The downloaded file opens with formulas neutralised.
+  - The Audit Logs, Compliance Audit Logs, Case Audit Trail and Security Events screens are unchanged.
+  - Sign-in, a sample application save and a document upload behave exactly as in the baseline.
+- **Report:** before and after for each item, with findings marked Fixed only where tests reproduce the evidence.
 
-**Verified issues and code-only fixes**
+## 4. Phase 2 — Notifications (requires separate approval)
 
-| ID | Finding (verified) | Fix |
-|---|---|---|
-| RISK-009 | Events with no active configuration are skipped, with only a server log line as evidence. | Record each skip in the existing dispatch log as `skipped / no_active_configuration`. Show a "Events without configuration" list on the Notification Channel Health page. No event is configured automatically. |
-| RISK-011 | `payment.failed` is defined, but only an audit row is written on failure. No notification is sent. | When a payment attempt fails, call the existing dispatcher with `payment.failed`. It runs only if an admin has configured that event, so existing payment behaviour is unchanged. |
-| RISK-056 | Placeholder values are inserted into HTML emails without escaping. | Escape values in the HTML body only. Subjects, plain text and in-app bodies stay as they are. Regression test: existing templates render identically for normal values. |
-| RISK-037 (app side) | Failures when queueing a notification are not visible. | Surface the existing failed and dead-letter records on the Channel Health page. The sweep job is unchanged. |
+**Baseline first**
+- Render all 202 email templates with their stored sample data and save the output.
+- Record the delivery-log rows for one configured test event and one unconfigured event key.
 
-**Configuration or decision blockers (no code fix):**
-- **RISK-008/009, setup gap:** these 11 events have no configuration. An admin can create each one in the Notification Events screen.
-  - `application.remark_added`, `complaint.triage.overridden`, `complaint_jurisdiction_more_information_required`, `complaint_triage_completed`
-  - `entity.resolution.escalated`, `entity.resolution.evidence_requested`, `entity.resolution.returned`
-  - `prudential.early_warning`, `registration.withdrawn`, `return.workflow_step_escalated`, `workflow.sla_breached`
-- **RISK-010:** no SMS provider is set up. The app already records SMS as "provider not configured", which is honest. This needs a choice of provider or a formal decision not to support SMS.
-- **RISK-038:** reminder and SLA sweeps depend on scheduled jobs. Their schedules could not be read with current access, so this is marked To verify. A list of the sweep functions that need a schedule will be provided.
-- **RISK-039** (alerts for critical security events) and **RISK-052** (support-ticket notifications) both need new database triggers.
-- **RISK-045:** a signed-in user can directly call the function that queues notifications. Revoking that right is a database change.
+**Exact file changes**
+- `supabase/functions/dispatch-notification-event/index.ts`:
+  - **009:** when no active configuration exists, insert one `skipped / no_active_configuration` row, mirroring the existing no-recipient insert, with a unique dedupe key. The response is unchanged.
+  - **056:** escape placeholder values in HTML email bodies only, and only if the baseline shows no variable carries intended HTML.
+- New tests:
+  - `supabase/functions/dispatch-notification-event/render_test.ts`: escaping cases, plus identical output for every baseline template with normal values.
+  - `src/test/notificationSkipRecord.test.ts`: the shape of the skip record.
 
 **Phase 2 tests**
-- Unit tests:
-  - Placeholder escaping.
-  - The skip is recorded.
-  - `payment.failed` is sent only on the failure path.
-- Server function tests for the dispatcher using a test event.
-- Browser checks:
-  - The Channel Health page lists unconfigured events.
-  - A configured test event still sends an in-app notification, and its email appears in Notification History.
-  - The payment success path sends exactly the notifications it sends today.
+- The configured test event still delivers in-app and email notifications, and they appear in Notification History.
+- An unconfigured event leaves exactly one skipped row.
+- All 202 templates render byte-identical for normal values.
+- Retest RISK-008, 035 and 036 with TEST events.
 
-## Phase 3 — Final regression and report
-- Full unit test suite, typecheck and build. Existing browser suites for sign-in, applications, payments, complaints and returns.
-- Confirm that no workflow, permission or payment outcome changed. Compare before and after on the same test actions.
-- Update the workbook's "Missing Impl & Risks" sheet:
-  - Mark each item Fixed (with evidence), Pending, Blocked (database or decision) or Unverified.
-  - Add a "Database requirements" sheet.
-  - Save it as a new version of the workbook.
+## 5. Phase 3 — Final regression
+- Full unit suite, typecheck and build.
+- Existing browser suites for sign-in, applications, payments, complaints, returns and AML.
+- Compare against the baselines from Phases 1 and 2.
+- Update the workbook as a new version. Each of the 33 findings gets a status (Fixed with evidence, Partially fixed, Blocked or Unverified) and a reason.
 
-## Database requirements (documented only, not implemented)
-For each item: exact objects affected, the change needed, dependencies and impact.
-- `audit_logs` read access limited to an audit permission (RISK-005).
-- The generic audit trigger attached to the listed tables (RISK-006, 021, 022, 028, 029, 031–034, 051).
-- Required versus best-effort audit write mode (RISK-023).
-- Config tables writable only through the logged path (RISK-026).
-- Masking personal data in audit row copies (RISK-050).
-- Revoking direct access to the notification-queue function (RISK-045).
-- A trigger that sends alerts for critical security events (RISK-039).
-- Support-ticket notification events (RISK-052).
+## 6. Database requirements (documented only; not executed or staged)
 
-## Technical notes
-- Server function changes:
-  - `audit-export`
-  - `dispatch-notification-event`
-  - `_shared/audit.ts`
-  - one new small function for failed sign-ins: it uses service access and never accepts or logs passwords
-- Browser changes:
-  - `AuthContext` (failed sign-in call only)
-  - `complianceAudit.ts`
-  - `NewApplication.tsx` (payment-failure branch only)
-  - Notification Channel Health page
-  - Audit Export page (truncated badge)
-- No files under `supabase/migrations`. No changes to grants or access rules.
+| Finding | Object | Required change | Dependencies and impact |
+|---|---|---|---|
+| 005 | Read rule on `audit_logs` | Allow reads only with an audit permission | Audit Logs screen and audit export; staff without the permission lose access |
+| 006, 021, 022, 028, 029, 031–034, 051 | Generic audit trigger | Attach it to the listed tables | Larger audit volume; check bulk-job speed |
+| 007 | New rate-limit table plus a logging function for failed sign-ins (anonymous, rate-limited, IP-attributed) | Create and grant to anonymous callers safely | Sign-in screen calls it; abuse limits required |
+| 011 | Payments trigger or function | Emit `payment.failed` when a payment fails | Payment flow; must not affect payment status |
+| 023, 030 | Audit write functions | A defined required versus best-effort policy per action | Could block business actions; needs a business decision |
+| 026 | Config tables | Writes only through logged functions | Admin config screens |
+| 037 | `notification_enqueue_event` | Record failures instead of swallowing them | Every notification-emitting trigger |
+| 039 | `security_event_logs` | Notification trigger for critical events | Needs a notification configuration |
+| 045, 059 | Function grants | Remove signed-in users' direct access | App code paths that call them must move to server-side |
+| 050 | Audit trigger | Mask personal-data columns | Audit readability |
+| 052 | Support tickets | Notification events and triggers | Support module |
+
+Also recorded: `notification_dispatch_log` currently grants anonymous and signed-in users full table rights. Its access rules limit what they can actually do, but these grants should be reduced. Not changed here.
