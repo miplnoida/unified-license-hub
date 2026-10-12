@@ -1,3 +1,18 @@
+## Conditions added from your approval
+- **Streaming check comes first.** Before writing any other code, confirm from the storage client source that a stream body is sent as it is produced, without being held in memory first. If it is not, stop and report the blocker along with alternatives.
+- **Complete columns:**
+  - The CSV header is the table's full column list, taken from the first page.
+  - If a later page ever contains a key that is not in that list, the export fails with a clear error and the job is marked `failed`. No field is ever dropped silently.
+- **Paging tests:**
+  - Rows with tied timestamps.
+  - Rows inserted during the export.
+  - Rows updated during the export.
+  - Null values.
+- **Query plans:**
+  - Read-only `EXPLAIN` on the keyset query for both logs, with and without a module filter.
+  - Indexes are not changed.
+- **Count accuracy:** the count, the 100,000-row limit and the truncation report all use the same filters and the same cutoff time.
+
 ## Verification
 - **Byte-identical output:**
   - The streamed CSV must exactly match the existing `toCsv` output on the baseline fixtures.
