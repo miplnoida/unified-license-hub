@@ -1,62 +1,115 @@
-# Fix plan for the security workbook — app and server-function changes only
+# Audit Logging and Notifications — Remediation Plan
 
-## Scope
-The workbook lists 59 risks (4 Critical, 16 High, 28 Medium, 11 Low). This plan fixes those that can be closed **without any database change**. That means changes to screens, browser code, server (edge) functions and libraries only. Changes to tables, access rules, database functions, triggers, grants and seed data are listed as **deferred**. Nothing is removed from the database.
+A new, independent task. It covers only the audit-log and notification findings in the workbook, at every severity. Other security items and the cancelled plan are out of scope.
 
-Most Critical and High risks (profile self-editing, payment status, legacy access rules, audit coverage) live in the database, so they cannot be closed here. Where possible, this plan adds a safe app-side mitigation and records what is still open.
+## Ground rules
+- No database changes: no migrations, access rules, triggers, database functions, grants or seed rows. Anything that needs one is written up in the "Database requirements" list and left undone.
+- Workflows, permissions, payments, registration, licensing and returns behave as they do today.
+- Reuse the existing audit helpers (`src/lib/complianceAudit.ts`, `supabase/functions/_shared/audit.ts`) and the existing notification dispatcher. No new logging or notification system.
+- Work proceeds one phase at a time, with tests after each phase. An item is marked Fixed only with evidence.
 
-## Part A — Fix now (no database change)
+## Status of the 31 audit and notification findings (checked against current code and live setup)
 
-| # | Risk | Fix | Verified in code |
-|---|---|---|---|
-| A1 | RISK-018 Stored XSS in correspondence (High) | Replace the regex cleaner with an allow-list sanitiser (DOMPurify): only the composer's tags (p, br, b, i, u, strong, em, ul, ol, li, a with safe href), no attributes except href/target/rel. Apply the same to the notification template preview, which also renders HTML directly. | Yes: `MessageThreadPanel.tsx` uses a regex and `dangerouslySetInnerHTML`; `TemplatePreviewDialog.tsx` renders raw HTML |
-| A2 | RISK-012 `new Function()` in prudential evaluation (High) | Replace with a real arithmetic parser (numbers, + − × ÷, parentheses, unary minus only) shared with `src/lib/safeEval.ts` behaviour. No code execution. | Yes: `evaluate-return-prudential/index.ts` lines 17–25 |
-| A3 | RISK-046 Vulnerable xlsx 0.18.5 (Medium) | Upgrade SheetJS to 0.20.3 from the official SheetJS distribution, then re-test template download and Excel import. | Yes: `package.json` |
-| A4 | RISK-024 Audit export module filter broken (Medium) | Use the correct column per log: `audit_logs.entity_type`, `compliance_audit_logs.object_type`, `security_event_logs.module`. Date filter uses `created_at`. | Yes: `compliance_audit_logs` has no `table_name` column |
-| A5 | RISK-025 Export cut at 20,000 rows and CSV injection (Medium) | Page through all rows in batches of 1,000 with an upper safety limit, and record "truncated" in the job if the limit is hit. Prefix cells starting with `= + - @` or tab with an apostrophe. | Yes: `audit-export/index.ts` |
-| A6 | RISK-056 Template placeholders not HTML-escaped (Low) | Escape placeholder values when building HTML emails; plain-text versions stay unescaped. | Placeholder replace found; escaping to confirm while building |
-| A7 | RISK-057 CORS allows any lovable.app subdomain (Low) | Default list becomes exact domains: the project's preview, published and custom domain, plus localhost in development. `ALLOWED_ORIGINS` still overrides. Also make `evaluate-return-prudential` use the shared CORS helper instead of `*`. | Yes: `_shared/cors.ts`; prudential function uses `*` |
-| A8 | RISK-040 No idle timeout (Medium) | Sign the user out after a period of inactivity (default 30 minutes), with a 2-minute warning dialog. Activity is shared across tabs. | Yes: none in `AuthContext.tsx` |
-| A9 | RISK-007 Failed logins not recorded (High, partly) | On a failed sign-in, call the existing security-event logging path (already used for successful logins) with email and reason. No password is logged. If the current grant blocks signed-out callers, route it through an existing public server function instead. | Success is logged; failure path has no logging |
-| A10 | RISK-041 OTP rate limit bypassable (Medium) | In `send-registration-otp`, rate-limit by email **and** by caller IP using existing OTP rows (count per window). Never trust client-supplied counters. | To confirm at lines 48–66 |
-| A11 | RISK-058 Public registry, no rate limit (Low) | Add per-IP request limiting in memory in the function, and remove internal IDs from the public response where the screen doesn't need them. | To confirm in function |
-| A12 | RISK-044 AI redaction inconsistent (Medium) | Add one shared redaction helper (emails, phone numbers, ID and account numbers) and use it in every AI edge function before sending text to the gateway. | To list functions while building |
-| A13 | RISK-030 Edge audit writes best-effort (Medium) | For mutating functions, a failed audit write returns an error instead of being ignored; read-only functions stay best-effort. | `_shared/audit.ts` |
-| A14 | RISK-053 Delegation elevates to delegator's full role (Low) | When acting on behalf of someone, expose only the delegated scope in the app, not the delegator's full role set. | `authHelpers.ts` lines 105–125 |
+| Status | Count | Findings |
+|---|---|---|
+| Already resolved (needs retest only) | 2 | RISK-035, RISK-036: correspondence reply and thematic-review closure events now have active configurations |
+| Partly resolved | 2 | RISK-008/009: 20 of the 31 "unconfigured" events are now configured and active; 11 remain unconfigured |
+| Code fix planned | 8 | RISK-007, 011, 024, 025, 030, 037 (app side), 049 (partial), 056 |
+| Needs database change (documented only) | 14 | RISK-005, 006, 021, 022, 023, 026, 028, 029, 031, 032, 033, 034, 045, 050, 051 |
+| Needs a decision or setup | 4 | RISK-010 (SMS provider), 038 (job schedules), 039 (alerting), 052 (support tickets) |
+| To verify first | 1 | RISK-027 (document view/download logging) |
 
-Mitigations only (the real fix is in the database):
-- **RISK-001/002/013/015**: hide role, user type, licensee, regulator and 2FA fields from every profile edit form, and never send those fields in profile updates. This does not stop a direct API call.
-- **RISK-014**: also check the 2FA flag in the route guard on every protected page load, not only at sign-in. This is still enforced in the browser only.
+```text
+Phase 1: Audit (code fixes) --> tests --> Phase 2: Notifications (code fixes) --> tests --> Phase 3: Full regression and report
+```
 
-## Part B — Deferred (need database changes, not done)
-- **Critical**:
-  - RISK-001/002/013/015: lock profile columns; stop deriving staff status and entity membership from profiles.
-  - RISK-003/004: real payment gateway with a signed webhook; remove the payer's update right on payments.
-- **High**:
-  - RISK-005: restrict audit log read to an audit permission.
-  - RISK-006: wider audit trigger coverage.
-  - RISK-016/017/019/020: retire legacy permissive access rules.
-  - RISK-008/009/011: seed missing notification configurations and emit payment.failed.
-  - RISK-010: SMS channel. This is a product decision: add a provider or formally de-scope it.
-  - RISK-014: server-side 2FA.
-- **Medium/Low**:
-  - RISK-021 to 023, 026 to 029, 031 to 039, 042, 043, 045, 047 to 052, 054, 055, 059.
+## Phase 1 — Audit logging
 
-Each deferred item will be written up as a ready-to-apply change list when database work is approved.
+**Verified issues and code-only fixes**
 
-## Verification
-- **Tests**:
-  - Sanitiser: script tags, event handlers, `javascript:` links and SVG payloads are stripped; normal formatting survives.
-  - Arithmetic parser: valid formulas, division by zero, and rejected input such as `()=>`, `[]` and `!`.
-  - CSV formula escaping, idle-timeout timer, and CORS origin matching.
-- **Browser checks**:
-  - The correspondence thread shows formatted messages correctly.
-  - The audit export filter works for each log type.
-  - The idle warning appears and signs the user out.
-- **Regression**: the full test suite and typecheck pass. Excel template download and import still work after the xlsx upgrade.
-- **Records**: update the workbook's "Missing Impl & Risks" status for fixed items (Fixed – pending retest), and save a short summary in `docs/security/`.
+| ID | Finding (verified) | Fix |
+|---|---|---|
+| RISK-007 | A failed sign-in is logged from the browser while the user is still signed out. The logging function only accepts signed-in callers, so these events are silently lost. | Send failed sign-ins to a small server function that records them with the existing security-event helper. It records the email, a reason code, the time, IP address and browser, but never the password. The login screen and messages are unchanged. |
+| RISK-024 | The audit export filters the compliance and security logs on a `table_name` column that does not exist. | Use the real columns: `entity_type` (audit log), `object_type` (compliance log), `module` (security log). The date filter is set per log type. |
+| RISK-025 | The export stops silently at 20,000 rows. Cells starting with `=`, `+`, `-` or `@` can run as formulas in Excel. | Fetch in pages of 1,000 up to a safety limit. Mark the job "truncated" if the limit is reached, and show that in the export screen. Prefix risky cells with an apostrophe. |
+| RISK-030 | In server functions, audit write failures are only printed to the log. | Keep this best-effort by default (so no business action breaks). Add an optional "required" mode that returns an error. It is switched on only for export, which is audit-only by nature. |
+| RISK-049 (partial) | Audit rows written from the browser lack IP address and browser details. Edge rows do not say which function wrote them. | Browser rows already resolve IP and browser for security events; do the same for compliance audit rows. Edge rows add `source_function`. |
+| RISK-027 | Logging of document views and downloads was not found yet. | Verify the signed-link and download paths first. If none log, call the existing export/access audit helper when a signed link is issued. |
+
+**Database-dependent blockers (documented, not done):** RISK-005 (who can read the audit log), 006/021/022/028/029/031–034/051 (wider trigger coverage), 023 (audit failures should block the action), 026 (config changes outside the logged path), 050 (personal data in full row copies).
+
+**Phase 1 tests**
+- Unit tests:
+  - Export column mapping for each log type.
+  - CSV formula escaping.
+  - Pagination and the truncated flag.
+  - Failed-login payload never includes a password.
+- Browser checks:
+  - A wrong-password attempt creates one AUTH_FAILED entry visible under Security Events.
+  - Export with a module filter returns rows for each log type.
+  - Normal sign-in, the Audit Logs, Compliance Audit Logs and Case Audit Trail screens, and export download still work.
+
+## Phase 2 — Notifications
+
+**Verified issues and code-only fixes**
+
+| ID | Finding (verified) | Fix |
+|---|---|---|
+| RISK-009 | Events with no active configuration are skipped, with only a server log line as evidence. | Record each skip in the existing dispatch log as `skipped / no_active_configuration`. Show a "Events without configuration" list on the Notification Channel Health page. No event is configured automatically. |
+| RISK-011 | `payment.failed` is defined, but only an audit row is written on failure. No notification is sent. | When a payment attempt fails, call the existing dispatcher with `payment.failed`. It runs only if an admin has configured that event, so existing payment behaviour is unchanged. |
+| RISK-056 | Placeholder values are inserted into HTML emails without escaping. | Escape values in the HTML body only. Subjects, plain text and in-app bodies stay as they are. Regression test: existing templates render identically for normal values. |
+| RISK-037 (app side) | Failures when queueing a notification are not visible. | Surface the existing failed and dead-letter records on the Channel Health page. The sweep job is unchanged. |
+
+**Configuration or decision blockers (no code fix):**
+- **RISK-008/009, setup gap:** these 11 events have no configuration. An admin can create each one in the Notification Events screen.
+  - `application.remark_added`, `complaint.triage.overridden`, `complaint_jurisdiction_more_information_required`, `complaint_triage_completed`
+  - `entity.resolution.escalated`, `entity.resolution.evidence_requested`, `entity.resolution.returned`
+  - `prudential.early_warning`, `registration.withdrawn`, `return.workflow_step_escalated`, `workflow.sla_breached`
+- **RISK-010:** no SMS provider is set up. The app already records SMS as "provider not configured", which is honest. This needs a choice of provider or a formal decision not to support SMS.
+- **RISK-038:** reminder and SLA sweeps depend on scheduled jobs. Their schedules could not be read with current access, so this is marked To verify. A list of the sweep functions that need a schedule will be provided.
+- **RISK-039** (alerts for critical security events) and **RISK-052** (support-ticket notifications) both need new database triggers.
+- **RISK-045:** a signed-in user can directly call the function that queues notifications. Revoking that right is a database change.
+
+**Phase 2 tests**
+- Unit tests:
+  - Placeholder escaping.
+  - The skip is recorded.
+  - `payment.failed` is sent only on the failure path.
+- Server function tests for the dispatcher using a test event.
+- Browser checks:
+  - The Channel Health page lists unconfigured events.
+  - A configured test event still sends an in-app notification, and its email appears in Notification History.
+  - The payment success path sends exactly the notifications it sends today.
+
+## Phase 3 — Final regression and report
+- Full unit test suite, typecheck and build. Existing browser suites for sign-in, applications, payments, complaints and returns.
+- Confirm that no workflow, permission or payment outcome changed. Compare before and after on the same test actions.
+- Update the workbook's "Missing Impl & Risks" sheet:
+  - Mark each item Fixed (with evidence), Pending, Blocked (database or decision) or Unverified.
+  - Add a "Database requirements" sheet.
+  - Save it as a new version of the workbook.
+
+## Database requirements (documented only, not implemented)
+For each item: exact objects affected, the change needed, dependencies and impact.
+- `audit_logs` read access limited to an audit permission (RISK-005).
+- The generic audit trigger attached to the listed tables (RISK-006, 021, 022, 028, 029, 031–034, 051).
+- Required versus best-effort audit write mode (RISK-023).
+- Config tables writable only through the logged path (RISK-026).
+- Masking personal data in audit row copies (RISK-050).
+- Revoking direct access to the notification-queue function (RISK-045).
+- A trigger that sends alerts for critical security events (RISK-039).
+- Support-ticket notification events (RISK-052).
 
 ## Technical notes
-- New dependency: `dompurify`. xlsx is installed from the SheetJS CDN tarball, because the npm registry stops at 0.18.5.
-- Edge function changes deploy automatically. No migrations, no `supabase/migrations` files, no grants.
-- The idle timeout is a configurable constant. It is not a site setting, because adding a setting would be a database change.
+- Server function changes:
+  - `audit-export`
+  - `dispatch-notification-event`
+  - `_shared/audit.ts`
+  - one new small function for failed sign-ins: it uses service access and never accepts or logs passwords
+- Browser changes:
+  - `AuthContext` (failed sign-in call only)
+  - `complianceAudit.ts`
+  - `NewApplication.tsx` (payment-failure branch only)
+  - Notification Channel Health page
+  - Audit Export page (truncated badge)
+- No files under `supabase/migrations`. No changes to grants or access rules.
