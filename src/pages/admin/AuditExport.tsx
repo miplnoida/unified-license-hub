@@ -28,6 +28,7 @@ type Job = {
   justification?: string | null;
   retention_expires_at?: string | null;
   download_count?: number | null;
+  filters?: { truncated?: boolean; total_matching?: number; exported?: number } | null;
 };
 
 export default function AuditExport() {
@@ -85,7 +86,11 @@ export default function AuditExport() {
       } catch {
         /* export already succeeded; governance row failure must not break UX */
       }
-      toast.success(`Exported ${data.row_count} rows`);
+      if (data?.truncated) {
+        toast.warning(`Exported ${data.exported} of ${data.total_matching} matching rows (safety limit reached). Narrow the date range to export the rest.`);
+      } else {
+        toast.success(`Exported ${data.row_count} rows`);
+      }
       setJustification('');
       qc.invalidateQueries({ queryKey: ['audit_export_jobs'] });
     },
@@ -185,7 +190,12 @@ export default function AuditExport() {
                       {j.from_date ? new Date(j.from_date).toLocaleDateString() : '—'} →{' '}
                       {j.to_date ? new Date(j.to_date).toLocaleDateString() : '—'}
                     </TableCell>
-                    <TableCell>{j.row_count ?? '—'}</TableCell>
+                    <TableCell>
+                      {j.row_count ?? '—'}
+                      {j.filters?.truncated && (
+                        <Badge variant="destructive" className="ml-2">Truncated: {j.filters.exported} of {j.filters.total_matching}</Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="text-xs max-w-[220px] truncate" title={j.justification ?? ''}>{j.justification ?? '—'}</TableCell>
                     <TableCell className="text-xs">{j.retention_expires_at ? new Date(j.retention_expires_at).toLocaleDateString() : '—'}</TableCell>
                     <TableCell className="text-xs">{j.download_count ?? 0}</TableCell>

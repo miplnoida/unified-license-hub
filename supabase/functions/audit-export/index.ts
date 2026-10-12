@@ -5,6 +5,11 @@
 // role fallback — a signed-in user without the catalog permission is denied.
 
 import { corsHeaders, jsonResponse, requireUserPermission } from '../_shared/authz.ts';
+import {
+  EXPORT_MAX_ROWS, MODULE_FILTER_COLUMN, ORDER_COLUMNS, fetchAllPages, toCsv, truncationInfo,
+} from './exportCore.ts';
+// Safety limit: EXPORT_MAX_ROWS (100,000). Exports above it are marked truncated
+// on the job (filters.truncated / total_matching / exported) — never silently.
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -30,22 +35,36 @@ Deno.serve(async (req) => {
       }).select('*').single();
       if (jobErr) return jsonResponse({ error: jobErr.message }, 200);
 
-      let q = admin.from(source).select('*').limit(20000);
-      if (fromDate) q = q.gte('created_at', fromDate);
-      if (toDate) q = q.lte('created_at', toDate);
-      if (moduleFilter) {
-        if (source === 'audit_logs') q = q.eq('entity_type', moduleFilter);
-        else q = q.eq('table_name', moduleFilter);
-      }
-      const { data: rows, error: rerr } = await q;
-      if (rerr) {
+      // deno-lint-ignore no-explicit-any
+      const filtered = (q: any) => {
+        if (fromDate) q = q.gte('created_at', fromDate);
+        if (toDate) q = q.lte('created_at', toDate);
+        if (moduleFilter) q = q.eq(MODULE_FILTER_COLUMN[source], moduleFilter);
+        return q;
+      };
+      const fail = async (message: string) => {
         await admin.from('audit_export_jobs').update({
-          status: 'failed', error_message: rerr.message, completed_at: new Date().toISOString(),
+          status: 'failed', error_message: message, completed_at: new Date().toISOString(),
         }).eq('id', job.id);
-        return jsonResponse({ error: rerr.message }, 200);
-      }
+        return jsonResponse({ error: message }, 200);
+      };
 
-      const csv = toCsv(rows ?? []);
+      const { count, error: cerr } = await filtered(
+        admin.from(source).select('*', { count: 'exact', head: true }),
+      );
+      if (cerr) return await fail(cerr.message);
+      const totalMatching = count ?? 0;
+
+      const [o1, o2] = ORDER_COLUMNS[source];
+      const { rows, error: rerr } = await fetchAllPages<Record<string, unknown>>(
+        (from, to) => filtered(admin.from(source).select('*'))
+          .order(o1, { ascending: true }).order(o2, { ascending: true }).range(from, to),
+        Math.min(totalMatching, EXPORT_MAX_ROWS),
+      );
+      if (rerr) return await fail(rerr);
+      const trunc = truncationInfo(totalMatching, rows.length);
+
+      const csv = toCsv(rows);
       const path = `${userId}/${job.id}.csv`;
       const { error: upErr } = await admin.storage.from('audit-exports')
         .upload(path, new Blob([csv], { type: 'text/csv' }), { upsert: true, contentType: 'text/csv' });
@@ -57,11 +76,11 @@ Deno.serve(async (req) => {
       }
 
       await admin.from('audit_export_jobs').update({
-        status: 'completed', row_count: rows?.length ?? 0, file_path: path,
-        completed_at: new Date().toISOString(),
+        status: 'completed', row_count: rows.length, file_path: path,
+        filters: trunc, completed_at: new Date().toISOString(),
       }).eq('id', job.id);
 
-      return jsonResponse({ ok: true, job_id: job.id, row_count: rows?.length ?? 0, file_path: path });
+      return jsonResponse({ ok: true, job_id: job.id, row_count: rows.length, file_path: path, ...trunc });
     }
 
     if (action === 'download_url') {
@@ -83,18 +102,3 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: message }, 200);
   }
 });
-
-function toCsv(rows: Record<string, unknown>[]): string {
-  if (!rows.length) return '';
-  const cols = Array.from(new Set(rows.flatMap((r) => Object.keys(r))));
-  const esc = (v: unknown) => {
-    if (v == null) return '';
-    const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const header = cols.join(',');
-  const body = rows
-    .map((r) => cols.map((c) => esc((r as Record<string, unknown>)[c])).join(','))
-    .join('\n');
-  return header + '\n' + body;
-}
