@@ -1,12 +1,11 @@
-## Step 2 (your decision): what to do when no rules are set up
-Right now, running the checks with no rules counts as a pass. That is technically correct, but it really means nothing was checked. Choose one:
-- **A. Leave as is.** The reviewer only has to click the button.
-- **B. Make it clearer on screen.** When no rules apply, the Sufficiency card says "No sufficiency rules are set up for this licence type", and the gate reads "Checks run, no rules set up". How approval works stays the same.
-- **C. Set up real rules.** An administrator creates sufficiency rules for this licence type. This is a settings task, not a code change.
+## If you approve option A
+1. Add one required-form entry for APP-2026-002007, marked as submitted and linked to the applicant's existing submitted form. No other change.
+2. Read the readiness result again and confirm the forms check now passes.
+3. You click Approve on the application.
 
-This plan makes no database changes. Nothing is deployed or published without your approval.
+No code, settings or other applications are touched. Nothing is published.
 
 ## Technical notes
-- Gate source: `decision_gate_status`. It passes only when the latest `sufficiency_evaluations` row exists with no unresolved `fail` + `blocker` results.
-- `evaluate-application-sufficiency` still inserts an evaluation when no rule set matches (`rule_set_id = null`, `overall_status = sufficient`).
-- Option B changes only `SufficiencyPanel.tsx` and the wording in `sufficiencyLabels.ts`.
+- Blocking gate: `forms_documents = BUSINESS_CONFIGURATION_REQUIRED`, `required_count = 0` (`audit_logs`, action `application_final_approval_blocked`).
+- `application_form_requirements`: 0 rows for this application. `form_responses`: one row, template `a1000000-0000-4000-8000-000000000001`, status `submitted`.
+- Option A: insert one `application_form_requirements` row (template above, its pinned form version, `is_required = true`, `status = 'SUBMITTED'`, `response_id` = that response). This is data-only and needs your explicit approval because it writes to the live backend.
