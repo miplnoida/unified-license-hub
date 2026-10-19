@@ -1,5 +1,19 @@
 # Roadmap
 
+## AML-CLOSE-08 — conditional certification resumption (2026-10-07)
+- [x] Review 16:52 concrete-evidence intake upload and record its ten-field UNKNOWN matrix and symptom classifications in report EJ; upload is instructional only. PREREQUISITE NOT SATISFIED; STOP, no certification.
+- [x] Validate 16:47 upload only and document ten UNKNOWN facts plus F1 comparison in report EI; no concrete platform evidence supplied. PREREQUISITE NOT SATISFIED; freeze retained, no gates executed.
+- [x] Record 16:44 evidence-intake-only instruction and ten-field UNKNOWN matrix in report EH; PREREQUISITE NOT SATISFIED. Stop after documentation; even future satisfaction requires separate owner resumption.
+- [x] Record preliminary read-only health, Git and deployment/backend evidence in report EG; healthy idle snapshot does not prove stall remediation.
+- [ ] Establish qualifying platform/request-path change, resolver and timestamp — BLOCKED: no support/change evidence supplied or found; owner clarification skipped. Shared infrastructure change history and hosted security change history remain unverified.
+- [ ] Outstanding certification gates — BLOCKED by the prerequisite above: Spec 12 ×3, Spec 15 ×3, complete isolated AML suite, currentness-dependent regression/security scan, residue/protected-state verification, gated publish and safe live smoke. No notification-producing sweep or AML-CLOSE-09; CONDITIONAL PASS retained.
+
+## AML-CLOSE-08F2 — authorised scope only
+- [x] Inventory all three orphaned TEST runs and inspect server-offered lifecycle capabilities before cleanup: 2 profiles, 9 components.
+- [x] Retire eligible TEST profiles first, then their components, through normal browser controls only: 9 retired; 2 returned to inactive draft with no retirement capability.
+- [x] Verify historical pinning, zero new-work TEST authority, real FSRA policy and protected AML state.
+- [x] Create infrastructure support pack and append DU–EF evidence; retain CONDITIONAL PASS. No tests, publish, capacity/code/schema/security changes or AML-CLOSE-09.
+
 ## EPIC 4 — Enterprise SupTech Convergence & Final Certification
 
 - [x] W0 Rebaseline: HEAD `c093c519783bc29f3319a697c1f295914b463f0e`, clean tree, migration head `20260902213053`, Epic 2 + Epic 3 gates green

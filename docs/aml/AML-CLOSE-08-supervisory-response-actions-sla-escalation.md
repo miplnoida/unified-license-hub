@@ -362,3 +362,506 @@ Vitest 190 files / 1807 passed (ran during Spec 12 run 1 — not isolated). Buil
 
 ## DG. Verdict
 **AML-CLOSE-08 = CONDITIONAL PASS.** Blocker: request-layer stalls upstream of the database on the TEST project. Next: owner decision on database-server upgrade, then A/B re-run of Spec 12 ×3, Spec 15 ×3, full AML suite, publish. AML-CLOSE-09 not started.
+
+---
+# AML-CLOSE-08F1 — Current-Capacity Stall Reproduction (2026-10-07)
+
+Diagnostic only. No code, schema, grant, policy, setting or capacity change. No publish, no Spec 15, no full suite, no sweep, no email/SMS/webhook.
+
+## DH. Shared-environment constraint
+TEST and live share one backend server. Any future size change affects both. It must be separately authorised as a shared-environment infrastructure change, preferably in a low-traffic window. Not done.
+
+## DI. Idle baseline (13:13–13:14 UTC, 20 samples, Git `32b0693b9`)
+| Check | Median | p95 | Max |
+|---|---:|---:|---:|
+| `site_settings` | 104 ms | 184 ms | 184 ms |
+| sign-in token | 203 ms | 278 ms | 278 ms |
+| `sec_get_user_context` | 161 ms | 412 ms | 412 ms |
+| `supervisory_dashboard_operational_summary` | 757 ms | 1,465 ms | 1,465 ms |
+| `sup_dashboard_summary` | 468 ms | 649 ms | 649 ms |
+| `supervisory_work_queue` | 513 ms | 783 ms | 783 ms |
+Connections 16/60, memory 58%, no resource alerts (48 h). The earlier "second ordinary read" was an invalid query (HTTP 400) and is discarded.
+
+## DJ. CHEAP_REST_CONTROL
+`GET /rest/v1/regulators?select=id&limit=1` (anon key, no join). Idle, 20 samples at 13:25 UTC: all HTTP 200, median 109 ms, p95 139 ms, max 625 ms. During Spec 12 it was polled every ~2 s together with `pg_stat_activity` (535 samples, 13:25:12–13:42:48).
+
+## DK. Spec 12 runs
+| Run | UTC | Result |
+|---|---|---|
+| 1 | 13:25:42–13:32:15 | 9/9 passed (6.5 m) |
+| 2 | 13:32:28–13:39:19 | 9/9 passed (6.8 m) |
+| 3 | 13:39:25–13:43:09 | **FAILED**: setup + journey A passed; journey B failed; 5 did not run; fixture teardown failed |
+**3/3 not met.** The stall reproduced. Sequence stopped; no rerun.
+
+Control read per window: pre-run max 0.15 s; run 1 max 2.03 s (1 sample >2 s); run 2 max 4.90 s (4 >2 s); run 3 max **19.19 s** (5 >2 s).
+
+## DL. Failure window (actual evidence)
+| UTC | Spec step | Cheap REST | Auth | AML/app request | DB conns | Active client queries / max age | DB wait | CPU | Memory | Background jobs |
+|---|---|---:|---:|---:|---:|---:|---|---:|---:|---|
+| 13:41:21–13:41:58 | B: officer sign-in | 0.10–1.06 s | token 1.03 s (13:41:53, 200) | — | 39 | 0 / 0 s | none | UNKNOWN / NOT EXPOSED | UNKNOWN | cron OK |
+| 13:42:00 | B: app shell load | **15.59 s** | — | `profiles` 9.72 s; `user_dynamic_roles` 6.98 s (13:42:09) | 39 | 0 / 0 s | none | UNKNOWN | UNKNOWN | cron OK |
+| 13:42:19 | B: "New AML/CFT assessment" not rendered | 0.94 s | — | `sec_get_user_context`, `entity_license_entitlements`, `licensees`, `notifications` etc. never completed (-1, page closed at 20 s timeout) | 39 | 0 / 0 s | none | UNKNOWN | UNKNOWN | cron OK |
+| 13:42:20–13:42:48 | teardown sign-in | 4.61 s, **18.89 s**, **19.19 s** | **token HTTP 504 after 45.4 s** (req `01a11699-…`) | — | 39–40 | 0 / 0 s | none | UNKNOWN | UNKNOWN | cron OK |
+Memory after the run (db health, 13:44): 76%, 32/60 connections, pool clients 1/200, no exhaustion alert.
+
+## DM. Database activity
+- Peak connections during all three runs: **40/60**. Pool clients 1/200.
+- Active client queries in every sample (excluding the probe): **0**; longest active statement observed: **0 s**; wait events: **none**.
+- Blocked-session count was non-zero (3) in one sample only, 13:32:00, between runs — not in the failure window.
+- At 13:37:30 one monitor connection was refused by the connection pooler: `FATAL (EAUTHQUERY) auth_query secret check timed out`. This is a pooler-side authentication lookup timing out, during run 2.
+- `pg_stat_statements` (cumulative since stats reset, not window-specific) shows old PostgREST `licenses`/`licensees` count queries with max ~8.0 s (statement-timeout ceiling). Not attributable to this window; no such statement was active during the stall.
+- SQL timing for the 9.7 s `profiles` read: no matching active statement was visible in any 2 s sample, so SQL execution was below sampling resolution; ≈9.7 s occurred outside SQL execution.
+
+## DN. Infrastructure utilisation
+CPU, database CPU, I/O, network, API/PostgREST utilisation: **UNKNOWN / NOT EXPOSED**. Memory 58% before, 76% after (single snapshots, not a time series). No resource-exhaustion alert recorded.
+
+## DO. Auth / API behaviour
+- Cheap control read slowed: **yes** (to 19.2 s, HTTP 200).
+- Auth slowed: **yes** (one token request 504 after 45.4 s; earlier token 1.03 s).
+- AML/app requests slowed: **yes** (profiles 9.7 s, user roles 7.0 s; security-context calls did not complete within 20 s).
+- PostgreSQL long-running query: **no**.
+- Gateway/auth/postgres log queries for the window returned **no rows** (observability gap).
+
+## DP. Background jobs
+103 scheduled job runs 13:24–13:44, all succeeded. Maximum start delay after the scheduled minute: 8.0 s (time not tied to a specific run). No `job startup timeout` in this window.
+
+## DQ. Classification
+**F. SHARED_PROJECT_CAPACITY (probable) with G. OBSERVABILITY_GAP.** Gateway reads, Auth and app reads all degraded at the same time, and the pooler logged an authentication-lookup timeout. PostgreSQL showed no active statements, no waits and connections below the limit. Not A (no slow SQL), not B (40/60, 1/200 pool), not proven C (CPU not exposed, memory 76%), not E alone (REST also degraded). The exact managed-service layer remains unobservable.
+
+## DR. Capacity-upgrade recommendation
+**UPGRADE_NOT_YET_JUSTIFIED.** Multiple services stall at once, which fits shared-capacity pressure. But no exposed metric shows CPU, memory or connection saturation that extra compute would clearly relieve. If the owner wishes to test it, it is a shared TEST+live change needing separate authorisation in a low-traffic window.
+
+## DS. TEST residue from 08F1
+Run 3 teardown failed (Auth 504), so run-scoped TEST policies `AML_TECH_CERT_JUDGEMENT_80368237`, `TEST-AML08A-RESP-80368237` and `TEST-AML08A-SLA-80368237` remain **APPROVED** (not retired). The same applies to older 08E sets 45472712 and 45213303 (APPROVED/SUBMITTED). TEST assessment 01283 (journey A) approved. These are TEST-only and were not cleaned up in this diagnostic pass. They must be retired through the screens in the next authorised pass.
+Remaining dashboard start-up request families (from DA, not re-measured): settings, regulators, currencies/monetary config, entity context (licensees, PPOC mappings, profile), entitlements/security context, notifications, delegation, module tiles. No changes.
+Protected 00830/00836/00838 timestamps unchanged per run 1/2 "protected assessments untouched" checks.
+
+## DT. Verdict
+**AML-CLOSE-08 = CONDITIONAL PASS.** Spec 12 = 2/3 on current capacity. Code/schema/settings changed: **NO**. AML-CLOSE-09 not started.
+
+---
+# AML-CLOSE-08F2 — TEST Residue Cleanup & Infrastructure Escalation
+
+2026-10-07 UTC. Scope: read-only inventory/verification, existing governed browser retirement/return, this report and support pack only. Source HEAD at entry `08e53178a`. No Spec 12/15/full-suite execution, publish, capacity change, application/schema/RLS/grant/Auth/pooler/timeout change or external communication.
+
+## DU. Orphan TEST inventory
+Complete pre-mutation inventory: **2 associated profiles and 9 components**. Run 45213303 had **no associated profile/binding/snapshot** matching its component IDs/codes; no profile was fabricated. A nearby retired profile 10.281560 belongs to different metadata and was left untouched.
+
+Actor keys: maker/submitter/binder `b8eaf680-fe66-4d49-b816-1c087f511235`; independent checker and F2 cleanup actor `0b522724-adcb-48bf-b21d-175339479616` (normal TEST AML supervisor login). Components are version 1.0, regulator-authored but explicitly TEST ONLY, with NULL effective dates. Codes are shown exactly; neither origin label nor status alone was treated as lifecycle authority.
+
+| Run | Object/code | ID | Before | Created UTC / last update before cleanup |
+|---|---|---|---|---|
+| 80368237 | AML_TECH_CERT_POLICY 10.368237 | 5e9aeb59-1f79-4fb9-9265-4229d36602f7 | ACTIVE | 13:40:27.397312 / 13:40:46.153240 |
+| 80368237 | AML_TECH_CERT_JUDGEMENT_80368237 | d022ef14-4867-4d6d-b640-667a5590843b | APPROVED | 13:39:37.201087 / 13:40:14.125540 |
+| 80368237 | TEST-AML08A-RESP-80368237 | 211cf2fc-18e7-4293-ae0a-58d8af89e770 | APPROVED | 13:39:56.471009 / 13:40:16.341793 |
+| 80368237 | TEST-AML08A-SLA-80368237 | 39fc9d4b-5094-4c59-bd98-0647ff0ad470 | APPROVED | 13:40:03.303801 / 13:40:18.974591 |
+| 45472712 | AML_TECH_CERT_POLICY 10.472712 | d56ae0f4-f85d-473d-af22-a6581d19f12a | REVIEW | 03:58:55.839434 / 03:59:04.738437 |
+| 45472712 | AML_TECH_CERT_JUDGEMENT_45472712 | d260fb7f-549d-4340-81bb-0c24378287d9 | APPROVED | 03:58:01.133172 / 03:58:37.335747 |
+| 45472712 | TEST-AML08A-RESP-45472712 | 25f607e2-bddc-448f-8765-7bedb2d3bfe6 | APPROVED | 03:58:15.295871 / 03:58:39.922508 |
+| 45472712 | TEST-AML08A-SLA-45472712 | 739d04f4-fbb9-46ec-a93b-2c758aea6537 | APPROVED | 03:58:20.917405 / 03:58:44.145641 |
+| 45213303 | AML_TECH_CERT_JUDGEMENT_45213303 | 00b9e262-baa1-452e-9173-a9b6baf004b2 | APPROVED | 03:53:45.969800 / 03:54:11.429312 |
+| 45213303 | TEST-AML08A-RESP-45213303 | cdfd323d-39ab-4960-bc0f-eeba59fd934b | APPROVED | 03:53:55.892660 / 03:54:13.378144 |
+| 45213303 | TEST-AML08A-SLA-45213303 | 9986a11a-d804-48c4-80be-6213f305e997 | SUBMITTED | 03:54:01.442223 / 03:54:03.913266 |
+
+Both profiles were made/submitted by the maker; only 80368237 had checker approval. Its effective period before cleanup was 2026-10-07 to NULL; 45472712 dates NULL. All components were made/submitted by maker; all except SLA-45213303 approved by checker; that SLA had no approval actor.
+
+Bindings: 80368237 J/R/S at 13:40:30.141094 / 13:40:31.635484 / 13:40:33.188264; 45472712 at 03:58:58.953159 / 03:59:00.999376 / 03:59:03.366277. Each binding recorded APPROVED, version 1.0 and maker binder. 45213303 has zero bindings. Snapshot census: only assessment 01283 references the affected profile/components. Before cleanup only ACTIVE 80368237 could govern new work in its sector; REVIEW 45472712 and unbound 45213303 could not.
+
+## DV. Lifecycle capability results
+Actual browser/server controls inspected before mutations for every existing profile/component. 80368237 profile and eight APPROVED components: **RETIRABLE**, Retire enabled. REVIEW profile and SUBMITTED SLA-45213303: Return-to-draft enabled, retirement not offered/enabled. After authorised return both were rechecked: **INACTIVE_NONRETIRABLE**, not RETURN_THEN_RETIRE, because retirement still unavailable. No approval/activation was performed to manufacture a retirement route. Screens/logs: `/tmp/browser/aml08f2/component-capabilities.log`, `cleanup.log`, before/after screenshots.
+
+## DW. Policy profile cleanup
+Profile first: 80368237 ACTIVE→RETIRED at **16:22:19.823016**; 45472712 REVIEW→DRAFT at **16:22:23.050655**. Server history confirms cleanup actor above. Exact retirement rationale: `TEST ONLY — AML-CLOSE-08 certification package retired after browser certification teardown was interrupted by shared service instability.` Return rationale additionally records that retirement is not offered and the object must not be reused.
+
+Retirement command automatically closed the retired TEST profile's effective_to to 2026-10-07; no date editor/direct date change was used. Draft profile retirement remained disabled; no direct SQL, delete, history/binding rewrite or bypass.
+
+## DX. Component cleanup
+After profiles, eight APPROVED components were retired through enabled UI actions; one SUBMITTED SLA returned to DRAFT. All nine content digests match pre-cleanup.
+
+| Run | J / response / SLA resulting status | J / response / SLA command times UTC |
+|---|---|---|
+| 80368237 | RETIRED / RETIRED / RETIRED | 16:22:26.175192 / 16:22:29.249582 / 16:22:31.826377 |
+| 45472712 | RETIRED / RETIRED / RETIRED | 16:22:34.476182 / 16:22:37.070751 / 16:22:39.644512 |
+| 45213303 | RETIRED / RETIRED / DRAFT | 16:22:42.697322 / 16:22:45.477426 / 16:22:48.246042 |
+
+**9 objects retired (1 profile + 8 components); 2 non-retired drafts remain (1 profile + 1 SLA) because no safe retirement control exists.** Inactive-authority cleanup achieved; literal retirement of every object is not claimed.
+
+## DY. Historical assessment pinning
+01283 ID `56da8bb5-b596-48ee-b5a4-bb7e3202798f`, approved, update **13:41:48.490097**, row fingerprint **57a045c3b4cec8d54fcd0ec82bdcc656** unchanged. Snapshot fingerprint **120f8ee02207de73ac396d8ae59c850f**, legacy snapshot hash **a326656cdc3b15ef4282aee2502112a4** unchanged. Original profile 10.368237 and J/R/S component IDs/version 1.0 retained.
+
+Authenticated read-only `supervisory_assessment_policy_basis_integrity`: **CONTENT_UNCHANGED**, algorithm cfp1, all nine pinned families content_unchanged=true. Retired J/R/S fingerprints respectively **cfp1:1503eaaef9d6fd8cfaf76ba24231ec2e**, **cfp1:b7d4c42d6f96edb0d70dfcc8fe068bfb**, **cfp1:eca5cd97e1a33d7cc9118fcc3e9e4a6c**. Original legacy component hashes remain **59906277c7297847bea2f0e6ba6d961a**, **e60a2e28c896b6fe1dd935af8e9ebfee**, **d85a887186c720ae5e051b25d570210c** in snapshot; current status-sensitive hashes differ as expected, not content mutation. No assessment recalculation/approval/publication/provenance change.
+
+## DZ. New-work policy-resolution proof
+Read-only authenticated `supervisory_policy_profile_resolve` for AML_CFT / FSRA / affected VIRTUAL_ASSET_BUSINESS sector / 2026-10-07: **RESOLVED**, exactly one candidate, **FSRA-AML-CFT-POLICY 1.0**, ID `5dcc6999-7740-476a-b549-98537ad585c2`. Returned response/SLA are the real FSRA IDs in EA, ACTIVE 1.0. Orphan active profiles = **0**; orphan ACTIVE components = **0**; active bindings for each of the nine orphan components = **0**. **0 orphan packages can govern new work now.** Retired/inactive records can still be historical evidence; authorised future versioning is not confused with current authority. Read-only creation eligibility confirms PERIMETER_ESTABLISHED, allowed=true; it is a perimeter verdict, not the policy-resolution proof. No new assessment created. Resolver prose contains stale family descriptions; authority conclusion uses structured resolved IDs/statuses, not that prose.
+
+## EA. FSRA authority
+Before/after row fingerprints, versions and update times identical, all ACTIVE 1.0, updated 2026-09-12 14:07:47.217799 UTC:
+- Profile `5dcc6999-7740-476a-b549-98537ad585c2`: **9489529168cbbcba9640fb323043d96c**.
+- FSRA-AML-RESPONSE `82537e2b-3c62-4eed-821f-67332d5809ba`: **69822c0426aa944a54d4719b106c5edc**.
+- FSRA-AML-SLA `0f08c975-cb4a-4fb1-bef3-707e9752f992`: **688efd7f1815d56b37c2c76c385d4b3d**.
+No real policy change; structured resolver positively confirms new-work authority.
+
+## EB. TEST residue census
+| Run | Profile | Judgement | Response | SLA | Assessment evidence | Governs new work? |
+|---|---|---|---|---|---|---|
+| 80368237 | RETIRED 10.368237 | RETIRED | RETIRED | RETIRED | 01283 retained | No |
+| 45472712 | DRAFT 10.472712 | RETIRED | RETIRED | RETIRED | No affected snapshot found | No |
+| 45213303 | No associated profile/binding found | RETIRED | RETIRED | DRAFT | No affected snapshot found | No |
+
+Scope is these three run IDs; not a claim that every historical TEST object platform-wide is retired. Two drafts retained with governed return history; no further approval path attempted.
+
+## EC. Protected-state proof
+Before/after exact row digests and timestamps match:
+| Assessment | Last update UTC | Row fingerprint | Facts |
+|---|---|---|---:|
+| 00830 | 2026-09-12 14:11:29.821340 | 1d69a6ed9bf755f77cf2310b4a6203b6 | 0 |
+| 00836 | 2026-09-28 11:37:09.016119 | 4d1732290423df77e883e94f8b58a466 | 0 |
+| 00838 | 2026-10-03 17:35:00.173152 | 8513abd140887090aaea1e12f7599f6a | **3** |
+00838 original fact rows/provenance digest **0120ffc47bb15da3f547675b0217f1e7**, unchanged. Correct table `supervisory_assessment_dimension`, STR_SAR_GOVERNANCE **22** rows, ID digest **8305ec6bbf50ef8573c6634bd6de6328**, full row digest **c311070dab1b86d32cd3b12d0844bb9f**, unchanged.
+
+## ED. Infrastructure support pack
+Created `docs/aml/AML-CLOSE-08-infrastructure-stall-support-pack.md`, A–I: shared environment, accepted F1 baseline/timeline, DB/pooler/job observations, unavailable internal metrics, documentary safe reproduction and six support questions. No fresh load or external support dispatch. Earlier approximate startup/query-layer explanations are not promoted to causal proof.
+
+## EE. Capacity recommendation
+**UPGRADE_NOT_YET_JUSTIFIED.** SHARED_PROJECT_CAPACITY (probable) with OBSERVABILITY_GAP retained. PostgreSQL root cause not proven; observed connections below limits, CPU/internal queues unavailable. No shared-server capacity change. Any future experiment needs separate shared-live authorisation.
+
+## EF. Verdict
+**AML-CLOSE-08 = CONDITIONAL PASS.** New-work TEST authority = **0**. Historical pinning, real FSRA authority and protected state positively verified. Two inactive nonretirable drafts remain, not silently described as retired. Functional AML-CLOSE-08 controls have prior proof, but deterministic end-to-end certification remains blocked by the reproducible shared managed-service request-layer stall whose exact internal layer is not observable from this project. No new certification suites, scan, publication, external email/SMS/webhook, settings/account/security/schema/application changes. Only authorised lifecycle commands and documentation occurred. **AML-CLOSE-09 not started. STOP.**
+
+## EG. Conditional resumption prerequisite — 2026-10-07 16:37–16:40 UTC
+
+Owner uploaded a certification-only resumption instruction conditional on the managed-platform/request-path blocker having been materially addressed, changed or made observable. The repeated upload contains the same condition and supplies no remediation reference, actor or timestamp. This entry records preliminary read-only evidence, not a new certification attempt or proof of remediation.
+
+| Required record | Direct evidence / limitation |
+|---|---|
+| Platform/infrastructure condition changed | **NOT ESTABLISHED.** No support finding, remediation record or newly available causal telemetry was supplied or found in the reviewed project history/documents. |
+| Who/what resolved or changed it | **UNKNOWN.** No responsible party or support reference evidenced. |
+| Change timestamp | **UNKNOWN.** Observation timestamp is not a remediation timestamp. Database read observation: 2026-10-07 16:38:08.765706 UTC. |
+| Shared TEST/live infrastructure change | Shared managed backend remains in use. Current server size **Mini**; database start time **2026-08-31 10:29:55.528116 UTC**. These observations do not exclude unrecorded gateway/Auth/PostgREST/pooler changes or prove a complete infrastructure change history. No infrastructure change performed in this check. |
+| Application/schema/security change | Git review from F1 `32b0693b9` through the preliminary documentation revision found only AML documentation/roadmap changes, not application source or migrations. This is source evidence only; absence of out-of-band hosted security/settings changes is **not independently established**. No application/schema/security change performed. |
+| Current Git HEAD | At the start of this check, before roadmap documentation: **4f919f105f1838349f5d323f5fb56a28eccd9acf**, clean working tree. Subsequent report/roadmap edits are documentation-only and can advance the managed revision. |
+| Current deployment/backend state | Publish settings report **published/public**. Public site GET returned **200**; existing asset `/assets/index-BpxcnL6P.js` returned **200**, SHA-256 **4fec1e1277cf43c6a070014112f146cda45956cbe37dd5f4974579ea0f701e23**. Asset contains the configured shared managed-backend host. Exact deployment-to-source commit mapping is **unverified**. Backend reachable; Auth 112 ms, database 111 ms, Auth→database 312 ms in one managed status check. |
+
+Managed health snapshot: database and pooler up, memory **64%**, connections **15/60**, pool clients **1/200**, data disk **17%**, no recent exhaustion alerts returned, restarts since boot **0**. These are isolated health observations. F1 also had healthy idle responses before the third-run stall; current idle health does **not** establish deterministic request-path recovery or eliminate the observability gap.
+
+The owner was asked for the support/change reference, responsible party, timestamp and environment impact; that question was skipped. No safe default can invent these facts. **Prerequisite blocked: evidence of the qualifying platform change/finding is missing.** Spec 12, Spec 15, full AML suite, regression, security scan, load probes, backend verifiers, new residue/protected-state certification, publication and live persona smoke were **not run**. Frozen F2 integrity evidence is retained as historical evidence, not freshly reverified. No external communication or notification-producing sweep occurred.
+
+**AML-CLOSE-08 = CONDITIONAL PASS. UPGRADE_NOT_YET_JUSTIFIED.** No automatic compute upgrade is recommended or authorised. Certification remains paused until the qualifying change/finding is evidenced. Completed functional development stays closed; AML-CLOSE-09 not started.
+
+## EH. Platform remediation evidence intake instruction — 2026-10-07 16:44 UTC
+
+Supplied document: `AML-CLOSE-08_-_PLATFORM_REMEDIATION_EVIDENCE_pasted.md`, titled **AML-CLOSE-08 — PLATFORM REMEDIATION EVIDENCE INTAKE**. It specifies evidence requirements and stop boundaries, but supplies no concrete support finding, change record or remediation evidence. The conditional evidence-intake step therefore cannot proceed to substantive validation. This entry records that absence and the owner instruction only; no new platform query, test, scan, probe or operational action was performed.
+
+### Supplied evidence matrix
+
+| Required fact | Supplied evidence |
+|---|---|
+| 1. Support/change reference | **UNKNOWN** |
+| 2. Platform/provider responsible | **UNKNOWN** |
+| 3. Exact change or diagnosis | **UNKNOWN** |
+| 4. Change/remediation timestamp | **UNKNOWN** |
+| 5. Whether TEST/live shared infrastructure changed | **UNKNOWN** |
+| 6. Whether database compute changed | **UNKNOWN** |
+| 7. Whether gateway/Auth/PostgREST/pooler configuration changed | **UNKNOWN** |
+| 8. Whether application/schema/security configuration changed | **UNKNOWN** |
+| 9. Whether the change was provider-side and outside Git | **UNKNOWN** |
+| 10. Expected impact on the previously observed request stalls and Auth 504 | **UNKNOWN** |
+
+The upload timestamp is not a remediation timestamp. The known backend provider and previously observed Mini compute do not identify who performed a remediation or whether a change occurred. EG's healthy idle observations and documentation-only Git changes are not remediation evidence.
+
+### Comparison against recorded F1 symptoms
+
+| Historical symptom (not rerun) | Connection to supplied change/diagnosis |
+|---|---|
+| Cheap REST maximum approximately 19.2 s (recorded 19.19 s) | **UNKNOWN** — no change/diagnosis supplied |
+| Auth HTTP 504 after 45.4 s | **UNKNOWN** — no change/diagnosis supplied |
+| Profile read approximately 9.7 s | **UNKNOWN** — no change/diagnosis supplied |
+| Roles read approximately 7.0 s | **UNKNOWN** — no change/diagnosis supplied |
+| Security-context calls unfinished beyond 20 s | **UNKNOWN** — no change/diagnosis supplied |
+| Database connections peak 40/60 | **UNKNOWN** — no relevant capacity/change evidence supplied |
+| Pool clients 1/200 observation | **UNKNOWN** — no relevant pooler/change evidence supplied |
+| No observed long-running SQL | **UNKNOWN** — no causal diagnosis supplied; sampled absence is not proof of no SQL execution |
+| No observed database waits in the failure window | **UNKNOWN** — no causal diagnosis supplied |
+| Pooler `EAUTHQUERY auth_query secret check timed out` | **UNKNOWN** — no provider finding or remediation supplied; the recorded event occurred during run 2, not the final run-3 failure |
+
+### PREREQUISITE NOT SATISFIED
+
+Evidence remains insufficient: this upload is an evidence-intake instruction, not evidence that the managed request-path blocker was remediated, materially changed, diagnosed by support or made materially more observable. No facts inferred. **AML-CLOSE-08 = CONDITIONAL PASS — CERTIFICATION FROZEN. UPGRADE_NOT_YET_JUSTIFIED.**
+
+Spec 12, Spec 15, full AML suite, regression, security scans, load probes, publication and resizing were not performed. No application/schema/security/settings/account/data changes, external communications or notification sweeps occurred. Frozen F2 evidence and the two inactive TEST drafts remain undisturbed, not freshly recertified. Concrete platform evidence is required before intake validation; a separate owner certification-resumption decision is required even if a future intake finds the prerequisite satisfied. **STOP. AML-CLOSE-09 not started.**
+
+## EI. Validate new platform evidence only — owner upload 2026-10-07 16:47 UTC
+
+Reviewed the complete supplied file `AML-CLOSE-08_-_VALIDATE_NEW_PLATFORM_EVIDENCE_pasted.md`. It states that new platform/support evidence has been supplied, but contains only validation instructions, the historical failure symptoms and stop conditions. It supplies no support response, change record, diagnosis, remediation timestamp or new telemetry. No separate supporting record accompanies this turn. The assertion that evidence exists is not direct evidence of a qualifying change; the upload time is not a remediation time. This is document-only validation, not a new platform investigation or certification attempt.
+
+### Required evidence record
+
+| Required item | Supported value |
+|---|---|
+| 1. Support/change reference | **UNKNOWN** |
+| 2. Responsible provider/team | **UNKNOWN** |
+| 3. Exact diagnosis or remediation | **UNKNOWN** |
+| 4. Remediation/change timestamp | **UNKNOWN** |
+| 5. TEST/live shared-infrastructure impact | **UNKNOWN** |
+| 6. Database-compute impact | **UNKNOWN** |
+| 7. Gateway/Auth/PostgREST/pooler impact | **UNKNOWN** |
+| 8. Application/schema/security impact | **UNKNOWN** |
+| 9. Whether the change occurred outside Git | **UNKNOWN** |
+| 10. Expected impact on historical request stalls/Auth 504 | **UNKNOWN** |
+
+### Comparison with recorded F1 failure (historical, not rerun)
+
+| Recorded observation | Supplied evidence addressing it |
+|---|---|
+| Cheap REST 19.19 s | **UNKNOWN** |
+| Auth HTTP 504 after 45.4 s | **UNKNOWN** |
+| Profile 9.72 s | **UNKNOWN** |
+| Roles 6.98 s | **UNKNOWN** |
+| Security/context requests unfinished at 20 s | **UNKNOWN** |
+| DB peak 40/60 connections | **UNKNOWN** |
+| Pool clients 1/200 | **UNKNOWN** |
+| No observed long-running SQL | **UNKNOWN** |
+| No observed DB waits | **UNKNOWN** |
+| Pooler `EAUTHQUERY auth_query secret check timed out` | **UNKNOWN** |
+
+F1's sampled absence of long SQL/waits does not prove no SQL execution, and the pooler event was recorded during run 2 rather than the final run-3 failure. No supplied finding identifies the causal layer, establishes remediation or materially improves observability. EG's prior healthy idle snapshot remains insufficient and has not been repeated.
+
+### PREREQUISITE NOT SATISFIED
+
+**AML-CLOSE-08 remains CONDITIONAL PASS — CERTIFICATION FROZEN.** No tests (including Spec 12/15), scans, load probes, platform/backend queries, publication, resizing, application/schema/security/data changes or external communications were performed for this validation. The two inactive TEST drafts were not touched; protected-state evidence remains historical, not freshly verified. Documentation only was updated. Concrete qualifying evidence is still required, followed by a separate owner instruction before any certification resumption. **STOP. AML-CLOSE-09 not started.**
+
+## EJ. Concrete platform evidence intake — owner upload 2026-10-07 16:52 UTC
+
+Reviewed the entire `AML-CLOSE-08_-_CONCRETE_PLATFORM_EVIDENCE_INTAKE_pasted.md`. This turn supplies one instructional document, not a provider support response, incident/change ticket, remediation notice, managed-service change record, telemetry, confirmed configuration/resource change or substantive provider diagnosis. Its statement that concrete evidence has been supplied is unsupported by its contents. The document itself explicitly says an instruction asserting that evidence exists is not evidence. No remediation or causal finding is inferred from the upload timestamp or prior idle health.
+
+### Exact evidence record
+
+| Requested item | Supplied value |
+|---|---|
+| 1. Support/change reference | **UNKNOWN** |
+| 2. Provider/team | **UNKNOWN** |
+| 3. Exact diagnosis | **UNKNOWN** |
+| 4. Exact remediation/change | **UNKNOWN** |
+| 5. Timestamp | **UNKNOWN** |
+| 6. TEST/live shared-infrastructure impact | **UNKNOWN** |
+| 7. Database-compute impact | **UNKNOWN** |
+| 8. Gateway/Auth/PostgREST/pooler impact | **UNKNOWN** |
+| 9. Application/schema/security impact | **UNKNOWN** |
+| 10. Expected impact on recorded request stalls | **UNKNOWN** |
+
+### Historical blocker comparison
+
+| Recorded F1 symptom (not rerun) | Classification of supplied platform evidence |
+|---|---|
+| Cheap REST 19.19 s | **UNKNOWN** |
+| Auth 504 after 45.4 s | **UNKNOWN** |
+| Profile 9.72 s | **UNKNOWN** |
+| Roles 6.98 s | **UNKNOWN** |
+| Security/context calls unfinished after 20 s | **UNKNOWN** |
+| DB peak 40/60 | **UNKNOWN** |
+| Pool clients 1/200 | **UNKNOWN** |
+| No observed long-running SQL | **UNKNOWN** |
+| No observed DB waits | **UNKNOWN** |
+| Pooler `EAUTHQUERY auth_query secret check timed out` | **UNKNOWN** |
+
+No substantive platform evidence is available to classify as directly explaining, plausibly addressing or not addressing any symptom. Historical observations are not new telemetry. Sampled absence of long SQL/waits is not proof of no SQL execution; the pooler timeout was recorded during run 2, not the final run-3 failure.
+
+### PREREQUISITE NOT SATISFIED
+
+The evidence remains instructional and does not establish a material diagnosis, remediation, platform change or materially improved observability sufficient to justify another certification attempt. **AML-CLOSE-08 = CONDITIONAL PASS — CERTIFICATION FROZEN.** Qualifying substantive evidence remains the blocker; even a future satisfied prerequisite requires separate owner certification authorisation.
+
+Document review and documentation updates only. No Spec 12, Spec 15, full AML suite, regression, security scan, backend/platform query, load probe, publish, live smoke, infrastructure resize, AML functionality/schema/security/data change or external communication occurred. Two inactive TEST drafts remain untouched; no fresh protected-state certification is claimed. **STOP. AML-CLOSE-09 not started.**
+
+---
+
+## AML-CLOSE-08F3 — Controlled Request-Path Diagnostic
+
+Owner-authorised bounded diagnostic (brief `AML-CLOSE-08F3 — CONTROLLED REQUEST-PATH DIAGNOSTIC & PLATFORM ESCALATION`). Not a recertification. No code, schema, RLS, Auth, pooler, timeout or capacity change; no publish; no Spec 15; no full suite; no AML-CLOSE-09.
+
+### 1. Baseline (2026-10-07 17:10 UTC)
+| Item | Value |
+|---|---|
+| Git HEAD | `fb86ccf336f22dc36077fd5b22cd05a9bafeae9f` |
+| Deployed frontend version | UNKNOWN (not discoverable from sandbox) |
+| Managed backend | Lovable Cloud project (shared TEST/live instance) |
+| Compute size | Mini (per F1/F2 record; not re-read) |
+| DB start time | 2026-08-31 10:29:55 UTC (no restart since) |
+| DB connections | 23 / 60 (1 active, 14 idle) |
+| Pool clients | NOT EXPOSED in this run |
+| Memory | NOT EXPOSED in this run |
+| Platform warnings | none; status check: auth 106 ms, database 107 ms, auth→database 330 ms |
+
+### 2. Requests executed (one officer session, sequential steps, `aml_supervision_officer` TEST persona)
+1. Anonymous cheap REST control `GET /rest/v1/regulators?select=id&limit=1` → 200, 182–196 ms.
+2. Real login UI → `POST /auth/v1/token`.
+3. Profile, `user_roles`, `user_dynamic_roles`, `roles` reads.
+4. `rpc/sec_get_user_context`.
+5. Navigate `/supervision/aml/assessments` → `aml_portfolio`, `aml_assessment_page`; "New AML/CFT assessment" control rendered (page ready in 3.14 s incl. network idle).
+6. Dashboard read models already in the journey (`supervisory_work_queue`, `supervisory_dashboard_operational_summary`, `sup_dashboard_summary`).
+
+### 3–4. Request timing and correlation (selected; full 71-request capture in sandbox `/tmp/browser/f3/recs.json`, tokens not stored)
+| UTC start | ms | HTTP | Method | Endpoint | sb-request-id | cf-ray |
+|---|---|---|---|---|---|---|
+| 17:11:28.496 | 195 | 200 | GET | /rest/v1/regulators | 01a11759-4447-7c44-8f1c-1afcc6425b23 | a46e86739b0e65f9-AMS |
+| 17:11:28.844 | 401 | 200 | POST | /auth/v1/token | 01a11759-456b-72ef-803c-7cedfa6cd82b | a46e86756b3e0ae3-AMS |
+| 17:11:29.389 | 89 | 200 | GET | /rest/v1/profiles | 01a11759-4792-7e26-bc23-005ea49329df | a46e8678df180ae3-AMS |
+| 17:11:29.396 | 155 | 200 | GET | /rest/v1/user_roles | 01a11759-479e-75a4-8b76-ec7d65d7c0ac | a46e8678ef330ae3-AMS |
+| 17:11:29.748 | 93 | 200 | GET | /rest/v1/roles | 01a11759-48fb-7292-b4f8-2452ef79e6e5 | a46e867b198d0ae3-AMS |
+| 17:11:29.938 | 392 | 200 | POST | rpc/sec_get_user_context | 01a11759-49c5-7fbb-a17a-88845d26ad92 | a46e867c5ac60ae3-AMS |
+| 17:11:31.050 | 1210 | 200 | POST | rpc/supervisory_work_queue | 01a11759-4e19-7e36-b0c8-019e028ce370 | a46e86834b9f0ae3-AMS |
+| 17:11:31.050 | 1447 | 200 | POST | rpc/supervisory_dashboard_operational_summary | 01a11759-4e15-7f2b-af8d-62d7aca6ec3f | a46e86833b980ae3-AMS |
+| 17:11:31.052 | 1089 | 200 | POST | rpc/sup_dashboard_summary | 01a11759-4e1b-77fa-962c-9e3b08d3a504 | a46e86834ba40ae3-AMS |
+| 17:11:34.825 | 781 | 200 | POST | rpc/aml_portfolio | 01a11759-5ced-7da5-a6d7-2f164ea83108 | a46e869aea770ae3-AMS |
+| 17:11:34.835 | 284 | 200 | POST | rpc/aml_assessment_page | 01a11759-5cf8-7f97-9a33-6c520340af45 | a46e869b0a8d0ae3-AMS |
+
+No `x-request-id`/trace ID header returned; `sb-request-id` and `cf-ray` are the available correlation IDs. PostgreSQL backend PID, per-request SQL duration and pre-/in-/post-SQL split: NOT EXPOSED. Expected non-stall statuses: pre-login anonymous `currencies`/`monetary_config_resolve` 401; officer `supervisory_assessment_orphan_cases` 403 (lacks approval authority). No retries observed. No 5xx.
+
+### 5. DB observations
+Diagnostic: 23 connections, 0 lock waits. Spec 12 window (17:11:53–17:21:24 UTC, 180 samples @3 s): connections 32–35/60 peak 35; active client statements other than the monitor 0 at every sample; lock waits 0; longest active client statement 0 s; no wait events. `pg_stat_statements` deltas not captured.
+
+### 6. Managed-service observations
+Gateway, Auth, PostgREST and pooler latency, CPU, I/O, network, concurrency, queue depth, throttling: NOT EXPOSED. Pooler log search (last 20 min) for `EAUTHQUERY`/timeout/FATAL: 0 rows. Edge and Auth log queries returned 0 rows for the window — treated as NOT EXPOSED, not as zero.
+
+### 7. First stop-condition event
+None. Max cheap REST 196 ms; Auth 401 ms; profile/security max 392 ms; no 5xx; no `EAUTHQUERY`; navigation never blocked.
+
+### 8. Request-path timeline
+Browser → Gateway (CONFIRMED HEALTHY in this run) → Auth (CONFIRMED HEALTHY, 401 ms) → PostgREST (CONFIRMED HEALTHY, end-to-end ≤1.45 s) → Pooler (NOT OBSERVABLE beyond absent errors) → PostgreSQL (CONFIRMED HEALTHY: no waits/long SQL) → client (CONFIRMED HEALTHY). Healthy applies only to this window; the F1 failure window remains NOT OBSERVABLE at gateway/Auth/PostgREST/pooler layers.
+
+### 9. Root-cause classification
+**L. UNKNOWN_DUE_TO_OBSERVABILITY_GAP** (secondary candidates, unproven: I. SHARED_MANAGED_PROJECT_CAPACITY, F. POOLER given the historical `EAUTHQUERY`).
+
+### 10. Stall reproduced
+No. Controlled requests healthy, so per §I one controlled Spec 12 run was executed: **9 passed (6.9 min)**, one worker, no parallel tests, setup and teardown passed; protected 00830/00836/00838 timestamps unchanged; TEST policy retired by teardown. **STALL NOT REPRODUCED IN THIS RUN — REMEDIATION NOT PROVEN.** Spec 15 and certification not run.
+
+### 11. Application defect proven
+No. No duplicate-request storm, refresh loop or uncontrolled retry observed (dashboard reads issued once per navigation).
+
+### 12. Additional platform telemetry required
+Yes — pre-SQL queue time, pooler auth-query latency and gateway/Auth/PostgREST timings for the F1 window are needed to explain the earlier stall.
+
+### 13. Support escalation document
+Not created: §J applies only when the stall reproduces. Existing `docs/aml/AML-CLOSE-08-infrastructure-stall-support-pack.md` remains the owner's escalation pack for the F1 window.
+
+### STALL NOT REPRODUCED — REMEDIATION NOT PROVEN
+
+AML-CLOSE-08 remains **CONDITIONAL PASS**. Not PASS. Not published. Not resized. AML-CLOSE-09 not started. Stopped after F3.
+
+---
+
+## AML-CLOSE-08F4 — Spec 12 Determinism Gate
+
+### 1. F3 run accepted as run 1
+F3 Spec 12 (2026-10-07 17:11:52–17:18:47 UTC) 9/9 PASS, setup and teardown passed.
+
+### 2. Pre-run integrity check (18:22:08 UTC)
+HEAD `2e86132eb`; commits since F3 base `fb86ccf3` changed only this report (75 doc lines). Application code, migrations/schema, RLS/grants: no diff. Auth/pooler config change: none made; external change NOT OBSERVABLE. Compute: none made. DB connections 24/60. F3 counted as run 1.
+
+### 3–4. Runs 2 and 3 (Spec 12 only, one worker, isolated, normal fixture setup/teardown, no other activity between)
+| Run | UTC window | Result | Duration | Teardown |
+|---|---|---|---|---|
+| 1 (F3) | 17:11:52–17:18:47 | 9 passed | 6.9 min | passed |
+| 2 | 18:22:23–18:29:30 | 9 passed, 0 failed, 0 not run | 7.0 min | passed |
+| 3 | 18:29:39–18:37:05 | 9 passed, 0 failed, 0 not run | 7.4 min | passed |
+
+### 5. Request-path latency (cheap REST `regulators?select=id&limit=1` sampled ~4 s)
+Run 2: 98 samples, max 0.64 s, 0 × 5xx. Run 3: 102 samples, max 3.03 s (one isolated sample ~18:34 UTC, below the 5 s stop limit; others ≤0.63 s), 0 × 5xx. No `[auth-diag]` sign-in failures, no Auth 504, no request-path timeout in Spec 12 output. Per-request Auth latency inside the specs not separately instrumented. `EAUTHQUERY`: none surfaced; pooler logs NOT EXPOSED for this window beyond F3's empty query.
+
+### 6. DB observations
+Run 2 connections 23–32/60; run 3 30–33/60. Active client statements (excluding monitor) 0 at every sample, lock waits 0, longest active SQL 0 s.
+
+### 7. Setup/teardown
+All three runs: fixture setup via screens, teardown retired the run's judgement, response and SLA TEST components (runs 93120164, 97354721, 97785059 → all RETIRED).
+
+### 8. Protected state (read-only, after run 3)
+| Assessment | Status | Last update UTC | Facts |
+|---|---|---|---:|
+| 00830 | approved | 2026-09-12 14:11:29.82134 | 0 |
+| 00836 | draft | 2026-09-28 11:37:09.016119 | 0 |
+| 00838 | draft | 2026-10-03 17:35:00.173152 | 3 (all with source; latest fact write 2026-10-03 17:41:56) |
+Timestamps match EC. STR_SAR_GOVERNANCE 22 rows, ID digest `8305ec6bbf50ef8573c6634bd6de6328` (matches). Full-row digests in EC used an unrecorded formula and were not reproduced; unchanged-state rests on timestamps, counts and ID digest. 01283: one policy snapshot (created 2026-10-07 13:41:02, before F3), components digest `527abb709b9e62e11c4e596811addba5`; status now `superseded`, updated 2026-10-07 17:14:00 during F3 run 1 by normal publication supersession on the shared TEST entity — pinned basis not rewritten. cfp1 integrity function not callable from read-only role: NOT VERIFIED by function.
+
+### 9. TEST residue
+Active TEST profiles: 0. Inactive drafts retained: 2 profiles, 1 component (as F2). **Pre-existing residue found:** 4 TEST judgement components still APPROVED (`AML_TECH_CERT_JUDGEMENT_20036115`, `_42222154`, `_42457139` created 2026-10-05; `_21398242` created 2026-10-06) — not from F3/F4 runs and not in F2's scoped three runs. With no active TEST profile they are not shown to govern new work, but this was not proven by function. Not retired here (outside F4 scope); owner decision required.
+
+### 10. Stall reproduced
+No.
+
+### SPEC 12 DETERMINISM GATE = PASS — 3/3 CONSECUTIVE ISOLATED RUNS
+
+AML-CLOSE-08 remains **CONDITIONAL PASS**. No Spec 15, full suite, publish, resize or code/schema/security change. AML-CLOSE-09 not started. STOP.
+
+---
+
+## AML-CLOSE-08F5 — Orphan TEST Judgement Policy Cleanup
+
+### 1. Inventory (before, 2026-10-07 ~18:48 UTC)
+All four: type JUDGEMENT_POLICY, version 1.0, status APPROVED, maker and submitter `b8eaf680…` (officer), approver `0b522724…` (supervisor), no effective dates.
+| Code | ID | Created | Updated | Content md5 | Bound profile | Snapshots / assessments | Class |
+|---|---|---|---|---|---|---|---|
+| …20036115 | 1082eb54-4420-4e22-8c82-b8a2944f0265 | 10-05 17:07:35 | 10-05 17:08:00 | 49bad79fd68b1459dae0a5ef18307cf3 | 22c367cd… SUPERSEDED | 5: 01003–01005 superseded, 01006–01007 draft | HISTORICALLY_REFERENCED_BUT_RETIRABLE |
+| …42222154 | 083e672e-60b1-4ba9-8726-92f65ff7c6c9 | 10-05 23:17:21 | 10-05 23:17:44 | b3498357b2b38977783f927be10a7c11 | 4ae95915… SUPERSEDED | 1: 01035 submitted | HISTORICALLY_REFERENCED_BUT_RETIRABLE |
+| …42457139 | b59c1fdd-acf4-4c53-96d4-affad0c8fe6c | 10-05 23:21:25 | 10-05 23:21:58 | 8736b1c37f479c0614385e2f915a00b3 | ef050714… SUPERSEDED | 2: 01037 superseded, 01038 draft | HISTORICALLY_REFERENCED_BUT_RETIRABLE |
+| …21398242 | 6c1eaab9-67b3-4ea2-b5e9-d0821965d87a | 10-06 21:16:58 | 10-06 21:17:23 | 0f433f203fd727075497a060ed0848cb | f5879bf5… SUPERSEDED | 6: 01151–01153, 01156 draft; 01154–01155 superseded | HISTORICALLY_REFERENCED_BUT_RETIRABLE |
+
+### 2–4. Bindings and new-work authority (before)
+Each component had exactly one binding, to a SUPERSEDED TEST profile. Active AML_CFT profiles: only `FSRA-AML-CFT-POLICY` (5dcc6999…, ACTIVE, 7 bindings, none of the four). Active TEST profiles: 0. **0 of 4 governed new AML/CFT work.** Existing draft/submitted TEST assessments retain their own pinned snapshots (historical basis, not new work).
+
+### 5–6. Capabilities and retirement
+Signed in through the normal login as the TEST AML supervisor. On each component screen the server offered **Retire**; used it with the mandated F5 rationale. No other lifecycle action used.
+
+### 7–8. After
+| Code | Status | Retired UTC | Content md5 | RETIRED event |
+|---|---|---|---|---|
+| …20036115 | RETIRED | 18:49:26 | unchanged | 1 |
+| …42222154 | RETIRED | 18:49:32 | unchanged | 1 |
+| …42457139 | RETIRED | 18:49:38 | unchanged | 1 |
+| …21398242 | RETIRED | 18:49:44 | unchanged | 1 |
+Content fingerprints are md5 of `content` (cfp1 function not callable from read-only role).
+
+### 9–10. Historical basis
+All 14 referencing assessments: status, `updated_at` and snapshot components md5 identical before/after (99f4e824… ×5, 1784e9e6…, 8efcc083… ×2, 52be25a4… ×6). No recalculation or publication. **01283 PINNED POLICY BASIS UNCHANGED** (single snapshot, md5 `527abb709b9e62e11c4e596811addba5`; status `superseded` from F3 left as is).
+
+### 11. FSRA authority
+`FSRA-AML-CFT-POLICY` ACTIVE, updated 2026-09-12 14:07:47 (unchanged), 7 bindings.
+
+### 12–13. Protected state
+00830 approved 2026-09-12 14:11:29.82134, 0 facts; 00836 draft 2026-09-28 11:37:09.016119, 0 facts; 00838 draft 2026-10-03 17:35:00.173152, 3 facts. STR_SAR_GOVERNANCE (`supervisory_assessment_dimension`) 22 rows, ID digest `8305ec6bbf50ef8573c6634bd6de6328`. Full-row digest not claimed.
+
+### 14. Final TEST authority census
+- Active TEST profiles: 0. Draft TEST profiles: 2 (retained from F2).
+- Approved TEST judgement components: 0 (four retired here; F3/F4 run components already RETIRED).
+- ACTIVE shared TEST base components: 3 — `AML_TECH_CERT_SOURCES`, `AML_TECH_CERT_OVERLAY`, `AML_TECH_CERT_FACTS`. Bound only to RETIRED/SUPERSEDED/DRAFT TEST profiles; reused as the base for every Spec 12 fixture run. Not in F5 scope; not retired.
+- Draft TEST components: 1 (retained from F2).
+- Active bindings to TEST components: 0.
+- **TEST AML authority capable of governing new work = 0.** Not a claim that all historical TEST artefacts platform-wide are removed.
+
+### F5 CONDITIONAL — NON-GOVERNING RESIDUE REMAINS
+
+The four orphan judgement components are clean. Remaining residue (3 shared ACTIVE base components, 2 draft profiles, 1 draft component) governs no new work. Retiring the base components would break future fixture setup; owner decision required. AML-CLOSE-08 remains **CONDITIONAL PASS**. No Spec 15, publish or AML-CLOSE-09. STOP.
+
+---
+
+## AML-CLOSE-08F6 — Spec 15 Publication / Risk-of-Record Determinism Gate
+
+### 1. Pre-run integrity (19:06:36 UTC)
+HEAD `baee43ea4`; since F4 (`5b8ed59e6`) only this report changed. No application, migration/schema, RLS/grant or Spec 15 diff (Spec 15 last changed 2026-10-06). Auth/pooler/infrastructure change: none made; external NOT OBSERVABLE. Active TEST profiles 0; TEST components with active binding 0. FSRA-AML-CFT-POLICY `5dcc6999…` ACTIVE (updated 2026-09-12). DB 22/60.
+
+### 2–4. Runs (Spec 15 unchanged, one worker, project `aml` with governed screen setup/teardown)
+| Run | UTC | Result | Duration | Cheap REST max | DB conns | 5xx |
+|---|---|---|---|---|---|---|
+| 1 | 19:07:00–19:11:32 | 7/7 + setup + teardown | 4.5 m | 0.19 s | 22–38 | 0 |
+| 2 | 19:11:40–19:16:31 | 7/7 + setup + teardown | 4.8 m | 4.50 s | 31–34 | 0 |
+| 3 | 19:16:51–19:22:38 | 7/7 + setup + teardown | 5.8 m | **7.60 s (19:20:11)** | 34–38 | 0 |
+
+### 5–7. Observations
+All DB samples: 0 active client SQL, 0 lock waits, longest SQL 0 s. No sign-in diagnostics, Auth 504 or `EAUTHQUERY` in output; gateway/pooler logs not exposed. Expected refusals in tests D/E/C were test assertions, not errors. Latency rose across runs (0.19 → 4.50 → 7.60 s) with an idle database. Run 3 breached the 5 s cheap-REST stop condition. Correlation IDs not captured.
+
+### 8–12. State after run 3 (read-only)
+00830 approved 2026-09-12 14:11:29; 00836 draft 2026-09-28 11:37:09; 00838 draft 2026-10-03 17:35:00, 3 facts — unchanged. STR_SAR_GOVERNANCE 22 rows, ID digest `8305ec6bbf50ef8573c6634bd6de6328`. 01283 superseded (F3), updated 17:14:00, one snapshot row — pinned basis not rewritten. FSRA policy unchanged/ACTIVE. Active TEST profiles 0; publication history not deleted.
+
+### 13. Retained fixtures
+AML_TECH_CERT_SOURCES/OVERLAY/FACTS ACTIVE (unbound), 2 draft TEST profiles, 1 draft component — untouched.
+
+### STALL REPRODUCED — PLATFORM SUPPORT ESCALATION REQUIRED
+Functionally 3/3 green, but the gate is not PASS because of the run-3 stop condition. Escalation: `docs/aml/AML-CLOSE-08-platform-support-escalation.md`. AML-CLOSE-08 remains **CONDITIONAL PASS**. No full suite, publish, resize or AML-CLOSE-09.
