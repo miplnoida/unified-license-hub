@@ -1,6 +1,7 @@
 import { formatRecordMoney } from '@/lib/money';
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { isPostLicenseApplicationRow } from '@/lib/applicationCategory';
+import { fetchAllListPages, attachRequestKinds, sectorParamForAudience } from '@/lib/applicantApplicationList';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -259,6 +260,24 @@ export default function ApplicationsList() {
   const validActiveSectorId = activeSectorId && availableSectors.some((sector) => sector.id === activeSectorId)
     ? activeSectorId
     : null;
+  // External users (applicant / licensee) are never sector-scoped on their own list.
+  const listSectorId = sectorParamForAudience(isInternal, validActiveSectorId);
+
+  // The list RPC does not return request_kind; read it from applications
+  // (RLS-scoped) so Pre/Post uses the server classification, not a guess.
+  const withRequestKinds = async (rows: any[]) => {
+    const ids = rows.map((r) => r.id).filter(Boolean);
+    if (ids.length === 0) return rows;
+    const kinds: Record<string, string> = {};
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data } = await supabase
+        .from('applications' as any)
+        .select('id, request_kind')
+        .in('id', ids.slice(i, i + 200));
+      ((data || []) as any[]).forEach((k) => { if (k.request_kind) kinds[k.id] = k.request_kind; });
+    }
+    return attachRequestKinds(rows, kinds);
+  };
 
   // Bounded reference data — small admin-config tables. Loaded once.
   // Profiles, pre_license_users, payments, and approval_actions are NO LONGER
@@ -313,19 +332,16 @@ export default function ApplicationsList() {
     let cancelled = false;
     async function loadPage() {
       setLoading(true);
-      // Grouping needs the full filtered set; cap at 200 to keep the UI responsive.
-      // (Users should narrow filters before grouping.)
+      // Grouping and pre/post views need the full filtered set. The RPC caps
+      // each page at 200 rows, so page through every row before filtering
+      // (otherwise older applications silently disappear).
       const groupingMode = groupingEnabled;
-      // When a pre/post type filter is active we must paginate AFTER the
-      // client-side filter, otherwise pages can appear empty even when more
-      // matches exist deeper in the dataset.
       const clientPaginate = !!typeFilter;
-      const effectivePage = (groupingMode || clientPaginate) ? 0 : page;
-      const effectivePageSize = (groupingMode || clientPaginate) ? 500 : PAGE_SIZE;
+      const fetchAll = groupingMode || clientPaginate;
 
       const rpcParams = {
-        _page: effectivePage,
-        _page_size: effectivePageSize,
+        _page: page,
+        _page_size: PAGE_SIZE,
         _search: debouncedSearch || null,
         _search_mode: searchMode,
         _status: statusFilter === 'all' ? null : statusFilter,
@@ -333,11 +349,25 @@ export default function ApplicationsList() {
         _sort_by: 'created_at',
         _sort_dir: 'desc',
         _licensee_id: resolvedLicenseeId,
-        _sector_id: validActiveSectorId,
+        // Applicants see all of their own applications in every sector.
+        _sector_id: listSectorId,
         _sla: slaFilter || null,
         _status_group: statusGroupFilter || null,
       };
-      const { data, error } = await supabase.rpc('get_application_list_page' as any, rpcParams);
+      let data: any[] | null = null;
+      let error: any = null;
+      try {
+        data = fetchAll
+          ? await fetchAllListPages((p, size) =>
+              supabase.rpc('get_application_list_page' as any, { ...rpcParams, _page: p, _page_size: size }) as any)
+          : await (async () => {
+              const res = await supabase.rpc('get_application_list_page' as any, rpcParams);
+              if (res.error) throw res.error;
+              return res.data as any[];
+            })();
+      } catch (e) {
+        error = e;
+      }
 
       if (import.meta.env.DEV) {
         console.log('licensee context', {
@@ -358,8 +388,8 @@ export default function ApplicationsList() {
         return;
       }
 
-      let rows = (data as any[]) || [];
-      // Client-side filter for pre/post licensing applications.
+      let rows = await withRequestKinds((data as any[]) || []);
+      if (cancelled) return;
       // Classification comes from the server-owned applications.request_kind.
       if (typeFilter === 'post') {
         rows = rows.filter((r: any) => isPostLicenseApplicationRow(r));
@@ -430,7 +460,7 @@ export default function ApplicationsList() {
     }
     loadPage();
     return () => { cancelled = true; };
-  }, [refreshKey, page, statusFilter, slaFilter, statusGroupFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, resolvedLicenseeId, typeFilter, validActiveSectorId, user?.id, user?.role, user?.licenseeId]);
+  }, [refreshKey, page, statusFilter, slaFilter, statusGroupFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, resolvedLicenseeId, typeFilter, listSectorId, user?.id, user?.role, user?.licenseeId]);
 
   // Fetch license number + status for approved applications so we can render
   // them in the Status column (licensee view especially needs this).
@@ -463,7 +493,7 @@ export default function ApplicationsList() {
     async function loadStats() {
       const { data, error } = await supabase.rpc('get_application_list_stats' as any, {
         _licensee_id: resolvedLicenseeId,
-        _sector_id: validActiveSectorId,
+        _sector_id: listSectorId,
       });
       if (error) return;
       const s = (data as any) || {};
@@ -475,7 +505,7 @@ export default function ApplicationsList() {
       });
     }
     loadStats();
-  }, [refreshKey, resolvedLicenseeId, validActiveSectorId, typeFilter]);
+  }, [refreshKey, resolvedLicenseeId, listSectorId, typeFilter]);
 
   // Lazy-load action history for a single application when its row is expanded.
   const ensureActionsLoaded = async (appId: string) => {
@@ -509,7 +539,7 @@ export default function ApplicationsList() {
     try {
       await authorizedExport('application_management', 'export', { source: 'ApplicationsList' });
       const MAX = 5000;
-      const PAGE = 500;
+      const PAGE = 200;
       let all: any[] = [];
       let offset = 0;
       while (offset < MAX) {
@@ -523,12 +553,12 @@ export default function ApplicationsList() {
           _sort_by: 'created_at',
           _sort_dir: 'desc',
           _licensee_id: resolvedLicenseeId,
-          _sector_id: validActiveSectorId,
+          _sector_id: listSectorId,
           _sla: slaFilter || null,
           _status_group: statusGroupFilter || null,
         });
         if (error) throw error;
-        let rows = (data as any[]) || [];
+        let rows = await withRequestKinds((data as any[]) || []);
         if (typeFilter === 'post') {
           rows = rows.filter((r: any) => isPostLicenseApplicationRow(r));
         } else if (typeFilter === 'pre') {
