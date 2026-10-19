@@ -1,6 +1,7 @@
 import { formatRecordMoney } from '@/lib/money';
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { isPostLicenseApplicationRow } from '@/lib/applicationCategory';
+import { fetchAllListPages, attachRequestKinds, sectorParamForAudience } from '@/lib/applicantApplicationList';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -259,6 +260,24 @@ export default function ApplicationsList() {
   const validActiveSectorId = activeSectorId && availableSectors.some((sector) => sector.id === activeSectorId)
     ? activeSectorId
     : null;
+  // External users (applicant / licensee) are never sector-scoped on their own list.
+  const listSectorId = sectorParamForAudience(isInternal, validActiveSectorId);
+
+  // The list RPC does not return request_kind; read it from applications
+  // (RLS-scoped) so Pre/Post uses the server classification, not a guess.
+  const withRequestKinds = async (rows: any[]) => {
+    const ids = rows.map((r) => r.id).filter(Boolean);
+    if (ids.length === 0) return rows;
+    const kinds: Record<string, string> = {};
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data } = await supabase
+        .from('applications' as any)
+        .select('id, request_kind')
+        .in('id', ids.slice(i, i + 200));
+      ((data || []) as any[]).forEach((k) => { if (k.request_kind) kinds[k.id] = k.request_kind; });
+    }
+    return attachRequestKinds(rows, kinds);
+  };
 
   // Bounded reference data — small admin-config tables. Loaded once.
   // Profiles, pre_license_users, payments, and approval_actions are NO LONGER
