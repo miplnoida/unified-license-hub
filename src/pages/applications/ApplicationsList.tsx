@@ -313,19 +313,16 @@ export default function ApplicationsList() {
     let cancelled = false;
     async function loadPage() {
       setLoading(true);
-      // Grouping needs the full filtered set; cap at 200 to keep the UI responsive.
-      // (Users should narrow filters before grouping.)
+      // Grouping and pre/post views need the full filtered set. The RPC caps
+      // each page at 200 rows, so page through every row before filtering
+      // (otherwise older applications silently disappear).
       const groupingMode = groupingEnabled;
-      // When a pre/post type filter is active we must paginate AFTER the
-      // client-side filter, otherwise pages can appear empty even when more
-      // matches exist deeper in the dataset.
       const clientPaginate = !!typeFilter;
-      const effectivePage = (groupingMode || clientPaginate) ? 0 : page;
-      const effectivePageSize = (groupingMode || clientPaginate) ? 500 : PAGE_SIZE;
+      const fetchAll = groupingMode || clientPaginate;
 
       const rpcParams = {
-        _page: effectivePage,
-        _page_size: effectivePageSize,
+        _page: page,
+        _page_size: PAGE_SIZE,
         _search: debouncedSearch || null,
         _search_mode: searchMode,
         _status: statusFilter === 'all' ? null : statusFilter,
@@ -333,11 +330,25 @@ export default function ApplicationsList() {
         _sort_by: 'created_at',
         _sort_dir: 'desc',
         _licensee_id: resolvedLicenseeId,
-        _sector_id: validActiveSectorId,
+        // Applicants see all of their own applications in every sector.
+        _sector_id: listSectorId,
         _sla: slaFilter || null,
         _status_group: statusGroupFilter || null,
       };
-      const { data, error } = await supabase.rpc('get_application_list_page' as any, rpcParams);
+      let data: any[] | null = null;
+      let error: any = null;
+      try {
+        data = fetchAll
+          ? await fetchAllListPages((p, size) =>
+              supabase.rpc('get_application_list_page' as any, { ...rpcParams, _page: p, _page_size: size }) as any)
+          : await (async () => {
+              const res = await supabase.rpc('get_application_list_page' as any, rpcParams);
+              if (res.error) throw res.error;
+              return res.data as any[];
+            })();
+      } catch (e) {
+        error = e;
+      }
 
       if (import.meta.env.DEV) {
         console.log('licensee context', {
@@ -358,8 +369,8 @@ export default function ApplicationsList() {
         return;
       }
 
-      let rows = (data as any[]) || [];
-      // Client-side filter for pre/post licensing applications.
+      let rows = await withRequestKinds((data as any[]) || []);
+      if (cancelled) return;
       // Classification comes from the server-owned applications.request_kind.
       if (typeFilter === 'post') {
         rows = rows.filter((r: any) => isPostLicenseApplicationRow(r));
