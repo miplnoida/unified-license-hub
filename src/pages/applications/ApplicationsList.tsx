@@ -460,7 +460,7 @@ export default function ApplicationsList() {
     }
     loadPage();
     return () => { cancelled = true; };
-  }, [refreshKey, page, statusFilter, slaFilter, statusGroupFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, resolvedLicenseeId, typeFilter, validActiveSectorId, user?.id, user?.role, user?.licenseeId]);
+  }, [refreshKey, page, statusFilter, slaFilter, statusGroupFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, resolvedLicenseeId, typeFilter, listSectorId, user?.id, user?.role, user?.licenseeId]);
 
   // Fetch license number + status for approved applications so we can render
   // them in the Status column (licensee view especially needs this).
@@ -493,7 +493,7 @@ export default function ApplicationsList() {
     async function loadStats() {
       const { data, error } = await supabase.rpc('get_application_list_stats' as any, {
         _licensee_id: resolvedLicenseeId,
-        _sector_id: validActiveSectorId,
+        _sector_id: listSectorId,
       });
       if (error) return;
       const s = (data as any) || {};
@@ -505,7 +505,7 @@ export default function ApplicationsList() {
       });
     }
     loadStats();
-  }, [refreshKey, resolvedLicenseeId, validActiveSectorId, typeFilter]);
+  }, [refreshKey, resolvedLicenseeId, listSectorId, typeFilter]);
 
   // Lazy-load action history for a single application when its row is expanded.
   const ensureActionsLoaded = async (appId: string) => {
@@ -539,7 +539,7 @@ export default function ApplicationsList() {
     try {
       await authorizedExport('application_management', 'export', { source: 'ApplicationsList' });
       const MAX = 5000;
-      const PAGE = 500;
+      const PAGE = 200;
       let all: any[] = [];
       let offset = 0;
       while (offset < MAX) {
@@ -553,7 +553,7 @@ export default function ApplicationsList() {
           _sort_by: 'created_at',
           _sort_dir: 'desc',
           _licensee_id: resolvedLicenseeId,
-          _sector_id: validActiveSectorId,
+          _sector_id: listSectorId,
           _sla: slaFilter || null,
           _status_group: statusGroupFilter || null,
         });
