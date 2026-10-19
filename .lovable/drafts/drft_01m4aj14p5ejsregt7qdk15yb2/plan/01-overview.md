@@ -1,18 +1,24 @@
 ## Goal
-In the applicant portal, "My Applications" shows every application the signed-in applicant owns, whatever its status. Pre/Post licensing and status stay as optional filters only. They must never hide an application without saying so.
+Applicants see their full application history on My Applications (`/applications`), Pre Licensing (`/applications?type=pre`) and Post Licensing (`/applications?type=post`). That covers every status: Draft, Submitted, Under Review, Approved, Rejected, Cancelled and the rest. It also holds whatever happens to the licence later (issued, expired, suspended, revoked). Search, filters, sorting, the details page and staff permissions stay exactly as they are.
 
-## Why applications can go missing today (from the code)
-The list page asks the server for applications, then filters them in the browser:
-1. **Sector filter applied to applicants.** The selected active sector goes to the server for every user. An applicant's application linked to another sector (or to no sector) gets dropped.
-2. **Pre/Post classification in the browser.** The page decides pre vs post with a fallback rule (`service_id` present means post). If the server row has no `request_kind`, a pre-licensing application can be misfiled as post, or the other way round.
-3. **500-row cap before filtering.** With a Pre/Post filter on, only the first 500 server rows get filtered. Anything past that is silently lost.
-
-This diagnosis is not confirmed yet. Step 1 checks it against your own account's real data before any change is made.
+## Suspected causes (not yet confirmed)
+These come from reading the list page. Step 1 checks each one against real data before any change is made.
+1. **Active sector cut.** The selected sector is sent to the server for applicants too, so applications in another sector, or with no sector, drop out.
+2. **PPOC/entity scoping.** When a licensee entity is active, the list may scope to that entity and hide applications the user owns personally (or the other way round).
+3. **Browser-side Pre/Post guess.** If a row comes back without `request_kind`, the page guesses from `service_id` and can file it under the wrong tab.
+4. **Row cap before filtering.** Only the first page of server rows gets filtered, so older applications disappear.
+5. **Status exclusions.** Draft/In Progress may be excluded by rules meant for the staff list, and approved/licensed rows may be filtered by licence state.
 
 ## Steps
-1. **Check against real data.** Sign the preview in as your applicant account. Compare the applications you own in the backend with what the list returns, using the Pre and Post views and both sector settings. Record which of causes 1–3 explains each missing row.
-2. **Ignore sector scoping for applicants.** External users (applicant, pre-licensee, licensee) see all of their own applications in every sector. Internal staff keep sector scoping as it works today.
-3. **Use the server's classification.** Make sure each list row carries `request_kind`, and filter Pre/Post only on that value. Show unclassified rows under an "All" view instead of dropping them.
-4. **Remove the silent cap.** Send the Pre/Post filter to the server as a parameter (if the existing list function already accepts one), or page through all rows before filtering.
-5. **Add an "All" tab** next to Pre/Post as the default view for applicants. The header counts must match the rows shown.
-6. **Tests.** Add tests for these rules: an applicant sees their own submitted application with a different sector selected; an application with `request_kind=INITIAL` shows under Pre and not Post; a `POST_LICENSE` one shows under Post; no rows are lost beyond 500.
+1. **Trace with real data (read-only).** Sign the preview in as an applicant account. Compare the applications the account owns in the backend with what each of the three pages returns. Check them against the list function's definition and record which cause explains each missing row.
+2. **Applicant scope = ownership.** For applicant, pre-licensee and licensee audiences, show every application the user owns. Applications of their active PPOC entity are added on top, and never replace the user's own. Sector becomes an optional filter, never a hidden cut. Staff keep today's scoping.
+3. **Classification from the server only.** Pre = `request_kind` other than `POST_LICENSE`, Post = `POST_LICENSE`. Rows with no value show on My Applications and are flagged, not dropped.
+4. **Full pagination.** Page through every row, or pass the Pre/Post kind to the server, so nothing past the first page is lost. Header counts must match the rows shown.
+5. **All statuses and licence states.** Make sure no applicant-side filter removes drafts, cancelled or approved applications, or rows whose licence is expired, suspended or revoked.
+6. **Tests.** One test per rule: an owned application stays visible with a different sector selected; an owned application stays visible while a PPOC entity is active; INITIAL goes under Pre only; POST_LICENSE goes under Post only; a draft stays visible; an approved application with a revoked licence stays visible; more than 200 rows are all returned. Then run the full test suite, a typecheck and a browser check of all three pages.
+
+## If the database list function itself is at fault
+Its updated version is prepared as a separate, additive change for your approval. Nothing is run and nothing is deployed. Existing records and access rules are not touched.
+
+## Deliverables
+Root cause with affected files, summary of fixes, any database change awaiting approval, test results and manual verification steps.

@@ -1,5 +1,6 @@
 ## Technical details
-- File: `src/pages/applications/ApplicationsList.tsx` (load at ~L320–430, CSV export at ~L505–540); `src/lib/applicationCategory.ts`.
-- For external audiences, pass `_sector_id: null`.
-- If `get_application_list_page` does not return `request_kind`, a database change is needed (add the column to the function's output). It would be staged as an additive change that applies only when the draft is accepted. You will be asked before any database change.
-- Internal staff behaviour, permissions and approval workflows stay unchanged.
+- Frontend: `src/pages/applications/ApplicationsList.tsx` (load, tabs, counts, CSV export), `src/lib/applicationCategory.ts`, `src/lib/visibleApplications.ts` (already pages at 200), `src/contexts/ActiveSectorContext.tsx` (read only).
+- For external audiences, pass `_sector_id: null` and apply the sector as an optional client filter.
+- Inspect `get_application_list_page` read-only (`pg_get_functiondef`) to check: applicant branch on `applicant_id = auth.uid()`, `_licensee_id` handling (OR, not AND), draft/status exclusions, licence-state joins, and whether `request_kind` is returned.
+- Any needed change is staged as an additive `CREATE OR REPLACE` file in the draft migrations folder, for approval only. RLS, grants and records are not modified.
+- Tests go in `src/test/` next to the existing tests and use a mocked RPC.
