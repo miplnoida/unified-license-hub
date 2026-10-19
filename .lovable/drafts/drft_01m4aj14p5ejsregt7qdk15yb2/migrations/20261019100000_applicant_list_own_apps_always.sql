@@ -1,0 +1,15 @@
+-- FOR APPROVAL ONLY (not applied). Fix: in get_application_list_page, the
+-- applicant's own applications are dropped whenever a PPOC/licensee context
+-- (_licensee_id) differs from profiles.licensee_id. Owned applications must
+-- always be visible to their owner.
+--
+-- Change inside linked_applications, first branch, from:
+--     WHERE a.applicant_id = v_uid
+--       AND ( _licensee_id IS NULL OR v_self_licensee_id = _licensee_id )
+-- to:
+--     WHERE a.applicant_id = v_uid
+--
+-- Apply with CREATE OR REPLACE FUNCTION using the current definition
+-- (pg_get_functiondef) with only that predicate changed. Signature, return
+-- type, SECURITY mode, grants and RLS stay unchanged.
+SELECT 1;

@@ -558,7 +558,7 @@ export default function ApplicationsList() {
           _status_group: statusGroupFilter || null,
         });
         if (error) throw error;
-        let rows = (data as any[]) || [];
+        let rows = await withRequestKinds((data as any[]) || []);
         if (typeFilter === 'post') {
           rows = rows.filter((r: any) => isPostLicenseApplicationRow(r));
         } else if (typeFilter === 'pre') {
