@@ -1,20 +1,19 @@
-# Credit Union demo data for Sessions 2, 3 and 4
+# Credit Union showcase data for Sessions 2, 3 and 4
 
 ## Decisions taken
-- **Mixed approach.** Basic records go straight into the database. Approvals, payments, Fit & Proper decisions, risk ratings, licence issue and enforcement decisions are created through the normal screens, signed in as test staff. That way none of them is made up.
-- **No AML/CFT** in Session 3 while the AML freeze is in place. Session 3 covers prudential returns, ratios, examinations, findings and corrective actions.
-- **Shared database is fine.** Every record is labelled `DEMO` and uses its own fixed IDs.
-- **Name change.** "Soufrière" is already used by an existing credit union, so the Session 3 entity becomes **DEMO Vieux Fort Community Credit Union Ltd**.
+- **One entity for all three sessions:** **Rodney Bay Community Credit Union Ltd**. It sits under the existing Credit Unions sector, Credit Union sub-sector and FSRA regulator. Its fixed ID is `cc330000-0000-4000-8000-000000000001` and its registry ID is `cc331000-0000-4000-8000-000000000001`.
+- **No "DEMO" in names.** The records are recognised by their fixed ID prefix `cc33…`, not by a label.
+- **Mixed approach.** Basic records go in directly. Approvals, payments, Fit & Proper decisions, risk ratings, the licence itself and enforcement decisions are created through the normal screens, so none of them is made up.
+- **No AML/CFT** while the freeze is in place.
+- **Name check:** no existing record uses this name. "Rodney Bay International Bank" is a different entity and stays untouched.
 
-## The three entities
-| Session | Entity | Fixed entity ID |
-|---|---|---|
-| 2 Licensing & Entity 360 | DEMO Rodney Bay Community Credit Union Ltd | `cc330000-0000-4000-8000-000000000001` |
-| 3 Prudential supervision | DEMO Vieux Fort Community Credit Union Ltd | `cc330000-0000-4000-8000-000000000002` |
-| 4 Complaints & enforcement | DEMO Castries Members Credit Union Ltd | `cc330000-0000-4000-8000-000000000003` |
-
-All three use the existing Credit Unions sector and its Credit Union sub-sector, so they do not repeat the "no sub-sector" gap found earlier. No duplicates were found for these names.
+## How one entity covers all three sessions
+| Session | What is shown on this entity |
+|---|---|
+| 2 Licensing & Entity 360 | registration, directors, contacts, licence application, fee, Fit & Proper, approval, licence issue, conditions, a variation |
+| 3 Prudential supervision | returns with realistic figures, ratios, risk assessment, supervisory plan, examination, findings, corrective actions |
+| 4 Complaints & enforcement | member complaint with evidence, investigation, market conduct review, enforcement referral, notice, decision, appeal |
 
 ## Two stages, each approved separately
-1. **Stage A: direct database inserts.** Covered by the SQL in this plan: entities, entity registry records and the duplicate check. The verification and rollback queries are included.
-2. **Stage B: screen walkthroughs, done after Stage A.** Each session's workflow is clicked through as test staff and licensee users. Before Stage B starts, I will send a separate list of exact steps for your approval, using these entity IDs.
+1. **Stage A: direct database inserts.** Covered by the SQL in this plan: the entity, its registry record and the duplicate check.
+2. **Stage B: screen walkthroughs, in session order.** The licence must exist first, then supervision, then complaints. Before Stage B starts, I will send a step-by-step list for your approval.
