@@ -1,22 +1,33 @@
-# Stage B, Session 2: read-only check results and revised steps
+# Stage B, Session 2: Phase 1 steps and Phase 2 findings
 
-Nothing was changed. Every finding below comes from reading the screens' code and the stored records.
+## Phase 1: prepare the draft application (approved)
+- **Applicant:** rodneybay.applicant@yopmail.com
+- **Entity:** registry ID `cc331000-0000-4000-8000-000000000001`, the same ID used by every screen.
 
-## Check results
-| Check | Result |
-|---|---|
-| Which ID to use | **Entity 360, licence links and applicant binding all use the registry ID `cc331000-…-000000000001`.** The entity ID `cc330000-…-000000000001` is only the underlying party record. Screen address: `/entities/cc331000-0000-4000-8000-000000000001`. |
-| Claiming the existing entity | **Supported.** Registration's entity step matches an existing entity or sends it for regulator review. An officer with the entity-resolution permission then chooses "resolve to existing" (a checker also approves when the case requires it). No second entity is created. Our entity has no registration number stored, so an automatic match is unlikely. The officer review path is the expected route. |
-| Officer adding the applicant | **Also supported, as a fallback.** On the entity's Web Users tab, an officer with user-creation permission adds the primary user. This creates the account and its approved link to the entity. Making that user the primary point of contact (PPOC) is a separate step on the PPOC screen, which requires an admin. |
-| "Active" status | **Acceptable.** Entity 360 shows "Active", not "Licensed". Licences are listed separately and today it says "No licences recorded for this entity". |
-| Credit Union licence form | **Published**, version 2, linked to Credit Unions → Credit Union, with 21 questions in 3 sections. |
-| Fee and payment | **Blocker.** The application screen accepts a zero fee, but the final submission check on the server still demands a completed payment and refuses without one. Credit Unions has no fee set up, so submission will fail. There is no legitimate no-fee path today. |
-| Approval workflow | **Blocker.** Credit Union applications are labelled "Credit Unions - Credit Union - …". Neither active licence workflow matches that label: one is for "general", the other for "Insurance", and "general" is not treated as a catch-all. Submission would stop with "business configuration required". |
-| Certificate | **At risk.** 16 certificate tasks and 16 portal-access tasks are stuck as failed (latest 20 Oct, 21:32 UTC) with only a generic error. This would be reported, not bypassed. |
+**Pause point for the email code.** My browser sessions don't stay open between messages, so I can't keep the registration screen waiting while you fetch the code. Two options:
+- **A (recommended):** you open `/register` in the preview and fill the registration in up to the email code, using the details below, then submit.
+- **B:** I fill it up to "Send code" and stop. You reopen the same screen and complete it yourself. This only works if the screen keeps the half-finished form, which I haven't confirmed.
 
-## Remaining blockers (each needs your decision; none is changed by me)
-1. **Payment rule:** either a Credit Union licence fee is configured through Fee Management, or the server rule is changed to allow a genuine no-fee case. Both are outside today's authorisation.
-2. **Approval workflow:** a Credit Union pre-licence workflow must exist, or an existing one must be scoped to Credit Unions. Also outside authorisation.
-3. **Certificate failures:** the cause needs investigating separately (it affects other licences too).
+Either way, you enter the code and handle the temporary password and first sign-in.
 
-Until 1 and 2 are resolved, the journey can only reach **"application filled in and saved as draft"**. It cannot be submitted, reviewed, approved or licensed.
+| # | Step | Screen | Who |
+|---|---|---|---|
+| 1 | Registration, entity "Rodney Bay Community Credit Union Ltd" and email code | `/register` → `/register/entity` → `/register/account` | **You** (with the code from YOPmail) |
+| 2 | Confirm the entity match. If it is not an exact match, an officer chooses "resolve to existing" for `cc331…` | `/licensing/entity-resolution/:caseId` | entity resolution officer, plus supervisor if needed (decision by an authorised user; I only take the screenshots) |
+| 3 | Approve the membership | `/admin/entity-memberships` | licensing officer (authorised user) |
+| 4 | Temporary password and first sign-in | `/` | **You** |
+| 5 | Fill in the 21 questions of the Credit Union form (version 2), upload documents, save as Draft | `/pre-license/new` → `/applications/:id/forms` | applicant. Once you are signed in, I fill the form in through the screen. |
+| 6 | Check Entity 360 and Person 360 | `/entities/cc331…`, `/persons/:partyId` | licensing officer, read-only screenshots |
+
+**Stop point:** application in Draft, with 0 payments and 0 licences. I don't submit.
+
+## Details to enter (fictional)
+- **Entity:** Rodney Bay Community Credit Union Ltd. Office on Rodney Bay Highway, Gros Islet. Co-operative registration CU-RB-2026-014.
+- **Applicant contact:** Denise St. Rose, General Manager.
+- **Directors:** Marcia Joseph (Chair), Kelvin Alexander (Treasurer) and Peter Francois (Compliance Officer).
+- **Documents:** short PDFs marked "fictional, for presentation":
+  - certificate of registration
+  - by-laws
+  - business plan
+  - audited financial statements
+  - director declarations

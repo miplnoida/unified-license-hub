@@ -1,40 +1,46 @@
-## Revised execution steps (run only after your explicit go-ahead)
-"Script" means a browser script fills in the normal screens. "Authorised user" means that step is a regulatory decision, so it is made by a person signed in with the right role, not by the script.
+## Phase 2: findings and proposals (plan only, nothing changed)
 
-| # | Step | Screen | Who | Done by |
-|---|---|---|---|---|
-| 1 | Applicant registers and identifies "Rodney Bay Community Credit Union Ltd" | `/register` → `/register/entity` | new applicant (needs a real inbox for the email code) | Script; you enter the code |
-| 2 | Bind the registration to the existing entity `cc331…` ("resolve to existing") | `/licensing/entity-resolution/:caseId` | entity resolution officer, then supervisor if the case needs a checker | Authorised user |
-| 2b | Fallback only if step 2 is not offered: add the primary user on the Web Users tab | `/entities/cc331…` (Web Users) | officer with user-creation permission | Authorised user |
-| 3 | Approve the membership request | `/admin/entity-memberships` | licensing officer | Authorised user |
-| 4 | First sign-in and forced password change | `/` | applicant | Manual |
-| 5 | Fill in the Credit Union licence form (21 questions) and upload documents | `/pre-license/new` → `/applications/:id/forms` | applicant | Script |
-| 6 | Check Entity 360 and Person 360 | `/entities/cc331…`, `/persons/:partyId` | licensing officer, read-only | Script (screenshots) |
-| **STOP** | Submit, payment, review, Fit & Proper, approval, licence and certificate | | | Waits for blockers 1 and 2 |
+### 1. Credit Union fee
+- **What exists today:** fees are set per sector or sub-sector. Examples:
+  - MSB Fee, 150.00 XCD
+  - Change of Address, 100.00 XCD
+  - Change of Control, 200.00 XCD
 
-## Expected records at the stop point
-- 1 registration, bound to `cc331…`
-- 1 resolution decision with its audit entry
-- 1 applicant account
-- 1 approved membership
-- 1 draft application linked to `cc331…` and form version 2
-- document records
-- 0 payments
-- 0 licences
+  All are "Application Fee", fixed amount, in XCD. Credit Unions has none.
+- **Payment rule:** the final submission check requires a completed payment, even when the fee is zero. There is no exemption path.
+- **Proposal:** add one "Application Fee" for Credit Unions → Credit Union, fixed, in XCD, entered in Fee Management by an authorised admin. **You set the amount;** I won't pick one. Payment then goes through the existing gateway simulator.
+- **Change needed:** 1 new fee setting. Nothing else changes.
 
-Entity 360 still says "No licences recorded".
+### 2. Approval workflow
+- **What exists today:** two licence workflows are active, labelled "general" and "Insurance". The label must match exactly, so Credit Union applications match neither.
+- **Proposal:** a new "Credit Union Pre-License Approval" workflow scoped to Credit Unions → Credit Union, created in Workflow Management. Three levels:
+  1. Licensing Officer: intake and completeness
+  2. Fit & Proper Officer: director assessments
+  3. Licensing Supervisor: final decision, a different person from level 1
+- **Change needed:** 1 workflow and 3 steps. The existing workflows stay unchanged.
 
-## Verification at the stop point
-- Every new record points to `cc331…`, with nothing orphaned.
-- Dates follow the order of the steps.
-- No one approved their own work.
-- No second Rodney Bay entity exists.
-- The fingerprint of the other credit unions is unchanged.
+### 3. Failed certificate and portal-access tasks
+- **What exists today:** 32 failed tasks (16 certificate and 16 portal access), each tried 8 times, created between 29 Aug and 20 Oct.
+- **Key finding:** **none of them carries a licence ID**. The certificate generator needs one, so these tasks fail every time.
+- **Likely cause:** the task is queued before the licence exists, or without its ID. I'll confirm this read-only from the function logs.
+- **Effect on Rodney Bay:** probably the same failure when its licence is issued, unless that cause is fixed. If so, a code fix will be proposed separately.
+
+## Phase 1 verification
+- Every new record points to `cc331…`:
+  - the registration
+  - the resolution decision
+  - the membership
+  - the draft application
+  - the documents
+- No second Rodney Bay entity.
+- No self-approval.
+- Audit entries exist.
+- The other credit unions' fingerprint is unchanged.
 - Fee, workflow and form counts are unchanged.
+- Entity 360 still says "No licences recorded".
 
-## Not done
-- Fee or workflow configuration.
-- Changes to code, schema or security.
-- Renewal and variation (deferred).
-- Activating services or publishing forms.
-- Any direct insert of links between records.
+## Restrictions
+- No direct inserts.
+- No changes to code, schema, fees, workflows or security settings.
+- The OTP step is never bypassed.
+- I stop and report if anything unexpected happens.
