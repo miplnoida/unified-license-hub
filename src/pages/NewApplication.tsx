@@ -231,17 +231,31 @@ export default function NewApplication() {
   const filteredSubSectors = allSubSectors.filter(s => s.sector_id === selectedSector);
   const filteredCategories = allCategories.filter(c => c.sub_sector_id === selectedSubSector);
 
+  // The regulator an application belongs to is the one that owns the chosen
+  // sector. The header's active regulator is only a UI preference (and for
+  // licensees with no switcher it defaults to the first regulator), so it is
+  // used only when the sector carries no regulator.
+  const selectedSectorRegulatorId =
+    (sectors.find(s => s.id === selectedSector) as any)?.regulator_id ?? null;
+  const effectiveRegulatorId: string | null =
+    selectedSectorRegulatorId ?? activeRegulator?.id ?? null;
+
   // EPR-05 — the applicable form set is resolved by the SERVER
   // (`application_resolve_form_set`: configured package first, then the
   // configured sector / sub-sector / category ladder, published versions only).
   // The browser renders the result; it never matches templates itself.
-  const { data: serverFormSet } = useQuery({
-    queryKey: ['application_form_set', activeRegulator?.id ?? null, selectedSector, selectedSubSector, selectedCategory],
+  const {
+    data: serverFormSet,
+    isError: formSetError,
+    isFetching: formSetFetching,
+    refetch: refetchFormSet,
+  } = useQuery({
+    queryKey: ['application_form_set', effectiveRegulatorId, selectedSector, selectedSubSector, selectedCategory],
     enabled: !!selectedSector && !!selectedSubSector && !!selectedCategory,
     staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc('application_resolve_form_set', {
-        _regulator_id: activeRegulator?.id ?? null,
+        _regulator_id: effectiveRegulatorId,
         _sector_id: selectedSector,
         _sub_sector_id: selectedSubSector,
         _category_id: selectedCategory,
@@ -1126,7 +1140,7 @@ export default function NewApplication() {
     return {
       license_type: licenseType,
       status: 'draft' as const,
-      regulator_id: activeRegulator?.id || null,
+      regulator_id: effectiveRegulatorId,
       data: {
         ...(existing || {}),
         ...(resolvedLicenseeId ? { licensee_id: resolvedLicenseeId } : {}),
@@ -2053,8 +2067,17 @@ export default function NewApplication() {
                     <span className="text-sm font-medium text-foreground">
                       {matchedTemplates.length > 0
                         ? `${matchedTemplates.length} mandatory form(s) to complete`
-                        : 'No published forms found for this category'}
+                        : formSetFetching
+                          ? 'Checking available forms…'
+                          : formSetError
+                            ? 'Could not load forms, please retry'
+                            : 'No published forms found for this category'}
                     </span>
+                    {formSetError && !formSetFetching && matchedTemplates.length === 0 && (
+                      <Button type="button" variant="outline" size="sm" className="ml-auto" onClick={() => refetchFormSet()}>
+                        Retry
+                      </Button>
+                    )}
                   </div>
                   {matchedTemplates.length > 0 && (
                     <p className="text-xs text-muted-foreground mt-1 ml-6">
