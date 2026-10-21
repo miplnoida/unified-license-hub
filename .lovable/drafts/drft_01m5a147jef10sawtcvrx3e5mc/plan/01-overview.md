@@ -1,22 +1,22 @@
-# Stage B, Session 2: Licensing & Entity 360 for Rodney Bay Community Credit Union Ltd
+# Stage B, Session 2: read-only check results and revised steps
 
-This is a plan only. Nothing runs until you approve it. Five blockers have to be decided first (see the end of this plan), and two of them stop the journey from starting at all.
+Nothing was changed. Every finding below comes from reading the screens' code and the stored records.
 
-## Journey through the normal screens
-All test accounts use the `@mishainfotech.com` domain. "Auto" means I drive the normal screens with a browser script, signed in as that test account. "Manual" means a person has to do the step.
+## Check results
+| Check | Result |
+|---|---|
+| Which ID to use | **Entity 360, licence links and applicant binding all use the registry ID `cc331000-…-000000000001`.** The entity ID `cc330000-…-000000000001` is only the underlying party record. Screen address: `/entities/cc331000-0000-4000-8000-000000000001`. |
+| Claiming the existing entity | **Supported.** Registration's entity step matches an existing entity or sends it for regulator review. An officer with the entity-resolution permission then chooses "resolve to existing" (a checker also approves when the case requires it). No second entity is created. Our entity has no registration number stored, so an automatic match is unlikely. The officer review path is the expected route. |
+| Officer adding the applicant | **Also supported, as a fallback.** On the entity's Web Users tab, an officer with user-creation permission adds the primary user. This creates the account and its approved link to the entity. Making that user the primary point of contact (PPOC) is a separate step on the PPOC screen, which requires an admin. |
+| "Active" status | **Acceptable.** Entity 360 shows "Active", not "Licensed". Licences are listed separately and today it says "No licences recorded for this entity". |
+| Credit Union licence form | **Published**, version 2, linked to Credit Unions → Credit Union, with 21 questions in 3 sections. |
+| Fee and payment | **Blocker.** The application screen accepts a zero fee, but the final submission check on the server still demands a completed payment and refuses without one. Credit Unions has no fee set up, so submission will fail. There is no legitimate no-fee path today. |
+| Approval workflow | **Blocker.** Credit Union applications are labelled "Credit Unions - Credit Union - …". Neither active licence workflow matches that label: one is for "general", the other for "Insurance", and "general" is not treated as a catch-all. Submission would stop with "business configuration required". |
+| Certificate | **At risk.** 16 certificate tasks and 16 portal-access tasks are stuck as failed (latest 20 Oct, 21:32 UTC) with only a generic error. This would be reported, not bypassed. |
 
-| # | Step | Screen | Who | Auto / Manual |
-|---|---|---|---|---|
-| 1 | Applicant account and registration | `/register` → `/register/entity` → `/register/account` | new applicant (email inbox needed for the code) | Manual (emailed one-time code) |
-| 2 | Registration review and approval | `/admin/registration-review/:id` | `licensing_officer`, then `licensing_supervisor` | Auto |
-| 3 | First sign-in and forced password change | `/` | applicant | Manual (temporary password arrives by email) |
-| 4 | Create the licence application | `/pre-license/new` → `/applications/:id/forms` | applicant (`pre_licensee`) | Auto |
-| 5 | Upload documents | same form, document fields | applicant | Auto |
-| 6 | Fee assessment and payment | `/applications/:id` → payment step, `/payments/:id` | applicant | Auto (sandbox gateway), **blocked: no fee set up** |
-| 7 | Submit | `/applications/:id` | applicant | Auto |
-| 8 | Intake and sufficiency review | `/applications/queue` → `/applications/:id` | `licensing_officer` | Auto |
-| 9 | Fit & Proper on each director | `/fpa/entity/application/:id` | `fit_proper_officer` → `fit_proper_supervisor` | Auto (screening sandbox) |
-| 10 | Approval through the workflow steps | `/applications/:id` | `licensing_officer` → `licensing_supervisor` | Auto |
-| 11 | Licence issue, conditions, certificate | `/licenses/:id` | system after approval; `licensing_officer` adds conditions | Auto, **certificate step at risk** |
-| 12 | Renewal and variation | `/licenses/:id` (renewal), `/post-license/new` | licensee primary user | **Blocked: the new Credit Union services are inactive** |
-| 13 | Check Entity 360 and Person 360 | `/entities/cc331000-…-000000000001/360`, `/persons/:partyId` | `licensing_officer`, `read_only` | Auto |
+## Remaining blockers (each needs your decision; none is changed by me)
+1. **Payment rule:** either a Credit Union licence fee is configured through Fee Management, or the server rule is changed to allow a genuine no-fee case. Both are outside today's authorisation.
+2. **Approval workflow:** a Credit Union pre-licence workflow must exist, or an existing one must be scoped to Credit Unions. Also outside authorisation.
+3. **Certificate failures:** the cause needs investigating separately (it affects other licences too).
+
+Until 1 and 2 are resolved, the journey can only reach **"application filled in and saved as draft"**. It cannot be submitted, reviewed, approved or licensed.
