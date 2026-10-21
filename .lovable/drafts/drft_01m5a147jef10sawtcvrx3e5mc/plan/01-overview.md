@@ -1,16 +1,12 @@
-## Missing welcome email for rbc_primary_user@yopmail.com
+## Why "No published forms found" appears for Credit Union
 
-### Checked (read-only)
-- The system sent one email at 12:27 UTC, about a minute after the account was created.
-  - Subject: "Portal access granted | Rodney Bay Community Credit Union Ltd"
-  - To: the yopmail.com address
-  - It includes the temporary password.
-- The email service accepted it and returned a delivery reference. That proves only that it was sent, not that it reached the inbox.
-- Other emails sent in the last day went through normally. There were no recent failures.
+### What is already confirmed (read-only checks)
+- The Credit Union pre-licence form ("Credit Union Pre-License Application FormM") is **published**, version 2, effective since 19 Aug 2026.
+- It is tagged with exactly the Sector / Sub-sector / Category you selected (Credit Unions → Credit Union → "Credit Uniom" — the category name has a typo, but the link is correct).
+- It belongs to the Saint Lucia FSRA regulator.
+- When the form lookup is run directly in the database for this selection, it **returns the form**. Signed-in users are allowed to run that lookup.
 
-### What to try (you)
-1. In YOPmail, open the inbox for exactly `rbc_primary_user`. The underscore matters, and the inbox name is case-insensitive. Then click refresh.
-2. YOPmail sometimes holds or drops emails from some senders. Wait a few minutes and check again.
-3. If it still isn't there, use **Forgot password** on the login page with this email. This is the standard recovery route and sends a new email.
+So the form setup is correct. The cause is something specific to the Rodney Bay user's session, and is **not yet confirmed**. Most likely candidates:
+1. The user's active regulator is a different one (there are 4 regulators), so the lookup filters the form out.
+2. The lookup returns an error for this user's account, and the page shows the "no forms" message instead of the error.
 
-<!--figure-->
