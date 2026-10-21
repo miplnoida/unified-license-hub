@@ -132,7 +132,7 @@ Licence/Credit Union fields are applicant-entered in v1. Read-only prefill depen
 | CU-PL-15 | condition_reference (text, req), current_condition_wording (textarea, req), proposed_condition_wording (textarea, req), justification (textarea, req) | compliance_evidence (req), board_resolution (opt) |
 | CU-PL-16 | current_structure (textarea, req), proposed_structure (textarea, req), committees_affected (textarea, opt) | revised_governance_chart (req), board_resolution (req) |
 
-Field count per form = 12 common + service fields + documents. Total proposed `form_fields` rows: **246** (see §5).
+Field count per form = 12 common + service fields + documents. Total proposed `form_fields` rows: **270** (see §5).
 
 ---
 
@@ -297,7 +297,7 @@ DO $$ BEGIN
   THEN RAISE EXCEPTION 'versions count mismatch'; END IF;
   IF (SELECT count(*) FROM public.form_fields f JOIN public.form_versions v ON v.id=f.version_id
         JOIN public.form_templates t ON t.id=v.template_id
-        WHERE t.description LIKE 'CU-POSTLIC-2026-10 CU-PL-%') <> 246
+        WHERE t.description LIKE 'CU-POSTLIC-2026-10 CU-PL-%') <> 270
   THEN RAISE EXCEPTION 'fields count mismatch'; END IF;
 END $$;
 
@@ -332,9 +332,9 @@ Rows per form (12 common + service fields + documents):
 | 14 | 3 | 3 | 18 |
 | 15 | 4 | 2 | 18 |
 | 16 | 3 | 2 | 17 |
-| **Total** | 52 | 38 | **270?** see note |
+| **Total** | 52 | 38 | **270** |
 
-Note: 12 common rows × 15 = 180, plus 52 service fields and 38 documents = **270**. The assertion in §4.6 must therefore read **270**, not 246. **Correction:** before execution, replace `246` with `270` in §4.6. The §3 text figure of 246 is superseded by 270.
+Check: 12 common rows × 15 = 180, + 52 service fields + 38 documents = **270**.
 
 | Table | Before (2026-10-21) | Insert | Expected after |
 |---|---|---|---|
@@ -448,4 +448,4 @@ Before running, re-list every foreign key referencing `services` and `form_versi
 3. SLA days.
 4. Keep #10 and #15 separate, or merge them.
 5. Resolve the no-sub-sector licence eligibility (§1.1) before any activation.
-6. Explicit authorization to run §4. Set the §4.6 field assertion to **270** first.
+6. Explicit authorization to run §4.
