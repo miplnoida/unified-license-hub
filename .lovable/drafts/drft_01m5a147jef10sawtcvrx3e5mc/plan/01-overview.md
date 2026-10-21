@@ -1,21 +1,16 @@
-# Credit Union Post-Licensing Services and Forms
+# Credit Union Post-Licensing: Revised Plan (analysis only)
 
-## What exists today (checked)
-- Sector **Credit Unions** is active, with active sub-sectors **Credit Union** and **Credit Union League**.
-- All 19 existing Credit-Union-family post-licensing services (Renew, Change of Address, Director Appointment, etc.) and their 19 forms are attached to the **inactive** sub-sector *Micro-credit Institution*. Active Credit Union licences therefore see none of them on the New Post-License Application page.
-- The active sub-sectors have zero services and zero forms today.
+Nothing is changed by this plan. Approving it only approves the design. Database writes need a second, explicit go-ahead after you review the record list in the Technical details section.
 
-## Approach (configuration only, no schema, no code)
-1. **Map**: Reuse the existing service wording and workflow patterns where a match exists. Map the 16 requested services onto the active **Credit Union** sub-sector as new service records. Old Micro-credit records stay as they are because certification history depends on them.
-2. **Forms**: Create one form per service in Form Builder structures, scoped to Credit Unions / Credit Union / that service. Each form contains:
-   - a read-only Licence and Entity block
-   - Proposed Change, Reason and Effective Date
-   - service-specific fields
-   - Supporting Documents
-   - Declaration
-   All forms stay in **Draft**. Nothing is published.
-3. **Workflow**: Link each service to the existing post-licensing workflow patterns: Standard, Enhanced, Fit and Proper, or Notification. Workflows are not created or edited.
-4. **Fees**: No fee rows are created, because the brief forbids invented fees. Every service is reported as **Fee: Requires regulatory confirmation**.
-5. **Approval vs notification**: Proposed classification is based on existing request types. Each item is flagged "Requires regulatory confirmation".
-
-Draft forms do not appear to applicants. This means the end-to-end checks at `/post-license/new` and `/applications/queue` can only be checked partly until a reviewer publishes the forms and approves the fees. The report will say exactly what was and wasn't verified.
+## Findings (verified read-only)
+1. **Why the 19 services sit under Micro-credit.** *Micro-credit Institution* belongs to the **inactive legacy sector** *Micro-credit Institution*, not to *Credit Unions*. The sector alias map translates it to Credit Unions, but only for licence entitlement and returns. The service picker filters by the licence's own sector and sub-sector, so it doesn't use the map.
+   - These records are historical. They were seeded on 2026-06-17/22 and 2026-08-27/29 in the 15-service rollout across 8 legacy sub-sectors.
+   - Certification and configuration depend on them: 15 fee rows, 3 post-approval effect bindings and 5 configuration expectations.
+   - None has ever been used by an application (0 applications).
+   - Conclusion: this is **historical data with dependencies**, not a configuration error. It must stay untouched.
+2. **Reuse is not possible through supported configuration.** A service has exactly one sector and one sub-sector, and the unique key is (sector, sub-sector, name). Re-pointing the legacy rows would break the fee, effect and expectation links and the legacy history. The only safe option is **new records under Credit Unions / Credit Union**, with names, workflows and document checklists copied from the legacy equivalents.
+3. **Credit Unions has no services today** (0 records). The 4 Credit Union licences:
+   - FSRA-SLU-2023-0002 has sub-sector *Credit Union*.
+   - Three demo/AML licences (FSRA-DEMO-CREDIT_UNIONS, FSRA-DEMO-AML-04, FSRA-DEMO-AML-05) have **no sub-sector**. The picker falls back to sector-level matching for them, so they **would also see** the new services once those are active.
+4. **Renewal already works elsewhere.** Licence Details has its own Renew flow, with in-flight duplicate checks, a renewal fee from Fee Management and an automatic validity date. A separate "Licence Renewal" post-licensing service would compete with it, so **no renewal service is created**. Renewal is reported as *Existing (Licence Details)*.
+5. **Credit Union League** is out of scope and **will not receive** any of the new services.
