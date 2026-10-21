@@ -1,51 +1,41 @@
-## Option 3 findings: no supported path meets all requirements
+## Option A: new registration linked to Rodney Bay
 
-Recommendation: **do not proceed.** Nothing has been changed.
+This plan only. Nothing will run until you approve it.
 
-### What the pre-licence rule needs (confirmed)
-The rule for new pre-licence applications looks for **all** of these:
-- a registration record owned by the signed-in user (`registrations.user_id` = the user)
-- with status `approved`
-- with a registration-to-licensing hand-off record
+### Duplicate-prevention findings (read-only, confirmed)
 
-Today, `rbc_primary_user@yopmail.com` has 0 registrations and 0 hand-offs.
+**1. The registration number will not match automatically.**
+- Automatic exact matching uses only two things:
+  - identifiers recorded against the entity
+  - a licence number
+- Rodney Bay (`cc331…`) has **0 recorded identifiers** and **0 licences**.
+- The registration form's "registration number" field is saved, but it is **not used for matching**.
+- So `CU-RB-2026-014` cannot give an exact match.
 
-### The two registration options on /register
+**2. The legal name will produce a "possible match".**
+- The exact name "Rodney Bay Community Credit Union Ltd" scores 80 against `cc331…`.
+- That opens an **Entity Resolution case** for a regulator to decide.
+- The registration stays "pending resolution", with **no entity created**.
 
-**1. Connect to Existing Entity** (`/register/entity`)
-- The server matches the organisation:
-  - an exact match reuses the existing entity
-  - a possible match goes to a regulator-reviewed resolution case
-  - no match creates a provisional entity
-- It only grants **membership** of the entity. It does **not** create a registration record or a hand-off.
-- The Rodney Bay user already has an approved membership. The screen would see that access is already in place and send them straight back to New Application, where the same error appears.
-- Result: it does **not** satisfy the rule.
+**3. A provisional entity is only created when nothing scores at all.**
+- That happens only if no existing name matches.
+- Typing the exact legal name prevents it. Even a partial name, such as one without "Ltd", still gives a possible match.
 
-**2. Start New Registration** (form-based)
-- The server **always creates a brand-new user account**. It rejects any email that already has an account ("This email is already registered", `PRIMARY_USER_EMAIL_EXISTS`).
-- The existing profile for `rbc_primary_user@yopmail.com` exists (count 1), so this account **cannot be reused**. Requirement 2 fails.
-- Entity duplication would be prevented: after submission, the server runs governed matching.
-  - An exact match binds the registration to the existing Rodney Bay entity.
-  - A possible match opens a resolution case and creates no entity.
-  - Only no match creates a provisional entity, and the legal name or registration number would normally prevent that.
-- But it would create a **second user** and, once approved, a **second membership**. Requirements 2 and 4 fail.
-- I haven't confirmed whether Rodney Bay's identifiers would produce an exact match. No Rodney Bay registration exists today (count 0).
+**4. Other Rodney Bay names exist**, for example "Rodney Bay Payments Ltd" and "Rodney Bay Fund Administrators". They may appear as extra candidates. The reviewer must pick `cc331…` only.
 
-### Conclusion
-| Requirement | Connect existing | New registration |
-|---|---|---|
-| No duplicate entity | Yes | Yes, by matching (exact match unconfirmed) |
-| Reuse rbc_primary_user | Yes | **No**: new account forced |
-| Satisfies the pre-licence rule | **No** | Yes, after approval |
-| No duplicate user or membership | Yes | **No** |
+**5. Resolving the case binds the registration to the existing entity.** It does **not** grant membership. Membership comes from the later approval step.
 
-No supported screen creates an approved registration for an **existing** user and an **existing** entity without code or rule changes. Under your constraints, Option 3 cannot be done.
+**6. Other duplicate checks**
+- A new email is required. `rodneybay.registration@yopmail.com` has no account today.
+- The applicant name is unique: no registration uses "Rodney Bay…" today.
 
-### Separate blockers (unchanged)
-- There is no Credit Union application fee, and payment is required before submission.
-- No active approval workflow matches Credit Union.
+### Not yet proven (will check before the step it affects)
+- That approving the registration creates the hand-off and a membership on the bound entity `cc331…`. The rule that blocked you needs the hand-off.
+- That the Credit Union form appears for the new user. The fix made earlier should cover this.
 
-### Your decision options (nothing will run until you choose)
-- **A.** Accept a second, new applicant account through Start New Registration. The cost is an extra user and membership. The entity is protected by matching.
-- **B.** Return to Option 1 or 2, which change the rule. You said earlier you want to keep the rule.
-- **C.** Stop here.
+### Stop conditions
+Stop and report if any of these happen:
+- the outcome after submission is "provisional entity created", or anything other than a possible-match case
+- the case lists no candidate `cc331…`
+- the reviewer screen offers only "confirm new entity"
+- approval does not bind to `cc331…`, or creates a second entity
