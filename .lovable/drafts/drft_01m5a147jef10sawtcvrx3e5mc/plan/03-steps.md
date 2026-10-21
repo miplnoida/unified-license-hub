@@ -1,5 +1,7 @@
 ## Execution order (one approval, then I run it all)
 
+Before each module is inserted, I check that its records will show on the relevant screen without breaking existing business rules. If a module fails that check, I skip it and continue with the others.
+
 1. **Inspect the schema** for every target table:
    - columns, required fields, checks and triggers
    - status vocabularies and existing master data: sectors, regulator, return templates, complaint types, F&P types
@@ -11,9 +13,10 @@
    - contacts and people: directors, General Manager Denise St. Rose, compliance officer
    - Person 360 links
    - F&P cases in an open, unassessed state
-   - document metadata: no files, unless an existing storage pattern allows a placeholder
-   - one draft pre-licence application with completed answers to the published CU form v2, owned by `rbc_primary_user` and still a draft
-   - **Not created:** registration approval, hand-off, payment, licence, conditions. These are protected or blocked.
+   - real fictional PDF documents, uploaded to storage and then registered, so there are no broken references
+   - **No draft application.** The existing rule requires an approved registration hand-off, and `rbc_primary_user` has none. Creating a draft directly would get around that rule, so it is reported as a blocker.
+   - **Not created:** registration approval, hand-off, payment, licence, conditions.
+   - Registration and Entity Resolution are **not** restarted.
 4. **Session 3 (Castries)**, created through the governed path where one exists:
    - the new entity, with contacts and people
    - 4 quarterly returns with realistic balance sheet and income figures, plus ratios
