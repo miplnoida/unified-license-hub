@@ -176,6 +176,7 @@ export const breadcrumbRouteRegistry: BreadcrumbRule[] = [
   { pattern: '/supervision/breaches', label: 'Breaches', parent: '/prudential' },
   { pattern: '/supervision/early-warnings', label: 'Early warnings', parent: '/prudential' },
   { pattern: '/supervision/plans', label: 'Supervisory plans', parent: '/prudential' },
+  { pattern: '/supervision/plans/:id', label: 'Supervisory plan', parent: '/supervision/plans' },
   { pattern: '/supervision/team-performance', label: 'Team workload', parent: '/prudential' },
   { pattern: '/supervision/examinations/:id', label: 'Examination', parent: '/prudential/examinations' },
   { pattern: '/supervision/findings/:id', label: 'Finding', parent: '/prudential' },
