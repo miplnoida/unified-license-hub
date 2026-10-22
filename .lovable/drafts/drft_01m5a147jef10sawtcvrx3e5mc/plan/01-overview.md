@@ -1,22 +1,34 @@
-## Rodney Bay: execute approved decisions 1–5
+## Rodney Bay completion (updated brief)
 
-**1. Receipt.** Review the Issue receipt change against the main project to confirm only the payment detail page and its helper/test changed. After the draft is accepted, a staff member clicks **Issue receipt** once for TXN-1792648603-2B7B7D. The existing receipt action returns the same receipt on repeat and creates no payment.
+**1. Receipt (approved).** Compare the draft with the main project and confirm the only changes are the payment detail page, its receipt helper and that helper's test. Then accept the draft. A staff member clicks **Issue receipt** once for TXN-1792648603-2B7B7D. It uses the existing completed payment; repeat clicks return the same receipt, and no new charge is made.
 
-**2. Move APP-2026-002011 from v1.0 to v2.0.** Add a governed "re-pin form version" action:
-- Allowed only for Draft applications with zero saved answers. The target must be the latest published version of the same form family and category.
-- Requires an authorised staff permission and a written reason. Runs as one transaction. Retires the old assignment rather than editing it, adds a new locked assignment, and writes an audit entry.
-- Application ID, fee, payment, applicant and entity stay unchanged. Submitted applications and other drafts are not touched.
-- Staff get a button on the application detail page, shown only when the rules above are met. Rule tests cover allowed, refused-when-answers-exist, refused-when-submitted and refused-without-permission.
+**2. Form v2.0 re-pin (review only, not deployed).** I write the proposed server action as a review document, not as a staged change. It covers:
+- **Function definition:** in full.
+- **Server-side guards:**
+  - Staff permission is checked inside the function, so direct API calls are refused too.
+  - Status must be Draft, with zero saved answers.
+  - The target must be the latest published version, with the same form family and category.
+  - It works on exactly the application ID passed in.
+- **Safety:**
+  - It runs as one transaction and writes an audit entry.
+  - It retires the old assignment rather than editing it.
+  - It never touches fee, payment or entity links.
+- **Permissions:** EXECUTE for signed-in users only, with the permission check inside. No new grants on tables and no policy changes.
+- **Rollback:** a reverse action with the same guards, plus dropping the function.
+- **Planned tests:** allowed, refused when answers exist, refused when submitted, refused without permission, and refused when the version doesn't match.
 
-**Conflict to note:** you said no database schema change. This action needs a new server-side function. It adds no tables, columns or policies, and it is applied when you accept this draft. Without it, the only way to switch the version is a direct edit, which you have forbidden.
+Nothing is applied or run. APP-2026-002011 stays on v1.0.
 
-**3. Category spelling.** Rename "Credit Uniom" to "Credit Union" on the same record, through the category admin screen. The ID and form mapping stay the same. Then re-check that the 2 applications and the v2.0 mapping still point to that ID.
+**3. Category typo (approved).** Rename "Credit Uniom" to "Credit Union" through the category admin screen as an admin. Then confirm the category ID is unchanged, both applications and the v2.0 form still map to it, and no other category changed.
 
-**4. Registration.** List the existing officers who hold the registration approval permission. If the review screen still offers a review for REG-2026-000204, that officer records it there. If the earlier direct approval blocks re-review, I report the remediation instead of forcing an approval or backdating.
+**4. Registration (verification only).** Read-only:
+- Which existing staff hold registration approval permission.
+- REG-2026-000204's current state and review history.
+- Whether the review screen can still offer a legitimate review, or whether the earlier direct approval blocks one.
 
-**5. Verification.** After acceptance, check that APP-2026-002011 shows v2.0 with 11 sections, the payment is still XCD 2,500 completed, the receipt is linked, and Submit is refused until registration is authorised and required fields are complete.
+I report the remediation needed and create no approvals.
 
-### Needs privileged action from you
-- Accept the draft so the re-pin action and receipt button reach live data.
-- An officer clicks Issue receipt, runs the re-pin with a reason, and does the registration review.
-- Applicant sign-in for the visibility check needs your approval.
+**5. Verification and report.** Confirm the payment is still XCD 2,500 completed, the receipt status, the category mapping, the registration state, and that APP-2026-002011 is on v1.0. Steps that need privileged action are listed separately:
+- Accepting or publishing the draft.
+- Clicking Issue receipt.
+- Approving the re-pin review.
