@@ -16,6 +16,7 @@ import { useFormTemplates } from '@/hooks/useFormTemplates';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { applicationCreateDraft, getDuplicatePostLicenseRequestId } from '@/lib/applicationGovernedOps';
+import { matchPostLicenseTemplates } from '@/lib/postLicenseFormMatch';
 import { logAudit } from '@/hooks/useAuditLog';
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
@@ -44,7 +45,13 @@ export default function NewPostLicenseApplication() {
 
   const entitlements = useLicenseEntitlements();
   const { data: services = [], isLoading: loadingServices } = useServices();
-  const { data: formTemplates = [] } = useFormTemplates(undefined, activeRegulator?.id);
+  // Forms are owned by the licence's regulator; the header regulator is only a
+  // UI preference and must not hide them.
+  const selectedLicenseRegulatorId =
+    entitlements.eligible.find(l => l.license_id === selectedLicenseId)?.regulator_id
+    ?? entitlements.eligible[0]?.regulator_id
+    ?? activeRegulator?.id;
+  const { data: formTemplates = [] } = useFormTemplates(undefined, selectedLicenseRegulatorId);
 
   const eligibleLicenses = entitlements.eligible;
 
@@ -97,33 +104,15 @@ export default function NewPostLicenseApplication() {
 
   const matchedTemplates = useMemo(() => {
     if (!selectedService || !selectedLicense) return [];
-    const published = formTemplates.filter(t => t.status === 'published' && t.form_type === 'post_license');
-
     const serverForms: any[] = Array.isArray(serverFormSet?.forms) ? serverFormSet.forms : [];
-    if (serverFormSet?.state === 'OK' && serverForms.length > 0) {
-      const ordered = serverForms
-        .map(f => published.find(t => t.id === f.form_id) || formTemplates.find(t => t.id === f.form_id))
-        .filter(Boolean) as typeof formTemplates;
-      if (ordered.length > 0) return ordered;
-    }
-
-    const byService = published.filter(t => t.service_id === selectedService);
-    if (byService.length > 0) return byService;
-
-    const bySubSector = subSectorId
-      ? published.filter(t => t.sub_sector_id === subSectorId && !t.service_id)
-      : [];
-    if (bySubSector.length > 0) return bySubSector;
-
-    const bySector = published.filter(t => t.sector_id === sectorId && !t.sub_sector_id && !t.service_id);
-    if (bySector.length > 0) return bySector;
-
-    const serviceObj = services.find(s => s.id === selectedService);
-    if (serviceObj) {
-      const byName = published.filter(t => t.service === serviceObj.name);
-      if (byName.length > 0) return byName;
-    }
-    return [];
+    return matchPostLicenseTemplates({
+      templates: formTemplates,
+      serverFormIds: serverFormSet?.state === 'OK' ? serverForms.map(f => f.form_id) : null,
+      serviceId: selectedService,
+      serviceName: services.find(s => s.id === selectedService)?.name ?? null,
+      sectorId,
+      subSectorId,
+    });
   }, [selectedService, selectedLicense, sectorId, subSectorId, formTemplates, services, serverFormSet]);
 
   const licenseGate = useLicenseStatusGate();
