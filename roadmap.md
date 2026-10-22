@@ -1,6 +1,6 @@
 # Roadmap
 - [x] Session 2: grant committee vote permission to F&P Supervisor/Officer roles (option A)
-- [ ] Session 2: finish F&P for 4 directors — 3 Fit; Kendall blocked on AI news-scan name match (waiting on user)
+- [ ] Session 2: finish F&P for 4 directors — 3 Fit; Kendall blocked on AI news-scan name match (left for a real officer to decide, per user)
 - [ ] Session 2: sufficiency check
 - [x] Session 2: officer query + applicant answer
 - [ ] Session 2: final approval, licence issued
