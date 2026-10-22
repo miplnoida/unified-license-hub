@@ -65,6 +65,7 @@ const EnforcementWorkspace = lazy(() => import('@/pages/enforcement/EnforcementW
 const Penalties = lazy(() => import('@/pages/billing/Penalties'));
 const BreachInbox = lazy(() => import('@/pages/supervision/BreachInbox'));
 const SupervisoryPlansDashboard = lazy(() => import('@/pages/supervision/SupervisoryPlansDashboard'));
+const SupervisoryPlanRecord = lazy(() => import('@/pages/supervision/SupervisoryPlanRecord'));
 const SupervisoryTeamPerformance = lazy(() => import('@/pages/supervision/TeamPerformance'));
 const RiskHeatmap = lazy(() => import('@/pages/supervision/RiskHeatmap'));
 const SupervisoryPortfolio = lazy(() => import('@/pages/supervision/SupervisoryPortfolio'));
@@ -346,6 +347,7 @@ export const dashboardRoutes = (
     <Route path="/inspections/:id" element={<M module="inspection_management"><LegacyInspectionRecordNotice /></M>} />
     <Route path="/supervision/examination-schedule" element={<M module="prudential_supervision"><ExaminationSchedule /></M>} />
     <Route path="/supervision/plans" element={<M module="prudential_supervision"><SupervisoryPlansDashboard /></M>} />
+    <Route path="/supervision/plans/:id" element={<M module="prudential_supervision"><SupervisoryPlanRecord /></M>} />
     <Route path="/supervision/team-performance" element={<SE><SupervisoryTeamPerformance /></SE>} />
     <Route path="/supervision/portfolio" element={<SE><SupervisoryPortfolio /></SE>} />
     <Route path="/supervision/monitoring" element={<SE><ContinuousMonitoring /></SE>} />
