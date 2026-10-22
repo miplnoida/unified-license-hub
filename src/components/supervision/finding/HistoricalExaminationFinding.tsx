@@ -30,13 +30,17 @@ export function useHistoricalExaminationFinding(id?: string, enabled = true) {
       if (error) throw error;
       if (!finding) return null;
       const [{ data: exam }, { data: action }] = await Promise.all([
-        sb.from('examinations').select('id, reference, title, stage, entity_id, domain_code, licensee:licensees(name)')
+        sb.from('examinations').select('id, reference, title, stage, entity_id, domain_code')
           .eq('id', finding.examination_id).maybeSingle(),
         finding.remediation_action_id
           ? sb.from('prudential_actions').select('id, title, status, due_date, description')
               .eq('id', finding.remediation_action_id).maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
+      if (exam?.entity_id) {
+        const { data: l } = await sb.from('licensees').select('name').eq('id', exam.entity_id).maybeSingle();
+        exam.licensee = l ?? null;
+      }
       return { finding, exam, action } as { finding: any; exam: any; action: any };
     },
   });
