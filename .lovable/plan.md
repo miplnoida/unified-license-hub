@@ -18,7 +18,7 @@ There is one blocker. The fit & proper committee needs 3 votes. Only 1 of its 3 
 
 ## Plan to finish (after you approve)
 
-1. **Fix the committee voting.** Choose one option below.
+1. **Fix the committee voting.** Give the existing committee-vote permission to the Fit & Proper Supervisor and Fit & Proper Officer roles, through the admin role-permission screen.
 2. **Finish fit & proper for all 4 directors** in the normal screens: screening, then committee votes, then the decision.
 3. **Run the sufficiency check** on the application.
 4. **Raise one officer query and have the applicant answer it** (steps 9-10). This has to happen before final approval.
@@ -26,12 +26,8 @@ There is one blocker. The fit & proper committee needs 3 votes. Only 1 of its 3 
 6. **Create the primary web user** for rodneybay.registration@yopmail.com through the licensee's web users page.
 7. **Retest the whole of Session 2 in the browser** with each role's login. I'll take a screenshot at every step and mark each row Ready or Not ready in the demo documents.
 
-## Decision needed: committee voting
-- **A.** Give voting permission to the Fit & Proper Supervisor and Fit & Proper Officer roles. This is a permission change.
-- **B.** Replace two committee members with accounts that already have voting rights (the Committee Member and System Administrator roles). This is a committee membership change.
-- **C.** Real committee members vote themselves, and I wait.
-
-Unless you tell me otherwise, I'll use B: it doesn't widen any role's permissions.
+## Committee voting decision (you approved option A)
+Only the vote permission is added, and only to those two roles. No other permission changes. The change is recorded in the audit history and noted in the demo documents.
 
 ## Rules I'll follow
 - Every step goes through the app's normal screens, using the account of the role that owns it.
