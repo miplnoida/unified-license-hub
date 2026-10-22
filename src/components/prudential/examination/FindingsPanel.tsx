@@ -301,6 +301,11 @@ export function FindingsPanel({ examinationId, readOnly, mode = 'supporting' }: 
                   ) : (
                     <p className="text-xs text-warning">Corrective action not yet created.</p>
                   )}
+                  <Button asChild size="sm" variant="outline">
+                    <Link to={`/supervision/findings/${r.id}`}>
+                      Open finding<ArrowRight className="ml-1 h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
                   {!readOnly && (
                     <div className="flex flex-wrap gap-2">
                       {!r.remediation_action_id && (
