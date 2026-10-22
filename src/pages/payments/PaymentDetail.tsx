@@ -13,6 +13,8 @@ import { PaymentAttachments } from '@/components/payments/PaymentAttachments';
 import { ArrowLeft, Loader2, DollarSign, Calendar, CreditCard, FileText, Hash } from 'lucide-react';
 import { ApplicationFinancePanel } from '@/components/payments/ApplicationFinancePanel';
 import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
+import { canIssueReceipt } from '@/lib/receiptIssue';
+import { toast } from 'sonner';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   pending: 'outline', completed: 'default', success: 'default', failed: 'destructive', refunded: 'secondary',
@@ -28,6 +30,19 @@ export default function PaymentDetail() {
   const [payment, setPayment] = useState<any>(null);
   const [application, setApplication] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [receiptNo, setReceiptNo] = useState<string | null>(null);
+  const [issuing, setIssuing] = useState(false);
+
+  const issueReceipt = async () => {
+    if (!payment) return;
+    setIssuing(true);
+    const { data, error } = await supabase.rpc('payment_receipt_issue' as any, { _payment_id: payment.id });
+    setIssuing(false);
+    if (error) { toast.error(error.message); return; }
+    const no = (data as any)?.receipt_number ?? null;
+    setReceiptNo(no);
+    toast.success(no ? `Receipt ${no} issued` : 'Receipt issued');
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -35,6 +50,8 @@ export default function PaymentDetail() {
       const { data: pData } = await supabase.from('payments' as any).select('*').eq('id', id).single();
       const p = pData as any;
       setPayment(p);
+      const { data: rec } = await supabase.from('payment_receipts' as any).select('receipt_number').eq('payment_id', id).maybeSingle();
+      setReceiptNo((rec as any)?.receipt_number ?? p?.receipt_number ?? null);
       if (p?.application_id) {
         const appRes = await supabase
           .from('applications')
@@ -99,7 +116,14 @@ export default function PaymentDetail() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <InfoRow icon={<Hash className="h-3.5 w-3.5" />} label="Transaction Ref" value={payment.transaction_ref || '—'} mono />
-                <InfoRow icon={<FileText className="h-3.5 w-3.5" />} label="Receipt #" value={payment.receipt_number || '—'} mono />
+                <div>
+                  <InfoRow icon={<FileText className="h-3.5 w-3.5" />} label="Receipt #" value={receiptNo || '—'} mono />
+                  {canIssueReceipt({ isStaff: !!isAdmin, status: payment.status, existingReceipt: receiptNo }) && (
+                    <Button size="sm" variant="outline" className="mt-2" disabled={issuing} onClick={issueReceipt}>
+                      {issuing && <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />}Issue receipt
+                    </Button>
+                  )}
+                </div>
                 <InfoRow icon={<DollarSign className="h-3.5 w-3.5" />} label="Amount" value={formattedAmount} bold />
                 <div>
                   <p className="text-muted-foreground text-xs mb-1">Status</p>
