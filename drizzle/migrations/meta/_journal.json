@@ -8,6 +8,13 @@
       "when": 1792405380032,
       "tag": "0000_applicant_list_own_apps_always",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792653779350,
+      "tag": "0001_applicant_list_own_apps_always_fix",
+      "breakpoints": true
     }
   ]
 }
