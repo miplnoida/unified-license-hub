@@ -1254,7 +1254,10 @@ export default function ApplicationDetail() {
                     <ViewPaymentButton applicationId={app.id} />
                     <FeeComponentsPanel
                       applicationId={app.id}
-                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested')}
+                      // Staff itemise fees; the Add Fee button is gated on fee_management.edit
+                      // and fee_component_operation enforces it server-side. Applicant ownership
+                      // is irrelevant here (this panel only renders for internal users).
+                      editable={!forceReadOnlyView && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested')}
                     />
                   </>
                 ) : (
