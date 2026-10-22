@@ -1,67 +1,67 @@
-# Demo readiness plan: Sessions 2, 3 and 4
+# Demo readiness: Sessions 2-4 (Rodney Bay, CU-DEMO-2026)
 
-## Goal
-Use one connected story across all three sessions: the same regulator, applicant organisation, people, application and licence, all created through the normal screens. Then hand over a readiness pack that lists what works, what partly works and what is missing, with gaps written down honestly rather than shown as finished.
+## Scope
+I will reuse only the existing records:
+- Rodney Bay Community Credit Union Ltd (cc331000-...0001)
+- Applicant rodneybay.registration@yopmail.com
+- Application APP-2026-002011
+- Existing payment TXN-1792648603-2B7B7D (XCD 2,500)
 
-The current draft APP-2026-002011 is left untouched.
+Nothing new is created. That means no new organisation, application, payment, approval, licence, return, AML assessment, enforcement decision or appeal.
 
-## The connected story
+I make no code, schema or settings changes and do not touch the AML/FSRA protected records.
 
-```text
-Session 2                 Session 3                    Session 4
-Registration  ->  Licence  ->  Returns / Risk / AML  ->  Complaint / Investigation
-(Rodney Bay CU)   issued       assessment, findings      enforcement, dashboards,
-                               corrective actions        reports, audit trail
-```
+## Step 1 - Existing data inventory (read-only database)
+Locate and link every listed record, and mark each one Usable, Incomplete, Inaccessible or Not linked.
 
-One regulator with the Credit Unions sector, one demo organisation (a new "Rodney Bay Demo Credit Union" registered by the applicant) and one second organisation for comparison views.
+**Session 2**
+- Registration and entity link
+- APP-2026-002011 and its pinned form version
+- Published form versions
+- Payment and receipt
+- Governance and Fit & Proper records
+- Documents
+- Workflow assigned to the application
 
-## Step 1 - Readiness check (read-only)
-- Walk every screen in each session's list as the right user and score it Ready, Partial or Missing.
-- Reuse the earlier read-only audit and update it.
-- Output: `/mnt/documents/demo/readiness-matrix.md`.
+**Session 3**
+- Prudential assessment
+- Supervisory plan SP-CU-DEMO-2026-01
+- Examination EXM-CU-DEMO-2026-01 with its findings and corrective actions
+- Credit Union return configuration
+- AML configuration and existing assessments, read only
 
-## Step 2 - Demo users and roles
-- Confirm or create demo accounts: applicant (rodneybay), licensing officer, supervisor/approver, analyst, AML officer, complaints officer and executive viewer.
-- These are created through the admin screens. Passwords are shared with you privately, never written into documents.
+**Session 4**
+- Complaints CMP-2026-000126 to CMP-2026-000130
+- Investigation CI-CU-DEMO-2026-01
+- Conduct findings CF-CU-DEMO-2026-01 and CF-CU-DEMO-2026-02
+- Enforcement referral ENF-CU-DEMO-2026-01
+- Audit records
 
-## Step 3 - Session 2 data (through the screens, as the applicant and the officers)
-- A new application on the current form (version 4), with documents uploaded, fee assessed and payment completed (simulated gateway).
-- Review, due-diligence notes and approval, so a licence is issued with conditions.
-- One extra application left mid-review and one left at "query raised", to show live states.
-- Variation and renewal shown on the issued licence, if Step 1 finds them Ready.
-- Entity 360 and Person 360 checked for the new organisation.
+## Step 2 - Browser walkthrough (read-only viewing)
+- Open each page in the runbooks as the right role: applicant, licensing officer, supervisor, AML lead, conduct officer and executive. Record what loads and what is linked.
+- Business actions are not performed. "Ready" is given only where the page actually rendered the Rodney Bay record in the browser. Anything else is marked "backend verified only".
+- If a staff role has no usable session, I will say so rather than claim the page was checked.
 
-## Step 4 - Session 3 data
-- Regulatory return filed by the new licensee, with one late return to show penalties.
-- Prudential monitoring view and peer comparison.
-- AML/CFT: walk through the existing policy, methodology and configuration screens. Show existing assessments.
-- **Constraint:** project memory has AML-CLOSE-08 frozen, which blocks new AML development and certification runs. Creating a new AML assessment for the demo needs your explicit go-ahead. Without it, Session 3 shows existing assessments only.
-- Examination finding with a corrective action and remediation tracking, if available.
+## Step 3 - Configuration review
+For fees, forms, workflows, returns, risk/AML methodology, complaint rules and notifications, I will record:
+- The configuration screen and its URL
+- What can be configured
+- The business screen where the effect shows
+- Whether it is full or partial
 
-## Step 5 - Session 4 data
-- Public complaint against the demo credit union, moved through triage and investigation to an outcome.
-- Enforcement or appeal only where the screens exist. Otherwise it is listed as a gap.
-- Dashboards, reports, AI insights, API keys/integrations and audit log checked against the data created above.
+No live configuration is changed.
 
-## Step 6 - Session run-sheets
-For each session, `/mnt/documents/demo/session-N-runbook.md` will contain:
-- Agenda and click-by-click flow
-- Logins to use
-- Configuration-then-effect moments, e.g. change a fee rule or form, then show its effect
-- Cross-module hand-offs
-- Known gaps and fallback talking points
-- Dry-run checklist
-
-Responsible team members and dates are left as blanks for you to fill in. I don't have that information.
-
-## Out of scope
-- Code changes
-- Publishing
-- Changes to the protected AML records and FSRA policy
-
-Any blocker found during Step 1 is reported to you as its own fix request.
+## Step 4 - Deliverables (in Files, under `demo/`)
+1. `readiness-matrix.md`: every feature with its URL, role, record, configuration dependency, status, evidence type, blocker, fix, owner, effort and date.
+2. `demo-data-inventory.md`: records and how they relate to each other.
+3. `session-2-runbook.md`, `session-3-runbook.md` and `session-4-runbook.md`: timed, step-by-step video scripts with the role, URL, record, action, expected result, talking point, configuration-to-effect moment, cross-module links, fallback and a dry-run checklist.
+4. `blockers-and-dependencies.md`: Session 2 blockers first. Already known:
+   - The draft is pinned to the old form version and needs a separately approved re-pin.
+   - Approval and licence issuance need authorised staff.
+5. `schedule-and-owners.md`: a dependency-ordered, accelerated schedule by role (Licensing Lead, Configuration Admin, Prudential Lead, AML/CFT Lead, Conduct Lead, QA Lead, Presenter). Names and dates are marked "to confirm".
+6. `executive-summary.md`: what is genuinely demo-ready today.
 
 ## Technical details
-- All successful flows are run through Playwright browser sessions as the real users, as the project rules require. Database reads are used only to verify results.
-- Each record created is logged with its reference number in `/mnt/documents/demo/demo-data-register.md`.
+- Data checks use read-only queries only.
+- Browser viewing uses Playwright with injected or minted sessions. Each check is recorded with a screenshot reference kept in /tmp, not in Files.
+- No credentials appear in any document.
