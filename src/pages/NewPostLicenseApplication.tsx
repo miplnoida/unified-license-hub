@@ -44,7 +44,11 @@ export default function NewPostLicenseApplication() {
 
   const entitlements = useLicenseEntitlements();
   const { data: services = [], isLoading: loadingServices } = useServices();
-  const { data: formTemplates = [] } = useFormTemplates(undefined, activeRegulator?.id);
+  // Forms are owned by the licence's regulator; the header regulator is only a
+  // UI preference and must not hide them.
+  const selectedLicenseRegulatorId =
+    eligibleLicensesRegulator(entitlements, selectedLicenseId) ?? activeRegulator?.id;
+  const { data: formTemplates = [] } = useFormTemplates(undefined, selectedLicenseRegulatorId);
 
   const eligibleLicenses = entitlements.eligible;
 
