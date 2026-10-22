@@ -211,6 +211,24 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
         licenseRows = (licensesRes.data || []) as any[];
       }
 
+      // Licences held by the in-scope entity itself (holder_id = licensee id).
+      // The legacy licensees.license_id link is often empty for newly issued
+      // licences; RLS still decides which rows are returned.
+      if (scope.licenseeIds.length > 0) {
+        const entityHeldRes = await supabase
+          .from('licenses')
+          .select('id, license_number, status, valid_until')
+          .in('holder_id', scope.licenseeIds);
+        if (entityHeldRes.error) {
+          console.warn('[useLicenseeMetrics] Failed to load entity-held licenses:', entityHeldRes.error);
+        } else {
+          const seen = new Set(licenseRows.map((row) => row.id));
+          ((entityHeldRes.data || []) as any[]).forEach((row) => {
+            if (row?.id && !seen.has(row.id)) { seen.add(row.id); licenseRows.push(row); }
+          });
+        }
+      }
+
       if (userId) {
         const holderLicensesRes = await supabase
           .from('licenses')
