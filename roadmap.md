@@ -1,11 +1,9 @@
-# Roadmap
-- [x] Session 2: grant committee vote permission to F&P Supervisor/Officer roles (option A)
-- [ ] Session 2: finish F&P for 4 directors — 3 Fit; Kendall blocked on AI news-scan name match (left for a real officer to decide, per user)
-- [ ] Session 2: sufficiency check
-- [x] Session 2: officer query + applicant answer
-- [ ] Session 2: final approval, licence issued
-- [ ] Session 2: primary web user for rodneybay.registration@yopmail.com
-- [ ] Session 2: full browser retest, update demo docs (after Kendall)
-- [x] Session 3: view-only browser check, results in demo readiness matrix
-- [ ] Session 3: fix access/visibility for steps 3, 6, 9, 10, 11 (needs user decision)
-- [ ] Follow-up: role editor shows sec_* role grants as empty (saving could wipe them)
+# Roadmap — Rodney Bay demo (Sessions 2–3)
+
+- [x] Post-licence form lookup uses licence's regulator + chosen service only
+- [x] LIC-2026-000166 holder corrected to Rodney Bay entity (approved)
+- [x] Fill/save APP-2026-002012/2013/2014 as primary user (no submit/payment)
+- [x] Dashboard counts entity-held licences (Active licences = 1)
+- [ ] Accept + publish draft, then verify live — blocked: owner action
+- [ ] Session 3: prudential assessment figures/ratings and plan activities — blocked: owner decision on who enters them
+- [ ] Dashboard counts "in progress" drafts as Submitted — not fixed, awaiting owner decision
