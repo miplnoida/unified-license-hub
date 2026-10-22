@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { CanonicalSupervisoryPlans } from '@/components/supervision/CanonicalSupervisoryPlans';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -239,6 +240,7 @@ export default function SupervisoryPlansDashboard() {
   return (
     <DashboardLayout>
       <PageHeader title="Supervisory plan execution" description="Cross-entity workload for supervisory plan actions" />
+      <CanonicalSupervisoryPlans />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Open</div><div className="text-2xl font-semibold">{stats.open}</div></CardContent></Card>
