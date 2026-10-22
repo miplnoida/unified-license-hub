@@ -18,6 +18,7 @@ import { ModuleRoute } from '@/components/auth/RouteGuards';
 import { P } from '@/routes/routeHelpers';
 import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
 import type { PermissionModule } from '@/lib/permissionModules';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 
 const sb = supabase as any;
 
@@ -53,6 +54,28 @@ export function useExaminationDomain(id?: string) {
 }
 
 /**
+ * Module gate for an examination (or examination finding) route.
+ *
+ * Prudential examinations are readable by the database for holders of either
+ * `prudential_supervision.view` or `inspection_management.view`
+ * (`can_read_examination`). The route gate mirrors that rule so an Inspection
+ * Supervisor is not refused a page the database would show them. Entity scope
+ * stays with RLS. AML and Conduct domains are unchanged.
+ */
+export function useExaminationGateModule(domain?: string | null): PermissionModule {
+  const { hasPermission } = useUserDynamicPermissions();
+  const module = moduleForSupervisoryDomain(domain);
+  if (
+    module === 'prudential_supervision'
+    && !hasPermission('prudential_supervision', 'view')
+    && hasPermission('inspection_management', 'view')
+  ) {
+    return 'inspection_management' as PermissionModule;
+  }
+  return module;
+}
+
+/**
  * Wraps a page in the module gate that corresponds to the examination's real
  * supervisory domain. While the domain is resolving we show the standard
  * loading screen rather than guessing a module.
@@ -60,11 +83,11 @@ export function useExaminationDomain(id?: string) {
 export function ExaminationDomainRoute({ children }: { children: React.ReactNode }) {
   const { id } = useParams<{ id: string }>();
   const { data: domain, isLoading, isError } = useExaminationDomain(id);
-
-  if (isLoading) return <AuthLoadingScreen />;
   // Unreadable record (RLS) or unknown domain: fall back to the owning module
   // of the canonical supervisory spine so the guard still denies cleanly.
-  const module = moduleForSupervisoryDomain(isError ? null : domain);
+  const module = useExaminationGateModule(isError ? null : domain);
+
+  if (isLoading) return <AuthLoadingScreen />;
 
   return (
     <P>
