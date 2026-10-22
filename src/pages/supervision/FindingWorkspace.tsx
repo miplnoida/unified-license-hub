@@ -30,6 +30,7 @@ import {
 } from '@/hooks/useSupervisoryFinding';
 import { RemediationActionCard } from '@/components/supervision/finding/RemediationActionCard';
 import { FindingClosurePanel } from '@/components/supervision/finding/FindingClosurePanel';
+import { HistoricalExaminationFinding } from '@/components/supervision/finding/HistoricalExaminationFinding';
 import { AMBER, BLUE, EMERALD, NEUTRAL, RED, fmtDate, ratingTone, statusTone, titleCase } from '@/lib/amlLabels';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -88,12 +89,13 @@ export default function FindingWorkspace() {
     return <div className="space-y-4 p-6"><Skeleton className="h-24 w-full" /><Skeleton className="h-64 w-full" /></div>;
   }
   if (error || !model) {
+    // Not in the supervisory finding register: it may be a historical
+    // examination finding recorded before the register existed.
     return (
-      <div className="p-6">
-        <Card><CardContent className="p-6 text-sm text-muted-foreground">
-          {(error as Error)?.message ?? 'This finding could not be loaded.'}
-        </CardContent></Card>
-      </div>
+      <HistoricalExaminationFinding
+        id={id}
+        notFoundMessage={(error as Error)?.message ?? 'This finding could not be loaded.'}
+      />
     );
   }
 

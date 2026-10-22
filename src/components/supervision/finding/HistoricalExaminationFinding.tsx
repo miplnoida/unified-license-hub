@@ -106,7 +106,7 @@ export function HistoricalExaminationFinding({ id, notFoundMessage }: { id?: str
               <span className="font-medium">{action.title}</span>
               <Badge variant="outline">{humanise(action.status)}</Badge>
               {action.due_date && <span className="text-muted-foreground">Due {new Date(action.due_date).toLocaleDateString()}</span>}
-              <Button asChild size="sm" variant="outline"><Link to={`/prudential/actions/${action.id}`}>Open action</Link></Button>
+              <Button asChild size="sm" variant="outline"><Link to="/prudential/actions">Open actions list</Link></Button>
             </div>
           ) : (
             <p className="text-muted-foreground">Corrective action not yet created, or not visible to you.</p>

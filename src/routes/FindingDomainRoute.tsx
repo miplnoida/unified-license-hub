@@ -30,7 +30,14 @@ export function useFindingDomain(id?: string) {
         .eq('id', id)
         .maybeSingle();
       if (error) throw error;
-      return (data?.domain_code as string | null) ?? null;
+      if (data) return (data.domain_code as string | null) ?? null;
+      // Historical examination finding: the domain is its examination's.
+      const { data: legacy } = await sb
+        .from('examination_findings')
+        .select('id, examination:examinations(domain_code)')
+        .eq('id', id)
+        .maybeSingle();
+      return (legacy?.examination?.domain_code as string | null) ?? null;
     },
   });
 }
