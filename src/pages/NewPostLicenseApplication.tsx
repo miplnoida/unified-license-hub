@@ -16,6 +16,7 @@ import { useFormTemplates } from '@/hooks/useFormTemplates';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { applicationCreateDraft, getDuplicatePostLicenseRequestId } from '@/lib/applicationGovernedOps';
+import { matchPostLicenseTemplates } from '@/lib/postLicenseFormMatch';
 import { logAudit } from '@/hooks/useAuditLog';
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
@@ -47,7 +48,9 @@ export default function NewPostLicenseApplication() {
   // Forms are owned by the licence's regulator; the header regulator is only a
   // UI preference and must not hide them.
   const selectedLicenseRegulatorId =
-    eligibleLicensesRegulator(entitlements, selectedLicenseId) ?? activeRegulator?.id;
+    entitlements.eligible.find(l => l.license_id === selectedLicenseId)?.regulator_id
+    ?? entitlements.eligible[0]?.regulator_id
+    ?? activeRegulator?.id;
   const { data: formTemplates = [] } = useFormTemplates(undefined, selectedLicenseRegulatorId);
 
   const eligibleLicenses = entitlements.eligible;
