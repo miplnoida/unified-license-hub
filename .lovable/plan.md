@@ -12,9 +12,10 @@ Scope: only Rodney Bay Community Credit Union Ltd (cc331000-...0001), applicant 
 - Answers use clearly fictional demo values that match the Rodney Bay story (credit union, Saint Lucia, XCD). Required uploads use the prepared demo PDFs.
 - Use the existing payment; no new payment is made. Submit, and confirm the status is Submitted and the application is in the workflow.
 
-## Step 3 - Review and approve (staff, in the browser)
-- Licensing Officer reviews and recommends; Licensing Supervisor approves (maker-checker kept: two different accounts).
-- The licence is issued only through the workflow. Confirm the licence number, its validity dates and that it links to Rodney Bay.
+## Step 3 - Review and approve through the configured workflows (staff, in the browser)
+- The pre-licence application goes through every step of the configured Pre Application workflow, in order, with the role assigned to each step. No step is skipped and no manual override is used. Maker-checker is kept, so different accounts act at the review and approval steps.
+- The licence is issued only by that workflow. Confirm the licence number, its validity dates and that it links to Rodney Bay.
+- Post-licence applications from Rodney Bay follow the configured Post Application workflow the same way. Step 1 also checks that this workflow exists for Credit Unions. No post-licence application is created unless you ask for one.
 
 ## Step 4 - Primary web user
 - Check whether the approval already set up the applicant as a licensee user.
