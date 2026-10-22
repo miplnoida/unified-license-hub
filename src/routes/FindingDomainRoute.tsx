@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ModuleRoute } from '@/components/auth/RouteGuards';
 import { P } from '@/routes/routeHelpers';
 import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
-import { moduleForSupervisoryDomain } from '@/routes/ExaminationDomainRoute';
+import { useExaminationGateModule } from '@/routes/ExaminationDomainRoute';
 
 const sb = supabase as any;
 
@@ -45,9 +45,10 @@ export function useFindingDomain(id?: string) {
 export function FindingDomainRoute({ children }: { children: React.ReactNode }) {
   const { id } = useParams<{ id: string }>();
   const { data: domain, isLoading, isError } = useFindingDomain(id);
+  // Same gate as the examination route; finding visibility stays with RLS.
+  const module = useExaminationGateModule(isError ? null : domain);
 
   if (isLoading) return <AuthLoadingScreen />;
-  const module = moduleForSupervisoryDomain(isError ? null : domain);
 
   return (
     <P>
