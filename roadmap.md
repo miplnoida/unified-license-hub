@@ -5,5 +5,7 @@
 - [x] Session 2: officer query + applicant answer
 - [ ] Session 2: final approval, licence issued
 - [ ] Session 2: primary web user for rodneybay.registration@yopmail.com
-- [ ] Session 2: full browser retest, update demo docs
+- [ ] Session 2: full browser retest, update demo docs (after Kendall)
+- [x] Session 3: view-only browser check, results in demo readiness matrix
+- [ ] Session 3: fix access/visibility for steps 3, 6, 9, 10, 11 (needs user decision)
 - [ ] Follow-up: role editor shows sec_* role grants as empty (saving could wipe them)
