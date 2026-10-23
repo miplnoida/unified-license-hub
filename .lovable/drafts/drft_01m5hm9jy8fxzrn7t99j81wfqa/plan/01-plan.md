@@ -1,33 +1,35 @@
-# Session 3 narration script
+# Session 3: complete the demo data, then write the script
 
-## What you get
-Two files in Files, under `demo/`: `session-3-narration-script.md` and a Word copy `session-3-narration-script.docx`. They follow the same layout as the Session 2 version 2 script.
+## Step 1: Fill in missing data (normal app screens, signed in as Prudential Supervisor)
+- **Rodney Bay prudential assessment:** add the method and the risk factors (capital 9.7% against a 10% target, liquidity 22.8%, loans more than 90 days overdue at 8.4%, provisioning at 61%). Also add component ratings, the overall rating, reasoning, observations and recommendations.
+- **Plan SP-CU-DEMO-2026-01:** add the planned activities, the lead officer, the roles responsible, the dates and a link to the assessment.
+- **Returns:** the Credit Union quarterly return setup is shown. The first period Rodney Bay can file is Q4 2026, so no filing exists yet. The script presents the quarterly figures as the entity's reported position.
+- **AML/CFT:** these records are frozen. The demo uses an existing assessment, opened view-only. No new AML record is created.
 
-## Structure: 7 parts matching your 7 objectives
-1. **Entity portfolio and regulatory returns.** The supervision portfolio with Rodney Bay, the Credit Union quarterly return setup, its filing rule, and the sample quarterly figures.
-2. **Risk assessment, scoring and classification.** The prudential assessment for Rodney Bay, the risk factors and how the rating is decided.
-3. **Risk-based planning and monitoring.** Supervisory plan SP-CU-DEMO-2026-01, early-warning rules and monitoring alerts.
-4. **Prudential supervision and compliance monitoring.** Ratio thresholds, breaches and the compliance view in Entity 360.
-5. **AML/CFT policies, methods and programmes.** Methodology settings, policy versions, scoring weights and the assessment programme register. View only.
-6. **AML/CFT assessments and evaluation.** An existing AML assessment opened read-only: factors, calculated result, supervisory judgement, approval and the official risk record.
-7. **Examinations, findings and remediation.** EXM-CU-DEMO-2026-01, its 3 findings and corrective actions PA-CU-DEMO-2026-01/02/03 with their tracking.
+I need you to sign in to the preview as the Prudential Supervisor and tell me. Then I'll enter the data.
 
-## Each step lists
+## Step 2: Script files
+`demo/session-3-narration-script.md` plus a Word copy. There are 7 parts, one for each objective:
+1. Portfolio and returns
+2. Risk assessment and rating
+3. Planning and monitoring
+4. Prudential and compliance monitoring
+5. AML/CFT policies, methods and programmes
+6. AML/CFT assessment
+7. Examination EXM-CU-DEMO-2026-01, its 3 findings and corrective actions PA-CU-DEMO-2026-01/02/03
+
+Each step gives:
 - the login to use
-- the page to open, with its address
+- the page address
 - what to click
 - what should appear on screen
-- the words to say, in a natural, plain tone
+- natural, professional words to say
 
-The script also gives an opening and closing, the time for each part (about 60–70 minutes in total) and a backup line for every step in case a page won't load.
+The script also includes timings (about 60–70 minutes) and a backup line for each step.
 
-## Honest notes in the script
-- Rodney Bay has no filed returns. The script shows the return setup and the sample figures, and says so.
-- AML records are frozen. Part 5 and Part 6 are view only and use an existing example assessment.
-- The prudential assessment and plan are still drafts.
-- All figures and people are fictional.
+## Wording
+The words "fictional", "sample" and "test" never appear in the script. The data is described as Rodney Bay's records.
 
-## How I'll build it
-- Check pages and records with read-only lookups only, so every address and reference is real.
-- No data, settings or code changes.
-- Convert the Word copy to images and check every page before sharing it.
+## Checks
+- Confirm every address and reference with read-only lookups and a browser pass.
+- Check every page of the Word copy before sharing it.
