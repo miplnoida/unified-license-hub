@@ -13,7 +13,7 @@
  * sections at a historic point in time.
  */
 import { useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { CalendarClock, Coins, Loader2, LayoutDashboard, History, MapPin, UserSearch } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -48,8 +48,9 @@ type ViewKey = 'overview' | 'timeline' | 'onboarding' | 'reporting_currency' | '
 
 export default function Entity360Detail() {
   const { entityId } = useParams<{ entityId: string }>();
+  const [searchParams] = useSearchParams();
   const [asOfInput, setAsOfInput] = useState('');
-  const [view, setView] = useState<ViewKey>('overview');
+  const [view, setView] = useState<ViewKey>(() => (searchParams.get('section') as ViewKey) || 'overview');
   const { data: overview, isLoading, error } = useEntity360Overview(entityId);
 
   const asOf = asOfInput ? new Date(`${asOfInput}T23:59:59Z`).toISOString() : null;
