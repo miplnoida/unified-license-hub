@@ -45,7 +45,7 @@ export default function SupervisoryPlanRecord() {
 
   return (
     <DashboardLayout>
-      <Button asChild variant="ghost" size="sm" className="mb-2">
+      <Button asChild variant="ghost" size="sm" className="mb-2" data-rbac="supervisory_planning.view">
         <Link to="/supervision/plans"><ArrowLeft className="mr-1 h-4 w-4" />Supervisory plans</Link>
       </Button>
       {isLoading ? (
