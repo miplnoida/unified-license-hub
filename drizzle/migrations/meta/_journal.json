@@ -15,6 +15,13 @@
       "when": 1792653779350,
       "tag": "0001_applicant_list_own_apps_always_fix",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792872491314,
+      "tag": "0002_fix_derive_obligations_delete_where",
+      "breakpoints": true
     }
   ]
 }
