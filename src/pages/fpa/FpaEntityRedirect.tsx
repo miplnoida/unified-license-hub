@@ -34,6 +34,12 @@ export default function FpaEntityRedirect() {
     },
   });
 
+  // An organisation (licensee) id opens its Entity 360 Fit & Proper section;
+  // that page applies its own access checks.
+  if ((type === 'licensee' || type === 'entity') && id) {
+    return <Navigate to={`/entities/${id}?section=fit_and_proper`} replace />;
+  }
+
   if (!config) {
     return (
       <DashboardLayout>
