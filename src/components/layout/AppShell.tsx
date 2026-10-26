@@ -1,5 +1,7 @@
 import { Suspense, useEffect, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useSubscriptionPackage } from '@/hooks/useSubscriptionPackage';
+import { getModuleForPath } from '@/lib/permissionModules';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { ActingOnBehalfOfBanner } from '@/components/shared/ActingOnBehalfOfBanner';
@@ -53,6 +55,8 @@ export function AppShell() {
   }, [location.pathname]);
 
   const sidebarWidth = isMobile ? '0px' : collapsed ? '4rem' : '16rem';
+  const { isModuleEnabled } = useSubscriptionPackage();
+  const packageBlocked = !isModuleEnabled(getModuleForPath(location.pathname));
 
   return (
     <AppShellContext.Provider value={true}>
@@ -69,9 +73,13 @@ export function AppShell() {
                 <ErrorBoundary context="RouteContent">
                   <Suspense fallback={<RouteContentSkeleton />}>
                     {/* keyed by path: restarts only the CONTENT transition */}
-                    <RouteContentTransition pathname={location.pathname}>
-                      <Outlet />
-                    </RouteContentTransition>
+                    {packageBlocked ? (
+                      <Navigate to="/dashboard" replace />
+                    ) : (
+                      <RouteContentTransition pathname={location.pathname}>
+                        <Outlet />
+                      </RouteContentTransition>
+                    )}
                   </Suspense>
                 </ErrorBoundary>
               </div>
