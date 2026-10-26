@@ -29,6 +29,13 @@
       "when": 1793045174876,
       "tag": "0003_subscription_package_config",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793055628939,
+      "tag": "0004_returns_entity_summary_member_access",
+      "breakpoints": true
     }
   ]
 }
