@@ -11,6 +11,7 @@ import { ReportHistory } from './components/ReportHistory';
 import { ReportSchedules } from './components/ReportSchedules';
 import { ReportPreviewDialog } from './components/ReportPreviewDialog';
 import type { ReportDefinition, ReportRun } from './types';
+import { BoardPack } from './components/BoardPack';
 
 export default function ReportsDashboard() {
   const [tab, setTab] = useState('overview');
@@ -55,10 +56,15 @@ export default function ReportsDashboard() {
             <TabsTrigger value="builder">Ad-Hoc Builder</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="schedules">Schedules</TabsTrigger>
+            <TabsTrigger value="board-pack">Board Pack</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6 mt-4">
             <ReportsOverview onDrilldown={openPreview} />
+          </TabsContent>
+
+          <TabsContent value="board-pack" className="mt-4">
+            <BoardPack />
           </TabsContent>
 
 
