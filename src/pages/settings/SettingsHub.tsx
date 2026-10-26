@@ -16,6 +16,12 @@ interface SettingsCard {
 
 const settingsCards: SettingsCard[] = [
   {
+    title: 'Subscription Package',
+    description: 'Select Package A, B or C and switch individual modules on or off.',
+    icon: <ShieldCheck className="h-6 w-6" />,
+    href: '/settings/package',
+  },
+  {
     title: 'General',
     description: 'Organization details, regional format, and system preferences.',
     icon: <Settings className="h-6 w-6" />,

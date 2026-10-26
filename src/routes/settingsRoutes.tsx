@@ -18,6 +18,7 @@ const LicenseExpirySettings = lazy(() => import('@/pages/settings/LicenseExpiryS
 const CertificateSignatorySettings = lazy(() => import('@/pages/settings/CertificateSignatorySettings'));
 const CaptchaSettings = lazy(() => import('@/pages/settings/CaptchaSettings'));
 const CurrencySettings = lazy(() => import('@/pages/settings/CurrencySettings'));
+const SubscriptionPackageSettings = lazy(() => import('@/pages/settings/SubscriptionPackageSettings'));
 
 function S({ children }: { children: React.ReactNode }) {
   return <P><SettingsRoute>{children}</SettingsRoute></P>;
@@ -26,6 +27,7 @@ function S({ children }: { children: React.ReactNode }) {
 export const settingsRoutes = (
   <>
     <Route path="/settings" element={<S><SettingsHub /></S>} />
+    <Route path="/settings/package" element={<S><SubscriptionPackageSettings /></S>} />
     <Route path="/settings/general" element={<S><GeneralSettings /></S>} />
     <Route path="/settings/payments" element={<S><PaymentSettings /></S>} />
     <Route path="/settings/schedule" element={<S><ScheduleSettings /></S>} />

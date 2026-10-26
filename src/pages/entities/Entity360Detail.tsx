@@ -36,6 +36,21 @@ import { Entity360SectionView } from '@/components/entity-detail/Entity360Sectio
 import { Entity360TimelinePanel } from '@/components/entity-detail/Entity360TimelinePanel';
 import { EntityAmlPanel } from '@/components/entity-detail/EntityAmlPanel';
 import { E360_GROUPS, E360_SECTIONS } from '@/components/entity-detail/sectionCatalogue';
+import { useSubscriptionPackage } from '@/hooks/useSubscriptionPackage';
+
+/** Entity 360 sections that belong to an optional package module. */
+const E360_SECTION_PACKAGE_MODULE: Partial<Record<string, string>> = {
+  fit_and_proper: 'fit_and_proper',
+  returns: 'returns_management',
+  prudential: 'prudential_supervision',
+  risk: 'prudential_supervision',
+  supervision: 'prudential_supervision',
+  examinations: 'inspection_management',
+  market_conduct: 'market_conduct',
+  aml: 'aml_supervision',
+  aml_confidential: 'aml_supervision',
+  enforcement: 'enforcement_management',
+};
 import { EntityReportingCurrencyPanel } from '@/components/entity-detail/EntityReportingCurrencyPanel';
 import { OwnershipTreePanel } from '@/components/entity-detail/OwnershipTreePanel';
 import { SupervisoryTimelinePanel } from '@/components/entity-detail/SupervisoryTimelinePanel';
@@ -57,10 +72,12 @@ export default function Entity360Detail() {
   const allowed = overview?.sections ?? {};
 
   /** Navigation groups, containing only sections this user may read. */
+  const { isModuleEnabled } = useSubscriptionPackage();
   const groups = useMemo(() => E360_GROUPS.map((group) => ({
     ...group,
-    sections: E360_SECTIONS.filter((s) => s.group === group.key && allowed[s.key] !== false),
-  })).filter((g) => g.sections.length > 0), [allowed]);
+    sections: E360_SECTIONS.filter((s) => s.group === group.key && allowed[s.key] !== false
+      && isModuleEnabled(E360_SECTION_PACKAGE_MODULE[s.key])),
+  })).filter((g) => g.sections.length > 0), [allowed, isModuleEnabled]);
 
   if (isLoading) {
     return (
