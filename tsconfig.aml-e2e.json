@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "e2e/cert-v2/06-aml-demo-dataset.spec.ts",
+    "e2e/cert-v2/support/amlAuthorization.ts"
+  ]
+}
