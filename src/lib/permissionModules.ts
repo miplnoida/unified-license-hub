@@ -239,6 +239,8 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   // ─── Supervision & AI governance ───────────────────────────────────────
   ['/supervision/portfolio', 'supervisory_spine'],
   ['/supervision/team-performance', 'supervisory_spine'],
+  ['/supervision/detection', 'supervisory_spine'],
+  ['/supervision/management-assurance', 'supervisory_spine'],
   ['/supervision/examination-schedule', 'prudential_supervision'],
   ['/supervision/thematic-closure-approvals', 'market_conduct'],
   ['/governance/ai', 'ai_management'],

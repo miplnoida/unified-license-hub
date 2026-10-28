@@ -320,6 +320,9 @@ export function Sidebar() {
         // Exact-action gate when the item declares one (e.g. Permission
         // Coverage → role_management.view_coverage) — module-wide access is
         // not enough for diagnostic entries.
+        if (isSupervisoryNavigationPath(item.href)) {
+          return canDiscoverSupervisoryNavigation(userIsInternal, false, hasPermission);
+        }
         if (item.requiredAction) {
           return hasPermission(item.module, item.requiredAction);
         }

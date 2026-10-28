@@ -7,6 +7,10 @@ import {
 import { useSecurityContext } from '@/hooks/useSecurityContext';
 import { renderNavIcon } from '@/lib/rbac/navIcons';
 import type { SecNavItem } from '@/lib/rbac/securityContext';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
+import { useSubscriptionPackage } from '@/hooks/useSubscriptionPackage';
+import { getModuleForPath } from '@/lib/permissionModules';
+import { canDiscoverSupervisoryNavigation, isSupervisoryNavigationPath } from '@/lib/supervisoryNavigation';
 
 interface Entry {
   key: string;
@@ -30,6 +34,8 @@ export function GlobalNavSearch() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const { context } = useSecurityContext();
+  const { isInternal, isBypassRole, hasPermission } = useUserDynamicPermissions();
+  const { isModuleEnabled } = useSubscriptionPackage();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -57,7 +63,10 @@ export function GlobalNavSearch() {
       return current && current.key !== item.key ? current.label : 'Navigation';
     };
     return items
-      .filter((i) => i.item_type === 'link' && !!i.href && i.allowed !== false && i.show_in_search !== false)
+      .filter((i) => i.item_type === 'link' && !!i.href && i.show_in_search !== false
+        && (isSupervisoryNavigationPath(i.href)
+          ? isModuleEnabled(getModuleForPath(i.href)) && canDiscoverSupervisoryNavigation(isInternal, isBypassRole, hasPermission)
+          : i.allowed !== false))
       .map((i) => ({
         key: i.key,
         label: i.label,
@@ -67,7 +76,7 @@ export function GlobalNavSearch() {
         keywords: i.keywords ?? [],
       }))
       .sort((a, b) => a.group.localeCompare(b.group) || a.label.localeCompare(b.label));
-  }, [context]);
+  }, [context, isInternal, isBypassRole, hasPermission, isModuleEnabled]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, Entry[]>();
