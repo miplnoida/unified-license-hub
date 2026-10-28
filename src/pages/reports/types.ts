@@ -12,7 +12,10 @@ export type ReportSource =
   | 'entity_appointments'
   | 'examinations'
   | 'examination_findings'
-  | 'enforcement_actions';
+  | 'enforcement_actions'
+  | 'prudential_assessments'
+  | 'ownership_interests'
+  | 'statutory_bulletin';
 
 export type ExportFormat = 'csv' | 'xlsx' | 'json' | 'pdf';
 export type ScheduleFrequency = 'daily' | 'weekly' | 'monthly' | 'quarterly';

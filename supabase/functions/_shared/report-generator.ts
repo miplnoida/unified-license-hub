@@ -16,6 +16,9 @@ export const ALLOWED_SOURCES = new Set([
   'return_threshold_breaches',
   // Supervisory reports (read through the caller's RLS scope).
   'entity_appointments', 'examinations', 'examination_findings', 'enforcement_actions',
+  'prudential_assessments', 'ownership_interests',
+  // Virtual aggregate source computed from several caller-scoped tables.
+  'statutory_bulletin',
 ]);
 
 export const SENSITIVE = new Set([
@@ -59,6 +62,9 @@ export const REPORT_SLUG_SOURCE_MAP: Record<string, string> = {
   'sup-exam-programme': 'examinations',
   'sup-exam-findings': 'examination_findings',
   'sup-enf-sanctions': 'enforcement_actions',
+  'sup-prudential-soundness': 'prudential_assessments',
+  'sup-ownership-register': 'ownership_interests',
+  'stat-annual-bulletin': 'statutory_bulletin',
 };
 
 export function resolveScheduleSource(schedule: { source?: string | null; report_slug?: string | null }): string | null {
@@ -86,6 +92,9 @@ export const FILTER_COLUMN_MAP: Record<string, Record<string, string>> = {
   examinations: { status: 'stage', stage: 'stage', riskLevel: 'risk_rating', entity: 'entity_id', licensee: 'entity_id', regulator: 'regulator_id', sector: 'sector_id' },
   examination_findings: { status: 'status', severity: 'severity' },
   enforcement_actions: { status: 'status', stage: 'stage', entity: 'entity_id', licensee: 'entity_id' },
+  prudential_assessments: { status: 'status', riskLevel: 'overall_rating', entity: 'entity_id', licensee: 'entity_id' },
+  ownership_interests: { status: 'approval_status', entity: 'owned_entity_id', licensee: 'owned_entity_id' },
+  statutory_bulletin: {},
 };
 
 // Required computed columns that must always appear for a given report slug,
@@ -418,6 +427,16 @@ export function buildReportSummary(slug: string | undefined, rows: any[], groupB
         summary.remediation_state_counts = countBy(rows, 'remediation_state');
         summary.overdue_count = rows.filter((r) => r.remediation_state === 'overdue').length;
         break;
+      case 'sup-prudential-soundness':
+        summary.rating_counts = countBy(rows, 'overall_rating');
+        summary.status_counts = countBy(rows, 'status');
+        summary.entity_count = new Set(rows.map((r) => r.entity_id)).size;
+        break;
+      case 'sup-ownership-register':
+        summary.ubo_count = rows.filter((r) => r.is_ubo).length;
+        summary.controller_count = rows.filter((r) => r.is_controller).length;
+        summary.approval_status_counts = countBy(rows, 'approval_status');
+        break;
       case 'sup-enf-sanctions': {
         summary.stage_counts = countBy(rows, 'stage');
         summary.type_counts = countBy(rows, 'enforcement_type');
@@ -511,6 +530,77 @@ async function loadSourceFilterMeta(client: any, source: string): Promise<Filter
   }
 }
 
+// Readable names for raw reference columns. Lookups use the caller's client,
+// so a name the caller cannot read stays blank rather than leaking.
+const NAME_LOOKUPS: Array<{ col: string; out: string; table: string; label: string }> = [
+  { col: 'entity_id', out: 'entity_name', table: 'licensees', label: 'name' },
+  { col: 'owned_entity_id', out: 'owned_entity_name', table: 'licensees', label: 'name' },
+  { col: 'person_party_id', out: 'person_name', table: 'parties', label: 'display_name' },
+  { col: 'owner_party_id', out: 'owner_name', table: 'parties', label: 'display_name' },
+  { col: 'role_type_id', out: 'role_name', table: 'role_types', label: 'label' },
+  { col: 'ownership_type_id', out: 'ownership_type', table: 'ownership_types', label: 'label' },
+];
+const ENRICH_SOURCES = new Set(['entity_appointments', 'examinations', 'enforcement_actions', 'prudential_assessments', 'ownership_interests']);
+
+export async function enrichNames(client: any, source: string, rows: any[]): Promise<any[]> {
+  if (!ENRICH_SOURCES.has(source) || !rows.length) return rows;
+  let out = rows;
+  for (const l of NAME_LOOKUPS) {
+    if (out.some((r) => r[l.out] != null)) continue;
+    const ids = [...new Set(out.map((r) => r[l.col]).filter(Boolean))];
+    if (!ids.length) continue;
+    const map: Record<string, string> = {};
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data } = await client.from(l.table).select(`id, ${l.label}`).in('id', ids.slice(i, i + 200));
+      (data || []).forEach((d: any) => { map[d.id] = d[l.label]; });
+    }
+    out = out.map((r) => (r[l.col] ? { ...r, [l.out]: map[r[l.col]] ?? null } : r));
+  }
+  return out;
+}
+
+/**
+ * Statutory annual bulletin: headline sector statistics for the period,
+ * counted from the caller's own RLS scope. A failed read is reported as
+ * "unavailable", never as zero.
+ */
+export async function buildStatutoryBulletin(client: any, filters: Record<string, any>): Promise<any[]> {
+  const { from, to } = resolveRange(filters || {});
+  const rows: any[] = [];
+  const count = async (section: string, metric: string, table: string, dateCol: string | null, apply?: (q: any) => any) => {
+    let q = client.from(table).select('id', { count: 'exact', head: true });
+    if (dateCol && from) q = q.gte(dateCol, from);
+    if (dateCol && to) q = q.lte(dateCol, to);
+    if (apply) q = apply(q);
+    const { count: c, error } = await q;
+    rows.push({ section, metric, value: error ? null : (c ?? 0), basis: error ? 'unavailable' : dateCol ? 'in period' : 'as at report date' });
+  };
+  const sum = async (section: string, metric: string, table: string, col: string, dateCol: string, apply?: (q: any) => any) => {
+    let q = client.from(table).select(col).limit(10000);
+    if (from) q = q.gte(dateCol, from);
+    if (to) q = q.lte(dateCol, to);
+    if (apply) q = apply(q);
+    const { data, error } = await q;
+    rows.push({ section, metric, value: error ? null : (data || []).reduce((t: number, r: any) => t + Number(r[col] || 0), 0), basis: error ? 'unavailable' : 'in period' });
+  };
+  await count('Regulated population', 'Active licences', 'licenses', null, (q) => q.eq('status', 'active'));
+  await count('Regulated population', 'Licences issued', 'licenses', 'issued_at');
+  await count('Authorisations', 'Applications received', 'applications', 'submitted_at');
+  await count('Authorisations', 'Applications approved', 'applications', 'approved_at');
+  await count('Authorisations', 'Applications rejected', 'applications', 'rejected_at');
+  await count('Returns', 'Returns submitted', 'v_return_filing_workflow_state', 'submitted_at');
+  await count('Returns', 'Returns currently overdue', 'v_return_filing_workflow_state', null, (q) => q.eq('is_overdue', true));
+  await count('Supervision', 'Examinations opened', 'examinations', 'created_at');
+  await count('Supervision', 'Examinations closed', 'examinations', 'closed_at');
+  await count('Supervision', 'Examination findings raised', 'examination_findings', 'created_at');
+  await count('Enforcement', 'Enforcement cases opened', 'enforcement_actions', 'date_opened');
+  await count('Enforcement', 'Enforcement cases closed', 'enforcement_actions', 'closed_at');
+  await sum('Enforcement', 'Penalties assessed', 'enforcement_actions', 'penalty_amount', 'date_opened');
+  await count('Consumer protection', 'Complaints received', 'complaints', 'created_at');
+  await sum('Revenue', 'Fees collected', 'payments', 'amount', 'created_at', (q) => q.in('status', ['paid', 'completed', 'success']));
+  return rows;
+}
+
 export async function executeQuery(client: any, opts: RunOptions): Promise<RunResult> {
   const warnings: string[] = [];
   const source = opts.source;
@@ -519,6 +609,13 @@ export async function executeQuery(client: any, opts: RunOptions): Promise<RunRe
   }
   // Resolve physical table/view from report_sources metadata. Fallback preserves
   // legacy behavior (users -> profiles) when metadata is missing.
+  if (source === 'statutory_bulletin') {
+    const rows = await buildStatutoryBulletin(client, opts.filters || {});
+    const unavailable = rows.filter((r) => r.basis === 'unavailable').length;
+    if (unavailable) warnings.push(`statutory_bulletin: ${unavailable} figure(s) unavailable`);
+    const summary = buildReportSummary(opts.reportSlug, rows, opts.groupBy, warnings);
+    return { rawRowCount: rows.length, totalCount: rows.length, rows, projected: rows, summary, warnings };
+  }
   const meta = await loadSourceMeta(client, source);
   // DCI-01: prudential breach reporting reads the canonical current-breach view
   // so report totals match the Breach Inbox and supervisory dashboards.
@@ -602,6 +699,7 @@ export async function executeQuery(client: any, opts: RunOptions): Promise<RunRe
   if (error) throw new Error(error.message);
 
   let rows = (data || []).map(strip);
+  rows = await enrichNames(client, source, rows);
   rows = decorate(opts.reportSlug, rows);
   rows = sortRows(rows, opts.sortBy, opts.sortDir || 'asc');
   const effCols = getEffectiveColumns(opts.reportSlug, opts.selectedColumns, opts.defaultColumns || []);
