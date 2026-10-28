@@ -19,3 +19,4 @@
 - Registration upload verification is independently restored from fresh server OTP records; submission OTP placement and historical form markers never authorize capability issuance.
 - Pending file uploads atomically enqueue deduplicated worker scan jobs; scanner failures remain unreleased and retryable, never reported as completed.
 - Detection and management-assurance discoverability mirrors the existing cross-domain supervisory route predicate; menu metadata never grants record access.
+- Past-grace renewal is a narrow draft-command exception requiring resolved licence ownership/membership, applicable catalogued renewal service and permitted licence status; ordinary post-licence entitlement remains unchanged.
