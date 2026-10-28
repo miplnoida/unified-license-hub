@@ -78,6 +78,13 @@
       "when": 1793185578037,
       "tag": "0010_nav_user_access_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793185982307,
+      "tag": "0011_hide_complaints_menu_for_external",
+      "breakpoints": true
     }
   ]
 }
