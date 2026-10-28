@@ -119,6 +119,19 @@ export function findPrimaryEmailStepIndex(schema?: RegFormSchema | null): number
   );
 }
 
+export const UPLOAD_VERIFICATION_STAGE = 'upload::email-verification';
+/** Separate from submission OTP: updates and disabled submission OTP still need upload ownership. */
+export function withUploadVerificationStage<T extends PlacementStep & { stepData?: RegFormSchema[number] }>(steps: T[]) {
+  const uploadIndex = steps.findIndex(s => s.type === 'documents' || s.stepData?.rows.some(r => r.columns.some(c =>
+    c.field && (['file', 'signature'].includes(c.field.type) || /signature/i.test(c.field.fieldName)),
+  )));
+  if (uploadIndex < 0) return steps;
+  const emailIndex = steps.findIndex(s => s.stepData?.rows.some(r => r.columns.some(c => isPrimaryEmailField(c.field))));
+  // If the email and upload share a section, that section renders an inline recovery block.
+  if (emailIndex < 0 || emailIndex >= uploadIndex) return steps;
+  return [...steps.slice(0, uploadIndex), { id: UPLOAD_VERIFICATION_STAGE, type: 'verification', label: 'Email Verification' }, ...steps.slice(uploadIndex)];
+}
+
 export interface PlacementValidationResult {
   ok: boolean;
   message?: string;

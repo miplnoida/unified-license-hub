@@ -19,6 +19,8 @@ import {
   shouldRenderEmailVerification,
   withVerificationStage,
   isVerificationStageId,
+  withUploadVerificationStage,
+  UPLOAD_VERIFICATION_STAGE,
 } from '@/lib/registrationEmailVerification';
 import { visibleRegSteps } from '@/lib/sectionVisibility';
 import { validateEmailFieldSettings } from '@/lib/emailFieldValidation';
@@ -423,10 +425,10 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   // Verification gets its own stage right after the configured step, so the
   // applicant types the email, presses Next, and then verifies it.
   const steps = useMemo(
-    () => withVerificationStage(baseSteps, emailVerificationPlacement, {
+    () => withUploadVerificationStage(withVerificationStage(baseSteps, emailVerificationPlacement, {
       requireOtp,
       updateMode: isUpdateMode,
-    }) as typeof baseSteps,
+    }) as typeof baseSteps) as typeof baseSteps,
     [baseSteps, emailVerificationPlacement, requireOtp, isUpdateMode],
   );
 
@@ -446,6 +448,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const isEmailVerificationStep = useCallback((index: number) => {
     const step = steps[index];
     if (!step) return false;
+    if (step.id === UPLOAD_VERIFICATION_STAGE) return true;
     return shouldRenderEmailVerification({
       stepId: step.id,
       stepType: step.type,
@@ -619,6 +622,10 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const validateCurrentStep = useCallback((): boolean => {
     const step = steps[currentStep];
     if (!step) return true;
+    if (step.id === UPLOAD_VERIFICATION_STAGE && !uploadVerification.verified) {
+      toast.error('Please verify your email address before uploading documents.');
+      return false;
+    }
 
     // While the verified state is still being restored (marker / server lookup)
     // never claim the email is unverified — that was the confusing error.
@@ -674,7 +681,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       default:
         return true;
     }
-  }, [currentStep, steps, validateStep, validateDynamicStep, validateDeclarations, effectiveDeclarations, config, form.documents, form.emailVerified, emailVerificationHydrating, isEmailVerificationStep, effectiveRequireCaptcha, requireOtp]);
+  }, [currentStep, steps, validateStep, validateDynamicStep, validateDeclarations, effectiveDeclarations, config, form.documents, form.emailVerified, emailVerificationHydrating, isEmailVerificationStep, effectiveRequireCaptcha, requireOtp, uploadVerification.verified]);
 
   const validateScope = useCallback((): boolean => {
     const errs: Record<string, string> = {};
@@ -1187,7 +1194,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       <div className="space-y-6">
         {inner}
         <EmailVerificationSection
-          form={form}
+          form={step.id === UPLOAD_VERIFICATION_STAGE ? { ...form, emailVerified: uploadVerification.verified } : form}
           errors={errors}
           setField={setField}
           verificationEmail={effectiveEmail}

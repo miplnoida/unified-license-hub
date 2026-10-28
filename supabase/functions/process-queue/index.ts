@@ -74,10 +74,15 @@ serve(async (req) => {
 
       for (const job of (jobs || []) as QueueJob[]) {
         // Mark as processing
-        await supabase
+        const { data: claimed, error: claimError } = await supabase
           .from("job_queue")
           .update({ status: "processing", started_at: new Date().toISOString() } as any)
-          .eq("id", job.id);
+          .eq("id", job.id)
+          .eq("status", "pending")
+          .select('id')
+          .maybeSingle();
+        if (claimError) throw claimError;
+        if (!claimed) continue;
 
         try {
           switch (job.type) {
