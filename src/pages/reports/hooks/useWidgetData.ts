@@ -19,12 +19,14 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { ReportDashboardWidget } from '../services/reportMetadataService';
 import { useReportSources } from './useReportMetadata';
+import { filingAcceptanceRate } from '@/lib/reportScope';
 
 type WidgetFilter = {
   status?: string;
   status_in?: string[];
   status_not_in?: string[];
   overdue?: boolean;
+  is_overdue?: boolean;
 };
 
 export interface WidgetData {
@@ -39,15 +41,22 @@ function applyFilter(q: any, f?: WidgetFilter) {
   if (f.status_in?.length) q = q.in('status', f.status_in);
   if (f.status_not_in?.length) q = q.not('status', 'in', `(${f.status_not_in.map((s) => `"${s}"`).join(',')})`);
   if (f.overdue) q = q.lt('due_date', new Date().toISOString()).not('status', 'in', '("submitted","validated","approved")');
+  if (f.is_overdue !== undefined) q = q.eq('is_overdue', f.is_overdue);
   return q;
 }
 
 async function fetchAllRows(table: string, cols: string, filter?: WidgetFilter): Promise<any[]> {
-  let q: any = (supabase.from(table as any) as any).select(cols).limit(5000);
-  q = applyFilter(q, filter);
-  const { data, error } = await q;
-  if (error) throw error;
-  return data || [];
+  const rows: any[] = [];
+  const idColumn = table === 'v_return_filing_workflow_state' ? 'filing_id' : 'id';
+  for (let offset = 0; ; offset += 1000) {
+    let q: any = (supabase.from(table as any) as any).select(cols).order(idColumn).range(offset, offset + 999);
+    q = applyFilter(q, filter);
+    const { data, error } = await q;
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  return rows;
 }
 
 function monthKey(d: Date) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; }
@@ -74,15 +83,15 @@ async function runWidget(widget: ReportDashboardWidget, tableName: string): Prom
     const [num, den] = await Promise.all([
       (async () => {
         let q: any = (supabase.from(tableName as any) as any).select('id', { count: 'exact', head: true });
-        q = applyFilter(q, cfg.numerator); const { count } = await q; return count ?? 0;
+        q = applyFilter(q, cfg.numerator); const { count, error } = await q; if (error) throw error; return count ?? 0;
       })(),
       (async () => {
         let q: any = (supabase.from(tableName as any) as any).select('id', { count: 'exact', head: true });
-        q = applyFilter(q, cfg.denominator); const { count } = await q; return count ?? 0;
+        q = applyFilter(q, cfg.denominator); const { count, error } = await q; if (error) throw error; return count ?? 0;
       })(),
     ]);
-    const pct = den > 0 ? Math.round((num / den) * 100) : 0;
-    return { value: pct, series: [] };
+    const pct = filingAcceptanceRate(num, den);
+    return { value: pct ?? 'Unavailable', series: [] };
   }
 
   if (t === 'group_by') {
@@ -127,8 +136,11 @@ export function useWidgetData(widget: ReportDashboardWidget | null | undefined) 
   const src = sources?.find((s) => s.sourceKey === widget?.sourceKey);
   const table = src?.tableName;
   return useQuery({
-    queryKey: ['reports', 'widget-data', widget?.id, table],
-    queryFn: () => runWidget(widget!, table!),
+    queryKey: ['reports', 'widget-data', widget?.id, table, widget?.metricConfig],
+    queryFn: () => {
+      if (!widget || !table) throw new Error('Report source unavailable');
+      return runWidget(widget, table);
+    },
     enabled: !!widget && !!table,
     staleTime: 60_000,
   });

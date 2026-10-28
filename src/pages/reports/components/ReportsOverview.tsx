@@ -16,6 +16,7 @@ import { generateReport } from '../services/reportService';
 import type { ReportRun } from '../types';
 import { useToast } from '@/hooks/use-toast';
 import type { ReportDashboardWidget } from '../services/reportMetadataService';
+import { canonicalOverviewWidget } from '../services/overviewReturnWidgets';
 
 interface Props { onDrilldown?: (run: ReportRun) => void; }
 
@@ -23,7 +24,8 @@ export function ReportsOverview({ onDrilldown }: Props = {}) {
   const { toast } = useToast();
   const { data: layouts } = useDashboardLayouts();
   const layoutKey = layouts?.find((l) => l.isDefault)?.layoutKey || layouts?.[0]?.layoutKey || 'executive-overview';
-  const { data: widgets, isLoading } = useDashboardWidgets(layoutKey);
+  const { data: configuredWidgets, isLoading } = useDashboardWidgets(layoutKey);
+  const widgets = configuredWidgets?.map(canonicalOverviewWidget);
 
   const drill = async (w: ReportDashboardWidget) => {
     if (!onDrilldown || !w.drilldownReportSlug || !w.sourceKey) return;
@@ -62,6 +64,7 @@ export function ReportsOverview({ onDrilldown }: Props = {}) {
 
   return (
     <div className="space-y-6">
+      <p className="text-sm text-muted-foreground">All accessible records · Current status · Regulatory filings are separate from historical compliance returns.</p>
       {kpis.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {kpis.map((w) => <ReportWidgetRenderer key={w.id} widget={w} onDrilldown={drill} />)}
