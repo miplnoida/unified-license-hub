@@ -64,24 +64,10 @@ Deno.serve(async (req) => {
     summary.scanned = (overdue || []).length;
     for (const a of overdue || []) {
       const { error: uErr } = await supa.from('conduct_actions').update({ status: 'overdue' }).eq('id', a.id);
-      if (uErr) continue;
+      if (uErr) throw uErr;
       summary.marked_overdue++;
-      const dedupeKey = `action_overdue:${a.id}`;
-      const { data: existing } = await supa.from('conduct_alerts').select('id').eq('dedupe_key', dedupeKey).maybeSingle();
-      if (!existing) {
-        const { data: al } = await supa.from('conduct_alerts').insert({
-          dedupe_key: dedupeKey,
-          kind: 'action_overdue',
-          source: 'overdue-action-sweep',
-          generated_by: 'system',
-          severity: 'medium',
-          title: `Overdue action: ${a.title}`,
-          detail: { conduct_action_id: a.id, source_module: a.source_module, source_id: a.source_id },
-          status: 'open',
-          licensee_id: a.entity_id ?? null,
-        }).select('id').maybeSingle();
-        if (al?.id) summary.alerts_created++;
-      }
+      // The database trigger atomically creates/deduplicates the overdue alert.
+      // Do not insert a second alert using a different dedupe-key format here.
     }
 
     // 2. Mirror overdue for thematic review actions
