@@ -20,6 +20,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useMyApprovedMemberships } from '@/hooks/useEntityReturns';
 import { usePpoc } from '@/contexts/PpocContext';
 import { formatDateOnly } from '@/lib/datetime';
+import { useAuth } from '@/contexts/AuthContext';
+import { AccessRequestsPanel } from '@/components/entity/AccessRequestsPanel';
 
 interface SelfProfile {
   entity: { id: string; name: string; status: string | null; created_at: string; sector: string | null; sub_sector: string | null; lead_regulator: string | null } | null;
@@ -42,6 +44,7 @@ function Field({ name, value }: { name: string; value?: string | null }) {
 export default function MyInstitution() {
   const { data: memberships = [], isLoading: loadingMemberships } = useMyApprovedMemberships();
   const { activeLicenseeId } = usePpoc();
+  const { user } = useAuth();
   const [entityId, setEntityId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -179,9 +182,7 @@ export default function MyInstitution() {
                         </TableBody>
                       </Table>
                     </CardContent></Card>
-                    <p className="text-xs text-muted-foreground">
-                      To add or remove a user, send a request to the regulator through <Link className="text-primary hover:underline" to="/entity/correspondence">My Correspondence</Link>.
-                    </p>
+                    {entityId && <AccessRequestsPanel entityId={entityId} members={data.members} currentUserEmail={user?.email} />}
                   </TabsContent>
                 </Tabs>
               </>
