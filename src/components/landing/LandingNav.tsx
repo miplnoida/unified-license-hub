@@ -32,7 +32,7 @@ export function LandingNav() {
     <nav className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur-sm">
       <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:px-6">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/" className="mr-4 flex shrink-0 items-center gap-2">
           {branding.logo_url ? (
             <img src={branding.logo_url} alt={branding.site_name} className="h-16 w-auto max-w-[240px] rounded-md object-contain" />
           ) : (
