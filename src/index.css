@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,38 +6,38 @@
 
 @layer base {
   :root {
-    /* Core - Slate Blue Government Theme */
-    --background: 220 20% 97%;
-    --foreground: 224 50% 10%;
+    /* Core - Sovereign Institutional Theme */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 50% 10%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 50% 10%;
+    --popover-foreground: 222 47% 11%;
 
-    /* Primary - Deep Indigo */
-    --primary: 230 55% 28%;
+    /* Primary - Sovereign Navy */
+    --primary: 222 60% 18%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Government Green */
-    --secondary: 142 64% 36%;
+    /* Secondary - Institutional Green */
+    --secondary: 152 55% 30%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 220 16% 93%;
-    --muted-foreground: 220 12% 46%;
+    --muted: 214 32% 95%;
+    --muted-foreground: 215 16% 42%;
 
-    --accent: 168 40% 93%;
-    --accent-foreground: 168 65% 28%;
+    --accent: 214 40% 94%;
+    --accent-foreground: 222 60% 18%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 68% 46%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 88%;
-    --input: 220 20% 88%;
-    --ring: 230 55% 28%;
+    --border: 214 28% 89%;
+    --input: 214 28% 86%;
+    --ring: 222 60% 30%;
 
-    --radius: 0.625rem;
+    --radius: 0.5rem;
 
     /* Status colors */
     --success: 152 60% 40%;
