@@ -20,7 +20,7 @@ export function LandingFooter() {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               {branding.logo_url ? (
-                <img src={branding.logo_url} alt={branding.site_name} className="h-10 w-auto max-w-[180px] rounded-md object-contain" />
+                <img src={branding.logo_url} alt={branding.site_name} className="h-12 w-auto max-w-[220px] rounded-md object-contain" />
               ) : (
                 <>
                   <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
