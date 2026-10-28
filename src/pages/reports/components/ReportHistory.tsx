@@ -95,7 +95,7 @@ export function ReportHistory({ onPreview }: Props) {
     const provenance = await buildReportProvenance(full);
     if (fmt === 'csv') exportToCsv(full.rows, fname, undefined, provenance);
     else if (fmt === 'xlsx') exportToXlsx(full.rows, fname, undefined, provenance);
-    else if (fmt === 'pdf') exportToPdf(full.rows, fname, run.name, undefined, provenance);
+    else if (fmt === 'pdf') await exportToPdf(full.rows, fname, run.name, undefined, provenance);
     else exportToJson(full.rows, fname, provenance);
     await logExportRegistry({
       dataset: (run.source as string) || 'report_runs',

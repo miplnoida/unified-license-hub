@@ -89,7 +89,7 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
     }
     if (fmt === 'csv') exportToCsv(run.rows, fname, labels, provenance);
     else if (fmt === 'xlsx') exportToXlsx(run.rows, fname, labels, provenance);
-    else if (fmt === 'pdf') exportToPdf(run.rows, fname, run.name, labels, provenance);
+    else if (fmt === 'pdf') await exportToPdf(run.rows, fname, run.name, labels, provenance);
     else exportToJson(run.rows, fname, provenance);
     await logExportRegistry({
       dataset: (run.source as string) || 'report_runs',
