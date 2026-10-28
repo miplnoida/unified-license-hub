@@ -1,4 +1,4 @@
-import { formatMoney } from '@/lib/money';
+import { formatRecordMoney, formatTotalsByCurrency } from '@/lib/money';
 import { useState, useEffect, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -14,6 +14,7 @@ interface BillingRow {
   licensee: string;
   feeType: string;
   amount: string;
+  rawAmount: number;
   status: string;
   date: string;
 }
@@ -52,7 +53,8 @@ export default function PostLicenseeBilling() {
           applicationNumber: app?.application_number || '—',
           licensee: licenseeName,
           feeType: ftMap.get(c.fee_type_id) || '—',
-          amount: formatMoney(c.amount, c.currency),
+          amount: formatRecordMoney(c.amount),
+          rawAmount: Number(c.amount),
           status: paymentStatus,
           date: new Date(c.created_at).toLocaleDateString(),
         };
@@ -63,12 +65,11 @@ export default function PostLicenseeBilling() {
   }, []);
 
   const stats = useMemo(() => {
-    const total = rows.reduce((s, r) => s + parseFloat(r.amount.replace(/[$,]/g, '')), 0);
-    const paid = rows.filter(r => r.status === 'paid').reduce((s, r) => s + parseFloat(r.amount.replace(/[$,]/g, '')), 0);
-    const pending = rows.filter(r => r.status === 'pending').reduce((s, r) => s + parseFloat(r.amount.replace(/[$,]/g, '')), 0);
-    const overdue = rows.filter(r => r.status === 'overdue').reduce((s, r) => s + parseFloat(r.amount.replace(/[$,]/g, '')), 0);
-    const fmt = (v: number, currency?: string | null) => formatMoney(v, currency ?? null);
-    return { total: fmt(total), paid: fmt(paid), pending: fmt(pending), overdue: fmt(overdue) };
+    const totalFor = (status?: string) => formatTotalsByCurrency([
+      { amount: 0 },
+      ...rows.filter(r => !status || r.status === status).map(r => ({ amount: r.rawAmount })),
+    ]);
+    return { total: totalFor(), paid: totalFor('paid'), pending: totalFor('pending'), overdue: totalFor('overdue') };
   }, [rows]);
 
   const columns: Column<BillingRow>[] = [

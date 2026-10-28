@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { examinationCreate, examinationUpdate } from '@/lib/supervisoryGovernedOps';
-import { CANONICAL_ENGAGEMENT_TYPES } from '@/lib/supervisoryEngagement';
+import { CANONICAL_ENGAGEMENT_TYPES, examinationTypeReadValues } from '@/lib/supervisoryEngagement';
 
 const sb = supabase as any;
 
@@ -109,7 +109,7 @@ export function useExaminations(filters?: { entity_id?: string; stage?: string; 
       let q = sb.from('examinations').select('*').order('created_at', { ascending: false });
       if (filters?.entity_id) q = q.eq('entity_id', filters.entity_id);
       if (filters?.stage) q = q.eq('stage', filters.stage);
-      if (filters?.examination_type) q = q.eq('examination_type', filters.examination_type);
+      if (filters?.examination_type) q = q.in('examination_type', examinationTypeReadValues(filters.examination_type));
       const { data, error } = await q;
       if (error) throw error;
       const rows = (data ?? []) as ExaminationRow[];

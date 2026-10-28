@@ -44,9 +44,22 @@ export const ENGAGEMENT_TYPE_VALUES: readonly string[] = CANONICAL_ENGAGEMENT_TY
 export const isCanonicalEngagementType = (value: unknown): value is CanonicalEngagementType =>
   typeof value === 'string' && ENGAGEMENT_TYPE_VALUES.includes(value.toUpperCase());
 
+/** Read-only compatibility for historical rows; never used to author an engagement. */
+const LEGACY_ENGAGEMENTS: Record<string, CanonicalEngagementType> = {
+  full_scope: 'FULL_SCOPE_ONSITE', targeted: 'TARGETED_ONSITE',
+  follow_up: 'FOLLOW_UP_REVIEW', thematic: 'THEMATIC_EXAMINATION',
+};
+
+export function examinationTypeReadValues(value: string): string[] {
+  const canonical = value.toUpperCase();
+  return [canonical, ...Object.entries(LEGACY_ENGAGEMENTS)
+    .filter(([, type]) => type === canonical).map(([alias]) => alias)];
+}
+
 export const engagementLabel = (value?: string | null): string => {
   if (!value) return '—';
-  const match = CANONICAL_ENGAGEMENT_TYPES.find((e) => e.value === value.toUpperCase());
+  const canonical = LEGACY_ENGAGEMENTS[value.toLowerCase()] ?? value.toUpperCase();
+  const match = CANONICAL_ENGAGEMENT_TYPES.find((e) => e.value === canonical);
   return match ? match.label : value;
 };
 
