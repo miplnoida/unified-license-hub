@@ -27,13 +27,13 @@ interface Props {
 }
 
 export function QuestionParticipationEditor({ configId, methodologyId, canEdit }: Props) {
-  const { data: questions = [], isLoading } = useMethodologyQuestionCatalogue(methodologyId);
+  const { data: questions, isLoading } = useMethodologyQuestionCatalogue(methodologyId);
   const { data: layers } = useCalculationPolicyLayers(configId);
   const save = useSetQuestionWeights();
   const [rows, setRows] = useState<QuestionWeightRow[]>([]);
 
   useEffect(() => {
-    if (!layers) return;
+    if (!layers || !questions) return;
     setRows(questions.map((q) => {
       const existing = layers.questionWeights.find((r) => r.question_code === q.question_code);
       return existing ?? {
@@ -60,7 +60,7 @@ export function QuestionParticipationEditor({ configId, methodologyId, canEdit }
   };
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading the question catalogue…</p>;
-  if (questions.length === 0) {
+  if (!questions?.length) {
     return <p className="text-sm text-muted-foreground">This methodology publishes no active questions, so there is nothing to weight.</p>;
   }
 

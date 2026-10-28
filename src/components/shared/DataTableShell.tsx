@@ -160,7 +160,7 @@ export function DataTableShell<T extends Record<string, any>>({
     if (onPageChange) onPageChange(next);
     else setPageLocal(next);
   };
-  const pageSize = pageSizeProp !== DEFAULT_PAGE_SIZE && !onPageSizeChange ? pageSizeProp : pageSizeLocal;
+  const pageSize = onPageSizeChange ? pageSizeProp : pageSizeLocal;
   const setPageSize = (size: number) => {
     if (onPageSizeChange) onPageSizeChange(size);
     else setPageSizeLocal(size);

@@ -439,7 +439,7 @@ export function AmlPortfolioReport({ domainCode = 'AML_CFT' }: { domainCode?: st
                     {data.trends.movements.map((m) => (
                       <TableRow key={m.movement_id} data-testid={`port-movement-${m.movement_id}`}>
                         <TableCell>
-                          <Link className="underline" to={`/supervision/aml/entities/${m.entity_id}`}>
+                          <Link className="underline" to={`/entities/${m.entity_id}`}>
                             {dash(m.entity_name)}
                           </Link>
                         </TableCell>
@@ -498,7 +498,7 @@ export function AmlPortfolioReport({ domainCode = 'AML_CFT' }: { domainCode?: st
                       {data.entities.map((r) => (
                         <TableRow key={r.entity_id} data-testid={`port-entity-${r.entity_id}`}>
                           <TableCell>
-                            <Link className="font-medium underline" to={r.routes?.entity ?? '#'}>
+                            <Link className="font-medium underline" to={`/entities/${r.entity_id}`}>
                               {dash(r.entity_name)}
                             </Link>
                             {r.restricted_matter_present ? (

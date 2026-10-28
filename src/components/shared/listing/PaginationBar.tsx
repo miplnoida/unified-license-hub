@@ -35,7 +35,8 @@ export function PaginationBar({
 }: PaginationBarProps) {
   const pages = pageCount(totalCount, pageSize);
   const single = totalCount <= pageSize;
-  if (single && !alwaysShowCount) return null;
+  if (single && !alwaysShowCount && !onPageSizeChange) return null;
+  const sizes = [...new Set([...pageSizeOptions, pageSize])].sort((a, b) => a - b);
 
   return (
     <div className={`flex flex-wrap items-center justify-between gap-2 ${className ?? ''}`}>
@@ -47,7 +48,7 @@ export function PaginationBar({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {pageSizeOptions.map((o) => (
+              {sizes.map((o) => (
                 <SelectItem key={o} value={String(o)}>
                   {o} / page
                 </SelectItem>
