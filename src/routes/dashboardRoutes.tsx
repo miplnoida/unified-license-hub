@@ -104,6 +104,7 @@ const LegacyThreadRedirect = lazy(() => import('@/routes/LegacyThreadRedirect'))
 const CorrespondenceRecords = lazy(() => import('@/pages/correspondence/CorrespondenceRecords'));
 const CorrespondenceRoutingRules = lazy(() => import('@/pages/correspondence/RoutingRulesAdmin'));
 const MyCorrespondence = lazy(() => import('@/pages/entity/correspondence/MyCorrespondence'));
+const MyInstitution = lazy(() => import('@/pages/entity/profile/MyInstitution'));
 const MyCorrespondenceDetail = lazy(() => import('@/pages/entity/correspondence/MyCorrespondenceDetail'));
 const MyComplaintRfis = lazy(() => import('@/pages/entity/complaint-rfis/MyComplaintRfis'));
 const MySupervisoryActions = lazy(() => import('@/pages/entity/MySupervisoryActions'));
@@ -472,6 +473,7 @@ export const dashboardRoutes = (
     <Route path="/correspondence/:id" element={<M module="notification_management"><ThreadWorkspace /></M>} />
     <Route path="/admin/correspondence-routing" element={<M module="settings"><CorrespondenceRoutingRules /></M>} />
     <Route path="/entity/correspondence" element={<P><MyCorrespondence /></P>} />
+    <Route path="/entity/profile" element={<P><MyInstitution /></P>} />
     <Route path="/entity/correspondence/:id" element={<P><MyCorrespondenceDetail /></P>} />
     <Route path="/entity/correspondence/thread/:id" element={<Navigate to="/entity/correspondence" replace />} />
     <Route path="/correspondence/threads" element={<Navigate to="/correspondence/inbox" replace />} />
