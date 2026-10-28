@@ -237,7 +237,7 @@ export default function NewPostLicenseApplication() {
     }
   };
 
-  const noEntitlement = !entitlements.loading && !entitlements.hasEligibleLicense;
+  const noEntitlement = !postLicenceAllowed || (!entitlements.loading && !entitlements.hasEligibleLicense);
 
   return (
     <DashboardLayout>
