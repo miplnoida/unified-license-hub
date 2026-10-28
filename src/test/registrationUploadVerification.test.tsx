@@ -4,9 +4,15 @@ const { invoke } = vi.hoisted(() => ({ invoke: vi.fn() }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { functions: { invoke } } }));
 import { useRegistrationUploadVerification } from '@/hooks/useRegistrationUploadVerification';
 import { getRegistrationCapability, setRegistrationJourneyEmail } from '@/lib/registrationFileAccess';
+import { withUploadVerificationStage, UPLOAD_VERIFICATION_STAGE } from '@/lib/registrationEmailVerification';
 
 describe('fresh registration upload ownership', () => {
   beforeEach(() => { localStorage.clear(); sessionStorage.clear(); invoke.mockReset(); setRegistrationJourneyEmail(null); });
+  it('puts independent ownership verification before documents after collecting email', () => {
+    const steps = [{ id: 'email', type: 'dynamic', stepData: { id: 'email', title: 'Primary user', rows: [{ columns: [{ field: { type: 'email', fieldName: 'email', label: 'Email' } }] }] } }, { id: 'documents', type: 'documents' }];
+    const result = withUploadVerificationStage(steps as Parameters<typeof withUploadVerificationStage>[0]);
+    expect(result.map(s => s.id)).toEqual(['email', UPLOAD_VERIFICATION_STAGE, 'documents']);
+  });
   it('ignores old form/local markers for returning or submission-OTP-disabled applicants', async () => {
     sessionStorage.setItem('registrationEmailVerified:a@example.com', 'true');
     invoke.mockResolvedValue({ data: { verified: false } });
