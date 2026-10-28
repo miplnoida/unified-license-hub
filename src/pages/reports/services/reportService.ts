@@ -13,6 +13,7 @@ export const ALLOWED_SOURCES: ReportSource[] = [
   'return_filings',
   // HISTORICAL ONLY: still accepted so saved/scheduled legacy runs resolve.
   'compliance_returns',
+  'entity_appointments', 'examinations', 'examination_findings', 'enforcement_actions',
 ];
 
 /**
@@ -46,6 +47,8 @@ export const REPORT_SLUG_SOURCE_MAP: Record<string, ReportSource> = {
   'aud-trail': 'audit_logs', 'aud-permissions': 'audit_logs', 'aud-export': 'report_logs',
   'aud-failed-login': 'audit_logs', 'aud-admin': 'audit_logs',
   'prud-breach': 'return_threshold_breaches', 'ret-sla': 'return_filings',
+  'sup-approved-persons': 'entity_appointments', 'sup-exam-programme': 'examinations',
+  'sup-exam-findings': 'examination_findings', 'sup-enf-sanctions': 'enforcement_actions',
 };
 
 export function resolveScheduleSource(schedule: { source?: string | null; report_slug?: string | null }): ReportSource | null {

@@ -14,6 +14,8 @@ export const ALLOWED_SOURCES = new Set([
   'return_filings', 'compliance_returns',
   'complaints', 'profiles', 'users', 'audit_logs', 'report_logs',
   'return_threshold_breaches',
+  // Supervisory reports (read through the caller's RLS scope).
+  'entity_appointments', 'examinations', 'examination_findings', 'enforcement_actions',
 ]);
 
 export const SENSITIVE = new Set([
@@ -52,6 +54,11 @@ export const REPORT_SLUG_SOURCE_MAP: Record<string, string> = {
   'prud-breach': 'return_threshold_breaches',
   // Returns (added after the initial Returns block above)
   'ret-sla': 'return_filings',
+  // Supervisory
+  'sup-approved-persons': 'entity_appointments',
+  'sup-exam-programme': 'examinations',
+  'sup-exam-findings': 'examination_findings',
+  'sup-enf-sanctions': 'enforcement_actions',
 };
 
 export function resolveScheduleSource(schedule: { source?: string | null; report_slug?: string | null }): string | null {
@@ -75,6 +82,10 @@ export const FILTER_COLUMN_MAP: Record<string, Record<string, string>> = {
   audit_logs: {},
   report_logs: { action: 'action' },
   return_threshold_breaches: { riskLevel: 'risk_level', level: 'level' },
+  entity_appointments: { status: 'status', entity: 'entity_id', licensee: 'entity_id' },
+  examinations: { status: 'stage', stage: 'stage', riskLevel: 'risk_rating', entity: 'entity_id', licensee: 'entity_id', regulator: 'regulator_id', sector: 'sector_id' },
+  examination_findings: { status: 'status', severity: 'severity' },
+  enforcement_actions: { status: 'status', stage: 'stage', entity: 'entity_id', licensee: 'entity_id' },
 };
 
 // Required computed columns that must always appear for a given report slug,
@@ -93,6 +104,9 @@ export const REQUIRED_COMPUTED_COLUMNS: Record<string, string[]> = {
   'cmp-sla': ['sla_status'],
   'ret-sla': ['sla_status'],
   'fee-trend': ['period_month', 'period_quarter'],
+  'sup-exam-findings': ['days_overdue', 'remediation_state'],
+  'sup-enf-sanctions': ['penalty_outstanding'],
+  'sup-approved-persons': ['tenure_days'],
 };
 
 /**
@@ -278,6 +292,33 @@ export function decorate(slug: string | undefined, rows: any[]): any[] {
       return { ...r, sla_status: breached ? 'breached' : atRisk ? 'at_risk' : 'on_track' };
     });
   }
+  if (slug === 'sup-exam-findings') {
+    return rows.map((r) => {
+      const closed = !!r.closed_at || ['closed', 'remediated', 'resolved'].includes(String(r.status || '').toLowerCase());
+      const due = r.target_date ? new Date(r.target_date).getTime() : null;
+      const overdue = !closed && due != null && due < now;
+      return {
+        ...r,
+        days_overdue: overdue ? Math.floor((now - (due as number)) / 86_400_000) : 0,
+        remediation_state: closed ? 'closed' : overdue ? 'overdue' : due == null ? 'no_target_date' : 'open',
+      };
+    });
+  }
+  if (slug === 'sup-enf-sanctions') {
+    return rows.map((r) => {
+      const amt = Number(r.penalty_amount || 0);
+      const paid = Number(r.penalty_paid_amount || 0);
+      const waived = Number(r.penalty_waived_amount || 0);
+      return { ...r, penalty_outstanding: Math.max(0, amt - paid - waived) };
+    });
+  }
+  if (slug === 'sup-approved-persons') {
+    return rows.map((r) => {
+      const from = r.effective_from ? new Date(r.effective_from).getTime() : null;
+      const to = r.effective_to ? new Date(r.effective_to).getTime() : now;
+      return { ...r, tenure_days: from == null ? null : Math.max(0, Math.floor((to - from) / 86_400_000)) };
+    });
+  }
   return rows;
 }
 
@@ -362,6 +403,31 @@ export function buildReportSummary(slug: string | undefined, rows: any[], groupB
         summary.risk_level_counts = countBy(rows, 'risk_level');
         summary.level_counts = countBy(rows, 'level');
         break;
+      case 'sup-approved-persons':
+        summary.status_counts = countBy(rows, 'status');
+        summary.approval_status_counts = countBy(rows, 'regulatory_approval_status');
+        summary.entity_count = new Set(rows.map((r) => r.entity_id)).size;
+        break;
+      case 'sup-exam-programme':
+        summary.stage_counts = countBy(rows, 'stage');
+        summary.type_counts = countBy(rows, 'examination_type');
+        summary.risk_rating_counts = countBy(rows, 'risk_rating');
+        break;
+      case 'sup-exam-findings':
+        summary.severity_counts = countBy(rows, 'severity');
+        summary.remediation_state_counts = countBy(rows, 'remediation_state');
+        summary.overdue_count = rows.filter((r) => r.remediation_state === 'overdue').length;
+        break;
+      case 'sup-enf-sanctions': {
+        summary.stage_counts = countBy(rows, 'stage');
+        summary.type_counts = countBy(rows, 'enforcement_type');
+        const sum = (k: string) => rows.reduce((t, r) => t + Number(r[k] || 0), 0);
+        summary.penalty_assessed_total = sum('penalty_amount');
+        summary.penalty_paid_total = sum('penalty_paid_amount');
+        summary.penalty_waived_total = sum('penalty_waived_amount');
+        summary.penalty_outstanding_total = sum('penalty_outstanding');
+        break;
+      }
     }
   } catch (e: any) {
     warnings.push(`summary:${slug}: ${e?.message || 'failed'}`);

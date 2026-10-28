@@ -253,7 +253,11 @@ export async function getReportDefinitions(): Promise<ReportDefinition[]> {
       .select('*').eq('is_active', true).order('sort_order').order('name');
     if (error) throw error;
     if (!data?.length) throw new Error('empty');
-    return data.map(mapDefinition);
+    const fromDb = data.map(mapDefinition);
+    // Built-in definitions not yet stored in the catalogue are appended so new
+    // predefined reports appear without rewriting stored rows.
+    const known = new Set(fromDb.map((d) => d.id));
+    return [...fromDb, ...REPORT_DEFINITIONS.filter((d) => !known.has(d.id))];
   } catch (e) {
     warnFallback('report_definitions', e);
     return REPORT_DEFINITIONS;

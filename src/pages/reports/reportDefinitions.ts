@@ -7,6 +7,7 @@ export const REPORT_CATEGORIES = [
   'Users & Operations',
   'Complaints',
   'Audit & Governance',
+  'Supervision & Enforcement',
 ] as const;
 
 const RAW_REPORT_DEFINITIONS: ReportDefinition[] = [
@@ -64,6 +65,12 @@ const RAW_REPORT_DEFINITIONS: ReportDefinition[] = [
   { id: 'aud-export', name: 'Data Export Log', category: 'Audit & Governance', module: 'settings', description: 'Log of all report exports.', source: 'report_logs', filters: ['dateFrom', 'dateTo'], defaultColumns: ['executed_by', 'action', 'export_format', 'created_at'], exportFormats: ['csv', 'xlsx'] },
   { id: 'aud-failed-login', name: 'Failed Login / Security Event Report', category: 'Audit & Governance', module: 'settings', description: 'Failed logins and security events.', source: 'audit_logs', filters: ['dateFrom', 'dateTo'], defaultColumns: ['user_id', 'action', 'created_at'], exportFormats: ['csv', 'xlsx'] },
   { id: 'aud-admin', name: 'Admin Activity Report', category: 'Audit & Governance', module: 'settings', description: 'Activity performed by administrators.', source: 'audit_logs', filters: ['dateFrom', 'dateTo'], defaultColumns: ['user_id', 'action', 'entity_type', 'created_at'], exportFormats: ['csv', 'xlsx'] },
+
+  // Supervision & Enforcement
+  { id: 'sup-approved-persons', name: 'Approved Persons & Key Functionaries Register', category: 'Supervision & Enforcement', module: 'fit_proper', description: 'Directors, officers and key functionaries with regulatory approval status and tenure.', source: 'entity_appointments', filters: ['dateFrom', 'dateTo', 'status'], defaultColumns: ['entity_id', 'person_party_id', 'role_type_id', 'is_executive', 'status', 'regulatory_approval_status', 'effective_from', 'effective_to'], defaultGroupBy: 'regulatory_approval_status', exportFormats: ['csv', 'xlsx', 'json'] },
+  { id: 'sup-exam-programme', name: 'Examination Programme & Fieldwork Schedule', category: 'Supervision & Enforcement', module: 'inspection_management', description: 'Examinations by type, stage, risk rating and fieldwork dates.', source: 'examinations', filters: ['dateFrom', 'dateTo', 'stage', 'riskLevel'], defaultColumns: ['reference', 'title', 'examination_type', 'stage', 'risk_rating', 'fieldwork_start', 'fieldwork_end', 'closed_at'], defaultGroupBy: 'stage', exportFormats: ['csv', 'xlsx', 'json'] },
+  { id: 'sup-exam-findings', name: 'Examination Findings & Remediation Tracker', category: 'Supervision & Enforcement', module: 'inspection_management', description: 'Findings by severity with target dates, overdue remediation and closure.', source: 'examination_findings', filters: ['dateFrom', 'dateTo', 'status', 'severity'], defaultColumns: ['reference', 'title', 'category', 'severity', 'status', 'target_date', 'closed_at'], defaultGroupBy: 'severity', exportFormats: ['csv', 'xlsx', 'json'] },
+  { id: 'sup-enf-sanctions', name: 'Enforcement Sanctions & Penalty Recovery Ledger', category: 'Supervision & Enforcement', module: 'enforcement_management', description: 'Enforcement cases, sanctions and penalties assessed, paid, waived and outstanding.', source: 'enforcement_actions', filters: ['dateFrom', 'dateTo', 'status', 'stage'], defaultColumns: ['case_number', 'enforcement_type', 'stage', 'status', 'sanction_type', 'date_opened', 'penalty_amount', 'penalty_paid_amount', 'penalty_waived_amount', 'penalty_currency', 'appeal_deadline'], defaultGroupBy: 'stage', exportFormats: ['csv', 'xlsx', 'json'] },
 ];
 
 // Every predefined report now supports a real PDF export (see exportService.ts's
@@ -86,6 +93,10 @@ export const COLUMN_OPTIONS_BY_SOURCE: Record<string, string[]> = {
   users: ['email', 'full_name', 'created_at'],
   audit_logs: ['user_id', 'action', 'entity_type', 'entity_id', 'created_at'],
   return_threshold_breaches: ['metric_key', 'value', 'threshold_value', 'comparator', 'level', 'risk_level', 'detected_at', 'acknowledged_at', 'escalated_at', 'notified'],
+  entity_appointments: ['entity_id', 'person_party_id', 'role_type_id', 'appointment_date', 'effective_from', 'effective_to', 'is_executive', 'status', 'regulatory_approval_status', 'created_at'],
+  examinations: ['reference', 'title', 'entity_id', 'examination_type', 'stage', 'risk_rating', 'period_under_review_start', 'period_under_review_end', 'fieldwork_start', 'fieldwork_end', 'closed_at', 'created_at'],
+  examination_findings: ['reference', 'title', 'category', 'severity', 'status', 'criteria_breached', 'root_cause', 'recommendation', 'target_date', 'closed_at', 'created_at'],
+  enforcement_actions: ['case_number', 'entity_id', 'enforcement_type', 'stage', 'status', 'severity', 'sanction_type', 'legal_basis', 'date_opened', 'decision_at', 'penalty_amount', 'penalty_paid_amount', 'penalty_waived_amount', 'penalty_currency', 'appeal_deadline', 'closed_at'],
 };
 
 /** Columns that should never appear in default exports. */
