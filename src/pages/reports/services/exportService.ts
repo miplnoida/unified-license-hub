@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { SENSITIVE_COLUMNS } from '../reportDefinitions';
 import { provenanceLines, type ExportProvenance } from '../lib/reportProvenance';
+import { loadReportBranding, fitLogo, type ReportBranding } from '../lib/reportBranding';
 
 export function sanitizeCsvValue(value: unknown): string {
   if (value === null || value === undefined) return '';
@@ -181,6 +182,16 @@ export async function exportToPdf(
       headStyles: { fillColor: [30, 58, 138] },
       margin: { top: cursor },
     });
+  }
+
+  const pages = doc.getNumberOfPages();
+  const pageH = doc.internal.pageSize.getHeight();
+  for (let i = 1; i <= pages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(120);
+    doc.text(`${branding?.authorityName || ''} — Confidential: supervisory use only`, 14, pageH - 8);
+    doc.text(`Page ${i} of ${pages}`, pageW - 14, pageH - 8, { align: 'right' });
   }
 
   doc.save(`${filename}.pdf`);
