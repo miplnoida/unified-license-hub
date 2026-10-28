@@ -43,6 +43,13 @@
       "when": 1793145701629,
       "tag": "0005_conduct_overdue_digest_fix",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793146087781,
+      "tag": "0006_conduct_overdue_alert_vocabulary",
+      "breakpoints": true
     }
   ]
 }

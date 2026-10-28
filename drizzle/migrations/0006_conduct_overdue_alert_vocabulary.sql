@@ -1,0 +1,4 @@
+ALTER TABLE public.conduct_alerts DROP CONSTRAINT conduct_alerts_kind_check;
+ALTER TABLE public.conduct_alerts ADD CONSTRAINT conduct_alerts_kind_check CHECK (kind = ANY (ARRAY['repeat_complaint','vulnerable_customer','critical_severity','thematic_spike','sla_breach','sla_at_risk','rule_triggered','high_risk_category','action_overdue']::text[]));
+ALTER TABLE public.conduct_alerts DROP CONSTRAINT conduct_alerts_generated_by_check;
+ALTER TABLE public.conduct_alerts ADD CONSTRAINT conduct_alerts_generated_by_check CHECK (generated_by = ANY (ARRAY['triage_engine','thematic_sweep','manual','sla_cron','overdue_trigger']::text[]));
