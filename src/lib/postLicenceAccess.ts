@@ -18,6 +18,9 @@ export function canUsePostLicenceServices(input: {
   const role = String(input.role || '').toLowerCase();
   if (LICENSEE_ROLES.has(role)) return true;
   if (input.isPpoc) return true;
+  // Applicant accounts never file post-licence requests, even if their
+  // profile was later linked to the licence they obtained.
+  if (role === 'pre_licensee' || role === 'applicant') return false;
   const type = String(input.userType || '').toLowerCase();
   if (type === 'primary' || type === 'secondary') return true;
   return !!input.licenseeId;

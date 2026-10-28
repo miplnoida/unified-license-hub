@@ -24,6 +24,8 @@ import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useLicenseEntitlements, type LicenseEntitlement } from '@/hooks/useLicenseEntitlements';
 import { useOpenPostLicenseRequests } from '@/hooks/useOpenPostLicenseRequests';
+import { useSearchParams } from 'react-router-dom';
+import { canUsePostLicenceServices, pickKeyPersonService } from '@/lib/postLicenceAccess';
 
 
 /**
@@ -117,7 +119,22 @@ export default function NewPostLicenseApplication() {
 
   const licenseGate = useLicenseStatusGate();
   const accessGuard = useLicenseeAccessGuard();
-  const { resolvedLicenseeId } = usePpoc();
+  const { resolvedLicenseeId, isPpoc } = usePpoc();
+  const postLicenceAllowed = canUsePostLicenceServices({
+    role: user?.baseRole ?? user?.role, userType: user?.userType, licenseeId: user?.licenseeId, isPpoc,
+  });
+
+  // Deep link from My Institution → Key persons: ?license=<id>&service=appoint|resign
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const lic = searchParams.get('license');
+    if (lic && !selectedLicenseId && eligibleLicenses.some(l => l.license_id === lic)) setSelectedLicenseId(lic);
+  }, [searchParams, eligibleLicenses, selectedLicenseId]);
+  useEffect(() => {
+    if (selectedService || !licenseServices.length) return;
+    const hit = pickKeyPersonService(licenseServices, searchParams.get('service'));
+    if (hit) setSelectedService(hit.id);
+  }, [searchParams, licenseServices, selectedService]);
 
   const activeLicenseeId = selectedLicense?.licensee_id || resolvedLicenseeId || null;
   const { data: openRequests = [] } = useOpenPostLicenseRequests(activeLicenseeId);
