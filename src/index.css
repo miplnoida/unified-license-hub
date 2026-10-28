@@ -107,10 +107,22 @@
     @apply border-border;
   }
   html {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
   body {
     @apply bg-background text-foreground antialiased;
+    letter-spacing: -0.005em;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'DM Sans', 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.015em;
+  }
+  td, th, .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  td .font-mono, td code {
+    white-space: nowrap;
   }
 }
 
