@@ -71,7 +71,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-card/80 backdrop-blur-md px-3 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b bg-card/80 backdrop-blur-md px-3 sm:px-6">
       <div className="flex items-center gap-4 pl-10 md:pl-0">
         <GlobalNavSearch />
       </div>

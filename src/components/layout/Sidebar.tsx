@@ -405,10 +405,10 @@ export function Sidebar() {
           'fixed left-0 top-0 z-50 h-screen w-72 bg-sidebar flex flex-col border-r border-sidebar-border transition-transform duration-300',
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}>
-          <div className="flex h-16 items-center justify-between px-4 shrink-0">
+          <div className="flex h-20 items-center justify-between px-4 shrink-0">
             <div className="flex items-center gap-2.5">
               {branding.logo_url ? (
-                <img src={branding.logo_url} alt={branding.site_name} className="h-12 w-auto max-w-[200px] rounded-lg object-contain" />
+                <img src={branding.logo_url} alt={branding.site_name} className="h-16 w-auto max-w-[210px] rounded-lg object-contain" />
               ) : (
                 <>
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
@@ -464,11 +464,11 @@ export function Sidebar() {
       collapsed ? 'w-16' : 'w-64'
     )}>
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between px-4 shrink-0">
+      <div className="flex h-20 items-center justify-between px-4 shrink-0">
         {!collapsed && (
           <div className="flex items-center gap-2.5">
             {branding.logo_url ? (
-              <img src={branding.logo_url} alt={branding.site_name} className="h-12 w-auto max-w-[200px] rounded-lg object-contain" />
+              <img src={branding.logo_url} alt={branding.site_name} className="h-16 w-auto max-w-[210px] rounded-lg object-contain" />
             ) : (
               <>
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
