@@ -8043,7 +8043,7 @@ BEGIN
                 AND NEW.status NOT IN ('completed','waived','closed','cancelled');
   IF is_overdue THEN
     IF NEW.status <> 'overdue' THEN NEW.status := 'overdue'; END IF;
-    dkey := encode(sha1(('action_overdue:'||NEW.id::text)::bytea),'hex');
+    dkey := encode(extensions.digest(('action_overdue:'||NEW.id::text)::bytea, 'sha1'),'hex');
     -- attempt insert; ignore conflicts with existing open alert (partial index)
     BEGIN
       INSERT INTO public.conduct_alerts(

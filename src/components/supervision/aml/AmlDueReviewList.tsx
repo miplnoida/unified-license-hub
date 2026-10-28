@@ -91,7 +91,7 @@ export function AmlDueReviewList({ domainCode = 'AML_CFT' }: { domainCode?: stri
               {(data?.items ?? []).map((r) => (
                 <TableRow key={r.entity_id}>
                   <TableCell className="text-xs">
-                    <Link className="underline" to={r.route}>{dash(r.entity_name)}</Link>
+                    <Link className="underline" to={`/entities/${r.entity_id}`}>{dash(r.entity_name)}</Link>
                   </TableCell>
                   <TableCell className="text-xs">{dash(r.current_rating)}</TableCell>
                   <TableCell className="text-xs">{dash(r.last_review_date)}</TableCell>

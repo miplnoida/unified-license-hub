@@ -26,13 +26,13 @@ interface Props {
 }
 
 export function DimensionPolicyEditor({ configId, methodologyId, canEdit }: Props) {
-  const { data: dimensions = [], isLoading } = useMethodologyDimensionCatalogue(methodologyId);
+  const { data: dimensions, isLoading } = useMethodologyDimensionCatalogue(methodologyId);
   const { data: layers } = useCalculationPolicyLayers(configId);
   const save = useSetDimensionWeights();
   const [rows, setRows] = useState<DimensionWeightRow[]>([]);
 
   useEffect(() => {
-    if (!layers) return;
+    if (!layers || !dimensions) return;
     setRows(dimensions.map((d) => {
       const existing = layers.dimensionWeights.find((r) => r.dimension_code === d.dimension_code);
       return existing ?? {
@@ -58,7 +58,7 @@ export function DimensionPolicyEditor({ configId, methodologyId, canEdit }: Prop
   };
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Loading the dimension catalogue…</p>;
-  if (dimensions.length === 0) {
+  if (!dimensions?.length) {
     return <p className="text-sm text-muted-foreground">This methodology publishes no active dimensions.</p>;
   }
 

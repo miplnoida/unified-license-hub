@@ -52807,6 +52807,60 @@ export type Database = {
         }
         Relationships: []
       }
+      system_subscription_package: {
+        Row: {
+          active_package: string
+          id: boolean
+          module_overrides: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active_package?: string
+          id?: boolean
+          module_overrides?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active_package?: string
+          id?: boolean
+          module_overrides?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      system_subscription_package_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          module_overrides: Json
+          new_package: string
+          previous_package: string | null
+          reason: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          module_overrides?: Json
+          new_package: string
+          previous_package?: string | null
+          reason: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          module_overrides?: Json
+          new_package?: string
+          previous_package?: string | null
+          reason?: string
+        }
+        Relationships: []
+      }
       thematic_review_actions: {
         Row: {
           action_type: string
@@ -72052,6 +72106,10 @@ export type Database = {
         Returns: boolean
       }
       support_is_staff: { Args: { _user_id?: string }; Returns: boolean }
+      system_subscription_package_set: {
+        Args: { _overrides: Json; _package: string; _reason: string }
+        Returns: undefined
+      }
       thematic_action_extend_due_date: {
         Args: { _action_id: string; _new_due_date: string; _reason: string }
         Returns: undefined
