@@ -3,34 +3,40 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, Printer, Loader2 } from 'lucide-react';
+import { reportStatusCounts } from '@/lib/reportStatusCounts';
 
-type Section = { title: string; table: string; groups: string[] };
+type Section = { title: string; table: string };
 
 const SECTIONS: Section[] = [
-  { title: 'Licensing — licences', table: 'licenses', groups: ['active', 'suspended', 'revoked', 'expired'] },
-  { title: 'Licensing — applications', table: 'applications', groups: ['draft', 'submitted', 'in_progress', 'approved', 'rejected'] },
-  { title: 'Regulatory returns', table: 'return_filings', groups: ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'CORRECTION_REQUESTED', 'ACCEPTED'] },
-  { title: 'Consumer complaints', table: 'complaints', groups: ['received', 'under_investigation', 'resolved', 'closed'] },
-  { title: 'Conduct findings', table: 'conduct_findings', groups: ['OPEN', 'REMEDIATION_REQUIRED', 'CLOSED'] },
+  { title: 'Licensing — licences', table: 'licenses' },
+  { title: 'Licensing — applications', table: 'applications' },
+  { title: 'Regulatory returns', table: 'return_filings' },
+  { title: 'Consumer complaints', table: 'complaints' },
+  { title: 'Conduct findings', table: 'conduct_findings' },
 ];
 
-async function countRows(table: string, status?: string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let q = (supabase as any).from(table).select('id', { count: 'exact', head: true });
-  if (status) q = q.ilike('status', status);
-  const { count } = await q;
-  return count ?? 0;
+async function countRows(table: string) {
+  const records: Array<{ status: string | null }> = [];
+  // Page the RLS-scoped rows so the API's row limit cannot truncate the pack.
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await (supabase as any).from(table)
+      .select('id,status').order('id').range(offset, offset + 999);
+    if (error) throw error;
+    const page = data ?? [];
+    records.push(...page);
+    if (page.length < 1000) break;
+  }
+  return reportStatusCounts(records);
 }
 
 export function BoardPack() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['board-pack'],
     queryFn: async () =>
       Promise.all(
         SECTIONS.map(async (s) => ({
           ...s,
-          total: await countRows(s.table),
-          rows: await Promise.all(s.groups.map(async (g) => ({ status: g, count: await countRows(s.table, g) }))),
+          ...await countRows(s.table),
         })),
       ),
   });
@@ -68,7 +74,7 @@ export function BoardPack() {
       <h2 className="hidden print:block text-xl font-semibold">
         Executive Supervisory Board Pack — {new Date().toLocaleDateString()}
       </h2>
-      {isLoading ? (
+      {error ? <p role="alert" className="text-destructive">The Board Pack could not be loaded. No totals are available.</p> : isLoading ? (
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
