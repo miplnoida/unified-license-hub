@@ -3,7 +3,12 @@
 ## St Vincent FSA demonstration readiness — 2026-10-28
 - [x] Read-only integrity sampling, current demo-record inventory, authorized Super Admin viewing, proposal review and official regulator research.
 - [x] Prepare evidence report and scoped preparation plan; no business records, configuration or application code changed.
-- [ ] Execute approved demo preparation — blocked: owner approval of jurisdiction/data approach and scoped remediation plan.
+- [x] Correct executive default returns widgets to canonical filings; explicit acceptance denominator and unavailable/error handling; historical reports preserved.
+- [x] Add regulator/sector/record-created-date Board Pack scope and CSV provenance; authorized Super Admin preview/export verified; 53 targeted tests passed (45 rerun after final correction).
+- [x] Keep Rodney Bay as a disclosed non-SVG illustrative example: separate SVG setup cannot be safely isolated through confirmed normal screens without shared configuration changes.
+- [ ] Ordinary-role rehearsal and prudential review/approval — blocked: authorized primary-user/returns/prudential/complaints sessions; no independent decision or fabricated lineage.
+- [ ] Published-site verification — blocked: separate publication approval; preview changes not published.
+- [ ] Reconcile broader supervisory-dashboard populations — blocked: verified intended population definitions; no unrelated dashboard or protected AML changes.
 
 ## Monitoring review — 2026-10-28
 - [x] Verify all 16 findings against current code and hosted configuration.
