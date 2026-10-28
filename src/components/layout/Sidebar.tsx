@@ -17,6 +17,7 @@ import { pathRequiresLicenceEntitlement } from '@/lib/licenceEntitlementNav';
 import { LICENSEE_ROLES, PRE_LICENSEE_ROLES, INTERNAL_ROLES } from '@/types/platform';
 import { prefetchRoute } from '@/lib/routePrefetch';
 import { useSubscriptionPackage } from '@/hooks/useSubscriptionPackage';
+import { canDiscoverSupervisoryNavigation, isSupervisoryNavigationPath } from '@/lib/supervisoryNavigation';
 
 
 const COLLAPSED_KEY = 'sidebar-collapsed';

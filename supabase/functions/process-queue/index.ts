@@ -207,7 +207,7 @@ async function processFileJob(supabase: any, job: QueueJob) {
       _detail: "no malware scanning provider configured (FILE_SCAN_PROVIDER_URL unset)",
     });
     console.error(`[FILE JOB ${job.id}] no scanner configured - file held unreleased`);
-    return;
+    throw new Error('Malware scanning provider is not configured; file remains unreleased');
   }
 
   await supabase.rpc("file_upload_record_scan", {
@@ -225,7 +225,7 @@ async function processFileJob(supabase: any, job: QueueJob) {
 
   if (!row) {
     console.error(`[FILE JOB ${job.id}] file_uploads row not found`);
-    return;
+    throw new Error('File upload not found');
   }
 
   try {
@@ -248,7 +248,7 @@ async function processFileJob(supabase: any, job: QueueJob) {
 
     const body = await response.text();
     if (!response.ok) {
-      throw new Error(`scanner responded ${response.status}: ${body}`);
+      throw new Error(`scanner responded ${response.status}`);
     }
 
     let verdict = "scan_error";
@@ -265,12 +265,14 @@ async function processFileJob(supabase: any, job: QueueJob) {
       // non-JSON scanner response: keep scan_error (fail closed)
     }
 
-    await supabase.rpc("file_upload_record_scan", {
+    const { error: verdictError } = await supabase.rpc("file_upload_record_scan", {
       _file_upload_id: file_upload_id,
       _verdict: verdict,
       _provider: verdict === "clean" ? scannerName : scannerName,
       _detail: detail,
     });
+    if (verdictError) throw new Error('Could not persist malware scan verdict');
+    if (verdict === 'scan_error') throw new Error('Scanner returned no valid verdict');
     console.log(`[FILE JOB ${job.id}] scan verdict: ${verdict}`);
   } catch (err) {
     await supabase.rpc("file_upload_record_scan", {
@@ -280,5 +282,6 @@ async function processFileJob(supabase: any, job: QueueJob) {
       _detail: err instanceof Error ? err.message.slice(0, 500) : "unknown scan failure",
     });
     console.error(`[FILE JOB ${job.id}] scan failed:`, err);
+    throw err;
   }
 }
