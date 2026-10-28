@@ -1,0 +1,1 @@
+UPDATE public.sec_navigation_items SET audience='internal', updated_at=now() WHERE key='nav_market_conduct_complaints' AND audience='any';

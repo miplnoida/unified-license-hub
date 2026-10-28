@@ -157,7 +157,7 @@ export const mainNavSections: NavSection[] = [
   {
     label: 'Market Conduct',
     items: [
-      { label: 'Complaints', href: '/complaints', icon: <AlertTriangle className="h-5 w-5" />, roles: [...ALL_INTERNAL, ...LICENSEE_ALL, ...PRE_LICENSEE, 'applicant'], module: 'complaint_management' },
+      { label: 'Complaints', href: '/complaints', icon: <AlertTriangle className="h-5 w-5" />, roles: [...ALL_INTERNAL], module: 'complaint_management' },
       { label: 'Duplicate Detection', href: '/complaints/duplicates', icon: <Layers className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
       { label: 'Auto-Escalation', href: '/complaints/escalations', icon: <AlertTriangle className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
       { label: 'RFI Approvals', href: '/complaints/rfi-approvals', icon: <ClipboardCheck className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'complaint_management' },
