@@ -153,7 +153,7 @@ export default function EntityReturnsWorkspace() {
           <SummaryCard label="Active obligations" value={loadingSummary ? '…' : summary?.active_obligations ?? 0} />
           <SummaryCard
             label="Next due"
-            value={loadingSummary ? '…' : summary?.next_due ? `${summary.next_due.definition_code} — ${formatDateOnly(summary.next_due.due_date)}` : 'None'}
+            value={loadingSummary ? '…' : summary?.next_due ? `${summary.next_due.definition_name ?? summary.next_due.definition_code} — ${formatDateOnly(summary.next_due.due_date)}` : 'None'}
           />
           <SummaryCard label="Overdue" value={loadingSummary ? '…' : summary?.overdue_count ?? 0} tone={summary?.overdue_count ? 'destructive' : undefined} />
           <SummaryCard label="Correction requested" value={loadingSummary ? '…' : summary?.correction_requested_count ?? 0} tone={summary?.correction_requested_count ? 'destructive' : undefined} />
