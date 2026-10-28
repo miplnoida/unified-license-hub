@@ -57,6 +57,13 @@
       "when": 1793146830758,
       "tag": "0007_enqueue_pending_file_scans",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793147329227,
+      "tag": "0008_renewal_only_past_grace_authorization",
+      "breakpoints": true
     }
   ]
 }
