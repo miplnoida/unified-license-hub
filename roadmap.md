@@ -1,5 +1,10 @@
 # Roadmap — Rodney Bay demo (Sessions 2–3)
 
+## St Vincent FSA demonstration readiness — 2026-10-28
+- [x] Read-only integrity sampling, current demo-record inventory, authorized Super Admin viewing, proposal review and official regulator research.
+- [x] Prepare evidence report and scoped preparation plan; no business records, configuration or application code changed.
+- [ ] Execute approved demo preparation — blocked: owner approval of jurisdiction/data approach and scoped remediation plan.
+
 ## Monitoring review — 2026-10-28
 - [x] Verify all 16 findings against current code and hosted configuration.
 - [x] Apply and test nine narrow confirmed fixes; 54 targeted tests and rolled-back trigger regression passed.
