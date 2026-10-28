@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { FileSpreadsheet, FileText, FileJson, FileDown, ExternalLink, Printer } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { ReportLetterhead } from './ReportLetterhead';
 import type { ReportRun, ReportSource } from '../types';
 import { exportToCsv, exportToJson, exportToPdf, exportToXlsx, sanitizeFilename, safeRows } from '../services/exportService';
 import { logExport } from '../services/reportService';
@@ -125,6 +126,7 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl print:max-w-full print:shadow-none">
+        <ReportLetterhead />
         <DialogHeader>
           <DialogTitle>{run.name}</DialogTitle>
           <DialogDescription className="sr-only">
