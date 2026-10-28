@@ -6,7 +6,7 @@
 - [x] Record nine fixed, two stale and one false-positive cause; no publication or AML certification runs.
 - [ ] Registration uploads (#2) — independent fresh verification and recovery implemented; positive browser OTP/upload proof blocked by mailbox access and authorization to send a test OTP.
 - [ ] Malware scan dispatch (#9) — atomic enqueue/retries implemented and tested; blocked by missing scanner provider and verified automatic scheduling; no files released.
-- [ ] Expired-licence renewal (#10) — exact proposed SQL prepared, not applied; blocked by separate authorization approval.
+- [ ] Expired-licence renewal (#10) — approved SQL applied; rollback tests passed for non-staff owner renewal, prohibited statuses, null flags, non-renewal service and mismatched entity; positive browser proof blocked by an authorized licensee session with an eligible expired demo licence/service.
 - [x] Supervision menu entries (#13) — DB menu registered, cross-domain/package visibility aligned; both links opened in authorized browser; no role grants.
 
 - [x] Post-licence form lookup uses licence's regulator + chosen service only
