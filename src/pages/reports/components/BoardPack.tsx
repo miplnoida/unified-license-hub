@@ -1,3 +1,4 @@
+import { ReportLetterhead } from './ReportLetterhead';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -78,6 +79,7 @@ export function BoardPack() {
 
   return (
     <div className="space-y-4">
+      <ReportLetterhead title="Executive Supervisory Board Pack" />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 print:hidden">
         <div className="space-y-1"><Label>Regulator</Label><Select value={scope.regulatorId} onValueChange={regulatorId => setScope(s => ({ ...s, regulatorId, sectorId: 'all' }))}><SelectTrigger aria-label="Board Pack regulator"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All accessible regulators</SelectItem>{regulators?.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent></Select></div>
         <div className="space-y-1"><Label>Sector</Label><Select value={scope.sectorId} onValueChange={sectorId => setScope(s => ({ ...s, sectorId }))}><SelectTrigger aria-label="Board Pack sector"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All sectors</SelectItem>{sectors?.filter(s => scope.regulatorId === 'all' || s.regulator_id === scope.regulatorId).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
