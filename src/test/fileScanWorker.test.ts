@@ -11,7 +11,7 @@ function worker(url: string | undefined, response: unknown) {
 }
 function client() {
   const rpc = vi.fn().mockResolvedValue({ error: null });
-  return { rpc, from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { file_path: 'test', mime_type: 'text/plain' } }) }) }) }), storage: { from: () => ({ download: async () => ({ data: new Blob(['harmless']), error: null }) }) } };
+  return { rpc, from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { file_path: 'test', mime_type: 'text/plain' } }) }) }) }), storage: { from: () => ({ download: async () => ({ data: { arrayBuffer: async () => new TextEncoder().encode('harmless').buffer }, error: null }) }) } };
 }
 const job = { id: 'test', payload: { file_upload_id: 'file', operation: 'malware_scan' } };
 describe('file scan worker fail-closed outcomes', () => {
