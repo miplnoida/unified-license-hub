@@ -87,7 +87,12 @@ export function exportToXlsx(
   provenance?: ExportProvenance,
 ) {
   const rows = relabel(safeRows(data), labels);
-  const ws = XLSX.utils.json_to_sheet(rows);
+  const branding = getCachedBranding();
+  const letterhead = branding
+    ? [[branding.authorityName], ...(branding.tagline ? [[branding.tagline]] : []), [`Generated ${new Date().toLocaleString()}`], []]
+    : [];
+  const ws = XLSX.utils.aoa_to_sheet(letterhead);
+  XLSX.utils.sheet_add_json(ws, rows, { origin: letterhead.length ? `A${letterhead.length + 1}` : 'A1' });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Report');
   if (provenance) {
@@ -97,7 +102,11 @@ export function exportToXlsx(
   XLSX.writeFile(wb, `${filename}.xlsx`);
 }
 
-export function exportToPdf(
+let brandingSnapshot: ReportBranding | null = null;
+loadReportBranding().then((b) => { brandingSnapshot = b; }).catch(() => {});
+function getCachedBranding() { return brandingSnapshot; }
+
+export async function exportToPdf(
   data: Record<string, unknown>[],
   filename: string,
   title: string,
@@ -106,14 +115,41 @@ export function exportToPdf(
 ) {
   const rows = relabel(safeRows(data), labels);
   const doc = new jsPDF({ orientation: rows.length && Object.keys(rows[0]).length > 6 ? 'landscape' : 'portrait' });
+  const branding = await loadReportBranding().catch(() => null);
+  const pageW = doc.internal.pageSize.getWidth();
 
+  // Official letterhead: logo + authority name, then a navy rule.
+  let head = 10;
+  let textX = 14;
+  if (branding?.logoDataUrl) {
+    const { w, h } = fitLogo(branding.logoWidth, branding.logoHeight, 45, 16);
+    try {
+      const fmt = branding.logoDataUrl.includes('image/jpeg') ? 'JPEG' : 'PNG';
+      doc.addImage(branding.logoDataUrl, fmt, 14, head, w, h);
+      textX = 14 + w + 5;
+    } catch { /* unsupported image type — text letterhead only */ }
+  }
+  doc.setTextColor(30, 58, 138);
+  doc.setFontSize(12);
+  doc.text(branding?.authorityName || '', textX, head + 6);
+  if (branding?.tagline) {
+    doc.setFontSize(8);
+    doc.setTextColor(90);
+    doc.text(branding.tagline, textX, head + 11);
+  }
+  head += 20;
+  doc.setDrawColor(30, 58, 138);
+  doc.setLineWidth(0.6);
+  doc.line(14, head, pageW - 14, head);
+
+  doc.setTextColor(0);
   doc.setFontSize(14);
-  doc.text(title, 14, 15);
+  doc.text(title, 14, head + 8);
   doc.setFontSize(9);
   doc.setTextColor(120);
-  doc.text(`Generated ${new Date().toLocaleString()} — ${rows.length} record${rows.length === 1 ? '' : 's'}`, 14, 21);
+  doc.text(`Generated ${new Date().toLocaleString()} — ${rows.length} record${rows.length === 1 ? '' : 's'}`, 14, head + 14);
 
-  let cursor = 26;
+  let cursor = head + 19;
   if (provenance) {
     doc.setFontSize(8);
     doc.setTextColor(90);
