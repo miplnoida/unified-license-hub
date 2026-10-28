@@ -12,6 +12,7 @@ import { SecurityScanningNotice } from '@/components/registration/SecurityScanni
 import { DeclarationsStep } from '@/components/registration/DeclarationsStep';
 import { EmailVerificationSection } from '@/components/registration/EmailVerificationSection';
 import { useEmailVerificationStatus } from '@/hooks/useEmailVerificationStatus';
+import { useRegistrationUploadVerification } from '@/hooks/useRegistrationUploadVerification';
 import {
   BEFORE_SUBMISSION_PLACEMENT,
   resolveEmailVerificationPlacement,
@@ -268,6 +269,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     () => resolveRegistrationLoginEmail(form.email, dynamicFormData, visibleSchema),
     [form.email, dynamicFormData, visibleSchema],
   );
+  const uploadVerification = useRegistrationUploadVerification(effectiveEmail);
 
   // Dynamic Applicant Name uniqueness (resolved from form schema metadata)
   const applicantNameCheck = useApplicantNameUniqueness(visibleSchema, dynamicFormData);
@@ -416,9 +418,6 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     enabled: requireOtp && !isUpdateMode,
   });
   // SEC-CRIT-01B: secure uploads are bound to the verified registration journey.
-  useEffect(() => {
-    setRegistrationJourneyEmail(form.emailVerified && effectiveEmail ? String(effectiveEmail) : null);
-  }, [form.emailVerified, effectiveEmail]);
 
 
   // Verification gets its own stage right after the configured step, so the
@@ -1192,6 +1191,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           errors={errors}
           setField={setField}
           verificationEmail={effectiveEmail}
+          onVerified={uploadVerification.confirm}
         />
       </div>
     );
@@ -1206,7 +1206,15 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
       case 'dynamic':
         if (step.stepData) {
+          const hasUploads = step.stepData.rows.some(row => row.columns.some(col =>
+            col.field && (['file', 'signature'].includes(col.field.type) || /signature/i.test(col.field.fieldName)),
+          ));
           return (
+            <div className="space-y-6">
+            {hasUploads && <EmailVerificationSection
+              form={{ ...form, emailVerified: uploadVerification.verified }} errors={errors}
+              setField={setField} verificationEmail={effectiveEmail} onVerified={uploadVerification.confirm}
+            />}
             <RegistrationStepRenderer
               step={step.stepData}
               data={dynamicFormData}
@@ -1220,6 +1228,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
               /* Form-level OTP owns verification: suppress field-level OTP only. */
               suppressEmailVerification={requireOtp && !isUpdateMode}
             />
+            </div>
           );
         }
         return <p className="text-muted-foreground">No form section configured for this step.</p>;
@@ -1227,6 +1236,10 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       case 'documents':
         return (
           <div className="space-y-4">
+            <EmailVerificationSection
+              form={{ ...form, emailVerified: uploadVerification.verified }} errors={errors}
+              setField={setField} verificationEmail={effectiveEmail} onVerified={uploadVerification.confirm}
+            />
             <SecurityScanningNotice />
             <DocumentsStep
               documents={form.documents}

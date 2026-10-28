@@ -37,10 +37,10 @@ export function clearEmailVerifiedLocally(email: string): void {
 }
 
 /** Server-side lookup: is there a verified OTP record for this email? */
-export async function checkEmailVerifiedOnServer(email: string): Promise<boolean> {
+export async function checkEmailVerifiedOnServer(email: string, freshForUploads = false): Promise<boolean> {
   try {
     const { data } = await supabase.functions.invoke('verify-registration-otp', {
-      body: { email, channel: 'email', purpose: 'registration', checkOnly: true },
+      body: { email, channel: 'email', purpose: 'registration', checkOnly: true, ...(freshForUploads ? { freshForUploads: true } : {}) },
     });
     return Boolean(data?.verified);
   } catch {

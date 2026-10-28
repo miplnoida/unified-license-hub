@@ -36,7 +36,7 @@ function readStored(): Capability | null {
 export async function getRegistrationCapability(): Promise<Capability> {
   const existing = readStored();
   // A capability belongs to one journey: a different verified email gets a new one.
-  if (existing && existing.journey_email && (!journeyEmail || existing.journey_email === journeyEmail)) return existing;
+  if (existing && journeyEmail && existing.journey_email === journeyEmail) return existing;
   if (!journeyEmail) throw new Error('Please verify your email address before uploading documents.');
   const { data, error } = await supabase.functions.invoke('registration-file-access', {
     body: { action: 'issue', email: journeyEmail },
