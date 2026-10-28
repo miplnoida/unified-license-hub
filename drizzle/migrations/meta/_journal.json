@@ -50,6 +50,13 @@
       "when": 1793146087781,
       "tag": "0006_conduct_overdue_alert_vocabulary",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793146830758,
+      "tag": "0007_enqueue_pending_file_scans",
+      "breakpoints": true
     }
   ]
 }
