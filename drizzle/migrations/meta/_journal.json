@@ -71,6 +71,13 @@
       "when": 1793185535159,
       "tag": "0009_entity_user_access_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793185578037,
+      "tag": "0010_nav_user_access_requests",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,4 @@
+INSERT INTO public.sec_navigation_items (key,label,description,href_override,icon_key,item_type,audience,parent_id,required_permission_id,sort_order,is_active,is_system,show_in_sidebar,show_in_search,admin_only,keywords)
+SELECT 'nav_license_requests_user_access_requests','Entity User Access Requests','Review institution requests to add, change or remove portal users and Primary User changes','/admin/user-access-requests','UserCog','link','internal',parent_id,required_permission_id,25,true,true,true,true,false,ARRAY['users','primary','access','authorisation']
+FROM public.sec_navigation_items WHERE key='nav_license_requests_licensee_entities'
+ON CONFLICT (key) DO NOTHING;

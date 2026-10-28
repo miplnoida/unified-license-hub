@@ -19245,6 +19245,167 @@ export type Database = {
           },
         ]
       }
+      entity_user_access_request_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          event: string
+          id: string
+          notes: string | null
+          request_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          event: string
+          id?: string
+          notes?: string | null
+          request_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          event?: string
+          id?: string
+          notes?: string | null
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_user_access_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "entity_user_access_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_user_access_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          effective_date: string | null
+          entity_id: string
+          id: string
+          letter_path: string
+          reason: string
+          reference: string
+          request_type: string
+          requested_role_id: string | null
+          resulting_membership_id: string | null
+          review_notes: string | null
+          review_recommendation: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          subject_email: string | null
+          subject_full_name: string | null
+          subject_phone: string | null
+          subject_position: string | null
+          submitted_at: string
+          submitted_by: string
+          supporting_paths: string[]
+          target_membership_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          effective_date?: string | null
+          entity_id: string
+          id?: string
+          letter_path: string
+          reason: string
+          reference?: string
+          request_type: string
+          requested_role_id?: string | null
+          resulting_membership_id?: string | null
+          review_notes?: string | null
+          review_recommendation?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          subject_email?: string | null
+          subject_full_name?: string | null
+          subject_phone?: string | null
+          subject_position?: string | null
+          submitted_at?: string
+          submitted_by: string
+          supporting_paths?: string[]
+          target_membership_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          effective_date?: string | null
+          entity_id?: string
+          id?: string
+          letter_path?: string
+          reason?: string
+          reference?: string
+          request_type?: string
+          requested_role_id?: string | null
+          resulting_membership_id?: string | null
+          review_notes?: string | null
+          review_recommendation?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          subject_email?: string | null
+          subject_full_name?: string | null
+          subject_phone?: string | null
+          subject_position?: string | null
+          submitted_at?: string
+          submitted_by?: string
+          supporting_paths?: string[]
+          target_membership_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_user_access_requests_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_user_access_requests_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_portfolio_entity"
+            referencedColumns: ["entity_id"]
+          },
+          {
+            foreignKeyName: "entity_user_access_requests_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
+            foreignKeyName: "entity_user_access_requests_requested_role_id_fkey"
+            columns: ["requested_role_id"]
+            isOneToOne: false
+            referencedRelation: "entity_membership_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_user_access_requests_target_membership_id_fkey"
+            columns: ["target_membership_id"]
+            isOneToOne: false
+            referencedRelation: "entity_user_memberships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entity_user_memberships: {
         Row: {
           approved_at: string | null
@@ -63018,6 +63179,39 @@ export type Database = {
       enterprise_supervisory_overview: {
         Args: { _sector_id?: string; _window_days?: number }
         Returns: Json
+      }
+      entity_access_is_member: {
+        Args: { _entity: string; _primary_only?: boolean; _uid: string }
+        Returns: boolean
+      }
+      entity_access_request_decide: {
+        Args: { _approve: boolean; _id: string; _notes: string }
+        Returns: string
+      }
+      entity_access_request_review: {
+        Args: { _id: string; _notes: string; _recommendation: string }
+        Returns: undefined
+      }
+      entity_access_request_submit: {
+        Args: {
+          _effective_date?: string
+          _email?: string
+          _entity_id: string
+          _full_name?: string
+          _letter_path: string
+          _phone?: string
+          _position?: string
+          _reason: string
+          _request_type: string
+          _requested_role_id?: string
+          _supporting_paths?: string[]
+          _target_membership_id?: string
+        }
+        Returns: string
+      }
+      entity_access_request_withdraw: {
+        Args: { _id: string }
+        Returns: undefined
       }
       entity_appointment_resolve_fp_bridge: {
         Args: { _appointment_id: string }
