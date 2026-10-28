@@ -105,6 +105,7 @@ const CorrespondenceRecords = lazy(() => import('@/pages/correspondence/Correspo
 const CorrespondenceRoutingRules = lazy(() => import('@/pages/correspondence/RoutingRulesAdmin'));
 const MyCorrespondence = lazy(() => import('@/pages/entity/correspondence/MyCorrespondence'));
 const MyInstitution = lazy(() => import('@/pages/entity/profile/MyInstitution'));
+const UserAccessRequests = lazy(() => import('@/pages/admin/UserAccessRequests'));
 const MyCorrespondenceDetail = lazy(() => import('@/pages/entity/correspondence/MyCorrespondenceDetail'));
 const MyComplaintRfis = lazy(() => import('@/pages/entity/complaint-rfis/MyComplaintRfis'));
 const MySupervisoryActions = lazy(() => import('@/pages/entity/MySupervisoryActions'));
@@ -277,6 +278,7 @@ export const dashboardRoutes = (
     <Route path="/post-licensee/applications/:applicationId/forms" element={<EP area="licensing" capability={["can_submit", "can_respond_rfi"]}><PostLicenseApplicationForms /></EP>} />
 
     <Route path="/appeals" element={<EP area="licensing" capability="can_view_status"><MyAppeals /></EP>} />
+    <Route path="/admin/user-access-requests" element={<M module="license_management"><UserAccessRequests /></M>} />
     <Route path="/admin/license-appeals" element={<M module="license_appeals"><LicenseAppealsRegister /></M>} />
     <Route path="/admin/appeal-panels" element={<M module="license_appeals"><LicenseAppealPanelsAdmin /></M>} />
 
