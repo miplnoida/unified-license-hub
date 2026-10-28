@@ -8,7 +8,11 @@ export type ReportSource =
   | 'users'
   | 'audit_logs'
   | 'report_logs'
-  | 'return_threshold_breaches';
+  | 'return_threshold_breaches'
+  | 'entity_appointments'
+  | 'examinations'
+  | 'examination_findings'
+  | 'enforcement_actions';
 
 export type ExportFormat = 'csv' | 'xlsx' | 'json' | 'pdf';
 export type ScheduleFrequency = 'daily' | 'weekly' | 'monthly' | 'quarterly';
