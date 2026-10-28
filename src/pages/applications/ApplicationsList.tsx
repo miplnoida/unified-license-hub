@@ -1298,9 +1298,11 @@ export default function ApplicationsList() {
                     <DropdownMenuItem data-rbac="application_management.create" onClick={() => navigate('/pre-license/new')}>
                       New Pre-Licensee Application
                     </DropdownMenuItem>
-                    <DropdownMenuItem data-rbac="application_management.create" onClick={() => navigate('/post-license/new')}>
-                      New Post-Licensee Application
-                    </DropdownMenuItem>
+                    {canUsePostLicenceServices({ role: user?.baseRole ?? user?.role, userType: user?.userType, licenseeId: user?.licenseeId }) && (
+                      <DropdownMenuItem data-rbac="application_management.create" onClick={() => navigate('/post-license/new')}>
+                        New Post-Licensee Application
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (

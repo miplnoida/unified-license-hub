@@ -269,8 +269,12 @@ export default function NewPostLicenseApplication() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">{entitlements.unavailableReason}</p>
-              {entitlements.licenses.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {postLicenceAllowed
+                  ? entitlements.unavailableReason
+                  : 'Applicant accounts are limited to pre-licence applications. Once a licence is issued, post-licence requests (such as director or key person changes) are filed by the institution\u2019s Primary User or authorised users.'}
+              </p>
+              {postLicenceAllowed && entitlements.licenses.length > 0 && (
                 <div className="space-y-2">
                   {entitlements.licenses.map(l => (
                     <div key={l.license_id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
