@@ -800,8 +800,8 @@ async function assembleFacts(
     const client = authClient ?? supa;
 
     const { data: snapshot, error: snapErr } = await client.rpc('executive_dashboard_snapshot', {
-      p_window_days: windowDays,
-      p_sector_id: sectorId,
+      _window_days: windowDays,
+      _sector_id: sectorId,
     });
     if (snapErr) throw new Error(`executive snapshot unavailable: ${snapErr.message}`);
 
