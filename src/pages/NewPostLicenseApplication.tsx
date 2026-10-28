@@ -24,6 +24,8 @@ import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useLicenseEntitlements, type LicenseEntitlement } from '@/hooks/useLicenseEntitlements';
 import { useOpenPostLicenseRequests } from '@/hooks/useOpenPostLicenseRequests';
+import { useSearchParams } from 'react-router-dom';
+import { canUsePostLicenceServices, pickKeyPersonService } from '@/lib/postLicenceAccess';
 
 
 /**
@@ -117,7 +119,22 @@ export default function NewPostLicenseApplication() {
 
   const licenseGate = useLicenseStatusGate();
   const accessGuard = useLicenseeAccessGuard();
-  const { resolvedLicenseeId } = usePpoc();
+  const { resolvedLicenseeId, isPpoc } = usePpoc();
+  const postLicenceAllowed = canUsePostLicenceServices({
+    role: user?.baseRole ?? user?.role, userType: user?.userType, licenseeId: user?.licenseeId, isPpoc,
+  });
+
+  // Deep link from My Institution → Key persons: ?license=<id>&service=appoint|resign
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const lic = searchParams.get('license');
+    if (lic && !selectedLicenseId && eligibleLicenses.some(l => l.license_id === lic)) setSelectedLicenseId(lic);
+  }, [searchParams, eligibleLicenses, selectedLicenseId]);
+  useEffect(() => {
+    if (selectedService || !licenseServices.length) return;
+    const hit = pickKeyPersonService(licenseServices, searchParams.get('service'));
+    if (hit) setSelectedService(hit.id);
+  }, [searchParams, licenseServices, selectedService]);
 
   const activeLicenseeId = selectedLicense?.licensee_id || resolvedLicenseeId || null;
   const { data: openRequests = [] } = useOpenPostLicenseRequests(activeLicenseeId);
@@ -220,7 +237,7 @@ export default function NewPostLicenseApplication() {
     }
   };
 
-  const noEntitlement = !entitlements.loading && !entitlements.hasEligibleLicense;
+  const noEntitlement = !postLicenceAllowed || (!entitlements.loading && !entitlements.hasEligibleLicense);
 
   return (
     <DashboardLayout>
@@ -252,8 +269,12 @@ export default function NewPostLicenseApplication() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">{entitlements.unavailableReason}</p>
-              {entitlements.licenses.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {postLicenceAllowed
+                  ? entitlements.unavailableReason
+                  : 'Applicant accounts are limited to pre-licence applications. Once a licence is issued, post-licence requests (such as director or key person changes) are filed by the institution\u2019s Primary User or authorised users.'}
+              </p>
+              {postLicenceAllowed && entitlements.licenses.length > 0 && (
                 <div className="space-y-2">
                   {entitlements.licenses.map(l => (
                     <div key={l.license_id} className="flex items-center justify-between rounded-lg border p-3 text-sm">

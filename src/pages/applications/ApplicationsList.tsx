@@ -16,6 +16,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { canUsePostLicenceServices } from '@/lib/postLicenceAccess';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
@@ -1298,9 +1299,11 @@ export default function ApplicationsList() {
                     <DropdownMenuItem data-rbac="application_management.create" onClick={() => navigate('/pre-license/new')}>
                       New Pre-Licensee Application
                     </DropdownMenuItem>
-                    <DropdownMenuItem data-rbac="application_management.create" onClick={() => navigate('/post-license/new')}>
-                      New Post-Licensee Application
-                    </DropdownMenuItem>
+                    {canUsePostLicenceServices({ role: user?.baseRole ?? user?.role, userType: user?.userType, licenseeId: user?.licenseeId }) && (
+                      <DropdownMenuItem data-rbac="application_management.create" onClick={() => navigate('/post-license/new')}>
+                        New Post-Licensee Application
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
