@@ -12,10 +12,11 @@ const COLORS = ['#1e3a5f', '#2dd4bf', '#f59e0b', '#ef4444', '#8b5cf6', '#22c55e'
 interface Props { widget: ReportDashboardWidget; }
 
 export function ChartWidget({ widget }: Props) {
-  const { data, isLoading } = useWidgetData(widget);
+  const { data, isLoading, error } = useWidgetData(widget);
   const cfg = widget.chartConfig || {};
 
   const body = () => {
+    if (error) return <p role="alert" className="text-sm text-destructive">Report data unavailable</p>;
     if (isLoading || !data) return <Skeleton className="h-[280px]" />;
     const series = data.series || [];
     if (!series.length) {
