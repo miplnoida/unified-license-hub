@@ -415,6 +415,7 @@ export const mainNavSections: NavSection[] = [
 
       { label: 'Records', href: '/correspondence/records', icon: <FolderOpen className="h-5 w-5" />, roles: ALL_INTERNAL, module: 'settings' },
       { label: 'Routing Rules', href: '/admin/correspondence-routing', icon: <SlidersHorizontal className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'settings', adminOnly: true },
+      { label: 'My Institution', href: '/entity/profile', icon: <Building2 className="h-5 w-5" />, roles: [...LICENSEE_ALL] },
       { label: 'My Correspondence', href: '/entity/correspondence', icon: <Mail className="h-5 w-5" />, roles: [...LICENSEE_ALL, ...PRE_LICENSEE] },
       { label: 'Information Requests', href: '/entity/complaint-rfis', icon: <Mail className="h-5 w-5" />, roles: [...LICENSEE_ALL] },
       { label: 'Supervisory Actions', href: '/entity/supervisory-actions', icon: <ShieldCheck className="h-5 w-5" />, roles: [...LICENSEE_ALL] },
