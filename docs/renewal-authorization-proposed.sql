@@ -115,7 +115,7 @@ BEGIN
 
     IF NOT v_is_staff THEN
       IF NOT public.can_act_on_specific_license(v_license_id, v_license_holder, NULL, NULL, NULL)
-         AND NOT (
+         AND NOT COALESCE((
            v_data->>'is_renewal' = 'true'
            AND v_data->>'renewal_of_license_id' = v_license_id::text
            AND public.post_license_service_applicability(v_service_id::uuid, v_license_id) = 'OK'
@@ -134,7 +134,7 @@ BEGIN
                AND l.valid_until IS NOT NULL
                AND CURRENT_DATE > l.valid_until::date + public.license_grace_days(l.sector_id,l.sub_sector_id,l.category_id)
            )
-         ) THEN
+         ), false) THEN
         RAISE EXCEPTION 'LICENSE_ENTITLEMENT_REQUIRED: Post-licence services are only available for a licence that is approved, issued and in good standing for this sector.'
           USING ERRCODE = '42501';
       END IF;
