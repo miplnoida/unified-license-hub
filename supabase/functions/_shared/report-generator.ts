@@ -588,8 +588,8 @@ export async function buildStatutoryBulletin(client: any, filters: Record<string
   await count('Authorisations', 'Applications received', 'applications', 'submitted_at');
   await count('Authorisations', 'Applications approved', 'applications', 'approved_at');
   await count('Authorisations', 'Applications rejected', 'applications', 'rejected_at');
-  await count('Returns', 'Returns submitted', 'return_filings', 'submitted_at');
-  await count('Returns', 'Returns currently overdue', 'return_filings', null, (q) => q.eq('is_overdue', true));
+  await count('Returns', 'Returns submitted', 'v_return_filing_workflow_state', 'submitted_at');
+  await count('Returns', 'Returns currently overdue', 'v_return_filing_workflow_state', null, (q) => q.eq('is_overdue', true));
   await count('Supervision', 'Examinations opened', 'examinations', 'created_at');
   await count('Supervision', 'Examinations closed', 'examinations', 'closed_at');
   await count('Supervision', 'Examination findings raised', 'examination_findings', 'created_at');

@@ -30,3 +30,27 @@ describe('supervisory reports', () => {
     }
   });
 });
+
+describe('readable names and bulletin', () => {
+  it('adds entity and person names and leaves unknown ids blank', async () => {
+    const { enrichNames } = await import('../../supabase/functions/_shared/report-generator');
+    const tables: Record<string, any[]> = {
+      licensees: [{ id: 'e1', name: 'Rodney Bay CU' }],
+      parties: [{ id: 'p1', display_name: 'Jane Doe' }],
+      role_types: [], ownership_types: [],
+    };
+    const client = { from: (t: string) => ({ select: () => ({ in: async (_c: string, ids: string[]) => ({ data: tables[t].filter((r) => ids.includes(r.id)) }) }) }) };
+    const rows = await enrichNames(client, 'entity_appointments', [{ entity_id: 'e1', person_party_id: 'p1' }, { entity_id: 'e2' }]);
+    expect(rows[0].entity_name).toBe('Rodney Bay CU');
+    expect(rows[0].person_name).toBe('Jane Doe');
+    expect(rows[1].entity_name).toBeNull();
+  });
+
+  it('bulletin marks a failed read as unavailable, not zero', async () => {
+    const { buildStatutoryBulletin } = await import('../../supabase/functions/_shared/report-generator');
+    const q: any = new Proxy({}, { get: (_t, k) => (k === 'then' ? (r: any) => r({ count: null, data: null, error: { message: 'denied' } }) : () => q) });
+    const rows = await buildStatutoryBulletin({ from: () => q }, {});
+    expect(rows.length).toBeGreaterThan(10);
+    expect(rows.every((r) => r.value === null && r.basis === 'unavailable')).toBe(true);
+  });
+});
