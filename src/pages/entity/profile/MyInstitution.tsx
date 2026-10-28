@@ -15,7 +15,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Building2 } from 'lucide-react';
+import { Loader2, Building2, UserPlus, UserMinus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useMyApprovedMemberships } from '@/hooks/useEntityReturns';
 import { usePpoc } from '@/contexts/PpocContext';
@@ -139,7 +140,23 @@ export default function MyInstitution() {
                     </CardContent></Card>
                   </TabsContent>
 
-                  <TabsContent value="persons" className="mt-4">
+                  <TabsContent value="persons" className="mt-4 space-y-3">
+                    {(() => {
+                      const lic = data.licences.find((l) => l.status === 'active') ?? data.licences[0];
+                      const q = lic ? `license=${lic.id}&` : '';
+                      return (
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/30 p-3">
+                          <p className="text-sm text-muted-foreground">
+                            Director and key person changes need regulator approval and are filed as post-licence requests.
+                          </p>
+                          <div className="flex gap-2">
+                            <Button asChild size="sm"><Link to={`/post-license/new?${q}service=appoint`}><UserPlus className="mr-1 h-4 w-4" />Appoint / change key person</Link></Button>
+                            <Button asChild size="sm" variant="outline"><Link to={`/post-license/new?${q}service=resign`}><UserMinus className="mr-1 h-4 w-4" />Report resignation</Link></Button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     <Card><CardContent className="overflow-x-auto p-0">
                       <Table>
                         <TableHeader><TableRow>

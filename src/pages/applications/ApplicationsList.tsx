@@ -16,6 +16,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { canUsePostLicenceServices } from '@/lib/postLicenceAccess';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
