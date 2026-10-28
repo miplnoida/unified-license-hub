@@ -271,7 +271,15 @@ export async function getReportDefinition(slug: string): Promise<ReportDefinitio
 }
 
 function mapDefinition(r: any): ReportDefinition {
-  const src = (r.source_key || r.source) as ReportSource;
+  let src = (r.source_key || r.source) as ReportSource;
+  let defaultColumns: string[] = r.default_columns || [];
+  // Legacy definitions still point at the historical `compliance_returns`
+  // table; read them from the canonical filings source instead so current
+  // filings appear. Stored definitions are not rewritten.
+  if (src === 'compliance_returns') {
+    const canonical = REPORT_DEFINITIONS.find((d) => d.id === r.slug && d.source === 'return_filings');
+    if (canonical) { src = 'return_filings'; defaultColumns = canonical.defaultColumns; }
+  }
   const formats: ExportFormat[] = (r.export_formats || ['csv', 'xlsx']).filter(Boolean);
   return {
     id: r.slug,
@@ -281,7 +289,7 @@ function mapDefinition(r: any): ReportDefinition {
     description: r.description || '',
     source: src,
     filters: Array.isArray(r.filter_config) ? r.filter_config : [],
-    defaultColumns: r.default_columns || [],
+    defaultColumns,
     defaultGroupBy: r.default_group_by || undefined,
     exportFormats: formats,
   };
