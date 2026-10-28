@@ -63311,6 +63311,7 @@ export type Database = {
         Args: { _entity_id: string }
         Returns: boolean
       }
+      entity_self_profile: { Args: { _entity_id: string }; Returns: Json }
       entity_set_publication_policy: {
         Args: { _entity_id: string; _policy_key: string; _reason?: string }
         Returns: Json
