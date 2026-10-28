@@ -64,9 +64,10 @@ function monthKey(d: Date) { return `${d.getFullYear()}-${String(d.getMonth() + 
 async function runWidget(widget: ReportDashboardWidget, tableName: string): Promise<WidgetData> {
   const cfg = widget.metricConfig || {};
   const t = cfg.type;
+  const idColumn = tableName === 'v_return_filing_workflow_state' ? 'filing_id' : 'id';
 
   if (t === 'count') {
-    let q: any = (supabase.from(tableName as any) as any).select('id', { count: 'exact', head: true });
+    let q: any = (supabase.from(tableName as any) as any).select(idColumn, { count: 'exact', head: true });
     q = applyFilter(q, cfg.filter);
     const { count, error } = await q;
     if (error) throw error;
@@ -82,11 +83,11 @@ async function runWidget(widget: ReportDashboardWidget, tableName: string): Prom
   if (t === 'ratio') {
     const [num, den] = await Promise.all([
       (async () => {
-        let q: any = (supabase.from(tableName as any) as any).select('id', { count: 'exact', head: true });
+        let q: any = (supabase.from(tableName as any) as any).select(idColumn, { count: 'exact', head: true });
         q = applyFilter(q, cfg.numerator); const { count, error } = await q; if (error) throw error; return count ?? 0;
       })(),
       (async () => {
-        let q: any = (supabase.from(tableName as any) as any).select('id', { count: 'exact', head: true });
+        let q: any = (supabase.from(tableName as any) as any).select(idColumn, { count: 'exact', head: true });
         q = applyFilter(q, cfg.denominator); const { count, error } = await q; if (error) throw error; return count ?? 0;
       })(),
     ]);
