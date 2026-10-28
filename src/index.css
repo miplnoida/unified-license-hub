@@ -121,7 +121,7 @@
   td, th, .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
-  td .font-mono, td code {
+  td.font-mono, td .font-mono, td code, td .rounded-full, td [class*="badge"] {
     white-space: nowrap;
   }
 }
