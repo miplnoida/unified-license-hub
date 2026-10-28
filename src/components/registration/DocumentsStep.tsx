@@ -145,7 +145,7 @@ export function DocumentsStep({ documents, onAddDocument, onRemoveDocument, erro
       toast.success(`${file.name} uploaded successfully`);
     } catch (err) {
       console.error('Upload error:', err);
-      toast.error('Upload failed. Please try again.');
+      toast.error(err instanceof Error ? err.message : 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

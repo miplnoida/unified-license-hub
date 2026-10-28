@@ -4,10 +4,10 @@
 - [x] Verify all 16 findings against current code and hosted configuration.
 - [x] Apply and test nine narrow confirmed fixes; 54 targeted tests and rolled-back trigger regression passed.
 - [x] Record nine fixed, two stale and one false-positive cause; no publication or AML certification runs.
-- [ ] Registration uploads (#2) — blocked: approval of verification-before-upload/update journey.
-- [ ] Malware scan dispatch (#9) — blocked: scanner commissioning and secure queue approval.
-- [ ] Expired-licence renewal (#10) — blocked: renewal-specific authorization approval.
-- [ ] Supervision menu entries (#13) — blocked: approval of DB permission/package-aware navigation alignment.
+- [ ] Registration uploads (#2) — independent fresh verification and recovery implemented; positive browser OTP/upload proof blocked by mailbox access and authorization to send a test OTP.
+- [ ] Malware scan dispatch (#9) — atomic enqueue/retries implemented and tested; blocked by missing scanner provider and verified automatic scheduling; no files released.
+- [ ] Expired-licence renewal (#10) — exact proposed SQL prepared, not applied; blocked by separate authorization approval.
+- [x] Supervision menu entries (#13) — DB menu registered, cross-domain/package visibility aligned; both links opened in authorized browser; no role grants.
 
 - [x] Post-licence form lookup uses licence's regulator + chosen service only
 - [x] LIC-2026-000166 holder corrected to Rodney Bay entity (approved)

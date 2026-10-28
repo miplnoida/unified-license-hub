@@ -13,6 +13,7 @@ interface Props {
   setField: (field: string, value: string | boolean) => void;
   /** Resolved verification email from parent (covers static + dynamic schemas). */
   verificationEmail?: string;
+  onVerified?: () => void;
 }
 
 /**
@@ -20,7 +21,7 @@ interface Props {
  * step the admin configured (see `registrationEmailVerification.ts`). This is
  * the only place the registration OTP flow is implemented.
  */
-export function EmailVerificationSection({ form, errors, setField, verificationEmail }: Props) {
+export function EmailVerificationSection({ form, errors, setField, verificationEmail, onVerified }: Props) {
   // Resolved email: prefer parent-provided value (covers dynamic schemas), fall back to form.email.
   const resolvedEmail = (verificationEmail || form.email || '').trim().toLowerCase();
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resolvedEmail);
@@ -102,6 +103,7 @@ export function EmailVerificationSection({ form, errors, setField, verificationE
       if (data?.verified) {
         markEmailVerifiedLocally(resolvedEmail);
         setField('emailVerified', true);
+        onVerified?.();
         toast.success('Email verified successfully!');
       }
     } catch {

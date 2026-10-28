@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { email, code, channel = "email", purpose = "registration", checkOnly = false } = await req.json();
+    const { email, code, channel = "email", purpose = "registration", checkOnly = false, freshForUploads = false } = await req.json();
 
     if (!email || (!checkOnly && !code)) {
       return new Response(JSON.stringify({ error: checkOnly ? "Email is required" : "Email and code are required" }), {
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     const normalizedEmail = String(email).trim().toLowerCase();
 
     if (checkOnly) {
-      const { data: verifiedRecords, error: checkError } = await supabaseAdmin
+      let verifiedQuery = supabaseAdmin
         .from("otp_verifications")
         .select("id")
         .eq("user_email", normalizedEmail)
@@ -47,6 +47,10 @@ Deno.serve(async (req) => {
         .not("verified_at", "is", null)
         .order("created_at", { ascending: false })
         .limit(1);
+      if (freshForUploads === true) {
+        verifiedQuery = verifiedQuery.gte('verified_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+      }
+      const { data: verifiedRecords, error: checkError } = await verifiedQuery;
 
       if (checkError) {
         console.error("OTP verification check error:", checkError);

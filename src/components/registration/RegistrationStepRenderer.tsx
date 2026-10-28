@@ -861,7 +861,7 @@ function FileUploadField({ field, value, onChange, readOnly, error, imageOnly, u
       toast.success(`${file.name} uploaded`);
     } catch (err) {
       console.error('File upload error:', err);
-      toast.error('Upload failed. Please try again.');
+      toast.error(err instanceof Error ? err.message : 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';

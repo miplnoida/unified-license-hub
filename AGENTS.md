@@ -16,3 +16,6 @@
 - Subscription-package availability is decided only by `src/lib/subscriptionPackages.ts` (features → permission modules) read from the singleton `system_subscription_package`, changed solely via the super-admin `system_subscription_package_set` RPC (history kept); sidebar, AppShell route gate and Entity 360 sections all consult `useSubscriptionPackage` — so a disabled module is hidden everywhere consistently, never shown as a locked placeholder.
 - Board Pack breakdowns count every status from paged, caller/RLS-scoped records via `reportStatusCounts`; read errors are not zero totals — so new status vocabulary cannot silently understate regulatory work.
 - Legacy examination type aliases are supported only by read filters and labels; creation retains canonical engagement values — so historical records stay discoverable without weakening write contracts.
+- Registration upload verification is independently restored from fresh server OTP records; submission OTP placement and historical form markers never authorize capability issuance.
+- Pending file uploads atomically enqueue deduplicated worker scan jobs; scanner failures remain unreleased and retryable, never reported as completed.
+- Detection and management-assurance discoverability mirrors the existing cross-domain supervisory route predicate; menu metadata never grants record access.
