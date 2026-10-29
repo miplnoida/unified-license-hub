@@ -320,7 +320,7 @@ export const dashboardRoutes = (
     {/* Canonical entry point: internal staff get the governed Document Register;
         external portal users keep their existing document self-service screen.
         The legacy technical store stays reachable at an explicit URL. */}
-    <Route path="/documents" element={<DocumentsHome />} />
+    <Route path="/documents" element={<P><DocumentsHome /></P>} />
     <Route path="/documents/legacy-store" element={<EP area="licensing" capability={["can_view_status", "can_upload_documents"]}><DocumentStore /></EP>} />
     <Route path="/notifications" element={<P><NotificationCenter /></P>} />
     <Route path="/analytics" element={<M module="report_management"><AnalyticsDashboard /></M>} />
@@ -480,8 +480,8 @@ export const dashboardRoutes = (
     <Route path="/entity/correspondence/thread/:id" element={<Navigate to="/entity/correspondence" replace />} />
     <Route path="/correspondence/threads" element={<Navigate to="/correspondence/inbox" replace />} />
     <Route path="/correspondence/thread/:id" element={<LegacyThreadRedirect />} />
-    <Route path="/entity/complaint-rfis" element={<MyComplaintRfis />} />
-    <Route path="/entity/supervisory-actions" element={<MySupervisoryActions />} />
+    <Route path="/entity/complaint-rfis" element={<P><LicensedInstitutionRoute><MyComplaintRfis /></LicensedInstitutionRoute></P>} />
+    <Route path="/entity/supervisory-actions" element={<P><LicensedInstitutionRoute><MySupervisoryActions /></LicensedInstitutionRoute></P>} />
 
     {/* RDM-ENTITY-001 Wave A — entity registry, resolution and membership */}
     <Route path="/entities" element={<M module="licensee_management"><EntityDirectory /></M>} />

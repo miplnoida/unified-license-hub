@@ -1,4 +1,7 @@
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, Link } from 'react-router-dom';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { isPreLicenseeAllowedRoute } from '@/hooks/useUserPermissions';
 import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
@@ -131,7 +134,23 @@ function RegistrationApprovalGate({
   const mod = getModuleForPath(pathname);
   if (mod && hasModuleAccess(mod)) return <>{children}</>;
 
-  return <Navigate to="/dashboard" replace />;
+  return <PreLicenceAccessNotice />;
+}
+
+function PreLicenceAccessNotice() {
+  return (
+    <DashboardLayout>
+      <Card className="mx-auto mt-10 max-w-xl">
+        <CardContent className="space-y-3 p-8 text-center">
+          <h2 className="text-lg font-semibold">Not available for your account</h2>
+          <p className="text-sm text-muted-foreground">
+            This page isn't part of the registration and pre-licence application journey.
+          </p>
+          <Button asChild variant="outline"><Link to="/dashboard">Back to dashboard</Link></Button>
+        </CardContent>
+      </Card>
+    </DashboardLayout>
+  );
 }
 
 
