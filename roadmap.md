@@ -28,7 +28,7 @@
 - [ ] Dashboard counts "in progress" drafts as Submitted — not fixed, awaiting owner decision
 
 ## Pre-licensee menu/route audit (2026-10-29)
-- [ ] Allowed-route list + access message instead of silent redirect
-- [ ] Licensed-only gating for Information Requests / Supervisory Actions (menu + URL)
-- [ ] My Institution hidden without approved membership
-- [ ] Tests + browser matrix (pre-licensee, primary, returns officer, supervisor, admin)
+- [x] Allowed-route list + access message instead of silent redirect
+- [x] Licensed-only gating for Information Requests / Supervisory Actions (menu + URL)
+- [x] My Institution hidden without approved membership
+- [ ] Browser matrix for primary, returns officer, supervisor, admin — blocked: needs those users signed in via preview (pre-licensee done)
