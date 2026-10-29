@@ -183,9 +183,10 @@ describe('Primary User vs PPOC', () => {
       ppocLoading: false,
     });
 
-    expect(context.isLicensee).toBe(true);
+    // Applicant-only accounts are never promoted to licensee by a fallback link.
+    expect(context.isLicensee).toBe(false);
     expect(context.effectiveRole).toBe('Applicant');
-    expect(context.activeLicenseeId).toBe('lic-fallback');
+    expect(context.activeLicenseeId).toBe(null);
   });
 
   it('pre-licensee with inferred licensee context never displays as Primary User', () => {
