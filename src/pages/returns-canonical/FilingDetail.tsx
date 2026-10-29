@@ -36,6 +36,7 @@ import { FilingCurrentStepPanel } from '@/components/returns/FilingCurrentStepPa
 import { FilingRelatedCases } from '@/components/returns/FilingRelatedCases';
 import { FilingMonetaryDisplay } from '@/components/returns/FilingMonetaryDisplay';
 import { FilingLifecyclePanel } from '@/components/returns/FilingLifecyclePanel';
+import { FilingSubmittedAnswers } from '@/components/returns/FilingSubmittedAnswers';
 
 import { StatusBadge } from '@/components/presentation/StatusBadge';
 import { useInternalUsers } from '@/hooks/useInternalUsers';
@@ -283,6 +284,7 @@ export default function FilingDetail() {
         <Tabs defaultValue="versions">
           <TabsList className="flex-wrap">
             <TabsTrigger value="versions">Versions ({data.versions.length})</TabsTrigger>
+            <TabsTrigger value="answers">Submitted answers</TabsTrigger>
             <TabsTrigger value="forms">Forms ({data.forms.length})</TabsTrigger>
             <TabsTrigger value="metrics">Metrics ({data.metrics.length})</TabsTrigger>
             <TabsTrigger value="findings">Validation ({data.findings.length})</TabsTrigger>
@@ -315,6 +317,10 @@ export default function FilingDetail() {
                 </TableBody>
               </Table>
             </CardContent></Card>
+          </TabsContent>
+
+          <TabsContent value="answers">
+            <FilingSubmittedAnswers versions={data.versions} forms={data.forms} />
           </TabsContent>
 
           <TabsContent value="forms">
