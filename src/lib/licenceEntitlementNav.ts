@@ -15,6 +15,9 @@ const ENTITLEMENT_GATED_PREFIXES = [
   '/entity/returns',
   '/post-license',
   '/post-licensee',
+  // Licensed-institution obligations raised by the regulator.
+  '/entity/complaint-rfis',
+  '/entity/supervisory-actions',
 ];
 
 export function pathRequiresLicenceEntitlement(href?: string | null): boolean {
