@@ -32,3 +32,7 @@
 - [x] Licensed-only gating for Information Requests / Supervisory Actions (menu + URL)
 - [x] My Institution hidden without approved membership
 - [ ] Browser matrix for primary, returns officer, supervisor, admin — blocked: needs those users signed in via preview (pre-licensee done)
+
+## On hold — institution application visibility (owner instruction 2026-10-29)
+- [ ] Rodney Bay Primary user sees 0 pre-licensing applications (APP-2026-002011 is linked only by its institution field). HOLD: no changes to the applications list or open-application access, no migrations.
+- [ ] Future review: portal capability check ignores the institution it is given (possible access across institutions). Documented only.
