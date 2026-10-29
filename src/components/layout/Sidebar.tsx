@@ -14,6 +14,8 @@ import { getModuleForPath } from '@/lib/permissionModules';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { useLicenseEntitlements } from '@/hooks/useLicenseEntitlements';
 import { pathRequiresLicenceEntitlement } from '@/lib/licenceEntitlementNav';
+import { usePpoc } from '@/contexts/PpocContext';
+import { canUsePostLicenceServices } from '@/lib/postLicenceAccess';
 import { LICENSEE_ROLES, PRE_LICENSEE_ROLES, INTERNAL_ROLES } from '@/types/platform';
 import { prefetchRoute } from '@/lib/routePrefetch';
 import { useSubscriptionPackage } from '@/hooks/useSubscriptionPackage';
