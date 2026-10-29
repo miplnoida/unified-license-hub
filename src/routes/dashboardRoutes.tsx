@@ -4,7 +4,7 @@ import { P } from '@/routes/routeHelpers';
 import { LegacyInspectionRegisterRedirect, LegacyInspectionScheduleRedirect } from '@/routes/LegacyInspectionRedirect';
 import { ModuleRoute } from '@/components/auth/RouteGuards';
 import { SupervisoryEnterpriseRoute } from '@/routes/SupervisoryEnterpriseRoute';
-import { PortalRoute } from '@/components/auth/PortalRoute';
+import { PortalRoute, LicensedInstitutionRoute } from '@/components/auth/PortalRoute';
 import type { PermissionModule } from '@/lib/permissionModules';
 import { ExaminationDomainRoute } from '@/routes/ExaminationDomainRoute';
 import { FindingDomainRoute } from '@/routes/FindingDomainRoute';
