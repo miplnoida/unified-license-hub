@@ -13,7 +13,8 @@ import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { getModuleForPath } from '@/lib/permissionModules';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { useLicenseEntitlements } from '@/hooks/useLicenseEntitlements';
-import { pathRequiresLicenceEntitlement } from '@/lib/licenceEntitlementNav';
+import { pathRequiresLicenceEntitlement, pathRequiresLicensedInstitution } from '@/lib/licenceEntitlementNav';
+import { useMyApprovedMemberships } from '@/hooks/useEntityReturns';
 import { usePpoc } from '@/contexts/PpocContext';
 import { canUsePostLicenceServices } from '@/lib/postLicenceAccess';
 import { LICENSEE_ROLES, PRE_LICENSEE_ROLES, INTERNAL_ROLES } from '@/types/platform';
@@ -231,6 +232,8 @@ export function Sidebar() {
   const postLicenceAllowed = canUsePostLicenceServices({
     role: user?.role, userType: user?.userType, licenseeId: user?.licenseeId, isPpoc,
   });
+  const { data: approvedMemberships } = useMyApprovedMemberships();
+  const hasApprovedMembership = (approvedMemberships?.length ?? 0) > 0;
   const entitlementGateApplies = !portalContext.isInternal;
   const lockNewActivity = entitlementGateApplies
     && !entitlements.loading
@@ -316,7 +319,10 @@ export function Sidebar() {
     if (userIsInternal && audienceIsExternalOnly && !item.children?.length) return false;
     // Applicant-only accounts never see post-licence surfaces.
     if (!userIsInternal && !postLicenceAllowed
-      && (item.requiresLicenceEntitlement || pathRequiresLicenceEntitlement(item.href))) return false;
+      && (item.requiresLicenceEntitlement || pathRequiresLicensedInstitution(item.href))) return false;
+    // My Institution requires an approved institution membership (same check
+    // the page and the entity_self_profile RPC apply).
+    if (!userIsInternal && item.href?.split('?')[0] === '/entity/profile' && !hasApprovedMembership) return false;
     if (enforceDynamic) {
       // Narrow assignment-only exception: allow the Return Queue entry
       // (and only the queue entry) when the user is assigned to at least
