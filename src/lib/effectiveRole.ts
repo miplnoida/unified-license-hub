@@ -102,7 +102,12 @@ export function getEffectivePortalContext(input: EffectiveRoleInput): EffectiveP
     };
   }
 
-  if (hasPrimaryUserAccess || resolvedLicenseeId || (normalizedBaseRole && LICENSEE_ROLE_SET.has(normalizedBaseRole))) {
+  // Applicant / pre-licensee accounts keep their pre-licence journey even
+  // when their profile is linked to the licence their application produced:
+  // the licence is operated through the institution's portal users. Only an
+  // explicit PPOC mapping (handled above) or a licensee role promotes them.
+  const isApplicantOnlyRole = normalizedBaseRole === 'pre_licensee' || normalizedBaseRole === 'applicant';
+  if (!isApplicantOnlyRole && (hasPrimaryUserAccess || resolvedLicenseeId || (normalizedBaseRole && LICENSEE_ROLE_SET.has(normalizedBaseRole)))) {
     const isSecondaryUser = normalizedBaseRole === 'licensee_secondary' || String(userType || '').toLowerCase() === 'secondary';
     const isPrimaryRole = normalizedBaseRole === 'licensee_primary' || String(userType || '').toLowerCase() === 'primary';
 
