@@ -13,3 +13,10 @@
 - In the browser, signed in as the pre-licensee: open every menu item in the matrix and type each hidden address directly. Expect an access message, never a silent bounce.
 - In the browser, signed in as rbc_primary_user@yopmail.com: confirm My Institution, Returns, Information Requests and Supervisory Actions still work.
 - Spot-check a staff account's sidebar for no change. Nothing is published.
+
+## Approval conditions (added)
+- One shared eligibility module, `src/lib/postLicenceAccess.ts`, decides both sidebar visibility and direct route access. There are no parallel checks.
+- Post-licence entitlement never comes from an active linked licence alone. It comes only from a licensee role, an approved Primary/Secondary association or a contact-person mapping.
+- Documents and My Licences: confirm in the browser and with read-only queries that the pre-licensee sees only their own records.
+- Browser matrix, menu and direct URL: pre-licensee, licensee_primary, returns officer, supervisor and admin.
+- Add these tasks to roadmap.md once build mode starts. No publish or deploy without approval.
