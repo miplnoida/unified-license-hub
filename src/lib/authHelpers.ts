@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { AppRole, PlatformUser, ROLE_HIERARCHY } from '@/types/platform';
+import { AppRole, INTERNAL_ROLES, PlatformUser, ROLE_HIERARCHY } from '@/types/platform';
 import type { Database } from '@/integrations/supabase/types';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
@@ -303,9 +303,15 @@ async function loadPlatformUser(userId: string, email: string): Promise<Platform
       if (roleIds.length > 0) {
         const { data: roleRows } = await supabase
           .from('roles' as any)
-          .select('name')
+          .select('name, role_type')
           .in('id', roleIds);
-        const names = ((roleRows as any[]) || []).map(r => r.name).filter(Boolean);
+        // Internal staff show only internal role names: an external template
+        // role (e.g. "Applicant") attached to a staff account must never
+        // relabel them in the header.
+        const staff = INTERNAL_ROLES.includes(role);
+        const names = ((roleRows as any[]) || [])
+          .filter(r => !staff || String(r.role_type || '').toLowerCase() !== 'external')
+          .map(r => r.name).filter(Boolean);
         if (names.length > 0) dynamicRoleName = names.join(', ');
       }
     } catch (e) {
