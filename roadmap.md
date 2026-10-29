@@ -26,3 +26,9 @@
 - [ ] Accept + publish draft, then verify live — blocked: owner action
 - [ ] Session 3: prudential assessment figures/ratings and plan activities — blocked: owner decision on who enters them
 - [ ] Dashboard counts "in progress" drafts as Submitted — not fixed, awaiting owner decision
+
+## Pre-licensee menu/route audit (2026-10-29)
+- [ ] Allowed-route list + access message instead of silent redirect
+- [ ] Licensed-only gating for Information Requests / Supervisory Actions (menu + URL)
+- [ ] My Institution hidden without approved membership
+- [ ] Tests + browser matrix (pre-licensee, primary, returns officer, supervisor, admin)
