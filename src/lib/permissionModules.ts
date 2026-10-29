@@ -116,6 +116,7 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
 
   // ─── Licenses / licensees ──────────────────────────────────────────────
   ['/admin/licensees', 'license_management'],
+  ['/admin/user-access-requests', 'license_management'],
   ['/admin/approved-licensees', 'license_management'],
   ['/admin/ppoc-mappings', 'license_management'],
   ['/admin/license-action-forms', 'license_management'],

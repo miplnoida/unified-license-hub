@@ -98,6 +98,14 @@ export const PRE_LICENSEE_ALLOWED_ROUTES = [
   '/change-password',
   '/notifications',
   '/registration-status',
+  // Pre-licence self-service: help, support desk, correspondence about the
+  // application, and the documents/institution pages (data stays RLS/RPC-gated;
+  // My Institution itself requires an approved membership).
+  '/help',
+  '/support',
+  '/entity/correspondence',
+  '/entity/profile',
+  '/documents',
   // Portal capabilities that pre-licensees carry by default (submit / view
   // their own complaint or F&P declaration). Route-level PortalRoute still
   // enforces the capability check; this list only prevents the pre-licensee

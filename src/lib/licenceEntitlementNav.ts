@@ -25,3 +25,21 @@ export function pathRequiresLicenceEntitlement(href?: string | null): boolean {
   if (path === '/applications' && /type=post/i.test(query)) return true;
   return false;
 }
+
+/**
+ * Surfaces that belong to a licensed institution's portal users (decided by
+ * `canUsePostLicenceServices`). Superset of the entitlement-gated activity
+ * above plus regulator-raised obligations, which licensees must still answer
+ * even when no licence is currently eligible for new activity.
+ */
+const LICENSED_INSTITUTION_ONLY_PREFIXES = [
+  '/entity/complaint-rfis',
+  '/entity/supervisory-actions',
+];
+
+export function pathRequiresLicensedInstitution(href?: string | null): boolean {
+  if (!href) return false;
+  if (pathRequiresLicenceEntitlement(href)) return true;
+  const [path] = href.split('?');
+  return LICENSED_INSTITUTION_ONLY_PREFIXES.some(p => path === p || path.startsWith(p + '/'));
+}

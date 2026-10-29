@@ -101,15 +101,33 @@ export function PortalRoute({ children, area, capability }: PortalRouteProps) {
   return <>{children}</>;
 }
 
-function LicensedInstitutionOnly() {
+/**
+ * Route gate for licensed-institution surfaces outside the returns area
+ * (Information Requests, Supervisory Actions). Uses the same rule as the
+ * sidebar (`canUsePostLicenceServices`); staff pass through unchanged and RLS
+ * still decides which rows are visible.
+ */
+export function LicensedInstitutionRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const { loading: ppocLoading, isPpoc } = usePpoc();
+  if (!user) return <AuthLoadingScreen />;
+  if (INTERNAL_ROLES.includes(user.role)) return <>{children}</>;
+  if (ppocLoading) return <AuthLoadingScreen />;
+  const allowed = canUsePostLicenceServices({
+    role: user.role, userType: user.userType, licenseeId: user.licenseeId, isPpoc,
+  });
+  return allowed ? <>{children}</> : <LicensedInstitutionOnly />;
+}
+
+export function LicensedInstitutionOnly() {
   return (
     <DashboardLayout>
       <Card className="mx-auto mt-10 max-w-xl">
         <CardContent className="space-y-3 p-8 text-center">
           <h2 className="text-lg font-semibold">Available to licensed institutions</h2>
           <p className="text-sm text-muted-foreground">
-            Regulatory returns are filed by the licensed institution's portal users (Primary or Secondary User).
-            Your account is used for the pre-licence application journey.
+            This service is used by the licensed institution's portal users (Primary or Secondary User).
+            Your account is used for the registration and pre-licence application journey.
           </p>
           <Button asChild variant="outline"><Link to="/dashboard">Back to dashboard</Link></Button>
         </CardContent>
