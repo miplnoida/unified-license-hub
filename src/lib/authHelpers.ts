@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { AppRole, PlatformUser, ROLE_HIERARCHY } from '@/types/platform';
+import { AppRole, INTERNAL_ROLES, PlatformUser, ROLE_HIERARCHY } from '@/types/platform';
 import type { Database } from '@/integrations/supabase/types';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];

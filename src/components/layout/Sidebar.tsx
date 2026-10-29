@@ -225,6 +225,10 @@ export function Sidebar() {
   // actionable once an eligible licence exists (same resolver the DB enforces).
   const entitlements = useLicenseEntitlements();
   const { isModuleEnabled: isPackageModuleEnabled } = useSubscriptionPackage();
+  const { isPpoc } = usePpoc();
+  const postLicenceAllowed = canUsePostLicenceServices({
+    role: user?.role, userType: user?.userType, licenseeId: user?.licenseeId, isPpoc,
+  });
   const entitlementGateApplies = !portalContext.isInternal;
   const lockNewActivity = entitlementGateApplies
     && !entitlements.loading
@@ -303,6 +307,14 @@ export function Sidebar() {
     // the item's declared audience. We still block non-internal users from
     // seeing admin-panel screens even when they share a module key.
     const userIsInternal = INTERNAL_ROLES.includes(user.role);
+    // Items declared exclusively for external portal users (e.g. My Work →
+    // My Returns) are filing surfaces; staff use their regulator workspaces.
+    const audienceIsExternalOnly = item.roles.length > 0
+      && item.roles.every((r) => !INTERNAL_ROLES.includes(r));
+    if (userIsInternal && audienceIsExternalOnly && !item.children?.length) return false;
+    // Applicant-only accounts never see post-licence surfaces.
+    if (!userIsInternal && !postLicenceAllowed
+      && (item.requiresLicenceEntitlement || pathRequiresLicenceEntitlement(item.href))) return false;
     if (enforceDynamic) {
       // Narrow assignment-only exception: allow the Return Queue entry
       // (and only the queue entry) when the user is assigned to at least
