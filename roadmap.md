@@ -36,3 +36,10 @@
 ## On hold — institution application visibility (owner instruction 2026-10-29)
 - [ ] Rodney Bay Primary user sees 0 pre-licensing applications (APP-2026-002011 is linked only by its institution field). HOLD: no changes to the applications list or open-application access, no migrations.
 - [ ] Future review: portal capability check ignores the institution it is given (possible access across institutions). Documented only.
+
+## Application status "In Progress" after submission
+- [x] Frontend Under Review display/edit lock, staged DB guard, local verify-and-submit guard, tests
+- [ ] Apply staged DB change — awaiting user approval (and draft acceptance)
+- [ ] Deploy verify-and-submit — awaiting user approval
+- [ ] Browser re-check on APP-2026-000163 after deploy
+- [ ] On hold (reported only): form_responses / file_uploads owner writes after submission
