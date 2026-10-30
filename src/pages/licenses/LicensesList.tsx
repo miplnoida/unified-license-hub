@@ -176,7 +176,24 @@ export default function LicensesList() {
           });
         }
 
+        // Fallback: the institution linked on the licence's own application
+        // (readable by the applicant even when the holder profile is not).
+        const appIds = Array.from(new Set(rows
+          .filter((r: any) => r.application_id && !nameByLicenseId[r.id] && !holderNameById[r.holder_id])
+          .map((r: any) => r.application_id))) as string[];
+        const appEntityName: Record<string, string> = {};
+        if (appIds.length > 0) {
+          const { data: appRows } = await supabase
+            .from('applications')
+            .select('id, licensees:entity_id(name)')
+            .in('id', appIds);
+          ((appRows || []) as any[]).forEach((a: any) => {
+            if (a?.licensees?.name) appEntityName[a.id] = a.licensees.name;
+          });
+        }
+
         rows.forEach((r: any) => {
+          if (!nameByLicenseId[r.id] && appEntityName[r.application_id]) nameByLicenseId[r.id] = appEntityName[r.application_id];
           const fromLicensee = nameByLicenseId[r.id];
           const looksLikeFallback = !fromLicensee || fromLicensee === r.license_type;
           r.entity_name = looksLikeFallback
