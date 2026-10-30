@@ -1,13 +1,21 @@
-<svg viewBox="0 0 640 200" xmlns="http://www.w3.org/2000/svg" style="font-family:var(--font-sans)">
+<svg viewBox="0 0 640 230" xmlns="http://www.w3.org/2000/svg" style="font-family:var(--font-sans)">
 <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--fg-secondary)"/></marker></defs>
-<rect x="10" y="70" width="130" height="50" rx="8" fill="none" stroke="var(--fg-secondary)"/>
-<text x="75" y="100" text-anchor="middle" style="font-size:14px;font-weight:480" fill="var(--fg-primary)">Save role</text>
-<rect x="190" y="60" width="200" height="70" rx="8" fill="var(--bg-accent-translucent)" stroke="var(--fg-accent)"/>
-<text x="290" y="90" text-anchor="middle" style="font-size:14px;font-weight:480" fill="var(--fg-accent)">Missing in older list?</text>
-<text x="290" y="110" text-anchor="middle" style="font-size:12px" fill="var(--fg-accent)">copy it in (new step)</text>
-<rect x="440" y="70" width="190" height="50" rx="8" fill="none" stroke="var(--fg-secondary)"/>
-<text x="535" y="100" text-anchor="middle" style="font-size:14px;font-weight:480" fill="var(--fg-primary)">Existing save + checks</text>
-<line x1="140" y1="95" x2="188" y2="95" stroke="var(--fg-secondary)" marker-end="url(#a)"/>
-<line x1="390" y1="95" x2="438" y2="95" stroke="var(--fg-secondary)" marker-end="url(#a)"/>
-<text x="290" y="165" text-anchor="middle" style="font-size:12px" fill="var(--fg-secondary)">Today: the save stops at "role not found" for 42 roles</text>
+<rect x="10" y="40" width="130" height="56" rx="8" fill="none" stroke="var(--fg-secondary)"/>
+<text x="75" y="64" text-anchor="middle" style="font-size:14px;font-weight:480" fill="var(--fg-primary)">Roles page</text>
+<text x="75" y="82" text-anchor="middle" style="font-size:12px" fill="var(--fg-secondary)">ticks from current list</text>
+<rect x="180" y="30" width="200" height="76" rx="8" fill="var(--bg-accent-translucent)" stroke="var(--fg-accent)"/>
+<text x="280" y="58" text-anchor="middle" style="font-size:14px;font-weight:480" fill="var(--fg-accent)">Save (one transaction)</text>
+<text x="280" y="76" text-anchor="middle" style="font-size:12px" fill="var(--fg-accent)">copy role only if missing</text>
+<text x="280" y="92" text-anchor="middle" style="font-size:12px" fill="var(--fg-accent)">same ID and details</text>
+<rect x="420" y="20" width="210" height="44" rx="8" fill="none" stroke="var(--fg-secondary)"/>
+<text x="525" y="47" text-anchor="middle" style="font-size:14px;font-weight:480" fill="var(--fg-primary)">Older list: checks, scopes</text>
+<rect x="420" y="76" width="210" height="44" rx="8" fill="none" stroke="var(--fg-secondary)"/>
+<text x="525" y="103" text-anchor="middle" style="font-size:14px;font-weight:480" fill="var(--fg-primary)">Current list: access</text>
+<line x1="140" y1="68" x2="178" y2="68" stroke="var(--fg-secondary)" marker-end="url(#a)"/>
+<line x1="380" y1="55" x2="418" y2="45" stroke="var(--fg-secondary)" marker-end="url(#a)"/>
+<line x1="380" y1="82" x2="418" y2="96" stroke="var(--fg-secondary)" marker-end="url(#a)"/>
+<rect x="420" y="150" width="210" height="44" rx="8" fill="none" stroke="var(--fg-secondary)" stroke-dasharray="4 3"/>
+<text x="525" y="177" text-anchor="middle" style="font-size:12px" fill="var(--fg-secondary)">Permissions the page can't show: kept</text>
+<line x1="525" y1="120" x2="525" y2="148" stroke="var(--fg-secondary)" stroke-dasharray="4 3" marker-end="url(#a)"/>
+<text x="280" y="160" text-anchor="middle" style="font-size:12px" fill="var(--fg-secondary)">Any failure undoes the whole save</text>
 </svg>
