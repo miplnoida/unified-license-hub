@@ -1,48 +1,53 @@
 ## Technical details
 
-### Evidence
-- `has_permission` → `sec_has_permission`, which reads only `sec_user_roles` / `sec_roles` / `sec_role_permissions` / `sec_permissions` / `sec_modules`. The legacy `roles` / `role_permissions` tables are not used for enforcement.
-- `sec_save_role` → `rbac_save_role`, which validates scopes and view dependencies, stores `roles.scope_config`, and runs `UPDATE roles … IF NOT FOUND RAISE 'role_not_found'`. `sec_save_role` then rebuilds `sec_role_permissions` from legacy `role_permissions` mapped by (module, action), deleting everything else.
-- Complaints Officer `3d01da28-6741-4f3b-b775-d96e05c106c0`: no `roles` row, 15 `sec_role_permissions`, 1 `sec_user_roles`. Only 11 of the 15 map to legacy `permissions`. Unmapped: `complaint_management:assign|investigate|resolve`, `correspondence_management:dispatch`. No legacy role has the same name, so `roles_name_key` does not conflict.
-- `useAllRolePermissions` / `useRolePermissions` (`src/hooks/useRoles.ts`) read legacy `role_permissions`, so a `sec_roles`-only role opens with no ticks.
-- Both catalogues define `support_management` view/assign/respond/update/resolve/close, so every Support Management action maps.
-- `sec_role_permissions` SELECT policy: `has_permission(auth.uid(),'role_management','view')`. Authenticated users have the grant, so the page can read it.
+### Read-only evidence (this turn)
+- Mapping key: legacy `permissions` (lower(module with spaces→_), lower(name)) ↔ `sec_permissions.key` + `sec_modules.key`. Duplicate keys: legacy 0, canonical 0, so the mapping is one-to-one. Canonical without a legacy twin: 146/423. Legacy without a canonical twin: 7. `sec_role_permissions` grants without a twin: 178 across 41 roles.
+- Enforcement: `has_permission` → `sec_has_permission`, which reads only `sec_*` tables.
+- Complaints Officer `3d01da28-…`: 15 grants. Unmapped: `complaint_management:{assign,investigate,resolve}` and `correspondence_management:dispatch`. All active. 1 user, `system_role` NULL, no `roles` row, no name clash on `roles_name_key`. Returns Officer: 7 grants, 1 user, no `roles` row. Approver/Decision-Maker: 30 grants, has a `roles` row.
+- `roles` triggers: `trg_roles_mutation_guard` (INSERT → `assert_role_management_action('create')`), scope validation, activation check. `role_permissions` triggers: action guard (`assign_permissions`), view dependency and view retention. `sec_role_permissions`: no triggers.
+- Audit: the client calls `authorizedAction('role_management','assign_permissions')` before the RPC, as a separate request with no `entity_id`. Two rows were written at 08:05:02 and 08:05:04 today for the failed saves. The RPC writes `security.save_role` with only `permission_count`.
+- Static: `useAllRolePermissions` / `useRolePermissions` and `fetchStoredPermissionIds` read legacy `role_permissions`.
 
-### Affected
-- `public.sec_role_permissions` read path in `src/hooks/useRoles.ts` (both hooks): select `role_id, sec_permissions(key, sec_modules(key))` and map to the legacy `permissions.id` by normalised (module, name). Unmapped grants are not shown and are not sent.
-- Staged migration: `CREATE OR REPLACE FUNCTION public.sec_save_role(jsonb)` only. `rbac_save_role`, RLS, grants, tables and data are unchanged.
+### Changed files
+- `src/hooks/useRoles.ts`: both permission read hooks select `sec_role_permissions(role_id, sec_permissions(key, sec_modules(key)))` and map to legacy `permissions.id` by the key above. They also return an `unmapped` list per role. `authorizedAction` metadata gains `phase: 'attempt'` and `role_id`.
+- `src/pages/admin/RoleManagement.tsx`: read-only "Also held (managed elsewhere)" list in the role editor. The readback check stays on legacy `role_permissions`, which after the save equals the submitted set.
+- `src/test/rolePermissionMapping.test.ts` (new): mapping, unmapped handling, and that the payload never includes unmapped ids.
+- Staged migration `…_sec_save_role_safe_twin.sql`: `CREATE OR REPLACE FUNCTION public.sec_save_role(jsonb)` only.
 
 ### Complete SQL (staged; runs only on accept)
 ```sql
--- Rollback: re-run the previous sec_save_role definition (copied verbatim
--- into the migration file as a comment block).
 CREATE OR REPLACE FUNCTION public.sec_save_role(_payload jsonb)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
 AS $function$
 DECLARE
   uid uuid := auth.uid();
-  v_result jsonb; v_role_id uuid; v_key text; v_perm_ids uuid[];
   v_target uuid := NULLIF(_payload ->> 'id', '')::uuid;
+  v_twin_created boolean := false;
+  v_result jsonb; v_role_id uuid; v_key text;
+  v_perm_ids uuid[]; v_before uuid[]; v_after uuid[];
 BEGIN
   IF uid IS NULL THEN RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501'; END IF;
   IF NOT (public.is_super_admin(uid) OR public.has_permission(uid, 'role_management', 'edit')) THEN
     RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
   END IF;
 
-  -- On-demand legacy twin for THIS role only (same id and attributes).
-  IF v_target IS NOT NULL
-     AND NOT EXISTS (SELECT 1 FROM public.roles WHERE id = v_target) THEN
-    IF NOT EXISTS (SELECT 1 FROM public.sec_roles WHERE id = v_target) THEN
-      RAISE EXCEPTION 'role_not_found' USING ERRCODE = 'P0002';
+  IF v_target IS NOT NULL THEN
+    SELECT COALESCE(array_agg(permission_id), '{}') INTO v_before
+      FROM public.sec_role_permissions WHERE role_id = v_target;
+    IF NOT EXISTS (SELECT 1 FROM public.roles WHERE id = v_target) THEN
+      IF NOT EXISTS (SELECT 1 FROM public.sec_roles WHERE id = v_target) THEN
+        RAISE EXCEPTION 'role_not_found' USING ERRCODE = 'P0002';
+      END IF;
+      INSERT INTO public.roles (id, name, description, system_role, is_system,
+             role_type, dashboard_tier, role_category, status, created_at, updated_at)
+      SELECT s.id, s.name, s.description, COALESCE(s.system_role, 'custom'),
+             COALESCE(s.is_system, false), s.role_type, s.dashboard_tier,
+             s.role_category, s.status, s.created_at, now()
+        FROM public.sec_roles s WHERE s.id = v_target;
+      v_twin_created := true;
     END IF;
-    INSERT INTO public.roles (id, name, description, system_role, is_system,
-                              role_type, dashboard_tier, role_category, status,
-                              created_at, updated_at)
-    SELECT s.id, s.name, s.description,
-           COALESCE(s.system_role, 'custom'), COALESCE(s.is_system, false),
-           s.role_type, s.dashboard_tier, s.role_category, s.status,
-           s.created_at, now()
-    FROM public.sec_roles s WHERE s.id = v_target;
+  ELSE
+    v_before := '{}';
   END IF;
 
   v_result := public.rbac_save_role(_payload);
@@ -53,61 +58,72 @@ BEGIN
 
   INSERT INTO public.sec_roles (id, key, name, description, role_type, role_category,
                                 dashboard_tier, status, system_role, is_system, created_by)
-  SELECT r.id, COALESCE(v_key, 'role_' || replace(r.id::text, '-', '')),
-         r.name, r.description, COALESCE(r.role_type, 'internal'), r.role_category,
-         r.dashboard_tier, COALESCE(r.status, 'active'), r.system_role,
-         COALESCE(r.is_system, false), uid
-  FROM public.roles r WHERE r.id = v_role_id
+  SELECT r.id, COALESCE(v_key, 'role_' || replace(r.id::text, '-', '')), r.name, r.description,
+         COALESCE(r.role_type, 'internal'), r.role_category, r.dashboard_tier,
+         COALESCE(r.status, 'active'), r.system_role, COALESCE(r.is_system, false), uid
+    FROM public.roles r WHERE r.id = v_role_id
   ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name, description = EXCLUDED.description,
     role_type = EXCLUDED.role_type, role_category = EXCLUDED.role_category,
     dashboard_tier = EXCLUDED.dashboard_tier, status = EXCLUDED.status,
-    system_role = EXCLUDED.system_role, updated_at = now();
+    -- keep canonical system_role when the twin had to default it
+    system_role = CASE WHEN v_twin_created THEN public.sec_roles.system_role
+                       ELSE EXCLUDED.system_role END,
+    updated_at = now();
 
   SELECT ARRAY(
-    SELECT DISTINCT sp.id
-    FROM public.role_permissions rp
+    SELECT DISTINCT sp.id FROM public.role_permissions rp
     JOIN public.permissions p ON p.id = rp.permission_id
     JOIN public.sec_modules m ON m.key = lower(regexp_replace(p.module, '\s+', '_', 'g'))
     JOIN public.sec_permissions sp ON sp.module_id = m.id AND sp.key = lower(p.name)
-    WHERE rp.role_id = v_role_id
-  ) INTO v_perm_ids;
+    WHERE rp.role_id = v_role_id) INTO v_perm_ids;
 
-  -- Remove only grants the page can represent; keep unmapped canonical grants.
+  -- Remove only mapped grants that were deselected; unmapped grants are kept.
   DELETE FROM public.sec_role_permissions srp
   USING public.sec_permissions sp, public.sec_modules m
-  WHERE srp.role_id = v_role_id
-    AND sp.id = srp.permission_id AND m.id = sp.module_id
+  WHERE srp.role_id = v_role_id AND sp.id = srp.permission_id AND m.id = sp.module_id
     AND NOT (srp.permission_id = ANY(v_perm_ids))
     AND EXISTS (SELECT 1 FROM public.permissions p
                 WHERE lower(regexp_replace(p.module, '\s+', '_', 'g')) = m.key
                   AND lower(p.name) = sp.key);
 
   INSERT INTO public.sec_role_permissions (role_id, permission_id)
-  SELECT v_role_id, x FROM unnest(v_perm_ids) AS t(x)
-  ON CONFLICT DO NOTHING;
+  SELECT v_role_id, x FROM unnest(v_perm_ids) AS t(x) ON CONFLICT DO NOTHING;
 
-  INSERT INTO public.audit_logs (user_id, action, entity_type, entity_id, new_value)
+  SELECT COALESCE(array_agg(permission_id), '{}') INTO v_after
+    FROM public.sec_role_permissions WHERE role_id = v_role_id;
+
+  INSERT INTO public.audit_logs (user_id, action, entity_type, entity_id, old_value, new_value)
   VALUES (uid, 'security.save_role', 'sec_role', v_role_id::text,
-          jsonb_build_object('permission_count', COALESCE(array_length(v_perm_ids, 1), 0)));
+    jsonb_build_object('permission_count', cardinality(v_before)),
+    jsonb_build_object(
+      'permission_count', cardinality(v_after),
+      'legacy_twin_created', v_twin_created,
+      'added',   (SELECT COALESCE(jsonb_agg(m.key||':'||sp.key ORDER BY 1), '[]')
+                    FROM unnest(v_after) a(id) JOIN public.sec_permissions sp ON sp.id = a.id
+                    JOIN public.sec_modules m ON m.id = sp.module_id WHERE NOT a.id = ANY(v_before)),
+      'removed', (SELECT COALESCE(jsonb_agg(m.key||':'||sp.key ORDER BY 1), '[]')
+                    FROM unnest(v_before) b(id) JOIN public.sec_permissions sp ON sp.id = b.id
+                    JOIN public.sec_modules m ON m.id = sp.module_id WHERE NOT b.id = ANY(v_after))));
 
-  RETURN jsonb_build_object('id', v_role_id);
+  RETURN jsonb_build_object('id', v_role_id, 'legacy_twin_created', v_twin_created);
 END;
 $function$;
 ```
-- `system_role` is NOT NULL on `roles`, so `'custom'` is used only when the canonical value is null. This is the only place an attribute can differ, and the test will report it if it happens.
-- The authorisation check runs before any write. The function is a single transaction, so a failure in validation, a constraint or the mirror rolls back the twin too.
+- The function is one transaction. Any exception (authorisation, `create` guard, scope or dependency trigger, name clash) rolls back the twin, both permission sets and the audit row together.
+- If `old_value` is not a column of `audit_logs`, both snapshots go into `new_value` instead. This is checked before staging.
 
 ### Security impact
-No new privilege and no change to who can call the save. The deletion scope gets narrower, so the save can only remove grants the page can show. The page's read path still goes through the existing `role_management.view` policy.
+No new privilege. The edit check is unchanged, and the twin insert still requires `role_management.create` through the existing trigger. The deletion scope is narrower than today. There are no RLS, grant, assignment or other-role changes.
 
-### Regression tests (after accept; each in a rolled-back transaction as TEST super admin)
-1. Complaints Officer: loaded ticks equal the 11 mapped grants. Save with Support Management added → `roles` twin has the same id/attributes, `sec_role_permissions` = previous 15 + Support Management, the 4 unmapped are kept, `sec_user_roles` unchanged, and `sec_has_permission` is true for `support_management:view` for the assigned user.
-2. Returns Officer: the same checks for an affected role.
-3. Approver/Decision-Maker (has a legacy row): no twin insert, and behaviour is identical to today.
-4. A caller without `role_management.edit` → `not_authorized`, and no rows change.
-5. Forced failure (invalid scope) → no twin row, no permission change.
-6. Vitest for the mapping in `useRoles`. Then the browser save on Complaints Officer as an admin session, with the readback check.
+### Regression plan (after accept; rolled-back transactions as the TEST super admin, plus negative cases)
+1. Complaints Officer + Support Management → the 15 grants are kept and 6 added (21 total), the 4 unmapped are kept, 1 user unchanged, the twin attributes equal `sec_roles`, `sec_has_permission(user,'support_management','view')` is true, and there is one audit row with `added`=6 and `removed`=0.
+2. Complaints Officer with `complaint_management:edit` unticked → only that grant is removed, and the audit row shows `removed`=[that one].
+3. Returns Officer: case 1 for that role.
+4. Approver/Decision-Maker: no twin, mapped grants behave as today, unmapped grants kept.
+5. Invalid scope → no `roles` row, `sec_role_permissions` identical to before, no audit row.
+6. A caller without `role_management.edit` → `not_authorized`, nothing changes.
+7. Vitest mapping test, then a browser save as an admin session with the readback check.
 
 ### Rollback
-Restore the previous `sec_save_role` body and revert the `useRoles.ts` read path. Twins already created are identical copies and can stay, or be removed by id after you approve.
+Re-create the current `sec_save_role` body (copied verbatim as a comment in the migration) and revert the two front-end files. Twins created by saves are exact copies. They can stay, or be removed by id with your approval.

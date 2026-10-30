@@ -1,26 +1,40 @@
-# Revised minimal fix: "role not found" when saving Complaints Officer
+# Revised minimal fix: "role not found" and safe permission editing
 
-## What I checked
-- **Why the save still uses the older role list.** The current role list decides who can do what, and the access checks read only that list. The save step is a wrapper that first calls an older save routine. That routine holds the save checks (data scope rules, "View must be ticked first") and stores each role's data-scope settings. The roles page still reads those settings from the older list. So the older list can't simply be dropped in a small fix. It would mean moving the scope settings and checks across, which is a separate, larger change.
-- **Why it fails.** Complaints Officer exists only in the current list. The older routine tries to update it there, finds nothing, and stops with "role not found". 42 roles are like this.
-- **A second, bigger risk I found.** The roles page loads each role's current ticks from the older list. For Complaints Officer that list has none, so the page opens with nothing ticked, even though the role really has 15 permissions and 1 assigned user. If the save worked as it does today, ticking only Support Management would **wipe the other 15**. Also, 4 of those 15 (complaint assign, investigate, resolve and correspondence dispatch) have no match in the older list, and today's save would always drop them.
+Scope: only the "role not found" error and making permission edits safe. The cross-institution application issue is not included. I won't run anything on the database, copy roles in bulk, or publish without your approval.
 
-## The minimal fix (3 parts, only for the role being saved)
-1. **Show the real ticks.** The roles page loads each role's current permissions from the current list, so Complaints Officer opens showing what it really has.
-2. **Copy the role into the older list only when that role is saved.** It keeps the same ID and the same name, description, type, category, tier, status and system flags. Its data-scope settings start empty, exactly as the page shows them today. No bulk copy of the 42 roles.
-3. **Never drop permissions the page can't show.** The save changes only the permissions the page can display. The 4 extra Complaints Officer permissions, and any like them on other roles, are left untouched.
+## Results of the read-only checks
+**1. Mapping between the two permission lists.** The page's list of permissions and the list that controls real access line up one-to-one, with no duplicates or doubles on either side. But **146 of the 423 real permissions have no entry on the page's list**. 41 roles hold 178 of these.
 
-## What does not change
-- Who can edit roles stays the same: you need role-management edit permission, or super admin.
-- No user's role assignments change.
-- No other role, permission, user or module is touched.
-- If any check fails, the whole save is undone. That includes the copied role, so nothing is half saved.
-- Support Management access is enforced by the same access check the app uses everywhere. That check reads only the current list, which this save updates.
+**2. Today's save already loses permissions.** Every save, on any role, removes real permissions the page can't show. For Complaints Officer that would remove complaint assign, investigate and resolve, and correspondence dispatch. The fix keeps them.
 
-## Applying and testing
-The change applies only when you accept this draft. I won't run anything on the database before you approve. Once you accept, I'll test it on:
-- Complaints Officer and Returns Officer (both affected)
+**3. Complaints Officer today:** 15 permissions and 1 assigned user. 11 of the 15 show on the page, 4 can't. Its type, tier, category and status are copied unchanged. Its stored data-scope settings are empty today and stay empty.
+
+**4. Audit logging today.** The page writes an "assign permissions" entry before the save is even tried. That's why two entries were logged at 08:05 today for your failed attempts. These entries don't name the role and stay even when the save fails. The save itself writes only a permission count.
+
+**5. Copying a role into the older list needs role-create permission.** An automatic check on that list requires it. An admin who can edit roles but not create them would get a clear refusal. Nothing would be saved.
+
+## Expected before and after: Complaints Officer, adding Support Management (all 6 actions)
+| | Before | After |
+|---|---|---|
+| Permissions that control real access | 15 | 21: the same 15 plus the 6 Support Management actions |
+| The 4 that can't show on the page | kept | kept |
+| Assigned users | 1 | 1 (unchanged) |
+| Type, tier, category, status | internal, operational, operational, active | unchanged |
+
+An administrator can still remove any of the 11 visible permissions by unticking it. Nothing else is removed.
+
+## The fix
+1. **The page shows the real ticks.** It reads them from the list that controls access. The permissions it can't show are listed read-only as "Also held (managed elsewhere)", so they're visible but never removed by mistake.
+2. **The role is copied into the older list only when it is saved**, keeping the same ID and details. There's no bulk copy.
+3. **The save changes only what the page shows.** Real permissions the page can't show are always kept.
+4. **One accurate audit entry per save.** It's written inside the same transaction and names the role, the permissions added, removed and kept, and whether the role was copied in. The early "attempt" entry from the page is relabelled as an attempt, so it isn't counted as a change.
+5. **All or nothing.** Copying the role, permission changes and the audit entry are saved together, or not at all.
+
+## Testing after you accept
+The change applies only when you accept the draft. Then I'll test it on:
+- Complaints Officer and Returns Officer (affected)
 - Approver/Decision-Maker (already has an older-list record)
-- an account without role-edit permission (the save must be refused)
+- a deliberately failing save (nothing may change)
+- a user without role-edit permission (must be refused)
 
-Then I'll report the results. I can't record this request in the project's task list while in planning mode, so I'll add it there once you approve.
+You'll get the before-and-after permission lists for each.
