@@ -47,7 +47,7 @@ import { resolveWorkflowApproval } from '@/lib/workflowApprovalResolver';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
-import { markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/lib/applicationStatus';
+import { markApplicationInProgressIfDraft, normalizeApplicationStatus, isApplicantEditable, getApplicationDisplayStatus } from '@/lib/applicationStatus';
 import { Send, Loader2, Building2, Layers, Tag, CheckCircle, XCircle, Ban, RotateCcw, Edit, Clock } from 'lucide-react';
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 
@@ -209,7 +209,8 @@ export default function ApplicationDetail() {
   const taxonomyEditable = !!app
     && !forceReadOnlyView
     && !isInternal
-    && (['draft', 'in_progress'].includes(normalizeApplicationStatus(app.status)));
+    && (['draft', 'in_progress'].includes(normalizeApplicationStatus(app.status)))
+    && isApplicantEditable(app as any);
 
   // Sync local dropdown state with the loaded application record.
   useEffect(() => {
@@ -809,7 +810,7 @@ export default function ApplicationDetail() {
                 {getApplicationCategoryLabel(appData)} Application
               </Badge>
               <Badge variant={statusVariant[app.status] || 'outline'} className="text-sm px-3 py-1">
-                {APPLICATION_STATUS_LABELS[app.status]}
+                {getApplicationDisplayStatus(app as any)}
               </Badge>
               {isOwner && (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested') && (
                 <Button onClick={handleResubmit} disabled={processing || licenseGate.isBlocked} size="sm">
@@ -1066,7 +1067,7 @@ export default function ApplicationDetail() {
                       originalFormsData={hasRenewalDiff ? originalFormsData : undefined}
                       formMeta={(appData.form_meta as Record<string, { saved_at?: string | null; submitted_at?: string | null; updated_at?: string | null; created_at?: string | null }>) || {}}
                       applicationStatus={app.status}
-                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested')}
+                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested') && isApplicantEditable(app as any)}
                       onSave={async (templateId, data, versionId) => {
                         const updatedFormsData = { ...formsData, [templateId]: data };
                         const updatedFormVersionIds = versionId
@@ -1450,7 +1451,7 @@ export default function ApplicationDetail() {
                             <p className="text-sm text-muted-foreground">Workflow is not active/configured for this application.</p>
                           </div>
                           <Badge variant={statusVariant[app.status] || 'outline'} className="shrink-0">
-                            {APPLICATION_STATUS_LABELS[app.status]}
+                            {getApplicationDisplayStatus(app as any)}
                           </Badge>
                         </div>
                       </AccordionTrigger>
@@ -1520,7 +1521,7 @@ export default function ApplicationDetail() {
             )}
 
             {/* Applicant submit action */}
-            {isOwner && (app.status === 'draft' || app.status === 'in_progress') && (() => {
+            {isOwner && (app.status === 'draft' || app.status === 'in_progress') && isApplicantEditable(app as any) && (() => {
               const taxonomyComplete = !!(appData?.sector_id && appData?.sub_sector_id && appData?.category_id);
               const allFormsCompleted = formTemplateIds.length > 0 && formTemplateIds.every(tid => {
                 const fd = formsData[tid];

@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 
 interface Props {
   status: string | null | undefined;
+  submittedAt?: string | null;
   applicationNumber?: string | null;
 }
 
@@ -19,8 +20,10 @@ const STEPS = [
   { key: 'decision', label: 'Decision' },
 ] as const;
 
-function indexFor(status: string | null | undefined): { idx: number; outcome?: 'approved' | 'rejected' } {
+function indexFor(status: string | null | undefined, submittedAt?: string | null): { idx: number; outcome?: 'approved' | 'rejected' } {
   const s = (status || 'draft').toLowerCase();
+  // Submitted applications advanced by the workflow keep `in_progress`: that is review, not draft.
+  if (s === 'in_progress' && submittedAt) return { idx: 2 };
   if (s === 'draft' || s === 'in_progress') return { idx: 0 };
   if (s === 'submitted') return { idx: 1 };
   if (['under_review', 'review', 'pending_review'].includes(s)) return { idx: 2 };
@@ -31,8 +34,8 @@ function indexFor(status: string | null | undefined): { idx: number; outcome?: '
   return { idx: 0 };
 }
 
-export function ApplicationTimeline({ status, applicationNumber }: Props) {
-  const { idx, outcome } = indexFor(status);
+export function ApplicationTimeline({ status, submittedAt, applicationNumber }: Props) {
+  const { idx, outcome } = indexFor(status, submittedAt);
 
   return (
     <Card>

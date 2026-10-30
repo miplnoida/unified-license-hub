@@ -331,6 +331,7 @@ function DraftApplications({ widget, context }: RendererProps) {
     const query = (supabase.from('applications' as any)
       .select('id, application_number, updated_at, status, data')
       .in('status', ['draft', 'in_progress'])
+      .is('submitted_at', null)
       .order('updated_at', { ascending: false })
       .limit(5)) as any;
 

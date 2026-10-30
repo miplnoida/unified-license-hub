@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { AttachmentList } from '@/components/shared/AttachmentList';
-import { markApplicationInProgressIfDraft } from '@/lib/applicationStatus';
+import { markApplicationInProgressIfDraft, isUnderRegulatorReview } from '@/lib/applicationStatus';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, FileText, Loader2,
   ClipboardList, Clock, PlayCircle, Send,
@@ -134,6 +134,12 @@ export default function ApplicationForms() {
         .eq('id', applicationId)
         .single();
       if (!data || cancelled) { setLoading(false); return; }
+      // Submitted applications advanced by the workflow keep `in_progress`;
+      // they are under regulator review, so open the read-only record instead.
+      if (isUnderRegulatorReview(data as any)) {
+        navigate(`/applications/${applicationId}`, { replace: true });
+        return;
+      }
       setAppData(data);
       const appJson = (data as any).data || {};
       const templateIds: string[] = appJson.form_template_ids || [];

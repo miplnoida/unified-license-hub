@@ -1,3 +1,4 @@
+import { isApplicantEditable, getApplicationDisplayStatus } from '@/lib/applicationStatus';
 import { formatRecordMoney } from '@/lib/money';
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { isPostLicenseApplicationRow } from '@/lib/applicationCategory';
@@ -973,7 +974,7 @@ export default function ApplicationsList() {
           </TableCell>
           <TableCell>
             <Badge variant={statusBadgeVariant(app.status) as any} className="text-xs w-fit">
-              {APPLICATION_STATUS_LABELS[app.status] || app.status}
+              {isInternal ? (APPLICATION_STATUS_LABELS[app.status] || app.status) : getApplicationDisplayStatus(app as any)}
             </Badge>
             {!isInternal && app.status === 'rejected' && (
               <button
@@ -1059,7 +1060,7 @@ export default function ApplicationsList() {
               {
                 label: 'Edit', icon: Pencil,
                 onClick: () => navigate(editHref),
-                hidden: !(!isInternal && ['draft', 'in_progress', 'resubmission_requested', 'query_raised', 'info_requested'].includes(app.status)),
+                hidden: !(!isInternal && ['draft', 'in_progress', 'resubmission_requested', 'query_raised', 'info_requested'].includes(app.status) && isApplicantEditable(app as any)),
               },
               {
                 label: 'Lodge an appeal', icon: Gavel, separator: true,
@@ -1068,7 +1069,7 @@ export default function ApplicationsList() {
               },
               {
                 label: 'Cancel Application', icon: Ban, destructive: true, separator: true,
-                hidden: !(!isInternal && ['draft', 'in_progress'].includes(app.status)),
+                hidden: !(!isInternal && ['draft', 'in_progress'].includes(app.status) && isApplicantEditable(app as any)),
                 onClick: async () => {
                   if (!window.confirm('Are you sure you want to cancel this application? This action cannot be undone.')) return;
                   const { data, error } = await supabase.rpc('cancel_application' as any, {

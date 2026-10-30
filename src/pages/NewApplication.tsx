@@ -23,7 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
 import { applicationDraftSave, applicationClassificationUpdate } from '@/lib/applicationGovernedOps';
 import { toast } from 'sonner';
-import { getApplicationStatusLabel, isApplicationEditable, markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/lib/applicationStatus';
+import { getApplicationStatusLabel, isApplicationEditable, isUnderRegulatorReview, markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/lib/applicationStatus';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, FileText, Upload, Loader2,
   Building2, Layers, Tag, ClipboardList, Paperclip, Send, Clock, PlayCircle,
@@ -758,6 +758,13 @@ export default function NewApplication() {
         // them — otherwise every save goes back into the closed record and the
         // server correctly refuses it (APPLICATION_NOT_EDITABLE). Start a
         // clean application instead so the applicant can pick a new sector.
+        // Submitted applications advanced by the workflow keep `in_progress`;
+        // they are under regulator review, so open the read-only record.
+        if (draft && isUnderRegulatorReview(draft as any)) {
+          toast.info('This application is under regulator review and can no longer be edited.');
+          navigate(`/applications/${(draft as any).id}`, { replace: true });
+          return;
+        }
         if (draft && !isApplicationEditable((draft as any).status)) {
           const closedStatus = normalizeApplicationStatus((draft as any).status);
           setClosedApplicationNotice({
@@ -1726,11 +1733,17 @@ export default function NewApplication() {
       // closed, so the load-time hydration guard alone is not sufficient.
       const { data: currentApplication, error: statusError } = await supabase
         .from('applications')
-        .select('id, application_number, status')
+        .select('id, application_number, status, submitted_at')
         .eq('id', applicationId)
         .maybeSingle();
 
       if (statusError) throw statusError;
+
+      if (currentApplication && isUnderRegulatorReview(currentApplication as any)) {
+        toast.error('This application is already submitted and under regulator review.');
+        navigate(`/applications/${currentApplication.id}`, { replace: true });
+        return;
+      }
 
       if (!currentApplication || !isApplicationEditable(currentApplication.status)) {
         const closedStatus = normalizeApplicationStatus(currentApplication?.status || 'closed');

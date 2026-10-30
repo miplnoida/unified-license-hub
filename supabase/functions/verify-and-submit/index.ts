@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     // 1. Verify application exists and belongs to the user
     const { data: app, error: appErr } = await adminClient
       .from("applications")
-      .select("id, applicant_id, status, license_type, data, regulator_id")
+      .select("id, applicant_id, status, submitted_at, license_type, data, regulator_id")
       .eq("id", application_id)
       .single();
 
@@ -95,6 +95,18 @@ Deno.serve(async (req) => {
       "returned_for_correction",
       "info_requested",
     ].includes(app.status);
+
+    // Submitted applications advanced by the workflow keep `in_progress`;
+    // they are already under regulator review and must not start a second workflow.
+    if (app.status === "in_progress" && app.submitted_at) {
+      return new Response(
+        JSON.stringify({
+          error: "This application is already submitted and under regulator review.",
+          code: "ALREADY_SUBMITTED",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (app.status !== "draft" && app.status !== "in_progress" && !isResubmission) {
       return new Response(

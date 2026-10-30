@@ -39,7 +39,7 @@ describe('NewApplication — closed application must not bind the wizard', () =>
   it('revalidates a stale payment-page session before invoking final submission', () => {
     const handlerStart = source.indexOf('const handleFinalSubmit = async');
     const invokeIndex = source.indexOf("supabase.functions.invoke('verify-and-submit'", handlerStart);
-    const statusCheckIndex = source.indexOf(".select('id, application_number, status')", handlerStart);
+    const statusCheckIndex = source.indexOf(".select('id, application_number, status, submitted_at')", handlerStart);
     const staleGuardIndex = source.indexOf('!isApplicationEditable(currentApplication.status)', handlerStart);
     const detachIndex = source.indexOf('setApplicationId(null)', staleGuardIndex);
 
