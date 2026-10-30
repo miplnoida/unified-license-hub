@@ -1,3 +1,4 @@
+import { isApplicantEditable, isUnderRegulatorReview } from '@/lib/applicationStatus';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -181,7 +182,9 @@ export default function PreLicenseeDashboard() {
                   ) : (
                     filtered.map((app: any) => {
                       const info = getAppData(app);
-                      const st = STATUS_MAP[app.status] || { label: app.status, variant: 'outline' as const };
+                      const st = isUnderRegulatorReview(app) && app.status === 'in_progress'
+                        ? { label: 'Under Review', variant: (STATUS_MAP['submitted']?.variant || 'outline') as any }
+                        : (STATUS_MAP[app.status] || { label: app.status, variant: 'outline' as const });
                       return (
                         <TableRow key={app.id}>
                           <TableCell className="font-mono text-xs">{app.application_number}</TableCell>
@@ -213,7 +216,7 @@ export default function PreLicenseeDashboard() {
                                   <TooltipContent>Delete</TooltipContent>
                                 </Tooltip>
                               )}
-                              {(app.status === 'draft' || app.status === 'in_progress') && (
+                              {(app.status === 'draft' || app.status === 'in_progress') && isApplicantEditable(app) && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button

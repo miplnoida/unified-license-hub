@@ -81,7 +81,7 @@ export function RequiredFormsList({ rows, newApplicationPath = '/applications/ne
               const label = ctaFor(r);
               const statusLabel =
                 r.submitted_at && ['draft', 'in_progress'].includes((r.status || '').toLowerCase())
-                  ? 'Submitted'
+                  ? ((r.status || '').toLowerCase() === 'in_progress' ? 'Under Review' : 'Submitted')
                   : getApplicationStatusLabel(r.status);
               const progress = r.progress && r.progress.total > 0
                 ? `${r.progress.completed}/${r.progress.total} steps`

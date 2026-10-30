@@ -166,7 +166,7 @@ export function ApplicantDashboard() {
 
       {/* Phase 4 — Application timeline (full width when present) */}
       {canUseLicensing && timelineApp && (
-        <ApplicationTimeline status={timelineApp.status} applicationNumber={timelineApp.application_number} />
+        <ApplicationTimeline status={timelineApp.status} submittedAt={(timelineApp as any).submitted_at} applicationNumber={timelineApp.application_number} />
       )}
 
       {/* Phase 8 layout — Row 4: Recent Activity | My Licenses */}
