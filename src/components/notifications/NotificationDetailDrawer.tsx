@@ -20,7 +20,9 @@ import {
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { notificationLink } from '@/lib/notificationLinks';
+import { notificationLink, audienceSafeNotificationLink, displayNotificationMessage } from '@/lib/notificationLinks';
+import { useAuth } from '@/contexts/AuthContext';
+import { INTERNAL_ROLES } from '@/types/platform';
 import { resolveNotificationStatus } from '@/types/notifications';
 import type { AppNotification } from '@/contexts/NotificationsContext';
 import { SEVERITY_META, CATEGORY_LABELS } from './notificationMeta';
@@ -57,6 +59,8 @@ export function NotificationDetailDrawer({
   notification, open, onOpenChange, onArchive, onMarkRead, onMarkActioned, onForward,
 }: Props) {
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
+  const isInternalUser = !!authUser && INTERNAL_ROLES.includes(authUser.role);
   const [delivery, setDelivery] = useState<DeliveryRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
@@ -82,8 +86,8 @@ export function NotificationDetailDrawer({
 
   const sev = SEVERITY_META[notification.severity] ?? SEVERITY_META.medium;
   const status = resolveNotificationStatus(notification);
-  const link = notification.source_route
-    || notificationLink(notification.entity_type, notification.entity_id, notification.metadata);
+  const link = audienceSafeNotificationLink(notification.source_route
+    || notificationLink(notification.entity_type, notification.entity_id, notification.metadata), isInternalUser);
 
   const openRecord = async () => {
     if (!link) return;
@@ -116,7 +120,7 @@ export function NotificationDetailDrawer({
         </SheetHeader>
 
         <div className="mt-4 space-y-5">
-          <p className="text-sm whitespace-pre-wrap leading-relaxed">{notification.message}</p>
+          <p className="text-sm whitespace-pre-wrap leading-relaxed">{displayNotificationMessage(notification.message)}</p>
 
           <div className="flex flex-wrap gap-2">
             {link && (

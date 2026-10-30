@@ -23,7 +23,9 @@ import {
   type AppNotification,
 } from '@/contexts/NotificationsContext';
 import { resolveNotificationStatus, type NotificationSeverity } from '@/types/notifications';
-import { notificationLink } from '@/lib/notificationLinks';
+import { notificationLink, audienceSafeNotificationLink, displayNotificationMessage } from '@/lib/notificationLinks';
+import { useAuth } from '@/contexts/AuthContext';
+import { INTERNAL_ROLES } from '@/types/platform';
 import {
   useNotificationFeed, NOTIFICATION_PAGE_SIZE, type NotificationTab,
 } from '@/hooks/useNotificationFeed';
@@ -52,6 +54,8 @@ const STATUSES = ['unread', 'read', 'actioned', 'dismissed', 'archived'];
 
 export default function NotificationCenter() {
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
+  const isInternalUser = !!authUser && INTERNAL_ROLES.includes(authUser.role);
   const { counts, markManyRead, markAllRead, dismiss, archive, markActioned, refresh } =
     useNotificationsContext();
 
@@ -343,7 +347,7 @@ export default function NotificationCenter() {
             {rows.map(n => {
               const sev = SEVERITY_META[n.severity] ?? SEVERITY_META.medium;
               const status = resolveNotificationStatus(n);
-              const link = n.source_route || notificationLink(n.entity_type, n.entity_id, n.metadata);
+              const link = audienceSafeNotificationLink(n.source_route || notificationLink(n.entity_type, n.entity_id, n.metadata), isInternalUser);
               return (
                 <Card key={n.id} className={status === 'unread' ? 'border-primary/30 bg-primary/5' : ''}>
                   <CardContent className="p-4 flex items-start gap-3">
@@ -377,7 +381,7 @@ export default function NotificationCenter() {
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {n.preview || n.message}
+                        {displayNotificationMessage(n.preview || n.message)}
                       </p>
                       <div className="flex flex-wrap items-center gap-3 mt-1.5">
                         <span

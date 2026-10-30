@@ -55,3 +55,21 @@ export function hasNotificationLink(
 ): boolean {
   return notificationLink(entityType, entityId, metadata) !== null;
 }
+
+/**
+ * External (applicant / licensee) users must never be sent to regulator-only
+ * admin pages. Registration links map to the applicant's Registration Status
+ * page; any other admin link is dropped (the notice simply opens in place).
+ */
+export function audienceSafeNotificationLink(link: string | null | undefined, isInternal: boolean): string | null {
+  if (!link) return null;
+  if (isInternal) return link;
+  if (link.startsWith('/admin/registrations')) return '/registration-status';
+  if (link.startsWith('/admin')) return null;
+  return link;
+}
+
+/** Fills empty "Outcome: ." placeholders left by a blank template value. */
+export function displayNotificationMessage(message: string | null | undefined): string {
+  return (message ?? '').replace(/Outcome:\s*\./g, 'Outcome: see the decision letter.');
+}
