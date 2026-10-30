@@ -1,3 +1,4 @@
+-- Allow Notification Centre CSV export audit entries (notification_export logs NOTIFICATION_EXPORTED).
 CREATE OR REPLACE FUNCTION public.log_notification_audit(_action text, _notification_ids uuid[], _metadata jsonb DEFAULT '{}'::jsonb)
  RETURNS void
  LANGUAGE plpgsql
@@ -25,3 +26,4 @@ BEGIN
   );
 END $function$
 
+;
