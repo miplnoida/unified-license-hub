@@ -85,6 +85,34 @@ export function getApplicationStatusLabel(status?: string | null) {
   return APPLICATION_STATUS_LABELS[normalizedStatus] || normalizedStatus.replace(/_/g, ' ');
 }
 
+type AppStatusLike = { status?: string | null; submitted_at?: string | null } | null | undefined;
+
+/**
+ * The workflow engine writes `in_progress` both for unsubmitted drafts and for
+ * submitted applications moving between review steps. A submission time is
+ * what separates them: submitted + in_progress = under regulator review.
+ */
+export function isUnderRegulatorReview(app: AppStatusLike) {
+  if (!app) return false;
+  const s = normalizeApplicationStatus(app.status);
+  return s === 'submitted' || (s === 'in_progress' && !!app.submitted_at);
+}
+
+/** Applicant may edit: editable status and not under regulator review. */
+export function isApplicantEditable(app: AppStatusLike) {
+  if (!app) return false;
+  if (isUnderRegulatorReview(app)) return false;
+  return isApplicationEditable(app.status);
+}
+
+/** Applicant-facing label; submitted in_progress reads "Under Review". */
+export function getApplicationDisplayStatus(app: AppStatusLike) {
+  if (!app) return getApplicationStatusLabel('draft');
+  const s = normalizeApplicationStatus(app.status);
+  if (s === 'in_progress' && app.submitted_at) return APPLICATION_STATUS_LABELS.under_review;
+  return getApplicationStatusLabel(s);
+}
+
 /**
  * Promote an application from draft → in_progress after the first form save.
  * Never downgrades any other status.
