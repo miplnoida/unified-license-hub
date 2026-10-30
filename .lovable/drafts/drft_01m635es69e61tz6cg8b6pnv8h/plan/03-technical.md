@@ -1,0 +1,7 @@
+## Technical details
+
+- Confirmed: `sec_roles` "Complaints Officer" (`3d01da28-…`) has no row in legacy `public.roles`. `sec_save_role` calls `rbac_save_role`, and its UPDATE branch raises `role_not_found` (P0002). 42 `sec_roles` have no legacy twin.
+- Staged additive migration: `CREATE OR REPLACE FUNCTION public.sec_save_role(jsonb)`. It keeps the existing authorisation check. Then, when `_payload->>'id'` is set, the row exists in `sec_roles` and it is missing from `roles`, it inserts the legacy twin from `sec_roles` (id, name, description, role_type, role_category, dashboard_tier, status, system_role, is_system) with `ON CONFLICT (id) DO NOTHING`. After that the body is unchanged. Before staging, read the `roles` columns and NOT NULL defaults so the insert matches them.
+- No RLS, grant, role-assignment or permission-data changes. No backfill of the other 41 roles: each one is copied only when it is saved.
+- Rollback: re-create the previous `sec_save_role` definition (captured verbatim in the migration as a comment). Copied twins are harmless and stay.
+- Verification after accept: SQL regression in the existing `supabase/tests` style for (a) an edit of a `sec_roles`-only role succeeding, (b) a caller without permission still being refused, (c) granted permissions matching the selection. Then a browser save of Support Management on Complaints Officer as an admin session, with the readback check passing.
