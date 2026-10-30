@@ -433,6 +433,9 @@ export default function ApplicationDetail() {
   const sufficiencyAutoRan = useRef<string | null>(null);
   useEffect(() => {
     if (!app || !user) return;
+    // The checks are a staff-only action (server requires application_management.edit);
+    // never fire them for the applicant viewing their own submission.
+    if (!isInternal || user.id === app.applicant_id) return;
     const gatedStatuses = ['submitted', 'under_review', 'review', 'pending_review'];
     if (!gatedStatuses.includes(app.status)) return;
     if (sufficiencyAutoRan.current === app.id) return;
@@ -458,7 +461,7 @@ export default function ApplicationDetail() {
         /* silent — panel will show manual trigger */
       }
     })();
-  }, [app?.id, app?.status, user?.id]);
+  }, [app?.id, app?.status, user?.id, isInternal]);
 
   const handleSubmit = async () => {
     if (!app || !user) return;
