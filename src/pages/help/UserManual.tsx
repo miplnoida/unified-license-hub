@@ -152,8 +152,8 @@ function ProcessBody({ s }: { s: ProcessSection }) {
     <>
       <p className="text-sm">{s.purpose}</p>
       <div className="flex flex-wrap gap-2">
-        {s.whereToStart.map((l) => (
-          <Badge key={l.route} variant="outline" className="font-mono text-[10px]">{l.label} — {l.route}</Badge>
+        {s.whereToStart.map((l, i) => (
+          <Badge key={`${l.route}-${i}`} variant="outline" className="font-mono text-[10px]">{l.label} — {l.route}</Badge>
         ))}
       </div>
       <Bullets title="Who is involved" items={s.actors} />

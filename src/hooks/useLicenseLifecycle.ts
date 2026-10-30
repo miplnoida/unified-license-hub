@@ -158,11 +158,14 @@ export function useLicenseCase(licenseId: string | null | undefined, audience: '
     queryKey: ['license-case', licenseId, audience],
     enabled: !!licenseId,
     staleTime: 15_000,
-    queryFn: async (): Promise<LicenseCaseModel> => {
+    retry: false,
+    queryFn: async (): Promise<LicenseCaseModel | null> => {
       const { data, error } = await supabase.rpc('license_case' as never, {
         _license_id: licenseId,
         _audience: audience,
       } as never);
+      // Not this caller's case summary: show the licence without the header.
+      if (error && (error as { code?: string }).code === '42501') return null;
       if (error) throw error;
       return data as unknown as LicenseCaseModel;
     },

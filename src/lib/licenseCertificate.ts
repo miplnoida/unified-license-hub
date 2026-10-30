@@ -34,7 +34,7 @@ export async function downloadLicenseCertificate(opts: {
   const code = (data as any)?.code;
   if (error || errMsg) {
     if (code === 'NOT_FOUND') {
-      toast.error('Your certificate is being prepared. Please check back shortly.');
+      toast.info('Certificate not yet issued by the regulator. You will be notified when it is available.');
     } else {
       toast.error(errMsg || 'Failed to load certificate');
     }
