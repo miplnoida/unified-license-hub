@@ -37,7 +37,7 @@ export function ApplicantDashboard() {
   const underReviewPath = withParam('statusGroup', 'pending');
   const approvedPath = withParam('statusGroup', 'approved');
   const actionRequiredPath = withParam('statusGroup', 'returned');
-  const paymentsPath = portalCtx.isPreLicensee ? '/billing/pre-licensee' : '/payments?status=pending';
+  const paymentsPath = '/payments?status=pending';
   const newApplicationPath = portalCtx.isPreLicensee ? '/pre-license/new' : '/applications/new';
   const { data, isLoading } = useApplicantMetrics(user?.id, scope);
   const { data: myLicenses } = useApplicantLicenses(user?.id);
