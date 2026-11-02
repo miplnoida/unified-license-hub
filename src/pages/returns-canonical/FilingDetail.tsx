@@ -220,6 +220,13 @@ export default function FilingDetail() {
             <AlertDescription>
               This filing is {workflow.status_label.toLowerCase()} and immutable.
               {current?.rejection_reason ? ` Recorded rationale: ${current.rejection_reason}` : ''}
+              {hasSubmitted && (
+                <div className="mt-2">
+                  <Button size="sm" variant="outline" onClick={() => { setDetailTab('answers'); document.getElementById('filing-detail-tabs')?.scrollIntoView({ behavior: 'smooth' }); }}>
+                    View submitted answers
+                  </Button>
+                </div>
+              )}
             </AlertDescription>
           </Alert>
         )}
@@ -281,7 +288,7 @@ export default function FilingDetail() {
         )}
 
 
-        <Tabs defaultValue="versions">
+        <Tabs id="filing-detail-tabs" value={detailTab} onValueChange={setDetailTab}>
           <TabsList className="flex-wrap">
             <TabsTrigger value="versions">Versions ({data.versions.length})</TabsTrigger>
             <TabsTrigger value="answers">Submitted answers</TabsTrigger>
