@@ -19,14 +19,16 @@ Nothing will be accepted or published. Both fixes stay in this draft until you a
 - rohit@mishainfotech.com is a Super Admin and Licensing Analyst, so the database lets that account read those answers. Access rules are not the cause.
 - The Submitted Answers tab on a filing page exists only in this draft. On the main or published app, staff have no screen that shows return answers at all.
 
-**The filing you linked (FIL-2026-000003-f63f):**
-- It is still a **Draft**. It has never been submitted, and no answers are saved for its 2 forms. There is nothing submitted to show, so the screen is correct to show no answers.
-- The institution needs to fill in and submit it. After that, the answers will appear.
-- Filing FIL-2026-000001-b43a is accepted and has answers, so use it to check the Submitted Answers view.
+**FIL-2026-000003-f63f:** still a Draft. It was never submitted, so there are no answers to show.
 
-**Fix (small, display only):**
-- When a filing has not been submitted, show a clear note on the Submitted Answers tab: "This filing has not been submitted yet – no answers to review." This replaces the empty form.
-- Default the tab to the newest version that has answers.
+**FIL-2026-000001-b43a (closed):** both forms have stored answers. I opened this filing in this draft signed in as rohit@mishainfotech.com and clicked **Submitted answers**. The answers did show, for example Assets 48,500,000 on the Balance Sheet form.
+
+**Why it looks missing:** the filing page opens on the **Versions** tab. Submitted answers is a separate tab further down the page, which is easy to miss. The main and published app don't have this tab at all.
+
+**Fix (display only):**
+- On submitted, accepted or closed filings, open the **Submitted answers** tab first.
+- Add a "View submitted answers" button to the Filing closed panel.
+- On unsubmitted filings, show "This filing has not been submitted yet – no answers to review."
 - No access-rule or database changes.
 
 ## Checks
