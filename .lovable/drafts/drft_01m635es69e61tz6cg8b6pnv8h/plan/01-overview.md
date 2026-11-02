@@ -19,20 +19,19 @@ Nothing will be accepted or published. Both fixes stay in this draft until you a
 - rohit@mishainfotech.com is a Super Admin and Licensing Analyst, so the database lets that account read those answers. Access rules are not the cause.
 - The Submitted Answers tab on a filing page exists only in this draft. On the main or published app, staff have no screen that shows return answers at all.
 
-**Not yet confirmed:** the exact screen you used. I will open it signed in as rohit@mishainfotech.com and see why it shows nothing. Likely causes:
-- It was the main or published app.
-- It was a filing whose latest version has no answers yet.
-- It was a different returns screen that doesn't show answers.
+**The filing you linked (FIL-2026-000003-f63f):**
+- It is still a **Draft**. It has never been submitted, and no answers are saved for its 2 forms. There is nothing submitted to show, so the screen is correct to show no answers.
+- The institution needs to fill in and submit it. After that, the answers will appear.
+- Filing FIL-2026-000001-b43a is accepted and has answers, so use it to check the Submitted Answers view.
 
-**Fix (after confirming):**
-- Make Submitted Answers easy to reach from every regulator returns screen that opens a filing.
+**Fix (small, display only):**
+- When a filing has not been submitted, show a clear note on the Submitted Answers tab: "This filing has not been submitted yet – no answers to review." This replaces the empty form.
 - Default the tab to the newest version that has answers.
-- Say clearly when a version has no answers.
-- No access-rule changes are needed for this account.
+- No access-rule or database changes.
 
 ## Checks
 - Primary and Secondary users trying to edit an Under Review application are refused, both on screen and by the server. A returned application still opens for editing.
-- rohit@mishainfotech.com can see the submitted answers for FIL-2026-000001-b43a in this draft.
+- rohit@mishainfotech.com sees the answers for FIL-2026-000001-b43a and sees the "not submitted yet" note on FIL-2026-000003-f63f.
 - Run the existing tests plus new tests for both rules.
 
 ## How the database change applies
