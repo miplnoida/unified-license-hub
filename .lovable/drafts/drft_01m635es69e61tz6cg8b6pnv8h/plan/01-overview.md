@@ -15,19 +15,25 @@ Nothing will be accepted or published. Both fixes stay in this draft until you a
 ## 2. Submitted return answers not visible to regulator staff
 
 **What I found:**
-- 12 return form slots exist. 6 have stored answers, saved under the "return filing requirement" type.
-- Staff can read stored answers only if they hold one of the old built-in roles (admin, supervisor, analyst or super admin). The newer role setup, such as a Returns Officer, is not checked. So those staff get nothing back, and the Submitted Answers tab shows empty forms.
+- The answers are stored. 6 return forms have saved answers, across 3 filing versions; 6 more are still pending with no answers.
+- rohit@mishainfotech.com is a Super Admin and Licensing Analyst, so the database lets that account read those answers. Access rules are not the cause.
+- The Submitted Answers tab on a filing page exists only in this draft. On the main or published app, staff have no screen that shows return answers at all.
 
-**Not yet confirmed:** which admin account you are using. Step 1 checks that account's roles and confirms this is the cause before anything changes.
+**Not yet confirmed:** the exact screen you used. I will open it signed in as rohit@mishainfotech.com and see why it shows nothing. Likely causes:
+- It was the main or published app.
+- It was a filing whose latest version has no answers yet.
+- It was a different returns screen that doesn't show answers.
 
-**Fix:**
-- Add a read-only rule: staff who can view a filing, according to the existing filing-access check, can read the stored answers for that filing's forms, and nothing else. Institutions keep their own access; there is no cross-institution reading and no write access.
-- If a form has no answers stored, the tab says so clearly instead of showing an empty form.
+**Fix (after confirming):**
+- Make Submitted Answers easy to reach from every regulator returns screen that opens a filing.
+- Default the tab to the newest version that has answers.
+- Say clearly when a version has no answers.
+- No access-rule changes are needed for this account.
 
 ## Checks
 - Primary and Secondary users trying to edit an Under Review application are refused, both on screen and by the server. A returned application still opens for editing.
-- A Returns Officer and an admin can see the answers for FIL-2026-000001-b43a. An unrelated institution user cannot.
+- rohit@mishainfotech.com can see the submitted answers for FIL-2026-000001-b43a in this draft.
 - Run the existing tests plus new tests for both rules.
 
-## How the database changes apply
-Both database changes are staged in this draft. They take effect only when you accept the draft. Nothing is published.
+## How the database change applies
+The Under Review database change is staged in this draft. It takes effect only when you accept the draft. Nothing is published.
