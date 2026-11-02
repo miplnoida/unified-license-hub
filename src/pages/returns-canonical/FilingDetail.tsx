@@ -69,6 +69,7 @@ export default function FilingDetail() {
   const { data: internalUsers = [] } = useInternalUsers();
   const [reason, setReason] = useState('');
   const [assignee, setAssignee] = useState<string>('');
+  const [tabChoice, setDetailTab] = useState<string | null>(null);
 
   const current = useMemo(() => {
     if (!data) return null;
@@ -90,6 +91,9 @@ export default function FilingDetail() {
     );
   }
 
+  const hasSubmitted = data.versions.some((v) => !!v.submitted_at);
+  // Submitted/closed filings open on the answers; drafts on versions.
+  const detailTab = tabChoice ?? (hasSubmitted ? 'answers' : 'versions');
   const currentVersionId = current?.id ?? null;
   const currentStatus = workflow?.status ?? current?.status ?? data.filing.status;
   const requiresReason = (workflow?.available_actions ?? []).some((a) => a.requires_reason);
@@ -220,6 +224,13 @@ export default function FilingDetail() {
             <AlertDescription>
               This filing is {workflow.status_label.toLowerCase()} and immutable.
               {current?.rejection_reason ? ` Recorded rationale: ${current.rejection_reason}` : ''}
+              {hasSubmitted && (
+                <div className="mt-2">
+                  <Button size="sm" variant="outline" onClick={() => { setDetailTab('answers'); document.getElementById('filing-detail-tabs')?.scrollIntoView({ behavior: 'smooth' }); }}>
+                    View submitted answers
+                  </Button>
+                </div>
+              )}
             </AlertDescription>
           </Alert>
         )}
@@ -281,7 +292,7 @@ export default function FilingDetail() {
         )}
 
 
-        <Tabs defaultValue="versions">
+        <Tabs id="filing-detail-tabs" value={detailTab} onValueChange={setDetailTab}>
           <TabsList className="flex-wrap">
             <TabsTrigger value="versions">Versions ({data.versions.length})</TabsTrigger>
             <TabsTrigger value="answers">Submitted answers</TabsTrigger>

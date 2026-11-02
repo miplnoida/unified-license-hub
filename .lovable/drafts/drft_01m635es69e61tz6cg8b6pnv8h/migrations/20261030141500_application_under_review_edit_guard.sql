@@ -48,7 +48,7 @@ BEGIN
 
   -- Submitted applications advanced by the workflow keep 'in_progress';
   -- they are under regulator review and closed to applicant edits.
-  IF v_app.status = 'in_progress' AND v_app.submitted_at IS NOT NULL
+  IF v_app.status IN ('in_progress','submitted') AND v_app.submitted_at IS NOT NULL
      AND NOT public.is_super_admin(v_uid)
      AND NOT public.has_permission(v_uid, 'application_management', 'edit') THEN
     RAISE EXCEPTION 'APPLICATION_UNDER_REVIEW: This application is under regulator review and cannot be edited.'
@@ -81,13 +81,17 @@ AS $function$
       SELECT 1 FROM public.applications a
        WHERE a.id = _application_id
          AND (
-           ((a.applicant_id = _user AND a.status = ANY (ARRAY[
-             'draft','in_progress','resubmission_requested','resubmission_required',
-             'query_raised','returned_for_correction','info_requested'
-           ]))
-           AND NOT (a.status = 'in_progress' AND a.submitted_at IS NOT NULL))
-           OR public.external_can_access_application(_user, a.id, 'can_submit'::text)
-           OR public.external_can_access_application(_user, a.id, 'can_respond_rfi'::text)
+           -- Under regulator review: closed to every applicant-side user
+           -- (applicant, Primary/Secondary, institution members).
+           NOT (a.status IN ('in_progress','submitted') AND a.submitted_at IS NOT NULL)
+           AND (
+             (a.applicant_id = _user AND a.status = ANY (ARRAY[
+               'draft','in_progress','resubmission_requested','resubmission_required',
+               'query_raised','returned_for_correction','info_requested'
+             ]))
+             OR public.external_can_access_application(_user, a.id, 'can_submit'::text)
+             OR public.external_can_access_application(_user, a.id, 'can_respond_rfi'::text)
+           )
          )
     )
   END
