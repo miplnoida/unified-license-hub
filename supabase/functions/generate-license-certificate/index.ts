@@ -326,8 +326,6 @@ export async function handler(req: Request): Promise<Response> {
   // Internal system calls (licence issuance / renewal / backfill) present the
   // service-role key. Those are trusted and must not be blocked by the
   // user-permission gate, which can only evaluate real user JWTs.
-  const authHeader = req.headers.get("Authorization") || "";
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   // Edge-to-edge calls may present the service credential as `apikey` (the
   // gateway can rewrite Authorization), so use the shared worker check.
   const isSystemCall = requireWorkerInvocation(req).ok;
