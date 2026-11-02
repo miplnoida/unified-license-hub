@@ -15,6 +15,7 @@
 // small "Digitally signed" label is rendered. Missing signing keys no longer
 // render any user-visible message.
 
+import { requireWorkerInvocation } from "../_shared/workerAuth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, degrees, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
@@ -327,8 +328,9 @@ export async function handler(req: Request): Promise<Response> {
   // user-permission gate, which can only evaluate real user JWTs.
   const authHeader = req.headers.get("Authorization") || "";
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  const isSystemCall = serviceRoleKey.length > 0 &&
-    authHeader === `Bearer ${serviceRoleKey}`;
+  // Edge-to-edge calls may present the service credential as `apikey` (the
+  // gateway can rewrite Authorization), so use the shared worker check.
+  const isSystemCall = requireWorkerInvocation(req).ok;
 
   let body: any;
   try { body = await req.json(); } catch { body = {}; }
