@@ -20,8 +20,8 @@ export function FilingSubmittedAnswers({ versions, forms }: {
   const selected = sorted.find((v) => v.id === versionId) ?? null;
   const versionForms = formsForVersion(forms, versionId);
 
-  if (sorted.length === 0) {
-    return <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">No filing versions yet.</CardContent></Card>;
+  if (sorted.length === 0 || !sorted.some((v) => !!v.submitted_at)) {
+    return <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">This filing has not been submitted yet – no answers to review.</CardContent></Card>;
   }
 
   return (

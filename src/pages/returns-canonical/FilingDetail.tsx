@@ -69,6 +69,7 @@ export default function FilingDetail() {
   const { data: internalUsers = [] } = useInternalUsers();
   const [reason, setReason] = useState('');
   const [assignee, setAssignee] = useState<string>('');
+  const [tabChoice, setDetailTab] = useState<string | null>(null);
 
   const current = useMemo(() => {
     if (!data) return null;
@@ -90,6 +91,9 @@ export default function FilingDetail() {
     );
   }
 
+  const hasSubmitted = data.versions.some((v) => !!v.submitted_at);
+  // Submitted/closed filings open on the answers; drafts on versions.
+  const detailTab = tabChoice ?? (hasSubmitted ? 'answers' : 'versions');
   const currentVersionId = current?.id ?? null;
   const currentStatus = workflow?.status ?? current?.status ?? data.filing.status;
   const requiresReason = (workflow?.available_actions ?? []).some((a) => a.requires_reason);
