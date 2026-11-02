@@ -85,6 +85,20 @@
       "when": 1793185982307,
       "tag": "0011_hide_complaints_menu_for_external",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793611884419,
+      "tag": "0012_allow_notification_export_audit",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793611895619,
+      "tag": "0013_application_under_review_edit_guard",
+      "breakpoints": true
     }
   ]
 }
