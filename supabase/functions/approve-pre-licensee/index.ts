@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 import { requireUserPermission } from "../_shared/authz.ts";
 import { requireWorkerInvocationAsync } from "../_shared/workerAuth.ts";
+import { internalInvokeHeaders } from "../_shared/notification-dispatch.ts";
 
 
 /**
@@ -113,10 +114,14 @@ export async function handler(req: Request): Promise<Response> {
 
       // Regenerate certificate with updated expiry. Best-effort.
       try {
-        await admin.functions.invoke("generate-license-certificate", {
+        const g = await admin.functions.invoke("generate-license-certificate", {
           body: { mode: "generate", license_id: rLicense.id },
+          headers: internalInvokeHeaders(),
         });
-      } catch (e) { console.error("generate-license-certificate (renewal) failed:", e); }
+        if (g.error || (g.data as any)?.error) throw new Error(g.error?.message || (g.data as any)?.error);
+      } catch (e) {
+        console.error("generate-license-certificate (renewal) failed:", e);
+      }
 
       const renewedValidUntil = (appData.renewed_valid_until as string | undefined) ?? null;
       const previousValidUntil = (appData.previous_valid_until as string | undefined) ?? null;
@@ -267,11 +272,18 @@ export async function handler(req: Request): Promise<Response> {
     } catch (e) { console.error("bootstrap_supervisory_profile failed:", e); }
 
     // Fire-and-forget: generate signed license certificate
+    // On failure the retry worker picks it up from the provisioning queue.
     try {
-      await admin.functions.invoke("generate-license-certificate", {
+      const g = await admin.functions.invoke("generate-license-certificate", {
         body: { mode: "generate", license_id: license.id },
+        headers: internalInvokeHeaders(),
       });
-    } catch (e) { console.error("generate-license-certificate failed:", e); }
+      if (g.error || (g.data as any)?.error) throw new Error(g.error?.message || (g.data as any)?.error);
+    } catch (e) {
+      console.error("generate-license-certificate failed:", e);
+      try { await admin.rpc("licensing_provisioning_enqueue", { _application_id: application_id }); }
+      catch (qe) { console.error("certificate retry enqueue failed:", qe); }
+    }
 
     return jsonResponse(req, 200, {
       success: true,
