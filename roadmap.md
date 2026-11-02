@@ -43,3 +43,5 @@
 - [ ] Deploy verify-and-submit — awaiting user approval
 - [ ] Browser re-check on APP-2026-000163 after deploy
 - [ ] On hold (reported only): form_responses / file_uploads owner writes after submission
+
+- [ ] New Credit Union institution: register → licence → post-licence services + renewal check (blocked: no Credit Union renewal service, awaiting user)
