@@ -18,7 +18,7 @@ I haven't confirmed the exact cause yet. The most likely cause is that the certi
    The rule stays the same: licensees can only download, never create, sign or send.
 3. **Make failures visible.** Licence approval and renewal record a failed certificate attempt as a retry job, instead of quietly ignoring the error.
 4. **Create the missing certificates.** After the fix, a Super Admin creates certificates for active licences through the normal staff action. I'll start with Rodney Bay `LIC-2026-000166` and then do the rest. The 17 failed retry jobs are re-queued so the retry worker can finish them. No licence dates, statuses or records are changed.
-5. **Check it as a licensee.** Sign in as `rbc_primary_user@yopmail.com` and download the certificate from both the licence list and the licence detail page. Confirm the PDF opens. Then confirm an unrelated licensee still cannot download it.
+5. **Check it as a licensee.** Sign in as `rodneybay.registration@yopmail.com`, the account you're testing with, and download `LIC-2026-000166` from both the licence list and the licence detail page. Repeat as `rbc_primary_user@yopmail.com`. Confirm the PDF opens both times. Then confirm an unrelated licensee still cannot download it. If the first account is still refused after the fix, I'll check why it isn't treated as a holder of this licence and report back before changing anyone's access.
 
 ## Not changing
 - Who can view or download a certificate: holder, primary/secondary users and authorised staff.
