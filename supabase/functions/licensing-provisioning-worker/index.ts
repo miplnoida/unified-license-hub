@@ -21,6 +21,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireWorkerInvocationAsync } from "../_shared/workerAuth.ts";
+import { internalInvokeHeaders } from "../_shared/notification-dispatch.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -78,6 +79,7 @@ Deno.serve(async (req) => {
       if (row.task_key === "portal_access") {
         const res = await admin.functions.invoke("approve-pre-licensee", {
           body: { application_id: row.application_id, comments: "Automated post-approval provisioning" },
+          headers: internalInvokeHeaders(),
         });
         if (res.error) {
           errorText = res.error.message || "approve-pre-licensee failed";
@@ -103,6 +105,7 @@ Deno.serve(async (req) => {
         } else {
           const res = await admin.functions.invoke("generate-license-certificate", {
             body: { mode: "generate", license_id: licenseId },
+            headers: internalInvokeHeaders(),
           });
           if (res.error) {
             errorText = res.error.message || "generate-license-certificate failed";
