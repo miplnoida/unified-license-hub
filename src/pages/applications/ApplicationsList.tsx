@@ -1060,7 +1060,7 @@ export default function ApplicationsList() {
               {
                 label: 'Edit', icon: Pencil,
                 onClick: () => navigate(editHref),
-                hidden: !(!isInternal && ['draft', 'in_progress', 'resubmission_requested', 'query_raised', 'info_requested'].includes(app.status) && isApplicantEditable(app as any)),
+                hidden: !(!isInternal && ['draft', 'in_progress', 'resubmission_requested', 'query_raised', 'info_requested', 'returned_for_correction'].includes(app.status) && isApplicantEditable(app as any)),
               },
               {
                 label: 'Lodge an appeal', icon: Gavel, separator: true,
