@@ -318,7 +318,7 @@ You produce ADVISORY interpretation, summarisation and draft text only. Absolute
   the supplied values do not demonstrate.
 Return strict JSON only, matching this shape exactly: ${SCHEMA_HINT}`;
 
-const MODEL = 'google/gemini-3.5-flash';
+const MODEL = 'google/gemini-omni-1.1-flash';
 
 /** Trim a row set to the fields the model needs. */
 function pick<T extends Record<string, unknown>>(rows: T[] | null | undefined, fields: string[], limit = 40) {

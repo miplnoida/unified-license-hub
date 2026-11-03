@@ -159,7 +159,7 @@ ${JSON.stringify(facts).slice(0, 24000)}`;
     let parsed: Record<string, unknown> | null = null;
     let providerState = 'PROVIDER_FAILURE';
     let failure: string | null = null;
-    const model = 'google/gemini-3.5-flash';
+    const model = 'google/gemini-omni-1.1-flash';
 
     try {
       const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
