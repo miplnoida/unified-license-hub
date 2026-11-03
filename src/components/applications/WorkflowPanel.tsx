@@ -843,6 +843,19 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       const { data, error } = await supabase.functions.invoke(fnName, { body });
 
       if (error) {
+        // Connection dropped / timed out: the server may still have completed
+        // the action. Re-check instead of showing a raw network error.
+        if ((error as any)?.name === 'FunctionsFetchError' || (error as any)?.name === 'FunctionsRelayError') {
+          queryClient.invalidateQueries({ queryKey: ['workflow_instances'] });
+          queryClient.invalidateQueries({ queryKey: ['approval_actions'] });
+          queryClient.invalidateQueries({ queryKey: entityType === 'registration' ? ['registrations'] : ['applications'] });
+          onStatusChange?.();
+          toast.warning(
+            'The connection was interrupted before the server replied. The page has been refreshed — check the status. If it has not changed, please try again.',
+            { duration: 12000 },
+          );
+          return;
+        }
         let serverPayload: any = null;
         try {
           const ctx = (error as any).context;
