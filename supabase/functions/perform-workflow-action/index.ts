@@ -330,25 +330,38 @@ export async function handler(req: Request): Promise<Response> {
       }
 
       // Approval is now committed in DB. Provision the licensee web user.
-      const provRes = await fetch(`${supabaseUrl}/functions/v1/approve-pre-licensee`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: authHeader },
-        body: JSON.stringify({ application_id }),
-      });
-      const provJson = await provRes.json().catch(() => ({}));
+      // Bounded wait: a slow provisioning step must never leave the browser
+      // without an answer. On timeout/failure the job is queued for the
+      // background provisioning worker and the approval is still reported.
+      let provRes: Response | null = null;
+      let provJson: Record<string, unknown> = {};
+      try {
+        provRes = await fetch(`${supabaseUrl}/functions/v1/approve-pre-licensee`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: authHeader },
+          body: JSON.stringify({ application_id }),
+          signal: AbortSignal.timeout(25000),
+        });
+        provJson = await provRes.json().catch(() => ({}));
+      } catch (provErr) {
+        console.error("provisioning call timed out/failed:", provErr);
+      }
       // Provisioning failure must NOT roll back approval — the approval is final.
-      // We surface the issue but still report success of the approval itself.
-      if (!provRes.ok || (provJson as any)?.error) {
+      if (!provRes || !provRes.ok || (provJson as any)?.error) {
         console.error("provisioning failed after approval:", provJson);
+        try { await admin.rpc("licensing_provisioning_enqueue", { _application_id: application_id }); }
+        catch (qe) { console.error("provisioning enqueue failed:", qe); }
         return jsonResponse(req, 200, {
           success: true,
           ...finalResult,
-          provisioning_warning: (provJson as any)?.error || "User provisioning failed; please retry from admin panel",
+          provisioning_warning: (provJson as any)?.error ||
+            "Approved. Licence and user setup is still running in the background and will retry automatically.",
         });
       }
       delete (provJson as any).web_user_password;
-      // Fire template-driven final-approval notifications. Never block on failure.
-      try {
+      // Fire template-driven final-approval notifications in the background so
+      // they never delay the approval response.
+      const bg = (async () => { try {
         await admin.functions.invoke("dispatch-notification-event", {
           body: {
             event_key: "application.final_approved",
@@ -411,7 +424,8 @@ export async function handler(req: Request): Promise<Response> {
         }
       } catch (dispatchErr) {
         console.warn("dispatch final approval failed:", dispatchErr);
-      }
+      } })();
+      try { (globalThis as any).EdgeRuntime?.waitUntil?.(bg); } catch { /* ignore */ }
       return jsonResponse(req, 200, { success: true, ...finalResult, ...provJson });
     }
 
