@@ -734,7 +734,7 @@ export default function ApplicationDetail() {
   const showEditRequestAdminPanel = isInternal && hasPendingEditRequest;
   const showResubmissionPendingNotice =
     workflowChecked && workflowOn === false && isInternal &&
-    (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested');
+    (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested' || app.status === 'returned_for_correction');
   // Workflow/review lives in its own tab so it no longer repeats under every tab.
   const showWorkflowTab =
     showWorkflowPanel || showManualActions || showEditRequestAdminPanel || showResubmissionPendingNotice;
@@ -812,7 +812,7 @@ export default function ApplicationDetail() {
               <Badge variant={statusVariant[app.status] || 'outline'} className="text-sm px-3 py-1">
                 {getApplicationDisplayStatus(app as any)}
               </Badge>
-              {isOwner && (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested') && (
+              {isOwner && (app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested' || app.status === 'returned_for_correction') && (
                 <Button onClick={handleResubmit} disabled={processing || licenseGate.isBlocked} size="sm">
                   <Send className="h-4 w-4 mr-2" />
                   {processing ? 'Resubmitting...' : 'Resubmit Application'}
@@ -1067,7 +1067,7 @@ export default function ApplicationDetail() {
                       originalFormsData={hasRenewalDiff ? originalFormsData : undefined}
                       formMeta={(appData.form_meta as Record<string, { saved_at?: string | null; submitted_at?: string | null; updated_at?: string | null; created_at?: string | null }>) || {}}
                       applicationStatus={app.status}
-                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested') && isApplicantEditable(app as any)}
+                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested' || app.status === 'returned_for_correction') && isApplicantEditable(app as any)}
                       onSave={async (templateId, data, versionId) => {
                         const updatedFormsData = { ...formsData, [templateId]: data };
                         const updatedFormVersionIds = versionId
@@ -1261,13 +1261,13 @@ export default function ApplicationDetail() {
                       // Staff itemise fees; the Add Fee button is gated on fee_management.edit
                       // and fee_component_operation enforces it server-side. Applicant ownership
                       // is irrelevant here (this panel only renders for internal users).
-                      editable={!forceReadOnlyView && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested')}
+                      editable={!forceReadOnlyView && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested' || app.status === 'returned_for_correction')}
                     />
                   </>
                 ) : (
                   <LicenseePaymentPanel
                     applicationId={app.id}
-                    canPay={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested')}
+                    canPay={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised' || app.status === 'info_requested' || app.status === 'returned_for_correction')}
                     onPaid={loadData}
                   />
                 ))}

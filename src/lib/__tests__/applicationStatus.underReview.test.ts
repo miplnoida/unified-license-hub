@@ -44,3 +44,11 @@ describe('applicant editability after submission', () => {
     expect(isApplicantEditable({ status, submitted_at: SUB })).toBe(false);
   });
 });
+
+import { isApplicantEditable as _ed } from '../applicationStatus';
+import { describe as _d, it as _i, expect as _e } from 'vitest';
+_d('returned for correction', () => {
+  _i('is editable by the applicant even after submission', () => {
+    _e(_ed({ status: 'returned_for_correction', submitted_at: '2026-11-01T00:00:00Z' })).toBe(true);
+  });
+});
