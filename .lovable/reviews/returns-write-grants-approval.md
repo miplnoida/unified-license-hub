@@ -86,3 +86,9 @@ REVOKE INSERT              ON TABLE public.license_appeal_events      FROM authe
    are entitled to; a user with no relationship to that return still cannot.
 4. Appeal event logging stops failing silently.
 5. No change to protected AML records, FSRA policy or the Rodney Bay demo data.
+
+---
+
+## Owner decision — 2026-11-25
+
+**Keep on hold.** The six INSERT/UPDATE/DELETE grants were NOT applied. The Returns validation, due-date, form-data, comment and request screens and appeal event logging remain unable to save; users keep seeing the raw permission-denied message. Do not re-ask or apply without a new owner instruction.
