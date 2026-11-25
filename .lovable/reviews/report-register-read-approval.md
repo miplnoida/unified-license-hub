@@ -90,3 +90,9 @@ explicit "no delete/no update" policies, plus one intentional public
 registration-upload insert on `file_uploads`), so this was **not** shown to be
 exploitable. It is still broader than the application needs. A separate
 revocation memo can be prepared if you want that hardened.
+
+---
+
+## Owner decision — 2026-11-25
+
+**Keep on hold.** The three read-only grants were NOT applied. The Approved Persons and Ownership/UBO registers remain unavailable to signed-in officers until a new owner instruction. Do not re-ask or apply without one.
