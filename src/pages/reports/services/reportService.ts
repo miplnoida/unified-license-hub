@@ -122,21 +122,10 @@ export async function previewReport(
   limit = 100,
   extra: { selectedColumns?: string[]; groupBy?: string; sortBy?: string; sortDir?: SortDirection; reportSlug?: string } = {},
 ) {
-  try {
-    const res = await invokeGenerate({ source, filters, mode: 'preview', limit, ...extra });
-    return { rows: res.rows, count: res.totalCount ?? res.rowCount };
-  } catch {
-    // Client-side fallback (dev only)
-    const table = CANONICAL_SOURCE_RELATION[source] ?? source;
-    let q = (supabase.from(table as any).select('*', { count: 'exact' }) as any).limit(limit);
-    const { from, to } = resolveDateRange(filters);
-    if (from) q = q.gte('created_at', from);
-    if (to) q = q.lte('created_at', to);
-    if (filters.status && filters.status !== 'all') q = q.eq('status', filters.status);
-    const { data, count } = await q;
-    const rows = (data || []).map(stripSensitive);
-    return { rows: selectColumns(rows, extra.selectedColumns), count: count ?? rows.length };
-  }
+  // The server owns report authorization, filtering and enrichment. A failed
+  // response must never become a successful raw-table preview.
+  const res = await invokeGenerate({ source, filters, mode: 'preview', limit, ...extra });
+  return { rows: res.rows, count: res.totalCount ?? res.rowCount };
 }
 
 export async function generateReport(opts: {

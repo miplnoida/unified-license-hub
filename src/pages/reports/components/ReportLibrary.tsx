@@ -10,6 +10,7 @@ import { generateReport, listFavorites, toggleFavorite } from '../services/repor
 import { useToast } from '@/hooks/use-toast';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { useReportDefinitions } from '../hooks/useReportMetadata';
+import { useSubscriptionPackage } from '@/hooks/useSubscriptionPackage';
 
 interface Props {
   onPreview: (run: ReportRun) => void;
@@ -20,6 +21,7 @@ export function ReportLibrary({ onPreview, onSchedule }: Props) {
   const { data: definitions = [], isLoading: defsLoading } = useReportDefinitions();
   const { toast } = useToast();
   const { hasModuleAccess, isLoading: permsLoading } = useUserDynamicPermissions();
+  const { isModuleEnabled, isLoading: packageLoading } = useSubscriptionPackage();
   const [search, setSearch] = useState('');
   const [cat, setCat] = useState<string>('all');
   const [showFavsOnly, setShowFavsOnly] = useState(false);
@@ -31,9 +33,9 @@ export function ReportLibrary({ onPreview, onSchedule }: Props) {
   }, []);
 
   const accessibleDefs = useMemo(() => {
-    if (permsLoading || defsLoading) return definitions;
-    return definitions.filter((d) => hasModuleAccess(d.module));
-  }, [definitions, defsLoading, hasModuleAccess, permsLoading]);
+    if (permsLoading || defsLoading || packageLoading) return [];
+    return definitions.filter((d) => isModuleEnabled(d.module) && hasModuleAccess(d.module));
+  }, [definitions, defsLoading, hasModuleAccess, permsLoading, isModuleEnabled, packageLoading]);
 
   const categories = useMemo(
     () => Array.from(new Set(accessibleDefs.map((d) => d.category))).sort(),

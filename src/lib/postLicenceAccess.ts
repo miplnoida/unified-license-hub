@@ -20,7 +20,7 @@ export function canUsePostLicenceServices(input: {
   if (input.isPpoc) return true;
   // Applicant accounts never file post-licence requests, even if their
   // profile was later linked to the licence they obtained.
-  if (role === 'pre_licensee' || role === 'applicant') return false;
+  if (['pre_licensee', 'applicant', 'pre_licensee_user', 'applicant_user'].includes(role)) return false;
   const type = String(input.userType || '').toLowerCase();
   if (type === 'primary' || type === 'secondary') return true;
   return !!input.licenseeId;

@@ -8,6 +8,9 @@ describe('post-licence access', () => {
   it('blocks applicant accounts', () => {
     expect(canUsePostLicenceServices({ role: 'applicant' })).toBe(false);
   });
+  it.each(['pre_licensee_user', 'applicant_user'])('blocks canonical %s even with linked licence and primary profile', (role) => {
+    expect(canUsePostLicenceServices({ role, licenseeId: 'linked-licence', userType: 'primary' })).toBe(false);
+  });
   it('allows licensee primary users', () => {
     expect(canUsePostLicenceServices({ role: 'licensee_primary' })).toBe(true);
   });

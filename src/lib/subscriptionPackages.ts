@@ -17,14 +17,14 @@ export const PACKAGE_FEATURES: PackageFeature[] = [
   { key: 'core', label: 'Platform core', description: 'Administration, users, roles, forms, workflows, notifications, settings, audit.', tier: null,
     modules: ['admin_dashboard', 'user_management', 'role_management', 'form_management', 'workflow_management', 'settings', 'notification_management', 'audit_management', 'security_management', 'integration_management', 'rule_engine', 'regulatory_data_model', 'support_management' as PermissionModule] },
   { key: 'licensing', label: 'Registration & licensing', description: 'Registration, applications, fees, licences, entity registry and onboarding.', tier: 'PACKAGE_A',
-    modules: ['registration_management', 'application_management', 'license_management', 'fee_management', 'licensee_management' as PermissionModule, 'entity_resolution', 'entity_membership', 'entity_structure' as PermissionModule, 'onboarding', 'document_management'] },
-  { key: 'returns', label: 'Regulatory returns', description: 'Return configuration, filing, validation and review.', tier: 'PACKAGE_A', modules: ['returns_management'] },
+    modules: ['registration_management', 'application_management', 'license_management', 'licensing', 'fee_management', 'licensee_management' as PermissionModule, 'entity_resolution', 'entity_membership', 'entity_structure' as PermissionModule, 'onboarding', 'document_management'] },
+  { key: 'returns', label: 'Regulatory returns', description: 'Return configuration, filing, validation and review.', tier: 'PACKAGE_A', modules: ['returns_management', 'compliance_management'] },
   { key: 'complaints', label: 'Consumer complaints', description: 'Complaint intake, investigation and outcomes.', tier: 'PACKAGE_A', modules: ['complaint_management', 'complaint_type'] },
-  { key: 'reports', label: 'Reports & dashboards', description: 'Standard reports and analytics.', tier: 'PACKAGE_A', modules: ['report_management'] },
+  { key: 'reports', label: 'Reports & dashboards', description: 'Standard reports and analytics.', tier: 'PACKAGE_A', modules: ['report_management', 'executive_oversight'] },
   { key: 'fit_proper', label: 'Fit & Proper', description: 'Screening, committees and determinations.', tier: 'PACKAGE_B',
     modules: ['fit_and_proper', 'fit_and_proper_initiation', 'fit_and_proper_screening', 'fit_and_proper_committee'] },
   { key: 'prudential', label: 'Prudential supervision', description: 'Risk-based supervision, early warnings, breaches, plans and examinations.', tier: 'PACKAGE_B',
-    modules: ['prudential_supervision', 'supervisory_spine', 'inspection_management' as PermissionModule, 'escalation_management'] },
+    modules: ['prudential_supervision', 'prudential_payment_systems', 'supervisory_spine', 'inspection_management' as PermissionModule, 'escalation_management'] },
   { key: 'conduct', label: 'Market conduct', description: 'Conduct monitoring, thematic reviews and investigations.', tier: 'PACKAGE_B',
     modules: ['market_conduct', 'market_conduct_investigation', 'coordination'] },
   { key: 'aml', label: 'AML/CFT supervision', description: 'AML/CFT risk assessments and methodology.', tier: 'PACKAGE_C', modules: ['aml_supervision'] },
@@ -52,10 +52,10 @@ export function isFeatureEnabled(f: PackageFeature, pkg: PackageTier, overrides:
   return featureIncluded(f, pkg);
 }
 
-/** Modules not mentioned by any feature are treated as enabled. */
+/** Named modules must belong to an explicit feature; unclassified routes retain their core behavior. */
 export function isModuleEnabledFor(module: string | null | undefined, pkg: PackageTier, overrides: FeatureOverrides): boolean {
   if (!module) return true;
   const owners = PACKAGE_FEATURES.filter((f) => (f.modules as string[]).includes(module));
-  if (owners.length === 0) return true;
+  if (owners.length === 0) return false;
   return owners.some((f) => isFeatureEnabled(f, pkg, overrides));
 }

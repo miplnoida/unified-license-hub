@@ -1,5 +1,25 @@
 # Roadmap — Rodney Bay demo (Sessions 2–3)
 
+## Approved gap-closure programme — 2026-11-25
+- [x] Inspect current route guards, package mappings, live authorization functions, private access-letter storage, report enrichment and current monitoring inventory; retain existing holds.
+- [x] Close institutional complaint workspace/tracking direct-URL bypass; preserve separate public intake. Seven route-authority regressions passed; authorized internal staff browser opened Complaints successfully. External existing-account browser proof remains below.
+- [x] Block canonical applicant/pre-licensee role aliases despite linked licence/profile; existing explicit PPOC exception retained. Access/route/package regression batch: 72/72.
+- [x] Default unknown named package modules to disabled; explicitly map all known catalogue modules and live licensing/compliance/executive/payment-supervision aliases; Package C settings browser checked without switching package.
+- [x] Resolve findings institution names through caller-scoped examinations; require names in preview/export even for legacy selected columns; deploy generate-report. Reporting regressions: 67/67. Authorized staff generated 13-row report; CSV/PDF downloads verified with 3 Rodney Bay and 10 Meridian findings, OLRAS letterhead.
+- [x] Record current gap evidence and phase-by-phase remaining blockers in docs/gaps/2026-11-25-gap-closure-status.md; reproduce correction-save SQL/security impact in .lovable/reviews/application-correction-sql-approval.md.
+- [x] Remove raw-table report-preview fallback; apply package + role visibility in Report Library without loading-time exposure; classify every built-in report under canonical permission modules; focused access/reporting suite passed 140 tests after these changes.
+- [ ] Apply returned-for-correction save migration and rolled-back tests — blocked: exact SQL approval question pending; no migration applied this turn.
+- [ ] Post-licence backend identity restriction and institution-scoped portal capability — blocked: exact security design/SQL approval and earlier institution-access hold; no live permission changes this turn.
+- [ ] Disabled-module backend operation gating and package-unavailable behavior — blocked: approved server authorization contract (must not bypass AML freeze or silently redefine reporting scopes); Report Library catalogue filtering is complete.
+- [ ] Configure commissioned scanner and verify scheduling/OTP-upload/renewal flows — blocked: scanner service credentials/endpoint, mailbox/OTP-send authorization, eligible authorized licensee journey.
+- [ ] Application institutional visibility and Submitted KPI rules — blocked: existing owner hold and definition decision; preserve current applications and records.
+- [ ] Post-licence workflow publication, key-person approval/register update, user provisioning/Primary User-change and provisioning-job retries — blocked: authorized maker/checker accounts, operational approvals and per-job retry eligibility; do not fabricate decisions or resend external communications.
+- [ ] Prudential assessment/plan completion, return-obligation dates, licence/sector mismatches and missing lead regulators — blocked: responsible officer and verified record-by-record source authority; no business records altered.
+- [ ] Recheck methodology/config issues and monitoring database errors — blocked: separately scoped SQL/security approval; AML-related methodology/examination findings remain under AML freeze.
+- [ ] Remaining report catalogue/KPI reconciliation/AI briefing and official FSRC branding — blocked: agreed KPI populations, official logo, representative ordinary-role validation; do not treat the verified findings export as certification of all reports.
+- [ ] Ordinary-role matrix, SMTP rotation/receipt evidence, security release gate and published smoke — blocked: authorized ordinary-user journeys, provider/mailbox evidence and separate freeze/release authorization; no scan or frontend publication this turn.
+- [ ] AML-CLOSE-08/09 work — blocked: explicit standing certification/development freeze; protected assessments and policy data untouched.
+
 ## St Vincent FSA demonstration readiness — 2026-10-28
 - [x] Read-only integrity sampling, current demo-record inventory, authorized Super Admin viewing, proposal review and official regulator research.
 - [x] Prepare evidence report and scoped preparation plan; no business records, configuration or application code changed.

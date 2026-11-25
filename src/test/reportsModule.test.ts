@@ -5,6 +5,7 @@ import {
 } from '@/pages/reports/services/reportService';
 import { sanitizeCsvValue, flattenRecord } from '@/pages/reports/services/exportService';
 import { REPORT_DEFINITIONS } from '@/pages/reports/reportDefinitions';
+import { isModuleEnabledFor, PACKAGE_FEATURES } from '@/lib/subscriptionPackages';
 
 describe('calculateNextRunAt', () => {
   const base = new Date('2026-06-09T12:00:00.000Z');
@@ -85,6 +86,21 @@ describe('source allowlist', () => {
 });
 
 describe('report definitions', () => {
+  it('uses explicit package-classified modules for every built-in report', () => {
+    const modules = new Set(PACKAGE_FEATURES.flatMap((f) => f.modules));
+    for (const definition of REPORT_DEFINITIONS) {
+      expect(modules.has(definition.module), definition.id).toBe(true);
+    }
+  });
+  it('places approved persons in B and ownership in A using existing permissions', () => {
+    const persons = REPORT_DEFINITIONS.find((d) => d.id === 'sup-approved-persons');
+    const ownership = REPORT_DEFINITIONS.find((d) => d.id === 'sup-ownership-register');
+    expect(persons?.module).toBe('fit_and_proper');
+    expect(ownership?.module).toBe('entity_structure');
+    expect(isModuleEnabledFor(persons?.module, 'PACKAGE_A', {})).toBe(false);
+    expect(isModuleEnabledFor(persons?.module, 'PACKAGE_B', {})).toBe(true);
+    expect(isModuleEnabledFor(ownership?.module, 'PACKAGE_A', {})).toBe(true);
+  });
   it('has unique ids', () => {
     const ids = REPORT_DEFINITIONS.map((d) => d.id);
     expect(new Set(ids).size).toBe(ids.length);

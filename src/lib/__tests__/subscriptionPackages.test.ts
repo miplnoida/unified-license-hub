@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { isModuleEnabledFor } from '@/lib/subscriptionPackages';
+import { isModuleEnabledFor, PACKAGE_FEATURES } from '@/lib/subscriptionPackages';
+import { KNOWN_PERMISSION_MODULES } from '@/lib/permissionModules';
 
 describe('subscription packages', () => {
   it('Package A hides AML, prudential and enforcement', () => {
@@ -21,5 +22,24 @@ describe('subscription packages', () => {
   });
   it('core modules cannot be switched off', () => {
     expect(isModuleEnabledFor('settings', 'PACKAGE_A', { core: false })).toBe(true);
+  });
+  it.each(['PACKAGE_A', 'PACKAGE_B', 'PACKAGE_C'] as const)('denies unknown modules in %s', (tier) => {
+    expect(isModuleEnabledFor('unregistered_module', tier, { unregistered_module: true })).toBe(false);
+  });
+  it('classifies every known permission module before default-deny', () => {
+    const mapped = new Set(PACKAGE_FEATURES.flatMap((feature) => feature.modules));
+    for (const module of KNOWN_PERMISSION_MODULES) expect(mapped.has(module), module).toBe(true);
+  });
+  it('keeps licensing and compliance aliases in Package A', () => {
+    expect(isModuleEnabledFor('licensing', 'PACKAGE_A', {})).toBe(true);
+    expect(isModuleEnabledFor('compliance_management', 'PACKAGE_A', {})).toBe(true);
+  });
+  it('applies reporting overrides to executive oversight', () => {
+    expect(isModuleEnabledFor('executive_oversight', 'PACKAGE_A', {})).toBe(true);
+    expect(isModuleEnabledFor('executive_oversight', 'PACKAGE_C', { reports: false })).toBe(false);
+  });
+  it('includes payment-system supervision only in B and C', () => {
+    expect(isModuleEnabledFor('prudential_payment_systems', 'PACKAGE_A', {})).toBe(false);
+    expect(isModuleEnabledFor('prudential_payment_systems', 'PACKAGE_B', {})).toBe(true);
   });
 });

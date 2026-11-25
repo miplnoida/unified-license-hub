@@ -113,7 +113,7 @@ export const REQUIRED_COMPUTED_COLUMNS: Record<string, string[]> = {
   'cmp-sla': ['sla_status'],
   'ret-sla': ['sla_status'],
   'fee-trend': ['period_month', 'period_quarter'],
-  'sup-exam-findings': ['days_overdue', 'remediation_state'],
+  'sup-exam-findings': ['entity_name', 'days_overdue', 'remediation_state'],
   'sup-enf-sanctions': ['penalty_outstanding'],
   'sup-approved-persons': ['tenure_days'],
 };
@@ -540,21 +540,33 @@ const NAME_LOOKUPS: Array<{ col: string; out: string; table: string; label: stri
   { col: 'role_type_id', out: 'role_name', table: 'role_types', label: 'label' },
   { col: 'ownership_type_id', out: 'ownership_type', table: 'ownership_types', label: 'label' },
 ];
-const ENRICH_SOURCES = new Set(['entity_appointments', 'examinations', 'enforcement_actions', 'prudential_assessments', 'ownership_interests']);
+const ENRICH_SOURCES = new Set(['entity_appointments', 'examinations', 'examination_findings', 'enforcement_actions', 'prudential_assessments', 'ownership_interests']);
 
 export async function enrichNames(client: any, source: string, rows: any[]): Promise<any[]> {
   if (!ENRICH_SOURCES.has(source) || !rows.length) return rows;
   let out = rows;
+  // Findings carry examination_id, not entity_id. Resolve the institution
+  // through examinations using the same caller-scoped client as the report.
+  if (source === 'examination_findings') {
+    const ids = [...new Set(rows.filter((r) => !r.entity_id).map((r) => r.examination_id).filter(Boolean))];
+    const entities: Record<string, string> = {};
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data, error } = await client.from('examinations').select('id, entity_id').in('id', ids.slice(i, i + 200));
+      if (error) throw new Error('Unable to resolve report examination institutions');
+      (data || []).forEach((exam: any) => { if (exam.entity_id) entities[exam.id] = exam.entity_id; });
+    }
+    out = rows.map((r) => r.entity_id ? r : { ...r, entity_id: entities[r.examination_id] ?? null });
+  }
   for (const l of NAME_LOOKUPS) {
-    if (out.some((r) => r[l.out] != null)) continue;
-    const ids = [...new Set(out.map((r) => r[l.col]).filter(Boolean))];
+    const ids = [...new Set(out.filter((r) => r[l.out] == null).map((r) => r[l.col]).filter(Boolean))];
     if (!ids.length) continue;
     const map: Record<string, string> = {};
     for (let i = 0; i < ids.length; i += 200) {
-      const { data } = await client.from(l.table).select(`id, ${l.label}`).in('id', ids.slice(i, i + 200));
+      const { data, error } = await client.from(l.table).select(`id, ${l.label}`).in('id', ids.slice(i, i + 200));
+      if (error) throw new Error('Unable to resolve report reference names');
       (data || []).forEach((d: any) => { map[d.id] = d[l.label]; });
     }
-    out = out.map((r) => (r[l.col] ? { ...r, [l.out]: map[r[l.col]] ?? null } : r));
+    out = out.map((r) => (r[l.col] && r[l.out] == null ? { ...r, [l.out]: map[r[l.col]] ?? null } : r));
   }
   return out;
 }

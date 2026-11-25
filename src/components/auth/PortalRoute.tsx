@@ -50,7 +50,7 @@ export function PortalRoute({ children, area, capability }: PortalRouteProps) {
   const location = useLocation();
   const capabilities = Array.isArray(capability) ? capability : [capability];
   const isInternal = !!user && INTERNAL_ROLES.includes(user.role);
-  const { hasPermission, enforceDynamic, isLoading: permsLoading } = useUserDynamicPermissions();
+  const { hasPermission, enforceDynamic, isLoading: permsLoading, isInternal: canonicalInternal } = useUserDynamicPermissions();
   const { isPpoc, loading: ppocLoading } = usePpoc();
 
   if (loading) return <AuthLoadingScreen />;
@@ -60,6 +60,13 @@ export function PortalRoute({ children, area, capability }: PortalRouteProps) {
     return mfaStatus === 'pending'
       ? <Navigate to="/login?mfa=required" replace state={{ from: location }} />
       : <AuthLoadingScreen />;
+  }
+
+  // Institutional portals do not expose the complaint workspace, including
+  // direct URLs and read-only tracking. Public intake has separate routes.
+  if (area === 'complaints') {
+    if (permsLoading) return <AuthLoadingScreen />;
+    if (!canonicalInternal) return <AccessDenied />;
   }
 
   // Internal staff: their access is governed by the module-permission system,
