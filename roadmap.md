@@ -67,3 +67,14 @@
 - [ ] On hold (reported only): form_responses / file_uploads owner writes after submission
 
 - [ ] New Credit Union institution: register → licence → post-licence services + renewal check (blocked: no Credit Union renewal service, awaiting user)
+
+## Returns / appeals write permissions (2026-11-26)
+- [x] Reproduced: Manage Validations cannot save a rule (HTTP 403, raw "permission denied" toast)
+- [x] Cross-checked every direct browser write (52 tables) against live privileges — 7 refused
+- [x] Confirmed monitoring #8 "six missing registry entries" is NOT reproducible (23/23 governed writes registered)
+- [ ] Apply six INSERT/UPDATE/DELETE grants — awaiting approval (.lovable/reviews/returns-write-grants-approval.md)
+- [ ] AI-assessment audit entry: add server-side writer (audit_logs has no INSERT policy) — awaiting approval
+- [ ] Re-test Manage Validations save + negative permission case after grants
+- [x] Triage 5 monitoring findings: notification array fix deployed; 4 resolved stale with evidence
+- [ ] Prove panel-member notification with a fresh appeal referred to a panel (needs a new appeal via browser)
+- [ ] AML examinations-list `ended_at` — frozen (AML-CLOSE-08)

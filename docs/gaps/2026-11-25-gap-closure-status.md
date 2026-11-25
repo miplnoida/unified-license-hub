@@ -133,3 +133,106 @@ Current Project monitoring returned 13 findings (not the historical 16-item inve
 - AML-related items remain explicitly frozen.
 
 The root roadmap carries every remaining programme task and its blocker. No claim is made that all five phases or the whole application are complete.
+## Returns configuration writes — reproduced, and the registry claim is not reproducible
+
+**Reproduced in the browser (authorized internal session, 2026-11-26):**
+Returns → Manage Validations (`/admin/returns/validations`) → select a return
+configuration → **Add Rule** → fill Name / Expression / Error Message → **Save**.
+Result: two HTTP **403** responses on `/rest/v1/return_validation_rules`, the
+dialog stays open, nothing is stored, and the user is shown the raw database
+text `permission denied for table return_validation_rules`.
+
+**Systematic cross-check (source scan × live permission catalog).** Every direct
+browser write in `src` was collected (52 tables) and compared with the privileges
+`authenticated` actually holds. Seven write paths are refused by the database:
+
+| Table | App write | `authenticated` holds | Existing write policy |
+| --- | --- | --- | --- |
+| `return_validation_rules` | insert/update/delete | SELECT, MAINTAIN | ALL — super admin or `returns_management.manage_config` |
+| `return_due_dates` | upsert | SELECT, MAINTAIN | ALL — super admin or `returns_management.manage_config` |
+| `return_form_data` | upsert (+delete) | SELECT, MAINTAIN | insert/update `can_mutate_return_filed`; delete super admin or `returns_management.delete` |
+| `return_comments` | insert/update/delete | SELECT, MAINTAIN | insert read-filed + (super admin/edit/workflow_action/can_mutate); update `can_mutate_return_filed`; delete super admin or `returns_management.delete` |
+| `return_requests` | insert | SELECT, MAINTAIN | insert workflow_action or `can_mutate_return_filed`; update workflow_action or super admin; delete super admin |
+| `license_appeal_events` | insert | SELECT | insert `can_read_license_appeal(caller, appeal_id)` |
+| `audit_logs` | insert | SELECT | **no INSERT policy exists** |
+
+Six of the seven carry write policies, so writes were *intended* but the missing
+table-level grant stops them before row-level security is consulted. Exact SQL,
+per-table security impact, rollback and acceptance checks are in
+`.lovable/reviews/returns-write-grants-approval.md`; **not applied — awaiting
+approval.**
+
+`audit_logs` is different by design: it has only a SELECT policy
+(`is_internal_staff`) plus append-only protection triggers
+(`audit_logs_no_delete`, `audit_logs_no_update`, `trg_prevent_audit_mutation_*`),
+so a browser insert can never succeed. The write in
+`src/components/applications/ApplicationAiAssessmentPanel.tsx` (analyst decision,
+`action = application.ai_assessment_*`) is fire-and-forget with the error
+ignored, so that audit entry is silently never recorded. The decision itself *is*
+durable on `application_ai_assessments` (`analyst_decision`,
+`analyst_decision_by`, `analyst_decision_at`, `analyst_justification`), and no
+reader of `application.ai_assessment_*` audit rows was found. The correct fix is
+a server-side writer following the existing `log_rule_override` pattern; that is
+a database change and is held for approval.
+
+**Registry claim (monitoring #8) not reproducible.** All 23 configuration tables
+the app writes through the governed writer (`configSave` / `configRetire` /
+`configDelete` / `configChangeHistory`) are present in
+`public.config_governed_tables` (registry size 34) — **zero missing entries**.
+The returns configuration tables are registered: `return_configs`,
+`return_configurations`, `return_config_forms`, `return_cutoff_config`,
+`return_notification_templates`, `return_types`. Governed tables deliberately
+hold no DML grant for `authenticated`; writes go through the governed RPCs.
+
+## Methodology question edit (monitoring #4) — not reproducible through the editor
+
+The server-side writer `supervisory_methodology_question_save` does reset fields
+a payload omits: `response_options` becomes NULL, `sort_order` becomes 100 and
+`requires_observation` becomes false. That is a real hazard for *any* caller that
+sends a partial payload.
+
+It is **not** reachable through the normal screen. `QuestionEditorDialog` loads
+the existing question into the form (`initial()`) and always submits
+`response_options`, `requires_observation` and `sort_order` from that loaded
+state, so an edit round-trips all three. `expected_updated_at` is also sent on
+edit, so a concurrent change is refused rather than silently overwritten.
+
+One latent editor hazard was found and left as-is: permitted responses are joined
+with `", "` on load and re-split on `,` by `asList()`, so an option that itself
+contains a comma would be split into two options on the next save. A read-only
+check of all 192 stored questions found **zero** options containing a comma, so
+no data is currently corrupted.
+
+## Project monitoring triage (2026-11-26)
+
+Five findings were claimed and verified before any edit.
+
+**Fixed in code:** `dispatch-notification-event` resolved `payload_user`
+recipients with `out.add(String(v))`, so an array payload key
+(`member_user_ids`, produced by `jsonb_agg` in the panel-referral function)
+became one comma-joined pseudo user id, failed the uuid cast, and every panel
+member's notification was dropped. The case now expands arrays one recipient per
+element. Deployed (source SHA-256
+`b7ad9e65a0b43fa495dad0c1642e4db37ec7dfdc1caba07c245f26e0accd02d7`).
+Read-only history confirms the defect: **zero** rows in
+`notification_dispatch_log` and **zero** in `notifications` for
+`license_appeal.panel_member_assigned`. A live panel referral was **not**
+exercised — the only appeal with a panel (APL-2026-000001) is already `decided`,
+and re-referring it would rewrite a decided record — so member delivery after the
+fix is not yet positively proven.
+
+**Resolved as stale (evidence, not assumption):**
+- `entity-access-requests` bucket exists (private, 20 MB) with membership-gated
+  SELECT and INSERT policies.
+- `process_templates.version` exists and `authenticated` may execute
+  `license_fee_configuration_overview()`.
+- No live function or frontend file references
+  `supervisory_assessment_response` or `supervisory_methodology_fact_link`.
+- `confirm_complaint_duplicate`, `dismiss_complaint_duplicate` and
+  `dismiss_complaint_escalation` insert audit rows with the real `audit_logs`
+  columns (`entity_type`, no `table_name`).
+
+**Held:** the AML/CFT examinations-list finding (`examination_team_members.ended_at`
+selected by `useAmlSupervision.ts`, column absent) is untouched under the
+AML-CLOSE-08 freeze. The SMTP authentication finding stays with the SEC-CRED-01
+credential evidence.

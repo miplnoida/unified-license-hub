@@ -735,7 +735,18 @@ async function resolveRecipients(
         }
         case "payload_user": {
           const v = ctx.payload?.[rule.key];
-          if (v) out.add(String(v));
+          // A payload key may hold one user id or a list of them (e.g. appeal
+          // panel members). A list must become one recipient per element:
+          // String([...]) would produce a single comma-joined pseudo-id that
+          // fails the uuid cast and silently drops every notification.
+          if (Array.isArray(v)) {
+            v.forEach((x) => {
+              const s = x === null || x === undefined ? "" : String(x).trim();
+              if (s) out.add(s);
+            });
+          } else if (v) {
+            out.add(String(v));
+          }
           break;
         }
         case "sla_process_team_leads": {
