@@ -407,6 +407,7 @@ function sanitizePayload(raw: unknown, trusted: EvidenceRef[]): Record<string, a
   if (trusted.length) {
     const blob = JSON.stringify(out).toLowerCase();
     const refs = trusted
+      .filter((t) => typeof t?.label === 'string' && t.label.trim() !== '')
       .filter((t) => blob.includes(t.label.toLowerCase()) || blob.includes(String(t.label.split(' ').pop()).toLowerCase()))
       .slice(0, 12)
       .map((t) => ({ label: t.label, kind: t.kind ?? null, id: t.id ?? null }));
@@ -836,7 +837,11 @@ async function assembleFacts(
         'These sources are outside the caller\'s permissions. Do not comment on, count or imply anything about them.';
     }
 
-    evidence.push({ kind: 'executive_snapshot', id: String((snapshot as any)?.fingerprint ?? 'unknown') } as EvidenceRef);
+    evidence.push({
+      label: 'Executive dashboard snapshot',
+      kind: 'executive_snapshot',
+      id: String((snapshot as any)?.fingerprint ?? 'unknown'),
+    });
     for (const s of sources) used.add(s);
     facts.available_sources = [...used];
   }

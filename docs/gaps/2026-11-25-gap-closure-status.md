@@ -40,7 +40,7 @@ Reviewed 25 November 2026. This is a partial implementation milestone, not whole
 |---|---|---|
 | Access-letter bucket absent | Live storage read: `entity-access-requests`, private, 20 MiB limit | Bucket exists; do not recreate or change its privacy. Complete user-request journey remains unverified |
 | Submitted edit guard still unapplied | Live `application_draft_save` and `can_mutate_application` contain the submitted `in_progress`/`submitted` lock | Guard already present. Roadmap's older pending entry is historical; do not reapply just to close a checklist |
-| Returned-for-correction save ready | Live save-status list omits `returned_for_correction`; staged accepted SQL adds it and retains the guard | Confirmed pending defect; exact SQL approval requested separately |
+| Returned-for-correction save ready | Live save-status list omits `returned_for_correction`; staged accepted SQL adds it and retains the guard | Confirmed pending defect; owner placed it ON HOLD 2026-11-25 ("Keep it on hold") — SQL not applied |
 | 54 pending files | Fresh grouped query: 78 pending_scan, 7 legacy_unverified, 11 clean | Current queue problem remains; prior counts are outdated |
 | 72/91 institutions lack lead regulator | Fresh query: 73 of 92 institutions lack lead regulator | Current completeness gap; no invented assignments |
 | Reports Overview empty | Authorized browser shows 57 applications, 116 active licences, XCD 54,967 revenue, 3 overdue filings, 94% accepted filings, 11 complaint backlog | Page renders current metrics; population/denominator reconciliation is still required |
@@ -67,6 +67,61 @@ Reviewed 25 November 2026. This is a partial implementation milestone, not whole
 | Reports | All catalogue entry journeys, KPI populations, scheduled scope, official branding and AI briefing; Report Library visibility and preview fail-closed completed | Ordinary-role generate/export/filter matrix; scoped totals match owning screens; export/readback; official letterhead | KPI scope definitions; official logo; scheduled security design; applicable role journeys |
 | Release | Ordinary-role rehearsal, SMTP rotation/provider and mailbox receipt evidence, security gate and published smoke | Evidence for applicant, primary/secondary, operational officer, reviewer/approver; timestamped provider and inbox proof | Authorized accounts, provider/mailbox evidence and separate release authorization |
 | AML/CFT | Frozen outstanding certification and AML-related monitoring items | Only separately authorized future package may establish this | Standing AML-CLOSE-08 freeze; no development/certification/publication/resize or AML-CLOSE-09 |
+
+## Report catalogue journey — 25 November 2026 (authorized internal session)
+
+All 46 built-in reports were opened through the normal Report Library screen.
+
+- **44 opened and returned rows.** Application reports 57 rows; licence reports
+  120; Returns reports mostly 97 (Overdue Returns 1, Prudential Threshold
+  Breaches 409); Fee reports 34; operational reports 57 / 1000 / 7 / 8;
+  complaints 22 (11 pending); examination programme 30; findings 13; enforcement
+  8; prudential assessment 9; annual bulletin 15.
+- **2 refused to open**, both for the same reason — the underlying table has no
+  read grant for signed-in app users:
+  - Approved Persons & Key Functionaries Register →
+    `permission denied for table entity_appointments`
+  - Ownership, Control & Beneficial Owners Register →
+    `permission denied for table ownership_interests`
+  Exact read-only SQL, security impact and rollback are in
+  `.lovable/reviews/report-register-read-approval.md`. **Not applied** — awaiting
+  owner approval. `parties` is included in the same request because both
+  registers need it to turn a person id into a name.
+- **3 reports returned no rows, and that is correct for current data**, not a
+  defect:
+  - Outstanding Dues and Payment Failure — `payments` holds 34 rows, every one
+    `completed`; there is no unpaid, pending or failed payment to list.
+  - Repeated Non-compliance — it lists only licensees with more than one overdue
+    filing, and exactly one filing is currently overdue.
+
+## Executive AI briefing — fixed and verified
+
+- The briefing workspace opened, but generation failed with
+  `{"ok":false,"error":"Cannot read properties of undefined (reading 'toLowerCase')","provider_state":"PROVIDER_FAILURE"}`,
+  and the screen kept showing the 31 August narrative marked
+  "Stale — snapshot has moved on".
+- Cause: the executive evidence reference was pushed without a `label`, and the
+  evidence filter called `t.label.toLowerCase()` on it.
+- Fix in `supabase/functions/generate-supervisory-ai-analysis/index.ts`: the
+  executive evidence reference now carries a label, and the filter ignores any
+  reference without a usable label instead of crashing.
+- Function deployed (source SHA-256 `8d51430cf8655db856f6763039af78286b5bd979b75e7c7b4cba8f579d02857b`).
+- Verified through the normal screen afterwards: the generator returned
+  `{"ok":true,...,"persisted":true}`, the narrative re-stamped to
+  "Generated 25 Nov 2026, 06:09 am", evidence confidence High, and the stale
+  warning is gone.
+- No unit test was added: the generator imports Deno-only URLs and cannot be
+  imported into the browser test runner, so the in-app generation is the
+  evidence.
+
+## Anonymous write grants — observation, not applied
+
+393 public tables grant anonymous (`anon`) INSERT/UPDATE/DELETE/TRUNCATE. Every
+table inspected has row-level security enabled, and the write policies found are
+restrictive (`with_check false`, explicit "no delete / no update" policies, plus
+one intentional public registration-upload insert on `file_uploads`), so this was
+**not** shown to be reachable. It is broader than the application needs; a
+separate revocation memo can be prepared on request.
 
 ## Monitoring inventory
 
