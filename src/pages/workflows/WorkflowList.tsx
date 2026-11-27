@@ -59,6 +59,8 @@ import {
   type TemplateStepV2,
 } from '@/lib/workflowTemplateSnapshot';
 import { WorkflowVersionPanel } from '@/components/workflows/WorkflowVersionPanel';
+import { useCan } from '@/hooks/useCan';
+import { GuardedButton } from '@/components/auth/GuardedButton';
 
 // Legacy ALL_ACTIONS list removed — UI action selection is now restricted to
 // ALLOWED_UI_ACTION_TYPES (approve / reject / send_back) in
@@ -146,15 +148,22 @@ function resolveDefaultRoleForSector(
 export default function WorkflowList() {
   const { activeRegulatorId, activeRegulator, regulators, isLoading: regulatorLoading, setActiveRegulator } = useRegulator();
   const regulatorContextReady = !regulatorLoading && (!!activeRegulatorId || regulators.length === 0);
-  const { data: workflows = [], isLoading } = useWorkflows(activeRegulatorId, undefined, regulatorContextReady);
-  const { data: allWorkflowsForRecovery = [], isLoading: allWorkflowsLoading } = useWorkflows(null, undefined, regulatorContextReady && !!activeRegulatorId);
+  const { data: workflows = [], isLoading, error: workflowsError, refetch: retryWorkflows } = useWorkflows(activeRegulatorId, undefined, regulatorContextReady);
+  const { data: allWorkflowsForRecovery = [], isLoading: allWorkflowsLoading, error: recoveryError } = useWorkflows(null, undefined, regulatorContextReady && !!activeRegulatorId);
+  // Backend contract: workflow/template writes require can_mutate_approval_config
+  // (super admin or workflow_management.manage_config); step writes accept
+  // workflow_management edit | manage_config | publish (assert_workflow_config_writer).
+  const canConfigWorkflows = useCan('workflow_management', 'manage_config');
+  const canEditStepsPerm = useCan('workflow_management', 'edit');
+  const canPublishWorkflows = useCan('workflow_management', 'publish');
+  const canWriteStepsPerm = canEditStepsPerm || canConfigWorkflows || canPublishWorkflows;
   const {
     data: workflowTypeConfigs = [],
     isLoading: typesLoading,
     isError: typesError,
     error: typesErrorObj,
   } = useWorkflowTypeConfigs();
-  const { data: dynamicRoles = [], isLoading: rolesLoading } = useRoles();
+  const { data: dynamicRoles = [], isLoading: rolesLoading, error: rolesError, refetch: retryRoles } = useRoles();
   const { data: sectors = [] } = useSectors(activeRegulatorId);
   const { data: subSectors = [] } = useSubSectors(activeRegulatorId);
   const { data: categories = [] } = useCategories(activeRegulatorId);
@@ -223,7 +232,7 @@ export default function WorkflowList() {
   const [templatesOpen, setTemplatesOpen] = useState(false);
 
   useEffect(() => {
-    if (!regulatorContextReady || allWorkflowsLoading || isLoading) return;
+    if (!regulatorContextReady || allWorkflowsLoading || isLoading || workflowsError || recoveryError) return;
     if (!activeRegulatorId || workflows.length > 0 || allWorkflowsForRecovery.length === 0) return;
 
     const counts = allWorkflowsForRecovery.reduce<Record<string, number>>((acc, workflow) => {
@@ -242,10 +251,12 @@ export default function WorkflowList() {
     allWorkflowsForRecovery,
     allWorkflowsLoading,
     isLoading,
+    recoveryError,
     regulatorContextReady,
     regulators,
     setActiveRegulator,
     workflows.length,
+    workflowsError,
   ]);
 
   // Default the create form's Used For to the first visible type as soon as config loads.
@@ -257,7 +268,8 @@ export default function WorkflowList() {
   }, [createOpen, visibleWorkflowTypes, newEntityType]);
 
   const selectedWorkflow = workflows.find(w => w.id === selectedId) || null;
-  const { data: steps = [], isLoading: stepsLoading } = useWorkflowSteps(selectedId);
+  const { data: steps = [], isLoading: stepsLoading, error: stepsError, refetch: retrySteps } = useWorkflowSteps(selectedId);
+  const canEditSteps = canWriteStepsPerm && !stepsLoading && !stepsError && !rolesLoading && !rolesError;
 
   const roleLabel = (sysRole: string) =>
     dynamicRoles.find(r => r.system_role === sysRole)?.name || sysRole;
@@ -285,7 +297,7 @@ export default function WorkflowList() {
   const noActiveTypes = !typesLoading && !typesError && visibleWorkflowTypes.length === 0;
   const noRoles = !rolesLoading && dynamicRoles.length === 0;
   const createDisabled =
-    typesLoading || typesError || noActiveTypes || rolesLoading || noRoles;
+    !canConfigWorkflows || typesLoading || typesError || noActiveTypes || rolesLoading || !!rolesError || noRoles || !!workflowsError || !!recoveryError;
   const createDisabledReason = typesError
     ? 'Workflow type configuration failed to load. Refresh the page or contact an administrator.'
     : noActiveTypes
@@ -295,6 +307,7 @@ export default function WorkflowList() {
         : null;
 
   const handleCreate = async () => {
+    if (createDisabled) return;
     if (!newName.trim()) {
       toast.error('Please give the workflow a name');
       return;
@@ -462,6 +475,7 @@ export default function WorkflowList() {
   };
 
   const handleDelete = async (wf: Workflow) => {
+    if (!canConfigWorkflows) return;
     let depCount = 0;
     try { depCount = await fetchInstanceCount(wf.id); }
     catch (err: any) { toast.error(err.message); return; }
@@ -508,6 +522,7 @@ export default function WorkflowList() {
 
 
   const handleToggleActive = async (wf: Workflow) => {
+    if (!canConfigWorkflows) return;
     // Turning OFF: warn if it has live instances, but allow.
     if (wf.is_active) {
       let depCount = 0;
@@ -580,6 +595,7 @@ export default function WorkflowList() {
 
   // ── Edit workflow metadata ──
   const openEdit = (wf: Workflow) => {
+    if (!canConfigWorkflows) return;
     setEditTarget(wf);
     setEditName(wf.name);
     setEditDesc(wf.description || '');
@@ -594,11 +610,11 @@ export default function WorkflowList() {
 
   const openWorkflowBuilder = (wf: Workflow) => {
     setSelectedId(wf.id);
-    setIsEditingSteps(true);
+    setIsEditingSteps(canWriteStepsPerm);
   };
 
   const handleEditSave = async () => {
-    if (!editTarget) return;
+    if (!canConfigWorkflows || !editTarget) return;
     if (!editName.trim()) {
       toast.error('Name is required.');
       return;
@@ -674,7 +690,7 @@ export default function WorkflowList() {
 
 
   const handleAddStep = async () => {
-    if (!selectedId) return;
+    if (!canEditSteps || !selectedId) return;
     const lastStep = steps[steps.length - 1];
     const lastRoleId = lastStep?.approver_role_id || null;
     const lastRole = lastRoleId
@@ -701,6 +717,7 @@ export default function WorkflowList() {
   };
 
   const handleMove = async (idx: number, dir: -1 | 1) => {
+    if (!canEditSteps) return;
     const target = idx + dir;
     if (target < 0 || target >= steps.length) return;
     const reordered = [...steps];
@@ -715,6 +732,7 @@ export default function WorkflowList() {
   };
 
   const handleSaveAsTemplate = async () => {
+    if (!canConfigWorkflows || stepsLoading || stepsError || rolesLoading || rolesError) return;
     if (!selectedWorkflow || steps.length === 0) {
       toast.error('Add at least one step first');
       return;
@@ -774,6 +792,7 @@ export default function WorkflowList() {
   };
 
   const handleDeleteTemplate = async (t: WorkflowTemplate) => {
+    if (!canConfigWorkflows) return;
     const res = await Swal.fire({
       title: 'Delete template?',
       text: t.name,
@@ -800,13 +819,13 @@ export default function WorkflowList() {
               <Button variant="outline" onClick={() => setTemplatesOpen(true)}>
                 <FileStack className="h-4 w-4 mr-2" /> Templates
               </Button>
-              <Button data-rbac="workflow_management.create"
+              <GuardedButton module="workflow_management" action="manage_config"
                 onClick={() => setCreateOpen(true)}
                 disabled={createDisabled}
                 title={createDisabledReason || undefined}
               >
                 <Plus className="h-4 w-4 mr-2" /> New Workflow
-              </Button>
+              </GuardedButton>
             </div>
           }
         />
@@ -841,13 +860,20 @@ export default function WorkflowList() {
               <CardContent className="space-y-2">
                 {regulatorLoading || isLoading ? (
                   <p className="text-muted-foreground text-center py-8 text-sm">Loading...</p>
+                ) : workflowsError ? (
+                  <div role="alert" className="flex items-center justify-between gap-4 rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
+                    <span>Unable to load workflows.</span>
+                    <Button variant="outline" size="sm" onClick={() => void retryWorkflows()}>Retry</Button>
+                  </div>
                 ) : workflows.length === 0 ? (
                   <div className="text-center py-8">
                     <WorkflowIcon className="h-10 w-10 mx-auto text-muted-foreground/40 mb-2" />
                     <p className="text-sm text-muted-foreground">No workflows for {activeRegulator?.name || 'the selected regulator'}</p>
-                    <Button data-rbac="workflow_management.create" variant="outline" size="sm" className="mt-3" onClick={() => setCreateOpen(true)}>
-                      <Plus className="h-3.5 w-3.5 mr-1" /> Create First Workflow
-                    </Button>
+                    {!recoveryError && !createDisabled && (
+                      <GuardedButton module="workflow_management" action="manage_config" variant="outline" size="sm" className="mt-3" onClick={() => setCreateOpen(true)}>
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Create First Workflow
+                      </GuardedButton>
+                    )}
                   </div>
                 ) : (
                   <Accordion
@@ -947,6 +973,7 @@ export default function WorkflowList() {
                               >
                                 <Settings2 className="h-3 w-3 mr-1" /> Builder
                               </Button>
+                              {canConfigWorkflows && (<>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -966,6 +993,7 @@ export default function WorkflowList() {
                               >
                                 <Trash2 className="h-3 w-3" />
                               </Button>
+                              </>)}
                             </div>
                           </div>
                           <AccordionContent className="px-4 border-t-2 border-primary/30 bg-muted/20">
@@ -982,19 +1010,23 @@ export default function WorkflowList() {
                                     </CardDescription>
                                   </div>
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <Button variant="outline" size="sm" onClick={() => handleToggleActive(selectedWorkflow)}>
-                                      {selectedWorkflow.is_active ? 'Turn Off' : 'Turn On'}
-                                    </Button>
-                                    <Button data-rbac="workflow_management.create" variant="outline" size="sm" onClick={handleSaveAsTemplate}>
-                                      <BookmarkPlus className="h-3.5 w-3.5 mr-1" /> Save as Template
-                                    </Button>
-                                    {!isEditingSteps ? (
-                                      <Button data-rbac="workflow_management.edit" size="sm" onClick={() => setIsEditingSteps(true)}>
+                                    {canConfigWorkflows && (
+                                      <Button variant="outline" size="sm" onClick={() => handleToggleActive(selectedWorkflow)}>
+                                        {selectedWorkflow.is_active ? 'Turn Off' : 'Turn On'}
+                                      </Button>
+                                    )}
+                                    {canConfigWorkflows && (
+                                      <Button variant="outline" size="sm" onClick={handleSaveAsTemplate} disabled={stepsLoading || !!stepsError || rolesLoading || !!rolesError}>
+                                        <BookmarkPlus className="h-3.5 w-3.5 mr-1" /> Save as Template
+                                      </Button>
+                                    )}
+                                    {!canEditSteps ? null : !isEditingSteps ? (
+                                      <Button size="sm" onClick={() => setIsEditingSteps(true)}>
                                         <Pencil className="h-3.5 w-3.5 mr-1" /> Edit Steps
                                       </Button>
                                     ) : (
                                       <>
-                                        <Button data-rbac="workflow_management.edit" size="sm" variant="outline" onClick={handleAddStep}>
+                                        <Button size="sm" variant="outline" onClick={handleAddStep}>
                                           <Plus className="h-3.5 w-3.5 mr-1" /> Add Step
                                         </Button>
                                         <Button size="sm" onClick={() => setIsEditingSteps(false)}>
@@ -1007,15 +1039,20 @@ export default function WorkflowList() {
                                 <WorkflowVersionPanel workflowId={selectedWorkflow.id} workflowName={selectedWorkflow.name} />
                                 {stepsLoading ? (
                                   <p className="text-muted-foreground text-center py-8 text-sm">Loading...</p>
+                                ) : stepsError || rolesError ? (
+                                  <div role="alert" className="flex items-center justify-between gap-4 rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
+                                    <span>{stepsError ? 'Unable to load workflow steps.' : 'Unable to load roles.'} Editing is unavailable.</span>
+                                    <Button variant="outline" size="sm" onClick={() => { if (stepsError) void retrySteps(); if (rolesError) void retryRoles(); }}>Retry</Button>
+                                  </div>
                                 ) : (
                                   <TimelineBuilder
                                     steps={steps}
                                     dynamicRoles={dynamicRoles}
                                     roleLabel={roleLabel}
                                     stepRoleLabel={stepRoleLabel}
-                                    isEditing={isEditingSteps}
-                                    onUpdate={(id, u) => updateStep.mutateAsync({ id, ...u } as any).then(() => undefined)}
-                                    onDelete={(id) => deleteStep.mutate(id)}
+                                    isEditing={isEditingSteps && canEditSteps}
+                                    onUpdate={(id, u) => canEditSteps ? updateStep.mutateAsync({ id, ...u } as any).then(() => undefined) : Promise.resolve()}
+                                    onDelete={(id) => { if (canEditSteps) deleteStep.mutate(id); }}
                                     onMove={handleMove}
                                     onAdd={handleAddStep}
                                     entityType={selectedWorkflow.entity_type}
@@ -1177,7 +1214,7 @@ export default function WorkflowList() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={createWorkflow.isPending}>
+            <Button onClick={handleCreate} disabled={createWorkflow.isPending || createDisabled}>
               {createWorkflow.isPending ? 'Creating...' : 'Create Workflow'}
             </Button>
           </DialogFooter>
@@ -1294,7 +1331,7 @@ export default function WorkflowList() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleEditSave} disabled={updateWorkflow.isPending}>
+            <Button onClick={handleEditSave} disabled={updateWorkflow.isPending || !canConfigWorkflows}>
               {updateWorkflow.isPending ? 'Saving…' : 'Save Changes'}
             </Button>
           </DialogFooter>
@@ -1336,14 +1373,16 @@ export default function WorkflowList() {
                         ))}
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive shrink-0"
-                      onClick={() => handleDeleteTemplate(t)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {canConfigWorkflows && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive shrink-0"
+                        onClick={() => handleDeleteTemplate(t)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))
@@ -1403,7 +1442,7 @@ function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, isEdit
               {isEditing ? 'No steps yet — add your first approver' : 'No steps configured. Click "Edit Steps" to add one.'}
             </p>
             {isEditing && (
-              <Button data-rbac="workflow_management.edit" variant="outline" size="sm" onClick={onAdd}>
+              <Button variant="outline" size="sm" onClick={onAdd}>
                 <Plus className="h-3.5 w-3.5 mr-1" /> Add Step 1
               </Button>
             )}
@@ -1436,7 +1475,7 @@ function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, isEdit
         <>
           {isEditing && (
             <div className="flex justify-center py-1">
-              <Button data-rbac="workflow_management.edit" variant="ghost" size="sm" onClick={onAdd} className="text-xs h-7">
+              <Button variant="ghost" size="sm" onClick={onAdd} className="text-xs h-7">
                 <Plus className="h-3 w-3 mr-1" /> Add another step
               </Button>
             </div>

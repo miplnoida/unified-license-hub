@@ -177,11 +177,25 @@ export function InternalRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-/** Settings route guard. Only super_admin and admin can access settings. */
+/**
+ * Settings route guard. Keeps explicit super_admin/admin authority and also
+ * admits internal staff holding the configured `settings.view` permission
+ * (mirrors the backend is_internal_staff + settings permission contract).
+ */
 export function SettingsRoute({ children }: { children: React.ReactNode }) {
-  return (
-    <RoleGuard allowedRoles={['super_admin', 'admin']}>
-      {children}
-    </RoleGuard>
-  );
+  const { user, session, loading, isFullyAuthenticated, mfaStatus } = useAuth();
+  const { hasPermission, isInternal, isLoading: permsLoading } = useUserDynamicPermissions();
+
+  if (loading) return <AuthLoadingScreen />;
+  if (!session) return <Navigate to="/" replace />;
+  if (!user) return <AuthLoadingScreen />;
+  if (!isFullyAuthenticated) {
+    return mfaStatus === 'pending'
+      ? <Navigate to="/login?mfa=required" replace />
+      : <AuthLoadingScreen />;
+  }
+  if (user.role === 'super_admin' || user.role === 'admin') return <>{children}</>;
+  if (permsLoading) return <AuthLoadingScreen />;
+  if (isInternal && hasPermission('settings', 'view')) return <>{children}</>;
+  return <AccessDenied />;
 }

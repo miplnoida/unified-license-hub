@@ -253,12 +253,27 @@ export default function RoleManagement() {
 
 
 
-  const { data: roles = [], isLoading: rolesLoading } = useRoles();
-  const { data: permissions = [] } = usePermissions();
-  const { data: allRolePerms = [] } = useAllRolePermissions();
+  const rolesQuery = useRoles();
+  const { data: roles = [], isLoading: rolesLoading, error: rolesError, refetch: refetchRoles } = rolesQuery;
+  const permissionsQuery = usePermissions();
+  const { data: permissions = [] } = permissionsQuery;
+  const allRolePermsQuery = useAllRolePermissions();
+  const { data: allRolePerms = [] } = allRolePermsQuery;
   const { data: userCounts = {} } = useRoleUserCounts();
-  const { data: catModules = [] } = useCatalogModules();
-  const { data: catActions = [] } = useCatalogActions();
+  const catModulesQuery = useCatalogModules();
+  const { data: catModules = [] } = catModulesQuery;
+  const catActionsQuery = useCatalogActions();
+  const { data: catActions = [] } = catActionsQuery;
+  const editorQueries = [rolesQuery, permissionsQuery, allRolePermsQuery, catModulesQuery, catActionsQuery];
+  const editorReady = editorQueries.every(query => query.isSuccess);
+  const editorError = editorQueries.some(query => query.isError);
+  const retryEditor = () => { editorQueries.forEach(query => { void query.refetch(); }); };
+  const editorFeedback = editorError ? (
+    <div role="alert">
+      Unable to load role permissions and catalogue. Editing is unavailable.
+      <Button variant="outline" onClick={retryEditor}>Retry</Button>
+    </div>
+  ) : !editorReady ? <p role="status">Loading role permissions and catalogue...</p> : null;
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
   const deleteRole = useDeleteRole();
@@ -377,6 +392,7 @@ export default function RoleManagement() {
   );
 
   const openCreateDialog = () => {
+    if (!editorReady) return;
     setEditingRole(null);
     setFormName(''); setFormDesc(''); setFormPerms([]);
     setFormRoleType('internal');
@@ -389,6 +405,7 @@ export default function RoleManagement() {
 
   const openEditDialog = (role: DynamicRole, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!editorReady) return;
     setEditingRole(role);
     setFormName(role.name);
     setFormDesc(role.description || '');
@@ -470,6 +487,7 @@ export default function RoleManagement() {
   };
 
   const handleSave = async () => {
+    if (!editorReady) return;
     // Client-side mirror of the DB triggers — refuse to submit if the user
     // lacks the exact action they're about to perform. Backend enforces the
     // same rule via trg_roles_mutation_guard + trg_role_permissions_mutation_guard.
@@ -668,7 +686,7 @@ export default function RoleManagement() {
                     </Button>
                   )}
                   {canCreate && (
-                    <Button onClick={openCreateDialog} data-rbac="role_management.create">
+                    <Button onClick={openCreateDialog} disabled={!editorReady} data-rbac="role_management.create">
                       <Plus className="h-4 w-4 mr-2" />Create Role
                     </Button>
                   )}
@@ -676,6 +694,7 @@ export default function RoleManagement() {
 
               </div>
 
+              {editorFeedback}
               <div className="grid lg:grid-cols-3 gap-6 animate-slide-up delay-200">
                 <div className="lg:col-span-2">
                   <Card>
@@ -684,7 +703,9 @@ export default function RoleManagement() {
                       <CardDescription>Click a role to see what it can do</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {rolesLoading ? (
+                      {rolesError ? (
+                        <div role="alert">Unable to load roles. <Button variant="outline" onClick={() => { void refetchRoles(); }}>Retry</Button></div>
+                      ) : rolesLoading ? (
                         <div className="text-center py-8 text-muted-foreground">Loading roles...</div>
                       ) : (
                         <Table>
@@ -747,7 +768,7 @@ export default function RoleManagement() {
                                   </TableCell>
                                   <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                                     <RowActionsMenu dropdownModal={false} actions={[
-                                      { label: 'Edit', icon: Edit, onClick: (e) => openEditDialog(role, e as any), hidden: !canEdit },
+                                      { label: 'Edit', icon: Edit, onClick: (e) => openEditDialog(role, e as any), hidden: !canEdit || !editorReady },
                                       {
                                         label: 'Reset to defaults',
                                         icon: Shield,
@@ -881,6 +902,7 @@ export default function RoleManagement() {
               </DialogDescription>
             </DialogHeader>
 
+            {editorReady ? (
             <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-6">
 
               {/* Top section: name / description / role type / dashboard tier */}
@@ -1292,9 +1314,11 @@ export default function RoleManagement() {
               </div>
             </div>
 
+            ) : <div className="px-6 py-4">{editorFeedback}</div>}
+
             <DialogFooter className="px-6 py-4 border-t shrink-0 bg-background">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave} disabled={createRole.isPending || updateRole.isPending}>
+              <Button onClick={handleSave} disabled={!editorReady || createRole.isPending || updateRole.isPending}>
                 {(createRole.isPending || updateRole.isPending) ? 'Saving...' : editingRole ? 'Save Changes' : 'Create Role'}
               </Button>
             </DialogFooter>

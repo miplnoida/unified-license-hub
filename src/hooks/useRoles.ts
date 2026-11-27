@@ -65,11 +65,12 @@ export function useRoles() {
       // blob and access summary still live on the legacy `roles` mirror until
       // the normalized `sec_role_scopes` editor lands, so merge them in by id
       // (both tables share the same primary keys).
-      const [{ data, error }, { data: legacy }] = await Promise.all([
+      const [{ data, error }, { data: legacy, error: legacyError }] = await Promise.all([
         supabase.from('sec_roles' as any).select('*').order('created_at'),
         supabase.from('roles' as any).select('id, scope_config, access_summary'),
       ]);
       if (error) throw error;
+      if (legacyError) throw legacyError;
       const extras = new Map<string, any>(
         ((legacy as any[]) || []).map((r) => [r.id, r]),
       );

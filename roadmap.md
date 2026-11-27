@@ -95,3 +95,15 @@
 - [x] Audit logs + web users show load errors instead of empty lists
 - [ ] Settings/workflow/form-builder action-level guards — blocked: changes access behaviour; needs decision
 - [ ] SEC-03 live browser check — not tested (needs signed-in session; no safe isolated mock)
+
+## Security Remediation Batch 1 (approved 2026-11-27)
+- [ ] SEC-01 packages A/B/C prepared (no execution)
+- [ ] F01 Settings route uses configured permission
+- [ ] F02/F05 Master Configuration guards + error states
+- [ ] F03/F09 Workflow Designer guards + error states
+- [ ] F04 Form Builder save/import guards
+- [ ] F06 Regulator Management error states
+- [ ] F08 Role Management error states
+- [ ] F11 Compliance Audit Logs error states
+- [ ] Permission-decision proposals (access requests, receipts)
+- [ ] Regression vs e2e1017e2, lint on changed files, diff audit

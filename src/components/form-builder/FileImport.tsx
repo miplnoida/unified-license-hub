@@ -1676,9 +1676,11 @@ interface FileImportProps {
   autoOpen?: boolean;
   /** Custom button label */
   buttonLabel?: string;
+  /** Permission action required to import (backend template writes need 'edit'). */
+  writeAction?: 'create' | 'edit';
 }
 
-export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, buttonLabel }: FileImportProps) {
+export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, buttonLabel, writeAction = 'create' }: FileImportProps) {
   const [open, setOpen] = useState(!!autoOpen);
   const [parsing, setParsing] = useState(false);
   const [step, setStep] = useState<ImportStep>('upload');
@@ -1845,7 +1847,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, butto
   const handleLegacyConfirm = async () => {
     if (!legacyPreview) return;
     try {
-      await authorizedAction('form_management', 'create', { mode: 'legacy', sections: legacyPreview.length });
+      await authorizedAction('form_management', writeAction, { mode: 'legacy', sections: legacyPreview.length });
     } catch (e: any) {
       toast.error(e?.message || 'Not authorized to import forms.');
       return;
@@ -1865,7 +1867,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, butto
       return;
     }
     try {
-      await authorizedAction('form_management', 'create', { mode: 'multi_sheet', sheets: filtered.sheets.length });
+      await authorizedAction('form_management', writeAction, { mode: 'multi_sheet', sheets: filtered.sheets.length });
     } catch (e: any) {
       toast.error(e?.message || 'Not authorized to import forms.');
       return;

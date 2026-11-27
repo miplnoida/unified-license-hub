@@ -32,6 +32,7 @@ import {
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { fieldTypes } from '@/components/form-builder/FieldPalette';
 import { supabase } from '@/integrations/supabase/client';
+import { useCan } from '@/hooks/useCan';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { FormField, FormSection, FieldType, FormRow } from '@/types/formBuilder';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
@@ -140,6 +141,9 @@ export default function FormBuilder() {
   const navigate = useNavigate();
   const formType = searchParams.get('type') || 'pre_license';
   const editId = searchParams.get('id');
+  // Backend contract ("Manage form templates" RLS): every template write,
+  // including inserts, requires super admin or scoped form_management.edit.
+  const canSave = useCan('form_management', 'edit');
   const selectedVersionId = searchParams.get('versionId');
   const isViewMode = searchParams.get('mode') === 'view';
   const { activeRegulatorId } = useRegulator();
@@ -420,6 +424,7 @@ export default function FormBuilder() {
     && activeVersion.id !== latestVersion?.id;
 
   const handleSave = async () => {
+    if (!canSave) return;
     if (!formName.trim()) { toast.error('Please enter a form name.'); return; }
     if (formType === 'returns') {
       if (!selectedSector) { toast.error('Sector is required for returns forms.'); return; }
@@ -509,13 +514,15 @@ export default function FormBuilder() {
   // when structural changes are detected. See useUpdateTemplateStatus.
 
   const handleFileImport = useCallback((imported: FormSection[]) => {
+    if (!canSave) return;
     setSections(prev => {
       const offset = prev.length;
       return [...prev, ...imported.map((s, i) => ({ ...s, sortOrder: offset + i }))];
     });
-  }, []);
+  }, [canSave]);
 
   const handleMultiSheetImport = useCallback(async (result: MultiSheetParseResult) => {
+    if (!canSave) return;
     if (!selectedSector) { toast.error('Sector is required for returns forms.'); return; }
     if (!selectedSubSector) { toast.error('Sub-Sector is required for returns forms.'); return; }
     if (!selectedCategory) { toast.error('Category is required for returns forms.'); return; }
@@ -628,7 +635,7 @@ export default function FormBuilder() {
     } finally {
       setIsSaving(false);
     }
-  }, [formType, activeRegulatorId, selectedSector, selectedSubSector, selectedCategory, selectedService, dbSectors, dbSubSectors, dbCategories, dbServices, navigate]);
+  }, [canSave, formType, activeRegulatorId, selectedSector, selectedSubSector, selectedCategory, selectedService, dbSectors, dbSubSectors, dbCategories, dbServices, navigate]);
 
   const formTypeLabel = formType === 'pre_license' ? 'Pre-License' : formType === 'post_license' ? 'Post-License' : formType === 'returns' ? 'Returns' : formType === 'registration' ? 'Registration' : formType === 'internal' ? 'Internal' : formType === 'internal_license_action' ? 'Internal — License Action' : 'Form';
 
@@ -653,12 +660,15 @@ export default function FormBuilder() {
               {editId && (
                 <VersionHistory templateId={editId} formName={formName || 'Untitled Form'} formType={formType} />
               )}
-              <FileImportDialog
-                onImport={handleFileImport}
-                onMultiSheetImport={handleMultiSheetImport}
-                autoOpen={searchParams.get('import') === 'excel'}
-                buttonLabel={formType === 'returns' ? 'Import from Excel' : 'Import File'}
-              />
+              {canSave && (
+                <FileImportDialog
+                  onImport={handleFileImport}
+                  onMultiSheetImport={handleMultiSheetImport}
+                  autoOpen={searchParams.get('import') === 'excel'}
+                  buttonLabel={formType === 'returns' ? 'Import from Excel' : 'Import File'}
+                  writeAction="edit"
+                />
+              )}
               <Button
                 variant="outline"
                 onClick={() => {
@@ -674,7 +684,7 @@ export default function FormBuilder() {
                 <Eye className="h-4 w-4 mr-2" /> Preview
               </Button>
               {!isViewMode && (
-                <Button onClick={handleSave} disabled={isSaving}>
+                <Button onClick={handleSave} disabled={isSaving || !canSave}>
                   <Save className="h-4 w-4 mr-2" /> {isSaving ? 'Saving...' : 'Save Form'}
                 </Button>
               )}

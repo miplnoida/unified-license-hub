@@ -25,32 +25,46 @@ import { useCan } from '@/hooks/useCan';
 import type { Regulator } from '@/contexts/RegulatorContext';
 
 function useRegulatorStats(regulatorId: string | null) {
-  const { data: sectors = [] } = useSectors(regulatorId);
-  const { data: forms = [] } = useForms(undefined, regulatorId);
+  const sectorsQuery = useSectors(regulatorId);
+  const formsQuery = useForms(undefined, regulatorId);
 
-  const { data: workflows = [] } = useQuery({
+  const workflowsQuery = useQuery({
     queryKey: ['workflows-count', regulatorId],
     queryFn: async () => {
       let q = supabase.from('approval_workflows').select('id');
       if (regulatorId) q = q.eq('regulator_id', regulatorId);
-      const { data } = await q;
+      const { data, error } = await q;
+      if (error) throw error;
       return data || [];
     },
     enabled: !!regulatorId,
   });
 
-  const { data: fees = [] } = useQuery({
+  const feesQuery = useQuery({
     queryKey: ['fees-count', regulatorId],
     queryFn: async () => {
       let q = supabase.from('fee_configurations' as any).select('id');
       if (regulatorId) q = q.eq('regulator_id', regulatorId);
-      const { data } = await q;
+      const { data, error } = await q;
+      if (error) throw error;
       return (data || []) as any[];
     },
     enabled: !!regulatorId,
   });
 
-  return { sectors: sectors.length, forms: forms.length, workflows: workflows.length, fees: fees.length };
+  // Failed or pending reads are never shown as a zero count.
+  const count = (query: { isLoading: boolean; error: unknown; data: readonly unknown[] | undefined }): number | string => {
+    if (query.error) return 'Unavailable';
+    if (query.isLoading || !query.data) return 'Loading…';
+    return query.data.length;
+  };
+
+  return {
+    sectors: count(sectorsQuery),
+    forms: count(formsQuery),
+    workflows: count(workflowsQuery),
+    fees: count(feesQuery),
+  };
 }
 
 function RegulatorDetail({ regulator }: { regulator: Regulator }) {
@@ -83,7 +97,7 @@ function RegulatorDetail({ regulator }: { regulator: Regulator }) {
 export default function RegulatorManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: regulators = [], isLoading } = useRegulatorMaster();
+  const { data: regulators = [], isLoading, error: regulatorsError, refetch: refetchRegulators } = useRegulatorMaster();
   const { upsert, remove } = useRegulatorMutations();
   const { data: allSectors = [] } = useSectors(); // all sectors, unfiltered
   // GAP-F1-08: regulator identity is governed configuration — `settings.edit`
@@ -200,6 +214,14 @@ export default function RegulatorManagement() {
           description="Manage regulatory divisions, view their mapped sectors, forms, workflows, and fee structures."
         />
 
+        {isLoading ? (
+          <p role="status" className="py-8 text-center text-sm text-muted-foreground">Loading regulators…</p>
+        ) : regulatorsError ? (
+          <div role="alert" className="flex items-center justify-between gap-4 rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
+            <span>Unable to load regulators.</span>
+            <Button variant="outline" size="sm" onClick={() => void refetchRegulators()}>Retry</Button>
+          </div>
+        ) : (
         <DataTableShell
           columns={columns}
           data={regulators}
@@ -210,6 +232,7 @@ export default function RegulatorManagement() {
             </GuardedButton>
           )}
         />
+        )}
 
         {selectedRegulator && (
           <Card className="animate-slide-up">

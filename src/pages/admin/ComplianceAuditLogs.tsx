@@ -142,12 +142,28 @@ function download(filename: string, content: string, mime = 'text/csv') {
   URL.revokeObjectURL(url);
 }
 
+function LoadFeedback({ label, error, loading, stale, retry }: {
+  label: string;
+  error: boolean;
+  loading: boolean;
+  stale: boolean;
+  retry: () => void;
+}) {
+  return <>
+    {error && <div role="alert">
+      Unable to load {label}.{stale && ' Showing stale results from the previous successful load.'}
+      <Button variant="outline" onClick={retry} disabled={loading}>Retry {label}</Button>
+    </div>}
+    {loading && <p role="status">Loading {label}...</p>}
+  </>;
+}
+
 export default function ComplianceAuditLogs() {
   const [tab, setTab] = useState('all');
 
   // ---- All Entries ----
   const [rows, setRows] = useState<AuditRow[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [objectType, setObjectType] = useState('');
   const [objectId, setObjectId] = useState('');
@@ -169,23 +185,37 @@ export default function ComplianceAuditLogs() {
   const [secLoading, setSecLoading] = useState(false);
   const [secType, setSecType] = useState<string>('all');
 
+  const [allError, setAllError] = useState(false);
+  const [caseError, setCaseError] = useState(false);
+  const [initiationsError, setInitiationsError] = useState(false);
+  const [secError, setSecError] = useState(false);
+  const [allLoaded, setAllLoaded] = useState(false);
+  const [secLoaded, setSecLoaded] = useState(false);
+
   async function loadAll() {
     setLoading(true);
-    let q = supabase
-      .from('audit_timeline')
-      .select('*')
-      .order('occurred_at', { ascending: false })
-      .limit(500);
-    if (actionFilter !== 'all') q = q.eq('action', actionFilter);
-    if (objectType) q = q.ilike('object_type', `%${objectType}%`);
-    if (objectId) q = q.eq('object_id', objectId);
-    if (userId) q = q.eq('user_id', userId);
-    if (from) q = q.gte('occurred_at', from);
-    if (to) q = q.lte('occurred_at', new Date(new Date(to).getTime() + 86400000).toISOString());
-    const { data, error } = await q;
-    if (error) console.warn(error);
-    setRows(((data as any[]) ?? []).map(normalizeTimelineRow));
-    setLoading(false);
+    try {
+      let q = supabase
+        .from('audit_timeline')
+        .select('*')
+        .order('occurred_at', { ascending: false })
+        .limit(500);
+      if (actionFilter !== 'all') q = q.eq('action', actionFilter);
+      if (objectType) q = q.ilike('object_type', `%${objectType}%`);
+      if (objectId) q = q.eq('object_id', objectId);
+      if (userId) q = q.eq('user_id', userId);
+      if (from) q = q.gte('occurred_at', from);
+      if (to) q = q.lte('occurred_at', new Date(new Date(to).getTime() + 86400000).toISOString());
+      const { data, error } = await q;
+      if (error) throw error;
+      setRows(((data as any[]) ?? []).map(normalizeTimelineRow));
+      setAllError(false);
+      setAllLoaded(true);
+    } catch {
+      setAllError(true);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function loadCase(overrideType?: string, overrideId?: string) {
@@ -195,32 +225,46 @@ export default function ComplianceAuditLogs() {
     // right after calling their own setState.
     const type = overrideType ?? caseObjectType;
     const id = (overrideId ?? caseObjectId).trim();
-    if (!id) { setCaseRows([]); return; }
+    if (!id) { setCaseRows([]); setCaseError(false); return; }
     setCaseLoading(true);
-    const { data } = await supabase
-      .from('audit_timeline')
-      .select('*')
-      .eq('object_type', type)
-      .eq('object_id', id)
-      .order('occurred_at', { ascending: true });
-    setCaseRows(((data as any[]) ?? []).map(normalizeTimelineRow));
-    setCaseLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('audit_timeline')
+        .select('*')
+        .eq('object_type', type)
+        .eq('object_id', id)
+        .order('occurred_at', { ascending: true });
+      if (error) throw error;
+      setCaseRows(((data as any[]) ?? []).map(normalizeTimelineRow));
+      setCaseError(false);
+    } catch {
+      setCaseError(true);
+    } finally {
+      setCaseLoading(false);
+    }
   }
 
   async function loadInitiations() {
     setInitiationsLoading(true);
-    const { data } = await supabase
-      .from('fp_assessments')
-      .select('id, assessment_type, created_at, fp_individuals(full_name)')
-      .order('created_at', { ascending: false })
-      .limit(200);
-    setInitiations(((data as any[]) ?? []).map((r: any) => ({
-      id: r.id,
-      individual_name: r.fp_individuals?.full_name ?? 'Unknown individual',
-      assessment_type: r.assessment_type,
-      created_at: r.created_at,
-    })));
-    setInitiationsLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('fp_assessments')
+        .select('id, assessment_type, created_at, fp_individuals(full_name)')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      setInitiations(((data as any[]) ?? []).map((r: any) => ({
+        id: r.id,
+        individual_name: r.fp_individuals?.full_name ?? 'Unknown individual',
+        assessment_type: r.assessment_type,
+        created_at: r.created_at,
+      })));
+      setInitiationsError(false);
+    } catch {
+      setInitiationsError(true);
+    } finally {
+      setInitiationsLoading(false);
+    }
   }
 
   // "Declaration" traces are keyed by the initiating fp_assessment, not a
@@ -239,15 +283,23 @@ export default function ComplianceAuditLogs() {
 
   async function loadSec() {
     setSecLoading(true);
-    let q = supabase
-      .from('security_event_logs' as any)
-      .select('*')
-      .order('event_time', { ascending: false })
-      .limit(500);
-    if (secType !== 'all') q = q.eq('event_type', secType);
-    const { data } = await q;
-    setSecRows((data as any[] as SecurityRow[]) ?? []);
-    setSecLoading(false);
+    try {
+      let q = supabase
+        .from('security_event_logs' as any)
+        .select('*')
+        .order('event_time', { ascending: false })
+        .limit(500);
+      if (secType !== 'all') q = q.eq('event_type', secType);
+      const { data, error } = await q;
+      if (error) throw error;
+      setSecRows((data as any[] as SecurityRow[]) ?? []);
+      setSecError(false);
+      setSecLoaded(true);
+    } catch {
+      setSecError(true);
+    } finally {
+      setSecLoading(false);
+    }
   }
 
   useEffect(() => { if (tab === 'all') loadAll(); }, [tab]);
@@ -313,6 +365,7 @@ export default function ComplianceAuditLogs() {
 
           {/* ---------- All Entries ---------- */}
           <TabsContent value="all" className="space-y-4">
+            <LoadFeedback label="audit entries" error={allError} loading={loading} stale={rows.length > 0} retry={loadAll} />
             <Card>
               <CardHeader><CardTitle className="text-base">Filters</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -368,7 +421,7 @@ export default function ComplianceAuditLogs() {
                         <TableCell className="font-mono text-xs">{r.ip_address ?? '—'}</TableCell>
                       </TableRow>
                     ))}
-                    {!loading && rows.length === 0 && (
+                    {allLoaded && !allError && !loading && rows.length === 0 && (
                       <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No entries</TableCell></TableRow>
                     )}
                   </TableBody>
@@ -379,6 +432,7 @@ export default function ComplianceAuditLogs() {
 
           {/* ---------- Case-Centric ---------- */}
           <TabsContent value="case" className="space-y-4">
+            <LoadFeedback label="case history" error={caseError} loading={caseLoading} stale={caseRows.length > 0} retry={() => loadCase()} />
             <Card>
               <CardHeader><CardTitle className="text-base">Trace by Object</CardTitle></CardHeader>
               <CardContent className="flex flex-wrap items-end gap-3">
@@ -386,7 +440,7 @@ export default function ComplianceAuditLogs() {
                   <Label>Object Type</Label>
                   <Select
                     value={caseObjectType}
-                    onValueChange={(v) => { setCaseObjectType(v); setCaseObjectId(''); setCaseRows([]); }}
+                    onValueChange={(v) => { setCaseObjectType(v); setCaseObjectId(''); setCaseRows([]); setCaseError(false); }}
                   >
                     <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -398,6 +452,7 @@ export default function ComplianceAuditLogs() {
                 {caseObjectType === 'fp_assessment' ? (
                   <div className="flex-1 min-w-[260px]">
                     <Label>Initiation</Label>
+                    <LoadFeedback label="initiations" error={initiationsError} loading={initiationsLoading} stale={initiations.length > 0} retry={loadInitiations} />
                     <Select
                       value={caseObjectId}
                       onValueChange={selectInitiation}
@@ -432,7 +487,7 @@ export default function ComplianceAuditLogs() {
 
             <Card>
               <CardContent className="p-4">
-                {caseRows.length === 0 && !caseLoading && (
+                {caseRows.length === 0 && !caseLoading && !caseError && (
                   <p className="text-sm text-muted-foreground text-center py-8">Enter an object ID and click Trace to view its chronological audit trail.</p>
                 )}
                 <ol className="relative border-l border-border ml-3 space-y-4">
@@ -499,6 +554,7 @@ export default function ComplianceAuditLogs() {
 
           {/* ---------- Security Events ---------- */}
           <TabsContent value="security" className="space-y-4">
+            <LoadFeedback label="security events" error={secError} loading={secLoading} stale={secRows.length > 0} retry={loadSec} />
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2"><FileWarning className="h-4 w-4" /> Security Event Log</CardTitle>
@@ -537,7 +593,7 @@ export default function ComplianceAuditLogs() {
                         <TableCell className="font-mono text-xs">{s.ip_address ?? '—'}</TableCell>
                       </TableRow>
                     ))}
-                    {!secLoading && secRows.length === 0 && (
+                    {secLoaded && !secError && !secLoading && secRows.length === 0 && (
                       <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No security events</TableCell></TableRow>
                     )}
                   </TableBody>

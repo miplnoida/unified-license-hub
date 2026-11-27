@@ -14,6 +14,8 @@ import { Plus, Edit, Trash2, Upload, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Swal from 'sweetalert2';
 import { useRegulator } from '@/contexts/RegulatorContext';
+import { GuardedButton } from '@/components/auth/GuardedButton';
+import { useCan } from '@/hooks/useCan';
 import {
   useSectors, useSubSectors, useCategories, useServices, useMasterMutations,
   type SectorRow, type SubSectorRow, type CategoryRow, type ServiceRow,
@@ -29,6 +31,7 @@ export default function MasterConfiguration() {
   const [activeTab, setActiveTab] = useState<EntityType>(pathTab);
   const { toast } = useToast();
   const { activeRegulatorId } = useRegulator();
+  const canEdit = useCan('settings', 'edit');
 
   useEffect(() => { setActiveTab(pathTab); }, [pathTab]);
 
@@ -37,10 +40,14 @@ export default function MasterConfiguration() {
     navigate(`/admin/masters/${v}`);
   };
 
-  const { data: sectors = [], isLoading: loadingSectors } = useSectors(activeRegulatorId);
-  const { data: subSectors = [], isLoading: loadingSubs } = useSubSectors(activeRegulatorId);
-  const { data: categories = [], isLoading: loadingCats } = useCategories(activeRegulatorId);
-  const { data: services = [], isLoading: loadingSvcs } = useServices(activeRegulatorId);
+  const sectorsQuery = useSectors(activeRegulatorId);
+  const subSectorsQuery = useSubSectors(activeRegulatorId);
+  const categoriesQuery = useCategories(activeRegulatorId);
+  const servicesQuery = useServices(activeRegulatorId);
+  const sectors = sectorsQuery.data ?? [];
+  const subSectors = subSectorsQuery.data ?? [];
+  const categories = categoriesQuery.data ?? [];
+  const services = servicesQuery.data ?? [];
   const mutations = useMasterMutations();
 
   // Dialog state
@@ -56,9 +63,12 @@ export default function MasterConfiguration() {
   const [importOpen, setImportOpen] = useState(false);
   const [importEntity, setImportEntity] = useState<ImportEntity>('sectors');
 
-  const openImport = (entity: ImportEntity) => { setImportEntity(entity); setImportOpen(true); };
+  const openImport = (entity: ImportEntity) => { if (!canEdit) return; setImportEntity(entity); setImportOpen(true); };
 
   const handleImportRows = async (rows: ParsedRow[]) => {
+    if (!canEdit) {
+      return { success: 0, failed: rows.length, errors: ['You do not have permission to change master configuration.'] };
+    }
     let success = 0; let failed = 0; const errors: string[] = [];
     for (const r of rows) {
       try {
@@ -81,6 +91,7 @@ export default function MasterConfiguration() {
 
 
   const openAdd = (entity: EntityType) => {
+    if (!canEdit) return;
     setDialogEntity(entity);
     setEditId(null);
     setFormName('');
@@ -91,6 +102,7 @@ export default function MasterConfiguration() {
   };
 
   const openEdit = (entity: EntityType, row: any) => {
+    if (!canEdit) return;
     setDialogEntity(entity);
     setEditId(row.id);
     setFormName(row.name);
@@ -101,6 +113,7 @@ export default function MasterConfiguration() {
   };
 
   const handleDelete = async (entity: EntityType, id: string) => {
+    if (!canEdit) return;
     const singular: Record<EntityType, string> = {
       'sectors': 'sector', 'sub-sectors': 'sub-sector', 'categories': 'category', 'services': 'service',
     };
@@ -147,6 +160,7 @@ export default function MasterConfiguration() {
   };
 
   const handleSave = async () => {
+    if (!canEdit) return;
     if (!formName.trim()) {
       toast({ title: 'Name is required', variant: 'destructive' });
       return;
@@ -182,12 +196,12 @@ export default function MasterConfiguration() {
 
   // Column helpers
   const actionCol = (entity: EntityType): Column<any> => ({
-    key: 'actions', label: '', render: (r: any) => (
+    key: 'actions', label: '', render: (r: any) => canEdit ? (
       <div className="flex gap-1">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(entity, r)}><Edit className="h-4 w-4" /></Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(entity, r.id)}><Trash2 className="h-4 w-4" /></Button>
+        <GuardedButton module="settings" action="edit" variant="ghost" size="icon" className="h-8 w-8" aria-label="Edit" onClick={() => openEdit(entity, r)}><Edit className="h-4 w-4" /></GuardedButton>
+        <GuardedButton module="settings" action="edit" variant="ghost" size="icon" className="h-8 w-8 text-destructive" aria-label="Delete" onClick={() => handleDelete(entity, r.id)}><Trash2 className="h-4 w-4" /></GuardedButton>
       </div>
-    ),
+    ) : null,
   });
 
   const statusCol: Column<any> = {
@@ -243,25 +257,34 @@ export default function MasterConfiguration() {
 
           {(['sectors','sub-sectors','categories','services'] as EntityType[]).map(ent => {
             const cfg = {
-              'sectors': { cols: sectorColumns, data: sectors, ph: 'Search sectors...', label: 'Sector' },
-              'sub-sectors': { cols: subSectorColumns, data: subSectors, ph: 'Search sub-sectors...', label: 'Sub-Sector' },
-              'categories': { cols: categoryColumns, data: categories, ph: 'Search categories...', label: 'Category' },
-              'services': { cols: serviceColumns, data: services, ph: 'Search services...', label: 'Service' },
+              'sectors': { cols: sectorColumns, data: sectors, ph: 'Search sectors...', label: 'Sector', query: sectorsQuery },
+              'sub-sectors': { cols: subSectorColumns, data: subSectors, ph: 'Search sub-sectors...', label: 'Sub-Sector', query: subSectorsQuery },
+              'categories': { cols: categoryColumns, data: categories, ph: 'Search categories...', label: 'Category', query: categoriesQuery },
+              'services': { cols: serviceColumns, data: services, ph: 'Search services...', label: 'Service', query: servicesQuery },
             }[ent] as any;
             return (
               <TabsContent key={ent} value={ent}>
+                {cfg.query.isLoading ? (
+                  <p role="status" className="py-8 text-center text-sm text-muted-foreground">Loading {cfg.label.toLowerCase()} data…</p>
+                ) : cfg.query.error ? (
+                  <div role="alert" className="flex items-center justify-between gap-4 rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
+                    <span>Unable to load {cfg.label.toLowerCase()} data.</span>
+                    <Button variant="outline" size="sm" onClick={() => void cfg.query.refetch()}>Retry</Button>
+                  </div>
+                ) : (
                 <DataTableShell columns={cfg.cols} data={cfg.data} searchPlaceholder={cfg.ph}
                   actions={
                     <div className="flex gap-2">
-                      <Button data-rbac="settings.edit" variant="outline" onClick={() => downloadSampleExcel(ent)}>
+                      <Button data-rbac="settings.view" variant="outline" onClick={() => downloadSampleExcel(ent)}>
                         <FileSpreadsheet className="h-4 w-4 mr-2" />Sample Excel
                       </Button>
-                      <Button data-rbac="settings.edit" variant="outline" onClick={() => openImport(ent)}>
+                      <GuardedButton module="settings" action="edit" variant="outline" onClick={() => openImport(ent)}>
                         <Upload className="h-4 w-4 mr-2" />Import Excel
-                      </Button>
-                      <Button data-rbac="settings.edit" onClick={() => openAdd(ent)}><Plus className="h-4 w-4 mr-2" />Add {cfg.label}</Button>
+                      </GuardedButton>
+                      <GuardedButton module="settings" action="edit" onClick={() => openAdd(ent)}><Plus className="h-4 w-4 mr-2" />Add {cfg.label}</GuardedButton>
                     </div>
                   } />
+                )}
               </TabsContent>
             );
           })}
@@ -318,7 +341,7 @@ export default function MasterConfiguration() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave}>{editId ? 'Update' : 'Create'}</Button>
+            <GuardedButton module="settings" action="edit" onClick={handleSave}>{editId ? 'Update' : 'Create'}</GuardedButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
