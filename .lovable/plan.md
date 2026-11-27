@@ -27,3 +27,12 @@ Scope follows the uploaded brief exactly. No SQL execution, no backend function 
 
 ## 6. Report
 Concise chat report: fixes, files, tests, remaining blockers, SEC-01 packages A/B/C for separate approval, recommended next batch. Commit; stop before any SQL or deployment.
+
+## Additional approved conditions
+- Complete all eligible frontend fixes; a blocked item does not stop the batch.
+- SEC-01: keep the full AML/CFT freeze boundary including shared dependencies; Package C states its effect on future AML/CFT tables; verify effective privileges incl. inherited (PUBLIC/role membership) grants first; preserve public services.
+- Frontend checks must match existing backend authorization contracts; preserve read-only access and authorized workflows.
+- Tests cover authorized and unauthorized actions, including direct handler invocation.
+- No changes to permissions, role assignments or business rules without approval.
+- Compare against `e2e1017e2`; confirm no new lint problems in changed files.
+- Audit final Git diff; confirm commit/sync triggers no deployment or database activity.
