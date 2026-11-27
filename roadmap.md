@@ -141,5 +141,7 @@
 - [x] Form renderer isolated tests (11)
 - [x] Batch 2 read-only sweep (.lovable/reviews/batch2-functional-results.md); fixed Person 360 refusal message and public register false-empty
 - [ ] Batch 2 write tests — awaiting grouped approval
-- [ ] Three STABLE temp-table functions (.lovable/reviews/batch2-volatility-fix-approval.md) — awaiting approval
+- [ ] Consolidated approvals A–C (.lovable/reviews/consolidated-approval-request.md) — awaiting user
 - [ ] Public register anon EXECUTE — permission change, held
+- [x] 27 Nov: remaining-module read-only sweep (132 pages) + detail tabs; tracker .lovable/reviews/functional-tracker.md
+- [ ] 30 Nov / 1 Dec: QA write journeys per module, final regression, readiness status — needs a session started by the user
