@@ -30,3 +30,14 @@ A Batch 1 report in chat, per module: features identified, tested, passed, faile
 - Playwright via shell against localhost:8080, signed in with `lovable auth-session`; screenshots go in /tmp/browser. Requests that write data (POST/PATCH/DELETE to the database) are blocked at the network layer so nothing is saved by accident.
 - Workbook rows are read with pandas; the tracker goes in `.lovable/reviews/batch1-functional-results.md`.
 - After fixes: TypeScript, focused Vitest runs, lint on changed files, and one commit.
+
+## Approval conditions (added)
+- Cover every feature and sub-feature in the six modules: modals, dropdowns, dependent fields, validation, settings, import/export, versioning and publishing.
+- Use real screens and confirmed URLs. Test as ordinary roles and as admins, checking both allowed and blocked actions.
+- In the browser, block all writes: data writes, RPC calls, backend functions, background requests and outside services. Anything that can't be isolated is marked BLOCKED.
+- Create, edit, save, submit, approve, import and publish never get PASS from mocked tests or blocked requests alone.
+- Fix confirmed code defects without changing business rules, then retest the fix and anything that depends on it.
+- At the end, run the full Vitest suite, TypeScript, the production build and lint on changed files, and confirm there are no new regressions.
+- Send one approval request for the remaining write tests, grouped by module. For each: record name, role, action, expected outcome, affected records and modules, side effects, and retention or cleanup. None runs until approved.
+- SEC-01 A/B/C, pending database changes, AML/CFT and all holds stay unchanged. Confirm that syncing and preview updates trigger no deployment or database change.
+- Share the consolidated report in chat, then stop before Batch 2.
