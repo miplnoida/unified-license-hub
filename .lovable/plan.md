@@ -35,3 +35,15 @@ Sections A–F as specified (baseline, findings table, database work, regression
 ## Technical notes
 - Tests for edge functions use extracted pure helpers plus mocked Supabase/provider clients.
 - Each fix committed separately; any fix causing a new failure is reverted before continuing.
+
+## Approval conditions (from your approval note)
+- Order: baseline, access review, SEC-03, SEC-09, SEC-11, SEC-10, SEC-18, SEC-12, SEC-13, stability fixes, database proposals, full regression, report.
+- Baseline uses the actual current commit; tests confirmed unable to reach the shared database or providers before running.
+- Browser checks block every write request; screens with background writes, polling or audit logging are reported BLOCKED if they cannot be isolated. RPCs run only when confirmed read-only.
+- SEC-03 adds loading, error and retry states; sign-in and essential navigation stay reachable.
+- SEC-09/10/11/12/13: every caller listed first; existing contracts only — no new secrets, scopes, scan states or calculation methods. Missing contracts are reported, not invented.
+- SEC-11 checks both record access and authority to send correspondence, plus recipient scope.
+- SEC-18 separates provider acceptance from delivery; mocks cover success, failure, timeout and save failure; duplicate prevention needing database work goes to the proposals file.
+- Shared code used by AML/CFT is checked and left unchanged if affected.
+- Before committing, confirm that local commits do not deploy anything; if they would, stop and report.
+- Final report uses your status labels (FIXED IN SOURCE, PENDING DEPLOYMENT, BLOCKED — DATABASE APPROVAL REQUIRED, etc.); backend fixes are never called live until deployed.
