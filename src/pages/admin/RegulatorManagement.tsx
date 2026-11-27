@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTableShell, Column } from '@/components/shared/DataTableShell';
@@ -177,6 +178,16 @@ export default function RegulatorManagement() {
   };
 
   const handleDelete = async (id: string) => {
+    const res = await Swal.fire({
+      title: 'Retire regulator?',
+      text: 'This regulator will be retired and no longer offered for new configuration. Existing history is kept.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, retire',
+      cancelButtonText: 'Cancel',
+      focusCancel: true,
+    });
+    if (!res.isConfirmed) return;
     try {
       await remove.mutateAsync(id);
       toast({ title: 'Deleted' });

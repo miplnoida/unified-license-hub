@@ -17,6 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 import {
   Users, Shield, UserCheck, UserX, Edit, Lock, Unlock, Plus, Copy, KeyRound, RefreshCw, Upload, User as UserIcon, ShieldCheck,
 } from 'lucide-react';
@@ -200,6 +201,18 @@ export default function UserManagement() {
 
   const toggleStatus = async (u: UserRecord) => {
     const next = u.status === 'active' ? 'inactive' : 'active';
+    if (next === 'inactive') {
+      const res = await Swal.fire({
+        title: 'Deactivate employee?',
+        text: `${u.full_name || u.email || 'This employee'} will no longer be able to sign in until reactivated.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, deactivate',
+        cancelButtonText: 'Cancel',
+        focusCancel: true,
+      });
+      if (!res.isConfirmed) return;
+    }
     const { error } = await supabase.from('profiles').update({ status: next }).eq('id', u.id);
     if (error) { toast.error(error.message); return; }
     setUsers(prev => prev.map(x => x.id === u.id ? { ...x, status: next } : x));

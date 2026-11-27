@@ -21,6 +21,7 @@ import { useFormTemplates, type FormTemplate } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
 
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 import { CALCULATION_TYPE_LABELS, CalculationType, FEE_RULE_TYPE_LABELS, FeeRuleType } from '@/types/platform';
 import { PlusCircle, Pencil, Trash2, Loader2, Calculator, ShieldOff, Percent, DollarSign, Info } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
@@ -70,6 +71,19 @@ interface FeeTypeAmountRow {
   minAmount: string;
   maxAmount: string;
   error?: string;
+}
+
+async function confirmRetire(label: string): Promise<boolean> {
+  const res = await Swal.fire({
+    title: `Retire ${label}?`,
+    text: `This ${label} will be retired and no longer used. Existing history is kept.`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, retire',
+    cancelButtonText: 'Cancel',
+    focusCancel: true,
+  });
+  return res.isConfirmed;
 }
 
 export default function FeeManagement() {
@@ -180,6 +194,7 @@ export default function FeeManagement() {
   };
 
   const handleDeleteFt = async (id: string) => {
+    if (!(await confirmRetire('fee type'))) return;
     // Fee types are referenced by assessed fees — retire instead of deleting.
     try {
       await configRetire('fee_types', id, { entityLabel: 'fee type' });
@@ -413,6 +428,7 @@ export default function FeeManagement() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!(await confirmRetire('fee configuration'))) return;
     try {
       await configRetire('fee_configurations', id, { entityLabel: 'fee configuration' });
     } catch (error: any) { toast.error(error?.message ?? 'Could not retire fee'); return; }
@@ -420,6 +436,7 @@ export default function FeeManagement() {
   };
 
   const handleDeleteRule = async (id: string) => {
+    if (!(await confirmRetire('fee rule'))) return;
     try {
       await configRetire('fee_rules', id, { entityLabel: 'fee rule' });
     } catch (error: any) { toast.error(error?.message ?? 'Could not retire rule'); return; }

@@ -122,3 +122,10 @@
 3. SEC-02 server package entitlement — `package_feature_enabled` checks in RPCs. Depends on package mapping (done). Gate: DB approval.
 4. SEC-04 post-licence identity predicate in `create_application_draft`. Gate: DB approval; keep renewal exception.
 5. SEC-05 entity-scoped `has_portal_capability`. Depends on membership/PPOC rule decision. Gate: DB approval.
+
+## Functional testing — Batch 1 (2026-11-27)
+- [x] Browser pass of the six Batch 1 modules with writes blocked; results in .lovable/reviews/batch1-functional-results.md
+- [x] Fixed missing confirmations: employee Deactivate, fee/fee rule/fee type Delete, regulator Retire
+- [ ] Write-action tests — waiting on owner approval
+- [ ] Ordinary-role browser tests — waiting on approval for a test user and role grant
+- [ ] Batch 2 — waiting on owner instruction
