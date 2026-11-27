@@ -408,6 +408,7 @@ export default function FeeManagement() {
 
   const handleSaveRule = async () => {
     if (!ruleName.trim() || !ruleFeeId) { toast.error('Name and fee configuration are required'); return; }
+    if (ruleType === 'calculation' && !ruleExpression.trim()) { toast.error('Expression is required for a calculation rule'); return; }
     setSaving(true);
     const payload: any = {
       fee_configuration_id: ruleFeeId, rule_type: ruleType, name: ruleName.trim(),
@@ -878,7 +879,7 @@ export default function FeeManagement() {
 
                     {ruleType === 'calculation' && (
                       <div className="space-y-2">
-                        <Label>Expression</Label>
+                        <Label>Expression *</Label>
                         <Input value={ruleExpression} onChange={e => setRuleExpression(e.target.value)} placeholder="{turnover} * 0.005" className="font-mono" />
                       </div>
                     )}

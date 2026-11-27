@@ -133,3 +133,13 @@
 - [x] Batch 1 write testing and closure (2026-11-27)
 - [ ] Workflow creation database function broken (D3) — needs approval for a database function change
 - [ ] Employee creation always notifies (D6) — needs approval for a backend function change; blocks User and ordinary-role tests
+
+## Batch 1 pending + Batch 2 read-only (2026-11-27)
+- [x] Workflow create root cause + fix/rollback pack (.lovable/reviews/workflow-create-fix-approval.md) — awaiting approval
+- [x] Employee notification defect analysed — backend change awaiting approval; ordinary-role tests BLOCKED (no authorised account)
+- [x] Fee O1 fixed (expression required); O2 not a defect
+- [x] Form renderer isolated tests (11)
+- [x] Batch 2 read-only sweep (.lovable/reviews/batch2-functional-results.md); fixed Person 360 refusal message and public register false-empty
+- [ ] Batch 2 write tests — awaiting grouped approval
+- [ ] Three STABLE temp-table functions (.lovable/reviews/batch2-volatility-fix-approval.md) — awaiting approval
+- [ ] Public register anon EXECUTE — permission change, held

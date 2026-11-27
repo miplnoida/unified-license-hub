@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/table';
 import { ScreenHelpLink } from '@/components/help/ScreenHelpLink';
 import { PersonAddressIntelligencePanel } from '@/components/addresses/PersonAddressIntelligencePanel';
-import { usePerson360, usePersonNetworkAsOf, type PersonNetwork } from '@/hooks/usePerson360';
+import { usePerson360, usePersonNetworkAsOf, personRefusalMessage, type PersonNetwork } from '@/hooks/usePerson360';
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
@@ -65,7 +65,7 @@ export default function Person360Detail() {
         <Alert variant="destructive">
           <AlertTitle>Person profile unavailable</AlertTitle>
           <AlertDescription>
-            {error instanceof Error ? error.message : 'This canonical person could not be read.'}
+            {error ? personRefusalMessage(error) : 'This canonical person could not be read.'}
           </AlertDescription>
         </Alert>
       </div>

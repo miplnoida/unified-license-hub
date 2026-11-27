@@ -141,11 +141,28 @@ export interface IdentityQueueRow {
   reason: string | null;
 }
 
+const PERSON_REFUSAL_MESSAGES: Record<string, string> = {
+  PERSON_PARTY_REQUIRED: 'This record is an organisation, not a person. Open it from the entity directory instead.',
+  AUTH_REQUIRED: 'Sign in to view this person profile.',
+};
+
+export function isDeterministicPersonRefusal(err: unknown): boolean {
+  return err instanceof Error && err.message in PERSON_REFUSAL_MESSAGES;
+}
+
+/** Plain-language message for a Person 360 refusal; unknown errors are shown unchanged. */
+export function personRefusalMessage(err: unknown): string {
+  if (!(err instanceof Error)) return 'This canonical person could not be read.';
+  return PERSON_REFUSAL_MESSAGES[err.message] ?? err.message;
+}
+
 export function usePerson360(partyId?: string) {
   return useQuery({
     queryKey: ['person360', partyId],
     enabled: !!partyId,
     queryFn: () => rpc<PersonNetwork>('person_360_overview', { _person_party_id: partyId }),
+    // A refusal such as PERSON_PARTY_REQUIRED is deterministic; retrying only delays the message.
+    retry: (count, err) => !isDeterministicPersonRefusal(err) && count < 3,
   });
 }
 

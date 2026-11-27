@@ -74,3 +74,11 @@ No QA user or workflow was created.
 
 ## Regression (vs e52f66603)
 Full offline suite 2,003/2,007; same four RBAC coverage failures as baseline. TypeScript passed. Changed-file lint equal to baseline. Build is run by the platform.
+
+## Pending-issue follow-up (2026-11-27)
+- **Workflow creation (F01-05/F01-04): BLOCKED.** Root cause confirmed: `approval_steps.allowed_actions` is jsonb and the type `workflow_action_type` no longer exists, but `create_approval_workflow_with_steps` still casts to `workflow_action_type[]`. A one-line fix plus a verbatim rollback is in `workflow-create-fix-approval.md`. Not executed.
+- **Employee creation (F02-05/F19-02): DEFECT, BLOCKED.** `create-web-user` picks the event `entity.secondary_user_created` when `user_type === 'secondary'` and otherwise always picks `entity.primary_user_created`. Internal employees (`user_type: 'employee'`) therefore fire the licensee "Portal access granted" notice. This is not intentional: no employee event exists. Proposed change, not made: skip the entity dispatch when `user_type === 'employee'`. Primary and secondary licensee provisioning would be unchanged, and the employee credentials email (`send_email`) is unaffected. No sign-in path for the existing QA-style Licensing Supervisor account (yopmail) is authorised for this agent, so ordinary-role testing stays BLOCKED.
+- **Fee O1: FIXED.** A Calculation-type rule now requires an expression, and the label shows `Expression *`. Fee rules are not evaluated by any calculation code, so an empty expression had no effect before. Source-verified.
+- **Fee O2: NOT A DEFECT.** The Fee Configs counter equals the list rows, which are the active regulator's configurations plus global ones (`regulator_id IS NULL`), the same scope as the table. The rule counters (Calc/Exemption/Discount) count every rule regardless of regulator. Reported, not changed, because the list below them has the same scope.
+- **Form renderer (F01-03): PASS (isolated).** `src/test/batch1FormRendererValidation.test.tsx` has 11 tests covering required fields, show-when visibility, require-when dependency, email/phone/min-max validation, imported fields with layout, invalid submission and legacy fields. Preview stays read-only, and the QA form is still an unpublished draft.
+- **Regulator retire toast: source-verified, not browser-verified.**

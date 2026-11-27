@@ -21,7 +21,7 @@ export default function PublicEntityRegister() {
   const [term, setTerm] = useState('');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
-  const { data: rows = [], isLoading } = usePublicEntityRegister({ query, limit: PAGE, offset: page * PAGE });
+  const { data: rows = [], isLoading, isError, refetch } = usePublicEntityRegister({ query, limit: PAGE, offset: page * PAGE });
 
   return (
     <div className="min-h-screen bg-background">
@@ -67,7 +67,13 @@ export default function PublicEntityRegister() {
                 {isLoading && (
                   <tr><td colSpan={5} className="px-4 py-10 text-center"><Loader2 className="inline h-5 w-5 animate-spin" /></td></tr>
                 )}
-                {!isLoading && rows.length === 0 && (
+                {!isLoading && isError && (
+                  <tr><td colSpan={5} className="px-4 py-10 text-center text-destructive" role="alert">
+                    The register could not be loaded right now. This is not an empty result.{' '}
+                    <Button type="button" variant="link" className="h-auto p-0" onClick={() => refetch()}>Try again</Button>
+                  </td></tr>
+                )}
+                {!isLoading && !isError && rows.length === 0 && (
                   <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">No published entities match this search.</td></tr>
                 )}
                 {rows.map((r) => (
