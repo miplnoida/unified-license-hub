@@ -1,7 +1,7 @@
 BEGIN;
 SET LOCAL lock_timeout = '5s';
 SET LOCAL statement_timeout = '120s';
-GRANT TRUNCATE ON TABLE public.workflow_templates TO authenticated;] map[k:B n:272 s:REVOKE DELETE ON TABLE public.ai_governance_presentation_aliases FROM anon;
+GRANT TRUNCATE ON TABLE public.workflow_templates TO authenticated;
 GRANT DELETE ON TABLE public.api_key_usage TO anon;
 GRANT DELETE ON TABLE public.api_keys TO anon;
 GRANT DELETE ON TABLE public.app_environment_config TO anon;

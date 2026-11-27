@@ -1,3 +1,4 @@
+-- SEC-01 Package A rollback — re-grants exactly the 661 table/role TRUNCATE privileges removed by package-a.sql, nothing else.
 BEGIN;
 SET LOCAL lock_timeout = '5s';
 SET LOCAL statement_timeout = '120s';
@@ -661,5 +662,5 @@ GRANT TRUNCATE ON TABLE public.thematic_review_status_history TO authenticated;
 GRANT TRUNCATE ON TABLE public.user_dynamic_roles TO anon;
 GRANT TRUNCATE ON TABLE public.user_dynamic_roles TO authenticated;
 GRANT TRUNCATE ON TABLE public.workflow_instances TO authenticated;
-GRANT TRUNCATE ON TABLE public.workflow_templates TO authenticated;] map[k:B n:272 s:REVOKE DELETE ON TABLE public.ai_governance_presentation_aliases FROM anon;
+GRANT TRUNCATE ON TABLE public.workflow_templates TO authenticated;
 COMMIT;

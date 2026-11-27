@@ -29,8 +29,12 @@ Effective = direct: no PUBLIC table grants and `anon`/`authenticated` are member
 - Files: `package-c.sql` / `package-c-rollback.sql`.
 - Future tables created by `postgres` or `supabase_admin` in `public` will no longer automatically give TRUNCATE to anon/authenticated or INSERT/UPDATE/DELETE to anon. SELECT and authenticated DML defaults are unchanged.
 - **Future AML/CFT tables:** any new AML/CFT table would start without these privileges and its migration would need explicit GRANTs (already the project rule). Existing frozen tables are not changed. Because AML/CFT development is frozen, no pending AML migration is affected.
-- `supabase_admin` statements may be refused by platform privilege; if so, run the `postgres` lines only and record the gap.
+- All-or-nothing: if the `supabase_admin` statements are refused, the whole package rolls back and is not re-run partially; report back for a decision.
 - Pre/post-check: `select pg_get_userbyid(defaclrole), defaclacl from pg_default_acl where defaclobjtype='r' and defaclnamespace='public'::regnamespace;` — anon should change from `arwdDxtm` to `rxtm`-style (no a/w/d/D), authenticated lose `D`.
 
 ## Transaction and locks (all packages)
 Single transaction each, `lock_timeout 5s`: GRANT/REVOKE takes a brief lock per table; on timeout the whole package rolls back with no partial state. Run off-peak; retry once. Rollback scripts restore exactly the pre-state captured above.
+
+
+## 2026-11-27 closure update
+Live recount: frozen 97 + shared 72 (same 169 total). Package A regenerated from live data, unchanged; rollback rewritten (damaged last line fixed). Package B rollback damaged last line fixed. See `package-a-approval.md`. B and C remain ON HOLD.

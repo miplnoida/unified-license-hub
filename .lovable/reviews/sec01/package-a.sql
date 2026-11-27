@@ -1,3 +1,5 @@
+-- SEC-01 Package A — remove TRUNCATE from anon/authenticated on non-frozen, non-shared public tables.
+-- Generated from live privileges 2026-11-27. NOT EXECUTED. 661 REVOKEs on 355 tables.
 BEGIN;
 SET LOCAL lock_timeout = '5s';
 SET LOCAL statement_timeout = '120s';

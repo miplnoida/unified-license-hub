@@ -107,3 +107,18 @@
 - [x] F11 Compliance Audit Logs error states
 - [x] Permission-decision proposals (access requests, receipts)
 - [x] Regression vs e2e1017e2, lint on changed files, diff audit
+
+## Batch 1 closure + SEC-01 Package A prep (approved 2026-11-27)
+- [x] Form Builder save/import authorization tests
+- [x] Package A regenerated from live privileges; approval pack `.lovable/reviews/sec01/package-a-approval.md`
+- [x] Business-rule proposals R1–R7 (not implemented)
+- [ ] Package A execution — BLOCKED: awaiting owner execution approval
+- [ ] Packages B, C — ON HOLD
+- [ ] R1–R7 implementation — BLOCKED: awaiting approval
+
+## Next batch sequence (proposals reused from `.lovable/reviews/phase1-db-proposals.md`)
+1. SEC-06 appeal events — governed insert command, actor = auth.uid(); drop reader INSERT policy. Gate: DB approval. No dependencies.
+2. SEC-15 prudential maker-checker — reviewer≠submitter, state + version binding, row lock. Gate: DB approval.
+3. SEC-02 server package entitlement — `package_feature_enabled` checks in RPCs. Depends on package mapping (done). Gate: DB approval.
+4. SEC-04 post-licence identity predicate in `create_application_draft`. Gate: DB approval; keep renewal exception.
+5. SEC-05 entity-scoped `has_portal_capability`. Depends on membership/PPOC rule decision. Gate: DB approval.
