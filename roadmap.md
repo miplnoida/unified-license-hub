@@ -83,4 +83,15 @@
 - [x] SEC-03 package settings fail closed (frontend)
 - [ ] SEC-09/10/11/12/13/18 backend fixes — blocked: backend functions auto-deploy; needs deployment approval
 - [ ] SEC-01 TRUNCATE revoke — blocked: database approval (.lovable/reviews/phase1-db-proposals.md)
-- [ ] SEC-02/04/05/06/07/14/15/16/17/19 — not investigated this pass
+- [x] SEC-02/04/05/06/07/14/15/16/17/19 — investigated read-only (Phase 1A); proposals in phase1-db-proposals.md
+- [ ] Apply DB proposals SEC-01/02/04/05/06/07/14/15/16/19 — blocked: database approval
+- [ ] SEC-17 migration-ledger parity — blocked: ledger not readable from sandbox role
+
+## Phase 1A (2026-11-27)
+- [x] Network-isolated baseline 37467d92 vs 63d64892e vs HEAD
+- [x] SEC-03 scenario tests + unrecognised package value fails closed
+- [x] Five permission failures triaged; Board Pack CSV gated, supervisory plan marker fixed
+- [ ] User access request review/decide, entity panel, My Institution, payment receipt markers — blocked: no granular permission contract exists (decision)
+- [x] Audit logs + web users show load errors instead of empty lists
+- [ ] Settings/workflow/form-builder action-level guards — blocked: changes access behaviour; needs decision
+- [ ] SEC-03 live browser check — not tested (needs signed-in session; no safe isolated mock)

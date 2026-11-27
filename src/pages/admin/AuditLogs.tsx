@@ -44,6 +44,7 @@ export default function AuditLogs() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [selected, setSelected] = useState<AuditLog | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   async function fetchPage(offset: number, replace: boolean) {
     if (replace) setLoading(true); else setLoadingMore(true);
@@ -58,7 +59,14 @@ export default function AuditLogs() {
     if (toDate) q = q.lte('created_at', new Date(new Date(toDate).getTime() + 86400000).toISOString());
     if (user !== 'all') q = q.eq('user_id', user);
 
-    const { data, count } = await q;
+    const { data, count, error } = await q;
+    if (error) {
+      // A failed read is not an empty audit history.
+      setLoadError(error.message);
+      if (replace) setLoading(false); else setLoadingMore(false);
+      return;
+    }
+    setLoadError(null);
     let next = (data as any[]) || [];
 
     // Resolve user emails
@@ -185,6 +193,12 @@ export default function AuditLogs() {
           <CardContent>
             {loading ? (
               <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+            ) : loadError ? (
+              <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm space-y-2">
+                <p className="font-medium">Audit logs could not be loaded.</p>
+                <p className="text-muted-foreground">{loadError}</p>
+                <button type="button" onClick={() => fetchPage(0, true)} className="underline text-primary">Try again</button>
+              </div>
             ) : (
               <>
                 <Table>

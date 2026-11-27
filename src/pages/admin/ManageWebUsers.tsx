@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, UserCheck, UserX, Users, Shield } from 'lucide-react';
+import { Plus, UserCheck, UserX, Users, Shield, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,17 +46,27 @@ export default function ManageWebUsers() {
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchData = async () => {
     setFetching(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const [usersRes, { data: licData }] = await Promise.all([
+      const [usersRes, licRes] = await Promise.all([
         supabase.functions.invoke('list-web-users', {
           headers: { Authorization: `Bearer ${session?.access_token || ''}` },
         }),
         supabase.from('licensees' as any).select('id, name, status').eq('status', 'active'),
       ]);
+      const usersError = usersRes.error?.message || (usersRes.data as { error?: string } | null)?.error;
+      if (usersError || licRes.error) {
+        // A failed read is not an empty user list.
+        setLoadError(String(usersError || licRes.error?.message));
+        setFetching(false);
+        return;
+      }
+      setLoadError(null);
+      const licData = licRes.data;
       if (usersRes.data?.profiles) {
         // Filter to only show licensee web users (not pre-licensees or old applicants)
         const webUsers = usersRes.data.profiles.filter(
@@ -65,7 +75,8 @@ export default function ManageWebUsers() {
         setUsers(webUsers);
       }
       setLicensees((licData as any) || []);
-    } catch {
+    } catch (e: unknown) {
+      setLoadError(e instanceof Error ? e.message : 'Failed to load data');
       toast.error('Failed to load data');
     }
     setFetching(false);
@@ -218,7 +229,17 @@ export default function ManageWebUsers() {
         </div>
 
         <div className="animate-slide-up delay-200">
-          <DataTableShell columns={columns} data={users} searchPlaceholder="Search web users..." />
+          {fetching ? (
+            <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+          ) : loadError ? (
+            <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm space-y-2">
+              <p className="font-medium">Web users could not be loaded.</p>
+              <p className="text-muted-foreground">{loadError}</p>
+              <button type="button" onClick={() => fetchData()} className="underline text-primary">Try again</button>
+            </div>
+          ) : (
+            <DataTableShell columns={columns} data={users} searchPlaceholder="Search web users..." />
+          )}
         </div>
       </div>
 

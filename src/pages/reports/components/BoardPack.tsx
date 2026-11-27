@@ -1,3 +1,4 @@
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import { ReportLetterhead } from './ReportLetterhead';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -93,9 +94,11 @@ export function BoardPack() {
           Executive supervisory summary across licensing, returns, complaints and conduct.
         </p>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={downloadCsv} disabled={!data || invalidDates || isLoading || !!error}>
-            <Download className="h-4 w-4 mr-2" />CSV
-          </Button>
+          <PermissionGate module="report_management" action="export">
+            <Button data-rbac="report_management.export" variant="outline" onClick={downloadCsv} disabled={!data || invalidDates || isLoading || !!error}>
+              <Download className="h-4 w-4 mr-2" />CSV
+            </Button>
+          </PermissionGate>
           <Button onClick={() => window.print()} disabled={!data || invalidDates || isLoading || !!error}>
             <Printer className="h-4 w-4 mr-2" />Print / PDF
           </Button>

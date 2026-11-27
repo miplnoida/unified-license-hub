@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
+  PACKAGE_ORDER,
   isModuleEnabledFor,
   isModuleEnabledWhenPackageUnavailable,
   type FeatureOverrides,
@@ -10,7 +11,7 @@ import {
 
 export const SUBSCRIPTION_PACKAGE_QUERY_KEY = ['system-subscription-package'];
 
-/** loading | error (unreadable or no package row) | ready */
+/** loading | error (unreadable, missing row, unrecognised package value or failed refresh) | ready */
 export type SubscriptionPackageStatus = 'loading' | 'error' | 'ready';
 
 export function useSubscriptionPackage() {
@@ -28,7 +29,7 @@ export function useSubscriptionPackage() {
   });
   const status: SubscriptionPackageStatus = isLoading
     ? 'loading'
-    : isError || !data?.active_package
+    : isError || !data?.active_package || !PACKAGE_ORDER.includes(data.active_package)
       ? 'error'
       : 'ready';
   const isReady = status === 'ready';
