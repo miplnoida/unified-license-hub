@@ -164,7 +164,7 @@ export default function WorkflowList() {
     error: typesErrorObj,
   } = useWorkflowTypeConfigs();
   const { data: dynamicRoles = [], isLoading: rolesLoading, error: rolesError, refetch: retryRoles } = useRoles();
-  const { data: sectors = [] } = useSectors(activeRegulatorId);
+  const { data: sectors = [], isLoading: sectorsLoading } = useSectors(activeRegulatorId);
   const { data: subSectors = [] } = useSubSectors(activeRegulatorId);
   const { data: categories = [] } = useCategories(activeRegulatorId);
   const { data: services = [] } = useServices(activeRegulatorId);
@@ -234,6 +234,9 @@ export default function WorkflowList() {
   useEffect(() => {
     if (!regulatorContextReady || allWorkflowsLoading || isLoading || workflowsError || recoveryError) return;
     if (!activeRegulatorId || workflows.length > 0 || allWorkflowsForRecovery.length === 0) return;
+    // A regulator with its own sectors is a real, configured choice that simply
+    // has no workflows yet; keep it so its first workflow can be created.
+    if (sectorsLoading || sectors.length > 0) return;
 
     const counts = allWorkflowsForRecovery.reduce<Record<string, number>>((acc, workflow) => {
       if (!workflow.regulator_id) return acc;
@@ -254,6 +257,8 @@ export default function WorkflowList() {
     recoveryError,
     regulatorContextReady,
     regulators,
+    sectors,
+    sectorsLoading,
     setActiveRegulator,
     workflows.length,
     workflowsError,

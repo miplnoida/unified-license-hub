@@ -129,3 +129,7 @@
 - [ ] Write-action tests — waiting on owner approval
 - [ ] Ordinary-role browser tests — waiting on approval for a test user and role grant
 - [ ] Batch 2 — waiting on owner instruction
+
+- [x] Batch 1 write testing and closure (2026-11-27)
+- [ ] Workflow creation database function broken (D3) — needs approval for a database function change
+- [ ] Employee creation always notifies (D6) — needs approval for a backend function change; blocks User and ordinary-role tests

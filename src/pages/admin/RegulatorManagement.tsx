@@ -190,7 +190,7 @@ export default function RegulatorManagement() {
     if (!res.isConfirmed) return;
     try {
       await remove.mutateAsync(id);
-      toast({ title: 'Deleted' });
+      toast({ title: 'Regulator retired' });
       if (selectedRegulator?.id === id) setSelectedRegulator(null);
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });

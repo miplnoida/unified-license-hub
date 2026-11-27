@@ -517,7 +517,9 @@ export default function FormBuilder() {
     if (!canSave) return;
     setSections(prev => {
       const offset = prev.length;
-      return [...prev, ...imported.map((s, i) => ({ ...s, sortOrder: offset + i }))];
+      // Imported sections arrive as flat field lists; lay them out in rows so
+      // they render in the builder and are kept on save.
+      return [...prev, ...migrateSectionsToRows(imported).map((s, i) => ({ ...s, sortOrder: offset + i }))];
     });
   }, [canSave]);
 
@@ -663,7 +665,9 @@ export default function FormBuilder() {
               {canSave && (
                 <FileImportDialog
                   onImport={handleFileImport}
-                  onMultiSheetImport={handleMultiSheetImport}
+                  // Multi-sheet import builds return templates; other form types merge
+                  // the imported sections into the form being edited.
+                  onMultiSheetImport={formType === 'returns' ? handleMultiSheetImport : undefined}
                   autoOpen={searchParams.get('import') === 'excel'}
                   buttonLabel={formType === 'returns' ? 'Import from Excel' : 'Import File'}
                   writeAction="edit"
