@@ -59,3 +59,15 @@ export function isModuleEnabledFor(module: string | null | undefined, pkg: Packa
   if (owners.length === 0) return false;
   return owners.some((f) => isFeatureEnabled(f, pkg, overrides));
 }
+
+/**
+ * Fail-closed check used while the package setting is loading, missing or
+ * unreadable: only platform-core modules (and unclassified routes) stay
+ * available, so essential navigation, sign-in and settings remain reachable
+ * but no tiered module is exposed by default.
+ */
+export function isModuleEnabledWhenPackageUnavailable(module: string | null | undefined): boolean {
+  if (!module) return true;
+  const owners = PACKAGE_FEATURES.filter((f) => (f.modules as string[]).includes(module));
+  return owners.length > 0 && owners.every((f) => !f.tier);
+}

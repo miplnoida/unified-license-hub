@@ -23,7 +23,9 @@ import { cn } from '@/lib/utils';
 export default function SubscriptionPackageSettings() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'super_admin';
-  const { activePackage, overrides, updatedAt, isLoading } = useSubscriptionPackage();
+  const { activePackage: loadedPackage, overrides, updatedAt, isLoading, status, retry } = useSubscriptionPackage();
+  // Never seed the editor from a fallback: the editor renders only once the package is confirmed.
+  const activePackage: PackageTier = loadedPackage ?? 'PACKAGE_A';
   const qc = useQueryClient();
   const { toast } = useToast();
   const [pkg, setPkg] = useState<PackageTier>(activePackage);
@@ -66,6 +68,17 @@ export default function SubscriptionPackageSettings() {
   return (
     <DashboardLayout>
       <PageHeader title="Subscription Package" description="Choose the implemented package. Modules outside it are hidden from menus, Entity 360 and pages." />
+      {status !== 'ready' ? (
+        <Card><CardContent className="pt-6 space-y-2 text-sm" role={status === 'error' ? 'alert' : undefined}>
+          {status === 'loading' ? <p className="text-muted-foreground">Loading the current package…</p> : (
+            <>
+              <p className="font-medium">The current subscription package could not be read.</p>
+              <p className="text-muted-foreground">Package-controlled modules stay hidden until it is available.</p>
+              <Button variant="outline" size="sm" onClick={retry}>Try again</Button>
+            </>
+          )}
+        </CardContent></Card>
+      ) : (<>
       {!isSuperAdmin && <p className="text-sm text-muted-foreground mb-4">Only a super administrator can change the package.</p>}
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -129,6 +142,7 @@ export default function SubscriptionPackageSettings() {
           </CardContent>
         </Card>
       )}
+      </>)}
     </DashboardLayout>
   );
 }

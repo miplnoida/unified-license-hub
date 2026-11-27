@@ -1,12 +1,20 @@
 import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { isModuleEnabledFor, type FeatureOverrides, type PackageTier } from '@/lib/subscriptionPackages';
+import {
+  isModuleEnabledFor,
+  isModuleEnabledWhenPackageUnavailable,
+  type FeatureOverrides,
+  type PackageTier,
+} from '@/lib/subscriptionPackages';
 
 export const SUBSCRIPTION_PACKAGE_QUERY_KEY = ['system-subscription-package'];
 
+/** loading | error (unreadable or no package row) | ready */
+export type SubscriptionPackageStatus = 'loading' | 'error' | 'ready';
+
 export function useSubscriptionPackage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: SUBSCRIPTION_PACKAGE_QUERY_KEY,
     staleTime: 60_000,
     queryFn: async () => {
@@ -18,9 +26,19 @@ export function useSubscriptionPackage() {
       return data as { active_package: PackageTier; module_overrides: FeatureOverrides; updated_at: string } | null;
     },
   });
-  // Until loaded (or if unreadable), do not hide anything.
-  const pkg: PackageTier = data?.active_package ?? 'PACKAGE_C';
-  const overrides: FeatureOverrides = data?.module_overrides ?? {};
-  const isModuleEnabled = useCallback((m: string | null | undefined) => isModuleEnabledFor(m, pkg, overrides), [pkg, overrides]);
-  return { activePackage: pkg, overrides, updatedAt: data?.updated_at, isLoading, isModuleEnabled };
+  const status: SubscriptionPackageStatus = isLoading
+    ? 'loading'
+    : isError || !data?.active_package
+      ? 'error'
+      : 'ready';
+  const isReady = status === 'ready';
+  // Fail closed: while loading or unreadable, only platform-core modules are available.
+  const pkg: PackageTier | null = isReady ? data!.active_package : null;
+  const overrides: FeatureOverrides = (isReady && data?.module_overrides) || {};
+  const isModuleEnabled = useCallback(
+    (m: string | null | undefined) => (pkg ? isModuleEnabledFor(m, pkg, overrides) : isModuleEnabledWhenPackageUnavailable(m)),
+    [pkg, overrides],
+  );
+  const retry = useCallback(() => { void refetch(); }, [refetch]);
+  return { activePackage: pkg, overrides, updatedAt: data?.updated_at, isLoading, status, isReady, retry, isModuleEnabled };
 }

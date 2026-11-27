@@ -55,8 +55,11 @@ export function AppShell() {
   }, [location.pathname]);
 
   const sidebarWidth = isMobile ? '0px' : collapsed ? '4rem' : '16rem';
-  const { isModuleEnabled } = useSubscriptionPackage();
+  const { isModuleEnabled, status: packageStatus, retry: retryPackage } = useSubscriptionPackage();
   const packageBlocked = !isModuleEnabled(getModuleForPath(location.pathname));
+  // While the package setting is not confirmed, a gated page is held (not redirected).
+  const packagePending = packageBlocked && packageStatus === 'loading';
+  const packageUnavailable = packageBlocked && packageStatus === 'error';
 
   return (
     <AppShellContext.Provider value={true}>
@@ -73,7 +76,15 @@ export function AppShell() {
                 <ErrorBoundary context="RouteContent">
                   <Suspense fallback={<RouteContentSkeleton />}>
                     {/* keyed by path: restarts only the CONTENT transition */}
-                    {packageBlocked ? (
+                    {packagePending ? (
+                      <RouteContentSkeleton />
+                    ) : packageUnavailable ? (
+                      <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm space-y-2">
+                        <p className="font-medium">This module's availability could not be confirmed.</p>
+                        <p className="text-muted-foreground">The subscription package setting could not be read, so this page is withheld.</p>
+                        <button type="button" onClick={retryPackage} className="underline text-primary">Try again</button>
+                      </div>
+                    ) : packageBlocked ? (
                       <Navigate to="/dashboard" replace />
                     ) : (
                       <RouteContentTransition pathname={location.pathname}>

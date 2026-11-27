@@ -78,3 +78,9 @@
 - [x] Triage 5 monitoring findings: notification array fix deployed; 4 resolved stale with evidence
 - [ ] Prove panel-member notification with a fresh appeal referred to a panel (needs a new appeal via browser)
 - [ ] AML examinations-list `ended_at` — frozen (AML-CLOSE-08)
+
+## Phase 1 (2026-11-27)
+- [x] SEC-03 package settings fail closed (frontend)
+- [ ] SEC-09/10/11/12/13/18 backend fixes — blocked: backend functions auto-deploy; needs deployment approval
+- [ ] SEC-01 TRUNCATE revoke — blocked: database approval (.lovable/reviews/phase1-db-proposals.md)
+- [ ] SEC-02/04/05/06/07/14/15/16/17/19 — not investigated this pass

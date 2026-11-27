@@ -33,6 +33,12 @@ vi.mock('@/contexts/SiteSettingsContext', () => ({
   useSiteSettings: () => ({ branding: { site_name: 'Test', logo_url: '' } }),
 }));
 
+// Persona audit is about role visibility: use a confirmed Package C (all modules) setting.
+vi.mock('@/hooks/useSubscriptionPackage', async () => {
+  const { isModuleEnabledFor } = await vi.importActual<typeof import('@/lib/subscriptionPackages')>('@/lib/subscriptionPackages');
+  return { useSubscriptionPackage: () => ({ status: 'ready', isReady: true, isLoading: false, activePackage: 'PACKAGE_C', overrides: {}, retry: () => {},
+    isModuleEnabled: (m: string | null | undefined) => isModuleEnabledFor(m, 'PACKAGE_C', {}) }) };
+});
 vi.mock('@/hooks/use-mobile', () => ({ useIsMobile: () => false }));
 
 vi.mock('@/hooks/useEffectivePortalContext', () => ({
