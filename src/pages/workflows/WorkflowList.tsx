@@ -1016,17 +1016,17 @@ export default function WorkflowList() {
                                       </Button>
                                     )}
                                     {canConfigWorkflows && (
-                                      <Button variant="outline" size="sm" onClick={handleSaveAsTemplate} disabled={stepsLoading || !!stepsError || rolesLoading || !!rolesError}>
+                                      <Button data-rbac="workflow_management.manage_config" variant="outline" size="sm" onClick={handleSaveAsTemplate} disabled={stepsLoading || !!stepsError || rolesLoading || !!rolesError}>
                                         <BookmarkPlus className="h-3.5 w-3.5 mr-1" /> Save as Template
                                       </Button>
                                     )}
                                     {!canEditSteps ? null : !isEditingSteps ? (
-                                      <Button size="sm" onClick={() => setIsEditingSteps(true)}>
+                                      <Button data-rbac="workflow_management.edit" size="sm" onClick={() => setIsEditingSteps(true)}>
                                         <Pencil className="h-3.5 w-3.5 mr-1" /> Edit Steps
                                       </Button>
                                     ) : (
                                       <>
-                                        <Button size="sm" variant="outline" onClick={handleAddStep}>
+                                        <Button data-rbac="workflow_management.edit" size="sm" variant="outline" onClick={handleAddStep}>
                                           <Plus className="h-3.5 w-3.5 mr-1" /> Add Step
                                         </Button>
                                         <Button size="sm" onClick={() => setIsEditingSteps(false)}>
@@ -1442,7 +1442,7 @@ function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, isEdit
               {isEditing ? 'No steps yet — add your first approver' : 'No steps configured. Click "Edit Steps" to add one.'}
             </p>
             {isEditing && (
-              <Button variant="outline" size="sm" onClick={onAdd}>
+              <Button data-rbac="workflow_management.edit" variant="outline" size="sm" onClick={onAdd}>
                 <Plus className="h-3.5 w-3.5 mr-1" /> Add Step 1
               </Button>
             )}
@@ -1475,7 +1475,7 @@ function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, isEdit
         <>
           {isEditing && (
             <div className="flex justify-center py-1">
-              <Button variant="ghost" size="sm" onClick={onAdd} className="text-xs h-7">
+              <Button data-rbac="workflow_management.edit" variant="ghost" size="sm" onClick={onAdd} className="text-xs h-7">
                 <Plus className="h-3 w-3 mr-1" /> Add another step
               </Button>
             </div>

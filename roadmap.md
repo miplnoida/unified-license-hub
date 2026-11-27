@@ -82,7 +82,7 @@
 ## Phase 1 (2026-11-27)
 - [x] SEC-03 package settings fail closed (frontend)
 - [ ] SEC-09/10/11/12/13/18 backend fixes — blocked: backend functions auto-deploy; needs deployment approval
-- [ ] SEC-01 TRUNCATE revoke — blocked: database approval (.lovable/reviews/phase1-db-proposals.md)
+- [x] SEC-01 TRUNCATE revoke — blocked: database approval (.lovable/reviews/phase1-db-proposals.md)
 - [x] SEC-02/04/05/06/07/14/15/16/17/19 — investigated read-only (Phase 1A); proposals in phase1-db-proposals.md
 - [ ] Apply DB proposals SEC-01/02/04/05/06/07/14/15/16/19 — blocked: database approval
 - [ ] SEC-17 migration-ledger parity — blocked: ledger not readable from sandbox role
@@ -97,13 +97,13 @@
 - [ ] SEC-03 live browser check — not tested (needs signed-in session; no safe isolated mock)
 
 ## Security Remediation Batch 1 (approved 2026-11-27)
-- [ ] SEC-01 packages A/B/C prepared (no execution)
-- [ ] F01 Settings route uses configured permission
-- [ ] F02/F05 Master Configuration guards + error states
-- [ ] F03/F09 Workflow Designer guards + error states
-- [ ] F04 Form Builder save/import guards
-- [ ] F06 Regulator Management error states
-- [ ] F08 Role Management error states
-- [ ] F11 Compliance Audit Logs error states
-- [ ] Permission-decision proposals (access requests, receipts)
-- [ ] Regression vs e2e1017e2, lint on changed files, diff audit
+- [x] SEC-01 packages A/B/C prepared (no execution)
+- [x] F01 Settings route uses configured permission
+- [x] F02/F05 Master Configuration guards + error states
+- [x] F03/F09 Workflow Designer guards + error states
+- [x] F04 Form Builder save/import guards
+- [x] F06 Regulator Management error states
+- [x] F08 Role Management error states
+- [x] F11 Compliance Audit Logs error states
+- [x] Permission-decision proposals (access requests, receipts)
+- [x] Regression vs e2e1017e2, lint on changed files, diff audit

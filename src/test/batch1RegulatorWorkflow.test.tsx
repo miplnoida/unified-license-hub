@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- loose mocks for page-level tests */
 /** Security Remediation Batch 1 — Regulator Management error states and Workflow Designer guards. */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';

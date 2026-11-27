@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- loose mocks for page-level tests */
 /**
  * Security Remediation Batch 1 — frontend permission and error-state fixes.
  * Authorized and unauthorized paths, plus failed-read rendering.
