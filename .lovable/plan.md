@@ -39,3 +39,12 @@ Add a short ordered sequence to the roadmap, reusing the existing proposals: SEC
 ## Deliverables
 - Commit the tests, review documents and roadmap. Audit the diff to confirm there are no migration or function files, so committing deploys nothing.
 - Give a concise chat report, then stop and wait for Package A execution approval.
+
+## Approval conditions (2026-11-27)
+- Do all remaining verification in one execution cycle. Run the final full regression after every new test has been added.
+- Use current live privilege counts; never reuse earlier counts.
+- If scheduled-job definitions, backup status or point-in-time recovery cannot be verified, say so plainly as a limitation.
+- The rollback SQL must restore exactly the privileges Package A removes (one table/role pair per line), and nothing more.
+- Keep the full AML/CFT freeze boundary and every existing approval hold.
+- Do not implement the business-rule proposals. Do not expand scope or repeat earlier assessments.
+- Include the complete Package A execution and rollback SQL in the report, then stop before any SQL execution, database change, backend deployment or publishing.
