@@ -15,7 +15,10 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - name: Typecheck
-        run: bunx tsgo --noEmit
+        run: |
+          bunx tsc --noEmit -p tsconfig.app.json
+          bunx tsc --noEmit -p tsconfig.node.json
+          bunx tsc --noEmit -p tsconfig.aml-e2e.json
       - name: Lint
         run: bun run lint
       - name: Build
@@ -385,3 +388,14 @@ jobs:
 
       - name: Edge Function tests
         run: deno test --allow-net --allow-env --allow-read supabase/functions/
+
+
+  aml-authorization-evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: AML authorization evidence regression
+        run: node --test scripts/aml/authorization-evidence.test.mjs
